@@ -1,0 +1,17 @@
+# Example Home Assistant configuration for the S7 integration
+
+light:
+  - platform: s7
+    name: "Test Light"
+    address: "DB1.DBX0.0"
+
+switch:
+  - platform: s7
+    name: "Test Switch"
+    address: "DB1.DBX0.1"
+
+sensor:
+  - platform: s7
+    name: "Test Sensor"
+    address: "DB1.DBR2"
+    unit_of_measurement: "°C"

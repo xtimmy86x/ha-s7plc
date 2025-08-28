@@ -1,0 +1,8 @@
+{
+  "domain": "s7plc",
+  "name": "S7PLC",
+  "version": "0.1.0",
+  "documentation": "https://github.com/example/pys7tomqtt",
+  "requirements": [],
+  "codeowners": []
+}
