@@ -15,3 +15,8 @@ sensor:
     name: "Test Sensor"
     address: "DB1.DBR2"
     unit_of_measurement: "°C"
+    plc:
+       host: 192.168.1.100   # indirizzo IP del PLC
+       rack: 0
+       slot: 1
+       port: 102  
