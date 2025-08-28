@@ -7,7 +7,7 @@ from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity
 from homeassistant.const import CONF_NAME
 import homeassistant.helpers.config_validation as cv
 
-from plc_client import PlcClient
+from custom_component.s7plc.plc_client import PlcClient
 
 CONF_ADDRESS = "address"
 CONF_PLC = "plc"
