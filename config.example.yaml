@@ -3,20 +3,30 @@
 light:
   - platform: s7
     name: "Test Light"
-    address: "DB1.DBX0.0"
-
+    address: "DB58.DBX0.6"
+    plc:
+       host: 192.168.100.89   # indirizzo IP del PLC
+       rack: 0
+       slot: 1
+       port: 102  
+       
 switch:
   - platform: s7
     name: "Test Switch"
-    address: "DB1.DBX0.1"
+    address: "DB58.DBX0.7"
+    plc:
+       host: 192.168.100.89   # indirizzo IP del PLC
+       rack: 0
+       slot: 1
+       port: 102  
 
 sensor:
   - platform: s7
     name: "Test Sensor"
-    address: "DB1.DBR2"
+    address: "DB58.I2"
     unit_of_measurement: "°C"
     plc:
-       host: 192.168.1.100   # indirizzo IP del PLC
+       host: 192.168.100.89   # indirizzo IP del PLC
        rack: 0
        slot: 1
        port: 102  
