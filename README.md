@@ -6,7 +6,7 @@ This project provides a custom component that creates `light`, `switch` and `sen
 
 ## Installation
 
-Copy the `custom_components/s7` directory into your Home Assistant
+Copy the `custom_components/s7plc` directory into your Home Assistant
 configuration folder.
 
 ## Configuration
@@ -15,17 +15,17 @@ Add entries to `configuration.yaml` using the platforms:
 
 ```yaml
 light:
-  - platform: s7
+  - platform: s7plc
     name: "Test Light"
     address: "DB1.DBX0.0"
 
 switch:
-  - platform: s7
+  - platform: s7plc
     name: "Test Switch"
     address: "DB1.DBX0.1"
 
 sensor:
-  - platform: s7
+  - platform: s7plc
     name: "Test Sensor"
     address: "DB1.DBR2"
     unit_of_measurement: "°C"
