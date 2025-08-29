@@ -4,15 +4,29 @@ import threading
 import logging
 from typing import Dict, Tuple, Optional
 
+_LOGGER = logging.getLogger(__name__)
+
+# --- Import compatibile con python-snap7 1.x e 2.x
 try:
     import snap7
+    # util è presente sia in 1.x che 2.x
     from snap7.util import get_bool, get_int, get_dint, get_real, get_byte, get_word, get_dword
-    from snap7.types import Areas
-    import logging; logging.getLogger(__name__).warning("Snap7 import OK, version=%s", getattr(snap7, "__version__", "?"))
-except Exception:  # pragma: no cover
-    import logging; logging.getLogger(__name__).error("Snap7 import FAIL: %s", e, exc_info=True)
-    snap7 = None
-    Areas = None
+    try:
+        # python-snap7 1.x
+        from snap7.types import Areas  # type: ignore[attr-defined]
+    except Exception:
+        # python-snap7 2.x: definiamo le costanti a mano
+        class Areas:  # type: ignore[no-redef]
+            PE = 0x81
+            PA = 0x82
+            MK = 0x83
+            DB = 0x84
+            CT = 0x1C
+            TM = 0x1D
+        _LOGGER.warning("snap7.types.Areas non trovato: uso costanti fallback (compat v2.x).")
+except Exception as err:
+    _LOGGER.error("Import snap7 fallito: %s", err, exc_info=True)
+    snap7 = None  # type: ignore[assignment]
 
 _LOGGER = logging.getLogger(__name__)
 
