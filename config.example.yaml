@@ -1,7 +1,7 @@
 # Example Home Assistant configuration for the S7 integration
 
 light:
-  - platform: s7
+  - platform: s7plc
     name: "Test Light"
     address: "DB58.DBX0.6"
     plc:
@@ -11,7 +11,7 @@ light:
        port: 102  
        
 switch:
-  - platform: s7
+  - platform: s7plc
     name: "Test Switch"
     address: "DB58.DBX0.7"
     plc:
@@ -21,7 +21,7 @@ switch:
        port: 102  
 
 sensor:
-  - platform: s7
+  - platform: s7plc
     name: "Test Sensor"
     address: "DB58.I2"
     unit_of_measurement: "°C"

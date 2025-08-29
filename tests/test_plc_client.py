@@ -1,10 +1,15 @@
+import os
 import struct
+import sys
 import unittest
 
-import pys7tomqtt.plc_client as pc
+# Ensure the integration package is importable
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import custom_components.s7plc.plc_client as pc
 pc.snap7 = None
 
-from pys7tomqtt.plc_client import PlcClient
+from custom_components.s7plc.plc_client import PlcClient
 
 
 class FakeSnap7Client:
@@ -56,7 +61,7 @@ class PlcClientReadAllTest(unittest.TestCase):
 
 class PlcClientWriteItemTest(unittest.TestCase):
     def test_write_item_translates_and_encodes(self):
-        import  pys7tomqtt.plc_client as pc
+        import custom_components.s7plc.plc_client as pc
 
         expected_area = pc.snap7.type.Areas.DB if pc.snap7 is not None else 0
         cases = [
@@ -81,7 +86,7 @@ class PlcClientWriteItemTest(unittest.TestCase):
 
 class PlcClientDirectAccessTest(unittest.TestCase):
     def test_write_and_read_address(self):
-        import pys7tomqtt.plc_client as pc
+        import custom_components.s7plc.plc_client as pc
 
         expected_area = pc.snap7.type.Areas.DB if pc.snap7 is not None else 0
         client = FakeSnap7WriteClient()
