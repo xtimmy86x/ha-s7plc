@@ -7,8 +7,10 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import (
     PLATFORM_SCHEMA,
     LightEntity,
-    ColorMode,          # <— importa ColorMode
+    ColorMode,
+    LightEntityFeature,   # <--- importa l'enum
 )
+
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
@@ -55,8 +57,6 @@ class S7Light(CoordinatorEntity, LightEntity):
         # >>>> fix richiesto da HA: dichiara i color modes supportati
         self._attr_supported_color_modes = {ColorMode.ONOFF}
         self._attr_color_mode = ColorMode.ONOFF
-        # (nessuna feature extra)
-        self._attr_supported_features = 0
 
     @property
     def is_on(self) -> bool | None:
