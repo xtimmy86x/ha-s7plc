@@ -8,7 +8,9 @@ try:
     import snap7
     from snap7.util import get_bool, get_int, get_dint, get_real, get_byte, get_word, get_dword
     from snap7.types import Areas
+    import logging; logging.getLogger(__name__).warning("Snap7 import OK, version=%s", getattr(snap7, "__version__", "?"))
 except Exception:  # pragma: no cover
+    import logging; logging.getLogger(__name__).error("Snap7 import FAIL: %s", e, exc_info=True)
     snap7 = None
     Areas = None
 

@@ -9,7 +9,6 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
 from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
