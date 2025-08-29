@@ -1,69 +1,64 @@
-"""Light platform for the S7 integration."""
-
 from __future__ import annotations
 
+import logging
 import voluptuous as vol
-from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity
-from homeassistant.const import CONF_NAME
 import homeassistant.helpers.config_validation as cv
 
-from . import DOMAIN, get_plc
-from .plc_client import PlcClient
+from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import DiscoveryInfoType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import DOMAIN
+_LOGGER = logging.getLogger(__name__)
 
 CONF_ADDRESS = "address"
-CONF_PLC = "plc"
-DEFAULT_NAME = "S7 Light"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_ADDRESS): cv.string,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Optional(CONF_PLC, default={}): dict,
+        vol.Optional(CONF_NAME, default="S7 Light"): cv.string,
     }
 )
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up S7 light platform."""
-    plc = get_plc(hass, config.get(CONF_PLC, {}))
-    async_add_entities([S7Light(config[CONF_NAME], config[CONF_ADDRESS], plc)], True)
+
+async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None):
+    client = hass.data[DOMAIN]["client"]
+    coordinator = hass.data[DOMAIN]["coordinator"]
+
+    name = config.get(CONF_NAME)
+    address = config[CONF_ADDRESS]
+
+    topic = f"light:{address}"
+    await hass.async_add_executor_job(client.add_item, topic, address)
+
+    ent = S7Light(coordinator, client, name, topic, address)
+    async_add_entities([ent])
 
 
-class S7Light(LightEntity):
-    """Representation of an S7 light entity."""
+class S7Light(CoordinatorEntity, LightEntity):
+    _attr_should_poll = False
 
-    def __init__(self, name: str, address: str, plc: PlcClient):
-        self._name = name
+    def __init__(self, coordinator, client, name: str, topic: str, address: str):
+        super().__init__(coordinator)
+        self._client = client
+        self._attr_name = name
+        self._topic = topic
         self._address = address
-        self._plc = plc
-        self._state = False
-        self._plc_id = plc.key
+        self._attr_unique_id = f"{topic}"
 
     @property
-    def name(self) -> str:
-        return self._name
+    def is_on(self) -> bool | None:
+        val = (self.coordinator.data or {}).get(self._topic)
+        if val is None:
+            return None
+        return bool(val)
 
-    @property
-    def is_on(self) -> bool:
-        return self._state
+    async def async_turn_on(self, **kwargs):
+        await self.hass.async_add_executor_job(self._client.write_bool, self._address, True)
+        await self.coordinator.async_request_refresh()
 
-    @property
-    def device_info(self):
-        return {"identifiers": {(DOMAIN, self._plc_id)}}
-
-    async def async_turn_on(self, **kwargs) -> None:
-        await self.hass.async_add_executor_job(
-            self._plc.write_address, self._address, True
-        )
-        self._state = True
-
-    async def async_turn_off(self, **kwargs) -> None:
-        await self.hass.async_add_executor_job(
-            self._plc.write_address, self._address, False
-        )
-        self._state = False
-
-    async def async_update(self) -> None:
-        value = await self.hass.async_add_executor_job(
-            self._plc.read_address, self._address
-        )
-        self._state = bool(value)
+    async def async_turn_off(self, **kwargs):
+        await self.hass.async_add_executor_job(self._client.write_bool, self._address, False)
+        await self.coordinator.async_request_refresh()

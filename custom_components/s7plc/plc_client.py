@@ -1,194 +1,204 @@
+from __future__ import annotations
+import re
+import threading
 import logging
-import struct
-from dataclasses import dataclass
-from typing import Dict, Any
-from .utils import Utils
+from typing import Dict, Tuple, Optional
 
 try:
     import snap7
-except Exception:  # pragma: no cover - dependency may be missing
+    from snap7.util import get_bool, get_int, get_dint, get_real, get_byte, get_word, get_dword
+    from snap7.types import Areas
+except Exception:  # pragma: no cover
     snap7 = None
+    Areas = None
 
-@dataclass
-class ParsedAddress:
-    address: str
-    db: int
-    dtype: str
-    byte: int
-    bit: int
+_LOGGER = logging.getLogger(__name__)
+
+_ADDR_RE = re.compile(
+    r"""
+    ^
+    DB(?P<db>\d+)
+    \.
+    (?:
+        (?P<long>(?:DBX|DBB|DBW|DBD))(?P<long_byte>\d+)(?:\.(?P<long_bit>\d))?
+        |
+        (?P<short>[IBWD])(?P<short_byte>\d+)(?:\.(?P<short_bit>\d))?
+    )
+    $
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+TYPE_BIT = "bit"
+TYPE_BYTE = "byte"
+TYPE_WORD = "word"
+TYPE_DWORD = "dword"
+TYPE_REAL = "real"  # alias dword come float
+
 
 class PlcClient:
-    """Minimal wrapper around python-snap7.
+    def __init__(self, host: str, rack: int = 0, slot: int = 1, port: int = 102):
+        self._host = host
+        self._rack = rack
+        self._slot = slot
+        self._port = port
+        self._client = None
+        self._lock = threading.RLock()
+        self._items: Dict[str, Dict] = {}   # topic -> {"address": "...", "last": value}
+        self._connected = False
 
-    The implementation stores PLC addresses associated with MQTT topics.  When
-    running without the real `snap7` package a simple in-memory stub is used so
-    that unit tests can exercise the higher level logic without requiring a
-    PLC connection.
-    """
-
-    def __init__(self, config: dict, client=None):
-        self._client = client
-        self._items: Dict[str, ParsedAddress] = {}
-        # Store a simple identifier so entities can reference the same device
-        self.key = (
-            config.get("host"),
-            config.get("rack", 0),
-            config.get("slot", 2),
-            config.get("port", 102),
-        )
-        if self._client is None and snap7 is not None:
-            self._client = snap7.client.Client()
-            host, rack, slot, port = self.key
-            self._client.connect(host, rack, slot, port)
-            logging.info("Connected to PLC at %s:%d", host, port)
-        elif self._client is None:
-            logging.warning("snap7 package not available, running in stub mode")
-
-    def add_item(self, topic: str, address: ParsedAddress | str) -> None:
-        if isinstance(address, ParsedAddress):
-            self._items[topic] = address
-            return
-        try:
-            db, dtype, byte, bit = Utils()._parse_address(address)
-            self._items[topic] = ParsedAddress(address, db, dtype, byte, bit)
-        except ValueError:
-            # Store placeholder; parsing will be attempted when used
-            self._items[topic] = ParsedAddress(address, 0, "", 0, 0)
-
-    def write_item(self, topic: str, value: Any) -> None:
-        """Write a single item to the PLC.
-
-        The method always stores the value in an in-memory dictionary so that
-        :meth:`read_all` can fall back to it when the real ``snap7`` package is
-        unavailable (e.g. during tests).  When a snap7 client is present the
-        address for the given topic is translated and forwarded to
-        ``write_area``.
-        """
-
-        if not hasattr(self, "_written"):
-            self._written = {}
-        self._written[topic] = value
-
-        if self._client is None:
-            return
-
-        item = self._items.get(topic)
-        if item is None:  # pragma: no cover - misconfiguration
-            return
-
-        try:
-            if not item.dtype:
-                db, dtype, byte, bit = Utils()._parse_address(item.address)
-                item.db, item.dtype, item.byte, item.bit = db, dtype, byte, bit
-            db, dtype, byte, bit = item.db, item.dtype, item.byte, item.bit
-            dt = dtype
-
-            area = snap7.type.Areas.DB if snap7 is not None else 0
-
-            if dt == "X":
-                # Leggi il byte esistente per preservare gli altri bit
-                existing_byte = 0
-                try:
-                    current = self._client.read_area(area, db, byte, 1)
-                    if current and len(current) >= 1:
-                        existing_byte = current[0]
-                except Exception:
-                    logging.debug("Impossibile leggere il byte esistente per %s, procedo con 0.", item.address)
-                if not (0 <= bit <= 7):
-                    raise ValueError(f"bit fuori range (0..7): {bit}")
-                if value:
-                    new_byte = existing_byte | (1 << bit)
-                else:
-                    new_byte = existing_byte & ~(1 << bit)
-                raw = bytes([new_byte])
-            elif dt == "B":
-                raw = int(value).to_bytes(1, byteorder="big", signed=False)
-            elif dt in {"W", "I"}:
-                # INT16 signed
-                raw = int(value).to_bytes(2, byteorder="big", signed=True)
-            elif dt == "D":
-                # DWORD unsigned 32 or float when value is float
-                if isinstance(value, float):
-                    raw = struct.pack(">f", float(value))
-                else:
-                    raw = int(value).to_bytes(4, byteorder="big", signed=False)
-            elif dt == "R":
-                # REAL float32
-                raw = struct.pack(">f", float(value))
-            else:
-                raise ValueError(f"Tipo non supportato: {dtype}")
-            self._client.write_area(area, db, byte, raw)
-        except Exception:  # pragma: no cover - connection/parsing errors
-            logging.exception("Failed to write address %s", item.address)
-
-    def write_address(self, address: str, value: Any) -> None:
-        """Write directly to a PLC address.
-
-        This helper mirrors :meth:`write_item` but accepts a raw S7
-        address string instead of a previously registered topic.  It is used by
-        the Home Assistant entities to control values without going through
-        MQTT.
-        """
-
-        temp_topic = f"_direct_write_{address}"
-        self.add_item(temp_topic, address)
-        self.write_item(temp_topic, value)
-
-    def read_all(self) -> Dict[str, Any]:
-        """Read all configured items from the PLC.
-
-        Each stored address is expected to use the S7 DB notation, e.g.::
-
-            DB1.DBX0.0   # bool
-            DB1.DBW2     # 16-bit int (signed)
-            DB1.DBD4     # 32-bit dword (unsigned)  or  DB1.DBR4 / DB1.R4 for REAL
-
-        When the snap7 client is not available the method falls back to the
-        in-memory values written via :meth:`write_item` so that tests can run
-        without a real PLC connection.
-        """
-
-        result: Dict[str, Any] = {}
-        for topic, item in self._items.items():
+    # -------- Connessione
+    def connect(self):
+        if snap7 is None:
+            raise RuntimeError("python-snap7 non è installato")
+        with self._lock:
             if self._client is None:
-                # Provide previously written values if available, otherwise 0.
-                result[topic] = getattr(self, "_written", {}).get(topic, 0)
-                continue
+                self._client = snap7.client.Client()
+            if not self._connected:
+                self._client.connect(self._host, self._rack, self._slot, self._port)
+                self._connected = True
+                _LOGGER.info("S7 client connected to %s rack=%s slot=%s", self._host, self._rack, self._slot)
 
-            try:
-                if not item.dtype:
-                    db, dtype, byte, bit = Utils()._parse_address(item.address)
-                    item.db, item.dtype, item.byte, item.bit = db, dtype, byte, bit
-                db, dtype, byte, bit = item.db, item.dtype, item.byte, item.bit
-                size = {
-                    "X": 1,  # indirizzabile a byte
-                    "B": 1,
-                    "W": 2,  # word 16-bit
-                    "I": 2,  # int16 signed
-                    "D": 4,  # dword 32-bit unsigned
-                    "R": 4,  # real 32-bit
-                }[dtype]
-                area = snap7.type.Areas.DB if snap7 is not None else 0
-                raw = self._client.read_area(area, db, byte, size)
+    def _ensure(self):
+        if not self._connected or self._client is None or not self._client.get_connected():
+            _LOGGER.warning("S7 reconnecting...")
+            self.connect()
 
-                if dtype == "X":
-                    result[topic] = bool(raw[0] & (1 << bit))
-                elif dtype == "B":
-                    result[topic] = raw[0]
-                elif dtype in {"W", "I"}:
-                    result[topic] = int.from_bytes(raw, byteorder="big", signed=True)
-                elif dtype == "D":
-                    result[topic] = int.from_bytes(raw, byteorder="big", signed=False)
-                elif dtype == "R":
-                    result[topic] = struct.unpack(">f", raw)[0]
-                else:
-                    raise ValueError(f"Tipo non supportato: {dtype}")
-            except Exception:  # pragma: no cover - connection/parsing errors
-                logging.exception("Failed to read address %s", item.address)
-        return result
-    
-    def read_address(self, address: str) -> Any:
-        """Read a single PLC address and return its value."""
-        temp_topic = f"_direct_read_{address}"
-        self.add_item(temp_topic, address)
-        return self.read_all().get(temp_topic)
+    # -------- Registrazione item (opzionale: usato se vuoi popolare da entità)
+    def add_item(self, topic: str, address: str):
+        with self._lock:
+            self._items[topic] = {"address": address, "last": None}
+
+    # -------- Parsing indirizzi
+    def _parse(self, address: str) -> Tuple[int, int, Optional[int], str]:
+        """
+        Ritorna: (db, byte_index, bit_index_or_None, type)
+        Supporta:
+          - DB58.DBX2.3 (bit)
+          - DB58.DBB2    (byte)
+          - DB58.DBW2    (word)
+          - DB58.DBD2    (dword/real)
+          - DB58.I2[.3]  (bit, compat: "I" ~ X)
+          - DB58.B2      (byte), DB58.W2 (word), DB58.D2 (dword)
+        """
+        m = _ADDR_RE.match(address.replace(" ", ""))
+        if not m:
+            raise ValueError(f"Indirizzo non valido: {address}")
+
+        db = int(m.group("db"))
+        ty = None
+        byte = None
+        bit = None
+
+        if m.group("long"):
+            long_t = m.group("long").upper()
+            byte = int(m.group("long_byte"))
+            bit = int(m.group("long_bit")) if m.group("long_bit") else None
+            if long_t == "DBX":
+                ty = TYPE_BIT
+            elif long_t == "DBB":
+                ty = TYPE_BYTE
+            elif long_t == "DBW":
+                ty = TYPE_WORD
+            elif long_t == "DBD":
+                ty = TYPE_DWORD
+        else:
+            s = m.group("short").upper()
+            byte = int(m.group("short_byte"))
+            bit = int(m.group("short_bit")) if m.group("short_bit") else None
+            if s == "I":
+                ty = TYPE_BIT
+            elif s == "B":
+                ty = TYPE_BYTE
+            elif s == "W":
+                ty = TYPE_WORD
+            elif s == "D":
+                ty = TYPE_DWORD
+
+        return db, byte, bit, ty
+
+    # -------- Letture
+    def read_all(self) -> Dict[str, object]:
+        """Legge tutti gli item registrati in modo atomico e restituisce un dict topic->value."""
+        with self._lock:
+            self._ensure()
+            items = list(self._items.items())
+
+        results: Dict[str, object] = {}
+
+        with self._lock:
+            for topic, meta in items:
+                addr = meta["address"]
+                try:
+                    val = self._read_one(addr)
+                    results[topic] = val
+                    self._items[topic]["last"] = val
+                except Exception as e:
+                    _LOGGER.error("Failed to read address %s", addr, exc_info=True)
+                    results[topic] = meta.get("last")
+
+        return results
+
+    def _read_one(self, address: str):
+        db, byte, bit, ty = self._parse(address)
+        area = Areas.DB
+        # calcolo size in bytes per read_area
+        size = 1
+        if ty == TYPE_BYTE:
+            size = 1
+        elif ty == TYPE_WORD:
+            size = 2
+        elif ty in (TYPE_DWORD, TYPE_REAL):
+            size = 4
+        elif ty == TYPE_BIT:
+            size = 1
+        start = byte
+
+        # una sola read alla volta (protetta dal lock a monte)
+        raw = self._client.read_area(area, db, start, size)
+
+        if ty == TYPE_BIT:
+            bit_index = 0 if bit is None else bit
+            return bool(get_bool(raw, 0, bit_index))
+        if ty == TYPE_BYTE:
+            return int(get_byte(raw, 0))
+        if ty == TYPE_WORD:
+            return int(get_word(raw, 0))
+        if ty == TYPE_DWORD:
+            return int(get_dword(raw, 0))
+        # opzionale: real
+        try:
+            return float(get_real(raw, 0))
+        except Exception:
+            return int.from_bytes(raw, "big")
+
+    # -------- Scritture
+    def write_bool(self, address: str, value: bool):
+        db, byte, bit, ty = self._parse(address)
+        if ty != TYPE_BIT:
+            raise ValueError(f"write_bool su {address}: non è un bit")
+        with self._lock:
+            self._ensure()
+            # leggere il byte, modificare il bit, scrivere il byte
+            raw = self._client.read_area(Areas.DB, db, byte, 1)
+            b = bytearray(raw)
+            mask = 1 << (bit or 0)
+            if value:
+                b[0] |= mask
+            else:
+                b[0] &= (~mask) & 0xFF
+            self._client.write_area(Areas.DB, db, byte, bytes(b))
+            # aggiorna cache se presente
+            for t, meta in self._items.items():
+                if meta["address"].strip().upper() == address.strip().upper():
+                    meta["last"] = bool(value)
+
+    # helper generico (se serve in futuro)
+    def write_byte(self, address: str, value: int):
+        db, byte, bit, ty = self._parse(address)
+        if ty != TYPE_BYTE:
+            raise ValueError("Non è un byte")
+        value = max(0, min(255, int(value)))
+        with self._lock:
+            self._ensure()
+            self._client.write_area(Areas.DB, db, byte, value.to_bytes(1, "big"))
