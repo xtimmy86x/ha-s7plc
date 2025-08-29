@@ -12,7 +12,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
-    DOMAIN, PLATFORMS, CONF_HOST, CONF_RACK, CONF_SLOT, CONF_PORT, CONF_SCAN_INTERVAL,
+    DOMAIN, CONF_HOST, CONF_RACK, CONF_SLOT, CONF_PORT, CONF_SCAN_INTERVAL,
     DEFAULT_PORT, DEFAULT_RACK, DEFAULT_SLOT, DEFAULT_SCAN_INTERVAL
 )
 from .plc_client import PlcClient
@@ -34,9 +34,8 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Setup via YAML."""
+    """Setup via YAML. Prepara client e coordinator, senza caricare piattaforme manualmente."""
     if DOMAIN not in config:
         return True
 
@@ -51,7 +50,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     client = PlcClient(host=host, rack=rack, slot=slot, port=port)
     await hass.async_add_executor_job(client.connect)
 
-    # Coordinator: un unico poll periodico -> read_all() in executor
     async def _async_update():
         return await hass.async_add_executor_job(client.read_all)
 
@@ -63,15 +61,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         update_interval=timedelta(seconds=scan_s),
     )
 
-    # primo fetch per popolarsi
-    await coordinator.async_config_entry_first_refresh()
+    # Primo refresh (non config entry): usa async_refresh()
+    await coordinator.async_refresh()
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN]["client"] = client
     hass.data[DOMAIN]["coordinator"] = coordinator
 
-    # Carica le piattaforme dichiarate nel configuration.yaml
-    for platform in PLATFORMS:
-        hass.helpers.discovery.load_platform(platform, DOMAIN, {}, config)
-
+    # IMPORTANTE: niente discovery manuale.
+    # Le piattaforme 'sensor/switch/light' verranno caricate da configuration.yaml:
+    #   sensor:
+    #     - platform: s7plc
+    #       ...
     return True

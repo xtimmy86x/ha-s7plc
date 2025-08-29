@@ -4,11 +4,16 @@ import logging
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 
-from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity
+from homeassistant.components.light import (
+    PLATFORM_SCHEMA,
+    LightEntity,
+    ColorMode,          # <— importa ColorMode
+)
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,12 +52,23 @@ class S7Light(CoordinatorEntity, LightEntity):
         self._address = address
         self._attr_unique_id = f"{topic}"
 
+        # >>>> fix richiesto da HA: dichiara i color modes supportati
+        self._attr_supported_color_modes = {ColorMode.ONOFF}
+        self._attr_color_mode = ColorMode.ONOFF
+        # (nessuna feature extra)
+        self._attr_supported_features = 0
+
     @property
     def is_on(self) -> bool | None:
         val = (self.coordinator.data or {}).get(self._topic)
         if val is None:
             return None
         return bool(val)
+
+    @property
+    def color_mode(self) -> ColorMode | None:
+        # fisso: è una luce on/off
+        return ColorMode.ONOFF
 
     async def async_turn_on(self, **kwargs):
         await self.hass.async_add_executor_job(self._client.write_bool, self._address, True)

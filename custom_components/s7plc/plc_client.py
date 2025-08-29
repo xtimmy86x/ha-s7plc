@@ -2,6 +2,7 @@ from __future__ import annotations
 import re
 import threading
 import logging
+from enum import IntEnum
 from typing import Dict, Tuple, Optional
 
 _LOGGER = logging.getLogger(__name__)
@@ -9,48 +10,75 @@ _LOGGER = logging.getLogger(__name__)
 # --- Import compatibile con python-snap7 1.x e 2.x
 try:
     import snap7
-    # util è presente sia in 1.x che 2.x
+    # util ok su 1.x e 2.x
     from snap7.util import get_bool, get_int, get_dint, get_real, get_byte, get_word, get_dword
     try:
-        # python-snap7 1.x
-        from snap7.types import Areas  # type: ignore[attr-defined]
+        # python-snap7 2.x: Area sta in snap7.common
+        from snap7.common import Area as Areas  # type: ignore[attr-defined]
     except Exception:
-        # python-snap7 2.x: definiamo le costanti a mano
-        class Areas:  # type: ignore[no-redef]
-            PE = 0x81
-            PA = 0x82
-            MK = 0x83
-            DB = 0x84
-            CT = 0x1C
-            TM = 0x1D
-        _LOGGER.warning("snap7.types.Areas non trovato: uso costanti fallback (compat v2.x).")
+        try:
+            # python-snap7 1.x: Areas sta in snap7.types
+            from snap7.types import Areas  # type: ignore[attr-defined]
+        except Exception:
+            # Fallback: definiamo una IntEnum compatibile (ha .name)
+            class Areas(IntEnum):  # type: ignore[no-redef]
+                PE = 0x81
+                PA = 0x82
+                MK = 0x83
+                DB = 0x84
+                CT = 0x1C
+                TM = 0x1D
+            _LOGGER.warning("Areas non trovato in snap7: uso fallback IntEnum (compat).")
 except Exception as err:
     _LOGGER.error("Import snap7 fallito: %s", err, exc_info=True)
     snap7 = None  # type: ignore[assignment]
 
 _LOGGER = logging.getLogger(__name__)
 
+# --- tipi supportati
+TYPE_BIT   = "bit"     # BOOL
+TYPE_BYTE  = "byte"    # 8-bit unsigned
+TYPE_WORD  = "word"    # 16-bit unsigned
+TYPE_DWORD = "dword"   # 32-bit unsigned
+TYPE_INT16 = "int16"   # 16-bit signed (INT)
+TYPE_INT32 = "int32"   # 32-bit signed (DINT)
+TYPE_REAL  = "real"    # 32-bit float (REAL)
+
+# Accetta: DBX/DBB/DBW/DBD, X/B/W/D, BOOL/BYTE/WORD/DWORD, INT/I, DINT/DI, REAL/FLOAT/R/F
 _ADDR_RE = re.compile(
     r"""
     ^
     DB(?P<db>\d+)
     \.
-    (?:
-        (?P<long>(?:DBX|DBB|DBW|DBD))(?P<long_byte>\d+)(?:\.(?P<long_bit>\d))?
-        |
-        (?P<short>[IBWD])(?P<short_byte>\d+)(?:\.(?P<short_bit>\d))?
-    )
+    (?P<tok>[A-Za-z]+)
+    (?P<byte>\d+)
+    (?:\.(?P<bit>\d+))?
     $
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
-TYPE_BIT = "bit"
-TYPE_BYTE = "byte"
-TYPE_WORD = "word"
-TYPE_DWORD = "dword"
-TYPE_REAL = "real"  # alias dword come float
-
+def _norm_token(tok: str) -> str:
+    t = tok.upper()
+    # long form
+    if t in ("DBX", "X", "BOOL", "BIT"):
+        return TYPE_BIT
+    if t in ("DBB", "B", "BYTE"):
+        return TYPE_BYTE
+    if t in ("DBW", "W", "WORD"):
+        return TYPE_WORD
+    if t in ("DBD", "D", "DWORD"):
+        return TYPE_DWORD
+    # explicit signed integers
+    if t in ("INT", "I"):
+        return TYPE_INT16
+    if t in ("DINT", "DI"):
+        return TYPE_INT32
+    # floats
+    if t in ("REAL", "FLOAT", "R", "F"):
+        return TYPE_REAL
+    # fallback: prova a interpretare come le long form note
+    raise ValueError(f"Token tipo non valido: {tok}")
 
 class PlcClient:
     def __init__(self, host: str, rack: int = 0, slot: int = 1, port: int = 102):
@@ -89,50 +117,24 @@ class PlcClient:
     def _parse(self, address: str) -> Tuple[int, int, Optional[int], str]:
         """
         Ritorna: (db, byte_index, bit_index_or_None, type)
-        Supporta:
-          - DB58.DBX2.3 (bit)
-          - DB58.DBB2    (byte)
-          - DB58.DBW2    (word)
-          - DB58.DBD2    (dword/real)
-          - DB58.I2[.3]  (bit, compat: "I" ~ X)
-          - DB58.B2      (byte), DB58.W2 (word), DB58.D2 (dword)
+        Esempi validi:
+        DB58.DBX2.3 / DB58.X2.3 / DB58.BOOL2.3      -> bit
+        DB60.DBB0 / DB60.B0 / DB60.BYTE0            -> byte
+        DB60.DBW0 / DB60.W0 / DB60.WORD0            -> word (u16)
+        DB60.DBD0 / DB60.D0 / DB60.DWORD0           -> dword (u32)
+        DB60.INT0 / DB60.I0                          -> int16 (s16)
+        DB60.DINT0 / DB60.DI0                        -> int32 (s32)
+        DB60.REAL0 / DB60.FLOAT0 / DB60.R0 / DB60.F0 -> real (f32)
         """
         m = _ADDR_RE.match(address.replace(" ", ""))
         if not m:
             raise ValueError(f"Indirizzo non valido: {address}")
-
         db = int(m.group("db"))
-        ty = None
-        byte = None
-        bit = None
-
-        if m.group("long"):
-            long_t = m.group("long").upper()
-            byte = int(m.group("long_byte"))
-            bit = int(m.group("long_bit")) if m.group("long_bit") else None
-            if long_t == "DBX":
-                ty = TYPE_BIT
-            elif long_t == "DBB":
-                ty = TYPE_BYTE
-            elif long_t == "DBW":
-                ty = TYPE_WORD
-            elif long_t == "DBD":
-                ty = TYPE_DWORD
-        else:
-            s = m.group("short").upper()
-            byte = int(m.group("short_byte"))
-            bit = int(m.group("short_bit")) if m.group("short_bit") else None
-            if s == "I":
-                ty = TYPE_BIT
-            elif s == "B":
-                ty = TYPE_BYTE
-            elif s == "W":
-                ty = TYPE_WORD
-            elif s == "D":
-                ty = TYPE_DWORD
-
+        byte = int(m.group("byte"))
+        bit = int(m.group("bit")) if m.group("bit") is not None else None
+        ty = _norm_token(m.group("tok"))
         return db, byte, bit, ty
-
+    
     # -------- Letture
     def read_all(self) -> Dict[str, object]:
         """Legge tutti gli item registrati in modo atomico e restituisce un dict topic->value."""
@@ -158,35 +160,42 @@ class PlcClient:
     def _read_one(self, address: str):
         db, byte, bit, ty = self._parse(address)
         area = Areas.DB
-        # calcolo size in bytes per read_area
-        size = 1
-        if ty == TYPE_BYTE:
-            size = 1
-        elif ty == TYPE_WORD:
-            size = 2
-        elif ty in (TYPE_DWORD, TYPE_REAL):
-            size = 4
-        elif ty == TYPE_BIT:
-            size = 1
-        start = byte
 
-        # una sola read alla volta (protetta dal lock a monte)
+        # calcola size
+        if ty == TYPE_BIT:
+            size = 1
+        elif ty in (TYPE_BYTE,):
+            size = 1
+        elif ty in (TYPE_WORD, TYPE_INT16):
+            size = 2
+        elif ty in (TYPE_DWORD, TYPE_INT32, TYPE_REAL):
+            size = 4
+        else:
+            size = 1
+
+        start = byte
         raw = self._client.read_area(area, db, start, size)
 
         if ty == TYPE_BIT:
-            bit_index = 0 if bit is None else bit
-            return bool(get_bool(raw, 0, bit_index))
+            bi = 0 if bit is None else bit
+            val = bool(get_bool(raw, 0, bi))
+            _LOGGER.debug("Read %s -> raw=%s bit=%s val=%s", address, list(raw), bi, val)
+            return val
         if ty == TYPE_BYTE:
             return int(get_byte(raw, 0))
         if ty == TYPE_WORD:
-            return int(get_word(raw, 0))
+            return int(get_word(raw, 0))          # u16
+        if ty == TYPE_INT16:
+            return int(get_int(raw, 0))           # s16
         if ty == TYPE_DWORD:
-            return int(get_dword(raw, 0))
-        # opzionale: real
-        try:
-            return float(get_real(raw, 0))
-        except Exception:
-            return int.from_bytes(raw, "big")
+            return int(get_dword(raw, 0))         # u32
+        if ty == TYPE_INT32:
+            return int(get_dint(raw, 0))          # s32
+        if ty == TYPE_REAL:
+            return float(get_real(raw, 0))        # f32
+
+        # fallback difensivo (non dovremmo arrivarci)
+        return int.from_bytes(raw, "big")
 
     # -------- Scritture
     def write_bool(self, address: str, value: bool):
