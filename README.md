@@ -14,6 +14,12 @@ configuration folder.
 Add entries to `configuration.yaml` using the platforms:
 
 ```yaml
+s7plc:
+    host: 192.168.100.89   # PLC IP Address
+    rack: 0
+    slot: 1
+    port: 102 
+
 light:
   - platform: s7plc
     name: "Test Light"
@@ -23,6 +29,11 @@ switch:
   - platform: s7plc
     name: "Test Switch"
     address: "DB1.DBX0.1"
+
+binary_sensor:
+  - platform: s7plc
+    name: "Test Binary Sensor"
+    address: "DB1.DBX0.2"
 
 sensor:
   - platform: s7plc

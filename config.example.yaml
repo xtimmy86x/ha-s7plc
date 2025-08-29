@@ -8,14 +8,20 @@ s7plc:
 
 sensor:
   - platform: s7plc
-    name: Ingresso Allarme
-    address: "DB58.DBX2.0"  # bit
-    device_class: door
-  - platform: s7plc
     name: Temperatura
-    address: "DB60.DBD0"    # real/float
+    address: "DB60.DBD0"    # real/float/int
+
+binary_sensor:
+  - platform: s7plc
+    name: "Test Binary Sensor"
+    address: "DB58.DBX0.4" # bit
 
 switch:
   - platform: s7plc
     name: Uscita Sirena
     address: "DB20.DBX0.3"
+
+light:
+  - platform: s7plc
+    name: Uscita Sirena
+    address: "DB20.DBX0.5"
