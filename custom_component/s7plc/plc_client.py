@@ -29,11 +29,18 @@ class PlcClient:
     def __init__(self, config: dict, client=None):
         self._client = client
         self._items: Dict[str, ParsedAddress] = {}
+        # Store a simple identifier so entities can reference the same device
+        self.key = (
+            config.get("host"),
+            config.get("rack", 0),
+            config.get("slot", 2),
+            config.get("port", 102),
+        )
         if self._client is None and snap7 is not None:
             self._client = snap7.client.Client()
-            port = config.get("port", 102)
-            self._client.connect(config.get("host"), config.get("rack", 0), config.get("slot", 2), port)
-            logging.info("Connected to PLC at %s:%d", config.get("host"), port)
+            host, rack, slot, port = self.key
+            self._client.connect(host, rack, slot, port)
+            logging.info("Connected to PLC at %s:%d", host, port)
         elif self._client is None:
             logging.warning("snap7 package not available, running in stub mode")
 

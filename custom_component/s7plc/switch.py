@@ -7,7 +7,8 @@ from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchEntity
 from homeassistant.const import CONF_NAME
 import homeassistant.helpers.config_validation as cv
 
-from custom_component.s7plc.plc_client import PlcClient
+from . import DOMAIN, get_plc
+from .plc_client import PlcClient
 
 CONF_ADDRESS = "address"
 CONF_PLC = "plc"
@@ -23,7 +24,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up S7 switch platform."""
-    plc = PlcClient(config.get(CONF_PLC, {}))
+    plc = get_plc(hass, config.get(CONF_PLC, {}))
     async_add_entities([S7Switch(config[CONF_NAME], config[CONF_ADDRESS], plc)], True)
 
 
@@ -35,6 +36,7 @@ class S7Switch(SwitchEntity):
         self._address = address
         self._plc = plc
         self._state = False
+        self._plc_id = plc.key
 
     @property
     def name(self) -> str:
@@ -44,14 +46,24 @@ class S7Switch(SwitchEntity):
     def is_on(self) -> bool:
         return self._state
 
+    @property
+    def device_info(self):
+        return {"identifiers": {(DOMAIN, self._plc_id)}}
+
     async def async_turn_on(self, **kwargs) -> None:
-        await self.hass.async_add_executor_job(self._plc.write_address, self._address, True)
+        await self.hass.async_add_executor_job(
+            self._plc.write_address, self._address, True
+        )
         self._state = True
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.hass.async_add_executor_job(self._plc.write_address, self._address, False)
+        await self.hass.async_add_executor_job(
+            self._plc.write_address, self._address, False
+        )
         self._state = False
 
     async def async_update(self) -> None:
-        value = await self.hass.async_add_executor_job(self._plc.read_address, self._address)
+        value = await self.hass.async_add_executor_job(
+            self._plc.read_address, self._address
+        )
         self._state = bool(value)
