@@ -23,7 +23,7 @@ CONF_DEVICE_CLASS = "device_class"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional(CONF_ADDRESS): cv.string,  # per connection sensor non serve
+        vol.Optional(CONF_ADDRESS): cv.string,
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_DEVICE_CLASS): cv.string,
     }
@@ -33,27 +33,24 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 async def async_setup_platform(
     hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None
 ):
-    client = hass.data[DOMAIN]["client"]
     coordinator = hass.data[DOMAIN]["coordinator"]
 
     entities = []
 
-    # Se l'utente ha messo un address → crea sensore normale
-    if CONF_ADDRESS in config:
+    if CONF_ADDRESS in config:  # sensore PLC vero e proprio
         name = config.get(CONF_NAME, "S7 Binary Sensor")
         address = config[CONF_ADDRESS]
         device_class = config.get(CONF_DEVICE_CLASS)
 
         topic = f"binary_sensor:{address}"
-        await hass.async_add_executor_job(client.add_item, topic, address)
+        await hass.async_add_executor_job(coordinator.add_item, topic, address)
 
         ent = S7BinarySensor(coordinator, name, topic, device_class)
         entities.append(ent)
 
-    # Aggiungiamo SEMPRE il binary_sensor di connessione
-    if not discovery_info:  # così non duplico tra più entità
-        conn_entity = PlcConnectionBinarySensor(coordinator, client)
-        entities.append(conn_entity)
+    # sensore di connessione (aggiunto sempre)
+    if not discovery_info:
+        entities.append(PlcConnectionBinarySensor(coordinator))
 
     async_add_entities(entities)
 
@@ -74,28 +71,20 @@ class S7BinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        data = self.coordinator.data or {}
-        val = data.get(self._topic)
-        if val is None:
-            return None
-        return bool(val)
+        val = (self.coordinator.data or {}).get(self._topic)
+        return None if val is None else bool(val)
 
 
 class PlcConnectionBinarySensor(CoordinatorEntity, BinarySensorEntity):
-    """Mostra se il PLC è connesso."""
-
     _attr_should_poll = False
     _attr_name = "PLC Connection"
     _attr_unique_id = "s7plc_connection"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
-    def __init__(self, coordinator, client):
+    def __init__(self, coordinator):
         super().__init__(coordinator)
-        self._client = client
+        self._coord = coordinator
 
     @property
     def is_on(self) -> bool:
-        try:
-            return bool(self._client.is_connected())
-        except Exception:
-            return False
+        return self._coord.is_connected()

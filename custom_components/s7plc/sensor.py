@@ -11,49 +11,55 @@ from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 CONF_ADDRESS = "address"
-CONF_DEVICE_CLASS = "device_class"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_ADDRESS): cv.string,
         vol.Optional(CONF_NAME, default="S7 Sensor"): cv.string,
-        vol.Optional(CONF_DEVICE_CLASS): cv.string,
     }
 )
 
 
-async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None):
-    client = hass.data[DOMAIN]["client"]
+async def async_setup_platform(
+    hass: HomeAssistant,
+    config,
+    async_add_entities,
+    discovery_info: DiscoveryInfoType | None = None,
+):
     coordinator = hass.data[DOMAIN]["coordinator"]
 
     name = config.get(CONF_NAME)
     address = config[CONF_ADDRESS]
-    device_class = config.get(CONF_DEVICE_CLASS)
 
     topic = f"sensor:{address}"
-    # registra l'item nel client
-    await hass.async_add_executor_job(client.add_item, topic, address)
+    await hass.async_add_executor_job(coordinator.add_item, topic, address)
 
-    ent = S7Sensor(coordinator, client, name, topic, device_class)
+    ent = S7Sensor(coordinator, name, topic, address)
     async_add_entities([ent])
 
 
 class S7Sensor(CoordinatorEntity, SensorEntity):
     _attr_should_poll = False
 
-    def __init__(self, coordinator, client, name: str, topic: str, device_class: str | None):
+    def __init__(self, coordinator, name: str, topic: str, address: str):
         super().__init__(coordinator)
-        self._client = client
+        self._coord = coordinator
         self._attr_name = name
         self._topic = topic
-        if device_class:
-            self._attr_device_class = device_class
-        self._attr_unique_id = f"{topic}"
+        self._address = address
+        self._attr_unique_id = topic
+
+    @property
+    def available(self) -> bool:
+        """Disponibile solo se il PLC è connesso."""
+        return self._coord.is_connected()
 
     @property
     def native_value(self):
-        data = self.coordinator.data or {}
-        return data.get(self._topic)
+        """Restituisce il valore numerico letto dal PLC."""
+        val = (self.coordinator.data or {}).get(self._topic)
+        return val

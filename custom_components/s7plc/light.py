@@ -35,25 +35,24 @@ async def async_setup_platform(
     async_add_entities,
     discovery_info: DiscoveryInfoType | None = None,
 ):
-    client = hass.data[DOMAIN]["client"]
     coordinator = hass.data[DOMAIN]["coordinator"]
 
     name = config.get(CONF_NAME)
     address = config[CONF_ADDRESS]
 
     topic = f"light:{address}"
-    await hass.async_add_executor_job(client.add_item, topic, address)
+    await hass.async_add_executor_job(coordinator.add_item, topic, address)
 
-    ent = S7Light(coordinator, client, name, topic, address)
+    ent = S7Light(coordinator, name, topic, address)
     async_add_entities([ent])
 
 
 class S7Light(CoordinatorEntity, LightEntity):
     _attr_should_poll = False
 
-    def __init__(self, coordinator, client, name: str, topic: str, address: str):
+    def __init__(self, coordinator, name: str, topic: str, address: str):
         super().__init__(coordinator)
-        self._client = client
+        self._coord = coordinator
         self._attr_name = name
         self._topic = topic
         self._address = address
@@ -65,18 +64,12 @@ class S7Light(CoordinatorEntity, LightEntity):
 
     @property
     def available(self) -> bool:
-        """Disponibile solo se il PLC è connesso."""
-        try:
-            return bool(self._client.is_connected())
-        except Exception:
-            return False
+        return self._coord.is_connected()
 
     @property
     def is_on(self) -> bool | None:
         val = (self.coordinator.data or {}).get(self._topic)
-        if val is None:
-            return None
-        return bool(val)
+        return None if val is None else bool(val)
 
     @property
     def color_mode(self) -> ColorMode | None:
@@ -88,10 +81,10 @@ class S7Light(CoordinatorEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs):
         await self._ensure_connected()
-        await self.hass.async_add_executor_job(self._client.write_bool, self._address, True)
+        await self.hass.async_add_executor_job(self._coord.write_bool, self._address, True)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
         await self._ensure_connected()
-        await self.hass.async_add_executor_job(self._client.write_bool, self._address, False)
+        await self.hass.async_add_executor_job(self._coord.write_bool, self._address, False)
         await self.coordinator.async_request_refresh()
