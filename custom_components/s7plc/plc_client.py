@@ -28,7 +28,7 @@ try:
                 DB = 0x84
                 CT = 0x1C
                 TM = 0x1D
-            _LOGGER.warning("Areas non trovato in snap7: uso fallback IntEnum (compat).")
+            _LOGGER.info("Areas non trovato in snap7: uso fallback IntEnum (compat).")
 except Exception as err:
     _LOGGER.error("Import snap7 fallito: %s", err, exc_info=True)
     snap7 = None  # type: ignore[assignment]

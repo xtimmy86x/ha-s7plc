@@ -8,15 +8,15 @@ from homeassistant.components.light import (
     PLATFORM_SCHEMA,
     LightEntity,
     ColorMode,
-    LightEntityFeature,   # <--- importa l'enum
 )
-
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 CONF_ADDRESS = "address"
@@ -29,7 +29,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None):
+async def async_setup_platform(
+    hass: HomeAssistant,
+    config,
+    async_add_entities,
+    discovery_info: DiscoveryInfoType | None = None,
+):
     client = hass.data[DOMAIN]["client"]
     coordinator = hass.data[DOMAIN]["coordinator"]
 
@@ -52,11 +57,19 @@ class S7Light(CoordinatorEntity, LightEntity):
         self._attr_name = name
         self._topic = topic
         self._address = address
-        self._attr_unique_id = f"{topic}"
+        self._attr_unique_id = topic
 
-        # >>>> fix richiesto da HA: dichiara i color modes supportati
+        # luce on/off
         self._attr_supported_color_modes = {ColorMode.ONOFF}
         self._attr_color_mode = ColorMode.ONOFF
+
+    @property
+    def available(self) -> bool:
+        """Disponibile solo se il PLC è connesso."""
+        try:
+            return bool(self._client.is_connected())
+        except Exception:
+            return False
 
     @property
     def is_on(self) -> bool | None:
@@ -67,13 +80,18 @@ class S7Light(CoordinatorEntity, LightEntity):
 
     @property
     def color_mode(self) -> ColorMode | None:
-        # fisso: è una luce on/off
         return ColorMode.ONOFF
 
+    async def _ensure_connected(self):
+        if not self.available:
+            raise HomeAssistantError("PLC non connesso: impossibile eseguire il comando.")
+
     async def async_turn_on(self, **kwargs):
+        await self._ensure_connected()
         await self.hass.async_add_executor_job(self._client.write_bool, self._address, True)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
+        await self._ensure_connected()
         await self.hass.async_add_executor_job(self._client.write_bool, self._address, False)
         await self.coordinator.async_request_refresh()

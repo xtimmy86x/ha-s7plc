@@ -9,8 +9,10 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 CONF_ADDRESS = "address"
@@ -23,7 +25,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None):
+async def async_setup_platform(
+    hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None
+):
     client = hass.data[DOMAIN]["client"]
     coordinator = hass.data[DOMAIN]["coordinator"]
 
@@ -46,19 +50,34 @@ class S7Switch(CoordinatorEntity, SwitchEntity):
         self._attr_name = name
         self._topic = topic
         self._address = address
-        self._attr_unique_id = f"{topic}"
+        self._attr_unique_id = topic
+
+    @property
+    def available(self) -> bool:
+        """Entity disponibile solo se il PLC è connesso."""
+        try:
+            return bool(self._client.is_connected())
+        except Exception:
+            return False
 
     @property
     def is_on(self) -> bool | None:
-        val = (self.coordinator.data or {}).get(self._topic)
+        data = self.coordinator.data or {}
+        val = data.get(self._topic)
         if val is None:
             return None
         return bool(val)
 
+    async def _ensure_connected(self):
+        if not self.available:
+            raise HomeAssistantError("PLC non connesso: impossibile eseguire il comando.")
+
     async def async_turn_on(self, **kwargs):
+        await self._ensure_connected()
         await self.hass.async_add_executor_job(self._client.write_bool, self._address, True)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
+        await self._ensure_connected()
         await self.hass.async_add_executor_job(self._client.write_bool, self._address, False)
         await self.coordinator.async_request_refresh()
