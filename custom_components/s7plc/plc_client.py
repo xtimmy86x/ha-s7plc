@@ -227,3 +227,13 @@ class PlcClient:
         with self._lock:
             self._ensure()
             self._client.write_area(Areas.DB, db, byte, value.to_bytes(1, "big"))
+
+    def is_connected(self) -> bool:
+        with self._lock:
+            if not self._client:
+                return False
+            try:
+                return self._client.get_connected()
+            except Exception:
+                return False
+            
