@@ -37,6 +37,7 @@
 - 🧩 **Multiple entity types**: `light`, `switch`, `binary_sensor`, `sensor`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Plain YAML setup**: drop-in custom component + a few lines in `configuration.yaml`.
+- 📄 **S7 `STRING` support** for text sensors.
 
 ---
 
@@ -121,7 +122,7 @@ binary_sensor:
 
 #### `sensor`
 
-Numeric readouts (temperature, counters…). Address must point to a byte/word/dword/real.
+Numeric or string readouts (temperature, counters…). Address must point to a byte/word/dword/real.
 
 ```yaml
 sensor:
@@ -129,6 +130,10 @@ sensor:
     name: "Room Temperature"
     address: "DB1.DBD2"       # 32-bit REAL (see table below)
     unit_of_measurement: "°C"
+
+  - platform: s7plc
+    name: "Status Text"
+    address: "DB1.DBS10"      # S7 STRING
 ```
 
 > The integration reads the value and publishes it directly to Home Assistant.
@@ -146,6 +151,7 @@ Use standard S7 absolute addressing:
 | Word (signed 16-bit)  | `DB1.DBW2`    | 16 bits  | INT                       |
 | DWord (signed 32-bit) | `DB1.DBD4`    | 32 bits  | DINT                      |
 | REAL (IEEE 754)       | `DB1.DBD4`    | 32 bits  | Float (temperature etc.)  |
+| String (S7)           | `DB1.DBS0`    | 2+N bytes| Text (S7 STRING)          |
 
 > Choose the correct **offset** and **type** based on your PLC data block layout.  
 > For REAL values, ensure the PLC writes IEEE 754 floating point into that DBD.

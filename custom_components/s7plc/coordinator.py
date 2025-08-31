@@ -36,6 +36,7 @@ TYPE_DWORD = "dword"
 TYPE_INT16 = "int16"
 TYPE_INT32 = "int32"
 TYPE_REAL = "real"
+TYPE_STRING = "string"
 
 _ADDR_RE = re.compile(
     r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$"
@@ -57,6 +58,8 @@ def _norm_token(tok: str) -> str:
         return TYPE_INT32
     if t in ("REAL", "FLOAT", "R", "F"):
         return TYPE_REAL
+    if t in ("S", "DBS", "STR", "STRING"):
+        return TYPE_STRING
     raise ValueError(f"Token tipo non valido: {tok}")
 
 def parse_address(addr: str) -> Tuple[int, int, Optional[int], str]:
@@ -171,6 +174,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _read_one(self, address: str) -> Any:
         db, byte, bit, ty = parse_address(address)
+        if ty == TYPE_STRING:
+            hdr = self._client.read_area(Areas.DB, db, byte, 2)
+            max_len = hdr[0]
+            cur_len = hdr[1]
+            data = b""
+            if max_len > 0:
+                data = self._client.read_area(Areas.DB, db, byte + 2, max_len)
+            cur_len = min(cur_len, len(data))
+            return data[:cur_len].decode("latin-1", errors="ignore")
+        
         size = 1
         if ty in (TYPE_WORD, TYPE_INT16):
             size = 2

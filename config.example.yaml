@@ -10,6 +10,9 @@ sensor:
   - platform: s7plc
     name: Temperatura
     address: "DB60.DBD0"    # real/float/int
+  - platform: s7plc
+    name: Stato
+    address: "DB60.DBS8"  # string
 
 binary_sensor:
   - platform: s7plc
