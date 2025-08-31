@@ -4,7 +4,7 @@
   "entity": {
     "binary_sensor": {
       "plc_connection": {
-        "name": "{plc_name} Connessione"
+        "name": "Connessione"
       }
     }
   }
