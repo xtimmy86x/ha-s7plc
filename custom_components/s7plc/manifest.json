@@ -3,7 +3,7 @@
   "name": "Siemens S7",
   "version": "0.1.0",
   "documentation": "https://github.com/xtimmy86x/ha-s7plc",
-  "requirements": ["python-snap7", "PyYAML"],
+  "requirements": ["python-snap7"],
   "dependencies": [],
   "codeowners": ["@xtimmy86x"],
   "iot_class": "local_polling",
