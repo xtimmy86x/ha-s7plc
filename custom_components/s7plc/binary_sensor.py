@@ -85,12 +85,8 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
-    #ENTITY_DESC = BinarySensorEntityDescription(
-    #    key="plc_connection",
-    #    translation_key="plc_connection",
     device_class=BinarySensorDeviceClass.CONNECTIVITY,
     _attr_translation_key = "plc_connection"
-    #)
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):
         super().__init__(coordinator, name=None, unique_id=unique_id, device_info=device_info)
@@ -106,9 +102,4 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
 
     @property
     def available(self) -> bool:
-        """Always show the sensor as available.
-
-        When the PLC is disconnected we still want the entity present
-        with state ``False`` instead of ``unavailable``.
-        """
         return True
