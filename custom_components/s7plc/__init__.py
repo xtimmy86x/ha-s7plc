@@ -21,7 +21,7 @@ CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Required(CONF_NAME, default="PLC"): cv.string,
+                vol.Required(CONF_NAME, default="S7 PLC"): cv.string,
                 vol.Required(CONF_HOST): cv.string,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): vol.Coerce(int),
