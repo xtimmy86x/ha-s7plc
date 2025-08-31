@@ -1,6 +1,7 @@
 DOMAIN = "s7plc"
 PLATFORMS = ["binary_sensor", "sensor", "switch", "light"]  # abilita solo ciò che usi
 
+CONF_NAME = "name"
 CONF_HOST = "host"
 CONF_RACK = "rack"
 CONF_SLOT = "slot"

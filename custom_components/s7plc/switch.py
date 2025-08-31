@@ -3,15 +3,15 @@ from __future__ import annotations
 import logging
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-
 from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchEntity
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import DiscoveryInfoType
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,36 +24,35 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
-
 async def async_setup_platform(
     hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None
 ):
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    coord = hass.data[DOMAIN]["coordinator"]
+    data = hass.data[DOMAIN]
+    device_id = data["device_id"]
+    device_name = data["name"]
+
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, device_id)},
+        name=device_name,
+        manufacturer="Siemens",
+        model="S7 PLC",
+        sw_version="snap7",
+    )
 
     name = config.get(CONF_NAME)
     address = config[CONF_ADDRESS]
-
     topic = f"switch:{address}"
-    await hass.async_add_executor_job(coordinator.add_item, topic, address)
+    unique_id = f"{device_id}:{topic}"
 
-    ent = S7Switch(coordinator, name, topic, address)
-    async_add_entities([ent])
+    await hass.async_add_executor_job(coord.add_item, topic, address)
+    async_add_entities([S7Switch(coord, name, unique_id, device_info, topic, address)])
+    await coord.async_request_refresh()
 
 
-class S7Switch(CoordinatorEntity, SwitchEntity):
-    _attr_should_poll = False
-
-    def __init__(self, coordinator, name: str, topic: str, address: str):
-        super().__init__(coordinator)
-        self._coord = coordinator
-        self._attr_name = name
-        self._topic = topic
-        self._address = address
-        self._attr_unique_id = topic
-
-    @property
-    def available(self) -> bool:
-        return self._coord.is_connected()
+class S7Switch(S7BaseEntity, SwitchEntity):
+    def __init__(self, coordinator, name: str, unique_id: str, device_info: DeviceInfo, topic: str, address: str):
+        super().__init__(coordinator, name=name, unique_id=unique_id, device_info=device_info, topic=topic, address=address)
 
     @property
     def is_on(self) -> bool | None:
