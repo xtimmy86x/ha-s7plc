@@ -89,3 +89,12 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self._coord.is_connected()
+
+    @property
+    def available(self) -> bool:
+        """Always show the sensor as available.
+
+        When the PLC is disconnected we still want the entity present
+        with state ``False`` instead of ``unavailable``.
+        """
+        return True

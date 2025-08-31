@@ -38,6 +38,4 @@ class S7BaseEntity(CoordinatorEntity):
         attrs = {}
         if self._address:
             attrs["s7_address"] = self._address
-        if self._topic:
-            attrs["s7_topic"] = self._topic
         return attrs

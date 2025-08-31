@@ -104,12 +104,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def disconnect(self):
         """Close connection to PLC."""
         with self._lock:
-            if self._client:
-                try:
-                    self._client.disconnect()
-                except Exception as err:
-                    _LOGGER.debug("Errore durante la disconnessione: %s", err)
-            self._connected = False
+            self._drop_connection()
+
+    def _drop_connection(self):
+        """Mark current client as disconnected and close socket."""
+        if self._client:
+            try:
+                self._client.disconnect()
+            except Exception as err:
+                _LOGGER.debug("Errore durante la disconnessione: %s", err)
+        self._connected = False
 
     def _ensure_connected(self):
         if self._client is None:
@@ -161,6 +165,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 except Exception as e:
                     _LOGGER.error("Errore lettura %s: %s", addr, e)
                     results[topic] = None
+                    self._drop_connection()
+                    break
         return results
 
     def _read_one(self, address: str) -> Any:
@@ -207,5 +213,5 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 return True
             except Exception as err:
                 _LOGGER.error("Errore scrittura %s: %s", address, err)
-                self._connected = False
+                self._drop_connection()
                 return False
