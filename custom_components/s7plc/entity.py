@@ -20,7 +20,7 @@ class S7BaseEntity(CoordinatorEntity):
         self._coord = coordinator
         self._attr_name = name
         self._attr_unique_id = unique_id
-        self._attr_device_info = device_info  # device creato subito
+        self._attr_device_info = device_info
         self._topic = topic
         self._address = address
 

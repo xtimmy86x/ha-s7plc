@@ -56,7 +56,7 @@ async def async_setup_platform(
         await hass.async_add_executor_job(coord.add_item, topic, address)
         entities.append(S7BinarySensor(coord, name, unique_id, device_info, topic, address, config.get(CONF_DEVICE_CLASS)))
 
-    # sensore di connessione auto (una sola volta)
+    # plc connecction sensor (one time)
     if not discovery_info:
         entities.append(PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection"))
 

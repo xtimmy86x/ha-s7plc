@@ -56,13 +56,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         scan_interval=scan_s,
     )
 
-    # Connessione iniziale
+    # Initial connection
     await hass.async_add_executor_job(coordinator.connect)
 
-    # Salviamo il coordinator in hass.data
+    # Save coordinator data in hass.data
     name = cfg.get(CONF_NAME, "S7 PLC")
 
-    # device_id stabile e unico: s7plc-<host>-<rack>-<slot>
+    # create device_id: s7plc-<host>-<rack>-<slot>
     def _slug(s: str) -> str:
         return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 

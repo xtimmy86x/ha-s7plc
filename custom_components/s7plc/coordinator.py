@@ -9,7 +9,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-# ------------------ SNAP7 import compat ------------------
 try:
     import snap7
     from snap7.util import get_bool, get_byte, get_word, get_dword, get_int, get_dint, get_real
@@ -30,7 +29,6 @@ except Exception as err:
     _LOGGER.error("Impossibile importare snap7: %s", err, exc_info=True)
     snap7 = None
 
-# ------------------ Parsing indirizzi ------------------
 TYPE_BIT = "bit"
 TYPE_BYTE = "byte"
 TYPE_WORD = "word"
@@ -71,7 +69,6 @@ def parse_address(addr: str) -> Tuple[int, int, Optional[int], str]:
     ty = _norm_token(m.group("tok"))
     return db, byte, bit, ty
 
-# ------------------ Coordinator ------------------
 class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     """Coordinator che gestisce connessione Snap7, polling e scritture."""
 
@@ -99,7 +96,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._items: Dict[str, str] = {}  # topic -> address
         self._connected = False
 
-    # ------------ Connessione ------------
     def connect(self):
         """Establish connection if needed."""
         with self._lock:
@@ -141,12 +137,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             except Exception:
                 return False
 
-    # ------------ Gestione items ------------
     def add_item(self, topic: str, address: str):
         with self._lock:
             self._items[topic] = address
 
-    # ------------ Update ------------
     async def _async_update_data(self) -> Dict[str, Any]:
         return await self.hass.async_add_executor_job(self._read_all)
 
@@ -195,7 +189,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             return float(get_real(raw, 0))
         return int.from_bytes(raw, "big")
 
-    # ------------ Scritture ------------
     def write_bool(self, address: str, value: bool):
         db, byte, bit, ty = parse_address(address)
         if ty != TYPE_BIT:
