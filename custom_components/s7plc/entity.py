@@ -10,7 +10,7 @@ class S7BaseEntity(CoordinatorEntity):
         self,
         coordinator,
         *,
-        name: str,
+        name: str | None = None,
         unique_id: str,
         device_info: DeviceInfo,
         topic: str | None = None,
@@ -18,7 +18,8 @@ class S7BaseEntity(CoordinatorEntity):
     ):
         super().__init__(coordinator)
         self._coord = coordinator
-        self._attr_name = name
+        if name is not None:
+            self._attr_name = name
         self._attr_unique_id = unique_id
         self._attr_device_info = device_info
         self._topic = topic
