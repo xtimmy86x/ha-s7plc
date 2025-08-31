@@ -101,15 +101,36 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     # ------------ Connessione ------------
     def connect(self):
-        if snap7 is None:
-            raise RuntimeError("python-snap7 non è installato")
+        """Establish connection if needed."""
         with self._lock:
-            if self._client is None:
-                self._client = snap7.client.Client()
-            if not self._connected:
+            self._ensure_connected()
+
+    def disconnect(self):
+        """Close connection to PLC."""
+        with self._lock:
+            if self._client:
+                try:
+                    self._client.disconnect()
+                except Exception as err:
+                    _LOGGER.debug("Errore durante la disconnessione: %s", err)
+            self._connected = False
+
+    def _ensure_connected(self):
+        if self._client is None:
+            self._client = snap7.client.Client()
+        if not self._connected or not self._client.get_connected():
+            try:
                 self._client.connect(self._host, self._rack, self._slot, self._port)
-                self._connected = True
-                _LOGGER.info("Connesso a PLC S7 %s (rack=%s slot=%s)", self._host, self._rack, self._slot)
+            except Exception as err:
+                self._connected = False
+                raise RuntimeError(f"Connessione al PLC {self._host} fallita: {err}")
+            self._connected = True
+            _LOGGER.info(
+                "Connesso a PLC S7 %s (rack=%s slot=%s)",
+                self._host,
+                self._rack,
+                self._slot,
+            )
 
     def is_connected(self) -> bool:
         with self._lock:
@@ -131,12 +152,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _read_all(self) -> Dict[str, Any]:
         with self._lock:
-            if not self._client or not self._client.get_connected():
-                try:
-                    self.connect()
-                except Exception as e:
-                    _LOGGER.error("Connessione fallita: %s", e)
-                    return {}
+            try:
+                self._ensure_connected()
+            except Exception as e:
+                _LOGGER.error("Connessione fallita: %s", e)
+                return {}
             items = dict(self._items)
 
         results: Dict[str, Any] = {}
@@ -181,12 +201,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if ty != TYPE_BIT:
             raise ValueError("write_bool supporta solo indirizzi bit")
         with self._lock:
-            self.connect()
-            raw = self._client.read_area(Areas.DB, db, byte, 1)
-            b = bytearray(raw)
-            mask = 1 << (bit or 0)
-            if value:
-                b[0] |= mask
-            else:
-                b[0] &= (~mask) & 0xFF
-            self._client.write_area(Areas.DB, db, byte, bytes(b))
+            try:
+                self._ensure_connected()
+                raw = self._client.read_area(Areas.DB, db, byte, 1)
+                b = bytearray(raw)
+                mask = 1 << (bit or 0)
+                if value:
+                    b[0] |= mask
+                else:
+                    b[0] &= (~mask) & 0xFF
+                self._client.write_area(Areas.DB, db, byte, bytes(b))
+                return True
+            except Exception as err:
+                _LOGGER.error("Errore scrittura %s: %s", address, err)
+                self._connected = False
+                return False
