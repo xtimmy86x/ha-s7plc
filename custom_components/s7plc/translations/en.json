@@ -1,9 +1,11 @@
 {
   "title": "Siemens S7",
-  "description": "Integrazione per PLC Siemens S7",
+  "description": "Integration for Siemens S7 PLC",
   "entity": {
     "binary_sensor": {
-      "plc_connection": "Connection"
+      "plc_connection": {
+        "name": "{plc_name} connection"
+      }
     }
   }
 }

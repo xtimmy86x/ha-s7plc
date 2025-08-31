@@ -85,15 +85,20 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
-    ENTITY_DESC = BinarySensorEntityDescription(
-        key="plc_connection",
-        translation_key="plc_connection",
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
-    )
+    #ENTITY_DESC = BinarySensorEntityDescription(
+    #    key="plc_connection",
+    #    translation_key="plc_connection",
+    device_class=BinarySensorDeviceClass.CONNECTIVITY,
+    _attr_translation_key = "plc_connection"
+    #)
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):
         super().__init__(coordinator, name=None, unique_id=unique_id, device_info=device_info)
-        self.entity_description = self.ENTITY_DESC
+        self._plc_name = self.device_info.get("name", "")
+    
+    @property 
+    def translation_placeholders(self) -> dict[str, str]:
+        return {"plc_name": self._plc_name}
 
     @property
     def is_on(self) -> bool:
