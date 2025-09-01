@@ -1,6 +1,36 @@
 {
   "title": "Siemens S7",
   "description": "Integrazione per PLC Siemens S7",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connetti al PLC S7",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "rack": "Rack",
+          "slot": "Slot",
+          "scan_interval": "Intervallo scansione"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "sensors": "Sensori (lista JSON)",
+          "binary_sensors": "Sensori binari (lista JSON)",
+          "switches": "Interruttori (lista JSON)",
+          "lights": "Luci (lista JSON)"
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "plc_connection": {

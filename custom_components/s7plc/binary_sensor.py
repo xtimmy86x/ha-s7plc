@@ -1,20 +1,16 @@
 from __future__ import annotations
 
 import logging
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
 from homeassistant.components.binary_sensor import (
-    PLATFORM_SCHEMA,
-    BinarySensorEntity,
     BinarySensorDeviceClass,
-    BinarySensorEntityDescription
+    BinarySensorEntity,
 )
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import DiscoveryInfoType
+from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_BINARY_SENSORS
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,19 +18,9 @@ _LOGGER = logging.getLogger(__name__)
 CONF_ADDRESS = "address"
 CONF_DEVICE_CLASS = "device_class"
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_ADDRESS): cv.string,
-        vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_DEVICE_CLASS): cv.string,
-    }
-)
-
-async def async_setup_platform(
-    hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None
-):
-    coord = hass.data[DOMAIN]["coordinator"]
-    data = hass.data[DOMAIN]
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+    data = hass.data[DOMAIN][entry.entry_id]
+    coord = data["coordinator"]
     device_id = data["device_id"]
     device_name = data["name"]
 
@@ -46,22 +32,27 @@ async def async_setup_platform(
         sw_version="snap7",
     )
 
-    entities = []
+    entities = [PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")]
 
-    if CONF_ADDRESS in config:
-        name = config.get(CONF_NAME, "S7 Binary Sensor")
-        address = config[CONF_ADDRESS]
+    for item in entry.options.get(CONF_BINARY_SENSORS, []):
+        address = item.get(CONF_ADDRESS)
+        if not address:
+            continue
+        name = item.get(CONF_NAME, "S7 Binary Sensor")
         topic = f"binary_sensor:{address}"
         unique_id = f"{device_id}:{topic}"
-
+        device_class = item.get(CONF_DEVICE_CLASS)
         await hass.async_add_executor_job(coord.add_item, topic, address)
-        entities.append(S7BinarySensor(coord, name, unique_id, device_info, topic, address, config.get(CONF_DEVICE_CLASS)))
 
-    # plc connecction sensor (one time)
-    if not discovery_info:
         entities.append(
-            PlcConnectionBinarySensor(
-                coord, device_info, f"{device_id}:connection"
+            S7BinarySensor(
+                coord,
+                name,
+                unique_id,
+                device_info,
+                topic,
+                address,
+                device_class,
             )
         )
 
@@ -75,8 +66,8 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         if device_class:
             try:
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
-            except Exception:
-                pass
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.warning("Invalid device class %s", device_class)
 
     @property
     def is_on(self) -> bool | None:
@@ -85,7 +76,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
-    device_class=BinarySensorDeviceClass.CONNECTIVITY,
+    device_class = BinarySensorDeviceClass.CONNECTIVITY,
     _attr_translation_key = "plc_connection"
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):

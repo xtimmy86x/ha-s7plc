@@ -1,34 +1,23 @@
 from __future__ import annotations
 
 import logging
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
-from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity, ColorMode
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.components.light import LightEntity, ColorMode
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_LIGHTS
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 CONF_ADDRESS = "address"
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(CONF_ADDRESS): cv.string,
-        vol.Optional(CONF_NAME, default="S7 Light"): cv.string,
-    }
-)
-
-async def async_setup_platform(
-    hass: HomeAssistant, config, async_add_entities, discovery_info: DiscoveryInfoType | None = None
-):
-    coord = hass.data[DOMAIN]["coordinator"]
-    data = hass.data[DOMAIN]
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+    data = hass.data[DOMAIN][entry.entry_id]
+    coord = data["coordinator"]
     device_id = data["device_id"]
     device_name = data["name"]
 
@@ -40,14 +29,20 @@ async def async_setup_platform(
         sw_version="snap7",
     )
 
-    name = config.get(CONF_NAME)
-    address = config[CONF_ADDRESS]
-    topic = f"light:{address}"
-    unique_id = f"{device_id}:{topic}"
+    entities = []
+    for item in entry.options.get(CONF_LIGHTS, []):
+        address = item.get(CONF_ADDRESS)
+        if not address:
+            continue
+        name = item.get(CONF_NAME, "S7 Light")
+        topic = f"light:{address}"
+        unique_id = f"{device_id}:{topic}"
+        await hass.async_add_executor_job(coord.add_item, topic, address)
+        entities.append(S7Light(coord, name, unique_id, device_info, topic, address))
 
-    await hass.async_add_executor_job(coord.add_item, topic, address)
-    async_add_entities([S7Light(coord, name, unique_id, device_info, topic, address)])
-    await coord.async_request_refresh()
+    if entities:
+        async_add_entities(entities)
+        await coord.async_request_refresh()
 
 
 class S7Light(S7BaseEntity, LightEntity):

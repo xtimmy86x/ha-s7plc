@@ -8,6 +8,11 @@ CONF_SLOT = "slot"
 CONF_PORT = "port"
 CONF_SCAN_INTERVAL = "scan_interval"
 
+CONF_SENSORS = "sensors"
+CONF_BINARY_SENSORS = "binary_sensors"
+CONF_SWITCHES = "switches"
+CONF_LIGHTS = "lights"
+
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
