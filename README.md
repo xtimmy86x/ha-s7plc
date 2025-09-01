@@ -16,8 +16,7 @@
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
-  - [Global connection](#global-connection)
-  - [Entities](#entities)
+  - [Setup via UI](#setup-via-ui)
   - [Addressing reference (S7)](#addressing-reference-s7)
 - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
@@ -36,7 +35,7 @@
 - ⚡ **Direct PLC communication** over S7 protocol via `python-snap7`.
 - 🧩 **Multiple entity types**: `light`, `switch`, `binary_sensor`, `sensor`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
-- 🛠️ **Plain YAML setup**: drop-in custom component + a few lines in `configuration.yaml`.
+- 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
 - 📄 **S7 `STRING` support** for text sensors.
 
 ---
@@ -66,77 +65,21 @@
 
 ## Configuration
 
-All entities share a **single PLC connection** configured under the `s7plc:` key. Then you can add platforms (`light`, `switch`, `binary_sensor`, `sensor`) that reference **addresses** in the PLC.
+Configuration is now handled entirely through the Home Assistant UI. After installing the component, add the integration and enter the PLC connection details. Entities are created and managed from the integration's options—no YAML required.
 
-### Global connection
+### Setup via UI
 
-```yaml
-# configuration.yaml
-s7plc:
-  host: 192.168.100.89   # PLC IP Address
-  rack: 0                # Typical: 0
-  slot: 1                # Typical: 1 on S7-1200/1500 (CPU slot)
-  port: 102              # S7 ISO-on-TCP
-```
+1. In Home Assistant, go to **Settings → Devices & Services** and click **+ Add Integration**.
+2. Search for **"S7 PLC"** and select it.
+3. Enter the PLC `host`, `rack`, `slot`, and `port` values when prompted.
+4. Once the integration is added, open it and choose **Configure** to create entities (`light`, `switch`, `binary_sensor`, `sensor`).
+5. Provide a name, entity type, PLC address, and optional unit (for sensors) for each entity.
 
 **Notes**
-- `rack/slot` may vary by CPU family and project. Common values:
+- `rack/slot` values depend on the CPU family. Common settings:
   - S7-1200/1500: `rack: 0`, `slot: 1`
   - S7-300/400: often `rack: 0`, `slot: 2` (verify in hardware config)
 - Keep `port: 102` unless you know you changed it in the PLC/CP.
-
-### Entities
-
-#### `light`
-
-Digital (bool) output you want to treat as a light in Home Assistant.
-
-```yaml
-light:
-  - platform: s7plc
-    name: "Office Lamp"
-    address: "DB1.DBX0.0"     # Bit (boolean)
-```
-
-#### `switch`
-
-Generic on/off mapped to a PLC bit.
-
-```yaml
-switch:
-  - platform: s7plc
-    name: "Garage Switch"
-    address: "DB1.DBX0.1"     # Bit (boolean)
-```
-
-#### `binary_sensor`
-
-Read-only boolean (e.g., limit switch, door contact).
-
-```yaml
-binary_sensor:
-  - platform: s7plc
-    name: "Door Sensor"
-    address: "DB1.DBX0.2"     # Bit (boolean)
-```
-
-#### `sensor`
-
-Numeric or string readouts (temperature, counters…). Address must point to a byte/word/dword/real.
-
-```yaml
-sensor:
-  - platform: s7plc
-    name: "Room Temperature"
-    address: "DB1.DBD2"       # 32-bit REAL (see table below)
-    unit_of_measurement: "°C"
-
-  - platform: s7plc
-    name: "Status Text"
-    address: "DB1.DBS10"      # S7 STRING
-```
-
-> The integration reads the value and publishes it directly to Home Assistant.
 
 ---
 
@@ -160,36 +103,13 @@ Use standard S7 absolute addressing:
 
 ## Examples
 
-Full minimal example combining all platforms:
+Example: adding a light entity via the UI:
 
-```yaml
-s7plc:
-  host: 192.168.100.89
-  rack: 0
-  slot: 1
-  port: 102
-
-light:
-  - platform: s7plc
-    name: "Office Lamp"
-    address: "DB1.DBX0.0"
-
-switch:
-  - platform: s7plc
-    name: "Garage Switch"
-    address: "DB1.DBX0.1"
-
-binary_sensor:
-  - platform: s7plc
-    name: "Door Sensor"
-    address: "DB1.DBX0.2"
-
-sensor:
-  - platform: s7plc
-    name: "Room Temperature"
-    address: "DB1.DBD2"        # 32-bit REAL
-    unit_of_measurement: "°C"
-```
+1. After the integration is installed, open it from **Settings → Devices & Services**.
+2. Click **Configure**.
+3. Select **Light** and enter a JSON formatted list:
+   es: [{"name": "Test Sensor", "address": "DB58.I2"}, {"name": "Test String", "address": "DB58.S10"}]
+4. Save to create the entity. Repeat for other entity types as needed.
 
 ---
 
