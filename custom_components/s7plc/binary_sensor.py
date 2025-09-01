@@ -8,7 +8,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import DOMAIN, CONF_BINARY_SENSORS
 from .entity import S7BaseEntity
@@ -30,6 +30,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         manufacturer="Siemens",
         model="S7 PLC",
         sw_version="snap7",
+    )
+
+    device_info_diagnostics = DeviceInfo(
+        identifiers={(DOMAIN, device_id)},
+        name=device_name,
+        manufacturer="Siemens",
+        model="S7 PLC",
+        sw_version="snap7",
+        
     )
 
     entities = [PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")]
@@ -76,8 +85,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
-    device_class = BinarySensorDeviceClass.CONNECTIVITY,
+    device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_translation_key = "plc_connection"
+    entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):
         super().__init__(coordinator, name=None, unique_id=unique_id, device_info=device_info)
