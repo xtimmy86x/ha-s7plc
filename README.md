@@ -3,9 +3,9 @@
 [![Release](https://img.shields.io/github/v/release/xtimmy86x/ha-s7plc)](https://github.com/xtimmy86x/ha-s7plc/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Component-41BDF5)](https://www.home-assistant.io/)
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
-[![Snap7](https://img.shields.io/badge/Library-python--snap7-informational)](https://github.com/gijzelaerr/python-snap7)
+[![pyS7](https://img.shields.io/badge/Library-pys7-informational)](https://github.com/xtimmy86x/pyS7)
 
-**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `python-snap7` to read and write PLC data and expose it as `light`, `switch`, `binary_sensor`, and `sensor` entities.  
+**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `binary_sensor`, and `sensor` entities.
 **No MQTT, no REST API, no middle layer.**
 
 ---
@@ -32,7 +32,7 @@
 
 ## Features
 
-- ⚡ **Direct PLC communication** over S7 protocol via `python-snap7`.
+- ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
 - 🧩 **Multiple entity types**: `light`, `switch`, `binary_sensor`, `sensor`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
@@ -45,7 +45,7 @@
 - A working **Home Assistant** installation.
 - A reachable **Siemens S7 PLC** (e.g., S7-1200/S7-1500/S7-300/S7-400) over ISO-on-TCP (**port 102**).
 - Network connectivity between Home Assistant host and the PLC (no firewalls blocking 102/TCP).
-- Python dependencies installed automatically from `requirements.txt` (notably **`python-snap7`**).
+- Python dependencies installed automatically from `requirements.txt` (notably **`pys7`**).
 
 > ℹ️ For S7-1200/1500, if you use **absolute addresses** (DB + byte/bit offsets), ensure the data blocks you read/write are **not optimized** (i.e., *Optimized block access* disabled for those DBs), otherwise byte/bit offsets may not match your source symbols.
 
@@ -187,5 +187,5 @@ See **[Releases](https://github.com/xtimmy86x/ha-s7plc/releases)** for changelog
 
 ## Acknowledgements
 
-- Built on top of the excellent [`python-snap7`](https://github.com/gijzelaerr/python-snap7) library.
+- Built on top of the excellent [`pyS7`](https://github.com/xtimmy86x/pyS7) library.
 - Not affiliated with Siemens or Home Assistant.

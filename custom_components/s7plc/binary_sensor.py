@@ -29,16 +29,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         name=device_name,
         manufacturer="Siemens",
         model="S7 PLC",
-        sw_version="snap7",
-    )
-
-    device_info_diagnostics = DeviceInfo(
-        identifiers={(DOMAIN, device_id)},
-        name=device_name,
-        manufacturer="Siemens",
-        model="S7 PLC",
-        sw_version="snap7",
-        
     )
 
     entities = [PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")]

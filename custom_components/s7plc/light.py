@@ -26,7 +26,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         name=device_name,
         manufacturer="Siemens",
         model="S7 PLC",
-        sw_version="snap7",
     )
 
     entities = []
