@@ -207,6 +207,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if bit is None:
                 raise ValueError("Indirizzo bit mancante dell'indice")
             bit_offset = 7 - bit
+        
         tag = S7Tag(
             memory_area=MemoryArea.DB,
             db_number=db,
@@ -215,7 +216,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             bit_offset=bit_offset,
             length=1,
         )
-        return self._client.read([tag], optimize=False)[0]
+        value = self._client.read([tag], optimize=False)[0]
+        return round(value, 1) if dt == DataType.REAL else value
 
     def write_bool(self, address: str, value: bool):
         db, byte, bit, ty = parse_address(address)
