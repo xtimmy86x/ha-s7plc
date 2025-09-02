@@ -182,19 +182,30 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 length=2,
             )
             max_len, cur_len = self._client.read([hdr_tag], optimize=False)[0]
-            data = b""
+            data = bytearray()
             if max_len > 0:
-                data_tag = S7Tag(
-                    memory_area=MemoryArea.DB,
-                    db_number=db,
-                    data_type=DataType.BYTE,
-                    start=byte + 2,
-                    bit_offset=0,
-                    length=max_len,
+                pdu_size = getattr(
+                    self._client, "pdu_length", getattr(self._client, "pdu_size", max_len)
                 )
-                data_vals = self._client.read([data_tag], optimize=False)[0]
-                _LOGGER.error("Scrittura %s: %s", data_tag, data_vals)
-                data = bytes(data_vals)
+                # The payload of a read request must be smaller than the
+                # negotiated PDU size to leave room for protocol headers
+                # (Snap7 reserves 18 bytes).
+                pdu_limit = max(1, pdu_size - 30)
+                offset = 0
+                while offset < max_len:
+                    chunk_len = min(max_len - offset, pdu_limit)
+                    data_tag = S7Tag(
+                        memory_area=MemoryArea.DB,
+                        db_number=db,
+                        data_type=DataType.BYTE,
+                        start=byte + 2 + offset,
+                        bit_offset=0,
+                        length=chunk_len,
+                    )
+                    chunk_vals = self._client.read([data_tag], optimize=False)[0]
+                    data.extend(chunk_vals)
+                    offset += chunk_len
+            data = bytes(data)
             cur_len = min(cur_len, len(data))
             return data[:cur_len].decode("latin-1", errors="ignore")
         
