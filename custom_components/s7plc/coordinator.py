@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging, re, threading
 from datetime import timedelta
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Tuple, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -10,25 +10,70 @@ _LOGGER = logging.getLogger(__name__)
 
 try:
     import pyS7
-    from pyS7.address_parser import map_address_to_tag
     from pyS7.constants import DataType, MemoryArea
     from pyS7.tag import S7Tag
 except Exception as err:
     _LOGGER.error("Impossibile importare pyS7: %s", err, exc_info=True)
     pyS7 = None
 
-STRING_ADDR_RE = re.compile(
-    r"^DB(?P<db>\d+)\.(?:DBS|S)(?P<byte>\d+)$", re.IGNORECASE
+TYPE_BIT = "bit"
+TYPE_BYTE = "byte"
+TYPE_WORD = "word"
+TYPE_DWORD = "dword"
+TYPE_INT16 = "int16"
+TYPE_INT32 = "int32"
+TYPE_REAL = "real"
+TYPE_STRING = "string"
+
+if pyS7 is not None:
+    _DATATYPE_MAP = {
+        TYPE_BIT: DataType.BIT,
+        TYPE_BYTE: DataType.BYTE,
+        TYPE_WORD: DataType.WORD,
+        TYPE_DWORD: DataType.DWORD,
+        TYPE_INT16: DataType.INT,
+        TYPE_INT32: DataType.DINT,
+        TYPE_REAL: DataType.REAL,
+    }
+else:
+    _DATATYPE_MAP = {}
+
+
+_ADDR_RE = re.compile(
+    r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$"
 )
 
-def _tag_from_address(address: str) -> S7Tag:
-    """Convert integration address format to pyS7 S7Tag."""
-    if pyS7 is None:  # pragma: no cover - safety guard
-        raise RuntimeError("pyS7 non disponibile")
-    addr = address.replace(" ", "").upper()
-    addr = re.sub(r"^DB(\d+)\.", r"DB\\1,", addr)
-    return map_address_to_tag(addr)
+def _norm_token(tok: str) -> str:
+    t = tok.upper()
+    if t in ("DBX", "X", "BOOL", "BIT"):
+        return TYPE_BIT
+    if t in ("DBB", "B", "BYTE"):
+        return TYPE_BYTE
+    if t in ("DBW", "W", "WORD"):
+        return TYPE_WORD
+    if t in ("DBD", "D", "DWORD"):
+        return TYPE_DWORD
+    if t in ("INT", "I"):
+        return TYPE_INT16
+    if t in ("DINT", "DI"):
+        return TYPE_INT32
+    if t in ("REAL", "FLOAT", "R", "F"):
+        return TYPE_REAL
+    if t in ("S", "DBS", "STR", "STRING"):
+        return TYPE_STRING
+    raise ValueError(f"Token tipo non valido: {tok}")
 
+def parse_address(addr: str) -> Tuple[int, int, Optional[int], str]:
+    m = _ADDR_RE.match(addr.replace(" ", ""))
+    if not m:
+        raise ValueError(f"Indirizzo non valido: {addr}")
+    db = int(m.group("db"))
+    byte = int(m.group("byte"))
+    bit = int(m.group("bit")) if m.group("bit") is not None else None
+    ty = _norm_token(m.group("tok"))
+    if ty == TYPE_BIT and (bit is None or bit < 0 or bit > 7):
+        raise ValueError(f"Indice bit non valido: {bit}")
+    return db, byte, bit, ty
 
 class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     """Coordinator che gestisce connessione Snap7, polling e scritture."""
@@ -126,10 +171,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return results
 
     def _read_one(self, address: str) -> Any:
-        m = STRING_ADDR_RE.match(address.replace(" ", ""))
-        if m:
-            db = int(m.group("db"))
-            byte = int(m.group("byte"))
+        db, byte, bit, ty = parse_address(address)
+        if ty == TYPE_STRING:
             hdr_tag = S7Tag(
                 memory_area=MemoryArea.DB,
                 db_number=db,
@@ -150,21 +193,47 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     length=max_len,
                 )
                 data_vals = self._client.read([data_tag], optimize=False)[0]
+                _LOGGER.error("Scrittura %s: %s", data_tag, data_vals)
                 data = bytes(data_vals)
             cur_len = min(cur_len, len(data))
             return data[:cur_len].decode("latin-1", errors="ignore")
         
 
-        tag = _tag_from_address(address)
+        dt = _DATATYPE_MAP.get(ty)
+        if dt is None:
+            raise ValueError(f"Tipo non supportato: {ty}")
+        bit_offset = 0
+        if dt == DataType.BIT:
+            if bit is None:
+                raise ValueError("Indirizzo bit mancante dell'indice")
+            bit_offset = 7 - bit
+        tag = S7Tag(
+            memory_area=MemoryArea.DB,
+            db_number=db,
+            data_type=dt,
+            start=byte,
+            bit_offset=bit_offset,
+            length=1,
+        )
         return self._client.read([tag], optimize=False)[0]
 
     def write_bool(self, address: str, value: bool):
-        tag = _tag_from_address(address)
-        if tag.data_type != DataType.BIT:
+        db, byte, bit, ty = parse_address(address)
+        if ty != TYPE_BIT:
             raise ValueError("write_bool supporta solo indirizzi bit")
         with self._lock:
             try:
                 self._ensure_connected()
+                if bit is None:
+                    raise ValueError("Indirizzo bit mancante dell'indice")
+                tag = S7Tag(
+                    memory_area=MemoryArea.DB,
+                    db_number=db,
+                    data_type=DataType.BIT,
+                    start=byte,
+                    bit_offset=7 - bit,
+                    length=1,
+                )
                 self._client.write([tag], [value])
                 return True
             except Exception as err:
