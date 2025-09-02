@@ -1,1 +1,1 @@
-python-snap7
+pys7
