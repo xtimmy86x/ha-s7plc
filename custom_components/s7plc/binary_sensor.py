@@ -92,5 +92,11 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
         return self._coord.is_connected()
 
     @property
+    def extra_state_attributes(self):
+        attrs = {}
+        attrs["s7_ip"] = self._coord._host
+        return attrs
+
+    @property
     def available(self) -> bool:
         return True
