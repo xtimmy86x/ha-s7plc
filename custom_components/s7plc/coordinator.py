@@ -1,42 +1,34 @@
 from __future__ import annotations
-import logging, re, threading
-from datetime import timedelta
+import logging
+import re
+import threading
 from dataclasses import dataclass
+import time
+from datetime import timedelta
 from types import SimpleNamespace
-from typing import Dict, Optional, Tuple, Any
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# Tipi forward-friendly quando pyS7 non è disponibile
 try:
-    import pyS7
-    from pyS7.constants import DataType, MemoryArea
-    from pyS7.tag import S7Tag
-except Exception as err:
+    import pyS7  # type: ignore
+    from pyS7.constants import DataType, MemoryArea  # type: ignore
+    from pyS7.tag import S7Tag  # type: ignore
+    S7ClientT = "pyS7.S7Client"  # per chiarezza nei commenti
+except Exception as err:  # pragma: no cover
     _LOGGER.error("Impossibile importare pyS7: %s", err, exc_info=True)
-    pyS7 = None
+    pyS7 = None  # type: ignore
+    DataType = SimpleNamespace(BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6)  # sentinel
+    MemoryArea = SimpleNamespace(DB=0)
+    S7Tag = Any  # fallback typing
 
-@dataclass(frozen=True)
-class ParsedAddress:
-    db: int
-    byte: int
-    bit: Optional[int]
-    ty: str
-
-@dataclass
-class TagPlan:
-    topic: str
-    tag: S7Tag
-    postprocess: Optional[Any] = None  # es. lambda v: round(v, 1)
-
-@dataclass
-class StringPlan:
-    topic: str
-    db: int
-    start: int  # byte offset della stringa (punto iniziale del header)
-
+# -----------------------------
+# Costanti & parsing indirizzi
+# -----------------------------
 TYPE_BIT = "bit"
 TYPE_BYTE = "byte"
 TYPE_WORD = "word"
@@ -57,12 +49,17 @@ if pyS7 is not None:
         TYPE_REAL: DataType.REAL,
     }
 else:
-    _DATATYPE_MAP = {}
+    _DATATYPE_MAP: Dict[str, Any] = {}
 
+_ADDR_RE = re.compile(r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$")
 
-_ADDR_RE = re.compile(
-    r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$"
-)
+@dataclass(frozen=True)
+class ParsedAddress:
+    db: int
+    byte: int
+    bit: Optional[int]
+    ty: str
+
 
 def _norm_token(tok: str) -> str:
     t = tok.upper()
@@ -84,6 +81,7 @@ def _norm_token(tok: str) -> str:
         return TYPE_STRING
     raise ValueError(f"Token tipo non valido: {tok}")
 
+
 def parse_address(addr: str) -> ParsedAddress:
     m = _ADDR_RE.match(addr.replace(" ", ""))
     if not m:
@@ -96,32 +94,75 @@ def parse_address(addr: str) -> ParsedAddress:
         raise ValueError(f"Indice bit non valido: {bit}")
     return ParsedAddress(db, byte, bit, ty)
 
+
+# -----------------------------
+# Piani di lettura
+# -----------------------------
+@dataclass
+class TagPlan:
+    topic: str
+    tag: S7Tag
+    postprocess: Optional[Any] = None  # es. lambda v: round(v, 1)
+
+
+@dataclass
+class StringPlan:
+    topic: str
+    db: int
+    start: int  # byte offset della stringa (inizio header)
+
+
+# -----------------------------
+# Helper interni
+# -----------------------------
+class _Helpers:
+    @staticmethod
+    def bit_offset(bit: int) -> int:
+        if not 0 <= bit <= 7:
+            raise ValueError(f"Indice bit non valido: {bit}")
+        return 7 - bit
+
+    @staticmethod
+    def make_tag(pa: ParsedAddress) -> S7Tag:
+        dt = _DATATYPE_MAP.get(pa.ty)
+        if dt is None:
+            raise ValueError(f"Tipo non supportato: {pa.ty}")
+        bit_off = _Helpers.bit_offset(pa.bit) if dt == DataType.BIT else 0
+        return S7Tag(
+            memory_area=MemoryArea.DB,
+            db_number=pa.db,
+            data_type=dt,
+            start=pa.byte,
+            bit_offset=bit_off,
+            length=1,
+        )
+
+    @staticmethod
+    def apply_postprocess(dt, value):
+        # Nota: tieni la presentazione fuori dal trasporto se preferisci
+        return round(value, 1) if dt == DataType.REAL else value
+
+
+# -----------------------------
+# API opzionale: mapping indirizzo→tag (riusabile fuori)
+# -----------------------------
 def map_address_to_tag(address: str) -> Optional[S7Tag]:
-    """Return an S7Tag for the given address if it can be batched.
+    """Ritorna un S7Tag per indirizzi *non-stringa* batchabili.
 
-    ``None`` is returned for string or unsupported types which must be
-    read individually.
+    None per STRING o tipi non supportati.
     """
-    db, byte, bit, ty = parse_address(address)
-    if ty == TYPE_STRING:
+    pa = parse_address(address)
+    if pa.ty == TYPE_STRING:
         return None
-    dt = _DATATYPE_MAP.get(ty)
-    if dt is None:
-        raise ValueError(f"Tipo non supportato: {ty}")
-    bit_offset = 0
-    if dt == DataType.BIT:
-        if bit is None:
-            raise ValueError("Indirizzo bit mancante dell'indice")
-        bit_offset = 7 - bit
-    return S7Tag(
-        memory_area=MemoryArea.DB,
-        db_number=db,
-        data_type=dt,
-        start=byte,
-        bit_offset=bit_offset,
-        length=1,
-    )
+    try:
+        return _Helpers.make_tag(pa)
+    except Exception:
+        return None
 
+
+# -----------------------------
+# Coordinator
+# -----------------------------
 class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     """Coordinator che gestisce connessione Snap7, polling e scritture."""
 
@@ -133,6 +174,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         slot: int = 1,
         port: int = 102,
         scan_interval: float = 0.5,
+        # Timeout/Retry config
+        op_timeout: float = 5.0,            # tempo massimo per un ciclo di lettura/scrittura
+        max_retries: int = 3,               # numero di ritenti per singola operazione
+        backoff_initial: float = 0.5,       # backoff iniziale
+        backoff_max: float = 2.0,           # backoff massimo per attesa tra ritenti
     ):
         super().__init__(
             hass,
@@ -144,69 +190,79 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._rack = rack
         self._slot = slot
         self._port = port
+
+        # Config timeout/ritenti
+        self._op_timeout = float(op_timeout)
+        self._max_retries = int(max_retries)
+        self._backoff_initial = float(backoff_initial)
+        self._backoff_max = float(backoff_max)
+
         self._lock = threading.RLock()
-        self._client: Optional[pyS7.S7Client] = None
-        self._items: Dict[str, str] = {}  # topic -> address
-        self._plc_config = SimpleNamespace(addresses=self._items)
-        self._tags: Dict[str, S7Tag] = {}
-        self._string_addrs: Dict[str, str] = {}
-        self._connected = False
+        self._client: Optional[Any] = None  # S7Client quando disponibile
 
-    def connect(self):
-        """Establish connection if needed."""
-        with self._lock:
-            self._ensure_connected()
+        # Config indirizzi: topic -> address string
+        self._items: Dict[str, str] = {}
 
-    def disconnect(self):
-        """Close connection to PLC."""
-        with self._lock:
-            self._drop_connection()
-
-    def _drop_connection(self):
-        """Mark current client as disconnected and close socket."""
-        if self._client:
-            try:
-                self._client.disconnect()
-            except Exception as err:
-                _LOGGER.debug("Errore durante la disconnessione: %s", err)
-        self._connected = False
-
-    def _ensure_connected(self):
-        if self._client is None:
-            self._client = pyS7.S7Client(self._host, self._rack, self._slot, port=self._port)
-        if not self._connected or self._client.socket is None:
-            try:
-                self._client.connect()
-            except Exception as err:
-                self._connected = False
-                raise RuntimeError(f"Connessione al PLC {self._host} fallita: {err}")
-            self._connected = True
-            _LOGGER.info(
-                "Connesso a PLC S7 %s (rack=%s slot=%s)",
-                self._host,
-                self._rack,
-                self._slot,
-            )
-
-    def is_connected(self) -> bool:
-        with self._lock:
-            return bool(self._client and self._client.socket)
-
-    def add_item(self, topic: str, address: str):
-        with self._lock:
-            self._items[topic] = address
-            # Invalidate cache so it will be rebuilt on next update
-            self._tags.clear()
-            self._string_addrs.clear()
-
-    def _build_tag_cache(self) -> None:
-        """Costruisce una volta sola i piani di lettura."""
-        self._tags.clear()
-        self._string_addrs.clear()
+        # Cache piani di lettura (sempre inizializzate)
         self._plans_batch: list[TagPlan] = []
         self._plans_str: list[StringPlan] = []
 
-        for topic, addr in self._plc_config.addresses.items():
+    # -------------------------
+    # Connessione
+    # -------------------------
+    def _drop_connection(self) -> None:
+        if self._client:
+            try:
+                self._client.disconnect()
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug("Errore durante la disconnessione: %s", err)
+        # non azzeriamo l'istanza, solo il socket verrà riconnesso
+
+    def _ensure_connected(self) -> None:
+        if self._client is None:
+            if pyS7 is None:
+                raise RuntimeError("pyS7 non disponibile")
+            self._client = pyS7.S7Client(self._host, self._rack, self._slot, port=self._port)
+        if not getattr(self._client, "socket", None):
+            try:
+                self._client.connect()
+                _LOGGER.info("Connesso a PLC S7 %s (rack=%s slot=%s)", self._host, self._rack, self._slot)
+            except Exception as err:
+                raise RuntimeError(f"Connessione al PLC {self._host} fallita: {err}")
+
+    def is_connected(self) -> bool:
+        with self._lock:
+            return bool(self._client and getattr(self._client, "socket", None))
+
+    # Metodi pubblici di connessione esplicita (ripristinati)
+    def connect(self) -> None:
+        """Stabilisce la connessione se necessaria (thread-safe)."""
+        with self._lock:
+            self._ensure_connected()
+
+
+    def disconnect(self) -> None:
+        """Chiude la connessione al PLC (thread-safe)."""
+        with self._lock:
+            self._drop_connection()
+
+    # -------------------------
+    # Gestione indirizzi
+    # -------------------------
+    def add_item(self, topic: str, address: str) -> None:
+        """Aggiunge/mappa un topic ad un indirizzo PLC e invalida le cache."""
+        with self._lock:
+            self._items[topic] = address
+            self._invalidate_cache()
+
+    def _invalidate_cache(self) -> None:
+        self._plans_batch.clear()
+        self._plans_str.clear()
+
+    def _build_tag_cache(self) -> None:
+        """Costruisce i piani di lettura batch (scalari) e stringhe."""
+        self._invalidate_cache()
+        for topic, addr in self._items.items():
             try:
                 pa = parse_address(addr)
             except Exception:
@@ -214,42 +270,89 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 continue
 
             if pa.ty == TYPE_STRING:
-                # Per le stringhe, salviamo DB e start per header (max_len/cur_len)
-                self._string_addrs[topic] = addr  # mantieni se ti serve altrove
                 self._plans_str.append(StringPlan(topic, pa.db, pa.byte))
                 continue
 
-            # Mappa tipo → DataType
-            dt = _DATATYPE_MAP.get(pa.ty)
-            if dt is None:
-                _LOGGER.warning("Tipo non supportato %s per %s", pa.ty, addr)
+            try:
+                tag = _Helpers.make_tag(pa)
+            except Exception as e:
+                _LOGGER.warning("Tipo/indirizzo non supportato %s (%s): %s", topic, addr, e)
                 continue
 
-            bit_offset = 0
-            if dt == DataType.BIT:
-                if pa.bit is None:
-                    _LOGGER.error("Bit mancante in %s", addr)
-                    continue
-                bit_offset = 7 - pa.bit  # mantieni la convenzione usata
+            # postprocess legato al tipo dati
+            def _mk_post(dt):
+                return lambda v: _Helpers.apply_postprocess(dt, v)
 
-            tag = S7Tag(
-                memory_area=MemoryArea.DB,
-                db_number=pa.db,
-                data_type=dt,
-                start=pa.byte,
-                bit_offset=bit_offset,
-                length=1,
-            )
+            self._plans_batch.append(TagPlan(topic, tag, _mk_post(tag.data_type)))
 
-            post = (lambda v: round(v, 1)) if dt == DataType.REAL else None
-            self._tags[topic] = tag  # se ti serve compatibilità
-            self._plans_batch.append(TagPlan(topic, tag, post))
+    # -------------------------
+    # Retry/timeout helpers
+    # -------------------------
+    def _sleep(self, seconds: float) -> None:
+        try:
+            time.sleep(max(0.0, seconds))
+        except Exception:
+            pass
 
+    def _retry(self, func, *args, **kwargs):
+        """Esegue func con ritenti esplicitando un backoff esponenziale.
+        Riconnette al PLC tra i tentativi in caso di errore.
+        """
+        attempt = 0
+        last_exc = None
+        while attempt <= self._max_retries:
+            try:
+                # Garantisce connessione prima di ogni tentativo
+                self._ensure_connected()
+                return func(*args, **kwargs)
+            except Exception as e:  # log, droppa connessione e ritenta
+                last_exc = e
+                _LOGGER.debug("Tentativo %s fallito: %s", attempt + 1, e)
+                self._drop_connection()
+                if attempt == self._max_retries:
+                    break
+                backoff = min(self._backoff_initial * (2 ** attempt), self._backoff_max)
+                self._sleep(backoff)
+                attempt += 1
+        # esauriti i tentativi
+        raise last_exc if last_exc else RuntimeError("Operazione fallita senza eccezione specifica")
+
+    # -------------------------
+    # Update loop
+    # -------------------------
     async def _async_update_data(self) -> Dict[str, Any]:
-        if not self._tags and not self._string_addrs:
+        if not self._plans_batch and not self._plans_str:
             with self._lock:
                 self._build_tag_cache()
         return await self.hass.async_add_executor_job(self._read_all)
+
+    def _get_pdu_limit(self) -> int:
+        # payload < PDU per lasciare spazio agli header (snap7 riserva ~18B)
+        size = getattr(self._client, "pdu_length", getattr(self._client, "pdu_size", 240))
+        return max(1, int(size) - 30)
+
+    def _read_s7_string(self, db: int, start: int) -> str:
+        # Header: max_len, cur_len
+        hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
+        max_len, cur_len = self._client.read([hdr_tag], optimize=False)[0]
+        # Sicurezza sui tipi
+        max_len = int(max_len)
+        cur_len = int(cur_len)
+        target = max(0, min(max_len, cur_len))
+        if target == 0:
+            return ""
+
+        data = bytearray()
+        pdu_limit = self._get_pdu_limit()
+        offset = 0
+        while offset < target:
+            chunk_len = min(target - offset, pdu_limit)
+            data_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len)
+            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[0]
+            data.extend(chunk)
+            offset += chunk_len
+
+        return bytes(data).decode("latin-1", errors="ignore")
 
     def _read_all(self) -> Dict[str, Any]:
         with self._lock:
@@ -261,20 +364,44 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             plans_batch = list(self._plans_batch)
             plans_str = list(self._plans_str)
 
+        start_ts = time.monotonic()
+        deadline = start_ts + self._op_timeout
+
         results: Dict[str, Any] = {}
         try:
-            # 1) Letture batchabili
+            # 1) Batch di scalari (con ritenti)
             if plans_batch:
-                values = self._client.read([p.tag for p in plans_batch])
-                for plan, val in zip(plans_batch, values):
-                    results[plan.topic] = plan.postprocess(val) if plan.postprocess else val
+                try:
+                    values = self._retry(lambda: self._client.read([p.tag for p in plans_batch]))
+                    for plan, val in zip(plans_batch, values):
+                        results[plan.topic] = plan.postprocess(val) if plan.postprocess else val
+                except Exception:
+                    _LOGGER.exception("Errore batch read")
+                    for plan in plans_batch:
+                        results.setdefault(plan.topic, None)
 
-            # 2) Letture stringhe (individuali ma ottimizzate)
+            # Check timeout dopo il batch
+            if time.monotonic() > deadline:
+                _LOGGER.warning("Timeout lettura batch raggiunto (%.2fs)", self._op_timeout)
+                # per le stringhe rimanenti ritorna None
+                for plan in plans_str:
+                    results.setdefault(plan.topic, None)
+                return results
+
+            # 2) Stringhe (individuali ma chunked, con deadline)
             for plan in plans_str:
-                results[plan.topic] = self._read_string(plan.db, plan.start)
+                if time.monotonic() > deadline:
+                    _LOGGER.warning("Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout)
+                    results.setdefault(plan.topic, None)
+                    continue
+                try:
+                    results[plan.topic] = self._read_s7_string(plan.db, plan.start)
+                except Exception:
+                    _LOGGER.exception("Errore lettura stringa %s", plan.topic)
+                    results.setdefault(plan.topic, None)
 
-        except Exception as e:
-            _LOGGER.error("Errore lettura: %s", e)
+        except Exception:
+            _LOGGER.exception("Errore lettura")
             for plan in plans_batch:
                 results.setdefault(plan.topic, None)
             for plan in plans_str:
@@ -283,132 +410,30 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         return results
 
-    def _read_string(self, db: int, start: int) -> str:
-        # Header: max_len, cur_len
-        hdr_tag = S7Tag(
-            memory_area=MemoryArea.DB,
-            db_number=db,
-            data_type=DataType.BYTE,
-            start=start,
-            bit_offset=0,
-            length=2,
-        )
-        max_len, cur_len = self._client.read([hdr_tag], optimize=False)[0]
-        target_len = max(0, min(max_len, cur_len))
-        if target_len == 0:
-            return ""
-
-        data = bytearray()
-        pdu_size = getattr(self._client, "pdu_length", getattr(self._client, "pdu_size", 240))
-        pdu_limit = max(1, pdu_size - 30)
-
-        offset = 0
-        while offset < target_len:
-            chunk_len = min(target_len - offset, pdu_limit)
-            data_tag = S7Tag(
-                memory_area=MemoryArea.DB,
-                db_number=db,
-                data_type=DataType.BYTE,
-                start=start + 2 + offset,
-                bit_offset=0,
-                length=chunk_len,
-            )
-            chunk = self._client.read([data_tag], optimize=False)[0]
-            data.extend(chunk)
-            offset += chunk_len
-
-        return bytes(data).decode("latin-1", errors="ignore")
-
+    # -------------------------
+    # Letture/scritture ad hoc
+    # -------------------------
     def _read_one(self, address: str) -> Any:
-        db, byte, bit, ty = parse_address(address)
-        if ty == TYPE_STRING:
-            hdr_tag = S7Tag(
-                memory_area=MemoryArea.DB,
-                db_number=db,
-                data_type=DataType.BYTE,
-                start=byte,
-                bit_offset=0,
-                length=2,
-            )
-            max_len, cur_len = self._client.read([hdr_tag], optimize=False)[0]
-            data = bytearray()
-            if max_len > 0:
-                pdu_size = getattr(
-                    self._client, "pdu_length", getattr(self._client, "pdu_size", max_len)
-                )
-                # The payload of a read request must be smaller than the
-                # negotiated PDU size to leave room for protocol headers
-                # (Snap7 reserves 18 bytes).
-                pdu_limit = max(1, pdu_size - 30)
-                offset = 0
-                while offset < max_len:
-                    chunk_len = min(max_len - offset, pdu_limit)
-                    data_tag = S7Tag(
-                        memory_area=MemoryArea.DB,
-                        db_number=db,
-                        data_type=DataType.BYTE,
-                        start=byte + 2 + offset,
-                        bit_offset=0,
-                        length=chunk_len,
-                    )
-                    chunk_vals = self._client.read([data_tag], optimize=False)[0]
-                    data.extend(chunk_vals)
-                    offset += chunk_len
-            data = bytes(data)
-            cur_len = min(cur_len, len(data))
-            return data[:cur_len].decode("latin-1", errors="ignore")
-        
+        pa = parse_address(address)
+        if pa.ty == TYPE_STRING:
+            return self._read_s7_string(pa.db, pa.byte)
 
-        dt = _DATATYPE_MAP.get(ty)
-        if dt is None:
-            raise ValueError(f"Tipo non supportato: {ty}")
-        bit_offset = 0
-        if dt == DataType.BIT:
-            if bit is None:
-                raise ValueError("Indirizzo bit mancante dell'indice")
-            bit_offset = 7 - bit
-        
-        tag = S7Tag(
-            memory_area=MemoryArea.DB,
-            db_number=db,
-            data_type=dt,
-            start=byte,
-            bit_offset=bit_offset,
-            length=1,
-        )
-        value = self._client.read([tag], optimize=False)[0]
-        return round(value, 1) if dt == DataType.REAL else value
+        tag = _Helpers.make_tag(pa)
+        value = self._retry(lambda: self._client.read([tag], optimize=False))[0]
+        return _Helpers.apply_postprocess(tag.data_type, value)
 
-    def write_bool(self, address: str, value: bool):
-        # Prova a riusare la cache se l’indirizzo è già stato aggiunto:
-        tag: Optional[S7Tag] = None
-        with self._lock:
-            for plan in getattr(self, "_plans_batch", []):
-                if plan.tag.data_type == DataType.BIT:
-                    # ricostruisci stringa "DB{db}.DBX{start}.{bit}" solo se serve confrontare
-                    # altrimenti parsalo una volta qui sotto
-                    pass
-
-        # Se non trovato in cache, parse una volta sola:
+    def write_bool(self, address: str, value: bool) -> bool:
         pa = parse_address(address)
         if pa.ty != TYPE_BIT:
             raise ValueError("write_bool supporta solo indirizzi bit")
-        bit_offset = 7 - pa.bit
-        tag = S7Tag(
-            memory_area=MemoryArea.DB,
-            db_number=pa.db,
-            data_type=DataType.BIT,
-            start=pa.byte,
-            bit_offset=bit_offset,
-            length=1,
-        )
 
+        tag = _Helpers.make_tag(pa)
         with self._lock:
             try:
                 self._ensure_connected()
-                self._client.write([tag], [value])
+                self._retry(lambda: self._client.write([tag], [bool(value)]))
                 return True
-            except Exception as err:
-                _LOGGER.error("Errore scrittura %s: %s", address, err)
+            except Exception:
+                _LOGGER.exception("Errore scrittura %s", address)
                 self._drop_connection()
                 return False
