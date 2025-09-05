@@ -74,6 +74,9 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 3. Enter the PLC `host`, `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to create entities (`light`, `switch`, `binary_sensor`, `sensor`).
 5. Provide a name, entity type, PLC address, and optional unit (for sensors) for each entity.
+   - `switch`/`light` entries may specify separate `state_address` and `command_address`.
+     If `command_address` is omitted it defaults to the state address.
+     Set `sync_state` to `true` to automatically mirror state changes to the command address.
 
 **Notes**
 - `rack/slot` values depend on the CPU family. Common settings:
@@ -109,6 +112,7 @@ Example: adding a light entity via the UI:
 2. Click **Configure**.
 3. Select **Light** and enter a JSON formatted list:
    es: [{"name": "Test Sensor", "address": "DB58.I2"}, {"name": "Test String", "address": "DB58.S10"}]
+   es. [{"name": "Lamp", "state_address": "DB1.DBX0.0", "command_address": "DB1.DBX0.1", "sync_state": true}]`
 4. Save to create the entity. Repeat for other entity types as needed.
 
 ---
