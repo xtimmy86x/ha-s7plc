@@ -13,6 +13,10 @@ CONF_BINARY_SENSORS = "binary_sensors"
 CONF_SWITCHES = "switches"
 CONF_LIGHTS = "lights"
 
+CONF_STATE_ADDRESS = "state_address"
+CONF_COMMAND_ADDRESS = "command_address"
+CONF_SYNC_STATE = "sync_state"
+
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
