@@ -1,12 +1,12 @@
 {
   "domain": "s7plc",
   "name": "Siemens S7",
-  "version": "2.0.0",
-  "documentation": "https://github.com/xtimmy86x/ha-s7plc",
-  "requirements": ["pys7"],
-  "dependencies": [],
   "codeowners": ["@xtimmy86x"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/xtimmy86x/ha-s7plc",
   "iot_class": "local_polling",
   "loggers": ["custom_components.s7plc"],
-  "config_flow": true
+  "requirements": ["pys7"],
+  "version": "2.0.0"
 }

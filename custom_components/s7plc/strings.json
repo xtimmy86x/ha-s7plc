@@ -1,6 +1,5 @@
 {
   "title": "Siemens S7",
-  "description": "Integration for Siemens S7 PLC",
   "config": {
     "step": {
       "user": {
