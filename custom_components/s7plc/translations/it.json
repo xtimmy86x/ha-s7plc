@@ -31,10 +31,6 @@
     }
   },
   "options": {
-    "action": {
-      "add": "Aggiungi entità",
-      "remove": "Rimuovi entità"
-    },
     "step": {
       "init": {
         "title": "Opzioni S7 PLC",
@@ -44,6 +40,12 @@
         },
         "data_description": {
           "action": "Seleziona se aggiungere/configurare nuovi elementi oppure rimuovere quelli esistenti."
+        },
+        "options": {
+          "action": {
+            "add": "Aggiungi Entità",
+            "remove": "Rimuovi Entità"
+          }
         }
       },
       "remove": {

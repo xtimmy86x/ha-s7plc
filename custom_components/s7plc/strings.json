@@ -31,10 +31,6 @@
     }
   },
   "options": {
-    "action": {
-      "add": "Add Items",
-      "remove": "Remove items"
-    },
     "step": {
       "init": {
         "title": "S7 PLC Options",
@@ -44,6 +40,12 @@
         },
         "data_description": {
           "action": "Select whether to add/configure new items or remove existing ones."
+        },
+        "options": {
+          "action": {
+            "add": "Add Items",
+            "remove": "Remove items"
+          }
         }
       },
       "remove": {

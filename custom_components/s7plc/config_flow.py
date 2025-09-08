@@ -169,9 +169,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         # 2) Estraggo le due stringhe con fallback
-        t_add = trans.get(f"component.{DOMAIN}.options.action.add", "Add / Configure")
+        t_add = trans.get(
+            f"component.{DOMAIN}.options.step.init.options.action.add",
+            "Add / Configure",
+        )
         t_remove = trans.get(
-            f"component.{DOMAIN}.options.action.remove", "Remove items"
+            f"component.{DOMAIN}.options.step.init.options.action.remove",
+            "Remove items",
         )
 
         data_schema = vol.Schema(
