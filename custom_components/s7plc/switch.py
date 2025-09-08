@@ -13,12 +13,11 @@ from .const import (
     CONF_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_SYNC_STATE,
+    CONF_ADDRESS
 )
 from .entity import S7BoolSyncEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_ADDRESS = "address"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):

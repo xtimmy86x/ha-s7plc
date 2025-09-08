@@ -13,6 +13,8 @@ CONF_BINARY_SENSORS = "binary_sensors"
 CONF_SWITCHES = "switches"
 CONF_LIGHTS = "lights"
 
+CONF_ADDRESS = "address"
+CONF_DEVICE_CLASS = "device_class"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
 CONF_SYNC_STATE = "sync_state"

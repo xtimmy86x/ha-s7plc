@@ -7,12 +7,10 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_SENSORS
+from .const import DOMAIN, CONF_SENSORS, CONF_ADDRESS
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_ADDRESS = "address"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
