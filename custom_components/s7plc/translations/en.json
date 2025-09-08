@@ -4,30 +4,128 @@
     "step": {
       "user": {
         "title": "Connect to S7 PLC",
+        "description": "Enter your S7 PLC connection details. Default port: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s. A connection test will run before saving.",
         "data": {
           "name": "Name",
           "host": "Host",
           "port": "Port",
           "rack": "Rack",
           "slot": "Slot",
-          "scan_interval": "Scan interval"
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "name": "A friendly name for the PLC (used in entity names).",
+          "host": "IP or hostname of the PLC.",
+          "port": "ISO-on-TCP port, typically 102.",
+          "rack": "CPU rack number (usually 0).",
+          "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
+          "scan_interval": "How often to poll the PLC, in seconds."
         }
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect"
+      "cannot_connect": "Cannot connect to the PLC. Check host, rack, slot, port, and network."
+    },
+    "abort": {
+      "already_configured": "This PLC is already configured."
     }
   },
   "options": {
+    "action": {
+      "add": "Add Items",
+      "remove": "Remove items"
+    },
     "step": {
       "init": {
+        "title": "S7 PLC Options",
+        "description": "Choose what you want to do.",
         "data": {
-          "sensors": "Sensors (JSON list)",
-          "binary_sensors": "Binary sensors (JSON list)",
-          "switches": "Switches (JSON list)",
-          "lights": "Lights (JSON list)"
+          "action": "Action"
+        },
+        "data_description": {
+          "action": "Select whether to add/configure new items or remove existing ones."
+        }
+      },
+      "remove": {
+        "title": "Remove Items",
+        "description": "Select the items you want to remove from this PLC configuration.",
+        "data": {
+          "remove_items": "Items to remove"
+        },
+        "data_description": {
+          "remove_items": "Checked items will be removed. The integration will reload to apply the changes."
+        }
+      },
+      "sensors": {
+        "title": "Add Sensor",
+        "description": "Create a sensor that reads a value from the PLC (e.g., DB, MW, etc.). Provide the address and optionally a name.",
+        "data": {
+          "address": "Address",
+          "name": "Name",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC address to read (e.g., DB1000.DBD0, MW10, DB1.DBW2).",
+          "name": "Optional friendly name for the sensor.",
+          "add_another": "Stay on this step to add more sensors."
+        }
+      },
+      "binary_sensors": {
+        "title": "Add Binary Sensor",
+        "description": "Create a binary sensor (on/off) from the PLC. Set the address, name, and optional device_class.",
+        "data": {
+          "address": "Address",
+          "name": "Name",
+          "device_class": "Device class",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10.DBX0.1).",
+          "name": "Optional friendly name for the binary sensor.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
+          "add_another": "Stay on this step to add more binary sensors."
+        }
+      },
+      "switches": {
+        "title": "Add Switch",
+        "description": "Create a switch with a state address and an optional command address. You can enable state synchronization.",
+        "data": {
+          "state_address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "sync_state": "Sync state with PLC",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "state_address": "PLC address to read the current state (e.g., Q0.0, DB20.DBX0.0).",
+          "command_address": "PLC address to write commands (optional). If omitted, only state will be read.",
+          "name": "Optional friendly name for the switch.",
+          "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
+          "add_another": "Stay on this step to add more switches."
+        }
+      },
+      "lights": {
+        "title": "Add Light",
+        "description": "Configure a light with a state address and an optional command address. You can enable state synchronization.",
+        "data": {
+          "state_address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "sync_state": "Sync state with PLC",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "state_address": "PLC address to read the current light state.",
+          "command_address": "PLC address to write light commands (optional).",
+          "name": "Optional friendly name for the light.",
+          "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
+          "add_another": "Stay on this step to add more lights."
         }
       }
+    },
+    "error": {
+      "invalid_address": "Invalid address format.",
+      "duplicate_entry": "This item already exists."
     }
   },
   "entity": {

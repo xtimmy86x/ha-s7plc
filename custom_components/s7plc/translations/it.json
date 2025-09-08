@@ -3,31 +3,129 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connetti al PLC S7",
+        "title": "Configura collegamento al PLC S7",
+        "description": "Inserisci i dati di connessione del PLC S7. Porta predefinita: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s. Verrà effettuato un test di connessione prima di salvare.",
         "data": {
           "name": "Nome",
           "host": "Host",
           "port": "Porta",
           "rack": "Rack",
           "slot": "Slot",
-          "scan_interval": "Intervallo scansione"
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "name": "Nome leggibile del PLC (usato nei nomi entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, in genere 102.",
+          "rack": "Numero di rack della CPU (di solito 0).",
+          "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
+          "scan_interval": "Frequenza di polling del PLC, in secondi."
         }
       }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi"
+      "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete."
+    },
+    "abort": {
+      "already_configured": "Questo PLC è già configurato."
     }
   },
   "options": {
+    "action": {
+      "add": "Aggiungi entità",
+      "remove": "Rimuovi entità"
+    },
     "step": {
       "init": {
+        "title": "Opzioni S7 PLC",
+        "description": "Scegli cosa vuoi fare.",
         "data": {
-          "sensors": "Sensori (lista JSON)",
-          "binary_sensors": "Sensori binari (lista JSON)",
-          "switches": "Interruttori (lista JSON)",
-          "lights": "Luci (lista JSON)"
+          "action": "Azione"
+        },
+        "data_description": {
+          "action": "Seleziona se aggiungere/configurare nuovi elementi oppure rimuovere quelli esistenti."
+        }
+      },
+      "remove": {
+        "title": "Rimuovi Elementi",
+        "description": "Seleziona gli elementi che vuoi rimuovere da questa configurazione del PLC.",
+        "data": {
+          "remove_items": "Elementi da rimuovere"
+        },
+        "data_description": {
+          "remove_items": "Gli elementi selezionati verranno rimossi. L'integrazione verrà ricaricata per applicare le modifiche."
+        }
+      },
+      "sensors": {
+        "title": "Aggiungi Sensore",
+        "description": "Definisci un sensore che legge un valore dal PLC (es. DB, MW, ecc.). Inserisci l'indirizzo e, facoltativamente, un nome.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC da leggere (es. DB1000.DBD0, MW10, DB1.DBW2).",
+          "name": "Nome descrittivo opzionale per il sensore.",
+          "add_another": "Rimani in questo step per aggiungere altri sensori."
+        }
+      },
+      "binary_sensors": {
+        "title": "Aggiungi Binary Sensor",
+        "description": "Crea un sensore binario (on/off) dal PLC. Imposta indirizzo, nome e device_class (opzionale).",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10.DBX0.1).",
+          "name": "Nome descrittivo opzionale per il binary sensor.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+          "add_another": "Rimani in questo step per aggiungere altri binary sensor."
+        }
+      },
+      "switches": {
+        "title": "Aggiungi Switch",
+        "description": "Crea uno switch con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20.DBX0.0).",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
+          "name": "Nome descrittivo opzionale per lo switch.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "add_another": "Rimani in questo step per aggiungere altri switch."
+        }
+      },
+      "lights": {
+        "title": "Aggiungi Luce",
+        "description": "Configura una luce con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
+          "name": "Nome descrittivo opzionale per la luce.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre luci."
         }
       }
+    },
+    "error": {
+      "invalid_address": "Formato indirizzo non valido.",
+      "duplicate_entry": "Questo elemento è già presente."
     }
   },
   "entity": {
