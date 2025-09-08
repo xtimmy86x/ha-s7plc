@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-import re
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import slugify
 
 from .const import (
     DOMAIN,
@@ -54,11 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # opzionale: puoi anche rimuovere questa connect e lasciare che il first_refresh la gestisca
     await hass.async_add_executor_job(coordinator.connect)
 
-    def _slug(s: str) -> str:
-        import re
-        return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
-
-    device_id = f"s7plc-{_slug(str(host))}-{rack}-{slot}"
+    device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
