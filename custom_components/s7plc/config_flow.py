@@ -8,6 +8,8 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv  # <-- IMPORT IMPORTANTE
 from homeassistant.helpers import selector
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
@@ -35,6 +37,14 @@ from .const import (
 from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+bs_device_class_options = [
+    selector.SelectOptionDict(value=dc.value, label=dc.value) for dc in BinarySensorDeviceClass
+]
+
+s_device_class_options = [
+    selector.SelectOptionDict(value=dc.value, label=dc.value) for dc in SensorDeviceClass
+]
 
 
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -225,7 +235,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_DEVICE_CLASS): selector.TextSelector(),
+                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=bs_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN
+                    )
+                ),
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
