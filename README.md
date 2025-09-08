@@ -54,6 +54,15 @@
 
 ## Installation
 
+**HACS (Custom repository)**
+
+1. Ensure [HACS](https://hacs.xyz) is installed.
+2. In Home Assistant, open **HACS → Integrations**.
+3. Click the three-dots menu and select **Custom repositories**.
+4. Enter `https://github.com/xtimmy86x/ha-s7plc` and choose **Integration**.
+5. Search for **"S7 PLC"** in HACS and install.
+6. Restart Home Assistant.
+
 **Manual (Custom Component)**
 
 1. Copy the folder **`custom_components/s7plc`** into your Home Assistant config directory  
