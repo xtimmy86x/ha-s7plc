@@ -8,5 +8,5 @@
   "iot_class": "local_polling",
   "loggers": ["custom_components.s7plc"],
   "requirements": ["pys7"],
-  "version": "2.0.0"
+  "version": "2.1.0"
 }
