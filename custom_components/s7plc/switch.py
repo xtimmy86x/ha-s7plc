@@ -120,6 +120,12 @@ class S7Switch(S7BaseEntity, SwitchEntity):
     def async_write_ha_state(self) -> None:
         new_state = self.is_on
 
+        # Memorizza lo stato iniziale senza inviare comandi al PLC
+        if self._last_state is None and new_state is not None:
+            self._last_state = new_state
+            super().async_write_ha_state()
+            return
+
         # Se il cambio stato arriva da HA (pending) e ciò che leggo dal PLC
         # coincide con quanto comandato, NON rimando il comando (evito eco).
         if (
