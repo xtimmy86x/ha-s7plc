@@ -73,11 +73,12 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 1. In Home Assistant, go to **Settings → Devices & Services** and click **+ Add Integration**.
 2. Search for **"S7 PLC"** and select it.
 3. Enter the PLC `host`, `rack`, `slot`, and `port` values when prompted.
-4. Once the integration is added, open it and choose **Configure** to create entities (`light`, `switch`, `binary_sensor`, `sensor`).
-5. Provide a name, entity type, PLC address, and optional unit (for sensors) for each entity.
-   - `switch`/`light` entries may specify separate `state_address` and `command_address`.
+4. Once the integration is added, open it and choose **Configure** to manage entities.
+5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
+   - When adding, select the entity type (`light`, `switch`, `binary_sensor`, `sensor`) and fill in the form fields.
+     `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
-     Set `sync_state` to `true` to automatically mirror state changes to the command address.
+     Enable `sync_state` to mirror PLC state changes to the command address.
 
 **Notes**
 - `rack/slot` values depend on the CPU family. Common settings:
@@ -110,11 +111,15 @@ Use standard S7 absolute addressing:
 Example: adding a light entity via the UI:
 
 1. After the integration is installed, open it from **Settings → Devices & Services**.
-2. Click **Configure**.
-3. Select **Light** and enter a JSON formatted list:
-   es: [{"name": "Test Sensor", "address": "DB58.I2"}, {"name": "Test String", "address": "DB58.S10"}]
-   es. [{"name": "Lamp", "state_address": "DB1.DBX0.0", "command_address": "DB1.DBX0.1", "sync_state": true}]`
-4. Save to create the entity. Repeat for other entity types as needed.
+2. Click **Configure** and choose **Add items**.
+3. Select **Light**, then enter the `state_address`, optional `command_address`, name, and whether to `sync_state`.
+4. Save to create the entity or enable **Add another** to keep adding more.
+
+Example: removing an entity via the UI:
+
+1. Open the integration from **Settings → Devices & Services** and click **Configure**.
+2. Choose **Remove items**.
+3. Select the entities to remove and submit; the integration reloads to apply the changes.
 
 ---
 
