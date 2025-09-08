@@ -35,17 +35,13 @@
       "init": {
         "title": "Opzioni S7 PLC",
         "description": "Scegli cosa vuoi fare.",
-        "data": {
-          "action": "Azione"
-        },
-        "data_description": {
-          "action": "Seleziona se aggiungere/configurare nuovi elementi oppure rimuovere quelli esistenti."
-        },
-        "options": {
-          "action": {
-            "add": "Aggiungi Entità",
-            "remove": "Rimuovi Entità"
-          }
+        "menu_options": {
+          "add": "Aggiungi entità (guidato)",
+          "sensors": "Aggiungi Sensore",
+          "binary_sensors": "Aggiungi Sensore Binario",
+          "switches": "Aggiungi Switch",
+          "lights": "Aggiungi Luce",
+          "remove": "Rimuovi entità"
         }
       },
       "remove": {

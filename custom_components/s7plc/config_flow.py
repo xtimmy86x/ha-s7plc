@@ -10,7 +10,6 @@ from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv  # <-- IMPORT IMPORTANTE
 from homeassistant.helpers import selector
-from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
     CONF_ADDRESS,
@@ -146,57 +145,25 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            self._action = user_input.get("action")
-            if self._action == "add":
-                return await self.async_step_sensors()
-            if self._action == "remove":
-                return await self.async_step_remove()
-            # default
-            self._action = "add"
-            return await self.async_step_sensors()
-
-        # 1) Prendo la lingua corrente e le traduzioni per questo dominio/categoria
-        lang = self.hass.config.language
-        trans = await async_get_translations(
-            self.hass,
-            language=lang,
-            category="options",
-            integrations=[
-                DOMAIN
-            ],  # molto importante: limita alle traduzioni del tuo dominio
-            config_flow=True,  # include le chiavi del config/options flow
+        # Mostra un menu con le prossime tappe; le etichette arrivano da strings.json
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=[
+                "add",             # percorso guidato: sensors -> binary_sensors -> switches -> lights
+                "sensors",         # salta direttamente a "Add Sensor"
+                "binary_sensors",  # salta direttamente a "Add Binary Sensor"
+                "switches",        # salta direttamente a "Add Switch"
+                "lights",          # salta direttamente a "Add Light"
+                "remove",          # rimozione
+            ],
+            # facoltativo: ordina alfabeticamente per etichetta tradotta
+            # sort=True,
         )
 
-        # 2) Estraggo le due stringhe con fallback
-        t_add = trans.get(
-            f"component.{DOMAIN}.options.step.init.options.action.add",
-            "Add / Configure",
-        )
-        t_remove = trans.get(
-            f"component.{DOMAIN}.options.step.init.options.action.remove",
-            "Remove items",
-        )
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    "action",
-                    default="add",
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(value="add", label=t_add),
-                            selector.SelectOptionDict(value="remove", label=t_remove),
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                )
-            }
-        )
-        # Title/description presi da translations: options.step.init.*
-        return self.async_show_form(step_id="init", data_schema=data_schema)
-
+    async def async_step_add(self, user_input: dict[str, Any] | None = None):
+        self._action = "add"
+        return await self.async_step_sensors()
+    
     # ====== STEP A: add (come già avevi) ======
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
