@@ -1,26 +1,29 @@
 from __future__ import annotations
 
 import logging
-from homeassistant.components.light import LightEntity, ColorMode
+
+from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
-    DOMAIN,
+    CONF_ADDRESS,
+    CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
     CONF_STATE_ADDRESS,
-    CONF_COMMAND_ADDRESS,
     CONF_SYNC_STATE,
-    CONF_ADDRESS,
+    DOMAIN,
 )
 from .entity import S7BoolSyncEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -35,10 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entities = []
     for item in entry.options.get(CONF_LIGHTS, []):
-        state_address = (
-            item.get(CONF_STATE_ADDRESS)
-            or item.get(CONF_ADDRESS)
-        )
+        state_address = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
         if not state_address:
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)

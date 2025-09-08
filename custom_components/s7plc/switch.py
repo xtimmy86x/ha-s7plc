@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
@@ -8,19 +9,21 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
-    DOMAIN,
-    CONF_SWITCHES,
-    CONF_STATE_ADDRESS,
+    CONF_ADDRESS,
     CONF_COMMAND_ADDRESS,
+    CONF_STATE_ADDRESS,
+    CONF_SWITCHES,
     CONF_SYNC_STATE,
-    CONF_ADDRESS
+    DOMAIN,
 )
 from .entity import S7BoolSyncEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -35,10 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entities = []
     for item in entry.options.get(CONF_SWITCHES, []):
-        state_address = (
-            item.get(CONF_STATE_ADDRESS)
-            or item.get(CONF_ADDRESS)
-        )
+        state_address = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
         if not state_address:
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
@@ -87,4 +87,3 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             command_address=command_address,
             sync_state=sync_state,
         )
-        

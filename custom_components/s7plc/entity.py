@@ -1,8 +1,10 @@
 from __future__ import annotations
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity import DeviceInfo
+
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 
 class S7BaseEntity(CoordinatorEntity):
     _attr_should_poll = False
@@ -111,14 +113,11 @@ class S7BoolSyncEntity(S7BaseEntity):
 
         # Se il cambio stato arriva da HA (pending) e ciò che leggo dal PLC
         # coincide con quanto comandato, NON rimando il comando (evito eco).
-        if (
-            self._sync_state
-            and new_state is not None
-            and self.available
-        ):
+        if self._sync_state and new_state is not None and self.available:
             if self._pending_command is not None:
                 if new_state == self._pending_command:
-                    # cambio interno completato -> aggiorno solo i registri interni e pulisco
+                    # cambio interno completato -> aggiorno solo i registri interni
+                    # e pulisco
                     self._last_state = new_state
                     self._pending_command = None
                     super().async_write_ha_state()

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import logging
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_SENSORS, CONF_ADDRESS
+from .const import CONF_ADDRESS, CONF_SENSORS, DOMAIN
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -42,8 +46,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
-    def __init__(self, coordinator, name: str, unique_id: str, device_info: DeviceInfo, topic: str, address: str):
-        super().__init__(coordinator, name=name, unique_id=unique_id, device_info=device_info, topic=topic, address=address)
+    def __init__(
+        self,
+        coordinator,
+        name: str,
+        unique_id: str,
+        device_info: DeviceInfo,
+        topic: str,
+        address: str,
+    ):
+        super().__init__(
+            coordinator,
+            name=name,
+            unique_id=unique_id,
+            device_info=device_info,
+            topic=topic,
+            address=address,
+        )
 
     @property
     def native_value(self):

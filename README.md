@@ -23,6 +23,7 @@
 - [FAQ](#faq)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+- [Development](#development)
 - [Releases](#releases)
 - [Security & Safety](#security--safety)
 - [License](#license)
@@ -172,6 +173,20 @@ A: Inspect your DB layout in TIA Portal / Step7. Use DB number + byte offset (+ 
 4. Open a Pull Request describing the change and test steps.
 
 Please add examples/docs where appropriate.
+
+## Development
+
+This project uses [pre-commit](https://pre-commit.com/) to enforce formatting and
+linting with **black**, **isort**, and **flake8**. Run the hooks on modified
+files before committing:
+
+```bash
+pip install pre-commit
+pre-commit run --files <file1> [<file2> ...]
+```
+
+The hooks will automatically format the files and ensure they end with a
+newline.
 
 ---
 

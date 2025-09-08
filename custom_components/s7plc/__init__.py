@@ -9,18 +9,18 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
-    DOMAIN,
-    PLATFORMS,
-    CONF_NAME,
     CONF_HOST,
-    CONF_RACK,
-    CONF_SLOT,
+    CONF_NAME,
     CONF_PORT,
+    CONF_RACK,
     CONF_SCAN_INTERVAL,
+    CONF_SLOT,
     DEFAULT_PORT,
     DEFAULT_RACK,
-    DEFAULT_SLOT,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SLOT,
+    DOMAIN,
+    PLATFORMS,
 )
 from .coordinator import S7Coordinator
 
@@ -28,10 +28,12 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the integration."""
     hass.data.setdefault(DOMAIN, {})
     return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = entry.data
@@ -51,7 +53,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         scan_interval=scan_s,
     )
 
-    # opzionale: puoi anche rimuovere questa connect e lasciare che il first_refresh la gestisca
+    # opzionale: puoi anche rimuovere questa connect
+    # e lasciare che il first_refresh la gestisca
     await hass.async_add_executor_job(coordinator.connect)
 
     device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
@@ -62,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "name": name,
         "host": host,
         "device_id": device_id,
-        "platforms_forwarded": False,   # 👈 guard flag
+        "platforms_forwarded": False,  # 👈 guard flag
     }
 
     # 1) Primo refresh “ufficiale” del coordinator (avvia anche il timer periodico)
@@ -84,6 +87,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data = hass.data[DOMAIN].pop(entry.entry_id)
         await hass.async_add_executor_job(data["coordinator"].disconnect)
     return unload_ok
+
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)

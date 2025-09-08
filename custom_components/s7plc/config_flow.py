@@ -9,25 +9,26 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 
 from .const import (
-    DOMAIN,
-    CONF_NAME,
+    CONF_BINARY_SENSORS,
     CONF_HOST,
-    CONF_RACK,
-    CONF_SLOT,
+    CONF_LIGHTS,
+    CONF_NAME,
     CONF_PORT,
+    CONF_RACK,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
-    CONF_BINARY_SENSORS,
+    CONF_SLOT,
     CONF_SWITCHES,
-    CONF_LIGHTS,
     DEFAULT_PORT,
     DEFAULT_RACK,
-    DEFAULT_SLOT,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SLOT,
+    DOMAIN,
 )
 from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
@@ -73,7 +74,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
             }
         )
-        return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
+        return self.async_show_form(
+            step_id="user", data_schema=data_schema, errors=errors
+        )
 
     @staticmethod
     @callback
@@ -107,7 +110,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             options = {
                 CONF_SENSORS: _parse_list(user_input.get(CONF_SENSORS, "")),
-                CONF_BINARY_SENSORS: _parse_list(user_input.get(CONF_BINARY_SENSORS, "")),
+                CONF_BINARY_SENSORS: _parse_list(
+                    user_input.get(CONF_BINARY_SENSORS, "")
+                ),
                 CONF_SWITCHES: _parse_list(user_input.get(CONF_SWITCHES, "")),
                 CONF_LIGHTS: _parse_list(user_input.get(CONF_LIGHTS, "")),
             }
@@ -117,15 +122,21 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(
                     CONF_SENSORS,
-                    default=_dump_list(self._config_entry.options.get(CONF_SENSORS, [])),
+                    default=_dump_list(
+                        self._config_entry.options.get(CONF_SENSORS, [])
+                    ),
                 ): str,
                 vol.Optional(
                     CONF_BINARY_SENSORS,
-                    default=_dump_list(self._config_entry.options.get(CONF_BINARY_SENSORS, [])),
+                    default=_dump_list(
+                        self._config_entry.options.get(CONF_BINARY_SENSORS, [])
+                    ),
                 ): str,
                 vol.Optional(
                     CONF_SWITCHES,
-                    default=_dump_list(self._config_entry.options.get(CONF_SWITCHES, [])),
+                    default=_dump_list(
+                        self._config_entry.options.get(CONF_SWITCHES, [])
+                    ),
                 ): str,
                 vol.Optional(
                     CONF_LIGHTS,

@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import logging
 import re
 import threading
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from types import SimpleNamespace
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -18,11 +19,14 @@ try:
     import pyS7  # type: ignore
     from pyS7.constants import DataType, MemoryArea  # type: ignore
     from pyS7.tag import S7Tag  # type: ignore
+
     S7ClientT = "pyS7.S7Client"  # per chiarezza nei commenti
 except Exception as err:  # pragma: no cover
     _LOGGER.error("Impossibile importare pyS7: %s", err, exc_info=True)
     pyS7 = None  # type: ignore
-    DataType = SimpleNamespace(BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6)  # sentinel
+    DataType = SimpleNamespace(
+        BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6
+    )  # sentinel
     MemoryArea = SimpleNamespace(DB=0)
     S7Tag = Any  # fallback typing
 
@@ -51,7 +55,10 @@ if pyS7 is not None:
 else:
     _DATATYPE_MAP: Dict[str, Any] = {}
 
-_ADDR_RE = re.compile(r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$")
+_ADDR_RE = re.compile(
+    r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$"
+)
+
 
 @dataclass(frozen=True)
 class ParsedAddress:
@@ -175,10 +182,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         port: int = 102,
         scan_interval: float = 0.5,
         # Timeout/Retry config
-        op_timeout: float = 5.0,            # tempo massimo per un ciclo di lettura/scrittura
-        max_retries: int = 3,               # numero di ritenti per singola operazione
-        backoff_initial: float = 0.5,       # backoff iniziale
-        backoff_max: float = 2.0,           # backoff massimo per attesa tra ritenti
+        op_timeout: float = 5.0,  # tempo massimo per un ciclo di lettura/scrittura
+        max_retries: int = 3,  # numero di ritenti per singola operazione
+        backoff_initial: float = 0.5,  # backoff iniziale
+        backoff_max: float = 2.0,  # backoff massimo per attesa tra ritenti
     ):
         super().__init__(
             hass,
@@ -222,11 +229,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if self._client is None:
             if pyS7 is None:
                 raise RuntimeError("pyS7 non disponibile")
-            self._client = pyS7.S7Client(self._host, self._rack, self._slot, port=self._port)
+            self._client = pyS7.S7Client(
+                self._host, self._rack, self._slot, port=self._port
+            )
         if not getattr(self._client, "socket", None):
             try:
                 self._client.connect()
-                _LOGGER.info("Connesso a PLC S7 %s (rack=%s slot=%s)", self._host, self._rack, self._slot)
+                _LOGGER.info(
+                    "Connesso a PLC S7 %s (rack=%s slot=%s)",
+                    self._host,
+                    self._rack,
+                    self._slot,
+                )
             except Exception as err:
                 raise RuntimeError(f"Connessione al PLC {self._host} fallita: {err}")
 
@@ -239,7 +253,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """Stabilisce la connessione se necessaria (thread-safe)."""
         with self._lock:
             self._ensure_connected()
-
 
     def disconnect(self) -> None:
         """Chiude la connessione al PLC (thread-safe)."""
@@ -275,7 +288,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             try:
                 tag = _Helpers.make_tag(pa)
-            except Exception as e:
+            except Exception:
                 continue
 
             # postprocess legato al tipo dati
@@ -310,11 +323,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._drop_connection()
                 if attempt == self._max_retries:
                     break
-                backoff = min(self._backoff_initial * (2 ** attempt), self._backoff_max)
+                backoff = min(self._backoff_initial * (2**attempt), self._backoff_max)
                 self._sleep(backoff)
                 attempt += 1
         # esauriti i tentativi
-        raise last_exc if last_exc else RuntimeError("Operazione fallita senza eccezione specifica")
+        raise (
+            last_exc
+            if last_exc
+            else RuntimeError("Operazione fallita senza eccezione specifica")
+        )
 
     # -------------------------
     # Update loop
@@ -327,7 +344,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _get_pdu_limit(self) -> int:
         # payload < PDU per lasciare spazio agli header (snap7 riserva ~18B)
-        size = getattr(self._client, "pdu_length", getattr(self._client, "pdu_size", 240))
+        size = getattr(
+            self._client, "pdu_length", getattr(self._client, "pdu_size", 240)
+        )
         return max(1, int(size) - 30)
 
     def _read_s7_string(self, db: int, start: int) -> str:
@@ -346,13 +365,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         offset = 0
         while offset < target:
             chunk_len = min(target - offset, pdu_limit)
-            data_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len)
-            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[0]
+            data_tag = S7Tag(
+                MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
+            )
+            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[
+                0
+            ]
             data.extend(chunk)
             offset += chunk_len
 
         return bytes(data).decode("latin-1", errors="ignore")
-    
+
     def _tag_key(self, tag) -> tuple:
         return (
             tag.memory_area,
@@ -361,7 +384,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tag.start,
             tag.bit_offset,
             tag.length,
-    )
+        )
 
     def _read_all(self) -> Dict[str, Any]:
         with self._lock:
@@ -376,7 +399,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         start_ts = time.monotonic()
         deadline = start_ts + self._op_timeout
 
-        results: Dict[str, Any] = {}   # 👈 inizializza PRIMA del try
+        results: Dict[str, Any] = {}  # 👈 inizializza PRIMA del try
 
         try:
             # ===== 1) Batch scalari con dedup & optimize=False =====
@@ -384,7 +407,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 groups: dict[tuple, list[TagPlan]] = {}
                 order: list[tuple] = []
                 for p in plans_batch:
-                    k = self._tag_key(p.tag)   # @staticmethod o con self in firma
+                    k = self._tag_key(p.tag)  # @staticmethod o con self in firma
                     if k not in groups:
                         groups[k] = []
                         order.append(k)
@@ -392,10 +415,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 try:
                     tags = [groups[k][0].tag for k in order]
-                    values = self._retry(lambda: self._client.read(tags, optimize=False))
+                    values = self._retry(
+                        lambda: self._client.read(tags, optimize=False)
+                    )
                     for k, v in zip(order, values):
                         for plan in groups[k]:
-                            results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
+                            results[plan.topic] = (
+                                plan.postprocess(v) if plan.postprocess else v
+                            )
                 except Exception:
                     _LOGGER.exception("Errore batch read")
                     for plan in plans_batch:
@@ -403,7 +430,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # ===== 2) Check timeout dopo il batch =====
             if time.monotonic() > deadline:
-                _LOGGER.warning("Timeout lettura batch raggiunto (%.2fs)", self._op_timeout)
+                _LOGGER.warning(
+                    "Timeout lettura batch raggiunto (%.2fs)", self._op_timeout
+                )
                 for plan in plans_str:
                     results.setdefault(plan.topic, None)
                 return results
@@ -411,7 +440,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             # ===== 3) Stringhe (con deadline) =====
             for plan in plans_str:
                 if time.monotonic() > deadline:
-                    _LOGGER.warning("Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout)
+                    _LOGGER.warning(
+                        "Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout
+                    )
                     results.setdefault(plan.topic, None)
                     continue
                 try:

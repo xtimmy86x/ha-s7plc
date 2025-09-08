@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -10,17 +11,15 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
-from .const import (
-    DOMAIN,
-    CONF_BINARY_SENSORS,
-    CONF_ADDRESS,
-    CONF_DEVICE_CLASS,
-)
+from .const import CONF_ADDRESS, CONF_BINARY_SENSORS, CONF_DEVICE_CLASS, DOMAIN
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -33,7 +32,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         model="S7 PLC",
     )
 
-    entities = [PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")]
+    entities = [
+        PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")
+    ]
 
     for item in entry.options.get(CONF_BINARY_SENSORS, []):
         address = item.get(CONF_ADDRESS)
@@ -62,8 +63,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
-    def __init__(self, coordinator, name: str, unique_id: str, device_info: DeviceInfo, topic: str, address: str, device_class: str | None):
-        super().__init__(coordinator, name=name, unique_id=unique_id, device_info=device_info, topic=topic, address=address)
+    def __init__(
+        self,
+        coordinator,
+        name: str,
+        unique_id: str,
+        device_info: DeviceInfo,
+        topic: str,
+        address: str,
+        device_class: str | None,
+    ):
+        super().__init__(
+            coordinator,
+            name=name,
+            unique_id=unique_id,
+            device_info=device_info,
+            topic=topic,
+            address=address,
+        )
         if device_class:
             try:
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
@@ -82,10 +99,12 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
     entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):
-        super().__init__(coordinator, name=None, unique_id=unique_id, device_info=device_info)
+        super().__init__(
+            coordinator, name=None, unique_id=unique_id, device_info=device_info
+        )
         self._plc_name = self.device_info.get("name", "")
-    
-    @property 
+
+    @property
     def translation_placeholders(self) -> dict[str, str]:
         return {"plc_name": self._plc_name}
 
