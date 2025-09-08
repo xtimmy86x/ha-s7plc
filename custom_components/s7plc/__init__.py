@@ -34,7 +34,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up S7 PLC from a config entry."""
     data = entry.data
     host = data[CONF_HOST]
     rack = data.get(CONF_RACK, DEFAULT_RACK)
@@ -52,31 +51,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         scan_interval=scan_s,
     )
 
+    # opzionale: puoi anche rimuovere questa connect e lasciare che il first_refresh la gestisca
     await hass.async_add_executor_job(coordinator.connect)
 
     def _slug(s: str) -> str:
+        import re
         return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
     device_id = f"s7plc-{_slug(str(host))}-{rack}-{slot}"
 
+    hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "name": name,
         "host": host,
         "device_id": device_id,
+        "platforms_forwarded": False,   # 👈 guard flag
     }
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # 1) Primo refresh “ufficiale” del coordinator (avvia anche il timer periodico)
+    await coordinator.async_config_entry_first_refresh()
+
+    # 2) Forward piattaforme UNA SOLA VOLTA
+    store = hass.data[DOMAIN][entry.entry_id]
+    if not store["platforms_forwarded"]:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        store["platforms_forwarded"] = True
+
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         data = hass.data[DOMAIN].pop(entry.entry_id)
         await hass.async_add_executor_job(data["coordinator"].disconnect)
     return unload_ok
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)

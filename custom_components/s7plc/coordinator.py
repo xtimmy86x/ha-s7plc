@@ -276,7 +276,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             try:
                 tag = _Helpers.make_tag(pa)
             except Exception as e:
-                _LOGGER.warning("Tipo/indirizzo non supportato %s (%s): %s", topic, addr, e)
                 continue
 
             # postprocess legato al tipo dati
@@ -353,6 +352,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             offset += chunk_len
 
         return bytes(data).decode("latin-1", errors="ignore")
+    
+    def _tag_key(self, tag) -> tuple:
+        return (
+            tag.memory_area,
+            tag.db_number,
+            tag.data_type,
+            tag.start,
+            tag.bit_offset,
+            tag.length,
+    )
 
     def _read_all(self) -> Dict[str, Any]:
         with self._lock:
@@ -367,28 +376,39 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         start_ts = time.monotonic()
         deadline = start_ts + self._op_timeout
 
-        results: Dict[str, Any] = {}
+        results: Dict[str, Any] = {}   # 👈 inizializza PRIMA del try
+
         try:
-            # 1) Batch di scalari (con ritenti)
+            # ===== 1) Batch scalari con dedup & optimize=False =====
             if plans_batch:
+                groups: dict[tuple, list[TagPlan]] = {}
+                order: list[tuple] = []
+                for p in plans_batch:
+                    k = self._tag_key(p.tag)   # @staticmethod o con self in firma
+                    if k not in groups:
+                        groups[k] = []
+                        order.append(k)
+                    groups[k].append(p)
+
                 try:
-                    values = self._retry(lambda: self._client.read([p.tag for p in plans_batch]))
-                    for plan, val in zip(plans_batch, values):
-                        results[plan.topic] = plan.postprocess(val) if plan.postprocess else val
+                    tags = [groups[k][0].tag for k in order]
+                    values = self._retry(lambda: self._client.read(tags, optimize=False))
+                    for k, v in zip(order, values):
+                        for plan in groups[k]:
+                            results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
                 except Exception:
                     _LOGGER.exception("Errore batch read")
                     for plan in plans_batch:
                         results.setdefault(plan.topic, None)
 
-            # Check timeout dopo il batch
+            # ===== 2) Check timeout dopo il batch =====
             if time.monotonic() > deadline:
                 _LOGGER.warning("Timeout lettura batch raggiunto (%.2fs)", self._op_timeout)
-                # per le stringhe rimanenti ritorna None
                 for plan in plans_str:
                     results.setdefault(plan.topic, None)
                 return results
 
-            # 2) Stringhe (individuali ma chunked, con deadline)
+            # ===== 3) Stringhe (con deadline) =====
             for plan in plans_str:
                 if time.monotonic() > deadline:
                     _LOGGER.warning("Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout)
@@ -402,6 +422,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         except Exception:
             _LOGGER.exception("Errore lettura")
+            # qui results esiste già ⇒ niente UnboundLocalError
             for plan in plans_batch:
                 results.setdefault(plan.topic, None)
             for plan in plans_str:
