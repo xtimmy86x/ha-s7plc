@@ -131,10 +131,12 @@ class S7BoolSyncEntity(S7BaseEntity):
             # Qui arrivano SOLO cambi esterni (o mismatch): sincronizzo il PLC
             if new_state != self._last_state:
                 self._last_state = new_state
-                self.hass.async_create_task(
-                    self.hass.async_add_executor_job(
-                        self._coord.write_bool, self._command_address, new_state
-                    )
+                # `async_add_executor_job` schedules work in the executor and
+                # returns a Future. It is already scheduled to run, so creating
+                # an additional task around it leads to a ``TypeError`` in recent
+                # Python versions. We just call it directly to fire-and-forget.
+                self.hass.async_add_executor_job(
+                    self._coord.write_bool, self._command_address, new_state
                 )
 
         super().async_write_ha_state()
