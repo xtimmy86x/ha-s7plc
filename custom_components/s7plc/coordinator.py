@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import threading
 import time
 from dataclasses import dataclass
@@ -17,6 +16,10 @@ _LOGGER = logging.getLogger(__name__)
 # Tipi forward-friendly quando pyS7 non è disponibile
 try:
     import pyS7  # type: ignore
+    from pyS7.address_parser import S7AddressError
+    from pyS7.address_parser import (
+        map_address_to_tag as s7_address_parser,  # type: ignore
+    )
     from pyS7.constants import DataType, MemoryArea  # type: ignore
     from pyS7.tag import S7Tag  # type: ignore
 
@@ -25,81 +28,12 @@ except Exception as err:  # pragma: no cover
     _LOGGER.error("Impossibile importare pyS7: %s", err, exc_info=True)
     pyS7 = None  # type: ignore
     DataType = SimpleNamespace(
-        BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6
+        BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6, CHAR=7
     )  # sentinel
     MemoryArea = SimpleNamespace(DB=0)
     S7Tag = Any  # fallback typing
-
-# -----------------------------
-# Costanti & parsing indirizzi
-# -----------------------------
-TYPE_BIT = "bit"
-TYPE_BYTE = "byte"
-TYPE_WORD = "word"
-TYPE_DWORD = "dword"
-TYPE_INT16 = "int16"
-TYPE_INT32 = "int32"
-TYPE_REAL = "real"
-TYPE_STRING = "string"
-
-if pyS7 is not None:
-    _DATATYPE_MAP = {
-        TYPE_BIT: DataType.BIT,
-        TYPE_BYTE: DataType.BYTE,
-        TYPE_WORD: DataType.WORD,
-        TYPE_DWORD: DataType.DWORD,
-        TYPE_INT16: DataType.INT,
-        TYPE_INT32: DataType.DINT,
-        TYPE_REAL: DataType.REAL,
-    }
-else:
-    _DATATYPE_MAP: Dict[str, Any] = {}
-
-_ADDR_RE = re.compile(
-    r"^DB(?P<db>\d+)\.(?P<tok>[A-Za-z]+)(?P<byte>\d+)(?:\.(?P<bit>\d+))?$"
-)
-
-
-@dataclass(frozen=True)
-class ParsedAddress:
-    db: int
-    byte: int
-    bit: Optional[int]
-    ty: str
-
-
-def _norm_token(tok: str) -> str:
-    t = tok.upper()
-    if t in ("DBX", "X", "BOOL", "BIT"):
-        return TYPE_BIT
-    if t in ("DBB", "B", "BYTE"):
-        return TYPE_BYTE
-    if t in ("DBW", "W", "WORD"):
-        return TYPE_WORD
-    if t in ("DBD", "D", "DWORD"):
-        return TYPE_DWORD
-    if t in ("INT", "I"):
-        return TYPE_INT16
-    if t in ("DINT", "DI"):
-        return TYPE_INT32
-    if t in ("REAL", "FLOAT", "R", "F"):
-        return TYPE_REAL
-    if t in ("S", "DBS", "STR", "STRING"):
-        return TYPE_STRING
-    raise ValueError(f"Token tipo non valido: {tok}")
-
-
-def parse_address(addr: str) -> ParsedAddress:
-    m = _ADDR_RE.match(addr.replace(" ", ""))
-    if not m:
-        raise ValueError(f"Indirizzo non valido: {addr}")
-    db = int(m.group("db"))
-    byte = int(m.group("byte"))
-    bit = int(m.group("bit")) if m.group("bit") is not None else None
-    ty = _norm_token(m.group("tok"))
-    if ty == TYPE_BIT and (bit is None or bit < 0 or bit > 7):
-        raise ValueError(f"Indice bit non valido: {bit}")
-    return ParsedAddress(db, byte, bit, ty)
+    s7_address_parser = None  # type: ignore
+    S7AddressError = Exception
 
 
 # -----------------------------
@@ -124,30 +58,22 @@ class StringPlan:
 # -----------------------------
 class _Helpers:
     @staticmethod
-    def bit_offset(bit: int) -> int:
-        if not 0 <= bit <= 7:
-            raise ValueError(f"Indice bit non valido: {bit}")
-        return 7 - bit
-
-    @staticmethod
-    def make_tag(pa: ParsedAddress) -> S7Tag:
-        dt = _DATATYPE_MAP.get(pa.ty)
-        if dt is None:
-            raise ValueError(f"Tipo non supportato: {pa.ty}")
-        bit_off = _Helpers.bit_offset(pa.bit) if dt == DataType.BIT else 0
-        return S7Tag(
-            memory_area=MemoryArea.DB,
-            db_number=pa.db,
-            data_type=dt,
-            start=pa.byte,
-            bit_offset=bit_off,
-            length=1,
-        )
-
-    @staticmethod
     def apply_postprocess(dt, value):
         # Nota: tieni la presentazione fuori dal trasporto se preferisci
         return round(value, 1) if dt == DataType.REAL else value
+
+
+# --- NUOVO: helper free per ricreare S7Tag BIT con bit_offset rimappato
+def _remap_bit_tag_free(tag: S7Tag) -> S7Tag:
+    """Ritorna un nuovo S7Tag con bit_offset rimappato (7 - bit) se BIT, altrimenti l'originale."""
+    try:
+        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(tag, "bit_offset"):
+            return tag
+        new_bit = 7 - int(tag.bit_offset)
+        return S7Tag(tag.memory_area, tag.db_number, tag.data_type, tag.start, new_bit, tag.length)
+    except Exception:
+        # In caso di errore, non interrompere il flusso
+        return tag
 
 
 # -----------------------------
@@ -156,15 +82,27 @@ class _Helpers:
 def map_address_to_tag(address: str) -> Optional[S7Tag]:
     """Ritorna un S7Tag per indirizzi *non-stringa* batchabili.
 
-    None per STRING o tipi non supportati.
+    None per STRING o se il parser non è disponibile.
+
+    Nota: applica l'inversione del bit (7 - bit) ricreando il tag se necessario.
     """
-    pa = parse_address(address)
-    if pa.ty == TYPE_STRING:
+
+    if s7_address_parser is None:
         return None
+
     try:
-        return _Helpers.make_tag(pa)
-    except Exception:
+        tag = s7_address_parser(address)
+    except S7AddressError:
         return None
+
+    # Rimappa senza mutare l'istanza originale (S7Tag è frozen)
+    tag = _remap_bit_tag_free(tag)
+
+    # CHAR di lunghezza > 1 sono stringhe S7 (header + dati) -> gestite separatamente
+    if getattr(tag, "data_type", None) == DataType.CHAR and getattr(tag, "length", 1) > 1:
+        return None
+
+    return tag
 
 
 # -----------------------------
@@ -260,6 +198,30 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._drop_connection()
 
     # -------------------------
+    # Parser centralizzato per i tag (inversione bit inclusa)
+    # -------------------------
+    def _remap_bit_tag(self, tag: S7Tag) -> S7Tag:
+        """Come _remap_bit_tag_free, ma come metodo d'istanza."""
+        try:
+            if tag.data_type != DataType.BIT or not hasattr(tag, "bit_offset"):
+                return tag
+            new_bit = 7 - int(tag.bit_offset)
+            return S7Tag(tag.memory_area, tag.db_number, tag.data_type, tag.start, new_bit, tag.length)
+        except Exception:
+            return tag
+
+    def _parse_tag(self, address: str) -> S7Tag:
+        if s7_address_parser is None:
+            raise RuntimeError("Parser indirizzi S7 non disponibile")
+        try:
+            tag = s7_address_parser(address)
+        except S7AddressError as err:
+            raise ValueError(f"Indirizzo non valido: {address}") from err
+
+        # Rimappa senza mutare (S7Tag è frozen)
+        return self._remap_bit_tag(tag)
+
+    # -------------------------
     # Gestione indirizzi
     # -------------------------
     def add_item(self, topic: str, address: str) -> None:
@@ -277,18 +239,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._invalidate_cache()
         for topic, addr in self._items.items():
             try:
-                pa = parse_address(addr)
-            except Exception:
+                tag = self._parse_tag(addr)
+            except ValueError:
                 _LOGGER.warning("Indirizzo non parsabile %s: %s", topic, addr)
                 continue
 
-            if pa.ty == TYPE_STRING:
-                self._plans_str.append(StringPlan(topic, pa.db, pa.byte))
-                continue
-
-            try:
-                tag = _Helpers.make_tag(pa)
-            except Exception:
+            # STRING S7 (CHAR con length > 1): gestite separatamente
+            if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
+                self._plans_str.append(StringPlan(topic, tag.db_number, tag.start))
                 continue
 
             # postprocess legato al tipo dati
@@ -368,9 +326,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data_tag = S7Tag(
                 MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
             )
-            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[
-                0
-            ]
+            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[0]
             data.extend(chunk)
             offset += chunk_len
 
@@ -407,7 +363,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 groups: dict[tuple, list[TagPlan]] = {}
                 order: list[tuple] = []
                 for p in plans_batch:
-                    k = self._tag_key(p.tag)  # @staticmethod o con self in firma
+                    k = self._tag_key(p.tag)
                     if k not in groups:
                         groups[k] = []
                         order.append(k)
@@ -415,14 +371,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 try:
                     tags = [groups[k][0].tag for k in order]
-                    values = self._retry(
-                        lambda: self._client.read(tags, optimize=False)
-                    )
+                    values = self._retry(lambda: self._client.read(tags, optimize=False))
                     for k, v in zip(order, values):
                         for plan in groups[k]:
-                            results[plan.topic] = (
-                                plan.postprocess(v) if plan.postprocess else v
-                            )
+                            out = plan.postprocess(v) if plan.postprocess else v
+                            # Normalizza BIT a bool
+                            if plan.tag.data_type == DataType.BIT:
+                                out = bool(out)
+                            results[plan.topic] = out
                 except Exception:
                     _LOGGER.exception("Errore batch read")
                     for plan in plans_batch:
@@ -466,20 +422,20 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Letture/scritture ad hoc
     # -------------------------
     def _read_one(self, address: str) -> Any:
-        pa = parse_address(address)
-        if pa.ty == TYPE_STRING:
-            return self._read_s7_string(pa.db, pa.byte)
+        tag = self._parse_tag(address)
+        if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
+            return self._read_s7_string(tag.db_number, tag.start)
 
-        tag = _Helpers.make_tag(pa)
         value = self._retry(lambda: self._client.read([tag], optimize=False))[0]
+        # Normalizza BIT a bool
+        if tag.data_type == DataType.BIT:
+            return bool(value)
         return _Helpers.apply_postprocess(tag.data_type, value)
 
     def write_bool(self, address: str, value: bool) -> bool:
-        pa = parse_address(address)
-        if pa.ty != TYPE_BIT:
+        tag = self._parse_tag(address)
+        if tag.data_type != DataType.BIT:
             raise ValueError("write_bool supporta solo indirizzi bit")
-
-        tag = _Helpers.make_tag(pa)
         with self._lock:
             try:
                 self._ensure_connected()

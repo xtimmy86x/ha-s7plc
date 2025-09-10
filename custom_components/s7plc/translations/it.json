@@ -63,7 +63,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000.DBD0, MW10, DB1.DBW2).",
+          "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "add_another": "Rimani in questo step per aggiungere altri sensori."
         }
@@ -78,7 +78,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10.DBX0.1).",
+          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,DBX0.1).",
           "name": "Nome descrittivo opzionale per il binary sensor.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
           "add_another": "Rimani in questo step per aggiungere altri binary sensor."
@@ -95,7 +95,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20.DBX0.0).",
+          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,DBX0.0).",
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
           "name": "Nome descrittivo opzionale per lo switch.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",

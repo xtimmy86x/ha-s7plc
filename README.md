@@ -103,12 +103,12 @@ Use standard S7 absolute addressing:
 
 | Type                  | Example       | Size     | Typical meaning           |
 |-----------------------|---------------|----------|---------------------------|
-| Bit (boolean)         | `DB1.DBX0.0`  | 1 bit    | Discrete I/O, flags       |
-| Byte (unsigned)       | `DB1.DBB0`    | 8 bits   | Small counters/bytes      |
-| Word (signed 16-bit)  | `DB1.DBW2`    | 16 bits  | INT                       |
-| DWord (signed 32-bit) | `DB1.DBD4`    | 32 bits  | DINT                      |
-| REAL (IEEE 754)       | `DB1.DBD4`    | 32 bits  | Float (temperature etc.)  |
-| String (S7)           | `DB1.DBS0`    | 2+N bytes| Text (S7 STRING)          |
+| Bit (boolean)         | `DB1,X0.0`    | 1 bit    | Discrete I/O, flags       |
+| Byte (unsigned)       | `DB1,B0`      | 8 bits   | Small counters/bytes      |
+| Word (signed 16-bit)  | `DB1,W2`      | 16 bits  | INT                       |
+| DWord (signed 32-bit) | `DB1,DW4`     | 32 bits  | DINT                      |
+| REAL (IEEE 754)       | `DB1,R4`      | 32 bits  | Float (temperature etc.)  |
+| String (S7)           | `DB1,S0.20`   | 2+N bytes| Text (S7 STRING)          ||
 
 > Choose the correct **offset** and **type** based on your PLC data block layout.
 > For REAL values, ensure the PLC writes IEEE 754 floating point into that DBD.
@@ -121,7 +121,7 @@ The following table shows memory areas accessible without additional settings in
 
 *Note: These memory areas seem to be read-only from outside the controller, as they are directly used by the function blocks listed in "Logo Block" of the table.*
 
-| Logo Block | Logo VM Range | Example Node-RED address | Description | Access |
+| Logo Block | Logo VM Range | Example address | Description | Access |
 |------------|---------------|--------------------------|-------------|--------|
 | `I`        | `1024 - 1031` | `DB1,BYTE1024` or `DB1,X1024.5` or `DB1,WORD1024` | Reads input terminals 1...8 or 6 or 1...16 | R |
 | `AI`       | `1032 - 1063` | `DB1,WORD1032` | Reads analog input terminal 1. Always word sized. | R |
