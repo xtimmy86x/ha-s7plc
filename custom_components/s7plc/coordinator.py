@@ -65,12 +65,22 @@ class _Helpers:
 
 # --- NUOVO: helper free per ricreare S7Tag BIT con bit_offset rimappato
 def _remap_bit_tag_free(tag: S7Tag) -> S7Tag:
-    """Ritorna un nuovo S7Tag con bit_offset rimappato (7 - bit) se BIT, altrimenti l'originale."""
+    """Ritorna un nuovo S7Tag con bit_offset rimappato
+    (7 - bit) se BIT, altrimenti l'originale."""
     try:
-        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(tag, "bit_offset"):
+        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(
+            tag, "bit_offset"
+        ):
             return tag
         new_bit = 7 - int(tag.bit_offset)
-        return S7Tag(tag.memory_area, tag.db_number, tag.data_type, tag.start, new_bit, tag.length)
+        return S7Tag(
+            tag.memory_area,
+            tag.db_number,
+            tag.data_type,
+            tag.start,
+            new_bit,
+            tag.length,
+        )
     except Exception:
         # In caso di errore, non interrompere il flusso
         return tag
@@ -99,7 +109,10 @@ def map_address_to_tag(address: str) -> Optional[S7Tag]:
     tag = _remap_bit_tag_free(tag)
 
     # CHAR di lunghezza > 1 sono stringhe S7 (header + dati) -> gestite separatamente
-    if getattr(tag, "data_type", None) == DataType.CHAR and getattr(tag, "length", 1) > 1:
+    if (
+        getattr(tag, "data_type", None) == DataType.CHAR
+        and getattr(tag, "length", 1) > 1
+    ):
         return None
 
     return tag
@@ -206,7 +219,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if tag.data_type != DataType.BIT or not hasattr(tag, "bit_offset"):
                 return tag
             new_bit = 7 - int(tag.bit_offset)
-            return S7Tag(tag.memory_area, tag.db_number, tag.data_type, tag.start, new_bit, tag.length)
+            return S7Tag(
+                tag.memory_area,
+                tag.db_number,
+                tag.data_type,
+                tag.start,
+                new_bit,
+                tag.length,
+            )
         except Exception:
             return tag
 
@@ -326,7 +346,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data_tag = S7Tag(
                 MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
             )
-            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[0]
+            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[
+                0
+            ]
             data.extend(chunk)
             offset += chunk_len
 
@@ -371,7 +393,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 try:
                     tags = [groups[k][0].tag for k in order]
-                    values = self._retry(lambda: self._client.read(tags, optimize=False))
+                    values = self._retry(
+                        lambda: self._client.read(tags, optimize=False)
+                    )
                     for k, v in zip(order, values):
                         for plan in groups[k]:
                             out = plan.postprocess(v) if plan.postprocess else v
