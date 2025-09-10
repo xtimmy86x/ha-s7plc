@@ -1,12 +1,8 @@
 DOMAIN = "s7plc"
 PLATFORMS = ["binary_sensor", "sensor", "switch", "light"]
 
-CONF_NAME = "name"
-CONF_HOST = "host"
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
-CONF_PORT = "port"
-CONF_SCAN_INTERVAL = "scan_interval"
 
 CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"

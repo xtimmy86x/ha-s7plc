@@ -7,6 +7,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv  # <-- IMPORT IMPORTANTE
 from homeassistant.helpers import selector
@@ -16,12 +17,8 @@ from .const import (
     CONF_BINARY_SENSORS,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
-    CONF_HOST,
     CONF_LIGHTS,
-    CONF_NAME,
-    CONF_PORT,
     CONF_RACK,
-    CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_STATE_ADDRESS,

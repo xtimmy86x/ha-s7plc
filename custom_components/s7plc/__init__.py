@@ -3,17 +3,14 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PORT,
     CONF_RACK,
-    CONF_SCAN_INTERVAL,
     CONF_SLOT,
     DEFAULT_PORT,
     DEFAULT_RACK,
