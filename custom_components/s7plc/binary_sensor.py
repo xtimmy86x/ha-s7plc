@@ -115,7 +115,7 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self):
         attrs = {}
-        attrs["s7_ip"] = self._coord._host
+        attrs["s7_ip"] = self._coord.host
         return attrs
 
     @property

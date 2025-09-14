@@ -165,6 +165,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._plans_batch: list[TagPlan] = []
         self._plans_str: list[StringPlan] = []
 
+    @property
+    def host(self) -> str:
+        """IP/hostname del PLC associato."""
+        return self._host
+
     # -------------------------
     # Connessione
     # -------------------------
