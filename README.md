@@ -85,9 +85,11 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
    - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`) and fill in the form fields.
-     `switch`/`light` entries may use separate `state_address` and `command_address`.
+   - `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
      Enable `sync_state` to mirror PLC state changes to the command address.
+   - `button` entries command a true value and after a configured
+     `pulse time` send false.
 
 **Notes**
 - `rack/slot` values depend on the CPU family. Common settings:
