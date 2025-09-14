@@ -64,6 +64,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._plans_batch: list[TagPlan] = []
         self._plans_str: list[StringPlan] = []
 
+        # Cache for parsed tags used by writes
+        self._write_tags: dict[str, S7Tag] = {}
+
     @property
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
@@ -123,9 +126,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._invalidate_cache()
 
     def _invalidate_cache(self) -> None:
-        """Clear read plan caches."""
+        """Clear read and write plan caches."""
         self._plans_batch.clear()
         self._plans_str.clear()
+        self._write_tags.clear()
 
     def _build_tag_cache(self) -> None:
         """Build read plans for scalar and string tags."""
@@ -320,7 +324,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return apply_postprocess(tag.data_type, value)
 
     def write_bool(self, address: str, value: bool) -> bool:
-        tag = parse_tag(address)
+        tag = self._write_tags.get(address)
+        if tag is None:
+            tag = parse_tag(address)
+            self._write_tags[address] = tag
         if tag.data_type != DataType.BIT:
             raise ValueError("write_bool supports only bit addresses")
         with self._lock:
