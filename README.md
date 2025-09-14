@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
 [![pyS7](https://img.shields.io/badge/Library-pys7-informational)](https://github.com/xtimmy86x/pyS7)
 
-**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `binary_sensor`, and `sensor` entities.
+**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `button`, `binary_sensor`, and `sensor` entities.
 **No MQTT, no REST API, no middle layer.**
 
 ---
@@ -34,7 +34,7 @@
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
-- 🧩 **Multiple entity types**: `light`, `switch`, `binary_sensor`, `sensor`.
+- 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
 - 📄 **S7 `STRING` support** for text sensors.
@@ -84,7 +84,7 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 3. Enter the PLC `host`, `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
-   - When adding, select the entity type (`light`, `switch`, `binary_sensor`, `sensor`) and fill in the form fields.
+   - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`) and fill in the form fields.
      `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
      Enable `sync_state` to mirror PLC state changes to the command address.
@@ -190,8 +190,8 @@ Example: removing an entity via the UI:
 **Q: Is MQTT required?**  
 A: No. This integration talks to the PLC directly using S7 protocol.
 
-**Q: Can I write values to the PLC?**  
-A: `light` and `switch` perform writes for on/off. `binary_sensor` and `sensor` are read-only.
+**Q: Can I write values to the PLC?**
+A: `light`, `switch`, and `button` perform writes (`button` pulses the address). `binary_sensor` and `sensor` are read-only.
 
 **Q: Which CPUs are supported?**  
 A: Any Siemens S7 device that accepts ISO-on-TCP (port 102) and exposes DB areas with absolute addressing should work.
