@@ -1,5 +1,5 @@
 DOMAIN = "s7plc"
-PLATFORMS = ["binary_sensor", "sensor", "switch", "light"]
+PLATFORMS = ["binary_sensor", "sensor", "switch", "light", "button"]
 
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
@@ -8,6 +8,7 @@ CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"
 CONF_SWITCHES = "switches"
 CONF_LIGHTS = "lights"
+CONF_BUTTONS = "buttons"
 
 CONF_ADDRESS = "address"
 CONF_DEVICE_CLASS = "device_class"

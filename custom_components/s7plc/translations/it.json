@@ -40,6 +40,7 @@
           "sensors": "Aggiungi Sensore",
           "binary_sensors": "Aggiungi Sensore Binario",
           "switches": "Aggiungi Switch",
+          "buttons": "Aggiungi Pulsante",
           "lights": "Aggiungi Luce",
           "remove": "Rimuovi entità"
         }
@@ -100,6 +101,20 @@
           "name": "Nome descrittivo opzionale per lo switch.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
           "add_another": "Rimani in questo step per aggiungere altri switch."
+        }
+      },
+      "buttons": {
+        "title": "Aggiungi Pulsante",
+        "description": "Crea un pulsante senza stato che impulsa un indirizzo booleano del PLC per un secondo quando premuto.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
+          "name": "Nome descrittivo opzionale per il pulsante.",
+          "add_another": "Rimani in questo step per aggiungere altri pulsanti."
         }
       },
       "lights": {

@@ -15,6 +15,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ADDRESS,
     CONF_BINARY_SENSORS,
+    CONF_BUTTONS,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
@@ -137,6 +138,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             ),
             CONF_SWITCHES: list(config_entry.options.get(CONF_SWITCHES, [])),
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
+            CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
         }
         self._action: str | None = None  # "add" | "remove"
 
@@ -147,10 +149,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             menu_options=[
                 "add",  # percorso guidato: sensors ->
-                # binary_sensors -> switches -> lights
+                # binary_sensors -> switches -> buttons -> lights
                 "sensors",  # salta direttamente a "Add Sensor"
                 "binary_sensors",  # salta direttamente a "Add Binary Sensor"
                 "switches",  # salta direttamente a "Add Switch"
+                "buttons",  # salta direttamente a "Add Button"
                 "lights",  # salta direttamente a "Add Light"
                 "remove",  # rimozione
             ],
@@ -232,7 +235,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_switches()
 
-            return await self.async_step_lights()
+            return await self.async_step_buttons()
 
         data_schema = vol.Schema(
             {
@@ -246,6 +249,29 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             }
         )
         return self.async_show_form(step_id="switches", data_schema=data_schema)
+
+    async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
+        if user_input is not None:
+            address = user_input.get(CONF_ADDRESS)
+            if address:
+                item: dict[str, Any] = {CONF_ADDRESS: address}
+                if user_input.get(CONF_NAME):
+                    item[CONF_NAME] = user_input[CONF_NAME]
+                self._options[CONF_BUTTONS].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_buttons()
+
+            return await self.async_step_lights()
+
+        data_schema = vol.Schema(
+            {
+                vol.Optional(CONF_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+        return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
     async def async_step_lights(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
@@ -293,6 +319,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 "s": "Sensor",
                 "bs": "Binary",
                 "sw": "Switch",
+                "bt": "Button",
                 "lt": "Light",
             }[prefix]
             base = name or addr
@@ -307,6 +334,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             it2 = {**it}
             it2.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
             items[f"sw:{i}"] = _labelize("sw", i, it2)
+        for i, it in enumerate(self._options.get(CONF_BUTTONS, [])):
+            items[f"bt:{i}"] = _labelize("bt", i, it)
         for i, it in enumerate(self._options.get(CONF_LIGHTS, [])):
             it2 = {**it}
             it2.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
@@ -320,6 +349,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 rm_s = {int(k.split(":")[1]) for k in to_remove if k.startswith("s:")}
                 rm_bs = {int(k.split(":")[1]) for k in to_remove if k.startswith("bs:")}
                 rm_sw = {int(k.split(":")[1]) for k in to_remove if k.startswith("sw:")}
+                rm_bt = {int(k.split(":")[1]) for k in to_remove if k.startswith("bt:")}
                 rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
 
                 self._options[CONF_SENSORS] = [
@@ -336,6 +366,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     v
                     for idx, v in enumerate(self._options.get(CONF_SWITCHES, []))
                     if idx not in rm_sw
+                ]
+                self._options[CONF_BUTTONS] = [
+                    v
+                    for idx, v in enumerate(self._options.get(CONF_BUTTONS, []))
+                    if idx not in rm_bt
                 ]
                 self._options[CONF_LIGHTS] = [
                     v
