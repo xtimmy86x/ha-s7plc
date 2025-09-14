@@ -50,10 +50,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         scan_interval=scan_s,
     )
 
-    # opzionale: puoi anche rimuovere questa connect
-    # e lasciare che il first_refresh la gestisca
-    await hass.async_add_executor_job(coordinator.connect)
-
     device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
 
     hass.data.setdefault(DOMAIN, {})
@@ -62,17 +58,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "name": name,
         "host": host,
         "device_id": device_id,
-        "platforms_forwarded": False,  # 👈 guard flag
     }
 
-    # 1) Primo refresh “ufficiale” del coordinator (avvia anche il timer periodico)
     await coordinator.async_config_entry_first_refresh()
 
-    # 2) Forward piattaforme UNA SOLA VOLTA
-    store = hass.data[DOMAIN][entry.entry_id]
-    if not store["platforms_forwarded"]:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-        store["platforms_forwarded"] = True
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
