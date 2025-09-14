@@ -20,6 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
+    """Set up binary sensor entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -63,6 +64,8 @@ async def async_setup_entry(
 
 
 class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
+    """Binary sensor reading a boolean value from the PLC."""
+
     def __init__(
         self,
         coordinator,
@@ -94,6 +97,8 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
+    """Binary sensor reporting the PLC connection status."""
+
     device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_translation_key = "plc_connection"
     entity_category = EntityCategory.DIAGNOSTIC

@@ -19,6 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
+    """Set up button entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     coord = data["coordinator"]
     device_id = data["device_id"]
@@ -57,6 +58,8 @@ async def async_setup_entry(
 
 
 class S7Button(S7BaseEntity, ButtonEntity):
+    """Stateless button that pulses a PLC boolean address."""
+
     def __init__(
         self,
         coordinator,
@@ -76,10 +79,9 @@ class S7Button(S7BaseEntity, ButtonEntity):
         )
 
     async def _ensure_connected(self):
+        """Raise if the PLC is not available."""
         if not self.available:
-            raise HomeAssistantError(
-                "PLC non connesso: impossibile eseguire il comando."
-            )
+            raise HomeAssistantError("PLC not connected: cannot execute command.")
 
     async def async_press(self) -> None:
         await self._ensure_connected()
