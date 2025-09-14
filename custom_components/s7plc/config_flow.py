@@ -9,7 +9,7 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
-from homeassistant.helpers import config_validation as cv  # <-- IMPORT IMPORTANTE
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .const import (
@@ -154,8 +154,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 "lights",  # salta direttamente a "Add Light"
                 "remove",  # rimozione
             ],
-            # facoltativo: ordina alfabeticamente per etichetta tradotta
-            # sort=True,
         )
 
     async def async_step_add(self, user_input: dict[str, Any] | None = None):

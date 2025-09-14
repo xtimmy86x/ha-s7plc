@@ -13,26 +13,25 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-# Tipi forward-friendly quando pyS7 non è disponibile
 try:
-    import pyS7  # type: ignore
+    import pyS7
     from pyS7.address_parser import S7AddressError
     from pyS7.address_parser import (
-        map_address_to_tag as s7_address_parser,  # type: ignore
+        map_address_to_tag as s7_address_parser,
     )
-    from pyS7.constants import DataType, MemoryArea  # type: ignore
-    from pyS7.tag import S7Tag  # type: ignore
+    from pyS7.constants import DataType, MemoryArea
+    from pyS7.tag import S7Tag
 
-    S7ClientT = "pyS7.S7Client"  # per chiarezza nei commenti
+    S7ClientT = "pyS7.S7Client"
 except Exception as err:  # pragma: no cover
     _LOGGER.error("Impossibile importare pyS7: %s", err, exc_info=True)
-    pyS7 = None  # type: ignore
+    pyS7 = None
     DataType = SimpleNamespace(
         BIT=0, BYTE=1, WORD=2, DWORD=3, INT=4, DINT=5, REAL=6, CHAR=7
-    )  # sentinel
+    )
     MemoryArea = SimpleNamespace(DB=0)
-    S7Tag = Any  # fallback typing
-    s7_address_parser = None  # type: ignore
+    S7Tag = Any
+    s7_address_parser = None
     S7AddressError = Exception
 
 
@@ -43,14 +42,14 @@ except Exception as err:  # pragma: no cover
 class TagPlan:
     topic: str
     tag: S7Tag
-    postprocess: Optional[Any] = None  # es. lambda v: round(v, 1)
+    postprocess: Optional[Any] = None
 
 
 @dataclass
 class StringPlan:
     topic: str
     db: int
-    start: int  # byte offset della stringa (inizio header)
+    start: int
 
 
 # -----------------------------
@@ -59,11 +58,9 @@ class StringPlan:
 class _Helpers:
     @staticmethod
     def apply_postprocess(dt, value):
-        # Nota: tieni la presentazione fuori dal trasporto se preferisci
         return round(value, 1) if dt == DataType.REAL else value
 
 
-# --- NUOVO: helper free per ricreare S7Tag BIT con bit_offset rimappato
 def _remap_bit_tag_free(tag: S7Tag) -> S7Tag:
     """Ritorna un nuovo S7Tag con bit_offset rimappato
     (7 - bit) se BIT, altrimenti l'originale."""
@@ -204,7 +201,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         with self._lock:
             return bool(self._client and getattr(self._client, "socket", None))
 
-    # Metodi pubblici di connessione esplicita (ripristinati)
     def connect(self) -> None:
         """Stabilisce la connessione se necessaria (thread-safe)."""
         with self._lock:
@@ -369,6 +365,54 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tag.length,
         )
 
+    def _read_batch(self, plans_batch: list[TagPlan]) -> Dict[str, Any]:
+        """Legge in batch i tag scalari gestendo dedup e postprocess."""
+        results: Dict[str, Any] = {}
+        if not plans_batch:
+            return results
+
+        groups: dict[tuple, list[TagPlan]] = {}
+        order: list[tuple] = []
+        for plan in plans_batch:
+            k = self._tag_key(plan.tag)
+            if k not in groups:
+                groups[k] = []
+                order.append(k)
+            groups[k].append(plan)
+
+        try:
+            tags = [groups[k][0].tag for k in order]
+            values = self._retry(lambda: self._client.read(tags, optimize=False))
+            for k, v in zip(order, values):
+                for plan in groups[k]:
+                    results[plan.topic] = (
+                        plan.postprocess(v) if plan.postprocess else v
+                    )
+        except Exception:
+            _LOGGER.exception("Errore batch read")
+            for plan in plans_batch:
+                results.setdefault(plan.topic, None)
+        return results
+
+    def _read_strings(
+        self, plans_str: list[StringPlan], deadline: float
+    ) -> Dict[str, Any]:
+        """Legge stringhe rispettando una deadline assoluta."""
+        results: Dict[str, Any] = {}
+        for plan in plans_str:
+            if time.monotonic() > deadline:
+                _LOGGER.warning(
+                    "Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout
+                )
+                results.setdefault(plan.topic, None)
+                continue
+            try:
+                results[plan.topic] = self._read_s7_string(plan.db, plan.start)
+            except Exception:
+                _LOGGER.exception("Errore lettura stringa %s", plan.topic)
+                results.setdefault(plan.topic, None)
+        return results
+
     def _read_all(self) -> Dict[str, Any]:
         with self._lock:
             try:
@@ -382,38 +426,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         start_ts = time.monotonic()
         deadline = start_ts + self._op_timeout
 
-        results: Dict[str, Any] = {}  # 👈 inizializza PRIMA del try
+        results: Dict[str, Any] = {}
 
         try:
             # ===== 1) Batch scalari con dedup & optimize=False =====
             if plans_batch:
-                groups: dict[tuple, list[TagPlan]] = {}
-                order: list[tuple] = []
-                for p in plans_batch:
-                    k = self._tag_key(p.tag)
-                    if k not in groups:
-                        groups[k] = []
-                        order.append(k)
-                    groups[k].append(p)
+                results.update(self._read_batch(plans_batch))
 
-                try:
-                    tags = [groups[k][0].tag for k in order]
-                    values = self._retry(
-                        lambda: self._client.read(tags, optimize=False)
-                    )
-                    for k, v in zip(order, values):
-                        for plan in groups[k]:
-                            out = plan.postprocess(v) if plan.postprocess else v
-                            # Normalizza BIT a bool
-                            if plan.tag.data_type == DataType.BIT:
-                                out = bool(out)
-                            results[plan.topic] = out
-                except Exception:
-                    _LOGGER.exception("Errore batch read")
-                    for plan in plans_batch:
-                        results.setdefault(plan.topic, None)
+            # ===== 2) Stringhe (con deadline) =====
+            if plans_str:
+                results.update(self._read_strings(plans_str, deadline))
 
-            # ===== 2) Check timeout dopo il batch =====
+            # ===== 3) Check timeout dopo il batch =====
             if time.monotonic() > deadline:
                 _LOGGER.warning(
                     "Timeout lettura batch raggiunto (%.2fs)", self._op_timeout
@@ -422,23 +446,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     results.setdefault(plan.topic, None)
                 return results
 
-            # ===== 3) Stringhe (con deadline) =====
-            for plan in plans_str:
-                if time.monotonic() > deadline:
-                    _LOGGER.warning(
-                        "Timeout lettura stringhe raggiunto (%.2fs)", self._op_timeout
-                    )
-                    results.setdefault(plan.topic, None)
-                    continue
-                try:
-                    results[plan.topic] = self._read_s7_string(plan.db, plan.start)
-                except Exception:
-                    _LOGGER.exception("Errore lettura stringa %s", plan.topic)
-                    results.setdefault(plan.topic, None)
 
         except Exception:
             _LOGGER.exception("Errore lettura")
-            # qui results esiste già ⇒ niente UnboundLocalError
             for plan in plans_batch:
                 results.setdefault(plan.topic, None)
             for plan in plans_str:
