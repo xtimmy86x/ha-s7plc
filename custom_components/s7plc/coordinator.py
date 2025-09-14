@@ -16,9 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 try:
     import pyS7
     from pyS7.address_parser import S7AddressError
-    from pyS7.address_parser import (
-        map_address_to_tag as s7_address_parser,
-    )
+    from pyS7.address_parser import map_address_to_tag as s7_address_parser
     from pyS7.constants import DataType, MemoryArea
     from pyS7.tag import S7Tag
 
@@ -385,9 +383,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             values = self._retry(lambda: self._client.read(tags, optimize=False))
             for k, v in zip(order, values):
                 for plan in groups[k]:
-                    results[plan.topic] = (
-                        plan.postprocess(v) if plan.postprocess else v
-                    )
+                    results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
         except Exception:
             _LOGGER.exception("Errore batch read")
             for plan in plans_batch:
@@ -445,7 +441,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 for plan in plans_str:
                     results.setdefault(plan.topic, None)
                 return results
-
 
         except Exception:
             _LOGGER.exception("Errore lettura")
