@@ -89,3 +89,12 @@ class S7Button(S7BaseEntity, ButtonEntity):
         await self.hass.async_add_executor_job(
             self._coord.write_bool, self._address, False
         )
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._address:
+            attrs["s7_address"] = self._address.upper()
+        if self._button_pulse:
+            attrs["button_pulse"] = f"{self._button_pulse} s"
+        return attrs

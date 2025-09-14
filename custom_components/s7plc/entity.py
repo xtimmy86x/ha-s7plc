@@ -44,7 +44,7 @@ class S7BaseEntity(CoordinatorEntity):
     def extra_state_attributes(self):
         attrs = {}
         if self._address:
-            attrs["s7_address"] = self._address
+            attrs["s7_address"] = self._address.upper()
         return attrs
 
 
