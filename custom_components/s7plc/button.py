@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_ADDRESS, CONF_BUTTONS, DOMAIN
+from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DOMAIN
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,16 +40,10 @@ async def async_setup_entry(
         name = item.get(CONF_NAME, "S7 Button")
         topic = f"button:{address}"
         unique_id = f"{device_id}:{topic}"
+        button_pulse = int(item.get(CONF_BUTTON_PULSE))
         await hass.async_add_executor_job(coord.add_item, topic, address)
         entities.append(
-            S7Button(
-                coord,
-                name,
-                unique_id,
-                device_info,
-                topic,
-                address,
-            )
+            S7Button(coord, name, unique_id, device_info, topic, address, button_pulse)
         )
 
     if entities:
@@ -68,6 +62,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
         device_info: DeviceInfo,
         topic: str,
         address: str,
+        button_pulse: int,
     ):
         super().__init__(
             coordinator,
@@ -77,6 +72,8 @@ class S7Button(S7BaseEntity, ButtonEntity):
             topic=topic,
             address=address,
         )
+
+        self._button_pulse = button_pulse
 
     async def _ensure_connected(self):
         """Raise if the PLC is not available."""
@@ -88,7 +85,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
         await self.hass.async_add_executor_job(
             self._coord.write_bool, self._address, True
         )
-        await asyncio.sleep(1)
+        await asyncio.sleep(self._button_pulse)
         await self.hass.async_add_executor_job(
             self._coord.write_bool, self._address, False
         )

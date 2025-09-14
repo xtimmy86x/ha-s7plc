@@ -109,7 +109,8 @@
         "data": {
           "address": "Address",
           "name": "Name",
-          "add_another": "Add another after saving"
+          "add_another": "Add another after saving",
+          "button_pulse": "Pulse duration"
         },
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,DBX0.1).",

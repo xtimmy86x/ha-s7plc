@@ -109,6 +109,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "button_pulse": "Duarata impulso",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {

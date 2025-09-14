@@ -15,6 +15,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ADDRESS,
     CONF_BINARY_SENSORS,
+    CONF_BUTTON_PULSE,
     CONF_BUTTONS,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
@@ -25,6 +26,7 @@ from .const import (
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    DEFAULT_BUTTON_PULSE,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -257,6 +259,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 item: dict[str, Any] = {CONF_ADDRESS: address}
                 if user_input.get(CONF_NAME):
                     item[CONF_NAME] = user_input[CONF_NAME]
+                if user_input.get(CONF_BUTTON_PULSE):
+                    item[CONF_BUTTON_PULSE] = user_input[CONF_BUTTON_PULSE]
                 self._options[CONF_BUTTONS].append(item)
 
             if user_input.get("add_another"):
@@ -268,6 +272,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE): int,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )

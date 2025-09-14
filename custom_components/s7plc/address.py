@@ -46,7 +46,9 @@ __all__ = [
 def _remap_bit_tag(tag: S7Tag) -> S7Tag:
     """Return a new tag with the bit offset remapped (7 - bit)."""
     try:
-        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(tag, "bit_offset"):
+        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(
+            tag, "bit_offset"
+        ):
             return tag
         new_bit = 7 - int(tag.bit_offset)
         return S7Tag(

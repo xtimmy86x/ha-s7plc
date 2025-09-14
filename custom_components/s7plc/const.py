@@ -15,8 +15,10 @@ CONF_DEVICE_CLASS = "device_class"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
 CONF_SYNC_STATE = "sync_state"
+CONF_BUTTON_PULSE = "button_pulse"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
 DEFAULT_SCAN_INTERVAL = 1  # seconds
+DEFAULT_BUTTON_PULSE = 1  # seconds

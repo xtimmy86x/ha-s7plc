@@ -109,6 +109,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "button_pulse": "Pulse duration",
           "add_another": "Add another after saving"
         },
         "data_description": {
