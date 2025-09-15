@@ -87,7 +87,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         if device_class:
             try:
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
-            except Exception:  # pylint: disable=broad-except
+            except ValueError:
                 _LOGGER.warning("Invalid device class %s", device_class)
 
     @property

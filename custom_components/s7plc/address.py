@@ -14,7 +14,7 @@ try:  # pragma: no cover - fallback is for environments without pyS7
     from pyS7.address_parser import map_address_to_tag as s7_address_parser
     from pyS7.constants import DataType, MemoryArea
     from pyS7.tag import S7Tag
-except Exception as err:  # pragma: no cover
+except ImportError as err:  # pragma: no cover
     _LOGGER.error("Unable to import pyS7: %s", err, exc_info=True)
     pyS7 = None
     DataType = SimpleNamespace(
@@ -59,7 +59,7 @@ def _remap_bit_tag(tag: S7Tag) -> S7Tag:
             new_bit,
             tag.length,
         )
-    except Exception:  # pragma: no cover - never raise
+    except (AttributeError, TypeError, ValueError):  # pragma: no cover - never raise
         return tag
 
 

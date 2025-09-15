@@ -9,10 +9,17 @@ from typing import Any, Dict, Optional
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .address import DataType, MemoryArea, S7Tag, parse_tag, pyS7
-from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
-
 _LOGGER = logging.getLogger(__name__)
+
+try:
+    from .address import DataType, MemoryArea, S7Tag, parse_tag, pyS7
+except ImportError as err:
+    _LOGGER.error("Failed to import S7 address helpers: %s", err)
+    raise
+except RuntimeError as err:  # pragma: no cover
+    _LOGGER.error("Unexpected error importing S7 helpers: %s", err)
+    raise
+from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
 
 S7ClientT = "pyS7.S7Client"
 
@@ -79,7 +86,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if self._client:
             try:
                 self._client.disconnect()
-            except Exception as err:  # pragma: no cover
+            except (OSError, RuntimeError) as err:  # pragma: no cover
                 _LOGGER.debug("Error during disconnection: %s", err)
         # Do not reset the instance; only the socket will reconnect
 
@@ -99,8 +106,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     self._rack,
                     self._slot,
                 )
-            except Exception as err:
-                raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
+            except (OSError, RuntimeError) as err:
+                raise RuntimeError(
+                    f"Connection to PLC {self._host} failed: {err}"
+                )
 
     def is_connected(self) -> bool:
         with self._lock:
@@ -141,7 +150,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _sleep(self, seconds: float) -> None:
         try:
             time.sleep(max(0.0, seconds))
-        except Exception:
+        except OSError:
             pass
 
     def _retry(self, func, *args, **kwargs):
@@ -155,7 +164,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 # Ensure connection before each attempt
                 self._ensure_connected()
                 return func(*args, **kwargs)
-            except Exception as e:  # log, drop connection and retry
+            except (OSError, RuntimeError) as e:  # log, drop connection and retry
                 last_exc = e
                 _LOGGER.debug("Attempt %s failed: %s", attempt + 1, e)
                 self._drop_connection()
@@ -244,8 +253,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             values = self._retry(lambda: self._client.read(tags, optimize=False))
             for k, v in zip(order, values):
                 for plan in groups[k]:
-                    results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
-        except Exception:
+                    results[plan.topic] = (
+                        plan.postprocess(v) if plan.postprocess else v
+                    )
+        except (OSError, RuntimeError):
             _LOGGER.exception("Batch read error")
             for plan in plans_batch:
                 results.setdefault(plan.topic, None)
@@ -263,7 +274,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 continue
             try:
                 results[plan.topic] = self._read_s7_string(plan.db, plan.start)
-            except Exception:
+            except (OSError, RuntimeError):
                 _LOGGER.exception("String read error %s", plan.topic)
                 results.setdefault(plan.topic, None)
         return results
@@ -272,7 +283,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         with self._lock:
             try:
                 self._ensure_connected()
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 _LOGGER.error("Connection failed: %s", e)
                 return {}
             plans_batch = list(self._plans_batch)
@@ -294,12 +305,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # ===== 3) Timeout check after batch =====
             if time.monotonic() > deadline:
-                _LOGGER.warning("Batch read timeout reached (%.2fs)", self._op_timeout)
+                _LOGGER.warning(
+                    "Batch read timeout reached (%.2fs)", self._op_timeout
+                )
                 for plan in plans_str:
                     results.setdefault(plan.topic, None)
                 return results
 
-        except Exception:
+        except (OSError, RuntimeError):
             _LOGGER.exception("Read error")
             for plan in plans_batch:
                 results.setdefault(plan.topic, None)
@@ -335,7 +348,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._ensure_connected()
                 self._retry(lambda: self._client.write([tag], [bool(value)]))
                 return True
-            except Exception:
+            except (OSError, RuntimeError):
                 _LOGGER.exception("Write error %s", address)
                 self._drop_connection()
                 return False

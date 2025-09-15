@@ -87,7 +87,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             port = int(user_input.get(CONF_PORT, DEFAULT_PORT))
             scan_s = int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
             name = user_input.get(CONF_NAME, "S7 PLC")
-        except Exception:
+        except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
             return self.async_show_form(
                 step_id="user", data_schema=data_schema, errors=errors
@@ -111,7 +111,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
-        except Exception:  # pylint: disable=broad-except
+        except (OSError, RuntimeError):
             _LOGGER.exception(
                 "Cannot connect to S7 PLC at %s (rack %s slot %s)", host, rack, slot
             )
