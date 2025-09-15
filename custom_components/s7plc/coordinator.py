@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
+
 _LOGGER = logging.getLogger(__name__)
 
 try:
@@ -19,7 +21,7 @@ except ImportError as err:
 except RuntimeError as err:  # pragma: no cover
     _LOGGER.error("Unexpected error importing S7 helpers: %s", err)
     raise
-from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
+
 
 S7ClientT = "pyS7.S7Client"
 
@@ -107,9 +109,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     self._slot,
                 )
             except (OSError, RuntimeError) as err:
-                raise RuntimeError(
-                    f"Connection to PLC {self._host} failed: {err}"
-                )
+                raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
         with self._lock:
@@ -253,9 +253,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             values = self._retry(lambda: self._client.read(tags, optimize=False))
             for k, v in zip(order, values):
                 for plan in groups[k]:
-                    results[plan.topic] = (
-                        plan.postprocess(v) if plan.postprocess else v
-                    )
+                    results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
         except (OSError, RuntimeError):
             _LOGGER.exception("Batch read error")
             for plan in plans_batch:
@@ -305,9 +303,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # ===== 3) Timeout check after batch =====
             if time.monotonic() > deadline:
-                _LOGGER.warning(
-                    "Batch read timeout reached (%.2fs)", self._op_timeout
-                )
+                _LOGGER.warning("Batch read timeout reached (%.2fs)", self._op_timeout)
                 for plan in plans_str:
                     results.setdefault(plan.topic, None)
                 return results
