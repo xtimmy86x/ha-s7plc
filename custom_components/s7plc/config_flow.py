@@ -324,6 +324,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=s_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -342,6 +348,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         item: dict[str, Any] = {CONF_ADDRESS: address}
                         if user_input.get(CONF_NAME):
                             item[CONF_NAME] = user_input[CONF_NAME]
+                        if user_input.get(CONF_DEVICE_CLASS):
+                            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
                         self._options[CONF_SENSORS].append(item)
 
             if errors:
