@@ -401,7 +401,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_binary_sensors()
 
             return await self.async_step_switches()
-        
+
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
     async def async_step_switches(self, user_input: dict[str, Any] | None = None):
@@ -423,7 +423,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             state_address = self._sanitize_address(
                 user_input.get(CONF_STATE_ADDRESS)
             ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
 
             if state_address:
                 try:
@@ -457,7 +459,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return self.async_show_form(
                     step_id="switches", data_schema=data_schema, errors=errors
                 )
-            
+
             if user_input.get("add_another"):
                 return await self.async_step_switches()
 
@@ -526,7 +528,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             state_address = self._sanitize_address(
                 user_input.get(CONF_STATE_ADDRESS)
             ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
 
             if state_address:
                 try:
@@ -560,7 +564,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return self.async_show_form(
                     step_id="lights", data_schema=data_schema, errors=errors
                 )
-            
+
             if user_input.get("add_another"):
                 return await self.async_step_lights()
 
