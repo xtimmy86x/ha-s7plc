@@ -16,6 +16,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
+from .address import parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_BINARY_SENSORS,
@@ -251,6 +252,49 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         }
         self._action: str | None = None  # "add" | "remove"
 
+    @staticmethod
+    def _sanitize_address(address: Any | None) -> str | None:
+        """Return a trimmed string representation of an address."""
+
+        if address is None:
+            return None
+
+        if not isinstance(address, str):
+            address = str(address)
+
+        address = address.strip()
+        return address or None
+
+    @staticmethod
+    def _normalized_address(address: Any | None) -> str | None:
+        """Return a normalized representation used for comparisons."""
+
+        sanitized = S7PLCOptionsFlow._sanitize_address(address)
+        if sanitized is None:
+            return None
+
+        return sanitized.upper()
+
+    def _has_duplicate(
+        self,
+        option_key: str,
+        address: str,
+        *,
+        keys: tuple[str, ...] = (CONF_ADDRESS,),
+    ) -> bool:
+        """Return ``True`` if ``address`` already exists in the options."""
+
+        normalized = self._normalized_address(address)
+        if normalized is None:
+            return False
+
+        for item in self._options.get(option_key, []):
+            for key in keys:
+                if self._normalized_address(item.get(key)) == normalized:
+                    return True
+
+        return False
+
     # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         # Mostra un menu con le prossime tappe; le etichette arrivano da strings.json
@@ -274,18 +318,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     # ====== STEP A: add (come già avevi) ======
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            address = user_input.get(CONF_ADDRESS)
-            if address:
-                item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                self._options[CONF_SENSORS].append(item)
-
-            if user_input.get("add_another"):
-                return await self.async_step_sensors()
-
-            return await self.async_step_binary_sensors()
+        errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
             {
@@ -294,23 +327,37 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            if address:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_SENSORS, address):
+                        errors["base"] = "duplicate_entry"
+                    else:
+                        item: dict[str, Any] = {CONF_ADDRESS: address}
+                        if user_input.get(CONF_NAME):
+                            item[CONF_NAME] = user_input[CONF_NAME]
+                        self._options[CONF_SENSORS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="sensors", data_schema=data_schema, errors=errors
+                )
+
+            if user_input.get("add_another"):
+                return await self.async_step_sensors()
+
+            return await self.async_step_binary_sensors()
+
         return self.async_show_form(step_id="sensors", data_schema=data_schema)
 
     async def async_step_binary_sensors(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            address = user_input.get(CONF_ADDRESS)
-            if address:
-                item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                if user_input.get(CONF_DEVICE_CLASS):
-                    item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-                self._options[CONF_BINARY_SENSORS].append(item)
-
-            if user_input.get("add_another"):
-                return await self.async_step_binary_sensors()
-
-            return await self.async_step_switches()
+        errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
             {
@@ -325,26 +372,40 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+
+            if address:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_BINARY_SENSORS, address):
+                        errors["base"] = "duplicate_entry"
+                    else:
+                        item: dict[str, Any] = {CONF_ADDRESS: address}
+                        if user_input.get(CONF_NAME):
+                            item[CONF_NAME] = user_input[CONF_NAME]
+                        if user_input.get(CONF_DEVICE_CLASS):
+                            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                        self._options[CONF_BINARY_SENSORS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="binary_sensors", data_schema=data_schema, errors=errors
+                )
+
+            if user_input.get("add_another"):
+                return await self.async_step_binary_sensors()
+
+            return await self.async_step_switches()
+        
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
     async def async_step_switches(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            state_address = user_input.get(CONF_STATE_ADDRESS) or user_input.get(
-                CONF_ADDRESS
-            )
-            if state_address:
-                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if user_input.get(CONF_COMMAND_ADDRESS):
-                    item[CONF_COMMAND_ADDRESS] = user_input[CONF_COMMAND_ADDRESS]
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._options[CONF_SWITCHES].append(item)
-
-            if user_input.get("add_another"):
-                return await self.async_step_switches()
-
-            return await self.async_step_buttons()
+        errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
             {
@@ -357,23 +418,55 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
+
+        if user_input is not None:
+            state_address = self._sanitize_address(
+                user_input.get(CONF_STATE_ADDRESS)
+            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+            if state_address:
+                try:
+                    parse_tag(state_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(
+                        CONF_SWITCHES,
+                        state_address,
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                    ):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors and state_address:
+                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+                if command_address:
+                    item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    item[CONF_NAME] = user_input[CONF_NAME]
+                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._options[CONF_SWITCHES].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="switches", data_schema=data_schema, errors=errors
+                )
+            
+            if user_input.get("add_another"):
+                return await self.async_step_switches()
+
+            return await self.async_step_buttons()
+
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
     async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            address = user_input.get(CONF_ADDRESS)
-            if address:
-                item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                if user_input.get(CONF_BUTTON_PULSE):
-                    item[CONF_BUTTON_PULSE] = user_input[CONF_BUTTON_PULSE]
-                self._options[CONF_BUTTONS].append(item)
-
-            if user_input.get("add_another"):
-                return await self.async_step_buttons()
-
-            return await self.async_step_lights()
+        errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
             {
@@ -383,27 +476,39 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            if address:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_BUTTONS, address):
+                        errors["base"] = "duplicate_entry"
+                    else:
+                        item: dict[str, Any] = {CONF_ADDRESS: address}
+                        if user_input.get(CONF_NAME):
+                            item[CONF_NAME] = user_input[CONF_NAME]
+                        if user_input.get(CONF_BUTTON_PULSE):
+                            item[CONF_BUTTON_PULSE] = user_input[CONF_BUTTON_PULSE]
+                        self._options[CONF_BUTTONS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="buttons", data_schema=data_schema, errors=errors
+                )
+
+            if user_input.get("add_another"):
+                return await self.async_step_buttons()
+
+            return await self.async_step_lights()
+
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
     async def async_step_lights(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            state_address = user_input.get(CONF_STATE_ADDRESS) or user_input.get(
-                CONF_ADDRESS
-            )
-            if state_address:
-                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if user_input.get(CONF_COMMAND_ADDRESS):
-                    item[CONF_COMMAND_ADDRESS] = user_input[CONF_COMMAND_ADDRESS]
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._options[CONF_LIGHTS].append(item)
-
-            if user_input.get("add_another"):
-                return await self.async_step_lights()
-
-            # finisce il ramo "add"
-            return self.async_create_entry(title="", data=self._options)
+        errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
             {
@@ -416,6 +521,52 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
+
+        if user_input is not None:
+            state_address = self._sanitize_address(
+                user_input.get(CONF_STATE_ADDRESS)
+            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+            if state_address:
+                try:
+                    parse_tag(state_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(
+                        CONF_LIGHTS,
+                        state_address,
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                    ):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors and state_address:
+                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+                if command_address:
+                    item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    item[CONF_NAME] = user_input[CONF_NAME]
+                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._options[CONF_LIGHTS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="lights", data_schema=data_schema, errors=errors
+                )
+            
+            if user_input.get("add_another"):
+                return await self.async_step_lights()
+
+            # finisce il ramo "add"
+            return self.async_create_entry(title="", data=self._options)
+
         return self.async_show_form(step_id="lights", data_schema=data_schema)
 
     # ====== STEP B: remove ======
