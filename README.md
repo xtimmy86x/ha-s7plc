@@ -37,6 +37,7 @@
 - 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
+- 🔍 **Optional auto-discovery**: the setup wizard pre-populates PLCs found on your local network while still allowing manual IP entry.
 - 📄 **S7 `STRING` support** for text sensors.
 
 ---
@@ -81,7 +82,7 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 
 1. In Home Assistant, go to **Settings → Devices & Services** and click **+ Add Integration**.
 2. Search for **"S7 PLC"** and select it.
-3. Enter the PLC `host`, `rack`, `slot`, and `port` values when prompted.
+3. Pick one of the auto-discovered PLC hosts or type the PLC `host` manually, then fill in `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
    - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`) and fill in the form fields.
