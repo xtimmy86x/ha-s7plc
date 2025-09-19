@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
+from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import network
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
@@ -53,13 +57,31 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialise the flow."""
+
+        self._discovered_hosts: list[str] | None = None
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
+
+        discovered_hosts = await self._async_get_discovered_hosts()
+
+        host_selector = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value=host, label=host)
+                    for host in discovered_hosts
+                ],
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
 
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_NAME, default="S7 PLC"): str,
-                vol.Required(CONF_HOST): selector.TextSelector(),
+                vol.Required(CONF_HOST): host_selector,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
                 vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
@@ -126,6 +148,91 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
         return S7PLCOptionsFlow(config_entry)
+
+    async def _async_get_discovered_hosts(self) -> list[str]:
+        """Return cached or freshly discovered PLC hosts on the local network."""
+
+        if self._discovered_hosts is not None:
+            return self._discovered_hosts
+
+        hosts_to_scan: list[str] = []
+        adapters = await network.async_get_adapters(self.hass)
+
+        for adapter in adapters:
+            if not adapter.get("enabled", False):
+                continue
+
+            for ip_info in adapter.get("ipv4", []):
+                address = ip_info.get("address")
+                prefix = ip_info.get("network_prefix")
+
+                if not address or prefix is None:
+                    continue
+
+                try:
+                    interface = ip_interface(f"{address}/{prefix}")
+                except ValueError:
+                    continue
+
+                if interface.ip.is_loopback:
+                    continue
+
+                network_obj = interface.network
+
+                # Avoid scanning excessively large networks; narrow to /24 when needed.
+                if network_obj.num_addresses > 1024:
+                    try:
+                        network_obj = ip_network(f"{interface.ip}/24", strict=False)
+                    except ValueError:
+                        continue
+
+                for host in network_obj.hosts():
+                    if host == interface.ip:
+                        continue
+
+                    host_str = str(host)
+                    if host_str in hosts_to_scan:
+                        continue
+
+                    hosts_to_scan.append(host_str)
+
+                    if len(hosts_to_scan) >= 256:
+                        break
+
+                if len(hosts_to_scan) >= 256:
+                    break
+
+            if len(hosts_to_scan) >= 256:
+                break
+
+        discovered: list[str] = []
+        semaphore = asyncio.Semaphore(32)
+
+        async def _probe(host: str) -> None:
+            try:
+                async with semaphore:
+                    _reader, writer = await asyncio.wait_for(
+                        asyncio.open_connection(host, DEFAULT_PORT),
+                        timeout=0.5,
+                    )
+            except (asyncio.TimeoutError, OSError):
+                return
+            except asyncio.CancelledError:
+                raise
+            else:
+                writer.close()
+                with contextlib.suppress(Exception):
+                    await writer.wait_closed()
+                discovered.append(host)
+
+        await asyncio.gather(*(_probe(host) for host in hosts_to_scan))
+
+        discovered.sort()
+        self._discovered_hosts = discovered
+        if discovered:
+            _LOGGER.debug("Discovered potential S7 PLC hosts: %s", discovered)
+
+        return discovered
 
 
 class S7PLCOptionsFlow(config_entries.OptionsFlow):
