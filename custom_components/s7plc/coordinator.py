@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import struct
 import threading
 import time
 from datetime import timedelta
@@ -168,6 +169,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 OSError,
                 RuntimeError,
                 IndexError,
+                struct.error,
             ) as e:  # log, drop connection and retry
                 last_exc = e
                 _LOGGER.debug(
@@ -208,7 +210,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _read_s7_string(self, db: int, start: int) -> str:
         # Header: max_len, cur_len
         hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
-        max_len, cur_len = self._client.read([hdr_tag], optimize=False)[0]
+        max_len, cur_len = self._retry(
+            lambda: self._client.read([hdr_tag], optimize=False)
+        )[0]
         # Type safety
         max_len = int(max_len)
         cur_len = int(cur_len)
