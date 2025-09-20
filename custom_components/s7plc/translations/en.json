@@ -61,11 +61,13 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "device_class": "Device class",
           "add_another": "Add another after saving"
         },
         "data_description": {
           "address": "PLC address to read (e.g., DB1000,DBD0, MW10, DB1,DBW2).",
           "name": "Optional friendly name for the sensor.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "add_another": "Stay on this step to add more sensors."
         }
       },

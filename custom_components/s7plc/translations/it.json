@@ -61,11 +61,13 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "device_class": "Device class",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
           "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
           "name": "Nome descrittivo opzionale per il sensore.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "add_another": "Rimani in questo step per aggiungere altri sensori."
         }
       },
