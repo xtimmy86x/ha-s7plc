@@ -158,15 +158,24 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Reconnects to the PLC between attempts on error.
         """
         attempt = 0
-        last_exc = None
+        last_exc: Exception | None = None
         while attempt <= self._max_retries:
             try:
                 # Ensure connection before each attempt
                 self._ensure_connected()
                 return func(*args, **kwargs)
-            except (OSError, RuntimeError) as e:  # log, drop connection and retry
+            except (
+                OSError,
+                RuntimeError,
+                IndexError,
+            ) as e:  # log, drop connection and retry
                 last_exc = e
-                _LOGGER.debug("Attempt %s failed: %s", attempt + 1, e)
+                _LOGGER.debug(
+                    "Attempt %s failed: %s",
+                    attempt + 1,
+                    e,
+                    exc_info=isinstance(e, IndexError),
+                )
                 self._drop_connection()
                 if attempt == self._max_retries:
                     break
@@ -174,11 +183,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._sleep(backoff)
                 attempt += 1
         # Attempts exhausted
-        raise (
-            last_exc
-            if last_exc
-            else RuntimeError("Operation failed without specific exception")
-        )
+        if last_exc is not None:
+            raise RuntimeError(
+                f"Operation failed after retries: {last_exc}"
+            ) from last_exc
+        raise RuntimeError("Operation failed without specific exception")
 
     # -------------------------
     # Update loop
