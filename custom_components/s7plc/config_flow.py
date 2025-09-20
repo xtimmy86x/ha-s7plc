@@ -501,8 +501,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         item: dict[str, Any] = {CONF_ADDRESS: address}
                         if user_input.get(CONF_NAME):
                             item[CONF_NAME] = user_input[CONF_NAME]
-                        if user_input.get(CONF_BUTTON_PULSE):
-                            item[CONF_BUTTON_PULSE] = user_input[CONF_BUTTON_PULSE]
+
+                        button_pulse_input = user_input.get(CONF_BUTTON_PULSE)
+                        if button_pulse_input is None:
+                            button_pulse = DEFAULT_BUTTON_PULSE
+                        else:
+                            try:
+                                button_pulse = int(button_pulse_input)
+                            except (TypeError, ValueError):
+                                button_pulse = DEFAULT_BUTTON_PULSE
+                            else:
+                                if button_pulse < 0:
+                                    button_pulse = DEFAULT_BUTTON_PULSE
+
+                        item[CONF_BUTTON_PULSE] = button_pulse
                         self._options[CONF_BUTTONS].append(item)
 
             if errors:

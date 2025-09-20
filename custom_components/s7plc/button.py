@@ -10,7 +10,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DOMAIN
+from .const import (
+    CONF_ADDRESS,
+    CONF_BUTTON_PULSE,
+    CONF_BUTTONS,
+    DEFAULT_BUTTON_PULSE,
+    DOMAIN,
+)
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +46,16 @@ async def async_setup_entry(
         name = item.get(CONF_NAME, "S7 Button")
         topic = f"button:{address}"
         unique_id = f"{device_id}:{topic}"
-        button_pulse = int(item.get(CONF_BUTTON_PULSE))
+        raw_pulse = item.get(CONF_BUTTON_PULSE)
+        button_pulse = DEFAULT_BUTTON_PULSE
+        if raw_pulse is not None:
+            try:
+                button_pulse = int(raw_pulse)
+            except (TypeError, ValueError):
+                button_pulse = DEFAULT_BUTTON_PULSE
+            else:
+                if button_pulse < 0:
+                    button_pulse = DEFAULT_BUTTON_PULSE
         await hass.async_add_executor_job(coord.add_item, topic, address)
         entities.append(
             S7Button(coord, name, unique_id, device_info, topic, address, button_pulse)
@@ -95,6 +110,6 @@ class S7Button(S7BaseEntity, ButtonEntity):
         attrs = {}
         if self._address:
             attrs["s7_address"] = self._address.upper()
-        if self._button_pulse:
+        if self._button_pulse is not None:
             attrs["button_pulse"] = f"{self._button_pulse} s"
         return attrs
