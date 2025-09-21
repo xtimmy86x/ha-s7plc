@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import struct
+
 import pytest
 
 from custom_components.s7plc import coordinator
@@ -101,6 +103,24 @@ def test_retry_raises_after_exhaustion(monkeypatch):
         coord._retry(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
 
     assert drop_calls == 2
+
+
+def test_retry_handles_struct_error(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+    coord._max_retries = 0
+
+    drop_calls = 0
+
+    def fake_drop():
+        nonlocal drop_calls
+        drop_calls += 1
+
+    coord._drop_connection = fake_drop
+
+    with pytest.raises(RuntimeError):
+        coord._retry(lambda: (_ for _ in ()).throw(struct.error()))
+
+    assert drop_calls == 1
 
 
 def test_read_batch_deduplicates_tags(monkeypatch):
