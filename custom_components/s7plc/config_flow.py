@@ -19,19 +19,27 @@ from homeassistant.helpers import selector
 from .address import parse_tag
 from .const import (
     CONF_ADDRESS,
+    CONF_BACKOFF_INITIAL,
+    CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
+    CONF_MAX_RETRIES,
+    CONF_OP_TIMEOUT,
     CONF_RACK,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    DEFAULT_BACKOFF_INITIAL,
+    DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_OP_TIMEOUT,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -87,6 +95,18 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
                 vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
                 vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.5, max=120)
+                ),
+                vol.Optional(CONF_MAX_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=10)
+                ),
+                vol.Optional(
+                    CONF_BACKOFF_INITIAL, default=DEFAULT_BACKOFF_INITIAL
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=30)),
+                vol.Optional(CONF_BACKOFF_MAX, default=DEFAULT_BACKOFF_MAX): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.1, max=120)
+                ),
             }
         )
 
@@ -99,6 +119,10 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "default_rack": str(DEFAULT_RACK),
                     "default_slot": str(DEFAULT_SLOT),
                     "default_scan": str(DEFAULT_SCAN_INTERVAL),
+                    "default_timeout": f"{DEFAULT_OP_TIMEOUT:.1f}",
+                    "default_retries": str(DEFAULT_MAX_RETRIES),
+                    "default_backoff_initial": f"{DEFAULT_BACKOFF_INITIAL:.2f}",
+                    "default_backoff_max": f"{DEFAULT_BACKOFF_MAX:.1f}",
                 },
                 errors=errors,
             )
@@ -109,6 +133,12 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             slot = int(user_input.get(CONF_SLOT, DEFAULT_SLOT))
             port = int(user_input.get(CONF_PORT, DEFAULT_PORT))
             scan_s = int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+            op_timeout = float(user_input.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT))
+            max_retries = int(user_input.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES))
+            backoff_initial = float(
+                user_input.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
+            )
+            backoff_max = float(user_input.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
             name = user_input.get(CONF_NAME, "S7 PLC")
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
@@ -118,6 +148,18 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if scan_s <= 0:
             scan_s = DEFAULT_SCAN_INTERVAL
+
+        if op_timeout <= 0:
+            op_timeout = DEFAULT_OP_TIMEOUT
+
+        if max_retries < 0:
+            max_retries = DEFAULT_MAX_RETRIES
+
+        if backoff_initial <= 0:
+            backoff_initial = DEFAULT_BACKOFF_INITIAL
+
+        if backoff_max < backoff_initial:
+            backoff_max = max(backoff_initial, backoff_max)
 
         unique_id = f"{host}-{rack}-{slot}"
         await self.async_set_unique_id(unique_id, raise_on_progress=False)
@@ -130,6 +172,10 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             slot=slot,
             port=port,
             scan_interval=scan_s,
+            op_timeout=op_timeout,
+            max_retries=max_retries,
+            backoff_initial=backoff_initial,
+            backoff_max=backoff_max,
         )
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
@@ -143,7 +189,21 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="user", data_schema=data_schema, errors=errors
             )
 
-        return self.async_create_entry(title=name, data=user_input)
+        return self.async_create_entry(
+            title=name,
+            data={
+                CONF_NAME: name,
+                CONF_HOST: host,
+                CONF_PORT: port,
+                CONF_RACK: rack,
+                CONF_SLOT: slot,
+                CONF_SCAN_INTERVAL: scan_s,
+                CONF_OP_TIMEOUT: op_timeout,
+                CONF_MAX_RETRIES: max_retries,
+                CONF_BACKOFF_INITIAL: backoff_initial,
+                CONF_BACKOFF_MAX: backoff_max,
+            },
+        )
 
     @staticmethod
     @callback

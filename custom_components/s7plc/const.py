@@ -22,3 +22,13 @@ DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_BUTTON_PULSE = 1  # seconds
+
+CONF_OP_TIMEOUT = "operation_timeout"
+CONF_MAX_RETRIES = "max_retries"
+CONF_BACKOFF_INITIAL = "retry_backoff_initial"
+CONF_BACKOFF_MAX = "retry_backoff_max"
+
+DEFAULT_OP_TIMEOUT = 5.0  # seconds
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_BACKOFF_INITIAL = 0.5  # seconds
+DEFAULT_BACKOFF_MAX = 2.0  # seconds

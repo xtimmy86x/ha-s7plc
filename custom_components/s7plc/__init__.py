@@ -10,8 +10,16 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_BACKOFF_INITIAL,
+    CONF_BACKOFF_MAX,
+    CONF_MAX_RETRIES,
+    CONF_OP_TIMEOUT,
     CONF_RACK,
     CONF_SLOT,
+    DEFAULT_BACKOFF_INITIAL,
+    DEFAULT_BACKOFF_MAX,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_OP_TIMEOUT,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -40,6 +48,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     port = data.get(CONF_PORT, DEFAULT_PORT)
     scan_s = float(data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
     name = data.get(CONF_NAME, "S7 PLC")
+    op_timeout = float(data.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT))
+    max_retries = int(data.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES))
+    backoff_initial = float(data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL))
+    backoff_max = float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
 
     coordinator = S7Coordinator(
         hass,
@@ -48,6 +60,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slot=slot,
         port=port,
         scan_interval=scan_s,
+        op_timeout=op_timeout,
+        max_retries=max_retries,
+        backoff_initial=backoff_initial,
+        backoff_max=backoff_max,
     )
 
     device_id = slugify(f"s7plc-{host}-{rack}-{slot}")

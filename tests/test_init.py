@@ -9,13 +9,29 @@ from homeassistant.core import HomeAssistant
 
 
 class DummyCoordinator:
-    def __init__(self, hass, host, rack, slot, port, scan_interval):
+    def __init__(
+        self,
+        hass,
+        host,
+        rack,
+        slot,
+        port,
+        scan_interval,
+        op_timeout,
+        max_retries,
+        backoff_initial,
+        backoff_max,
+    ):
         self.hass = hass
         self.host = host
         self.rack = rack
         self.slot = slot
         self.port = port
         self.scan_interval = scan_interval
+        self.op_timeout = op_timeout
+        self.max_retries = max_retries
+        self.backoff_initial = backoff_initial
+        self.backoff_max = backoff_max
         self.connected = False
         self.disconnected = False
         self.refresh_called = False
@@ -78,6 +94,10 @@ def test_async_setup_entry_initialises_coordinator(monkeypatch):
             s7init.CONF_PORT: 102,
             s7init.CONF_SCAN_INTERVAL: 2,
             s7init.CONF_NAME: "Test PLC",
+            s7init.CONF_OP_TIMEOUT: 7.5,
+            s7init.CONF_MAX_RETRIES: 5,
+            s7init.CONF_BACKOFF_INITIAL: 1.0,
+            s7init.CONF_BACKOFF_MAX: 6.0,
         },
         entry_id="entry1",
     )

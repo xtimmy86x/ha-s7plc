@@ -92,6 +92,27 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
    - `button` entries command a true value and after a configured
      `pulse time` send false.
 
+### Timeout & Retry settings
+
+During the initial setup you can now tune the PLC communication resilience directly from the UI:
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| **Operation timeout (s)** | Maximum time allowed for a single read/write cycle before a retry is attempted. | 5.0 |
+| **Retry attempts** | Number of retry attempts before the operation is considered failed. | 3 |
+| **Retry backoff start (s)** | Delay before the first retry after an error. | 0.5 |
+| **Retry backoff max (s)** | Maximum delay used between subsequent retries. | 2.0 |
+
+Use the following guidelines based on the typical round-trip latency between Home Assistant and the PLC:
+
+| Network profile | Typical latency | Suggested timeout | Suggested retries | Suggested backoff (start → max) |
+|-----------------|-----------------|-------------------|-------------------|-------------------------------|
+| **Local/LAN** | < 20 ms | 3–5 s | 2–3 | 0.3 s → 2 s |
+| **VPN / Remote site** | 20–100 ms | 6–8 s | 3–4 | 0.5 s → 4 s |
+| **High-latency / Cellular** | > 100 ms | 8–12 s | 4–5 | 1.0 s → 6 s |
+
+Values outside these ranges are supported, but increasing them further may delay error reporting and entity updates. Lower values improve responsiveness but can cause frequent reconnects on congested networks.
+
 **Notes**
 - `rack/slot` values depend on the CPU family. Common settings:
   - S7-1200/1500: `rack: 0`, `slot: 1`

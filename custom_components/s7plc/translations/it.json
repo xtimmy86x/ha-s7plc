@@ -4,14 +4,18 @@
     "step": {
       "user": {
         "title": "Configura collegamento al PLC S7",
-        "description": "Inserisci i dati di connessione del PLC S7. Porta predefinita: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s. Verrà effettuato un test di connessione prima di salvare.",
+        "description": "Inserisci i dati di connessione del PLC S7. Porta predefinita: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s, timeout: {default_timeout}s, retry: {default_retries}, backoff: {default_backoff_initial}-{default_backoff_max}s. Verrà effettuato un test di connessione prima di salvare.",
         "data": {
           "name": "Nome",
           "host": "Host",
           "port": "Porta",
           "rack": "Rack",
           "slot": "Slot",
-          "scan_interval": "Intervallo di scansione (s)"
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Backoff iniziale retry (s)",
+          "retry_backoff_max": "Backoff massimo retry (s)"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -19,7 +23,11 @@
           "port": "Porta ISO-on-TCP, in genere 102.",
           "rack": "Numero di rack della CPU (di solito 0).",
           "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
-          "scan_interval": "Frequenza di polling del PLC, in secondi."
+          "scan_interval": "Frequenza di polling del PLC, in secondi.",
+          "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
+          "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
+          "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
+          "retry_backoff_max": "Attesa massima tra i tentativi di retry."
         }
       }
     },

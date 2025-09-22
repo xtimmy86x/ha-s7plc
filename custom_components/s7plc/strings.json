@@ -4,14 +4,18 @@
     "step": {
       "user": {
         "title": "Connect to S7 PLC",
-        "description": "Enter your S7 PLC connection details. Default port: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s. A connection test will run before saving.",
+        "description": "Enter your S7 PLC connection details. Default port: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s, timeout: {default_timeout}s, retries: {default_retries}, backoff: {default_backoff_initial}-{default_backoff_max}s. A connection test will run before saving.",
         "data": {
           "name": "Name",
           "host": "Host",
           "port": "Port",
           "rack": "Rack",
           "slot": "Slot",
-          "scan_interval": "Scan interval (s)"
+          "scan_interval": "Scan interval (s)",
+          "operation_timeout": "Operation timeout (s)",
+          "max_retries": "Retry attempts",
+          "retry_backoff_initial": "Retry backoff start (s)",
+          "retry_backoff_max": "Retry backoff max (s)"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -19,7 +23,11 @@
           "port": "ISO-on-TCP port, typically 102.",
           "rack": "CPU rack number (usually 0).",
           "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
-          "scan_interval": "How often to poll the PLC, in seconds."
+          "scan_interval": "How often to poll the PLC, in seconds.",
+          "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
+          "max_retries": "How many times to retry a failed PLC operation before giving up.",
+          "retry_backoff_initial": "Delay before the first retry attempt.",
+          "retry_backoff_max": "Maximum delay between retry attempts."
         }
       }
     },
