@@ -5,6 +5,7 @@
   "config_flow": true,
   "dependencies": ["network"],
   "documentation": "https://github.com/xtimmy86x/ha-s7plc",
+  "issue_tracker": "https://github.com/xtimmy86x/ha-s7plc/issues",
   "iot_class": "local_polling",
   "loggers": ["custom_components.s7plc"],
   "requirements": ["pys7==1.0.0"],
