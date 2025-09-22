@@ -250,7 +250,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
         }
-        self._action: str | None = None  # "add" | "remove"
+        self._action: str | None = None  # "add" | "remove" | "edit"
+        self._edit_target: tuple[str, int] | None = None
 
     @staticmethod
     def _sanitize_address(address: Any | None) -> str | None:
@@ -281,6 +282,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         address: str,
         *,
         keys: tuple[str, ...] = (CONF_ADDRESS,),
+        skip_idx: int | None = None,
     ) -> bool:
         """Return ``True`` if ``address`` already exists in the options."""
 
@@ -288,12 +290,50 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if normalized is None:
             return False
 
-        for item in self._options.get(option_key, []):
+        for idx, item in enumerate(self._options.get(option_key, [])):
+            if skip_idx is not None and idx == skip_idx:
+                continue
             for key in keys:
                 if self._normalized_address(item.get(key)) == normalized:
                     return True
 
         return False
+
+    @staticmethod
+    def _labelize(prefix: str, item: dict[str, Any]) -> str:
+        name = item.get(CONF_NAME)
+        address = item.get(CONF_ADDRESS) or item.get(CONF_STATE_ADDRESS) or "?"
+        type_label = {
+            "s": "Sensor",
+            "bs": "Binary",
+            "sw": "Switch",
+            "bt": "Button",
+            "lt": "Light",
+        }[prefix]
+        base = name or address
+        return f"{type_label} • {base} [{address}]"
+
+    def _build_items_map(self) -> Dict[str, str]:
+        items: Dict[str, str] = {}
+        for i, it in enumerate(self._options.get(CONF_SENSORS, [])):
+            items[f"s:{i}"] = self._labelize("s", it)
+        for i, it in enumerate(self._options.get(CONF_BINARY_SENSORS, [])):
+            items[f"bs:{i}"] = self._labelize("bs", it)
+        for i, it in enumerate(self._options.get(CONF_SWITCHES, [])):
+            switch_item = {**it}
+            switch_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
+            items[f"sw:{i}"] = self._labelize("sw", switch_item)
+        for i, it in enumerate(self._options.get(CONF_BUTTONS, [])):
+            items[f"bt:{i}"] = self._labelize("bt", it)
+        for i, it in enumerate(self._options.get(CONF_LIGHTS, [])):
+            light_item = {**it}
+            light_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
+            items[f"lt:{i}"] = self._labelize("lt", light_item)
+        return items
+
+    def _clear_edit_state(self) -> None:
+        self._action = None
+        self._edit_target = None
 
     # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
@@ -308,6 +348,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 "switches",  # salta direttamente a "Add Switch"
                 "buttons",  # salta direttamente a "Add Button"
                 "lights",  # salta direttamente a "Add Light"
+                "edit",  # modifica entità esistenti
                 "remove",  # rimozione
             ],
         )
@@ -597,36 +638,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_remove(self, user_input: dict[str, Any] | None = None):
         # Costruisci mappa chiave->label per tutti gli elementi configurati
         # chiave unica: prefisso tipo + indice, es. "s:0", "bs:1", "sw:2", "lt:0"
-        items: Dict[str, str] = {}
-
-        def _labelize(prefix: str, idx: int, item: dict[str, Any]) -> str:
-            name = item.get(CONF_NAME)
-            addr = item.get(CONF_ADDRESS) or item.get(CONF_STATE_ADDRESS) or "?"
-            typ = {
-                "s": "Sensor",
-                "bs": "Binary",
-                "sw": "Switch",
-                "bt": "Button",
-                "lt": "Light",
-            }[prefix]
-            base = name or addr
-            return f"{typ} • {base} [{addr}]"
-
-        for i, it in enumerate(self._options.get(CONF_SENSORS, [])):
-            items[f"s:{i}"] = _labelize("s", i, it)
-        for i, it in enumerate(self._options.get(CONF_BINARY_SENSORS, [])):
-            items[f"bs:{i}"] = _labelize("bs", i, it)
-        for i, it in enumerate(self._options.get(CONF_SWITCHES, [])):
-            # negli switch/luci usiamo STATE_ADDRESS come indirizzo
-            it2 = {**it}
-            it2.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
-            items[f"sw:{i}"] = _labelize("sw", i, it2)
-        for i, it in enumerate(self._options.get(CONF_BUTTONS, [])):
-            items[f"bt:{i}"] = _labelize("bt", i, it)
-        for i, it in enumerate(self._options.get(CONF_LIGHTS, [])):
-            it2 = {**it}
-            it2.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
-            items[f"lt:{i}"] = _labelize("lt", i, it2)
+        items: Dict[str, str] = self._build_items_map()
 
         if user_input is not None:
             to_remove: List[str] = user_input.get("remove_items", [])
@@ -674,3 +686,417 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
         # Title/description da translations: options.step.remove.*
         return self.async_show_form(step_id="remove", data_schema=data_schema)
+
+    # ====== STEP C: edit ======
+    async def async_step_edit(self, user_input: dict[str, Any] | None = None):
+        items = self._build_items_map()
+
+        if not items:
+            return self.async_show_form(
+                step_id="edit",
+                data_schema=vol.Schema({}),
+                errors={"base": "no_items"},
+            )
+
+        select_options = [
+            selector.SelectOptionDict(value=key, label=label)
+            for key, label in items.items()
+        ]
+        data_schema = vol.Schema(
+            {
+                vol.Required("edit_item"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=select_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(step_id="edit", data_schema=data_schema)
+
+        selection = user_input.get("edit_item")
+        if selection not in items:
+            return await self.async_step_edit()
+
+        prefix, _, idx_str = selection.partition(":")
+        try:
+            idx = int(idx_str)
+        except ValueError:
+            return await self.async_step_edit()
+
+        self._action = "edit"
+        self._edit_target = (prefix, idx)
+
+        if prefix == "s":
+            return await self.async_step_edit_sensor()
+        if prefix == "bs":
+            return await self.async_step_edit_binary_sensor()
+        if prefix == "sw":
+            return await self.async_step_edit_switch()
+        if prefix == "bt":
+            return await self.async_step_edit_button()
+        if prefix == "lt":
+            return await self.async_step_edit_light()
+
+        return await self.async_step_edit()
+
+    def _get_edit_item(
+        self, option_key: str, prefix: str
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._edit_target is None:
+            return None
+        target_prefix, index = self._edit_target
+        if target_prefix != prefix:
+            return None
+        items = self._options.get(option_key, [])
+        if not 0 <= index < len(items):
+            return None
+        return index, items[index]
+
+    async def async_step_edit_sensor(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_SENSORS, "s")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        schema_dict: dict[Any, Any] = {
+            vol.Required(
+                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NAME, default=item.get(CONF_NAME, "")
+            ): selector.TextSelector(),
+        }
+
+        if item.get(CONF_DEVICE_CLASS) is not None:
+            schema_dict[
+                vol.Optional(CONF_DEVICE_CLASS, default=item.get(CONF_DEVICE_CLASS))
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=s_device_class_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+        else:
+            schema_dict[vol.Optional(CONF_DEVICE_CLASS)] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=s_device_class_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+
+        data_schema = vol.Schema(schema_dict)
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            if not address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_SENSORS, address, skip_idx=idx):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and address:
+                new_item: dict[str, Any] = {CONF_ADDRESS: address}
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                if user_input.get(CONF_DEVICE_CLASS):
+                    new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+
+                self._options[CONF_SENSORS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_sensor", data_schema=data_schema, errors=errors
+        )
+
+    async def async_step_edit_binary_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        lookup = self._get_edit_item(CONF_BINARY_SENSORS, "bs")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        schema_dict: dict[Any, Any] = {
+            vol.Required(
+                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NAME, default=item.get(CONF_NAME, "")
+            ): selector.TextSelector(),
+        }
+
+        if item.get(CONF_DEVICE_CLASS) is not None:
+            schema_dict[
+                vol.Optional(CONF_DEVICE_CLASS, default=item.get(CONF_DEVICE_CLASS))
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=bs_device_class_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+        else:
+            schema_dict[vol.Optional(CONF_DEVICE_CLASS)] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=bs_device_class_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+
+        data_schema = vol.Schema(schema_dict)
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            if not address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=idx):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and address:
+                new_item: dict[str, Any] = {CONF_ADDRESS: address}
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                if user_input.get(CONF_DEVICE_CLASS):
+                    new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+
+                self._options[CONF_BINARY_SENSORS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_binary_sensor",
+            data_schema=data_schema,
+            errors=errors,
+        )
+
+    async def async_step_edit_switch(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_SWITCHES, "sw")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_SYNC_STATE,
+                    default=bool(item.get(CONF_SYNC_STATE, False)),
+                ): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            state_address = self._sanitize_address(
+                user_input.get(CONF_STATE_ADDRESS)
+            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+
+            if not state_address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(state_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(
+                        CONF_SWITCHES,
+                        state_address,
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                        skip_idx=idx,
+                    ):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors and state_address:
+                new_item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+                if command_address:
+                    new_item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+
+                self._options[CONF_SWITCHES][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_switch", data_schema=data_schema, errors=errors
+        )
+
+    async def async_step_edit_button(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_BUTTONS, "bt")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_BUTTON_PULSE,
+                    default=int(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
+                ): int,
+            }
+        )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            if not address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_BUTTONS, address, skip_idx=idx):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and address:
+                new_item: dict[str, Any] = {CONF_ADDRESS: address}
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+
+                button_pulse_input = user_input.get(CONF_BUTTON_PULSE)
+                if button_pulse_input is None:
+                    button_pulse = DEFAULT_BUTTON_PULSE
+                else:
+                    try:
+                        button_pulse = int(button_pulse_input)
+                    except (TypeError, ValueError):
+                        button_pulse = DEFAULT_BUTTON_PULSE
+                    else:
+                        if button_pulse < 0:
+                            button_pulse = DEFAULT_BUTTON_PULSE
+
+                new_item[CONF_BUTTON_PULSE] = button_pulse
+
+                self._options[CONF_BUTTONS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_button", data_schema=data_schema, errors=errors
+        )
+
+    async def async_step_edit_light(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_LIGHTS, "lt")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_SYNC_STATE,
+                    default=bool(item.get(CONF_SYNC_STATE, False)),
+                ): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            state_address = self._sanitize_address(
+                user_input.get(CONF_STATE_ADDRESS)
+            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+
+            if not state_address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(state_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(
+                        CONF_LIGHTS,
+                        state_address,
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                        skip_idx=idx,
+                    ):
+                        errors["base"] = "duplicate_entry"
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors and state_address:
+                new_item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+                if command_address:
+                    new_item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+
+                self._options[CONF_LIGHTS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_light", data_schema=data_schema, errors=errors
+        )

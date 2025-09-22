@@ -42,6 +42,7 @@
           "switches": "Aggiungi Switch",
           "buttons": "Aggiungi Pulsante",
           "lights": "Aggiungi Luce",
+          "edit": "Modifica entità",
           "remove": "Rimuovi entità"
         }
       },
@@ -137,11 +138,96 @@
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
           "add_another": "Rimani in questo step per aggiungere altre luci."
         }
+      },
+      "edit": {
+        "title": "Modifica Elementi",
+        "description": "Seleziona l'elemento che vuoi modificare.",
+        "data": {
+          "edit_item": "Elemento da modificare"
+        },
+        "data_description": {
+          "edit_item": "Scegli un'entità esistente da aggiornare."
+        }
+      },
+      "edit_sensor": {
+        "title": "Modifica Sensore",
+        "description": "Aggiorna indirizzo, nome o device class di questo sensore.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
+          "name": "Nome descrittivo opzionale per il sensore.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power)."
+        }
+      },
+      "edit_binary_sensor": {
+        "title": "Modifica Binary Sensor",
+        "description": "Aggiorna indirizzo, nome o device class di questo binary sensor.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,DBX0.1).",
+          "name": "Nome descrittivo opzionale per il binary sensor.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power)."
+        }
+      },
+      "edit_switch": {
+        "title": "Modifica Switch",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione dello switch.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,DBX0.0).",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale).",
+          "name": "Nome descrittivo opzionale per lo switch.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC."
+        }
+      },
+      "edit_button": {
+        "title": "Modifica Pulsante",
+        "description": "Aggiorna indirizzo, nome o durata dell'impulso per questo pulsante.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "button_pulse": "Duarata impulso"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
+          "name": "Nome descrittivo opzionale per il pulsante.",
+          "button_pulse": "Durata dell'impulso in millisecondi."
+        }
+      },
+      "edit_light": {
+        "title": "Modifica Luce",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione della luce.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
+          "name": "Nome descrittivo opzionale per la luce.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC."
+        }
       }
     },
     "error": {
       "invalid_address": "Formato indirizzo non valido.",
-      "duplicate_entry": "Questo elemento è già presente."
+      "duplicate_entry": "Questo elemento è già presente.",
+      "no_items": "Non ci sono elementi configurati da modificare."
     }
   },
   "entity": {

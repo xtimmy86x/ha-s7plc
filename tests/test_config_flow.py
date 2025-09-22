@@ -40,6 +40,12 @@ def test_has_duplicate_uses_normalized_addresses():
     assert flow._has_duplicate(const.CONF_SENSORS, "db1.dbx0.1") is False
     assert (
         flow._has_duplicate(
+            const.CONF_SENSORS, "db1.dbx0.0", skip_idx=0
+        )
+        is False
+    )
+    assert (
+        flow._has_duplicate(
             const.CONF_SWITCHES,
             "db1.dbx0.1",
             keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
@@ -51,6 +57,15 @@ def test_has_duplicate_uses_normalized_addresses():
             const.CONF_SWITCHES,
             "db1.dbx0.2",
             keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
+        )
+        is False
+    )
+    assert (
+        flow._has_duplicate(
+            const.CONF_SWITCHES,
+            "db1.dbx0.1",
+            keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
+            skip_idx=0,
         )
         is False
     )
