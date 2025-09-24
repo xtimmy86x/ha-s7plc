@@ -116,7 +116,7 @@
       },
       "buttons": {
         "title": "Aggiungi Pulsante",
-        "description": "Crea un pulsante senza stato che impulsa un indirizzo booleano del PLC per un secondo quando premuto.",
+        "description": "Crea un pulsante senza stato che impulsa un indirizzo booleano del PLC per il numero di secondi configurato quando viene premuto.",
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
@@ -126,7 +126,8 @@
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
-          "add_another": "Rimani in questo step per aggiungere altri pulsanti."
+          "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
+          "button_pulse": "Durata dell'impulso in secondi."
         }
       },
       "lights": {
@@ -212,7 +213,7 @@
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
-          "button_pulse": "Durata dell'impulso in millisecondi."
+          "button_pulse": "Durata dell'impulso in secondi."
         }
       },
       "edit_light": {

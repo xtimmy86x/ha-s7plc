@@ -116,7 +116,7 @@
       },
       "buttons": {
         "title": "Add Button",
-        "description": "Create a stateless button that pulses a PLC boolean address for one second when pressed.",
+        "description": "Create a stateless button that pulses a PLC boolean address for the configured number of seconds when pressed.",
         "data": {
           "address": "Address",
           "name": "Name",
@@ -126,7 +126,8 @@
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,DBX0.1).",
           "name": "Optional friendly name for the button.",
-          "add_another": "Stay on this step to add more buttons."
+          "add_another": "Stay on this step to add more buttons.",
+          "button_pulse": "Duration of the pulse in seconds."
         }
       },
       "lights": {
@@ -212,7 +213,7 @@
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,DBX0.1).",
           "name": "Optional friendly name for the button.",
-          "button_pulse": "Duration of the pulse in milliseconds."
+          "button_pulse": "Duration of the pulse in seconds."
         }
       },
       "edit_light": {
