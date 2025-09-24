@@ -44,8 +44,7 @@ async def async_setup_entry(
         if not address:
             continue
         name = item.get(CONF_NAME, "S7 Button")
-        topic = f"button:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = f"{device_id}:button:{address}"
         raw_pulse = item.get(CONF_BUTTON_PULSE)
         button_pulse = DEFAULT_BUTTON_PULSE
         if raw_pulse is not None:
@@ -56,9 +55,8 @@ async def async_setup_entry(
             else:
                 if button_pulse < 0:
                     button_pulse = DEFAULT_BUTTON_PULSE
-        await hass.async_add_executor_job(coord.add_item, topic, address)
         entities.append(
-            S7Button(coord, name, unique_id, device_info, topic, address, button_pulse)
+            S7Button(coord, name, unique_id, device_info, address, button_pulse)
         )
 
     if entities:
@@ -75,7 +73,6 @@ class S7Button(S7BaseEntity, ButtonEntity):
         name: str,
         unique_id: str,
         device_info: DeviceInfo,
-        topic: str,
         address: str,
         button_pulse: int,
     ):
@@ -84,7 +81,6 @@ class S7Button(S7BaseEntity, ButtonEntity):
             name=name,
             unique_id=unique_id,
             device_info=device_info,
-            topic=topic,
             address=address,
         )
 
