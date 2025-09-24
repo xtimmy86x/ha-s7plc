@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
 
@@ -294,9 +294,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         with self._lock:
             try:
                 self._ensure_connected()
-            except (OSError, RuntimeError) as e:
-                _LOGGER.error("Connection failed: %s", e)
-                return {}
+            except (OSError, RuntimeError) as err:
+                _LOGGER.error("Connection failed: %s", err)
+                raise UpdateFailed(f"Connection failed: {err}") from err
             plans_batch = list(self._plans_batch)
             plans_str = list(self._plans_str)
 
@@ -321,13 +321,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     results.setdefault(plan.topic, None)
                 return results
 
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError) as err:
             _LOGGER.exception("Read error")
-            for plan in plans_batch:
-                results.setdefault(plan.topic, None)
-            for plan in plans_str:
-                results.setdefault(plan.topic, None)
             self._drop_connection()
+            raise UpdateFailed(f"Read error: {err}") from err
 
         return results
 

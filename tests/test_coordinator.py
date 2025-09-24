@@ -164,6 +164,43 @@ def test_read_batch_populates_defaults_on_error(monkeypatch):
     assert results == {"topic/a": None, "topic/b": None}
 
 
+def test_read_all_raises_update_failed_on_connection_error(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+
+    def raise_connect():
+        raise RuntimeError("connect boom")
+
+    coord._ensure_connected = raise_connect
+
+    with pytest.raises(coordinator.UpdateFailed) as err:
+        coord._read_all()
+
+    assert "connect boom" in str(err.value)
+
+
+def test_read_all_raises_update_failed_on_read_error(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+    coord._plans_batch = [TagPlan("topic/a", DummyTag())]
+
+    drop_calls: list[bool] = []
+
+    def fake_drop():
+        drop_calls.append(True)
+
+    coord._drop_connection = fake_drop
+
+    def raise_read(plans):
+        raise RuntimeError("read boom")
+
+    coord._read_batch = raise_read
+
+    with pytest.raises(coordinator.UpdateFailed) as err:
+        coord._read_all()
+
+    assert drop_calls == [True]
+    assert "read boom" in str(err.value)
+
+    
 def test_read_strings_respects_deadline(monkeypatch):
     coord = make_coordinator(monkeypatch)
 

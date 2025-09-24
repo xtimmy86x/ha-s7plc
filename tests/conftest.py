@@ -124,6 +124,8 @@ class HomeAssistantError(Exception):  # pragma: no cover - simple stub
 
 
 exceptions.HomeAssistantError = HomeAssistantError
+
+
 sys.modules["homeassistant.exceptions"] = exceptions
 homeassistant.exceptions = exceptions
 
@@ -154,6 +156,10 @@ update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
 T = TypeVar("T")
 
 
+class UpdateFailed(exceptions.HomeAssistantError):  # pragma: no cover - simple stub
+    """Raised when a data update fails."""
+
+
 class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - simple stub
     def __init__(self, hass, logger, name=None, update_interval=None):
         self.hass = hass
@@ -180,6 +186,7 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
 
 update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
 update_coordinator.CoordinatorEntity = CoordinatorEntity
+update_coordinator.UpdateFailed = UpdateFailed
 sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
 helpers.update_coordinator = update_coordinator
 
