@@ -27,32 +27,6 @@ class DummyTag:
         self.length = length
 
 
-def test_remap_bit_tag_inverts_bit_offset(monkeypatch):
-    """Bit tags should have their bit offset flipped (7 - original)."""
-
-    data_type = SimpleNamespace(BIT="bit", CHAR="char")
-    monkeypatch.setattr(address, "DataType", data_type)
-    monkeypatch.setattr(address, "S7Tag", DummyTag)
-
-    tag = DummyTag(data_type=data_type.BIT, bit_offset=2)
-    remapped = address._remap_bit_tag(tag)
-
-    assert isinstance(remapped, DummyTag)
-    assert remapped.bit_offset == 5
-    assert remapped.start == tag.start
-    assert remapped.data_type == tag.data_type
-
-
-def test_remap_bit_tag_returns_original_for_non_bit(monkeypatch):
-    """Tags that are not BIT types should be returned unchanged."""
-
-    data_type = SimpleNamespace(BIT="bit", CHAR="char")
-    monkeypatch.setattr(address, "DataType", data_type)
-
-    tag = DummyTag(data_type=data_type.CHAR, bit_offset=1)
-    assert address._remap_bit_tag(tag) is tag
-
-
 def test_map_address_to_tag_discards_string_tags(monkeypatch):
     """``map_address_to_tag`` should skip string tags."""
 

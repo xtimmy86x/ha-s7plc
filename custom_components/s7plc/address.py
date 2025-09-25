@@ -43,26 +43,6 @@ __all__ = [
 ]
 
 
-def _remap_bit_tag(tag: S7Tag) -> S7Tag:
-    """Return a new tag with the bit offset remapped (7 - bit)."""
-    try:
-        if getattr(tag, "data_type", None) != DataType.BIT or not hasattr(
-            tag, "bit_offset"
-        ):
-            return tag
-        new_bit = 7 - int(tag.bit_offset)
-        return S7Tag(
-            tag.memory_area,
-            tag.db_number,
-            tag.data_type,
-            tag.start,
-            new_bit,
-            tag.length,
-        )
-    except (AttributeError, TypeError, ValueError):  # pragma: no cover - never raise
-        return tag
-
-
 def map_address_to_tag(address: str) -> Optional[S7Tag]:
     """Return an ``S7Tag`` for non-string addresses.
 
@@ -77,8 +57,6 @@ def map_address_to_tag(address: str) -> Optional[S7Tag]:
         tag = s7_address_parser(address)
     except S7AddressError:
         return None
-
-    tag = _remap_bit_tag(tag)
 
     if (
         getattr(tag, "data_type", None) == DataType.CHAR
@@ -104,4 +82,4 @@ def parse_tag(address: str) -> S7Tag:
     except S7AddressError as err:
         raise ValueError(f"Invalid address: {address}") from err
 
-    return _remap_bit_tag(tag)
+    return tag
