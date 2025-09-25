@@ -93,13 +93,19 @@ class S7Button(S7BaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self._ensure_connected()
-        await self.hass.async_add_executor_job(
+        success = await self.hass.async_add_executor_job(
             self._coord.write_bool, self._address, True
         )
+        if not success:
+            _LOGGER.error("Failed to press PLC button at %s", self._address)
+            raise HomeAssistantError(f"Failed to send command to PLC: {self._address}.")
         await asyncio.sleep(self._button_pulse)
-        await self.hass.async_add_executor_job(
+        success = await self.hass.async_add_executor_job(
             self._coord.write_bool, self._address, False
         )
+        if not success:
+            _LOGGER.error("Failed to release PLC button at %s", self._address)
+            raise HomeAssistantError(f"Failed to send command to PLC: {self._address}.")
 
     @property
     def extra_state_attributes(self):

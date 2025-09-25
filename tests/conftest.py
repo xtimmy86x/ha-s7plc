@@ -290,6 +290,17 @@ sys.modules["homeassistant.components.binary_sensor"] = binary_sensor
 components.binary_sensor = binary_sensor
 
 
+class ButtonEntity:  # pragma: no cover - simple stub
+    async def async_press(self):
+        return None
+
+
+button = ModuleType("homeassistant.components.button")
+button.ButtonEntity = ButtonEntity
+sys.modules["homeassistant.components.button"] = button
+components.button = button
+
+
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
     TEMPERATURE = "temperature"
 

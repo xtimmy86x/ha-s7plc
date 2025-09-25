@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class S7BaseEntity(CoordinatorEntity):
@@ -88,17 +92,33 @@ class S7BoolSyncEntity(S7BaseEntity):
     async def async_turn_on(self, **kwargs):
         await self._ensure_connected()
         self._pending_command = True
-        await self.hass.async_add_executor_job(
+        success = await self.hass.async_add_executor_job(
             self._coord.write_bool, self._command_address, True
         )
+        if not success:
+            _LOGGER.error(
+                "Failed to write True to PLC address %s", self._command_address
+            )
+            self._pending_command = None
+            raise HomeAssistantError(
+                f"Failed to send command to PLC: {self._command_address}."
+            )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
         await self._ensure_connected()
         self._pending_command = False
-        await self.hass.async_add_executor_job(
+        success = await self.hass.async_add_executor_job(
             self._coord.write_bool, self._command_address, False
         )
+        if not success:
+            _LOGGER.error(
+                "Failed to write False to PLC address %s", self._command_address
+            )
+            self._pending_command = None
+            raise HomeAssistantError(
+                f"Failed to send command to PLC: {self._command_address}."
+            )
         await self.coordinator.async_request_refresh()
 
     @callback

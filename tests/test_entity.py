@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import asyncio
+
 import pytest
 
 from custom_components.s7plc import entity
+from custom_components.s7plc.button import S7Button
 from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity
 from homeassistant.core import HomeAssistant
 
 
 class DummyCoordinator:
-    def __init__(self, connected=True):
+    def __init__(self, connected: bool = True):
         self._connected = connected
         self.data = {}
         self.hass = HomeAssistant()
         self.write_calls: list[tuple[str, bool]] = []
         self.refresh_called = False
+        self._write_queue: list[bool] = []
+        self._default_write_result = True
 
     def is_connected(self):
         return self._connected
@@ -24,7 +28,15 @@ class DummyCoordinator:
 
     def write_bool(self, address: str, value: bool) -> bool:
         self.write_calls.append((address, bool(value)))
-        return True
+        if self._write_queue:
+            return self._write_queue.pop(0)
+        return self._default_write_result
+
+    def set_write_queue(self, *results: bool) -> None:
+        self._write_queue = list(results)
+
+    def set_default_write_result(self, value: bool) -> None:
+        self._default_write_result = value
 
     async def async_request_refresh(self):
         self.refresh_called = True
@@ -89,6 +101,34 @@ def test_bool_entity_commands_and_refresh():
     assert coord.refresh_called
 
 
+def test_bool_entity_write_failure():
+    coord = DummyCoordinator()
+    coord.data = {"topic": False}
+    ent = S7BoolSyncEntity(
+        coord,
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="topic",
+        state_address="db1.dbx0.0",
+        command_address="db1.dbx0.1",
+        sync_state=True,
+    )
+
+    async def fake_executor(func, *args):
+        return func(*args)
+
+    ent.hass.async_add_executor_job = fake_executor  # type: ignore[assignment]
+
+    coord.set_default_write_result(False)
+
+    with pytest.raises(entity.HomeAssistantError):
+        asyncio.run(ent.async_turn_on())
+
+    assert coord.write_calls[-1] == ("db1.dbx0.1", True)
+    assert ent._pending_command is None
+    assert not coord.refresh_called
+
+
 def test_bool_entity_ensure_connected():
     coord = DummyCoordinator(connected=False)
     coord.data = {}
@@ -150,3 +190,38 @@ def test_bool_entity_state_synchronization():
     assert calls == [("write_bool", ("db1.dbx0.1", True))]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
+
+
+def test_button_press_write_failures():
+    coord = DummyCoordinator()
+    coord.data = {"button:db1.dbx0.0": True}
+    button = S7Button(
+        coord,
+        name="Test Button",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        address="db1.dbx0.0",
+        button_pulse=0,
+    )
+
+    async def fake_executor(func, *args):
+        return func(*args)
+
+    button.hass.async_add_executor_job = fake_executor  # type: ignore[assignment]
+
+    coord.set_default_write_result(False)
+    with pytest.raises(entity.HomeAssistantError):
+        asyncio.run(button.async_press())
+    assert coord.write_calls == [("db1.dbx0.0", True)]
+
+    coord.write_calls.clear()
+    coord.set_default_write_result(True)
+    coord.set_write_queue(True, False)
+
+    with pytest.raises(entity.HomeAssistantError):
+        asyncio.run(button.async_press())
+
+    assert coord.write_calls == [
+        ("db1.dbx0.0", True),
+        ("db1.dbx0.0", False),
+    ]
