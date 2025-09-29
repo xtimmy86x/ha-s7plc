@@ -395,12 +395,187 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         self._action = None
         self._edit_target = None
 
+    async def async_step_connection(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        data = self._config_entry.data
+        defaults = {
+            CONF_NAME: data.get(CONF_NAME) or self._config_entry.title or "S7 PLC",
+            CONF_HOST: data.get(CONF_HOST, ""),
+            CONF_PORT: int(data.get(CONF_PORT, DEFAULT_PORT)),
+            CONF_RACK: int(data.get(CONF_RACK, DEFAULT_RACK)),
+            CONF_SLOT: int(data.get(CONF_SLOT, DEFAULT_SLOT)),
+            CONF_SCAN_INTERVAL: int(
+                float(data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+            ),
+            CONF_OP_TIMEOUT: float(data.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT)),
+            CONF_MAX_RETRIES: int(data.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES)),
+            CONF_BACKOFF_INITIAL: float(
+                data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
+            ),
+            CONF_BACKOFF_MAX: float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX)),
+        }
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
+                vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
+                vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
+                vol.Optional(CONF_RACK, default=defaults[CONF_RACK]): int,
+                vol.Optional(CONF_SLOT, default=defaults[CONF_SLOT]): int,
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=defaults[CONF_SCAN_INTERVAL]
+                ): int,
+                vol.Optional(
+                    CONF_OP_TIMEOUT, default=defaults[CONF_OP_TIMEOUT]
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=120)),
+                vol.Optional(
+                    CONF_MAX_RETRIES, default=defaults[CONF_MAX_RETRIES]
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10)),
+                vol.Optional(
+                    CONF_BACKOFF_INITIAL, default=defaults[CONF_BACKOFF_INITIAL]
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=30)),
+                vol.Optional(
+                    CONF_BACKOFF_MAX, default=defaults[CONF_BACKOFF_MAX]
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=120)),
+            }
+        )
+
+        description_placeholders = {
+            "default_port": str(DEFAULT_PORT),
+            "default_rack": str(DEFAULT_RACK),
+            "default_slot": str(DEFAULT_SLOT),
+            "default_scan": str(DEFAULT_SCAN_INTERVAL),
+            "default_timeout": f"{DEFAULT_OP_TIMEOUT:.1f}",
+            "default_retries": str(DEFAULT_MAX_RETRIES),
+            "default_backoff_initial": f"{DEFAULT_BACKOFF_INITIAL:.2f}",
+            "default_backoff_max": f"{DEFAULT_BACKOFF_MAX:.1f}",
+        }
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                description_placeholders=description_placeholders,
+            )
+
+        try:
+            host = str(user_input[CONF_HOST]).strip()
+            rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
+            slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
+            port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
+            scan_s = int(
+                user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
+            )
+            op_timeout = float(
+                user_input.get(CONF_OP_TIMEOUT, defaults[CONF_OP_TIMEOUT])
+            )
+            max_retries = int(
+                user_input.get(CONF_MAX_RETRIES, defaults[CONF_MAX_RETRIES])
+            )
+            backoff_initial = float(
+                user_input.get(CONF_BACKOFF_INITIAL, defaults[CONF_BACKOFF_INITIAL])
+            )
+            backoff_max = float(
+                user_input.get(CONF_BACKOFF_MAX, defaults[CONF_BACKOFF_MAX])
+            )
+            name = (
+                user_input.get(CONF_NAME) or defaults[CONF_NAME]
+            ).strip() or "S7 PLC"
+        except (KeyError, ValueError):
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+
+        if scan_s <= 0:
+            scan_s = DEFAULT_SCAN_INTERVAL
+
+        if op_timeout <= 0:
+            op_timeout = DEFAULT_OP_TIMEOUT
+
+        if max_retries < 0:
+            max_retries = DEFAULT_MAX_RETRIES
+
+        if backoff_initial <= 0:
+            backoff_initial = DEFAULT_BACKOFF_INITIAL
+
+        if backoff_max < backoff_initial:
+            backoff_max = max(backoff_initial, backoff_max)
+
+        new_unique_id = f"{host}-{rack}-{slot}"
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.entry_id == self._config_entry.entry_id:
+                continue
+            if entry.unique_id == new_unique_id:
+                errors["base"] = "already_configured"
+                break
+
+        if errors:
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+
+        coordinator = S7Coordinator(
+            self.hass,
+            host=host,
+            rack=rack,
+            slot=slot,
+            port=port,
+            scan_interval=scan_s,
+            op_timeout=op_timeout,
+            max_retries=max_retries,
+            backoff_initial=backoff_initial,
+            backoff_max=backoff_max,
+        )
+
+        try:
+            await self.hass.async_add_executor_job(coordinator.connect)
+            await self.hass.async_add_executor_job(coordinator.disconnect)
+        except (OSError, RuntimeError):
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+
+        new_data = {
+            CONF_NAME: name,
+            CONF_HOST: host,
+            CONF_PORT: port,
+            CONF_RACK: rack,
+            CONF_SLOT: slot,
+            CONF_SCAN_INTERVAL: scan_s,
+            CONF_OP_TIMEOUT: op_timeout,
+            CONF_MAX_RETRIES: max_retries,
+            CONF_BACKOFF_INITIAL: backoff_initial,
+            CONF_BACKOFF_MAX: backoff_max,
+        }
+
+        await self.hass.config_entries.async_update_entry(
+            self._config_entry,
+            data=new_data,
+            title=name,
+            unique_id=new_unique_id,
+        )
+
+        return await self.async_create_entry(title="", data=self._options)
+
     # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         # Mostra un menu con le prossime tappe; le etichette arrivano da strings.json
         return self.async_show_menu(
             step_id="init",
             menu_options=[
+                "connection",  # modifica parametri di connessione
                 "add",  # percorso guidato: sensors ->
                 # binary_sensors -> switches -> buttons -> lights
                 "sensors",  # salta direttamente a "Add Sensor"

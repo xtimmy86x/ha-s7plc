@@ -44,6 +44,7 @@
         "title": "S7 PLC Options",
         "description": "Choose what you want to do.",
         "menu_options": {
+          "connection": "Edit PLC connection",
           "add": "Add items (guided)",
           "sensors": "Add Sensor",
           "binary_sensors": "Add Binary Sensor",
@@ -62,6 +63,34 @@
         },
         "data_description": {
           "remove_items": "Checked items will be removed. The integration will reload to apply the changes."
+        }
+      },
+      "connection": {
+        "title": "Edit PLC Connection",
+        "description": "Update the PLC host, rack, slot, and communication timing parameters. A connection test will run before saving.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "rack": "Rack",
+          "slot": "Slot",
+          "scan_interval": "Scan interval (s)",
+          "operation_timeout": "Operation timeout (s)",
+          "max_retries": "Retry attempts",
+          "retry_backoff_initial": "Retry backoff start (s)",
+          "retry_backoff_max": "Retry backoff max (s)"
+        },
+        "data_description": {
+          "name": "A friendly name for the PLC (used in entity names).",
+          "host": "IP or hostname of the PLC.",
+          "port": "ISO-on-TCP port, typically 102.",
+          "rack": "CPU rack number (usually 0).",
+          "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
+          "scan_interval": "How often to poll the PLC, in seconds.",
+          "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
+          "max_retries": "How many times to retry a failed PLC operation before giving up.",
+          "retry_backoff_initial": "Delay before the first retry attempt.",
+          "retry_backoff_max": "Maximum delay between retry attempts."
         }
       },
       "sensors": {
@@ -236,7 +265,9 @@
     "error": {
       "invalid_address": "Invalid address format.",
       "duplicate_entry": "This item already exists.",
-      "no_items": "There are no configured items to edit."
+      "no_items": "There are no configured items to edit.",
+      "cannot_connect": "Cannot connect to the PLC with the provided settings.",
+      "already_configured": "Another S7 PLC entry already uses these connection parameters."
     }
   },
   "entity": {

@@ -44,6 +44,7 @@
         "title": "Opzioni S7 PLC",
         "description": "Scegli cosa vuoi fare.",
         "menu_options": {
+          "connection": "Modifica connessione PLC",
           "add": "Aggiungi entità (guidato)",
           "sensors": "Aggiungi Sensore",
           "binary_sensors": "Aggiungi Sensore Binario",
@@ -62,6 +63,34 @@
         },
         "data_description": {
           "remove_items": "Gli elementi selezionati verranno rimossi. L'integrazione verrà ricaricata per applicare le modifiche."
+        }
+      },
+      "connection": {
+        "title": "Modifica connessione PLC",
+        "description": "Aggiorna host, rack, slot e parametri di comunicazione del PLC. Prima del salvataggio verrà eseguito un test di connessione.",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "rack": "Rack",
+          "slot": "Slot",
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Retry backoff iniziale (s)",
+          "retry_backoff_max": "Retry backoff max (s)"
+        },
+        "data_description": {
+          "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, tipicamente 102.",
+          "rack": "Numero di rack della CPU (di solito 0).",
+          "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
+          "scan_interval": "Frequenza di polling del PLC in secondi.",
+          "operation_timeout": "Durata massima di una singola lettura/scrittura prima di riprovare.",
+          "max_retries": "Quanti tentativi effettuare prima di rinunciare.",
+          "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
+          "retry_backoff_max": "Ritardo massimo tra i tentativi di retry."
         }
       },
       "sensors": {
@@ -236,7 +265,9 @@
     "error": {
       "invalid_address": "Formato indirizzo non valido.",
       "duplicate_entry": "Questo elemento è già presente.",
-      "no_items": "Non ci sono elementi configurati da modificare."
+      "no_items": "Non ci sono elementi configurati da modificare.",
+      "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
+      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione."
     }
   },
   "entity": {

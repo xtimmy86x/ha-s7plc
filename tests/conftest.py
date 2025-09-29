@@ -58,6 +58,11 @@ class ConfigFlow:  # pragma: no cover - simple stub
 
 
 class OptionsFlow:  # pragma: no cover - simple stub
+    def async_show_form(self, *args, **kwargs):
+        return {"type": "form", "args": args, "kwargs": kwargs}
+
+    def async_show_menu(self, *args, **kwargs):
+        return {"type": "menu", "args": args, "kwargs": kwargs}
     async def async_create_entry(self, *args, **kwargs):
         return {"type": "create_entry", "args": args, "kwargs": kwargs}
 
@@ -101,12 +106,34 @@ class HomeAssistant:  # pragma: no cover - simple stub
         async def async_reload(entry_id):
             return None
 
-        async def async_add_executor_job(self, func, *args, **kwargs):
+        async def async_update_entry(entry, *, title=None, data=None, unique_id=None):
+            if title is not None:
+                entry.title = title
+            if data is not None:
+                entry.data = data
+            if unique_id is not None:
+                entry.unique_id = unique_id
+            return None
+
+        def async_entries(domain=None):
+            entries = list(self.config_entries._entries)
+            if domain is None:
+                return entries
+            return [
+                entry
+                for entry in entries
+                if getattr(entry, "domain", None) == domain
+            ]
+
+        async def async_add_executor_job(func, *args, **kwargs):
             return func(*args, **kwargs)
 
         self.config_entries.async_forward_entry_setups = async_forward_entry_setups
         self.config_entries.async_unload_platforms = async_unload_platforms
         self.config_entries.async_reload = async_reload
+        self.config_entries.async_update_entry = async_update_entry
+        self.config_entries.async_entries = async_entries
+        self.config_entries._entries = []
         self.async_add_executor_job = async_add_executor_job
 
 
@@ -331,10 +358,39 @@ def _optional_factory(base_cls):
 
     return _Option
 
+def _all_factory(*validators):
+    def _validator(value):  # pragma: no cover - simple stub
+        result = value
+        for validator in validators:
+            result = validator(result)
+        return result
+
+    return _validator
+
+
+def _coerce_factory(target_type):
+    def _coerce(value):  # pragma: no cover - simple stub
+        return target_type(value)
+
+    return _coerce
+
+
+def _range_factory(min=None, max=None):
+    def _range(value):  # pragma: no cover - simple stub
+        if min is not None and value < min:
+            raise ValueError("value below minimum")
+        if max is not None and value > max:
+            raise ValueError("value above maximum")
+        return value
+
+    return _range
 
 voluptuous.Schema = lambda schema: _Schema(schema)
 voluptuous.Required = _optional_factory(str)
 voluptuous.Optional = _optional_factory(str)
+voluptuous.All = _all_factory
+voluptuous.Coerce = _coerce_factory
+voluptuous.Range = _range_factory
 sys.modules["voluptuous"] = voluptuous
 
 
