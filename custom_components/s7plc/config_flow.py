@@ -630,7 +630,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_sensors()
 
             return self.async_create_entry(title="", data=self._options)
-        
+
         return self.async_show_form(step_id="sensors", data_schema=data_schema)
 
     async def async_step_binary_sensors(self, user_input: dict[str, Any] | None = None):
