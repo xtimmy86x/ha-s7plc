@@ -576,8 +576,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             menu_options=[
                 "connection",  # modifica parametri di connessione
-                "add",  # percorso guidato: sensors ->
-                # binary_sensors -> switches -> buttons -> lights
                 "sensors",  # salta direttamente a "Add Sensor"
                 "binary_sensors",  # salta direttamente a "Add Binary Sensor"
                 "switches",  # salta direttamente a "Add Switch"
@@ -588,11 +586,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             ],
         )
 
-    async def async_step_add(self, user_input: dict[str, Any] | None = None):
-        self._action = "add"
-        return await self.async_step_sensors()
-
-    # ====== STEP A: add (come già avevi) ======
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -636,8 +629,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_sensors()
 
-            return await self.async_step_binary_sensors()
-
+            return self.async_create_entry(title="", data=self._options)
+        
         return self.async_show_form(step_id="sensors", data_schema=data_schema)
 
     async def async_step_binary_sensors(self, user_input: dict[str, Any] | None = None):
@@ -684,7 +677,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_binary_sensors()
 
-            return await self.async_step_switches()
+            return await self.async_create_entry()
 
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
@@ -747,7 +740,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_switches()
 
-            return await self.async_step_buttons()
+            return await self.async_create_entry()
 
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
@@ -801,7 +794,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_buttons()
 
-            return await self.async_step_lights()
+            return await self.async_create_entry()
 
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
@@ -864,7 +857,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_lights()
 
-            # finisce il ramo "add"
             return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="lights", data_schema=data_schema)
