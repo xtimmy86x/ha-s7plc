@@ -590,7 +590,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -637,7 +637,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -685,7 +685,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_STATE_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(
@@ -748,7 +748,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE): int,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -802,7 +802,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_STATE_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(
