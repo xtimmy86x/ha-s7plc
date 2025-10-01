@@ -564,10 +564,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             self._config_entry,
             data=new_data,
             title=name,
-            unique_id=new_unique_id,
         )
 
-        return await self.async_create_entry(title="", data=self._options)
+        return self.async_create_entry(title="", data=self._options)
 
     # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
@@ -677,7 +676,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_binary_sensors()
 
-            return await self.async_create_entry()
+            return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
@@ -740,7 +739,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_switches()
 
-            return await self.async_create_entry()
+            return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
@@ -794,7 +793,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("add_another"):
                 return await self.async_step_buttons()
 
-            return await self.async_create_entry()
+            return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
