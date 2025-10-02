@@ -55,14 +55,12 @@
 
 ## Installation
 
-**HACS (Custom repository)**
+**HACS (Default repository)**
 
 1. Ensure [HACS](https://hacs.xyz) is installed.
 2. In Home Assistant, open **HACS → Integrations**.
-3. Click the three-dots menu and select **Custom repositories**.
-4. Enter `https://github.com/xtimmy86x/ha-s7plc` and choose **Integration**.
-5. Search for **"S7 PLC"** in HACS and install.
-6. Restart Home Assistant.
+3. Search for **"Siemens S7 PLC"** in HACS and install (no custom repository needed).
+4. Restart Home Assistant.
 
 **Manual (Custom Component)**
 
