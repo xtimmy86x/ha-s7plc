@@ -710,7 +710,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if self._has_duplicate(
                         CONF_SWITCHES,
                         state_address,
-                        keys=(CONF_STATE_ADDRESS),
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
                     ):
                         errors["base"] = "duplicate_entry"
 
@@ -825,7 +825,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if self._has_duplicate(
                         CONF_LIGHTS,
                         state_address,
-                        keys=(CONF_STATE_ADDRESS),
+                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
                     ):
                         errors["base"] = "duplicate_entry"
 
