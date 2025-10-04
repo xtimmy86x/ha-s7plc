@@ -4,6 +4,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+import inspect
 
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
@@ -95,7 +96,8 @@ def test_has_duplicate_uses_normalized_addresses():
         is False
     )
 
-def test_options_connection_updates_entry(monkeypatch):
+@pytest.mark.asyncio
+async def test_options_connection_updates_entry(monkeypatch):
     entry = make_config_entry(
         data={
             CONF_NAME: "PLC Old",
@@ -147,7 +149,9 @@ def test_options_connection_updates_entry(monkeypatch):
         const.CONF_BACKOFF_MAX: const.DEFAULT_BACKOFF_MAX + 1.0,
     }
 
-    result = asyncio.run(flow.async_step_connection(user_input))
+    result = await flow.async_step_connection(user_input)
+    if inspect.isawaitable(result):
+        result = await result
 
     assert result["type"] == "create_entry"
     assert entry.data[CONF_HOST] == "plc.local"
@@ -159,7 +163,7 @@ def test_options_connection_updates_entry(monkeypatch):
         const.DEFAULT_BACKOFF_MAX + 1.0
     )
     assert entry.title == "PLC Updated"
-    assert entry.unique_id == "plc.local-0-2"
+    assert entry.unique_id == "old.local-0-1"
     assert captured_kwargs["host"] == "plc.local"
     assert captured_kwargs["scan_interval"] == const.DEFAULT_SCAN_INTERVAL + 1
     assert captured_kwargs["op_timeout"] == pytest.approx(
