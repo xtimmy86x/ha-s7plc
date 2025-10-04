@@ -181,7 +181,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
         except (OSError, RuntimeError):
-            _LOGGER.exception(
+            _LOGGER.warning(
                 "Cannot connect to S7 PLC at %s (rack %s slot %s)", host, rack, slot
             )
             errors["base"] = "cannot_connect"
