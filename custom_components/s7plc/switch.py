@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
-    CONF_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
@@ -38,7 +37,7 @@ async def async_setup_entry(
 
     entities = []
     for item in entry.options.get(CONF_SWITCHES, []):
-        state_address = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
+        state_address = item.get(CONF_STATE_ADDRESS)
         if not state_address:
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)

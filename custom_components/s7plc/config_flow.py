@@ -696,9 +696,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            state_address = self._sanitize_address(
-                user_input.get(CONF_STATE_ADDRESS)
-            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            state_address = self._sanitize_address(user_input.get(CONF_STATE_ADDRESS))
             command_address = self._sanitize_address(
                 user_input.get(CONF_COMMAND_ADDRESS)
             )
@@ -712,7 +710,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if self._has_duplicate(
                         CONF_SWITCHES,
                         state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                        keys=(CONF_STATE_ADDRESS),
                     ):
                         errors["base"] = "duplicate_entry"
 
@@ -813,9 +811,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            state_address = self._sanitize_address(
-                user_input.get(CONF_STATE_ADDRESS)
-            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+            state_address = self._sanitize_address(user_input.get(CONF_STATE_ADDRESS))
             command_address = self._sanitize_address(
                 user_input.get(CONF_COMMAND_ADDRESS)
             )
@@ -829,7 +825,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if self._has_duplicate(
                         CONF_LIGHTS,
                         state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+                        keys=(CONF_STATE_ADDRESS),
                     ):
                         errors["base"] = "duplicate_entry"
 
