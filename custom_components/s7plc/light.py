@@ -92,3 +92,11 @@ class S7Light(S7BoolSyncEntity, LightEntity):
     @property
     def color_mode(self) -> ColorMode | None:
         return ColorMode.ONOFF
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._address:
+            attrs["s7_state_address"] = self._address.upper()
+            attrs["s7_command_address"] = self._command_address.upper()
+        return attrs

@@ -86,3 +86,11 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             command_address=command_address,
             sync_state=sync_state,
         )
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._address:
+            attrs["s7_state_address"] = self._address.upper()
+            attrs["s7_command_address"] = self._command_address.upper()
+        return attrs
