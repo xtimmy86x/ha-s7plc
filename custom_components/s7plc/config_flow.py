@@ -16,7 +16,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
-from .address import parse_tag
+from .address import get_numeric_limits, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_BACKOFF_INITIAL,
@@ -899,9 +899,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 user_input.get(CONF_COMMAND_ADDRESS)
             )
 
+            address_tag = None
             if address:
                 try:
-                    parse_tag(address)
+                    address_tag = parse_tag(address)
                 except (RuntimeError, ValueError):
                     errors["base"] = "invalid_address"
                 else:
@@ -941,6 +942,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 else:
                     if step_value is not None and step_value <= 0:
                         errors["base"] = "invalid_number"
+
+            if not errors and address_tag is not None:
+                limits = get_numeric_limits(address_tag.data_type)
+                if limits is not None:
+                    dtype_min, dtype_max = limits
+                    if min_value is not None:
+                        min_value = min(max(min_value, dtype_min), dtype_max)
+                    if max_value is not None:
+                        max_value = min(max(max_value, dtype_min), dtype_max)
 
             if not errors and min_value is not None and max_value is not None:
                 if min_value > max_value:
@@ -1494,11 +1504,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 user_input.get(CONF_COMMAND_ADDRESS)
             )
 
+            address_tag = None
             if not address:
                 errors["base"] = "invalid_address"
             else:
                 try:
-                    parse_tag(address)
+                    address_tag = parse_tag(address)
                 except (RuntimeError, ValueError):
                     errors["base"] = "invalid_address"
                 else:
@@ -1538,6 +1549,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 else:
                     if step_value is not None and step_value <= 0:
                         errors["base"] = "invalid_number"
+
+            if not errors and address_tag is not None:
+                limits = get_numeric_limits(address_tag.data_type)
+                if limits is not None:
+                    dtype_min, dtype_max = limits
+                    if min_value is not None:
+                        min_value = min(max(min_value, dtype_min), dtype_max)
+                    if max_value is not None:
+                        max_value = min(max(max_value, dtype_min), dtype_max)
 
             if not errors and min_value is not None and max_value is not None:
                 if min_value > max_value:

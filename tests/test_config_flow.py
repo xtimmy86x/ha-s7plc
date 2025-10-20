@@ -37,6 +37,13 @@ def make_options_flow(options=None, *, data=None, **kwargs):
     return config_flow.S7PLCOptionsFlow(entry)
 
 
+def run_flow(coro):
+    result = asyncio.run(coro)
+    if inspect.isawaitable(result):
+        result = asyncio.run(result)
+    return result
+
+
 def test_sanitize_and_normalize_address():
     flow = make_options_flow()
 
@@ -96,8 +103,8 @@ def test_has_duplicate_uses_normalized_addresses():
         is False
     )
 
-@pytest.mark.asyncio
-async def test_options_connection_updates_entry(monkeypatch):
+
+def test_options_connection_updates_entry(monkeypatch):
     entry = make_config_entry(
         data={
             CONF_NAME: "PLC Old",
@@ -149,9 +156,7 @@ async def test_options_connection_updates_entry(monkeypatch):
         const.CONF_BACKOFF_MAX: const.DEFAULT_BACKOFF_MAX + 1.0,
     }
 
-    result = await flow.async_step_connection(user_input)
-    if inspect.isawaitable(result):
-        result = await result
+    result = run_flow(flow.async_step_connection(user_input))
 
     assert result["type"] == "create_entry"
     assert entry.data[CONF_HOST] == "plc.local"
@@ -169,6 +174,68 @@ async def test_options_connection_updates_entry(monkeypatch):
     assert captured_kwargs["op_timeout"] == pytest.approx(
         const.DEFAULT_OP_TIMEOUT + 1.5
     )
+
+
+def test_number_limits_clamped_on_add(monkeypatch):
+    flow = make_options_flow(options={const.CONF_NUMBERS: []})
+    flow.hass = HomeAssistant()
+
+    tag = SimpleNamespace(data_type="INT")
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: tag)
+    monkeypatch.setattr(
+        config_flow, "get_numeric_limits", lambda data_type: (-32768.0, 32767.0)
+    )
+
+    result = run_flow(
+        flow.async_step_numbers(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_MIN_VALUE: -99999,
+                const.CONF_MAX_VALUE: 99999,
+                const.CONF_STEP: 1,
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_NUMBERS][0]
+    assert stored[const.CONF_MIN_VALUE] == -32768.0
+    assert stored[const.CONF_MAX_VALUE] == 32767.0
+
+
+def test_number_limits_clamped_on_edit(monkeypatch):
+    options = {
+        const.CONF_NUMBERS: [
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_MIN_VALUE: -100.0,
+                const.CONF_MAX_VALUE: 100.0,
+            }
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow.hass = HomeAssistant()
+    flow._edit_target = ("nm", 0)
+
+    tag = SimpleNamespace(data_type="INT")
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: tag)
+    monkeypatch.setattr(config_flow, "get_numeric_limits", lambda data_type: (0.0, 100.0))
+
+    result = run_flow(
+        flow.async_step_edit_number(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_MIN_VALUE: -50,
+                const.CONF_MAX_VALUE: 200,
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_NUMBERS][0]
+    assert stored[const.CONF_MIN_VALUE] == 0.0
+    assert stored[const.CONF_MAX_VALUE] == 100.0
+    assert flow._edit_target is None
 
 
 def test_options_connection_handles_connection_failure(monkeypatch):

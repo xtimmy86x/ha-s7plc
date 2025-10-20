@@ -3,10 +3,13 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from types import SimpleNamespace
 
 from custom_components.s7plc import entity
 from custom_components.s7plc.button import S7Button
 from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity
+from custom_components.s7plc import number as number_comp
+from custom_components.s7plc.number import S7Number
 from homeassistant.core import HomeAssistant
 
 
@@ -225,3 +228,30 @@ def test_button_press_write_failures():
         ("db1.dbx0.0", True),
         ("db1.dbx0.0", False),
     ]
+
+def test_number_clamps_configured_limits(monkeypatch):
+    coord = DummyCoordinator()
+    monkeypatch.setattr(
+        number_comp, "parse_tag", lambda addr: SimpleNamespace(data_type="INT")
+    )
+    monkeypatch.setattr(
+        number_comp,
+        "get_numeric_limits",
+        lambda data_type: (-32768.0, 32767.0),
+    )
+
+    number_entity = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1.dbw0",
+        address="db1.dbw0",
+        command_address="db1.dbw0",
+        min_value=-99999,
+        max_value=99999,
+        step=None,
+    )
+
+    assert number_entity.native_min_value == -32768.0
+    assert number_entity.native_max_value == 32767.0

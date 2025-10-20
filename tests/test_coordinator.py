@@ -258,3 +258,52 @@ def test_read_one_handles_bit_string_and_scalars(monkeypatch):
     monkeypatch.setattr(coordinator, "parse_tag", lambda addr: real_tag)
     coord._retry = lambda func: [1.234]
     assert coord._read_one("REAL") == pytest.approx(1.2)
+
+def test_write_number_handles_numeric_types(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+
+    writes: list[tuple[list[DummyTag], list[float | int]]] = []
+
+    class DummyClient:
+        def write(self, tags, values):
+            writes.append((tags, values))
+
+    coord._client = DummyClient()
+    coord._retry = lambda func: func()
+
+    int_tag = DummyTag(data_type=coordinator.DataType.INT)
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: int_tag)
+
+    assert coord.write_number("DB1,DBW0", 12.6)
+    assert writes == [([int_tag], [13])]
+
+    writes.clear()
+    real_tag = DummyTag(data_type=coordinator.DataType.REAL)
+    coord._write_tags.clear()
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: real_tag)
+
+    assert coord.write_number("DB1,DBD4", 7.25)
+    assert writes[0][0] == [real_tag]
+    assert writes[0][1][0] == pytest.approx(7.25)
+
+
+def test_write_number_rejects_non_numeric(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: DummyTag(data_type=coordinator.DataType.BIT),
+    )
+
+    with pytest.raises(ValueError):
+        coord.write_number("Q0.0", 1)
+
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: DummyTag(data_type=coordinator.DataType.CHAR, length=1),
+    )
+
+    with pytest.raises(ValueError):
+        coord.write_number("DB1,DBB0", 65)

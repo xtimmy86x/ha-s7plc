@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
+from .address import get_numeric_limits, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_COMMAND_ADDRESS,
@@ -97,10 +98,30 @@ class S7Number(S7BaseEntity, NumberEntity):
             address=address,
         )
         self._command_address = command_address
-        if min_value is not None:
-            self._attr_native_min_value = float(min_value)
-        if max_value is not None:
-            self._attr_native_max_value = float(max_value)
+        numeric_limits: tuple[float, float] | None = None
+        try:
+            tag = parse_tag(address)
+        except (RuntimeError, ValueError):
+            tag = None
+        if tag is not None:
+            numeric_limits = get_numeric_limits(tag.data_type)
+
+        def _clamp(value: float | None) -> float | None:
+            if value is None:
+                return None
+            clamped = float(value)
+            if numeric_limits is not None:
+                limit_min, limit_max = numeric_limits
+                clamped = min(max(clamped, limit_min), limit_max)
+            return clamped
+
+        min_value_clamped = _clamp(min_value)
+        max_value_clamped = _clamp(max_value)
+
+        if min_value_clamped is not None:
+            self._attr_native_min_value = min_value_clamped
+        if max_value_clamped is not None:
+            self._attr_native_max_value = max_value_clamped
         if step is not None:
             self._attr_native_step = float(step)
 

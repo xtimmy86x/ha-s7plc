@@ -267,12 +267,31 @@ class BooleanSelector:  # pragma: no cover - simple stub
         self.kwargs = kwargs
 
 
+class NumberSelectorConfig:  # pragma: no cover - simple stub
+    def __init__(self, *, mode=None, min=None, max=None):
+        self.mode = mode
+        self.min = min
+        self.max = max
+
+
+class NumberSelector:  # pragma: no cover - simple stub
+    def __init__(self, config):
+        self.config = config
+
+
+class NumberSelectorMode:  # pragma: no cover - simple stub
+    BOX = "box"
+
+
 selector.SelectOptionDict = SelectOptionDict
 selector.SelectSelector = SelectSelector
 selector.SelectSelectorConfig = SelectSelectorConfig
 selector.SelectSelectorMode = SelectSelectorMode
 selector.TextSelector = TextSelector
 selector.BooleanSelector = BooleanSelector
+selector.NumberSelector = NumberSelector
+selector.NumberSelectorConfig = NumberSelectorConfig
+selector.NumberSelectorMode = NumberSelectorMode
 sys.modules["homeassistant.helpers.selector"] = selector
 helpers.selector = selector
 
@@ -326,6 +345,22 @@ button = ModuleType("homeassistant.components.button")
 button.ButtonEntity = ButtonEntity
 sys.modules["homeassistant.components.button"] = button
 components.button = button
+
+
+class NumberEntity:  # pragma: no cover - simple stub
+    @property
+    def native_min_value(self):
+        return getattr(self, "_attr_native_min_value", None)
+
+    @property
+    def native_max_value(self):
+        return getattr(self, "_attr_native_max_value", None)
+
+
+number = ModuleType("homeassistant.components.number")
+number.NumberEntity = NumberEntity
+sys.modules["homeassistant.components.number"] = number
+components.number = number
 
 
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
