@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
 [![pyS7](https://img.shields.io/badge/Library-pys7-informational)](https://github.com/xtimmy86x/pyS7)
 
-**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `button`, `binary_sensor`, and `sensor` entities.
+**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `button`, `binary_sensor`, and `sensor` entities, and `number` entities.
 **No MQTT, no REST API, no middle layer.**
 
 ---
@@ -34,7 +34,7 @@
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
-- 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`.
+- 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`,  `number`.
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
 - 🔍 **Optional auto-discovery**: the setup wizard pre-populates PLCs found on your local network while still allowing manual IP entry.
@@ -83,12 +83,14 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 3. Pick one of the auto-discovered PLC hosts or type the PLC `host` manually, then fill in `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
-   - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`) and fill in the form fields.
+   - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`, `number`) and fill in the form fields.
    - `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
      Enable `sync_state` to mirror PLC state changes to the command address.
    - `button` entries command a true value and after a configured
      `pulse time` send false.
+   - `number` entries expose INT/DINT/REAL values with an optional `command_address`.
+     You may set `min`, `max`, and `step` for Home Assistant; limits outside the PLC data type range are automatically clamped to the closest supported value so you can express relative bounds without worrying about overflows.
 
 ### Timeout & Retry settings
 
@@ -178,6 +180,14 @@ Example: adding a light entity via the UI:
 3. Select **Light**, then enter the `state_address`, optional `command_address`, name, and whether to `sync_state`.
 4. Save to create the entity or enable **Add another** to keep adding more.
 
+Example: adding a number entity via the UI:
+
+1. Open the integration and choose **Add items**.
+2. Select **Number** and type the PLC `address` (e.g., `DB1,DBW0` for an INT).
+3. Optionally set a separate `command_address`, `min`, `max`, and `step`.
+   Any limits that fall outside the PLC data type range are automatically tightened to the closest valid value.
+4. Submit to create the entity or keep **Add another** enabled to configure more numbers in one go.
+
 Example: removing an entity via the UI:
 
 1. Open the integration from **Settings → Devices & Services** and click **Configure**.
@@ -213,7 +223,7 @@ Example: removing an entity via the UI:
 A: No. This integration talks to the PLC directly using S7 protocol.
 
 **Q: Can I write values to the PLC?**
-A: `light`, `switch`, and `button` perform writes (`button` pulses the address). `binary_sensor` and `sensor` are read-only.
+A: `light`, `switch`, `button`, and `number` entities perform writes (`button` pulses the address). `number` can share the read address or use a dedicated command address with optional min/max limits. `binary_sensor` and `sensor` are read-only.
 
 **Q: Which CPUs are supported?**  
 A: Any Siemens S7 device that accepts ISO-on-TCP (port 102) and exposes DB areas with absolute addressing should work.
