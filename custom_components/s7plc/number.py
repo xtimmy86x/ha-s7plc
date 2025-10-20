@@ -129,10 +129,6 @@ class S7Number(S7BaseEntity, NumberEntity):
     def native_value(self):
         return (self.coordinator.data or {}).get(self._topic)
 
-    async def _ensure_connected(self):
-        if not self.available:
-            raise HomeAssistantError("PLC not connected: cannot execute command.")
-
     async def async_set_native_value(self, value: float) -> None:
         await self._ensure_connected()
         if not self._command_address:
@@ -149,3 +145,11 @@ class S7Number(S7BaseEntity, NumberEntity):
                 f"Failed to send command to PLC: {self._command_address}."
             )
         await self.coordinator.async_request_refresh()
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._address:
+            attrs["min_value"] = self._attr_native_min_value
+            attrs["max_value"] = self._attr_native_max_value
+        return attrs

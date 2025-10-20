@@ -35,6 +35,10 @@ class S7BaseEntity(CoordinatorEntity):
         self._topic = topic
         self._address = address
 
+    async def _ensure_connected(self):
+        if not self.available:
+            raise HomeAssistantError("PLC not connected: cannot execute command.")
+
     @property
     def available(self) -> bool:
         if not self._coord.is_connected():
