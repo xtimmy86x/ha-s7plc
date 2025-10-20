@@ -51,6 +51,7 @@
           "switches": "Add Switch",
           "buttons": "Add Button",
           "lights": "Add Light",
+          "numbers": "Add Number",
           "edit": "Edit items",
           "remove": "Remove items"
         }
@@ -177,6 +178,28 @@
           "add_another": "Stay on this step to add more lights."
         }
       },
+      "numbers": {
+        "title": "Add Number",
+        "description": "Create a number entity that reads a value from the PLC and can optionally write commands back.",
+        "data": {
+          "address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "min_value": "Minimum value",
+          "max_value": "Maximum value",
+          "step": "Step",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC address to read the numeric value (e.g., DB1,DBD0, DB2,DBW4).",
+          "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the number entity.",
+          "min_value": "Optional minimum bound for the value shown in Home Assistant.",
+          "max_value": "Optional maximum bound for the value shown in Home Assistant.",
+          "step": "Optional increment used when adjusting the value in the UI.",
+          "add_another": "Stay on this step to add more number entities."
+        }
+      },
       "edit": {
         "title": "Edit Items",
         "description": "Select the item you want to modify.",
@@ -259,6 +282,28 @@
           "command_address": "PLC address to write light commands (optional).",
           "name": "Optional friendly name for the light.",
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC."
+        }
+      },
+      "edit_number": {
+        "title": "Edit Number",
+        "description": "Update the state address, command address, name, minimum value, maximum value, or step for this number.",
+        "data": {
+          "address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "min_value": "Minimum value",
+          "max_value": "Maximum value",
+          "step": "Step",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC address to read the numeric value (e.g., DB1,DBD0, DB2,DBW4).",
+          "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the number entity.",
+          "min_value": "Optional minimum bound for the value shown in Home Assistant.",
+          "max_value": "Optional maximum bound for the value shown in Home Assistant.",
+          "step": "Optional increment used when adjusting the value in the UI.",
+          "add_another": "Stay on this step to add more number entities."
         }
       }
     },

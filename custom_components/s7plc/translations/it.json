@@ -51,6 +51,7 @@
           "switches": "Aggiungi Switch",
           "buttons": "Aggiungi Pulsante",
           "lights": "Aggiungi Luce",
+          "numbers": "Aggiungi Numero",
           "edit": "Modifica entità",
           "remove": "Rimuovi entità"
         }
@@ -177,6 +178,28 @@
           "add_another": "Rimani in questo step per aggiungere altre luci."
         }
       },
+      "numbers": {
+        "title": "Aggiungi Numero",
+        "description": "Crea un'entità di tipo numero che legge un valore dal PLC e può opzionalmente inviare comandi di scrittura.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo",
+          "step": "Passo",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,DBD0, DB2,DBW4).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità numero.",
+          "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
+          "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
+          "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
+        }
+      },
       "edit": {
         "title": "Modifica Elementi",
         "description": "Seleziona l'elemento che vuoi modificare.",
@@ -259,6 +282,28 @@
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC."
+        }
+      },
+      "edit_number": {
+        "title": "Modifica Numero",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome, valore minimo, valore massimo o passo per questo numero.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo",
+          "step": "Passo",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,DBD0, DB2,DBW4).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità numero.",
+          "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
+          "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
+          "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
       }
     },

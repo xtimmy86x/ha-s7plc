@@ -368,3 +368,37 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 _LOGGER.exception("Write error %s", address)
                 self._drop_connection()
                 return False
+
+    def write_number(self, address: str, value: float) -> bool:
+        """Write a numeric value to the PLC."""
+
+        tag = self._write_tags.get(address)
+        if tag is None:
+            tag = parse_tag(address)
+            self._write_tags[address] = tag
+
+        if tag.data_type in (DataType.BIT, DataType.CHAR):
+            raise ValueError("write_number requires a numeric address")
+
+        if tag.data_type == DataType.REAL:
+            payload = float(value)
+        elif tag.data_type in (
+            DataType.BYTE,
+            DataType.WORD,
+            DataType.DWORD,
+            DataType.INT,
+            DataType.DINT,
+        ):
+            payload = int(round(float(value)))
+        else:  # pragma: no cover - defensive for unexpected future types
+            raise ValueError("Unsupported data type for write_number")
+
+        with self._lock:
+            try:
+                self._ensure_connected()
+                self._retry(lambda: self._client.write([tag], [payload]))
+                return True
+            except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
+                _LOGGER.exception("Write error %s", address)
+                self._drop_connection()
+                return False

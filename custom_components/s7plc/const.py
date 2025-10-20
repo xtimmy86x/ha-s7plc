@@ -1,5 +1,5 @@
 DOMAIN = "s7plc"
-PLATFORMS = ["binary_sensor", "sensor", "switch", "light", "button"]
+PLATFORMS = ["binary_sensor", "sensor", "switch", "light", "button", "number"]
 
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
@@ -8,6 +8,7 @@ CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"
 CONF_SWITCHES = "switches"
 CONF_LIGHTS = "lights"
+CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
 
 CONF_ADDRESS = "address"
@@ -16,6 +17,9 @@ CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
 CONF_SYNC_STATE = "sync_state"
 CONF_BUTTON_PULSE = "button_pulse"
+CONF_MIN_VALUE = "min_value"
+CONF_MAX_VALUE = "max_value"
+CONF_STEP = "step"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0

@@ -28,11 +28,15 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
     CONF_MAX_RETRIES,
+    CONF_MAX_VALUE,
+    CONF_MIN_VALUE,
+    CONF_NUMBERS,
     CONF_OP_TIMEOUT,
     CONF_RACK,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_STATE_ADDRESS,
+    CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
     DEFAULT_BACKOFF_INITIAL,
@@ -309,6 +313,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_SWITCHES: list(config_entry.options.get(CONF_SWITCHES, [])),
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
+            CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
@@ -369,6 +374,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "sw": "Switch",
             "bt": "Button",
             "lt": "Light",
+            "nm": "Number",
         }[prefix]
         base = name or address
         return f"{type_label} • {base} [{address}]"
@@ -389,6 +395,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             light_item = {**it}
             light_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
             items[f"lt:{i}"] = self._labelize("lt", light_item)
+        for i, it in enumerate(self._options.get(CONF_NUMBERS, [])):
+            number_item = {**it}
+            number_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
+            items[f"nm:{i}"] = self._labelize("nm", number_item)
         return items
 
     def _clear_edit_state(self) -> None:
@@ -580,6 +590,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 "switches",  # salta direttamente a "Add Switch"
                 "buttons",  # salta direttamente a "Add Button"
                 "lights",  # salta direttamente a "Add Light"
+                "numbers",  # salta direttamente a "Add Number"
                 "edit",  # modifica entità esistenti
                 "remove",  # rimozione
             ],
@@ -856,6 +867,111 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="lights", data_schema=data_schema)
 
+    async def async_step_numbers(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        number_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+        )
+
+        positive_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                mode=selector.NumberSelectorMode.BOX,
+                min=0,
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_MIN_VALUE): number_selector,
+                vol.Optional(CONF_MAX_VALUE): number_selector,
+                vol.Optional(CONF_STEP): positive_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+
+            if address:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_NUMBERS, address):
+                        errors["base"] = "duplicate_entry"
+
+            min_value: float | None = None
+            max_value: float | None = None
+            step_value: float | None = None
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_MIN_VALUE) is not None:
+                        min_value = float(user_input[CONF_MIN_VALUE])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_MAX_VALUE) is not None:
+                        max_value = float(user_input[CONF_MAX_VALUE])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_STEP) is not None:
+                        step_value = float(user_input[CONF_STEP])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+                else:
+                    if step_value is not None and step_value <= 0:
+                        errors["base"] = "invalid_number"
+
+            if not errors and min_value is not None and max_value is not None:
+                if min_value > max_value:
+                    errors["base"] = "invalid_range"
+
+            if not errors and address:
+                item: dict[str, Any] = {CONF_ADDRESS: address}
+                if command_address:
+                    item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    item[CONF_NAME] = user_input[CONF_NAME]
+                if min_value is not None:
+                    item[CONF_MIN_VALUE] = min_value
+                if max_value is not None:
+                    item[CONF_MAX_VALUE] = max_value
+                if step_value is not None:
+                    item[CONF_STEP] = step_value
+                self._options[CONF_NUMBERS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="numbers", data_schema=data_schema, errors=errors
+                )
+
+            if user_input.get("add_another"):
+                return await self.async_step_numbers()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="numbers", data_schema=data_schema)
+
     # ====== STEP B: remove ======
     async def async_step_remove(self, user_input: dict[str, Any] | None = None):
         # Costruisci mappa chiave->label per tutti gli elementi configurati
@@ -872,6 +988,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 rm_sw = {int(k.split(":")[1]) for k in to_remove if k.startswith("sw:")}
                 rm_bt = {int(k.split(":")[1]) for k in to_remove if k.startswith("bt:")}
                 rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
+                rm_nm = {int(k.split(":")[1]) for k in to_remove if k.startswith("nm:")}
 
                 self._options[CONF_SENSORS] = [
                     v
@@ -897,6 +1014,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     v
                     for idx, v in enumerate(self._options.get(CONF_LIGHTS, []))
                     if idx not in rm_lt
+                ]
+                self._options[CONF_NUMBERS] = [
+                    v
+                    for idx, v in enumerate(self._options.get(CONF_NUMBERS, []))
+                    if idx not in rm_nm
                 ]
 
             # salva e chiudi: __init__.py farà reload dell’entry e le entità spariranno
@@ -961,6 +1083,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_button()
         if prefix == "lt":
             return await self.async_step_edit_light()
+        if prefix == "nm":
+            return await self.async_step_edit_number()
 
         return await self.async_step_edit()
 
@@ -1321,4 +1445,121 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="edit_light", data_schema=data_schema, errors=errors
+        )
+
+    async def async_step_edit_number(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_NUMBERS, "nm")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        number_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+        )
+        positive_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                mode=selector.NumberSelectorMode.BOX,
+                min=0,
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+                ): number_selector,
+                vol.Optional(
+                    CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+                ): number_selector,
+                vol.Optional(CONF_STEP, default=item.get(CONF_STEP)): positive_selector,
+            }
+        )
+
+        if user_input is not None:
+            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+            command_address = self._sanitize_address(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+
+            if not address:
+                errors["base"] = "invalid_address"
+            else:
+                try:
+                    parse_tag(address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                else:
+                    if self._has_duplicate(CONF_NUMBERS, address, skip_idx=idx):
+                        errors["base"] = "duplicate_entry"
+
+            min_value: float | None = None
+            max_value: float | None = None
+            step_value: float | None = None
+
+            if not errors and command_address:
+                try:
+                    parse_tag(command_address)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_MIN_VALUE) is not None:
+                        min_value = float(user_input[CONF_MIN_VALUE])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_MAX_VALUE) is not None:
+                        max_value = float(user_input[CONF_MAX_VALUE])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+
+            if not errors:
+                try:
+                    if user_input.get(CONF_STEP) is not None:
+                        step_value = float(user_input[CONF_STEP])
+                except (TypeError, ValueError):
+                    errors["base"] = "invalid_number"
+                else:
+                    if step_value is not None and step_value <= 0:
+                        errors["base"] = "invalid_number"
+
+            if not errors and min_value is not None and max_value is not None:
+                if min_value > max_value:
+                    errors["base"] = "invalid_range"
+
+            if not errors and address:
+                new_item: dict[str, Any] = {CONF_ADDRESS: address}
+                if command_address:
+                    new_item[CONF_COMMAND_ADDRESS] = command_address
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                if min_value is not None:
+                    new_item[CONF_MIN_VALUE] = min_value
+                if max_value is not None:
+                    new_item[CONF_MAX_VALUE] = max_value
+                if step_value is not None:
+                    new_item[CONF_STEP] = step_value
+
+                self._options[CONF_NUMBERS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_number", data_schema=data_schema, errors=errors
         )
