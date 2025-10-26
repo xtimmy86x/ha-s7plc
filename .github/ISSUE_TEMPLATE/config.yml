@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Q&A / Discussions
+    url: https://github.com/xtimmy86x/ha-s7plc/discussions
+    about: Questions and how-tos.
