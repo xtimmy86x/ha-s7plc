@@ -194,6 +194,12 @@ Example: removing an entity via the UI:
 2. Choose **Remove items**.
 3. Select the entities to remove and submit; the integration reloads to apply the changes.
 
+### Polling interval guidance
+
+- The **Scan interval** accepts decimal values, so entering `0.25` results in a 250 ms polling loop.
+- Millisecond-level polling dramatically increases traffic to the PLC and HA host. Only use sub-second values when monitoring a very small set of critical tags.
+- If you need faster reactions, prefer edge-triggered logic in the PLC itself and reserve rapid polling for diagnostics or lightweight booleans.
+
 ---
 
 ## Troubleshooting

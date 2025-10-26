@@ -98,7 +98,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
                 vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.05, max=3600)
+                ),
                 vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
                     vol.Coerce(float), vol.Range(min=0.5, max=120)
                 ),
@@ -136,7 +138,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             rack = int(user_input.get(CONF_RACK, DEFAULT_RACK))
             slot = int(user_input.get(CONF_SLOT, DEFAULT_SLOT))
             port = int(user_input.get(CONF_PORT, DEFAULT_PORT))
-            scan_s = int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+            scan_s = float(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
             op_timeout = float(user_input.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT))
             max_retries = int(user_input.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES))
             backoff_initial = float(
@@ -415,8 +417,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_PORT: int(data.get(CONF_PORT, DEFAULT_PORT)),
             CONF_RACK: int(data.get(CONF_RACK, DEFAULT_RACK)),
             CONF_SLOT: int(data.get(CONF_SLOT, DEFAULT_SLOT)),
-            CONF_SCAN_INTERVAL: int(
-                float(data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+            CONF_SCAN_INTERVAL: float(
+                data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
             ),
             CONF_OP_TIMEOUT: float(data.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT)),
             CONF_MAX_RETRIES: int(data.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES)),
@@ -435,7 +437,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_SLOT, default=defaults[CONF_SLOT]): int,
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=defaults[CONF_SCAN_INTERVAL]
-                ): int,
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
                 vol.Optional(
                     CONF_OP_TIMEOUT, default=defaults[CONF_OP_TIMEOUT]
                 ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=120)),
@@ -474,7 +476,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
             slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
             port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
-            scan_s = int(
+            scan_s = float(
                 user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
             )
             op_timeout = float(
