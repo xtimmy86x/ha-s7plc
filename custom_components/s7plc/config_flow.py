@@ -98,9 +98,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
                 vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-                    vol.Coerce(float), vol.Range(min=0.05, max=3600)
-                ),
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
                 vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
                     vol.Coerce(float), vol.Range(min=0.5, max=120)
                 ),
