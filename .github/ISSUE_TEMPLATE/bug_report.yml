@@ -35,32 +35,10 @@ body:
       required: true
 
   - type: dropdown
-    id: install_method
-    attributes:
-      label: Installation method
-      options: [HACS, Manual, Other/Unknown]
-    validations:
-      required: true
-
-  - type: dropdown
     id: plc_model
     attributes:
       label: PLC model
       options: [S7-1200, S7-1500, Logo!, Other/Unknown]
-    validations:
-      required: true
-
-  - type: input
-    id: plc_fw
-    attributes:
-      label: PLC firmware (optional)
-      placeholder: "e.g., V4.5.2"
-
-  - type: dropdown
-    id: optimized_db
-    attributes:
-      label: Optimized data block
-      options: [Yes, No, Unknown]
     validations:
       required: true
 
@@ -92,21 +70,8 @@ body:
       required: true
 
   - type: textarea
-    id: config
-    attributes:
-      label: Relevant configuration
-      placeholder: |
-        Paste relevant YAML or settings (do not include secrets).
-
-  - type: textarea
     id: logs
     attributes:
       label: Debug logs
       placeholder: |
         Paste relevant log lines.
-
-  - type: textarea
-    id: extra
-    attributes:
-      label: Additional details
-      placeholder: "Environment, container, OS, etc."
