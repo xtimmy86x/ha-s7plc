@@ -4,73 +4,73 @@ title: "[FEAT] <short title>"
 labels: ["enhancement"]
 assignees: []
 body:
-- type: markdown
-attributes:
-value: |
-Have an idea to improve `ha-s7plc`? Thank you for sharing!
+  - type: markdown
+    attributes:
+    value: |
+    Have an idea to improve `ha-s7plc`? Thank you for sharing!
 
 
-- type: checkboxes
-id: checks
-attributes:
-label: Pre-checks
-options:
-- label: I have searched for similar feature requests
-required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+    label: Pre-checks
+    options:
+    - label: I have searched for similar feature requests
+    required: true
 
 
-- type: dropdown
-id: priority
-attributes:
-label: Perceived priority
-options:
-- Nice to have
-- Important
-- Critical
-validations:
-required: true
+  - type: dropdown
+    id: priority
+    attributes:
+    label: Perceived priority
+    options:
+    - Nice to have
+    - Important
+    - Critical
+    validations:
+    required: true
 
 
-- type: textarea
-id: problem
-attributes:
-label: Problem to solve
-description: Describe the use case or limitation this feature addresses
-placeholder: |
-When ... I can't ... because ...
-validations:
-required: true
+  - type: textarea
+    id: problem
+    attributes:
+    label: Problem to solve
+    description: Describe the use case or limitation this feature addresses
+    placeholder: |
+    When ... I can't ... because ...
+    validations:
+    required: true
 
 
-- type: textarea
-id: proposal
-attributes:
-label: Proposed solution
-description: Describe how the feature should work
-placeholder: |
-Add an option/setting that ...
-validations:
-required: true
+  - type: textarea
+    id: proposal
+    attributes:
+    label: Proposed solution
+    description: Describe how the feature should work
+    placeholder: |
+    Add an option/setting that ...
+    validations:
+    required: true
 
 
-- type: textarea
-id: alternatives
-attributes:
-label: Alternatives considered
-placeholder: Other solutions or workarounds you've tried
+  - type: textarea
+    id: alternatives
+    attributes:
+    label: Alternatives considered
+    placeholder: Other solutions or workarounds you've tried
 
 
-- type: textarea
-id: context
-attributes:
-label: Additional context
-description: Mockups, examples, Siemens/HA documentation links, etc.
+  - type: textarea
+    id: context
+    attributes:
+    label: Additional context
+    description: Mockups, examples, Siemens/HA documentation links, etc.
 
 
-- type: checkboxes
-id: contribute
-attributes:
-label: Willingness to contribute
-options:
-- label: I can help with testing
-- label: I can open a PR
+  - type: checkboxes
+    id: contribute
+    attributes:
+    label: Willingness to contribute
+    options:
+    - label: I can help with testing
+    - label: I can open a PR

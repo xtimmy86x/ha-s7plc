@@ -1,22 +1,102 @@
 name: "Bug report"
-description: "Report a problem with ha-s7plc"
+description: "Report a malfunction or unexpected behavior in the S7 PLC Home Assistant integration"
 title: "[BUG] <short title>"
 labels: ["bug"]
+assignees: []
 body:
+  - type: markdown
+    attributes:
+    value: |
+    Thanks for reporting a bug! Please fill out as much information as possible to help reproduce and fix the issue quickly.
+
+
+  - type: checkboxes
+    id: checks
+    attributes:
+    label: Pre-checks
+    options:
+    - label: I have searched for existing issues
+      required: true
+    - label: I have restarted Home Assistant and confirmed the issue persists
+      required: false
+    - label: I have enabled debug logging (if applicable)
+      required: false
+
+
   - type: input
     id: ha_version
     attributes:
-      label: Home Assistant version
+    label: Home Assistant version
+    placeholder: e.g., 2025.6.3
     validations:
-      required: true
+    required: true
 
-  - type: textarea
-    id: steps
+
+  - type: input
+    id: integration_version
     attributes:
-      label: Steps to reproduce
-      placeholder: |
-        1. ...
-        2. ...
-        3. ...
+    label: `ha-s7plc` integration version
+    placeholder: e.g., 1.2.0 (HACS) / commit SHA
     validations:
-      required: true
+    required: true
+
+
+  - type: dropdown
+    id: install_method
+    attributes:
+    label: Installation method
+    options:
+    - HACS
+    - Manual
+    - Other/Unknown
+    validations:
+    required: true
+
+
+  - type: dropdown
+    id: plc_model
+    attributes:
+    label: PLC model
+    options:
+    - S7-1200
+    - S7-1500
+    - Logo!
+    - Other/Unknown
+    validations:
+    required: true
+
+
+  - type: input
+    id: plc_fw
+    attributes:
+    label: PLC firmware version (optional)
+    placeholder: e.g., V4.5.2
+
+
+  - type: dropdown
+    id: conn_method
+    attributes:
+    label: Connection method
+    options:
+    - Snap7
+    - OPC UA
+    - Modbus TCP
+    - Other (specify below)
+    validations:
+    required: true
+
+
+  - type: input
+    id: conn_details
+    attributes:
+    label: Connection details (IP, rack/slot, port, UA endpoint, etc.)
+    placeholder: e.g., 192.168.1.10, rack 0, slot 1, port 102
+
+
+  - type: dropdown
+    id: optimized_db
+    attributes:
+    label: Optimized data block
+    options:
+    - Yes
+    description: Environment info, container, OS, etc.
