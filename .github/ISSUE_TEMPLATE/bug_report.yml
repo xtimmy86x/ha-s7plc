@@ -1,0 +1,91 @@
+name: "Bug report"
+required: true
+
+
+- type: input
+id: conn_details
+attributes:
+label: Connection details (IP, rack/slot, port, UA endpoint, etc.)
+placeholder: e.g., 192.168.1.10, rack 0, slot 1, port 102
+
+
+- type: dropdown
+id: optimized_db
+attributes:
+label: Optimized data block
+options:
+- Yes
+- No
+- Unknown
+validations:
+required: true
+
+
+- type: textarea
+id: steps
+attributes:
+label: Steps to reproduce
+description: Provide the minimal steps to reproduce the issue
+placeholder: |
+1. ...
+2. ...
+3. ...
+validations:
+required: true
+
+
+- type: textarea
+id: expected
+attributes:
+label: Expected behavior
+placeholder: What did you expect to happen?
+validations:
+required: true
+
+
+- type: textarea
+id: actual
+attributes:
+label: Actual behavior
+placeholder: What actually happens? Include any error messages.
+validations:
+required: true
+
+
+- type: textarea
+id: config
+attributes:
+label: Relevant configuration
+description: Paste YAML or integration configuration (hide sensitive info)
+render: yaml
+placeholder: |
+# Example
+ha-s7plc:
+host: 192.168.1.10
+rack: 0
+slot: 1
+db: 1000
+
+
+- type: textarea
+id: logs
+attributes:
+label: Debug logs
+description: Attach relevant log excerpts. Use code blocks.
+render: text
+placeholder: |
+2025-10-26 12:34:56 DEBUG ...
+
+
+- type: textarea
+id: screenshots
+attributes:
+label: Screenshots or recordings (optional)
+description: Drag and drop images or paste links
+
+
+- type: textarea
+id: extra
+attributes:
+label: Additional details
+description: Environment info, container, OS, etc.
