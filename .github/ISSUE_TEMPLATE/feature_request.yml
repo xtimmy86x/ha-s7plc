@@ -6,71 +6,64 @@ assignees: []
 body:
   - type: markdown
     attributes:
-    value: |
-    Have an idea to improve `ha-s7plc`? Thank you for sharing!
-
+      value: |
+        Have an idea to improve ha-s7plc? Thanks for sharing!
 
   - type: checkboxes
     id: checks
     attributes:
-    label: Pre-checks
-    options:
-    - label: I have searched for similar feature requests
-    required: true
-
+      label: Pre-checks
+      options:
+        - label: I have searched for similar feature requests
+          required: true
 
   - type: dropdown
     id: priority
     attributes:
-    label: Perceived priority
-    options:
-    - Nice to have
-    - Important
-    - Critical
+      label: Perceived priority
+      options:
+        - Nice to have
+        - Important
+        - Critical
     validations:
-    required: true
-
+      required: true
 
   - type: textarea
     id: problem
     attributes:
-    label: Problem to solve
-    description: Describe the use case or limitation this feature addresses
-    placeholder: |
-    When ... I can't ... because ...
+      label: Problem to solve
+      description: Describe the use case or current limitation
+      placeholder: |
+        When ..., I can't ... because ...
     validations:
-    required: true
-
+      required: true
 
   - type: textarea
     id: proposal
     attributes:
-    label: Proposed solution
-    description: Describe how the feature should work
-    placeholder: |
-    Add an option/setting that ...
+      label: Proposed solution
+      description: Describe how the feature should work
+      placeholder: |
+        Add an option/setting that ...
     validations:
-    required: true
-
+      required: true
 
   - type: textarea
     id: alternatives
     attributes:
-    label: Alternatives considered
-    placeholder: Other solutions or workarounds you've tried
-
+      label: Alternatives considered
+      placeholder: Other solutions or workarounds you've tried
 
   - type: textarea
     id: context
     attributes:
-    label: Additional context
-    description: Mockups, examples, Siemens/HA documentation links, etc.
-
+      label: Additional context
+      description: Mockups, examples, links to Siemens/HA docs, etc.
 
   - type: checkboxes
     id: contribute
     attributes:
-    label: Willingness to contribute
-    options:
-    - label: I can help with testing
-    - label: I can open a PR
+      label: Willingness to contribute
+      options:
+        - label: I can help with testing
+        - label: I can open a PR
