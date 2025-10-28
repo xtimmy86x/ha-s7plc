@@ -98,6 +98,12 @@ class S7Number(S7BaseEntity, NumberEntity):
             address=address,
         )
         self._command_address = command_address
+
+        # Always initialize native attributes to avoid AttributeError
+        self._attr_native_min_value = None
+        self._attr_native_max_value = None
+        self._attr_native_step = 1.0
+
         numeric_limits: tuple[float, float] | None = None
         try:
             tag = parse_tag(address)
@@ -118,10 +124,18 @@ class S7Number(S7BaseEntity, NumberEntity):
         min_value_clamped = _clamp(min_value)
         max_value_clamped = _clamp(max_value)
 
+        # If the user provided min/max, use them (clamped).
+        # Otherwise, if available, use the native limits of the PLC data type.
         if min_value_clamped is not None:
             self._attr_native_min_value = min_value_clamped
+        elif numeric_limits is not None:
+            self._attr_native_min_value = float(numeric_limits[0])
+
         if max_value_clamped is not None:
             self._attr_native_max_value = max_value_clamped
+        elif numeric_limits is not None:
+            self._attr_native_max_value = float(numeric_limits[1])
+
         if step is not None:
             self._attr_native_step = float(step)
 
@@ -148,8 +162,9 @@ class S7Number(S7BaseEntity, NumberEntity):
 
     @property
     def extra_state_attributes(self):
-        attrs = {}
-        if self._address:
-            attrs["min_value"] = self._attr_native_min_value
-            attrs["max_value"] = self._attr_native_max_value
-        return attrs
+        # Avoid exceptions if any attr remains None
+        return {
+            "min_value": getattr(self, "_attr_native_min_value", None),
+            "max_value": getattr(self, "_attr_native_max_value", None),
+            "step": getattr(self, "_attr_native_step", None),
+        }
