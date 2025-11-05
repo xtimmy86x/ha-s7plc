@@ -91,6 +91,8 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
      `pulse time` send false.
    - `number` entries expose INT/DINT/REAL values with an optional `command_address`.
      You may set `min`, `max`, and `step` for Home Assistant; limits outside the PLC data type range are automatically clamped to the closest supported value so you can express relative bounds without worrying about overflows.
+   - Use **Add another** to chain the creation of multiple entities; after the last 
+     sensor/entity you must click **Send** to persist it, otherwise the entries will be  discarded.
 
 ### Timeout & Retry settings
 
