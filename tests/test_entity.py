@@ -22,6 +22,8 @@ class DummyCoordinator:
         self.refresh_called = False
         self._write_queue: list[bool] = []
         self._default_write_result = True
+        self._item_scan_intervals = {}
+        self._default_scan_interval = 10
 
     def is_connected(self):
         return self._connected
@@ -67,7 +69,7 @@ def test_base_entity_availability_and_attrs():
     coord.data = {"topic1": 1}
     assert base.available
 
-    assert base.extra_state_attributes == {"s7_address": "DB1.DBX0.0"}
+    assert base.extra_state_attributes == {"s7_address": "DB1.DBX0.0", "scan_interval": 10}
 
 
 def test_bool_entity_commands_and_refresh():

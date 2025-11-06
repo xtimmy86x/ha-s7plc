@@ -53,6 +53,10 @@ class S7BaseEntity(CoordinatorEntity):
         attrs = {}
         if self._address:
             attrs["s7_address"] = self._address.upper()
+        interval = self._coord._item_scan_intervals.get(
+            self._topic, self._coord._default_scan_interval
+        )
+        attrs["scan_interval"] = interval
         return attrs
 
 
@@ -95,6 +99,10 @@ class S7BoolSyncEntity(S7BaseEntity):
         if self._address:
             attrs["s7_state_address"] = self._address.upper()
             attrs["s7_command_address"] = self._command_address.upper()
+        interval = self._coord._item_scan_intervals.get(
+            self._topic, self._coord._default_scan_interval
+        )
+        attrs["scan_interval"] = interval
         return attrs
 
     async def _ensure_connected(self):

@@ -168,4 +168,5 @@ class S7Number(S7BaseEntity, NumberEntity):
         attrs["min_value"] = self.min_value
         attrs["max_value"] = self.max_value
         attrs["step"] = self.step
+
         return attrs
