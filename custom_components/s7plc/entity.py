@@ -89,6 +89,14 @@ class S7BoolSyncEntity(S7BaseEntity):
         val = (self.coordinator.data or {}).get(self._topic)
         return None if val is None else bool(val)
 
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._address:
+            attrs["s7_state_address"] = self._address.upper()
+            attrs["s7_command_address"] = self._command_address.upper()
+        return attrs
+
     async def _ensure_connected(self):
         if not self.available:
             raise HomeAssistantError("PLC not connected: cannot execute command.")
