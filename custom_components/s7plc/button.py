@@ -109,9 +109,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self):
-        attrs = {}
-        if self._address:
-            attrs["s7_address"] = self._address.upper()
+        attrs = dict(super().extra_state_attributes or {})
         if self._button_pulse is not None:
             attrs["button_pulse"] = f"{self._button_pulse} s"
         return attrs
