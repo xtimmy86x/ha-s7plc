@@ -11,6 +11,15 @@ CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
 
+OPTION_KEYS = (
+    CONF_SENSORS,
+    CONF_BINARY_SENSORS,
+    CONF_SWITCHES,
+    CONF_LIGHTS,
+    CONF_BUTTONS,
+    CONF_NUMBERS,
+)
+
 CONF_ADDRESS = "address"
 CONF_DEVICE_CLASS = "device_class"
 CONF_STATE_ADDRESS = "state_address"

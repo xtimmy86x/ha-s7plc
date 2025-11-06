@@ -5,6 +5,7 @@ import contextlib
 import inspect
 import json
 import logging
+from urllib.parse import quote
 from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
 
@@ -17,6 +18,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
+from homeassistant.util import slugify
 
 from .address import get_numeric_limits, parse_tag
 from .const import (
@@ -52,19 +54,16 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DOMAIN,
+    OPTION_KEYS,
 )
 from .coordinator import S7Coordinator
+from .export import (
+    build_export_json,
+    build_export_payload,
+    register_export_download,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-OPTION_KEYS: tuple[str, ...] = (
-    CONF_SENSORS,
-    CONF_BINARY_SENSORS,
-    CONF_SWITCHES,
-    CONF_LIGHTS,
-    CONF_BUTTONS,
-    CONF_NUMBERS,
-)
 
 bs_device_class_options = [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
@@ -450,18 +449,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return items
 
     def _exportable_options(self) -> dict[str, list[dict[str, Any]]]:
-        payload: dict[str, list[dict[str, Any]]] = {}
-        for key in OPTION_KEYS:
-            payload[key] = [dict(item) for item in self._options.get(key, [])]
-        return payload
-
+        return build_export_payload(self._options)
+    
     def _build_export_data(self) -> str:
-        return json.dumps(
-            self._exportable_options(),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        )
+        return build_export_json(self._options)
 
     def _sanitize_import_payload(
         self, payload: Any
@@ -1103,10 +1094,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is None:
             item_count = sum(len(self._options.get(key, [])) for key in OPTION_KEYS)
+            download_link = register_export_download(
+                self.hass,
+                self._config_entry.title,
+                self._config_entry.data.get(CONF_NAME),
+                export_text,
+            )
             return self.async_show_form(
                 step_id="export",
                 data_schema=data_schema,
-                description_placeholders={"item_count": str(item_count)},
+                description_placeholders={
+                    "item_count": str(item_count),
+                    "download_url": download_link.url,
+                    "download_filename": download_link.filename,
+                },
             )
 
         return self.async_create_entry(title="", data=self._options)

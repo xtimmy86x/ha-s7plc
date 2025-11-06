@@ -334,12 +334,12 @@
       },
       "export": {
         "title": "Esporta configurazione",
-        "description": "Copia il JSON seguente per eseguire il backup di {item_count} elementi configurati. Invia il modulo quando hai finito.",
+        "description": "Copia il JSON seguente per eseguire il backup di {item_count} elementi configurati. Invia il modulo quando hai finito.\n\n<a class=\"mdc-button mdc-button--raised\" download=\"{download_filename}\" href=\"{download_url}\">Scarica file JSON</a>",
         "data": {
           "export_json": "JSON di configurazione"
         },
         "data_description": {
-          "export_json": "Copia e conserva questo JSON per esportare le variabili e le relative impostazioni."
+          "export_json": "Copia e conserva questo JSON per esportare le variabili e le relative impostazioni. Puoi anche usare il pulsante di download sopra per salvare la configurazione in un file."
         }
       },
       "import": {
