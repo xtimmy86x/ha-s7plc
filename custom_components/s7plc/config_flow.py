@@ -1101,7 +1101,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     "item_count": str(item_count),
                     "download_filename": download_link.filename,
                     "download_link_start": (
-                        f'<a href="{download_link.url}" download="{download_link.filename}" '
+                        f'<a href="{download_link.url}" '
+                        f'download="{download_link.filename}" '
                         'target="_blank" rel="noopener">'
                     ),
                     "download_link_end": "</a>",
