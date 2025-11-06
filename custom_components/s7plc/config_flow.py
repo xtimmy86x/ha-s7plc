@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import logging
 from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
@@ -607,11 +608,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BACKOFF_MAX: backoff_max,
         }
 
-        await self.hass.config_entries.async_update_entry(
+        update_result = self.hass.config_entries.async_update_entry(
             self._config_entry,
             data=new_data,
             title=name,
         )
+
+        if inspect.isawaitable(update_result):
+            await update_result
 
         return self.async_create_entry(title="", data=self._options)
 
