@@ -64,7 +64,7 @@ class _QueuedDownload:
 class _ExportView(HomeAssistantView):
     url = "/api/s7plc/export/{token}"
     name = "api:s7plc:export"
-    requires_auth = True
+    requires_auth = False
 
     def __init__(self, manager: "ExportManager") -> None:
         self._manager = manager
