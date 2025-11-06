@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
+import json
 import logging
 from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
@@ -55,6 +56,15 @@ from .const import (
 from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+OPTION_KEYS: tuple[str, ...] = (
+    CONF_SENSORS,
+    CONF_BINARY_SENSORS,
+    CONF_SWITCHES,
+    CONF_LIGHTS,
+    CONF_BUTTONS,
+    CONF_NUMBERS,
+)
 
 bs_device_class_options = [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
@@ -439,6 +449,51 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             items[f"nm:{i}"] = self._labelize("nm", number_item)
         return items
 
+    def _exportable_options(self) -> dict[str, list[dict[str, Any]]]:
+        payload: dict[str, list[dict[str, Any]]] = {}
+        for key in OPTION_KEYS:
+            payload[key] = [dict(item) for item in self._options.get(key, [])]
+        return payload
+
+    def _build_export_data(self) -> str:
+        return json.dumps(
+            self._exportable_options(),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+
+    def _sanitize_import_payload(
+        self, payload: Any
+    ) -> dict[str, list[dict[str, Any]]] | None:
+        if not isinstance(payload, dict):
+            return None
+
+        sanitized: dict[str, list[dict[str, Any]]] = {}
+        for key in OPTION_KEYS:
+            raw_items = payload.get(key, [])
+            if raw_items is None:
+                raw_items = []
+            if not isinstance(raw_items, list):
+                return None
+            sanitized[key] = []
+            for item in raw_items:
+                if not isinstance(item, dict):
+                    return None
+                sanitized[key].append(dict(item))
+
+        # Preserve any other option keys currently in use to avoid losing data.
+        for key, value in self._options.items():
+            if key not in sanitized:
+                if isinstance(value, list):
+                    sanitized[key] = [
+                        dict(item) if isinstance(item, dict) else item for item in value
+                    ]
+                else:
+                    sanitized[key] = value
+
+        return sanitized
+
     def _clear_edit_state(self) -> None:
         self._action = None
         self._edit_target = None
@@ -634,6 +689,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 "numbers",  # salta direttamente a "Add Number"
                 "edit",  # modifica entità esistenti
                 "remove",  # rimozione
+                "export",  # esporta configurazione
+                "import",  # importa configurazione da JSON
             ],
         )
 
@@ -1036,6 +1093,61 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="numbers", data_schema=data_schema)
+
+    async def async_step_export(self, user_input: dict[str, Any] | None = None):
+        export_text = self._build_export_data()
+
+        data_schema = vol.Schema(
+            {vol.Required("export_json", default=export_text): str}
+        )
+
+        if user_input is None:
+            item_count = sum(len(self._options.get(key, [])) for key in OPTION_KEYS)
+            return self.async_show_form(
+                step_id="export",
+                data_schema=data_schema,
+                description_placeholders={"item_count": str(item_count)},
+            )
+
+        return self.async_create_entry(title="", data=self._options)
+
+    async def async_step_import(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+        current_text = ""
+
+        if user_input is not None:
+            raw_value = user_input.get("import_json")
+            if raw_value is None:
+                errors["base"] = "invalid_json"
+            else:
+                current_text = str(raw_value)
+                raw_text = current_text.strip()
+                if not raw_text:
+                    errors["base"] = "invalid_json"
+                else:
+                    try:
+                        payload = json.loads(raw_text)
+                    except ValueError:
+                        errors["base"] = "invalid_json"
+                    else:
+                        sanitized = self._sanitize_import_payload(payload)
+                        if sanitized is None:
+                            errors["base"] = "invalid_json"
+                        else:
+                            self._options = sanitized
+                            return self.async_create_entry(title="", data=self._options)
+
+        data_schema = vol.Schema(
+            {vol.Required("import_json", default=current_text): str}
+        )
+
+        item_count = sum(len(self._options.get(key, [])) for key in OPTION_KEYS)
+        return self.async_show_form(
+            step_id="import",
+            data_schema=data_schema,
+            description_placeholders={"item_count": str(item_count)},
+            errors=errors if errors else None,
+        )
 
     # ====== STEP B: remove ======
     async def async_step_remove(self, user_input: dict[str, Any] | None = None):

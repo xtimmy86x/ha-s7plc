@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import inspect
 from types import SimpleNamespace
 
 import pytest
-import inspect
 
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
@@ -265,6 +266,69 @@ def test_number_limits_clamped_on_edit(monkeypatch):
     assert stored[const.CONF_MAX_VALUE] == 100.0
     assert flow._edit_target is None
 
+
+def test_build_export_data_includes_all_keys():
+    options = {
+        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1.DBX0.0", CONF_NAME: "A"}],
+        const.CONF_SWITCHES: [
+            {
+                const.CONF_STATE_ADDRESS: "Q0.0",
+                const.CONF_COMMAND_ADDRESS: "Q0.1",
+            }
+        ],
+    }
+
+    flow = make_options_flow(options=options)
+
+    export_json = flow._build_export_data()
+    payload = json.loads(export_json)
+
+    for key in config_flow.OPTION_KEYS:
+        assert key in payload
+
+    assert payload[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB1.DBX0.0"
+    assert payload[const.CONF_SWITCHES][0][const.CONF_COMMAND_ADDRESS] == "Q0.1"
+
+
+def test_import_step_replaces_configuration():
+    original = {
+        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1.DBX0.0"}],
+        const.CONF_BUTTONS: [{const.CONF_ADDRESS: "Q0.0"}],
+    }
+
+    flow = make_options_flow(options=original)
+
+    new_payload = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB10.DBW0", CONF_NAME: "New"}
+        ],
+        const.CONF_LIGHTS: [
+            {
+                const.CONF_STATE_ADDRESS: "Q1.0",
+                const.CONF_COMMAND_ADDRESS: "Q1.1",
+            }
+        ],
+    }
+
+    result = run_flow(
+        flow.async_step_import({"import_json": json.dumps(new_payload)})
+    )
+
+    assert result["type"] == "create_entry"
+    assert flow._options[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB10.DBW0"
+    assert flow._options[const.CONF_LIGHTS][0][const.CONF_COMMAND_ADDRESS] == "Q1.1"
+    assert flow._options[const.CONF_BUTTONS] == []
+
+
+def test_import_step_handles_invalid_json():
+    flow = make_options_flow()
+
+    result = asyncio.run(flow.async_step_import({"import_json": "not-json"}))
+
+    assert result["type"] == "form"
+    errors = result.get("errors") or result.get("kwargs", {}).get("errors")
+    assert errors["base"] == "invalid_json"
+    
 
 def test_options_connection_handles_connection_failure(monkeypatch):
     entry = make_config_entry(

@@ -53,7 +53,9 @@
           "lights": "Add Light",
           "numbers": "Add Number",
           "edit": "Edit items",
-          "remove": "Remove items"
+          "remove": "Remove items",
+          "export": "Export items",
+          "import": "Import items"
         }
       },
       "remove": {
@@ -329,6 +331,26 @@
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
         }
+      },
+      "export": {
+        "title": "Export configuration",
+        "description": "Copy the JSON below to back up {item_count} configured items. Submit the dialog when you are done.",
+        "data": {
+          "export_json": "Configuration JSON"
+        },
+        "data_description": {
+          "export_json": "Copy and store this JSON to export your variables and their settings."
+        }
+      },
+      "import": {
+        "title": "Import configuration",
+        "description": "Paste a JSON export to replace the current configuration. {item_count} items are configured right now.",
+        "data": {
+          "import_json": "Configuration JSON"
+        },
+        "data_description": {
+          "import_json": "Paste JSON produced by the export action. All existing variables will be replaced."
+        }
       }
     },
     "error": {
@@ -336,7 +358,8 @@
       "duplicate_entry": "This item already exists.",
       "no_items": "There are no configured items to edit.",
       "cannot_connect": "Cannot connect to the PLC with the provided settings.",
-      "already_configured": "Another S7 PLC entry already uses these connection parameters."
+      "already_configured": "Another S7 PLC entry already uses these connection parameters.",
+      "invalid_json": "Invalid JSON payload."
     }
   },
   "entity": {

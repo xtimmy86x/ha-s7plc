@@ -53,7 +53,9 @@
           "lights": "Aggiungi Luce",
           "numbers": "Aggiungi Numero",
           "edit": "Modifica entità",
-          "remove": "Rimuovi entità"
+          "remove": "Rimuovi entità",
+          "export": "Esporta configurazione",
+          "import": "Importa configurazione"
         }
       },
       "remove": {
@@ -329,6 +331,26 @@
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
+      },
+      "export": {
+        "title": "Esporta configurazione",
+        "description": "Copia il JSON seguente per eseguire il backup di {item_count} elementi configurati. Invia il modulo quando hai finito.",
+        "data": {
+          "export_json": "JSON di configurazione"
+        },
+        "data_description": {
+          "export_json": "Copia e conserva questo JSON per esportare le variabili e le relative impostazioni."
+        }
+      },
+      "import": {
+        "title": "Importa configurazione",
+        "description": "Incolla un JSON esportato per sostituire la configurazione attuale. Al momento sono configurati {item_count} elementi.",
+        "data": {
+          "import_json": "JSON di configurazione"
+        },
+        "data_description": {
+          "import_json": "Incolla il JSON prodotto dall'azione di esportazione. Tutte le variabili esistenti verranno sostituite."
+        }
       }
     },
     "error": {
@@ -336,7 +358,8 @@
       "duplicate_entry": "Questo elemento è già presente.",
       "no_items": "Non ci sono elementi configurati da modificare.",
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
-      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione."
+      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
+      "invalid_json": "Payload JSON non valido."
     }
   },
   "entity": {
