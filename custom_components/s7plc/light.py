@@ -11,6 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
+    CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
     DOMAIN,
@@ -45,7 +46,10 @@ async def async_setup_entry(
         name = item.get(CONF_NAME, "S7 Light")
         topic = f"light:{state_address}"
         unique_id = f"{device_id}:{topic}"
-        await hass.async_add_executor_job(coord.add_item, topic, state_address)
+        scan_interval = item.get(CONF_SCAN_INTERVAL)
+        await hass.async_add_executor_job(
+            coord.add_item, topic, state_address, scan_interval
+        )
         entities.append(
             S7Light(
                 coord,

@@ -11,7 +11,13 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
-from .const import CONF_ADDRESS, CONF_BINARY_SENSORS, CONF_DEVICE_CLASS, DOMAIN
+from .const import (
+    CONF_ADDRESS,
+    CONF_BINARY_SENSORS,
+    CONF_DEVICE_CLASS,
+    CONF_SCAN_INTERVAL,
+    DOMAIN,
+)
 from .entity import S7BaseEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +51,8 @@ async def async_setup_entry(
         topic = f"binary_sensor:{address}"
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
-        await hass.async_add_executor_job(coord.add_item, topic, address)
+        scan_interval = item.get(CONF_SCAN_INTERVAL)
+        await hass.async_add_executor_job(coord.add_item, topic, address, scan_interval)
 
         entities.append(
             S7BinarySensor(

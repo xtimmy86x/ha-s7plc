@@ -101,12 +101,14 @@
           "address": "Indirizzo",
           "name": "Nome",
           "device_class": "Device class",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
           "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
+          "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri sensori."
         }
       },
@@ -117,12 +119,14 @@
           "address": "Indirizzo",
           "name": "Nome",
           "device_class": "Device class",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
           "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,DBX0.1).",
           "name": "Nome descrittivo opzionale per il binary sensor.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+          "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri binary sensor."
         }
       },
@@ -134,6 +138,7 @@
           "command_address": "Indirizzo comando",
           "name": "Nome",
           "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -141,6 +146,7 @@
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
           "name": "Nome descrittivo opzionale per lo switch.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri switch."
         }
       },
@@ -150,13 +156,15 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
-          "button_pulse": "Duarata impulso",
+          "button_pulse": "Durata impulso",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
           "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
+          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "button_pulse": "Durata dell'impulso in secondi."
         }
       },
@@ -168,6 +176,7 @@
           "command_address": "Indirizzo comando",
           "name": "Nome",
           "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -175,6 +184,7 @@
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre luci."
         }
       },
@@ -188,6 +198,7 @@
           "min_value": "Valore minimo",
           "max_value": "Valore massimo",
           "step": "Passo",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -197,6 +208,7 @@
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
       },
@@ -216,12 +228,14 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
-          "device_class": "Device class"
+          "device_class": "Device class",
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
           "name": "Nome descrittivo opzionale per il sensore.",
-          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power)."
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
+          "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_binary_sensor": {
@@ -230,12 +244,14 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
-          "device_class": "Device class"
+          "device_class": "Device class",
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,DBX0.1).",
           "name": "Nome descrittivo opzionale per il binary sensor.",
-          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power)."
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+          "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_switch": {
@@ -245,13 +261,15 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
-          "sync_state": "Sincronizza stato con il PLC"
+          "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,DBX0.0).",
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale).",
           "name": "Nome descrittivo opzionale per lo switch.",
-          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC."
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_button": {
@@ -260,12 +278,14 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
-          "button_pulse": "Duarata impulso"
+          "button_pulse": "Duarata impulso",
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
-          "button_pulse": "Durata dell'impulso in secondi."
+          "button_pulse": "Durata dell'impulso in secondi.",
+          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_light": {
@@ -275,13 +295,15 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
-          "sync_state": "Sincronizza stato con il PLC"
+          "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
-          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC."
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_number": {
@@ -294,6 +316,7 @@
           "min_value": "Valore minimo",
           "max_value": "Valore massimo",
           "step": "Passo",
+          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -303,6 +326,7 @@
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
       }

@@ -11,7 +11,7 @@ from homeassistant import config_entries
 from homeassistant.components import network
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
@@ -33,6 +33,7 @@ from .const import (
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
     CONF_RACK,
+    CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_STATE_ADDRESS,
@@ -63,6 +64,14 @@ s_device_class_options = [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
     for dc in SensorDeviceClass
 ]
+
+scan_interval_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=0.05,
+        max=3600,
+        mode=selector.NumberSelectorMode.BOX,
+    )
+)
 
 
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -305,6 +314,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class S7PLCOptionsFlow(config_entries.OptionsFlow):
     """Handle options for S7 PLC."""
 
+    _MIN_ITEM_SCAN_INTERVAL = 0.05
+    _MAX_ITEM_SCAN_INTERVAL = 3600.0
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
         self._options = {
@@ -342,6 +354,29 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None
 
         return sanitized.upper()
+
+    @staticmethod
+    def _normalize_scan_interval_value(value: Any | None) -> float | None:
+        if value in (None, ""):
+            return None
+        try:
+            interval = float(value)
+        except (TypeError, ValueError):
+            return None
+        if interval <= 0:
+            return None
+        return min(
+            max(interval, S7PLCOptionsFlow._MIN_ITEM_SCAN_INTERVAL),
+            S7PLCOptionsFlow._MAX_ITEM_SCAN_INTERVAL,
+        )
+
+    @staticmethod
+    def _apply_scan_interval(item: dict[str, Any], value: Any | None) -> None:
+        normalized = S7PLCOptionsFlow._normalize_scan_interval_value(value)
+        if normalized is None:
+            item.pop(CONF_SCAN_INTERVAL, None)
+        else:
+            item[CONF_SCAN_INTERVAL] = normalized
 
     def _has_duplicate(
         self,
@@ -611,6 +646,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -631,6 +667,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                             item[CONF_NAME] = user_input[CONF_NAME]
                         if user_input.get(CONF_DEVICE_CLASS):
                             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                        self._apply_scan_interval(
+                            item, user_input.get(CONF_SCAN_INTERVAL)
+                        )
                         self._options[CONF_SENSORS].append(item)
 
             if errors:
@@ -658,6 +697,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -679,6 +719,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                             item[CONF_NAME] = user_input[CONF_NAME]
                         if user_input.get(CONF_DEVICE_CLASS):
                             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                        self._apply_scan_interval(
+                            item, user_input.get(CONF_SCAN_INTERVAL)
+                        )
                         self._options[CONF_BINARY_SENSORS].append(item)
 
             if errors:
@@ -704,6 +747,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -740,6 +784,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 if user_input.get(CONF_NAME):
                     item[CONF_NAME] = user_input[CONF_NAME]
                 item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
                 self._options[CONF_SWITCHES].append(item)
 
             if errors:
@@ -819,6 +864,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -855,6 +901,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 if user_input.get(CONF_NAME):
                     item[CONF_NAME] = user_input[CONF_NAME]
                 item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
                 self._options[CONF_LIGHTS].append(item)
 
             if errors:
@@ -891,6 +938,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_MIN_VALUE): number_selector,
                 vol.Optional(CONF_MAX_VALUE): number_selector,
                 vol.Optional(CONF_STEP): positive_selector,
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -970,6 +1018,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     item[CONF_MAX_VALUE] = max_value
                 if step_value is not None:
                     item[CONF_STEP] = step_value
+                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
                 self._options[CONF_NUMBERS].append(item)
 
             if errors:
@@ -1148,6 +1197,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
             )
 
+        schema_dict[
+            vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
+        ] = scan_interval_selector
+
         data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
@@ -1215,6 +1268,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
             )
 
+        schema_dict[
+            vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
+        ] = scan_interval_selector
+
         data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
@@ -1236,6 +1293,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     new_item[CONF_NAME] = user_input[CONF_NAME]
                 if user_input.get(CONF_DEVICE_CLASS):
                     new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_BINARY_SENSORS][idx] = new_item
                 self._clear_edit_state()
@@ -1272,6 +1330,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
+                ): scan_interval_selector,
             }
         )
 
@@ -1312,6 +1373,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 if user_input.get(CONF_NAME):
                     new_item[CONF_NAME] = user_input[CONF_NAME]
                 new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_SWITCHES][idx] = new_item
                 self._clear_edit_state()
@@ -1410,6 +1472,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
+                ): scan_interval_selector,
             }
         )
 
@@ -1450,6 +1515,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 if user_input.get(CONF_NAME):
                     new_item[CONF_NAME] = user_input[CONF_NAME]
                 new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_LIGHTS][idx] = new_item
                 self._clear_edit_state()
@@ -1497,6 +1563,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
                 ): number_selector,
                 vol.Optional(CONF_STEP, default=item.get(CONF_STEP)): positive_selector,
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
+                ): scan_interval_selector,
             }
         )
 
@@ -1577,6 +1646,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     new_item[CONF_MAX_VALUE] = max_value
                 if step_value is not None:
                     new_item[CONF_STEP] = step_value
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_NUMBERS][idx] = new_item
                 self._clear_edit_state()

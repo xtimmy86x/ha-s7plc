@@ -4,6 +4,8 @@ import struct
 
 import pytest
 
+import asyncio
+
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import StringPlan, TagPlan
@@ -164,6 +166,45 @@ def test_read_batch_populates_defaults_on_error(monkeypatch):
     assert results == {"topic/a": None, "topic/b": None}
 
 
+def test_async_update_data_respects_item_scan_interval(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+
+    plan = TagPlan("topic/a", DummyTag())
+    coord._plans_batch = {"topic/a": plan}
+    coord._plans_str = {}
+    coord._items["topic/a"] = "DB1.DBX0.0"
+    coord._item_scan_intervals["topic/a"] = 2.0
+    coord._item_next_read["topic/a"] = 0.0
+    coord._data_cache.clear()
+
+    coord._update_min_interval_locked()
+    assert coord.update_interval.total_seconds() == pytest.approx(2.0)
+
+    results = {"topic/a": 7}
+    read_calls: list[tuple[list[TagPlan], list[StringPlan]]] = []
+
+    def fake_read_all(plans_batch, plans_str):
+        read_calls.append((plans_batch, plans_str))
+        return results
+
+    coord._read_all = fake_read_all
+
+    async def fake_async_add_executor_job(func, *args):
+        return func(*args)
+
+    coord.hass.async_add_executor_job = fake_async_add_executor_job
+
+    data_first = asyncio.run(coord._async_update_data())
+    assert data_first == results
+    assert coord._data_cache == results
+    assert read_calls == [([plan], [])]
+    coord._item_next_read["topic/a"] += 100.0
+
+    data_second = asyncio.run(coord._async_update_data())
+    assert data_second == results
+    assert len(read_calls) == 1
+
+
 def test_read_all_raises_update_failed_on_connection_error(monkeypatch):
     coord = make_coordinator(monkeypatch)
 
@@ -173,14 +214,14 @@ def test_read_all_raises_update_failed_on_connection_error(monkeypatch):
     coord._ensure_connected = raise_connect
 
     with pytest.raises(coordinator.UpdateFailed) as err:
-        coord._read_all()
+        coord._read_all([], [])
 
     assert "connect boom" in str(err.value)
 
 
 def test_read_all_raises_update_failed_on_read_error(monkeypatch):
     coord = make_coordinator(monkeypatch)
-    coord._plans_batch = [TagPlan("topic/a", DummyTag())]
+    plans = [TagPlan("topic/a", DummyTag())]
 
     drop_calls: list[bool] = []
 
@@ -195,7 +236,7 @@ def test_read_all_raises_update_failed_on_read_error(monkeypatch):
     coord._read_batch = raise_read
 
     with pytest.raises(coordinator.UpdateFailed) as err:
-        coord._read_all()
+        coord._read_all(plans, [])
 
     assert drop_calls == [True]
     assert "read boom" in str(err.value)

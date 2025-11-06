@@ -41,6 +41,8 @@ S7ClientT = "pyS7.S7Client"
 class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     """Coordinator handling Snap7 connection, polling and writes."""
 
+    _MIN_SCAN_INTERVAL = 0.05  # seconds
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -59,12 +61,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             hass,
             _LOGGER,
             name="s7plc_coordinator",
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(
+                seconds=max(scan_interval, self._MIN_SCAN_INTERVAL)
+            ),
         )
         self._host = host
         self._rack = rack
         self._slot = slot
         self._port = port
+
+        self._default_scan_interval = max(float(scan_interval), self._MIN_SCAN_INTERVAL)
 
         # Timeout/retry settings
         self._op_timeout = float(op_timeout)
@@ -79,11 +85,19 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._items: Dict[str, str] = {}
 
         # Read plan cache
-        self._plans_batch: list[TagPlan] = []
-        self._plans_str: list[StringPlan] = []
+        self._plans_batch: dict[str, TagPlan] = {}
+        self._plans_str: dict[str, StringPlan] = {}
 
         # Cache for parsed tags used by writes
         self._write_tags: dict[str, S7Tag] = {}
+
+        # Scan interval bookkeeping
+        self._item_scan_intervals: dict[str, float] = {}
+        self._item_next_read: dict[str, float] = {}
+
+        # Store the latest values so entities keep their last state when a tag
+        # is not due for polling in the current cycle.
+        self._data_cache: dict[str, Any] = {}
 
     @property
     def host(self) -> str:
@@ -137,11 +151,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # -------------------------
     # Address management
     # -------------------------
-    def add_item(self, topic: str, address: str) -> None:
+    def add_item(
+        self, topic: str, address: str, scan_interval: float | int | None = None
+    ) -> None:
         """Map a topic to a PLC address and invalidate caches."""
         with self._lock:
             self._items[topic] = address
+            self._item_scan_intervals[topic] = self._normalize_scan_interval(
+                scan_interval
+            )
+            self._item_next_read[topic] = time.monotonic()
             self._invalidate_cache()
+            self._update_min_interval_locked()
 
     def _invalidate_cache(self) -> None:
         """Clear read and write plan caches."""
@@ -151,7 +172,34 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _build_tag_cache(self) -> None:
         """Build read plans for scalar and string tags."""
-        self._plans_batch, self._plans_str = build_plans(self._items)
+        plans_batch, plans_str = build_plans(self._items)
+        self._plans_batch = {plan.topic: plan for plan in plans_batch}
+        self._plans_str = {plan.topic: plan for plan in plans_str}
+
+    def _normalize_scan_interval(self, scan_interval: float | int | None) -> float:
+        """Return a sanitized scan interval for an item."""
+
+        if scan_interval is None:
+            return self._default_scan_interval
+        try:
+            interval = float(scan_interval)
+        except (TypeError, ValueError):
+            interval = self._default_scan_interval
+        else:
+            if interval <= 0:
+                interval = self._default_scan_interval
+        return max(interval, self._MIN_SCAN_INTERVAL)
+
+    def _update_min_interval_locked(self) -> None:
+        """Update the coordinator polling interval based on registered tags."""
+
+        if self._item_scan_intervals:
+            min_interval = min(self._item_scan_intervals.values())
+        else:
+            min_interval = self._default_scan_interval
+
+        min_interval = max(min_interval, self._MIN_SCAN_INTERVAL)
+        self.update_interval = timedelta(seconds=min_interval)
 
     # -------------------------
     # Retry/timeout helpers
@@ -205,10 +253,50 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Update loop
     # -------------------------
     async def _async_update_data(self) -> Dict[str, Any]:
-        if not self._plans_batch and not self._plans_str:
-            with self._lock:
+        now = time.monotonic()
+
+        with self._lock:
+            if not self._plans_batch and not self._plans_str:
                 self._build_tag_cache()
-        return await self.hass.async_add_executor_job(self._read_all)
+            due_topics = [
+                topic for topic, due in self._item_next_read.items() if due <= now
+            ]
+
+            if not due_topics and not self._data_cache:
+                # First refresh without cached data: read all topics once.
+                due_topics = list(self._items.keys())
+                now = time.monotonic()
+                for topic in due_topics:
+                    self._item_next_read[topic] = now
+
+            plans_batch = [
+                self._plans_batch[topic]
+                for topic in due_topics
+                if topic in self._plans_batch
+            ]
+            plans_str = [
+                self._plans_str[topic]
+                for topic in due_topics
+                if topic in self._plans_str
+            ]
+
+        if not plans_batch and not plans_str:
+            return dict(self._data_cache)
+
+        results = await self.hass.async_add_executor_job(
+            self._read_all, plans_batch, plans_str
+        )
+
+        with self._lock:
+            read_time = time.monotonic()
+            for topic in due_topics:
+                interval = self._item_scan_intervals.get(
+                    topic, self._default_scan_interval
+                )
+                interval = max(interval, self._MIN_SCAN_INTERVAL)
+                self._item_next_read[topic] = read_time + interval
+            self._data_cache.update(results)
+            return dict(self._data_cache)
 
     def _get_pdu_limit(self) -> int:
         # payload < PDU to leave space for headers (snap7 reserves ~18B)
@@ -300,15 +388,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 results.setdefault(plan.topic, None)
         return results
 
-    def _read_all(self) -> Dict[str, Any]:
+    def _read_all(
+        self, plans_batch: list[TagPlan], plans_str: list[StringPlan]
+    ) -> Dict[str, Any]:
         with self._lock:
             try:
                 self._ensure_connected()
             except (OSError, RuntimeError) as err:
                 _LOGGER.error("Connection failed: %s", err)
                 raise UpdateFailed(f"Connection failed: {err}") from err
-            plans_batch = list(self._plans_batch)
-            plans_str = list(self._plans_str)
 
         start_ts = time.monotonic()
         deadline = start_ts + self._op_timeout

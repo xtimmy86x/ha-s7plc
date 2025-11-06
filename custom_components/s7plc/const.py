@@ -20,6 +20,7 @@ CONF_BUTTON_PULSE = "button_pulse"
 CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
+CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
