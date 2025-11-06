@@ -200,6 +200,8 @@ Example: removing an entity via the UI:
 
 ### Polling interval guidance
 
+- Use per-tag scan interval overrides when only a subset of tags require faster updates. The coordinator automatically keeps the global polling loop aligned to the fastest tag while slower tags are polled at their own cadence.
+
 - The **Scan interval** accepts decimal values, so entering `0.25` results in a 250 ms polling loop.
 - Millisecond-level polling dramatically increases traffic to the PLC and HA host. Only use sub-second values when monitoring a very small set of critical tags.
 - If you need faster reactions, prefer edge-triggered logic in the PLC itself and reserve rapid polling for diagnostics or lightweight booleans.
