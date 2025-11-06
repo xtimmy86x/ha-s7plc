@@ -164,9 +164,8 @@ class S7Number(S7BaseEntity, NumberEntity):
 
     @property
     def extra_state_attributes(self):
-        # Avoid exceptions if any attr remains None
-        return {
-            "min_value": getattr(self, "_attr_native_min_value", None),
-            "max_value": getattr(self, "_attr_native_max_value", None),
-            "step": getattr(self, "_attr_native_step", None),
-        }
+        attrs = dict(super().extra_state_attributes or {})
+        attrs["min_value"] = self.min_value
+        attrs["max_value"] = self.max_value
+        attrs["step"] = self.step
+        return attrs
