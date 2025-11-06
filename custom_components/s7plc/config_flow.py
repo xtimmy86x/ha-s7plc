@@ -1222,6 +1222,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     new_item[CONF_NAME] = user_input[CONF_NAME]
                 if user_input.get(CONF_DEVICE_CLASS):
                     new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_SENSORS][idx] = new_item
                 self._clear_edit_state()

@@ -203,6 +203,34 @@ def test_number_limits_clamped_on_add(monkeypatch):
     assert stored[const.CONF_MAX_VALUE] == 32767.0
 
 
+def test_edit_sensor_scan_interval_can_be_cleared(monkeypatch):
+    options = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1.DBX0.0", const.CONF_SCAN_INTERVAL: 1.5}
+        ]
+    }
+
+    flow = make_options_flow(options=options)
+    flow._action = "edit"
+    flow._edit_target = ("s", 0)
+
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
+
+    result = run_flow(
+        flow.async_step_edit_sensor(
+            {
+                const.CONF_ADDRESS: "DB1.DBX0.0",
+                CONF_NAME: "",
+                const.CONF_SCAN_INTERVAL: "",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert const.CONF_SCAN_INTERVAL not in sensor
+    
+
 def test_number_limits_clamped_on_edit(monkeypatch):
     options = {
         const.CONF_NUMBERS: [
