@@ -5,7 +5,6 @@ import contextlib
 import inspect
 import json
 import logging
-from urllib.parse import quote
 from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
 
@@ -18,7 +17,6 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
-from homeassistant.util import slugify
 
 from .address import get_numeric_limits, parse_tag
 from .const import (
@@ -57,11 +55,7 @@ from .const import (
     OPTION_KEYS,
 )
 from .coordinator import S7Coordinator
-from .export import (
-    build_export_json,
-    build_export_payload,
-    register_export_download,
-)
+from .export import build_export_json, build_export_payload, register_export_download
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -450,7 +444,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     def _exportable_options(self) -> dict[str, list[dict[str, Any]]]:
         return build_export_payload(self._options)
-    
+
     def _build_export_data(self) -> str:
         return build_export_json(self._options)
 

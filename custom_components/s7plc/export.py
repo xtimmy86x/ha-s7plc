@@ -20,6 +20,7 @@ except ImportError:  # pragma: no cover - fallback for static analysis/tests wit
     def slugify(value: str | None) -> str:
         return ""
 
+
 from .const import DOMAIN, OPTION_KEYS
 
 DOWNLOAD_TTL = 300
