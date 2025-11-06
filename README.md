@@ -96,6 +96,10 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
    - Use **Add another** to chain the creation of multiple entities; after the last 
      sensor/entity you must click **Send** to persist it, otherwise the entries will be  discarded.
 
+#### Exporting and importing PLC items
+
+Need to move your configuration to another Home Assistant instance or keep a backup of the PLC items you built? From the integration options choose **Export items** to download a JSON file that contains every configured variable along with its metadata. You can later select **Import items** and point to the saved file to restore the same entities, including all addresses, limits, pulse times, and selectors. Imports validate the JSON structure and show a clear error in the dialog if the payload is malformed so you can fix or regenerate the backup before retrying.
+
 ### Timeout & Retry settings
 
 During the initial setup you can now tune the PLC communication resilience directly from the UI:
