@@ -334,7 +334,7 @@
       },
       "export": {
         "title": "Esporta configurazione",
-        "description": "Copia il JSON seguente per eseguire il backup di {item_count} elementi configurati. Invia il modulo quando hai finito.",
+        "description": "Copia il JSON qui sotto per eseguire il backup di {item_count} elementi configurati. Puoi anche {download_link_start}scaricare la configurazione{download_link_end} per salvare {download_filename}. Invia la finestra di dialogo quando hai finito.",
         "data": {
           "export_json": "JSON di configurazione"
         },

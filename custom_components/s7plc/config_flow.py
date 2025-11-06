@@ -1099,8 +1099,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 data_schema=data_schema,
                 description_placeholders={
                     "item_count": str(item_count),
-                    "download_url": download_link.url,
                     "download_filename": download_link.filename,
+                    "download_link_start": (
+                        f'<a href="{download_link.url}" download="{download_link.filename}" '
+                        'target="_blank" rel="noopener">'
+                    ),
+                    "download_link_end": "</a>",
                 },
             )
 
