@@ -3,7 +3,7 @@
   "name": "Siemens S7",
   "codeowners": ["@xtimmy86x"],
   "config_flow": true,
-  "dependencies": ["network"],
+  "dependencies": ["network", "http"],
   "documentation": "https://github.com/xtimmy86x/ha-s7plc",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/xtimmy86x/ha-s7plc/issues",

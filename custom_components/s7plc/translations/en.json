@@ -54,8 +54,8 @@
           "numbers": "Add Number",
           "edit": "Edit items",
           "remove": "Remove items",
-          "export": "Export configuration",
-          "import": "Import configuration"
+          "export": "Export items",
+          "import": "Import items"
         }
       },
       "remove": {
@@ -334,12 +334,12 @@
       },
       "export": {
         "title": "Export configuration",
-        "description": "Copy the JSON below to back up {item_count} configured items. Submit the dialog when you are done.",
+        "description": "Copy the JSON below to back up {item_count} configured items. You can also {download_link_start}download the configuration{download_link_end} to save {download_filename}. Submit the dialog when you are done.",
         "data": {
           "export_json": "Configuration JSON"
         },
         "data_description": {
-          "export_json": "Copy and store this JSON to export your variables and their settings."
+          "export_json": "Copy and store this JSON to export your variables and their settings. You can also use the download button above to save the configuration to a file."
         }
       },
       "import": {
