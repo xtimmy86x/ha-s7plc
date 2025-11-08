@@ -141,7 +141,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
-          "sync_state": "Sincronizza stato con il PLC",
+          "sync_state": "Sincronizza stato su indirizzo comando",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
@@ -149,7 +149,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,DBX0.0).",
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
           "name": "Nome descrittivo opzionale per lo switch.",
-          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
           "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri switch."
         }
@@ -179,7 +179,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
-          "sync_state": "Sincronizza stato con il PLC",
+          "sync_state": "Sincronizza stato su indirizzo comando",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
@@ -187,7 +187,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
-          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
           "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre luci."
         }
