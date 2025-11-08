@@ -30,6 +30,7 @@ CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_VALUE_MULTIPLIER = "value_multiplier"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0

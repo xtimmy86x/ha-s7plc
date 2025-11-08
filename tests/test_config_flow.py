@@ -232,6 +232,75 @@ def test_edit_sensor_scan_interval_can_be_cleared(monkeypatch):
     assert const.CONF_SCAN_INTERVAL not in sensor
     
 
+def test_add_sensor_with_value_multiplier(monkeypatch):
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_VALUE_MULTIPLIER: "0.25",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
+
+
+def test_add_sensor_with_value_multiplier_comma_decimal(monkeypatch):
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_VALUE_MULTIPLIER: "0,25",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
+
+
+def test_edit_sensor_value_multiplier_can_be_cleared(monkeypatch):
+    options = {
+        const.CONF_SENSORS: [
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_VALUE_MULTIPLIER: 2.0,
+            }
+        ]
+    }
+
+    flow = make_options_flow(options=options)
+    flow._action = "edit"
+    flow._edit_target = ("s", 0)
+
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
+
+    result = run_flow(
+        flow.async_step_edit_sensor(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                CONF_NAME: "",
+                const.CONF_VALUE_MULTIPLIER: "",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert const.CONF_VALUE_MULTIPLIER not in sensor
+
+    
 def test_number_limits_clamped_on_edit(monkeypatch):
     options = {
         const.CONF_NUMBERS: [
