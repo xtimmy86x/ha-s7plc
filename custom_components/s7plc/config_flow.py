@@ -1497,8 +1497,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         idx, item = lookup
         errors: dict[str, str] = {}
 
-        data_schema = vol.Schema(
-            {
+        schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
                 ): selector.TextSelector(),
@@ -1513,11 +1512,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+        }
+
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                ): scan_interval_selector,
-            }
-        )
+                )
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
+
+        data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
             state_address = self._sanitize_address(
@@ -1639,8 +1645,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         idx, item = lookup
         errors: dict[str, str] = {}
 
-        data_schema = vol.Schema(
-            {
+        schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
                 ): selector.TextSelector(),
@@ -1655,11 +1660,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+            }
+        
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                ): scan_interval_selector,
-            }
-        )
+                )
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
+            
+        data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
             state_address = self._sanitize_address(
@@ -1727,8 +1739,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
         )
 
-        data_schema = vol.Schema(
-            {
+        schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
                 ): selector.TextSelector(),
@@ -1745,12 +1756,27 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
                 ): number_selector,
-                vol.Optional(CONF_STEP, default=item.get(CONF_STEP)): positive_selector,
+            }
+
+        if item.get(CONF_STEP) is not None:
+            schema_dict[
+                vol.Optional(
+                    CONF_STEP, default=item.get(CONF_STEP)
+                )
+            ] = positive_selector
+        else:
+            schema_dict[vol.Optional(CONF_STEP)] = positive_selector
+
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                ): scan_interval_selector,
-            }
-        )
+                )
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
+            
+        data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
             address = self._sanitize_address(user_input.get(CONF_ADDRESS))
