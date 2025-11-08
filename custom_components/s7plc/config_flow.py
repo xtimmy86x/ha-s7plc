@@ -419,7 +419,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item.pop(CONF_VALUE_MULTIPLIER, None)
         else:
             item[CONF_VALUE_MULTIPLIER] = normalized
-            
 
     def _has_duplicate(
         self,
@@ -1359,9 +1358,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         if item.get(CONF_SCAN_INTERVAL) is not None:
             schema_dict[
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                )
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
             ] = scan_interval_selector
         else:
             schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
@@ -1448,9 +1445,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         if item.get(CONF_SCAN_INTERVAL) is not None:
             schema_dict[
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                )
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
             ] = scan_interval_selector
         else:
             schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
@@ -1498,27 +1493,25 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_SYNC_STATE,
-                    default=bool(item.get(CONF_SYNC_STATE, False)),
-                ): selector.BooleanSelector(),
+            vol.Required(
+                CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COMMAND_ADDRESS,
+                default=item.get(CONF_COMMAND_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NAME, default=item.get(CONF_NAME, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_SYNC_STATE,
+                default=bool(item.get(CONF_SYNC_STATE, False)),
+            ): selector.BooleanSelector(),
         }
 
         if item.get(CONF_SCAN_INTERVAL) is not None:
             schema_dict[
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                )
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
             ] = scan_interval_selector
         else:
             schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
@@ -1646,31 +1639,29 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_SYNC_STATE,
-                    default=bool(item.get(CONF_SYNC_STATE, False)),
-                ): selector.BooleanSelector(),
-            }
-        
+            vol.Required(
+                CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COMMAND_ADDRESS,
+                default=item.get(CONF_COMMAND_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NAME, default=item.get(CONF_NAME, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_SYNC_STATE,
+                default=bool(item.get(CONF_SYNC_STATE, False)),
+            ): selector.BooleanSelector(),
+        }
+
         if item.get(CONF_SCAN_INTERVAL) is not None:
             schema_dict[
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                )
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
             ] = scan_interval_selector
         else:
             schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-            
+
         data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
@@ -1740,42 +1731,38 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-                ): number_selector,
-                vol.Optional(
-                    CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-                ): number_selector,
-            }
+            vol.Required(
+                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COMMAND_ADDRESS,
+                default=item.get(CONF_COMMAND_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NAME, default=item.get(CONF_NAME, "")
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+            ): number_selector,
+            vol.Optional(
+                CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+            ): number_selector,
+        }
 
         if item.get(CONF_STEP) is not None:
-            schema_dict[
-                vol.Optional(
-                    CONF_STEP, default=item.get(CONF_STEP)
-                )
-            ] = positive_selector
+            schema_dict[vol.Optional(CONF_STEP, default=item.get(CONF_STEP))] = (
+                positive_selector
+            )
         else:
             schema_dict[vol.Optional(CONF_STEP)] = positive_selector
 
         if item.get(CONF_SCAN_INTERVAL) is not None:
             schema_dict[
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
-                )
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
             ] = scan_interval_selector
         else:
             schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-            
+
         data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
