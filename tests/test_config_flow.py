@@ -251,6 +251,25 @@ def test_add_sensor_with_value_multiplier(monkeypatch):
     assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
 
 
+def test_add_sensor_with_value_multiplier_comma_decimal(monkeypatch):
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_VALUE_MULTIPLIER: "0,25",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
+
+
 def test_edit_sensor_value_multiplier_can_be_cleared(monkeypatch):
     options = {
         const.CONF_SENSORS: [

@@ -1357,9 +1357,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
             )
 
-        schema_dict[
-            vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-        ] = scan_interval_selector
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
+                )
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
 
         if item.get(CONF_VALUE_MULTIPLIER) is not None:
             schema_dict[
@@ -1441,9 +1446,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
             )
 
-        schema_dict[
-            vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-        ] = scan_interval_selector
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL)
+                )
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
 
         data_schema = vol.Schema(schema_dict)
 
