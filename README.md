@@ -98,7 +98,12 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 
 #### Exporting and importing PLC items
 
-Need to move your configuration to another Home Assistant instance or keep a backup of the PLC items you built? From the integration options choose **Export items** to download a JSON file that contains every configured variable along with its metadata. You can later select **Import items** and point to the saved file to restore the same entities, including all addresses, limits, pulse times, and selectors. Imports validate the JSON structure and show a clear error in the dialog if the payload is malformed so you can fix or regenerate the backup before retrying.
+Need to move your configuration to another Home Assistant instance or keep a backup of the PLC items you built? Open the integration options and choose **Export items**:
+
+1. The dialog shows the JSON payload and offers a download link; the link stays active for five minutes so you can save the file directly from your browser.
+2. The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `button`, `light`, `number`) together with their addresses, limits, scan intervals, and other metadata.
+
+To restore a backup select **Import items** and paste the exported JSON. The integration validates the structure before applying it and surfaces clear errors when the JSON is malformed. A successful import replaces the entire set of configured items with the contents of the file (use an empty list in the JSON to clear a category) while keeping any other integration options intact, so review the payload before submitting it.
 
 ### Timeout & Retry settings
 
