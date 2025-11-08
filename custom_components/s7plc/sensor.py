@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import numbers
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -26,6 +27,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
+    CONF_VALUE_MULTIPLIER,
     DOMAIN,
 )
 from .entity import S7BaseEntity
@@ -85,10 +87,20 @@ async def async_setup_entry(
         topic = f"sensor:{address}"
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
+        value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await hass.async_add_executor_job(coord.add_item, topic, address, scan_interval)
         entities.append(
-            S7Sensor(coord, name, unique_id, device_info, topic, address, device_class)
+            S7Sensor(
+                coord,
+                name,
+                unique_id,
+                device_info,
+                topic,
+                address,
+                device_class,
+                value_multiplier,
+            )
         )
 
     if entities:
@@ -106,6 +118,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         topic: str,
         address: str,
         device_class: str | None,
+        value_multiplier: float | None,
     ):
         super().__init__(
             coordinator,
@@ -114,6 +127,9 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             device_info=device_info,
             topic=topic,
             address=address,
+        )
+        self._value_multiplier = (
+            float(value_multiplier) if value_multiplier not in (None, "") else None
         )
         if device_class:
             try:
@@ -128,4 +144,27 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return (self.coordinator.data or {}).get(self._topic)
+        value = (self.coordinator.data or {}).get(self._topic)
+        if self._value_multiplier is None or value is None:
+            return value
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, numbers.Number):
+            return value * self._value_multiplier
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            _LOGGER.debug(
+                "Cannot apply multiplier to non-numeric value for %s: %s",
+                self._topic,
+                value,
+            )
+            return value
+        return numeric_value * self._value_multiplier
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes
+        if self._value_multiplier is not None:
+            attrs["value_multiplier"] = self._value_multiplier
+        return attrs

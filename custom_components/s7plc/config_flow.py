@@ -5,6 +5,7 @@ import contextlib
 import inspect
 import json
 import logging
+import math
 from ipaddress import ip_interface, ip_network
 from typing import Any, Dict, List
 
@@ -42,6 +43,7 @@ from .const import (
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_VALUE_MULTIPLIER,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
@@ -73,6 +75,12 @@ scan_interval_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         min=0.05,
         max=3600,
+        mode=selector.NumberSelectorMode.BOX,
+    )
+)
+
+value_multiplier_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
         mode=selector.NumberSelectorMode.BOX,
     )
 )
@@ -381,6 +389,37 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item.pop(CONF_SCAN_INTERVAL, None)
         else:
             item[CONF_SCAN_INTERVAL] = normalized
+
+    @staticmethod
+    def _normalize_value_multiplier(value: Any | None) -> float | None:
+        if value in (None, ""):
+            return None
+
+        candidate = value
+        if isinstance(candidate, str):
+            candidate = candidate.strip()
+            if not candidate:
+                return None
+            candidate = candidate.replace(",", ".")
+
+        try:
+            multiplier = float(candidate)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid multiplier") from exc
+
+        if not math.isfinite(multiplier):
+            raise ValueError("invalid multiplier")
+
+        return multiplier
+
+    @staticmethod
+    def _apply_value_multiplier(item: dict[str, Any], value: Any | None) -> None:
+        normalized = S7PLCOptionsFlow._normalize_value_multiplier(value)
+        if normalized is None:
+            item.pop(CONF_VALUE_MULTIPLIER, None)
+        else:
+            item[CONF_VALUE_MULTIPLIER] = normalized
+            
 
     def _has_duplicate(
         self,
@@ -692,6 +731,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -713,6 +753,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                             item[CONF_NAME] = user_input[CONF_NAME]
                         if user_input.get(CONF_DEVICE_CLASS):
                             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                        self._apply_value_multiplier(
+                            item, user_input.get(CONF_VALUE_MULTIPLIER)
+                        )
                         self._apply_scan_interval(
                             item, user_input.get(CONF_SCAN_INTERVAL)
                         )
@@ -1198,7 +1241,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if idx not in rm_nm
                 ]
 
-            # Save and close: __init__.py will reload the entry and the entities will disappear
+            # Save and close: __init__.py will reload the entry
+            # and the entities will disappear
             return self.async_create_entry(title="", data=self._options)
 
         # Preselect nothing: the user chooses what to remove
@@ -1317,6 +1361,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
         ] = scan_interval_selector
 
+        if item.get(CONF_VALUE_MULTIPLIER) is not None:
+            schema_dict[
+                vol.Optional(
+                    CONF_VALUE_MULTIPLIER, default=item.get(CONF_VALUE_MULTIPLIER)
+                )
+            ] = value_multiplier_selector
+        else:
+            schema_dict[vol.Optional(CONF_VALUE_MULTIPLIER)] = value_multiplier_selector
+
         data_schema = vol.Schema(schema_dict)
 
         if user_input is not None:
@@ -1338,6 +1391,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     new_item[CONF_NAME] = user_input[CONF_NAME]
                 if user_input.get(CONF_DEVICE_CLASS):
                     new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+                self._apply_value_multiplier(
+                    new_item, user_input.get(CONF_VALUE_MULTIPLIER)
+                )
                 self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
 
                 self._options[CONF_SENSORS][idx] = new_item
