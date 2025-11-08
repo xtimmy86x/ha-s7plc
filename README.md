@@ -35,6 +35,7 @@
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
 - 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`,  `number`.
+- 🧮 **Value multipliers**: scale raw PLC values before Home Assistant sees them (e.g., convert tenths or hundredths to human-friendly units).
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
 - 🔍 **Optional auto-discovery**: the setup wizard pre-populates PLCs found on your local network while still allowing manual IP entry.
@@ -89,6 +90,8 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
      Enable `sync_state` to mirror PLC state changes to the command address.
    - `button` entries command a true value and after a configured
      `pulse time` send false.
+   - `sensor` entries can apply a `value_multiplier` to rescale numeric PLC data on the fly
+     (e.g., `0.1` to expose tenths as full units).
    - `number` entries expose INT/DINT/REAL values with an optional `command_address`.
      You may set `min`, `max`, and `step` for Home Assistant; limits outside the PLC data type range are automatically clamped to the closest supported value so you can express relative bounds without worrying about overflows.
    - Every item lets you override the **scan interval** just for that tag. 
