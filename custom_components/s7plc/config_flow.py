@@ -659,23 +659,23 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_create_entry(title="", data=self._options)
 
-    # ====== STEP 0: scegli azione (aggiungi o rimuovi) ======
+    # ====== STEP 0: choose action (add or remove) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        # Mostra un menu con le prossime tappe; le etichette arrivano da strings.json
+        # Show a menu with the next steps; labels come from strings.json
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "connection",  # modifica parametri di connessione
-                "sensors",  # salta direttamente a "Add Sensor"
-                "binary_sensors",  # salta direttamente a "Add Binary Sensor"
-                "switches",  # salta direttamente a "Add Switch"
-                "buttons",  # salta direttamente a "Add Button"
-                "lights",  # salta direttamente a "Add Light"
-                "numbers",  # salta direttamente a "Add Number"
-                "edit",  # modifica entità esistenti
-                "remove",  # rimozione
-                "export",  # esporta configurazione
-                "import",  # importa configurazione da JSON
+                "connection",  # modify connection parameters
+                "sensors",  # skip directly to "Add Sensor"
+                "binary_sensors",  # skip directly to "Add Binary Sensor"
+                "switches",  # skip directly to "Add Switch"
+                "buttons",  # skip directly to "Add Button"
+                "lights",  # skip directly to "Add Light"
+                "numbers",  # skip directly to "Add Number"
+                "edit",  # modify existing entities
+                "remove",  # removal
+                "export",  # export configuration
+                "import",  # import configuration from JSON
             ],
         )
 
@@ -1151,15 +1151,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     # ====== STEP B: remove ======
     async def async_step_remove(self, user_input: dict[str, Any] | None = None):
-        # Costruisci mappa chiave->label per tutti gli elementi configurati
-        # chiave unica: prefisso tipo + indice, es. "s:0", "bs:1", "sw:2", "lt:0"
+        # Build a key->label map for all configured items
+        # Unique key: type prefix + index, e.g. "s:0", "bs:1", "sw:2", "lt:0"
         items: Dict[str, str] = self._build_items_map()
 
         if user_input is not None:
             to_remove: List[str] = user_input.get("remove_items", [])
-            # filtra ogni lista rimuovendo gli indici selezionati
+            # filter each list removing the selected indices
             if to_remove:
-                # costruisci set di indici per tipo
+                # build set of indices for type
                 rm_s = {int(k.split(":")[1]) for k in to_remove if k.startswith("s:")}
                 rm_bs = {int(k.split(":")[1]) for k in to_remove if k.startswith("bs:")}
                 rm_sw = {int(k.split(":")[1]) for k in to_remove if k.startswith("sw:")}
@@ -1198,14 +1198,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     if idx not in rm_nm
                 ]
 
-            # salva e chiudi: __init__.py farà reload dell’entry e le entità spariranno
+            # Save and close: __init__.py will reload the entry and the entities will disappear
             return self.async_create_entry(title="", data=self._options)
 
-        # Preseleziona niente: l’utente sceglie cosa rimuovere
+        # Preselect nothing: the user chooses what to remove
         data_schema = vol.Schema(
             {vol.Optional("remove_items", default=[]): cv.multi_select(items)}
         )
-        # Title/description da translations: options.step.remove.*
+        # Title/description from translations: options.step.remove.*
         return self.async_show_form(step_id="remove", data_schema=data_schema)
 
     # ====== STEP C: edit ======
