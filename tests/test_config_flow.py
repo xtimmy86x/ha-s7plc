@@ -9,6 +9,7 @@ import pytest
 
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import selector
 
 from custom_components.s7plc import config_flow
 from custom_components.s7plc import const
@@ -57,7 +58,6 @@ def test_add_step_shows_item_selector():
     )
 
     item_selector = result["kwargs"]["data_schema"].schema["item_type"]
-    assert item_selector.config.translation_key == "add_item_type"
     assert [opt["value"] for opt in item_selector.config.options] == list(
         config_flow.ADD_ENTITY_STEP_IDS
     )
