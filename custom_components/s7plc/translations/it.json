@@ -45,17 +45,21 @@
         "description": "Scegli cosa vuoi fare.",
         "menu_options": {
           "connection": "Modifica connessione PLC",
-          "add": "Aggiungi entità (guidato)",
-          "sensors": "Aggiungi Sensore",
-          "binary_sensors": "Aggiungi Sensore Binario",
-          "switches": "Aggiungi Switch",
-          "buttons": "Aggiungi Pulsante",
-          "lights": "Aggiungi Luce",
-          "numbers": "Aggiungi Numero",
+          "add": "Aggiungi entità",
           "edit": "Modifica entità",
           "remove": "Rimuovi entità",
           "export": "Esporta configurazione",
           "import": "Importa configurazione"
+        }
+      },
+      "add": {
+        "title": "Aggiungi Elementi",
+        "description": "Seleziona il tipo di elemento che vuoi aggiungere a questa configurazione del PLC.",
+        "data": {
+          "item_type": "Tipo di elemento da aggiungere"
+        },
+        "data_description": {
+          "item_type": "Scegli il tipo di entità da creare (sensore, sensore binario, interruttore, pulsante, luce, numero)."
         }
       },
       "remove": {
@@ -363,7 +367,8 @@
       "no_items": "Non ci sono elementi configurati da modificare.",
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
       "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
-      "invalid_json": "Payload JSON non valido."
+      "invalid_json": "Payload JSON non valido.",
+      "invalid_selection": "Seleziona un tipo di elemento valido."
     }
   },
   "entity": {

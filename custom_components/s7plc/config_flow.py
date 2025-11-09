@@ -86,6 +86,37 @@ value_multiplier_selector = selector.NumberSelector(
 )
 
 
+ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
+    "sensors",
+    "binary_sensors",
+    "switches",
+    "buttons",
+    "lights",
+    "numbers",
+)
+
+ADD_ENTITY_LABELS: dict[str, str] = {
+    "sensors": "Sensor",
+    "binary_sensors": "Binary sensor",
+    "switches": "Switch",
+    "buttons": "Button",
+    "lights": "Light",
+    "numbers": "Number",
+}
+
+ADD_ENTITY_SELECT_OPTIONS = [
+    selector.SelectOptionDict(value=step_id, label=ADD_ENTITY_LABELS[step_id])
+    for step_id in ADD_ENTITY_STEP_IDS
+]
+
+add_item_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=ADD_ENTITY_SELECT_OPTIONS,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
 
@@ -704,18 +735,35 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             menu_options=[
                 "connection",  # modify connection parameters
-                "sensors",  # skip directly to "Add Sensor"
-                "binary_sensors",  # skip directly to "Add Binary Sensor"
-                "switches",  # skip directly to "Add Switch"
-                "buttons",  # skip directly to "Add Button"
-                "lights",  # skip directly to "Add Light"
-                "numbers",  # skip directly to "Add Number"
+                "add",  # guided item addition flow
                 "edit",  # modify existing entities
-                "remove",  # removal
+                "remove",  # remove existing entities
                 "export",  # export configuration
                 "import",  # import configuration from JSON
             ],
         )
+
+    async def async_step_add(self, user_input: dict[str, Any] | None = None):
+        data_schema = vol.Schema(
+            {
+                vol.Required("item_type"): add_item_selector,
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(step_id="add", data_schema=data_schema)
+
+        selection = user_input.get("item_type")
+
+        if selection not in ADD_ENTITY_STEP_IDS:
+            return self.async_show_form(
+                step_id="add",
+                data_schema=data_schema,
+                errors={"base": "invalid_selection"},
+            )
+
+        handler = getattr(self, f"async_step_{selection}")
+        return await handler()
 
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}

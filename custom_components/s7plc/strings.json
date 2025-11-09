@@ -45,17 +45,21 @@
         "description": "Choose what you want to do.",
         "menu_options": {
           "connection": "Edit PLC connection",
-          "add": "Add items (guided)",
-          "sensors": "Add Sensor",
-          "binary_sensors": "Add Binary Sensor",
-          "switches": "Add Switch",
-          "buttons": "Add Button",
-          "lights": "Add Light",
-          "numbers": "Add Number",
+          "add": "Add items",
           "edit": "Edit items",
           "remove": "Remove items",
           "export": "Export items",
           "import": "Import items"
+        }
+      },
+      "add": {
+        "title": "Add Items",
+        "description": "Select the type of item you want to add.",
+        "data": {
+          "item_type": "Item type"
+        },
+        "data_description": {
+          "item_type": "Choose the kind of Home Assistant entity to configure for this PLC."
         }
       },
       "remove": {
@@ -363,7 +367,8 @@
       "no_items": "There are no configured items to edit.",
       "cannot_connect": "Cannot connect to the PLC with the provided settings.",
       "already_configured": "Another S7 PLC entry already uses these connection parameters.",
-      "invalid_json": "Invalid JSON payload."
+      "invalid_json": "Invalid JSON payload.",
+      "invalid_selection": "Select a valid item type."
     }
   },
   "entity": {

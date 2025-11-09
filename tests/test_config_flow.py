@@ -45,6 +45,42 @@ def run_flow(coro):
     return result
 
 
+def test_add_step_shows_item_selector():
+    flow = make_options_flow()
+
+    result = run_flow(flow.async_step_add())
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["step_id"] == "add"
+    assert isinstance(
+        result["kwargs"]["data_schema"].schema["item_type"], selector.SelectSelector
+    )
+
+    item_selector = result["kwargs"]["data_schema"].schema["item_type"]
+    assert item_selector.config.translation_key == "add_item_type"
+    assert [opt["value"] for opt in item_selector.config.options] == list(
+        config_flow.ADD_ENTITY_STEP_IDS
+    )
+
+
+def test_add_step_routes_to_selected_handler(monkeypatch):
+    flow = make_options_flow()
+
+    called: dict[str, bool] = {}
+
+    async def fake_sensor_step(user_input=None):
+        called["invoked"] = True
+        called["user_input"] = user_input
+        return {"type": "form", "step_id": "sensors"}
+
+    monkeypatch.setattr(flow, "async_step_sensors", fake_sensor_step)
+
+    result = run_flow(flow.async_step_add({"item_type": "sensors"}))
+
+    assert called == {"invoked": True, "user_input": None}
+    assert result["step_id"] == "sensors"
+
+
 def test_sanitize_and_normalize_address():
     flow = make_options_flow()
 
