@@ -242,7 +242,7 @@ def test_read_all_raises_update_failed_on_read_error(monkeypatch):
     assert "read boom" in str(err.value)
 
     
-def test_read_strings_respects_deadline(monkeypatch):
+def test_read_strings_raises_on_timeout(monkeypatch, caplog):
     coord = make_coordinator(monkeypatch)
 
     plans = [
@@ -261,11 +261,44 @@ def test_read_strings_respects_deadline(monkeypatch):
 
     coord._read_s7_string = fake_read
 
-    results = coord._read_strings(plans, deadline=50.0)
+    with pytest.raises(coordinator.UpdateFailed) as err:
+        coord._read_strings(plans, deadline=50.0)
 
+    assert "timeout" in str(err.value).lower()
     assert read_calls == [(1, 0)]
-    assert results["topic/a"] == "value"
-    assert results["topic/b"] is None
+    assert any("String read timeout" in message for message in caplog.messages)
+
+
+def test_read_strings_raises_on_error(monkeypatch, caplog):
+    coord = make_coordinator(monkeypatch)
+
+    plans = [StringPlan("topic/a", 1, 0)]
+
+    def fake_read(db, start):
+        raise RuntimeError("boom")
+
+    coord._read_s7_string = fake_read
+    monkeypatch.setattr(coordinator.time, "monotonic", lambda: 0.0)
+
+    with pytest.raises(coordinator.UpdateFailed) as err:
+        coord._read_strings(plans, deadline=50.0)
+
+    assert "boom" in str(err.value)
+    assert any("String read error" in message for message in caplog.messages)
+
+
+def test_read_all_propagates_string_failures(monkeypatch):
+    coord = make_coordinator(monkeypatch)
+
+    plans = [StringPlan("topic/a", 1, 0)]
+
+    coord._read_batch = lambda plans: {}
+    coord._read_strings = lambda plans, deadline: (_ for _ in ()).throw(
+        coordinator.UpdateFailed("timeout")
+    )
+
+    with pytest.raises(coordinator.UpdateFailed):
+        coord._read_all([], plans)
 
 
 def test_read_one_handles_bit_string_and_scalars(monkeypatch):

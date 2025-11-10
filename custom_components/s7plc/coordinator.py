@@ -379,13 +379,19 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         for plan in plans_str:
             if time.monotonic() > deadline:
                 _LOGGER.warning("String read timeout reached (%.2fs)", self._op_timeout)
-                results.setdefault(plan.topic, None)
-                continue
+                raise UpdateFailed(
+                    f"String read timeout reached ({self._op_timeout:.2f}s)"
+                )
             try:
                 results[plan.topic] = self._read_s7_string(plan.db, plan.start)
-            except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+            ) as err:
                 _LOGGER.exception("String read error %s", plan.topic)
-                results.setdefault(plan.topic, None)
+                raise UpdateFailed(f"String read error {plan.topic}: {err}") from err
         return results
 
     def _read_all(
