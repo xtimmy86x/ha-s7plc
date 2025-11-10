@@ -268,11 +268,11 @@ class BooleanSelector:  # pragma: no cover - simple stub
 
 
 class NumberSelectorConfig:  # pragma: no cover - simple stub
-    def __init__(self, *, mode=None, min=None, max=None):
+    def __init__(self, *, mode=None, min=None, max=None, step=None):
         self.mode = mode
         self.min = min
         self.max = max
-
+        self.step = step
 
 class NumberSelector:  # pragma: no cover - simple stub
     def __init__(self, config):

@@ -75,6 +75,7 @@ scan_interval_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         min=0.05,
         max=3600,
+        step=0.05,
         mode=selector.NumberSelectorMode.BOX,
     )
 )
@@ -82,6 +83,7 @@ scan_interval_selector = selector.NumberSelector(
 value_multiplier_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         mode=selector.NumberSelectorMode.BOX,
+        step=0.05,
     )
 )
 
