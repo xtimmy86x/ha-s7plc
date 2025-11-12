@@ -367,8 +367,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
         except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
             _LOGGER.exception("Batch read error")
-            for plan in plans_batch:
-                results.setdefault(plan.topic, None)
+            raise
         return results
 
     def _read_strings(

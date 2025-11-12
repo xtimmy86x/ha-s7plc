@@ -151,7 +151,7 @@ def test_read_batch_deduplicates_tags(monkeypatch):
     }
 
 
-def test_read_batch_populates_defaults_on_error(monkeypatch):
+def test_read_batch_raises_on_error(monkeypatch):
     coord = make_coordinator(monkeypatch)
 
     tag = DummyTag(data_type=coordinator.DataType.WORD)
@@ -161,9 +161,8 @@ def test_read_batch_populates_defaults_on_error(monkeypatch):
     coord._client = client
     coord._retry = lambda func: func()
 
-    results = coord._read_batch(plans)
-
-    assert results == {"topic/a": None, "topic/b": None}
+    with pytest.raises(OSError):
+        coord._read_batch(plans)
 
 
 def test_async_update_data_respects_item_scan_interval(monkeypatch):
