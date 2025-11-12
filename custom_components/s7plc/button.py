@@ -10,14 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import (
-    CONF_ADDRESS,
-    CONF_BUTTON_PULSE,
-    CONF_BUTTONS,
-    DEFAULT_BUTTON_PULSE,
-    DOMAIN,
-)
+from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DEFAULT_BUTTON_PULSE
 from .entity import S7BaseEntity
+from .helpers import get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,17 +21,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
     """Set up button entities from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
-    coord = data["coordinator"]
-    device_id = data["device_id"]
-    device_name = data["name"]
-
-    device_info = DeviceInfo(
-        identifiers={(DOMAIN, device_id)},
-        name=device_name,
-        manufacturer="Siemens",
-        model="S7 PLC",
-    )
+    coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
 
     entities = []
     for item in entry.options.get(CONF_BUTTONS, []):

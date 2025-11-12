@@ -14,9 +14,9 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
-    DOMAIN,
 )
 from .entity import S7BoolSyncEntity
+from .helpers import get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,17 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    data = hass.data[DOMAIN][entry.entry_id]
-    coord = data["coordinator"]
-    device_id = data["device_id"]
-    device_name = data["name"]
-
-    device_info = DeviceInfo(
-        identifiers={(DOMAIN, device_id)},
-        name=device_name,
-        manufacturer="Siemens",
-        model="S7 PLC",
-    )
+    coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
 
     entities = []
     for item in entry.options.get(CONF_LIGHTS, []):
