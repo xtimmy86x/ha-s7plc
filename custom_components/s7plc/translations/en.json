@@ -55,11 +55,13 @@
       "add": {
         "title": "Add Items",
         "description": "Select the type of item you want to add.",
-        "data": {
-          "item_type": "Item type"
-        },
-        "data_description": {
-          "item_type": "Choose the kind of Home Assistant entity to configure for this PLC."
+        "menu_options": {
+          "sensors": "Sensor",
+          "binary_sensors": "Binary sensor",
+          "switches": "Switch",
+          "buttons": "Button",
+          "lights": "Light",
+          "numbers": "Number"
         }
       },
       "remove": {

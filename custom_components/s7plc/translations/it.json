@@ -55,11 +55,13 @@
       "add": {
         "title": "Aggiungi Elementi",
         "description": "Seleziona il tipo di elemento che vuoi aggiungere a questa configurazione del PLC.",
-        "data": {
-          "item_type": "Tipo di elemento da aggiungere"
-        },
-        "data_description": {
-          "item_type": "Scegli il tipo di entità da creare (sensore, sensore binario, interruttore, pulsante, luce, numero)."
+        "menu_options": {
+          "sensors": "Sensore",
+          "binary_sensors": "Sensore binario",
+          "switches": "Interruttore",
+          "buttons": "Pulsante",
+          "lights": "Luce",
+          "numbers": "Numero"
         }
       },
       "remove": {

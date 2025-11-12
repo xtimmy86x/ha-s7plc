@@ -106,18 +106,6 @@ ADD_ENTITY_LABELS: dict[str, str] = {
     "numbers": "Number",
 }
 
-ADD_ENTITY_SELECT_OPTIONS = [
-    selector.SelectOptionDict(value=step_id, label=ADD_ENTITY_LABELS[step_id])
-    for step_id in ADD_ENTITY_STEP_IDS
-]
-
-add_item_selector = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=ADD_ENTITY_SELECT_OPTIONS,
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
-
 
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
@@ -746,23 +734,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add(self, user_input: dict[str, Any] | None = None):
-        data_schema = vol.Schema(
-            {
-                vol.Required("item_type"): add_item_selector,
-            }
-        )
-
         if user_input is None:
-            return self.async_show_form(step_id="add", data_schema=data_schema)
+            return self.async_show_menu(
+                step_id="add",
+                menu_options=list(ADD_ENTITY_STEP_IDS),
+            )
 
-        selection = user_input.get("item_type")
+        selection = user_input.get("menu_option") or user_input.get("item_type") or ""
 
         if selection not in ADD_ENTITY_STEP_IDS:
-            return self.async_show_form(
-                step_id="add",
-                data_schema=data_schema,
-                errors={"base": "invalid_selection"},
-            )
+            return await self.async_step_add()
 
         handler = getattr(self, f"async_step_{selection}")
         return await handler()

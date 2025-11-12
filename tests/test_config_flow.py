@@ -9,7 +9,6 @@ import pytest
 
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import selector
 
 from custom_components.s7plc import config_flow
 from custom_components.s7plc import const
@@ -51,16 +50,9 @@ def test_add_step_shows_item_selector():
 
     result = run_flow(flow.async_step_add())
 
-    assert result["type"] == "form"
+    assert result["type"] == "menu"
     assert result["kwargs"]["step_id"] == "add"
-    assert isinstance(
-        result["kwargs"]["data_schema"].schema["item_type"], selector.SelectSelector
-    )
-
-    item_selector = result["kwargs"]["data_schema"].schema["item_type"]
-    assert [opt["value"] for opt in item_selector.config.options] == list(
-        config_flow.ADD_ENTITY_STEP_IDS
-    )
+    assert result["kwargs"]["menu_options"] == list(config_flow.ADD_ENTITY_STEP_IDS)
 
 
 def test_add_step_routes_to_selected_handler(monkeypatch):
