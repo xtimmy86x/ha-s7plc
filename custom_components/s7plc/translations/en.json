@@ -160,6 +160,30 @@
           "add_another": "Stay on this step to add more switches."
         }
       },
+      "covers": {
+        "title": "Add Cover",
+        "description": "Create a cover with dedicated open/close command addresses and optional opening/closing state feedback.",
+        "data": {
+          "open_command_address": "Open command address",
+          "close_command_address": "Close command address",
+          "opening_state_address": "Opening state address",
+          "closing_state_address": "Closing state address",
+          "operate_time": "Operate time (s)",
+          "name": "Name",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,DBX0.0).",
+          "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,DBX0.1).",
+          "opening_state_address": "Optional PLC address that indicates the cover is opening. Leave blank to reuse the open command address.",
+          "closing_state_address": "Optional PLC address that indicates the cover is closing. Leave blank to reuse the close command address.",
+          "operate_time": "Seconds to keep the command active before resetting the outputs and clearing the movement state.",
+          "name": "Optional friendly name for the cover.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more covers."
+        }
+      },
       "buttons": {
         "title": "Add Button",
         "description": "Create a stateless button that pulses a PLC boolean address for the configured number of seconds when pressed.",
@@ -282,6 +306,28 @@
           "name": "Optional friendly name for the switch.",
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "edit_cover": {
+        "title": "Edit Cover",
+        "description": "Update the command or state addresses for this cover and optionally change its name.",
+        "data": {
+          "open_command_address": "Open command address",
+          "close_command_address": "Close command address",
+          "opening_state_address": "Opening state address",
+          "closing_state_address": "Closing state address",
+          "operate_time": "Operate time (s)",
+          "name": "Name",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "open_command_address": "PLC address that triggers the opening action.",
+          "close_command_address": "PLC address that triggers the closing action.",
+          "opening_state_address": "Optional PLC address that signals the cover is opening.",
+          "closing_state_address": "Optional PLC address that signals the cover is closing.",
+          "operate_time": "Seconds the cover should operate before the integration resets the command outputs and clears the state flags.",
+          "name": "Optional friendly name for the cover.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
         }
       },
       "edit_button": {

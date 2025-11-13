@@ -27,6 +27,9 @@ from .const import (
     CONF_BINARY_SENSORS,
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
+    CONF_CLOSE_COMMAND_ADDRESS,
+    CONF_CLOSING_STATE_ADDRESS,
+    CONF_COVERS,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
@@ -35,6 +38,9 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
+    CONF_OPENING_STATE_ADDRESS,
+    CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPERATE_TIME,
     CONF_RACK,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
@@ -49,6 +55,7 @@ from .const import (
     DEFAULT_BUTTON_PULSE,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
+    DEFAULT_OPERATE_TIME,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -80,6 +87,15 @@ scan_interval_selector = selector.NumberSelector(
     )
 )
 
+operate_time_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=0,
+        max=3600,
+        step=1,
+        mode=selector.NumberSelectorMode.BOX,
+    )
+)
+
 value_multiplier_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         mode=selector.NumberSelectorMode.BOX,
@@ -92,6 +108,7 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "sensors",
     "binary_sensors",
     "switches",
+    "covers",
     "buttons",
     "lights",
     "numbers",
@@ -101,6 +118,7 @@ ADD_ENTITY_LABELS: dict[str, str] = {
     "sensors": "Sensor",
     "binary_sensors": "Binary sensor",
     "switches": "Switch",
+    "covers": "Cover",
     "buttons": "Button",
     "lights": "Light",
     "numbers": "Number",
@@ -358,6 +376,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 config_entry.options.get(CONF_BINARY_SENSORS, [])
             ),
             CONF_SWITCHES: list(config_entry.options.get(CONF_SWITCHES, [])),
+            CONF_COVERS: list(config_entry.options.get(CONF_COVERS, [])),
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
             CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
@@ -403,6 +422,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             S7PLCOptionsFlow._MAX_ITEM_SCAN_INTERVAL,
         )
 
+    @staticmethod
+    def _sanitize_operate_time(value: Any | None) -> float:
+        if value in (None, ""):
+            return float(DEFAULT_OPERATE_TIME)
+        try:
+            operate_time = float(value)
+        except (TypeError, ValueError):
+            return float(DEFAULT_OPERATE_TIME)
+        if operate_time < 0:
+            return float(DEFAULT_OPERATE_TIME)
+        return operate_time
+    
     @staticmethod
     def _apply_scan_interval(item: dict[str, Any], value: Any | None) -> None:
         normalized = S7PLCOptionsFlow._normalize_scan_interval_value(value)
@@ -472,6 +503,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "s": "Sensor",
             "bs": "Binary",
             "sw": "Switch",
+            "cv": "Cover",
             "bt": "Button",
             "lt": "Light",
             "nm": "Number",
@@ -489,6 +521,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             switch_item = {**it}
             switch_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
             items[f"sw:{i}"] = self._labelize("sw", switch_item)
+        for i, it in enumerate(self._options.get(CONF_COVERS, [])):
+            cover_item = {**it}
+            cover_item.setdefault(CONF_ADDRESS, it.get(CONF_OPEN_COMMAND_ADDRESS))
+            items[f"cv:{i}"] = self._labelize("cv", cover_item)
         for i, it in enumerate(self._options.get(CONF_BUTTONS, [])):
             items[f"bt:{i}"] = self._labelize("bt", it)
         for i, it in enumerate(self._options.get(CONF_LIGHTS, [])):
@@ -918,6 +954,86 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
+    async def async_step_covers(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(
+                    CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
+                ): operate_time_selector,
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            open_command = self._sanitize_address(
+                user_input.get(CONF_OPEN_COMMAND_ADDRESS)
+            )
+            close_command = self._sanitize_address(
+                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
+            )
+            opening_state = self._sanitize_address(
+                user_input.get(CONF_OPENING_STATE_ADDRESS)
+            )
+            closing_state = self._sanitize_address(
+                user_input.get(CONF_CLOSING_STATE_ADDRESS)
+            )
+            operate_time = self._sanitize_operate_time(
+                user_input.get(CONF_OPERATE_TIME)
+            )
+
+            if not open_command or not close_command:
+                errors["base"] = "invalid_address"
+            else:
+                for candidate in (open_command, close_command, opening_state, closing_state):
+                    if candidate:
+                        try:
+                            parse_tag(candidate)
+                        except (RuntimeError, ValueError):
+                            errors["base"] = "invalid_address"
+                            break
+
+                if not errors and self._has_duplicate(
+                    CONF_COVERS,
+                    open_command,
+                    keys=(CONF_OPEN_COMMAND_ADDRESS,),
+                ):
+                    errors["base"] = "duplicate_entry"
+
+            if not errors and open_command and close_command:
+                item: dict[str, Any] = {
+                    CONF_OPEN_COMMAND_ADDRESS: open_command,
+                    CONF_CLOSE_COMMAND_ADDRESS: close_command,
+                }
+                if opening_state:
+                    item[CONF_OPENING_STATE_ADDRESS] = opening_state
+                if closing_state:
+                    item[CONF_CLOSING_STATE_ADDRESS] = closing_state
+                if user_input.get(CONF_NAME):
+                    item[CONF_NAME] = user_input[CONF_NAME]
+                item[CONF_OPERATE_TIME] = operate_time
+                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+                self._options[CONF_COVERS].append(item)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="covers", data_schema=data_schema, errors=errors
+                )
+
+            if user_input.get("add_another"):
+                return await self.async_step_covers()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="covers", data_schema=data_schema)
+    
     async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -1236,6 +1352,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 rm_s = {int(k.split(":")[1]) for k in to_remove if k.startswith("s:")}
                 rm_bs = {int(k.split(":")[1]) for k in to_remove if k.startswith("bs:")}
                 rm_sw = {int(k.split(":")[1]) for k in to_remove if k.startswith("sw:")}
+                rm_cv = {int(k.split(":")[1]) for k in to_remove if k.startswith("cv:")}
                 rm_bt = {int(k.split(":")[1]) for k in to_remove if k.startswith("bt:")}
                 rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
                 rm_nm = {int(k.split(":")[1]) for k in to_remove if k.startswith("nm:")}
@@ -1254,6 +1371,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     v
                     for idx, v in enumerate(self._options.get(CONF_SWITCHES, []))
                     if idx not in rm_sw
+                ]
+                self._options[CONF_COVERS] = [
+                    v
+                    for idx, v in enumerate(self._options.get(CONF_COVERS, []))
+                    if idx not in rm_cv
                 ]
                 self._options[CONF_BUTTONS] = [
                     v
@@ -1330,6 +1452,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_binary_sensor()
         if prefix == "sw":
             return await self.async_step_edit_switch()
+        if prefix == "cv":
+            return await self.async_step_edit_cover()
         if prefix == "bt":
             return await self.async_step_edit_button()
         if prefix == "lt":
@@ -1596,6 +1720,106 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             step_id="edit_switch", data_schema=data_schema, errors=errors
         )
 
+    async def async_step_edit_cover(self, user_input: dict[str, Any] | None = None):
+        lookup = self._get_edit_item(CONF_COVERS, "cv")
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+
+        schema_dict: dict[Any, Any] = {
+            vol.Required(
+                CONF_OPEN_COMMAND_ADDRESS,
+                default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Required(
+                CONF_CLOSE_COMMAND_ADDRESS,
+                default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_OPENING_STATE_ADDRESS,
+                default=item.get(CONF_OPENING_STATE_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_CLOSING_STATE_ADDRESS,
+                default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
+            ): selector.TextSelector(),
+            vol.Optional(CONF_NAME, default=item.get(CONF_NAME, "")): selector.TextSelector(),
+            vol.Optional(
+                CONF_OPERATE_TIME,
+                default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
+            ): operate_time_selector,
+        }
+
+        if item.get(CONF_SCAN_INTERVAL) is not None:
+            schema_dict[
+                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
+            ] = scan_interval_selector
+        else:
+            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
+
+        data_schema = vol.Schema(schema_dict)
+
+        if user_input is not None:
+            open_command = self._sanitize_address(
+                user_input.get(CONF_OPEN_COMMAND_ADDRESS)
+            )
+            close_command = self._sanitize_address(
+                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
+            )
+            opening_state = self._sanitize_address(
+                user_input.get(CONF_OPENING_STATE_ADDRESS)
+            )
+            closing_state = self._sanitize_address(
+                user_input.get(CONF_CLOSING_STATE_ADDRESS)
+            )
+            operate_time = self._sanitize_operate_time(
+                user_input.get(CONF_OPERATE_TIME)
+            )
+
+            if not open_command or not close_command:
+                errors["base"] = "invalid_address"
+            else:
+                for candidate in (open_command, close_command, opening_state, closing_state):
+                    if candidate:
+                        try:
+                            parse_tag(candidate)
+                        except (RuntimeError, ValueError):
+                            errors["base"] = "invalid_address"
+                            break
+
+                if not errors and self._has_duplicate(
+                    CONF_COVERS,
+                    open_command,
+                    keys=(CONF_OPEN_COMMAND_ADDRESS,),
+                    skip_idx=idx,
+                ):
+                    errors["base"] = "duplicate_entry"
+
+            if not errors and open_command and close_command:
+                new_item: dict[str, Any] = {
+                    CONF_OPEN_COMMAND_ADDRESS: open_command,
+                    CONF_CLOSE_COMMAND_ADDRESS: close_command,
+                }
+                if opening_state:
+                    new_item[CONF_OPENING_STATE_ADDRESS] = opening_state
+                if closing_state:
+                    new_item[CONF_CLOSING_STATE_ADDRESS] = closing_state
+                if user_input.get(CONF_NAME):
+                    new_item[CONF_NAME] = user_input[CONF_NAME]
+                new_item[CONF_OPERATE_TIME] = operate_time
+                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
+
+                self._options[CONF_COVERS][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="edit_cover", data_schema=data_schema, errors=errors
+        )
+    
     async def async_step_edit_button(self, user_input: dict[str, Any] | None = None):
         lookup = self._get_edit_item(CONF_BUTTONS, "bt")
         if lookup is None:
