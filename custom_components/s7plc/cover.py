@@ -3,23 +3,22 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from homeassistant.helpers.event import async_call_later
-
 from homeassistant.components.cover import CoverEntity, CoverEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.event import async_call_later
 
 from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
+    CONF_CLOSING_STATE_ADDRESS,
     CONF_COVERS,
-    CONF_OPENING_STATE_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_SCAN_INTERVAL,
-    CONF_CLOSING_STATE_ADDRESS,
     DEFAULT_OPERATE_TIME,
     DOMAIN,
 )

@@ -29,8 +29,8 @@ from .const import (
     CONF_BUTTONS,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
-    CONF_COVERS,
     CONF_COMMAND_ADDRESS,
+    CONF_COVERS,
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
     CONF_MAX_RETRIES,
@@ -38,8 +38,8 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
-    CONF_OPENING_STATE_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_RACK,
     CONF_SCAN_INTERVAL,
@@ -102,7 +102,6 @@ value_multiplier_selector = selector.NumberSelector(
         step=0.05,
     )
 )
-
 
 ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "sensors",
@@ -433,7 +432,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if operate_time < 0:
             return float(DEFAULT_OPERATE_TIME)
         return operate_time
-    
+
+    @staticmethod
+    def _sanitize_button_pulse(value: Any | None) -> int:
+        if value in (None, ""):
+            return DEFAULT_BUTTON_PULSE
+        try:
+            pulse = int(value)
+        except (TypeError, ValueError):
+            return DEFAULT_BUTTON_PULSE
+        if pulse < 0:
+            return DEFAULT_BUTTON_PULSE
+        return pulse
+
     @staticmethod
     def _apply_scan_interval(item: dict[str, Any], value: Any | None) -> None:
         normalized = S7PLCOptionsFlow._normalize_scan_interval_value(value)
@@ -494,6 +505,413 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     return True
 
         return False
+
+    def _optional_field(
+        self,
+        key: str,
+        item: dict[str, Any],
+        selector_obj: Any,
+    ) -> tuple[Any, Any]:
+        """Return (vol.Optional, selector) with or without default."""
+        if key in item and item[key] is not None:
+            return vol.Optional(key, default=item[key]), selector_obj
+        return vol.Optional(key), selector_obj
+
+    async def _edit_entity(
+        self,
+        *,
+        option_key: str,
+        prefix: str,
+        build_schema,
+        process_input,
+        step_id: str,
+        user_input: dict[str, Any] | None,
+    ):
+        """Generic helper to edit an entity type."""
+        lookup = self._get_edit_item(option_key, prefix)
+        if lookup is None:
+            self._clear_edit_state()
+            return await self.async_step_edit()
+
+        idx, item = lookup
+        errors: dict[str, str] = {}
+        data_schema = build_schema(item)
+
+        if user_input is not None:
+            new_item, errors = process_input(item, idx, user_input)
+            if not errors and new_item is not None:
+                self._options[option_key][idx] = new_item
+                self._clear_edit_state()
+                return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id=step_id, data_schema=data_schema, errors=errors
+        )
+
+    # ====== BUILD ITEM HELPERS (add + edit share these) ======
+
+    def _build_sensor_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if self._has_duplicate(CONF_SENSORS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        if user_input.get(CONF_DEVICE_CLASS):
+            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+
+        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
+    def _build_binary_sensor_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        if user_input.get(CONF_DEVICE_CLASS):
+            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
+    def _build_switch_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        state_address = self._sanitize_address(
+            user_input.get(CONF_STATE_ADDRESS)
+        ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+        if not state_address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(state_address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if self._has_duplicate(
+            CONF_SWITCHES,
+            state_address,
+            keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+            skip_idx=skip_idx,
+        ):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        if command_address:
+            try:
+                parse_tag(command_address)
+            except (RuntimeError, ValueError):
+                errors["base"] = "invalid_address"
+                return None, errors
+
+        item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+        if command_address:
+            item[CONF_COMMAND_ADDRESS] = command_address
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
+    def _build_cover_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        open_command = self._sanitize_address(user_input.get(CONF_OPEN_COMMAND_ADDRESS))
+        close_command = self._sanitize_address(
+            user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
+        )
+        opening_state = self._sanitize_address(
+            user_input.get(CONF_OPENING_STATE_ADDRESS)
+        )
+        closing_state = self._sanitize_address(
+            user_input.get(CONF_CLOSING_STATE_ADDRESS)
+        )
+        operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
+
+        if not open_command or not close_command:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        for candidate in (open_command, close_command, opening_state, closing_state):
+            if candidate:
+                try:
+                    parse_tag(candidate)
+                except (RuntimeError, ValueError):
+                    errors["base"] = "invalid_address"
+                    return None, errors
+
+        if self._has_duplicate(
+            CONF_COVERS,
+            open_command,
+            keys=(CONF_OPEN_COMMAND_ADDRESS,),
+            skip_idx=skip_idx,
+        ):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        item: dict[str, Any] = {
+            CONF_OPEN_COMMAND_ADDRESS: open_command,
+            CONF_CLOSE_COMMAND_ADDRESS: close_command,
+        }
+        if opening_state:
+            item[CONF_OPENING_STATE_ADDRESS] = opening_state
+        if closing_state:
+            item[CONF_CLOSING_STATE_ADDRESS] = closing_state
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        item[CONF_OPERATE_TIME] = operate_time
+
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
+    def _build_button_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if self._has_duplicate(CONF_BUTTONS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+
+        button_pulse = self._sanitize_button_pulse(user_input.get(CONF_BUTTON_PULSE))
+        item[CONF_BUTTON_PULSE] = button_pulse
+
+        return item, errors
+
+    def _build_light_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        errors: dict[str, str] = {}
+
+        state_address = self._sanitize_address(
+            user_input.get(CONF_STATE_ADDRESS)
+        ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
+        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+        if not state_address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(state_address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if self._has_duplicate(
+            CONF_LIGHTS,
+            state_address,
+            keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+            skip_idx=skip_idx,
+        ):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        if command_address:
+            try:
+                parse_tag(command_address)
+            except (RuntimeError, ValueError):
+                errors["base"] = "invalid_address"
+                return None, errors
+
+        item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+        if command_address:
+            item[CONF_COMMAND_ADDRESS] = command_address
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
+    def _build_number_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'number' item from user input.
+
+        Returns (item, errors). If there is an error,
+
+        item is None and errors["base"] is set.
+        """
+
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+        address_tag = None
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        # Validate main address
+        try:
+            address_tag = parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        # Duplicates
+        if self._has_duplicate(CONF_NUMBERS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        # Validate command address (if present)
+        if command_address:
+            try:
+                parse_tag(command_address)
+            except (RuntimeError, ValueError):
+                errors["base"] = "invalid_address"
+                return None, errors
+
+        # Parse numeric values
+        min_value: float | None = None
+        max_value: float | None = None
+        step_value: float | None = None
+
+        try:
+            if user_input.get(CONF_MIN_VALUE) is not None:
+                min_value = float(user_input[CONF_MIN_VALUE])
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        try:
+            if user_input.get(CONF_MAX_VALUE) is not None:
+                max_value = float(user_input[CONF_MAX_VALUE])
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        try:
+            if user_input.get(CONF_STEP) is not None:
+                step_value = float(user_input[CONF_STEP])
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+        else:
+            if step_value is not None and step_value <= 0:
+                errors["base"] = "invalid_number"
+                return None, errors
+
+        # PLC data-type limits
+        if address_tag is not None:
+            limits = get_numeric_limits(address_tag.data_type)
+            if limits is not None:
+                dtype_min, dtype_max = limits
+                if min_value is not None:
+                    min_value = min(max(min_value, dtype_min), dtype_max)
+                if max_value is not None:
+                    max_value = min(max(max_value, dtype_min), dtype_max)
+
+        # Range consistency (min/max)
+        if min_value is not None and max_value is not None and min_value > max_value:
+            errors["base"] = "invalid_range"
+            return None, errors
+
+        # Build item if everything is valid
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+
+        if command_address:
+            item[CONF_COMMAND_ADDRESS] = command_address
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        if min_value is not None:
+            item[CONF_MIN_VALUE] = min_value
+        if max_value is not None:
+            item[CONF_MAX_VALUE] = max_value
+        if step_value is not None:
+            item[CONF_STEP] = step_value
+
+        # Scan interval
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
 
     @staticmethod
     def _labelize(prefix: str, item: dict[str, Any]) -> str:
@@ -784,6 +1202,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         handler = getattr(self, f"async_step_{selection}")
         return await handler()
 
+    # ====== ADD: sensors ======
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -804,33 +1223,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            if address:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_SENSORS, address):
-                        errors["base"] = "duplicate_entry"
-                    else:
-                        item: dict[str, Any] = {CONF_ADDRESS: address}
-                        if user_input.get(CONF_NAME):
-                            item[CONF_NAME] = user_input[CONF_NAME]
-                        if user_input.get(CONF_DEVICE_CLASS):
-                            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-                        self._apply_value_multiplier(
-                            item, user_input.get(CONF_VALUE_MULTIPLIER)
-                        )
-                        self._apply_scan_interval(
-                            item, user_input.get(CONF_SCAN_INTERVAL)
-                        )
-                        self._options[CONF_SENSORS].append(item)
+            item, errors = self._build_sensor_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="sensors", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_SENSORS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_sensors()
@@ -839,6 +1240,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="sensors", data_schema=data_schema)
 
+    # ====== ADD: binary_sensors ======
     async def async_step_binary_sensors(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -858,31 +1260,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-
-            if address:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_BINARY_SENSORS, address):
-                        errors["base"] = "duplicate_entry"
-                    else:
-                        item: dict[str, Any] = {CONF_ADDRESS: address}
-                        if user_input.get(CONF_NAME):
-                            item[CONF_NAME] = user_input[CONF_NAME]
-                        if user_input.get(CONF_DEVICE_CLASS):
-                            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-                        self._apply_scan_interval(
-                            item, user_input.get(CONF_SCAN_INTERVAL)
-                        )
-                        self._options[CONF_BINARY_SENSORS].append(item)
+            item, errors = self._build_binary_sensor_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="binary_sensors", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_BINARY_SENSORS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_binary_sensors()
@@ -891,6 +1277,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
+    # ====== ADD: switches ======
     async def async_step_switches(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -908,44 +1295,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            state_address = self._sanitize_address(user_input.get(CONF_STATE_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
-            )
-
-            if state_address:
-                try:
-                    parse_tag(state_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(
-                        CONF_SWITCHES,
-                        state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
-                    ):
-                        errors["base"] = "duplicate_entry"
-
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-
-            if not errors and state_address:
-                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if command_address:
-                    item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
-                self._options[CONF_SWITCHES].append(item)
+            item, errors = self._build_switch_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="switches", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_SWITCHES].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_switches()
@@ -954,6 +1312,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
+    # ====== ADD: covers ======
     async def async_step_covers(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -973,59 +1332,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            open_command = self._sanitize_address(
-                user_input.get(CONF_OPEN_COMMAND_ADDRESS)
-            )
-            close_command = self._sanitize_address(
-                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
-            )
-            opening_state = self._sanitize_address(
-                user_input.get(CONF_OPENING_STATE_ADDRESS)
-            )
-            closing_state = self._sanitize_address(
-                user_input.get(CONF_CLOSING_STATE_ADDRESS)
-            )
-            operate_time = self._sanitize_operate_time(
-                user_input.get(CONF_OPERATE_TIME)
-            )
-
-            if not open_command or not close_command:
-                errors["base"] = "invalid_address"
-            else:
-                for candidate in (open_command, close_command, opening_state, closing_state):
-                    if candidate:
-                        try:
-                            parse_tag(candidate)
-                        except (RuntimeError, ValueError):
-                            errors["base"] = "invalid_address"
-                            break
-
-                if not errors and self._has_duplicate(
-                    CONF_COVERS,
-                    open_command,
-                    keys=(CONF_OPEN_COMMAND_ADDRESS,),
-                ):
-                    errors["base"] = "duplicate_entry"
-
-            if not errors and open_command and close_command:
-                item: dict[str, Any] = {
-                    CONF_OPEN_COMMAND_ADDRESS: open_command,
-                    CONF_CLOSE_COMMAND_ADDRESS: close_command,
-                }
-                if opening_state:
-                    item[CONF_OPENING_STATE_ADDRESS] = opening_state
-                if closing_state:
-                    item[CONF_CLOSING_STATE_ADDRESS] = closing_state
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                item[CONF_OPERATE_TIME] = operate_time
-                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
-                self._options[CONF_COVERS].append(item)
+            item, errors = self._build_cover_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="covers", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_COVERS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_covers()
@@ -1033,7 +1348,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="covers", data_schema=data_schema)
-    
+
+    # ====== ADD: buttons ======
     async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -1047,39 +1363,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            if address:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_BUTTONS, address):
-                        errors["base"] = "duplicate_entry"
-                    else:
-                        item: dict[str, Any] = {CONF_ADDRESS: address}
-                        if user_input.get(CONF_NAME):
-                            item[CONF_NAME] = user_input[CONF_NAME]
-
-                        button_pulse_input = user_input.get(CONF_BUTTON_PULSE)
-                        if button_pulse_input is None:
-                            button_pulse = DEFAULT_BUTTON_PULSE
-                        else:
-                            try:
-                                button_pulse = int(button_pulse_input)
-                            except (TypeError, ValueError):
-                                button_pulse = DEFAULT_BUTTON_PULSE
-                            else:
-                                if button_pulse < 0:
-                                    button_pulse = DEFAULT_BUTTON_PULSE
-
-                        item[CONF_BUTTON_PULSE] = button_pulse
-                        self._options[CONF_BUTTONS].append(item)
+            item, errors = self._build_button_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="buttons", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_BUTTONS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_buttons()
@@ -1088,6 +1380,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
+    # ====== ADD: lights ======
     async def async_step_lights(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -1105,44 +1398,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            state_address = self._sanitize_address(user_input.get(CONF_STATE_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
-            )
-
-            if state_address:
-                try:
-                    parse_tag(state_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(
-                        CONF_LIGHTS,
-                        state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
-                    ):
-                        errors["base"] = "duplicate_entry"
-
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-
-            if not errors and state_address:
-                item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if command_address:
-                    item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
-                self._options[CONF_LIGHTS].append(item)
+            item, errors = self._build_light_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="lights", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_LIGHTS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_lights()
@@ -1151,6 +1415,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="lights", data_schema=data_schema)
 
+    # ====== ADD: numbers ======
     async def async_step_numbers(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
@@ -1179,87 +1444,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
-            )
-
-            address_tag = None
-            if address:
-                try:
-                    address_tag = parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_NUMBERS, address):
-                        errors["base"] = "duplicate_entry"
-
-            min_value: float | None = None
-            max_value: float | None = None
-            step_value: float | None = None
-
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-
-            if not errors:
-                try:
-                    if user_input.get(CONF_MIN_VALUE) is not None:
-                        min_value = float(user_input[CONF_MIN_VALUE])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
-
-            if not errors:
-                try:
-                    if user_input.get(CONF_MAX_VALUE) is not None:
-                        max_value = float(user_input[CONF_MAX_VALUE])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
-
-            if not errors:
-                try:
-                    if user_input.get(CONF_STEP) is not None:
-                        step_value = float(user_input[CONF_STEP])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
-                else:
-                    if step_value is not None and step_value <= 0:
-                        errors["base"] = "invalid_number"
-
-            if not errors and address_tag is not None:
-                limits = get_numeric_limits(address_tag.data_type)
-                if limits is not None:
-                    dtype_min, dtype_max = limits
-                    if min_value is not None:
-                        min_value = min(max(min_value, dtype_min), dtype_max)
-                    if max_value is not None:
-                        max_value = min(max(max_value, dtype_min), dtype_max)
-
-            if not errors and min_value is not None and max_value is not None:
-                if min_value > max_value:
-                    errors["base"] = "invalid_range"
-
-            if not errors and address:
-                item: dict[str, Any] = {CONF_ADDRESS: address}
-                if command_address:
-                    item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    item[CONF_NAME] = user_input[CONF_NAME]
-                if min_value is not None:
-                    item[CONF_MIN_VALUE] = min_value
-                if max_value is not None:
-                    item[CONF_MAX_VALUE] = max_value
-                if step_value is not None:
-                    item[CONF_STEP] = step_value
-                self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
-                self._options[CONF_NUMBERS].append(item)
+            item, errors = self._build_number_item(user_input, skip_idx=None)
 
             if errors:
                 return self.async_show_form(
                     step_id="numbers", data_schema=data_schema, errors=errors
                 )
+
+            if item is not None:
+                self._options[CONF_NUMBERS].append(item)
 
             if user_input.get("add_another"):
                 return await self.async_step_numbers()
@@ -1268,6 +1461,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="numbers", data_schema=data_schema)
 
+    # ====== EXPORT ======
     async def async_step_export(self, user_input: dict[str, Any] | None = None):
         export_text = self._build_export_data()
 
@@ -1300,6 +1494,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_create_entry(title="", data=self._options)
 
+    # ====== IMPORT ======
     async def async_step_import(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
         current_text = ""
@@ -1476,361 +1671,206 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None
         return index, items[index]
 
+    # ====== EDIT: sensor ======
     async def async_step_edit_sensor(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_SENSORS, "s")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
-
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_NAME, default=item.get(CONF_NAME, "")
-            ): selector.TextSelector(),
-        }
-
-        if item.get(CONF_DEVICE_CLASS) is not None:
-            schema_dict[
-                vol.Optional(CONF_DEVICE_CLASS, default=item.get(CONF_DEVICE_CLASS))
-            ] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=s_device_class_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            )
-        else:
-            schema_dict[vol.Optional(CONF_DEVICE_CLASS)] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=s_device_class_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            )
-
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-
-        if item.get(CONF_VALUE_MULTIPLIER) is not None:
-            schema_dict[
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_VALUE_MULTIPLIER, default=item.get(CONF_VALUE_MULTIPLIER)
-                )
-            ] = value_multiplier_selector
-        else:
-            schema_dict[vol.Optional(CONF_VALUE_MULTIPLIER)] = value_multiplier_selector
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
 
-        data_schema = vol.Schema(schema_dict)
+            key_dc, val_dc = self._optional_field(
+                CONF_DEVICE_CLASS,
+                item,
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=s_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            )
+            schema_dict[key_dc] = val_dc
 
-        if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            if not address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_SENSORS, address, skip_idx=idx):
-                        errors["base"] = "duplicate_entry"
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
 
-            if not errors and address:
-                new_item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                if user_input.get(CONF_DEVICE_CLASS):
-                    new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-                self._apply_value_multiplier(
-                    new_item, user_input.get(CONF_VALUE_MULTIPLIER)
-                )
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
+            key_mul, val_mul = self._optional_field(
+                CONF_VALUE_MULTIPLIER, item, value_multiplier_selector
+            )
+            schema_dict[key_mul] = val_mul
 
-                self._options[CONF_SENSORS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
+            return vol.Schema(schema_dict)
 
-        return self.async_show_form(
-            step_id="edit_sensor", data_schema=data_schema, errors=errors
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_sensor_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_SENSORS,
+            prefix="s",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_sensor",
+            user_input=user_input,
         )
 
+    # ====== EDIT: binary_sensor ======
     async def async_step_edit_binary_sensor(
         self, user_input: dict[str, Any] | None = None
     ):
-        lookup = self._get_edit_item(CONF_BINARY_SENSORS, "bs")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
 
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_NAME, default=item.get(CONF_NAME, "")
-            ): selector.TextSelector(),
-        }
-
-        if item.get(CONF_DEVICE_CLASS) is not None:
-            schema_dict[
-                vol.Optional(CONF_DEVICE_CLASS, default=item.get(CONF_DEVICE_CLASS))
-            ] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=bs_device_class_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
+            key_dc, val_dc = self._optional_field(
+                CONF_DEVICE_CLASS,
+                item,
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=bs_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             )
-        else:
-            schema_dict[vol.Optional(CONF_DEVICE_CLASS)] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=bs_device_class_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
+            schema_dict[key_dc] = val_dc
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
+            schema_dict[key_scan] = val_scan
 
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
+            return vol.Schema(schema_dict)
 
-        data_schema = vol.Schema(schema_dict)
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_binary_sensor_item(inp, skip_idx=idx)
 
-        if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            if not address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=idx):
-                        errors["base"] = "duplicate_entry"
-
-            if not errors and address:
-                new_item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                if user_input.get(CONF_DEVICE_CLASS):
-                    new_item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
-
-                self._options[CONF_BINARY_SENSORS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
+        return await self._edit_entity(
+            option_key=CONF_BINARY_SENSORS,
+            prefix="bs",
+            build_schema=build_schema,
+            process_input=process_input,
             step_id="edit_binary_sensor",
-            data_schema=data_schema,
-            errors=errors,
+            user_input=user_input,
         )
 
+    # ====== EDIT: switch ======
     async def async_step_edit_switch(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_SWITCHES, "sw")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_SYNC_STATE,
+                    default=bool(item.get(CONF_SYNC_STATE, False)),
+                ): selector.BooleanSelector(),
+            }
 
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_COMMAND_ADDRESS,
-                default=item.get(CONF_COMMAND_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_NAME, default=item.get(CONF_NAME, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_SYNC_STATE,
-                default=bool(item.get(CONF_SYNC_STATE, False)),
-            ): selector.BooleanSelector(),
-        }
-
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-
-        data_schema = vol.Schema(schema_dict)
-
-        if user_input is not None:
-            state_address = self._sanitize_address(
-                user_input.get(CONF_STATE_ADDRESS)
-            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
+            schema_dict[key_scan] = val_scan
 
-            if not state_address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    parse_tag(state_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(
-                        CONF_SWITCHES,
-                        state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
-                        skip_idx=idx,
-                    ):
-                        errors["base"] = "duplicate_entry"
+            return vol.Schema(schema_dict)
 
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_switch_item(inp, skip_idx=idx)
 
-            if not errors and state_address:
-                new_item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if command_address:
-                    new_item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
-
-                self._options[CONF_SWITCHES][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="edit_switch", data_schema=data_schema, errors=errors
+        return await self._edit_entity(
+            option_key=CONF_SWITCHES,
+            prefix="sw",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_switch",
+            user_input=user_input,
         )
 
+    # ====== EDIT: cover ======
     async def async_step_edit_cover(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_COVERS, "cv")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_OPEN_COMMAND_ADDRESS,
+                    default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Required(
+                    CONF_CLOSE_COMMAND_ADDRESS,
+                    default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_OPENING_STATE_ADDRESS,
+                    default=item.get(CONF_OPENING_STATE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_CLOSING_STATE_ADDRESS,
+                    default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_OPERATE_TIME,
+                    default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
+                ): operate_time_selector,
+            }
 
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_OPEN_COMMAND_ADDRESS,
-                default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Required(
-                CONF_CLOSE_COMMAND_ADDRESS,
-                default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_OPENING_STATE_ADDRESS,
-                default=item.get(CONF_OPENING_STATE_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_CLOSING_STATE_ADDRESS,
-                default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(CONF_NAME, default=item.get(CONF_NAME, "")): selector.TextSelector(),
-            vol.Optional(
-                CONF_OPERATE_TIME,
-                default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
-            ): operate_time_selector,
-        }
-
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-
-        data_schema = vol.Schema(schema_dict)
-
-        if user_input is not None:
-            open_command = self._sanitize_address(
-                user_input.get(CONF_OPEN_COMMAND_ADDRESS)
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
-            close_command = self._sanitize_address(
-                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
-            )
-            opening_state = self._sanitize_address(
-                user_input.get(CONF_OPENING_STATE_ADDRESS)
-            )
-            closing_state = self._sanitize_address(
-                user_input.get(CONF_CLOSING_STATE_ADDRESS)
-            )
-            operate_time = self._sanitize_operate_time(
-                user_input.get(CONF_OPERATE_TIME)
-            )
+            schema_dict[key_scan] = val_scan
 
-            if not open_command or not close_command:
-                errors["base"] = "invalid_address"
-            else:
-                for candidate in (open_command, close_command, opening_state, closing_state):
-                    if candidate:
-                        try:
-                            parse_tag(candidate)
-                        except (RuntimeError, ValueError):
-                            errors["base"] = "invalid_address"
-                            break
+            return vol.Schema(schema_dict)
 
-                if not errors and self._has_duplicate(
-                    CONF_COVERS,
-                    open_command,
-                    keys=(CONF_OPEN_COMMAND_ADDRESS,),
-                    skip_idx=idx,
-                ):
-                    errors["base"] = "duplicate_entry"
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_cover_item(inp, skip_idx=idx)
 
-            if not errors and open_command and close_command:
-                new_item: dict[str, Any] = {
-                    CONF_OPEN_COMMAND_ADDRESS: open_command,
-                    CONF_CLOSE_COMMAND_ADDRESS: close_command,
-                }
-                if opening_state:
-                    new_item[CONF_OPENING_STATE_ADDRESS] = opening_state
-                if closing_state:
-                    new_item[CONF_CLOSING_STATE_ADDRESS] = closing_state
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                new_item[CONF_OPERATE_TIME] = operate_time
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
-
-                self._options[CONF_COVERS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="edit_cover", data_schema=data_schema, errors=errors
+        return await self._edit_entity(
+            option_key=CONF_COVERS,
+            prefix="cv",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_cover",
+            user_input=user_input,
         )
-    
+
+    # ====== EDIT: button ======
     async def async_step_edit_button(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_BUTTONS, "bt")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
-
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
                 ): selector.TextSelector(),
@@ -1842,267 +1882,123 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     default=int(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
                 ): int,
             }
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_button_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_BUTTONS,
+            prefix="bt",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_button",
+            user_input=user_input,
         )
 
-        if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            if not address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_BUTTONS, address, skip_idx=idx):
-                        errors["base"] = "duplicate_entry"
-
-            if not errors and address:
-                new_item: dict[str, Any] = {CONF_ADDRESS: address}
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-
-                button_pulse_input = user_input.get(CONF_BUTTON_PULSE)
-                if button_pulse_input is None:
-                    button_pulse = DEFAULT_BUTTON_PULSE
-                else:
-                    try:
-                        button_pulse = int(button_pulse_input)
-                    except (TypeError, ValueError):
-                        button_pulse = DEFAULT_BUTTON_PULSE
-                    else:
-                        if button_pulse < 0:
-                            button_pulse = DEFAULT_BUTTON_PULSE
-
-                new_item[CONF_BUTTON_PULSE] = button_pulse
-
-                self._options[CONF_BUTTONS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="edit_button", data_schema=data_schema, errors=errors
-        )
-
+    # ====== EDIT: light ======
     async def async_step_edit_light(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_LIGHTS, "lt")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_SYNC_STATE,
+                    default=bool(item.get(CONF_SYNC_STATE, False)),
+                ): selector.BooleanSelector(),
+            }
 
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_COMMAND_ADDRESS,
-                default=item.get(CONF_COMMAND_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_NAME, default=item.get(CONF_NAME, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_SYNC_STATE,
-                default=bool(item.get(CONF_SYNC_STATE, False)),
-            ): selector.BooleanSelector(),
-        }
-
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-
-        data_schema = vol.Schema(schema_dict)
-
-        if user_input is not None:
-            state_address = self._sanitize_address(
-                user_input.get(CONF_STATE_ADDRESS)
-            ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
+            schema_dict[key_scan] = val_scan
 
-            if not state_address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    parse_tag(state_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(
-                        CONF_LIGHTS,
-                        state_address,
-                        keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
-                        skip_idx=idx,
-                    ):
-                        errors["base"] = "duplicate_entry"
+            return vol.Schema(schema_dict)
 
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_light_item(inp, skip_idx=idx)
 
-            if not errors and state_address:
-                new_item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-                if command_address:
-                    new_item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                new_item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
-
-                self._options[CONF_LIGHTS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="edit_light", data_schema=data_schema, errors=errors
+        return await self._edit_entity(
+            option_key=CONF_LIGHTS,
+            prefix="lt",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_light",
+            user_input=user_input,
         )
 
+    # ====== EDIT: number ======
     async def async_step_edit_number(self, user_input: dict[str, Any] | None = None):
-        lookup = self._get_edit_item(CONF_NUMBERS, "nm")
-        if lookup is None:
-            self._clear_edit_state()
-            return await self.async_step_edit()
-
-        idx, item = lookup
-        errors: dict[str, str] = {}
-
-        number_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
-        )
-        positive_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                min=0,
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            number_selector = selector.NumberSelector(
+                selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
             )
-        )
-
-        schema_dict: dict[Any, Any] = {
-            vol.Required(
-                CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_COMMAND_ADDRESS,
-                default=item.get(CONF_COMMAND_ADDRESS, ""),
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_NAME, default=item.get(CONF_NAME, "")
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-            ): number_selector,
-            vol.Optional(
-                CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-            ): number_selector,
-        }
-
-        if item.get(CONF_STEP) is not None:
-            schema_dict[vol.Optional(CONF_STEP, default=item.get(CONF_STEP))] = (
-                positive_selector
-            )
-        else:
-            schema_dict[vol.Optional(CONF_STEP)] = positive_selector
-
-        if item.get(CONF_SCAN_INTERVAL) is not None:
-            schema_dict[
-                vol.Optional(CONF_SCAN_INTERVAL, default=item.get(CONF_SCAN_INTERVAL))
-            ] = scan_interval_selector
-        else:
-            schema_dict[vol.Optional(CONF_SCAN_INTERVAL)] = scan_interval_selector
-
-        data_schema = vol.Schema(schema_dict)
-
-        if user_input is not None:
-            address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-            command_address = self._sanitize_address(
-                user_input.get(CONF_COMMAND_ADDRESS)
+            positive_selector = selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=0,
+                )
             )
 
-            address_tag = None
-            if not address:
-                errors["base"] = "invalid_address"
-            else:
-                try:
-                    address_tag = parse_tag(address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                else:
-                    if self._has_duplicate(CONF_NUMBERS, address, skip_idx=idx):
-                        errors["base"] = "duplicate_entry"
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+                ): number_selector,
+                vol.Optional(
+                    CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+                ): number_selector,
+            }
 
-            min_value: float | None = None
-            max_value: float | None = None
-            step_value: float | None = None
+            key_step, val_step = self._optional_field(
+                CONF_STEP, item, positive_selector
+            )
+            schema_dict[key_step] = val_step
 
-            if not errors and command_address:
-                try:
-                    parse_tag(command_address)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
 
-            if not errors:
-                try:
-                    if user_input.get(CONF_MIN_VALUE) is not None:
-                        min_value = float(user_input[CONF_MIN_VALUE])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
+            return vol.Schema(schema_dict)
 
-            if not errors:
-                try:
-                    if user_input.get(CONF_MAX_VALUE) is not None:
-                        max_value = float(user_input[CONF_MAX_VALUE])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_number_item(inp, skip_idx=idx)
 
-            if not errors:
-                try:
-                    if user_input.get(CONF_STEP) is not None:
-                        step_value = float(user_input[CONF_STEP])
-                except (TypeError, ValueError):
-                    errors["base"] = "invalid_number"
-                else:
-                    if step_value is not None and step_value <= 0:
-                        errors["base"] = "invalid_number"
-
-            if not errors and address_tag is not None:
-                limits = get_numeric_limits(address_tag.data_type)
-                if limits is not None:
-                    dtype_min, dtype_max = limits
-                    if min_value is not None:
-                        min_value = min(max(min_value, dtype_min), dtype_max)
-                    if max_value is not None:
-                        max_value = min(max(max_value, dtype_min), dtype_max)
-
-            if not errors and min_value is not None and max_value is not None:
-                if min_value > max_value:
-                    errors["base"] = "invalid_range"
-
-            if not errors and address:
-                new_item: dict[str, Any] = {CONF_ADDRESS: address}
-                if command_address:
-                    new_item[CONF_COMMAND_ADDRESS] = command_address
-                if user_input.get(CONF_NAME):
-                    new_item[CONF_NAME] = user_input[CONF_NAME]
-                if min_value is not None:
-                    new_item[CONF_MIN_VALUE] = min_value
-                if max_value is not None:
-                    new_item[CONF_MAX_VALUE] = max_value
-                if step_value is not None:
-                    new_item[CONF_STEP] = step_value
-                self._apply_scan_interval(new_item, user_input.get(CONF_SCAN_INTERVAL))
-
-                self._options[CONF_NUMBERS][idx] = new_item
-                self._clear_edit_state()
-                return self.async_create_entry(title="", data=self._options)
-
-        return self.async_show_form(
-            step_id="edit_number", data_schema=data_schema, errors=errors
+        return await self._edit_entity(
+            option_key=CONF_NUMBERS,
+            prefix="nm",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_number",
+            user_input=user_input,
         )
