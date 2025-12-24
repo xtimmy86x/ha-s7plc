@@ -59,6 +59,7 @@
           "sensors": "Sensore",
           "binary_sensors": "Sensore binario",
           "switches": "Interruttore",
+          "covers": "Copertura",
           "buttons": "Pulsante",
           "lights": "Luce",
           "numbers": "Numero"
@@ -158,6 +159,30 @@
           "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
           "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri switch."
+        }
+      },
+      "covers": {
+        "title": "Aggiungi Cover",
+        "description": "Crea una cover con indirizzi di comando dedicati per apertura/chiusura e feedback di stato opzionale.",
+        "data": {
+          "open_command_address": "Indirizzo comando apertura",
+          "close_command_address": "Indirizzo comando chiusura",
+          "opening_state_address": "Indirizzo stato apertura",
+          "closing_state_address": "Indirizzo stato chiusura",
+          "operate_time": "Tempo di manovra (s)",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "open_command_address": "Indirizzo PLC che avvia l'apertura (es. Q0.0, DB1,DBX0.0).",
+          "close_command_address": "Indirizzo PLC che avvia la chiusura (es. Q0.1, DB1,DBX0.1).",
+          "opening_state_address": "Indirizzo PLC opzionale che indica che la cover si sta aprendo. Lascia vuoto per riutilizzare l'indirizzo di comando apertura.",
+          "closing_state_address": "Indirizzo PLC opzionale che indica che la cover si sta chiudendo. Lascia vuoto per riutilizzare l'indirizzo di comando chiusura.",
+          "operate_time": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre cover."
         }
       },
       "buttons": {
@@ -282,6 +307,28 @@
           "name": "Nome descrittivo opzionale per lo switch.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
           "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_cover": {
+        "title": "Modifica Cover",
+        "description": "Aggiorna gli indirizzi di comando o stato per questa cover e, se necessario, modifica il nome.",
+        "data": {
+          "open_command_address": "Indirizzo comando apertura",
+          "close_command_address": "Indirizzo comando chiusura",
+          "opening_state_address": "Indirizzo stato apertura",
+          "closing_state_address": "Indirizzo stato chiusura",
+          "operate_time": "Tempo di manovra (s)",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "open_command_address": "Indirizzo PLC che attiva l'azione di apertura.",
+          "close_command_address": "Indirizzo PLC che attiva l'azione di chiusura.",
+          "opening_state_address": "Indirizzo PLC opzionale che segnala che la cover si sta aprendo.",
+          "closing_state_address": "Indirizzo PLC opzionale che segnala che la cover si sta chiudendo.",
+          "operate_time": "Secondi di funzionamento prima che l'integrazione ripristini gli output di comando e azzeri le segnalazioni di movimento.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_button": {

@@ -1,5 +1,13 @@
 DOMAIN = "s7plc"
-PLATFORMS = ["binary_sensor", "sensor", "switch", "light", "button", "number"]
+PLATFORMS = [
+    "binary_sensor",
+    "sensor",
+    "switch",
+    "cover",
+    "light",
+    "button",
+    "number",
+]
 
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
@@ -7,6 +15,7 @@ CONF_SLOT = "slot"
 CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"
 CONF_SWITCHES = "switches"
+CONF_COVERS = "covers"
 CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
@@ -24,6 +33,8 @@ CONF_ADDRESS = "address"
 CONF_DEVICE_CLASS = "device_class"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
+CONF_OPEN_COMMAND_ADDRESS = "open_command_address"
+CONF_CLOSE_COMMAND_ADDRESS = "close_command_address"
 CONF_SYNC_STATE = "sync_state"
 CONF_BUTTON_PULSE = "button_pulse"
 CONF_MIN_VALUE = "min_value"
@@ -31,12 +42,16 @@ CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_VALUE_MULTIPLIER = "value_multiplier"
+CONF_OPENING_STATE_ADDRESS = "opening_state_address"
+CONF_CLOSING_STATE_ADDRESS = "closing_state_address"
+CONF_OPERATE_TIME = "operate_time"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_BUTTON_PULSE = 1  # seconds
+DEFAULT_OPERATE_TIME = 60  # seconds
 
 CONF_OP_TIMEOUT = "operation_timeout"
 CONF_MAX_RETRIES = "max_retries"
