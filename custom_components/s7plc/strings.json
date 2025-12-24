@@ -59,6 +59,7 @@
           "sensors": "Sensor",
           "binary_sensors": "Binary sensor",
           "switches": "Switch",
+          "covers": "Cover",
           "buttons": "Button",
           "lights": "Light",
           "numbers": "Number"

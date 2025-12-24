@@ -59,6 +59,7 @@
           "sensors": "Sensore",
           "binary_sensors": "Sensore binario",
           "switches": "Interruttore",
+          "covers": "Copertura",
           "buttons": "Pulsante",
           "lights": "Luce",
           "numbers": "Numero"
