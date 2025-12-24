@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
 [![pyS7](https://img.shields.io/badge/Library-pys7-informational)](https://github.com/xtimmy86x/pyS7)
 
-**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `button`, `binary_sensor`, and `sensor` entities, and `number` entities.
+**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as `light`, `switch`, `cover`, `button`, `binary_sensor`, and `sensor` entities, and `number` entities.
 **No MQTT, no REST API, no middle layer.**
 
 ---
@@ -42,7 +42,7 @@
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
-- 🧩 **Multiple entity types**: `light`, `switch`, `button`, `binary_sensor`, `sensor`,  `number`.
+- 🧩 **Multiple entity types**: `light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`,  `number`.
 - 🧮 **Value multipliers**: scale raw PLC values before Home Assistant sees them (e.g., convert tenths or hundredths to human-friendly units).
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
@@ -92,10 +92,14 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 3. Pick one of the auto-discovered PLC hosts or type the PLC `host` manually, then fill in `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
-   - When adding, select the entity type (`light`, `switch`, `button`, `binary_sensor`, `sensor`, `number`) and fill in the form fields.
+   - When adding, select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`) and fill in the form fields.
    - `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
      Enable `sync_state` to mirror PLC state changes to the command address.
+   - `cover` entries define separate `open`/`close` command addresses and optional
+     `opening`/`closing` state addresses (leave blank to reuse the command tag).
+     Set an `operate time` (default 60 s) to automatically reset the command outputs
+     and clear the movement state once the run is complete.
    - `button` entries command a true value and after a configured
      `pulse time` send false.
    - `sensor` entries can apply a `value_multiplier` to rescale numeric PLC data on the fly
@@ -112,7 +116,7 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 Need to move your configuration to another Home Assistant instance or keep a backup of the PLC items you built? Open the integration options and choose **Export items**:
 
 1. The dialog shows the JSON payload and offers a download link; the link stays active for five minutes so you can save the file directly from your browser.
-2. The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `button`, `light`, `number`) together with their addresses, limits, scan intervals, and other metadata.
+2. The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `cover`, `button`, `light`, `number`) together with their addresses, limits, scan intervals, and other metadata.
 
 To restore a backup select **Import items** and paste the exported JSON. The integration validates the structure before applying it and surfaces clear errors when the JSON is malformed. A successful import replaces the entire set of configured items with the contents of the file (use an empty list in the JSON to clear a category) while keeping any other integration options intact, so review the payload before submitting it.
 
@@ -255,7 +259,7 @@ Example: removing an entity via the UI:
 A: No. This integration talks to the PLC directly using S7 protocol.
 
 **Q: Can I write values to the PLC?**
-A: `light`, `switch`, `button`, and `number` entities perform writes (`button` pulses the address). `number` can share the read address or use a dedicated command address with optional min/max limits. `binary_sensor` and `sensor` are read-only.
+A: `light`, `switch`, `cover`, `button`, and `number` entities perform writes (`button` pulses the address). `number` can share the read address or use a dedicated command address with optional min/max limits. `binary_sensor` and `sensor` are read-only.
 
 **Q: Which CPUs are supported?**  
 A: Any Siemens S7 device that accepts ISO-on-TCP (port 102) and exposes DB areas with absolute addressing should work.
@@ -267,7 +271,6 @@ A: Inspect your DB layout in TIA Portal / Step7. Use DB number + byte offset (+ 
 
 ## Roadmap
 
-- Covers / shutters (`cover` platform)
 - Diagnostics & health entities
 - More data types and scaling helpers
 
