@@ -103,9 +103,12 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
    - `button` entries command a true value and after a configured
      `pulse time` send false.
    - `sensor` entries can apply a `value_multiplier` to rescale numeric PLC data on the fly
-     (e.g., `0.1` to expose tenths as full units).
+     (e.g., `0.1` to expose tenths as full units), and optionally set a per-entity
+     `REAL precision` to round `REAL` reads to a fixed number of decimal places.
    - `number` entries expose INT/DINT/REAL values with an optional `command_address`.
      You may set `min`, `max`, and `step` for Home Assistant; limits outside the PLC data type range are automatically clamped to the closest supported value so you can express relative bounds without worrying about overflows.
+     Optionally set a per-entity `REAL precision` to round `REAL` reads to a fixed
+     number of decimal places.
    - Every item lets you override the **scan interval** just for that tag. 
      Leave the field empty to inherit the PLC default defined during setup.
    - Use **Add another** to chain the creation of multiple entities; after the last 
