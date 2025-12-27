@@ -16,6 +16,7 @@ from .const import (
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_NUMBERS,
+    CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_STEP,
 )
@@ -42,9 +43,12 @@ async def async_setup_entry(
         min_value = item.get(CONF_MIN_VALUE)
         max_value = item.get(CONF_MAX_VALUE)
         step = item.get(CONF_STEP)
+        real_precision = item.get(CONF_REAL_PRECISION)
 
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await hass.async_add_executor_job(coord.add_item, topic, address, scan_interval)
+        await hass.async_add_executor_job(
+            coord.add_item, topic, address, scan_interval, real_precision
+        )
         entities.append(
             S7Number(
                 coord,

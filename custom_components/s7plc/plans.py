@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Tuple
 
 from .address import DataType, S7Tag, parse_tag
+from .const import DEFAULT_REAL_PRECISION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,13 +30,21 @@ class StringPlan:
     start: int
 
 
-def apply_postprocess(data_type, value):
+def apply_postprocess(data_type, value, *, precision: int | None = None):
     """Apply basic post-processing based on the tag data type."""
 
-    return round(value, 1) if data_type == DataType.REAL else value
+    if data_type != DataType.REAL:
+        return value
+    if precision is None:
+        return value
+    return round(value, precision)
 
 
-def build_plans(items: Dict[str, str]) -> Tuple[list[TagPlan], list[StringPlan]]:
+def build_plans(
+    items: Dict[str, str],
+    *,
+    precisions: Dict[str, int | None] | None = None,
+) -> Tuple[list[TagPlan], list[StringPlan]]:
     """Build read plans from a topic to address mapping."""
 
     plans_batch: list[TagPlan] = []
@@ -52,9 +61,12 @@ def build_plans(items: Dict[str, str]) -> Tuple[list[TagPlan], list[StringPlan]]
             plans_str.append(StringPlan(topic, tag.db_number, tag.start))
             continue
 
-        def _mk_post(dt):
-            return lambda v: apply_postprocess(dt, v)
-
-        plans_batch.append(TagPlan(topic, tag, _mk_post(tag.data_type)))
+        def _mk_post(dt, precision):
+            return lambda v: apply_postprocess(dt, v, precision=precision)
+        
+        precision = DEFAULT_REAL_PRECISION
+        if precisions is not None and topic in precisions:
+            precision = precisions[topic]
+        plans_batch.append(TagPlan(topic, tag, _mk_post(tag.data_type, precision)))
 
     return plans_batch, plans_str

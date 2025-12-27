@@ -111,6 +111,7 @@
           "name": "Name",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
+          "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -119,6 +120,7 @@
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
+          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more sensors."
         }
@@ -233,6 +235,7 @@
           "min_value": "Minimum value",
           "max_value": "Maximum value",
           "step": "Step",
+          "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -243,6 +246,7 @@
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
           "max_value": "Optional maximum bound for the value shown in Home Assistant.",
           "step": "Optional increment used when adjusting the value in the UI.",
+          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
         }
@@ -265,6 +269,7 @@
           "name": "Name",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
+          "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -272,6 +277,7 @@
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
+          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -375,6 +381,7 @@
           "min_value": "Minimum value",
           "max_value": "Maximum value",
           "step": "Step",
+          "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -385,6 +392,7 @@
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
           "max_value": "Optional maximum bound for the value shown in Home Assistant.",
           "step": "Optional increment used when adjusting the value in the UI.",
+          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
         }

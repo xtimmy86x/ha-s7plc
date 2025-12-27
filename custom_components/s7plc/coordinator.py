@@ -95,6 +95,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._item_scan_intervals: dict[str, float] = {}
         self._item_next_read: dict[str, float] = {}
 
+        # Precision for REAL items (topic -> decimals or None for full precision)
+        self._item_real_precisions: dict[str, int | None] = {}
+
         # Store the latest values so entities keep their last state when a tag
         # is not due for polling in the current cycle.
         self._data_cache: dict[str, Any] = {}
@@ -152,7 +155,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Address management
     # -------------------------
     def add_item(
-        self, topic: str, address: str, scan_interval: float | int | None = None
+        self,
+        topic: str,
+        address: str,
+        scan_interval: float | int | None = None,
+        real_precision: int | None = None,
     ) -> None:
         """Map a topic to a PLC address and invalidate caches."""
         with self._lock:
@@ -160,6 +167,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._item_scan_intervals[topic] = self._normalize_scan_interval(
                 scan_interval
             )
+            if real_precision is None:
+                self._item_real_precisions.pop(topic, None)
+            else:
+                self._item_real_precisions[topic] = real_precision
             self._item_next_read[topic] = time.monotonic()
             self._invalidate_cache()
             self._update_min_interval_locked()
@@ -172,7 +183,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _build_tag_cache(self) -> None:
         """Build read plans for scalar and string tags."""
-        plans_batch, plans_str = build_plans(self._items)
+        plans_batch, plans_str = build_plans(
+            self._items, precisions=self._item_real_precisions
+        )
         self._plans_batch = {plan.topic: plan for plan in plans_batch}
         self._plans_str = {plan.topic: plan for plan in plans_str}
 

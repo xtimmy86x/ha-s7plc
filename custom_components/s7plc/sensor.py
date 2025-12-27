@@ -25,6 +25,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     CONF_ADDRESS,
     CONF_DEVICE_CLASS,
+    CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_VALUE_MULTIPLIER,
@@ -78,8 +79,11 @@ async def async_setup_entry(
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
         value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
+        real_precision = item.get(CONF_REAL_PRECISION)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await hass.async_add_executor_job(coord.add_item, topic, address, scan_interval)
+        await hass.async_add_executor_job(
+            coord.add_item, topic, address, scan_interval, real_precision
+        )
         entities.append(
             S7Sensor(
                 coord,

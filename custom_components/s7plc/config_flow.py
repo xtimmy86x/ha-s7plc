@@ -38,6 +38,7 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
+    CONF_REAL_PRECISION,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
@@ -83,6 +84,15 @@ scan_interval_selector = selector.NumberSelector(
         min=0.05,
         max=3600,
         step=0.05,
+        mode=selector.NumberSelectorMode.BOX,
+    )
+)
+
+real_precision_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=0,
+        max=6,
+        step=1,
         mode=selector.NumberSelectorMode.BOX,
     )
 )
@@ -434,6 +444,27 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return operate_time
 
     @staticmethod
+    def _normalize_real_precision(value: Any | None) -> int | None:
+        if value in (None, ""):
+            return None
+
+        candidate = value
+        if isinstance(candidate, str):
+            candidate = candidate.strip()
+            if not candidate:
+                return None
+
+        try:
+            precision = int(candidate)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid precision") from exc
+
+        if precision < 0 or precision > 6:
+            raise ValueError("invalid precision")
+
+        return precision
+
+    @staticmethod
     def _sanitize_button_pulse(value: Any | None) -> int:
         if value in (None, ""):
             return DEFAULT_BUTTON_PULSE
@@ -444,6 +475,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if pulse < 0:
             return DEFAULT_BUTTON_PULSE
         return pulse
+
+    @staticmethod
+    def _apply_real_precision(item: dict[str, Any], value: Any | None) -> None:
+        normalized = S7PLCOptionsFlow._normalize_real_precision(value)
+        if normalized is None:
+            item.pop(CONF_REAL_PRECISION, None)
+        else:
+            item[CONF_REAL_PRECISION] = normalized
 
     @staticmethod
     def _apply_scan_interval(item: dict[str, Any], value: Any | None) -> None:
@@ -580,6 +619,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
 
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
+        self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
         return item, errors
@@ -908,7 +948,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if step_value is not None:
             item[CONF_STEP] = step_value
 
-        # Scan interval
+
+        self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
         return item, errors
@@ -1217,6 +1258,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     )
                 ),
                 vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
+                vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -1438,6 +1480,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_MIN_VALUE): number_selector,
                 vol.Optional(CONF_MAX_VALUE): number_selector,
                 vol.Optional(CONF_STEP): positive_selector,
+                vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -1704,6 +1747,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_VALUE_MULTIPLIER, item, value_multiplier_selector
             )
             schema_dict[key_mul] = val_mul
+
+            key_precision, val_precision = self._optional_field(
+                CONF_REAL_PRECISION, item, real_precision_selector
+            )
+            schema_dict[key_precision] = val_precision
 
             return vol.Schema(schema_dict)
 
@@ -1979,6 +2027,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_STEP, item, positive_selector
             )
             schema_dict[key_step] = val_step
+
+            key_precision, val_precision = self._optional_field(
+                CONF_REAL_PRECISION, item, real_precision_selector
+            )
+            schema_dict[key_precision] = val_precision
 
             key_scan, val_scan = self._optional_field(
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
