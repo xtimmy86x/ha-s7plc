@@ -30,7 +30,9 @@ class StringPlan:
     start: int
 
 
-def apply_postprocess(data_type, value, *, precision: int | None = None):
+def apply_postprocess(
+    data_type, value, *, precision: int | None = DEFAULT_REAL_PRECISION
+):
     """Apply basic post-processing based on the tag data type."""
 
     if data_type != DataType.REAL:
