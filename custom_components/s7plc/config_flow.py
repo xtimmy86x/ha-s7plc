@@ -1461,7 +1461,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         number_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX, step=0.01)
+            selector.NumberSelectorConfig(
+                mode=selector.NumberSelectorMode.BOX, step=0.01
+            )
         )
 
         positive_selector = selector.NumberSelector(
