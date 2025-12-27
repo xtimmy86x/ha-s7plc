@@ -1461,13 +1461,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         number_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+            selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX, step=0.01)
         )
 
         positive_selector = selector.NumberSelector(
             selector.NumberSelectorConfig(
                 mode=selector.NumberSelectorMode.BOX,
                 min=0,
+                step=0.01,
             )
         )
 
@@ -1994,12 +1995,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_edit_number(self, user_input: dict[str, Any] | None = None):
         def build_schema(item: dict[str, Any]) -> vol.Schema:
             number_selector = selector.NumberSelector(
-                selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX, step=0.01
+                )
             )
             positive_selector = selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
                     min=0,
+                    step=0.01,
                 )
             )
 
