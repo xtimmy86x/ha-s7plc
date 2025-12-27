@@ -57,7 +57,8 @@ class S7BaseEntity(CoordinatorEntity):
             self._topic, self._coord._default_scan_interval
         )
         attrs["scan_interval"] = interval
-        precision = self._coord._item_real_precisions.get(self._topic)
+        item_real_precisions = getattr(self._coord, "_item_real_precisions", {})
+        precision = item_real_precisions.get(self._topic)
         if precision is not None:
             attrs["real_precision"] = precision
         return attrs
