@@ -63,7 +63,7 @@ def build_plans(
 
         def _mk_post(dt, precision):
             return lambda v: apply_postprocess(dt, v, precision=precision)
-        
+
         precision = DEFAULT_REAL_PRECISION
         if precisions is not None and topic in precisions:
             precision = precisions[topic]

@@ -38,11 +38,11 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
-    CONF_REAL_PRECISION,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_RACK,
+    CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
@@ -947,7 +947,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_MAX_VALUE] = max_value
         if step_value is not None:
             item[CONF_STEP] = step_value
-
 
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
