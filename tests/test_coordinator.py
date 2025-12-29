@@ -16,7 +16,7 @@ class DummyCoordinatorClient:
         self._values = values
         self.calls = []
 
-    def read(self, tags, optimize=False):
+    def read(self, tags, optimize=True):
         self.calls.append((list(tags), optimize))
         result = self._values.pop(0)
         if isinstance(result, BaseException):
@@ -143,7 +143,7 @@ def test_read_batch_deduplicates_tags(monkeypatch):
 
     results = coord._read_batch(plans)
 
-    assert client.calls == [([tag_a, tag_b], False)]
+    assert client.calls == [([tag_a, tag_b], True)]
     assert results == {
         "topic/a": 11,
         "topic/b": 10,
