@@ -322,9 +322,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Header: max_len, cur_len
         hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
         # Changed in pyS7 1.5.0 optimized=True by default
-        max_len, cur_len = self._retry(
-            lambda: self._client.read([hdr_tag])
-        )[0]
+        max_len, cur_len = self._retry(lambda: self._client.read([hdr_tag]))[0]
         # Type safety
         max_len = int(max_len)
         cur_len = int(cur_len)
@@ -341,9 +339,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
             )
             # Changed in pyS7 1.5.0 optimized=True by default
-            chunk = self._retry(lambda: self._client.read([data_tag]))[
-                0
-            ]
+            chunk = self._retry(lambda: self._client.read([data_tag]))[0]
             data.extend(chunk)
             offset += chunk_len
 

@@ -35,7 +35,7 @@ def apply_postprocess(
 ):
     """Apply basic post-processing based on the tag data type."""
 
-    if data_type != DataType.REAL:
+    if data_type not in (DataType.REAL, getattr(DataType, "LREAL", None)):
         return value
     if precision is None:
         return value
