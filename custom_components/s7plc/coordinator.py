@@ -321,8 +321,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _read_s7_string(self, db: int, start: int) -> str:
         # Header: max_len, cur_len
         hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
+        # Changed in pyS7 1.5.0 optimized=True by default
         max_len, cur_len = self._retry(
-            lambda: self._client.read([hdr_tag], optimize=False)
+            lambda: self._client.read([hdr_tag])
         )[0]
         # Type safety
         max_len = int(max_len)
@@ -339,7 +340,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data_tag = S7Tag(
                 MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
             )
-            chunk = self._retry(lambda: self._client.read([data_tag], optimize=False))[
+            # Changed in pyS7 1.5.0 optimized=True by default
+            chunk = self._retry(lambda: self._client.read([data_tag]))[
                 0
             ]
             data.extend(chunk)
@@ -374,7 +376,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         try:
             tags = [groups[k][0].tag for k in order]
-            values = self._retry(lambda: self._client.read(tags, optimize=False))
+            # Changed in pyS7 1.5.0 optimized=True by default
+            values = self._retry(lambda: self._client.read(tags))
             for k, v in zip(order, values):
                 for plan in groups[k]:
                     results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
@@ -422,7 +425,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         results: Dict[str, Any] = {}
 
         try:
-            # ===== 1) Scalar batch with dedup & optimize=False =====
+            # ===== 1) Scalar batch with dedup & optimize =====
             if plans_batch:
                 results.update(self._read_batch(plans_batch))
 
@@ -451,8 +454,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         tag = parse_tag(address)
         if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
             return self._read_s7_string(tag.db_number, tag.start)
-
-        value = self._retry(lambda: self._client.read([tag], optimize=False))[0]
+        # Changed in pyS7 1.5.0 optimized=True by default
+        value = self._retry(lambda: self._client.read([tag]))[0]
         # Normalize BIT to bool
         if tag.data_type == DataType.BIT:
             return bool(value)
