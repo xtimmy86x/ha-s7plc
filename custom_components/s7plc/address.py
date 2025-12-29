@@ -27,7 +27,7 @@ except ImportError as err:  # pragma: no cover
         REAL=6,
         CHAR=7,
     )
-    MemoryArea = SimpleNamespace(DB=0)
+    MemoryArea = SimpleNamespace(DB=0, INPUT=1, OUTPUT=2, MERKER=3)
     S7Tag = Any
     s7_address_parser = None
     S7AddressError = Exception
