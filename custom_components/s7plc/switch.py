@@ -16,7 +16,7 @@ from .const import (
     CONF_SYNC_STATE,
 )
 from .entity import S7BoolSyncEntity
-from .helpers import get_coordinator_and_device_info
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +33,9 @@ async def async_setup_entry(
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
-        name = item.get(CONF_NAME, "S7 Switch")
+        name = item.get(CONF_NAME) or default_entity_name(
+            device_info.get("name"), state_address
+        )
         topic = f"switch:{state_address}"
         unique_id = f"{device_id}:{topic}"
         scan_interval = item.get(CONF_SCAN_INTERVAL)

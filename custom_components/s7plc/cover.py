@@ -11,6 +11,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_call_later
 
+from .helpers import default_entity_name, get_coordinator_and_device_info
+
 from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
@@ -75,7 +77,9 @@ async def async_setup_entry(
                 coord.add_item, closing_topic, closing_state, scan_interval
             )
 
-        name = item.get(CONF_NAME, "S7 Cover")
+        name = item.get(CONF_NAME) or default_entity_name(
+            device_info.get("name"), open_command
+        )
         unique_topic = opening_topic or closing_topic or f"cover:command:{open_command}"
         unique_id = f"{device_id}:{unique_topic}"
 

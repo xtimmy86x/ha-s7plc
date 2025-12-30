@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
@@ -40,3 +41,18 @@ def get_coordinator_and_device_info(
     )
 
     return coordinator, device_info, device_id
+
+
+def default_entity_name(plc_name: str | None, address: str | None) -> str | None:
+    """Return a default entity name using the PLC name and a humanized address."""
+
+    if address:
+        humanized = re.sub(r"[^0-9A-Za-z\.]+", " ", address)
+        humanized = re.sub(r"\s+", " ", humanized).strip()
+    else:
+        humanized = None
+
+    if plc_name and humanized:
+        return f"{plc_name} {humanized.upper()}"
+
+    return plc_name or humanized

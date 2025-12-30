@@ -12,7 +12,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DEFAULT_BUTTON_PULSE
 from .entity import S7BaseEntity
-from .helpers import get_coordinator_and_device_info
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +28,9 @@ async def async_setup_entry(
         address = item.get(CONF_ADDRESS)
         if not address:
             continue
-        name = item.get(CONF_NAME, "S7 Button")
+        name = item.get(CONF_NAME) or default_entity_name(
+            device_info.get("name"), address
+        )
         unique_id = f"{device_id}:button:{address}"
         raw_pulse = item.get(CONF_BUTTON_PULSE)
         button_pulse = DEFAULT_BUTTON_PULSE

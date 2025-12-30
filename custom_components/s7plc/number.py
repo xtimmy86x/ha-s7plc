@@ -21,7 +21,7 @@ from .const import (
     CONF_STEP,
 )
 from .entity import S7BaseEntity
-from .helpers import get_coordinator_and_device_info
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +36,9 @@ async def async_setup_entry(
         address = item.get(CONF_ADDRESS)
         if not address:
             continue
-        name = item.get(CONF_NAME, "S7 Number")
+        name = item.get(CONF_NAME) or default_entity_name(
+            device_info.get("name"), address
+        )
         topic = f"number:{address}"
         unique_id = f"{device_id}:{topic}"
         command_address = item.get(CONF_COMMAND_ADDRESS) or address
