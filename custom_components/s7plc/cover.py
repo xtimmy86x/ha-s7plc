@@ -11,8 +11,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_call_later
 
-from .helpers import default_entity_name, get_coordinator_and_device_info
-
 from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
@@ -22,9 +20,9 @@ from .const import (
     CONF_OPERATE_TIME,
     CONF_SCAN_INTERVAL,
     DEFAULT_OPERATE_TIME,
-    DOMAIN,
 )
 from .entity import S7BaseEntity
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,17 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    data = hass.data[DOMAIN][entry.entry_id]
-    coord = data["coordinator"]
-    device_id = data["device_id"]
-    device_name = data["name"]
-
-    device_info = DeviceInfo(
-        identifiers={(DOMAIN, device_id)},
-        name=device_name,
-        manufacturer="Siemens",
-        model="S7 PLC",
-    )
+    coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
 
     entities: list[S7Cover] = []
 
