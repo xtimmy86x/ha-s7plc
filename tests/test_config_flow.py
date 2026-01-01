@@ -205,20 +205,14 @@ def test_options_connection_updates_entry(monkeypatch):
     )
 
 
-def test_number_limits_clamped_on_add(monkeypatch):
+def test_number_limits_clamped_on_add():
     flow = make_options_flow(options={const.CONF_NUMBERS: []})
     flow.hass = HomeAssistant()
-
-    tag = SimpleNamespace(data_type="INT")
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: tag)
-    monkeypatch.setattr(
-        config_flow, "get_numeric_limits", lambda data_type: (-32768.0, 32767.0)
-    )
 
     result = run_flow(
         flow.async_step_numbers(
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,I2",
                 const.CONF_MIN_VALUE: -99999,
                 const.CONF_MAX_VALUE: 99999,
                 const.CONF_STEP: 1,
@@ -232,10 +226,10 @@ def test_number_limits_clamped_on_add(monkeypatch):
     assert stored[const.CONF_MAX_VALUE] == 32767.0
 
 
-def test_edit_sensor_scan_interval_can_be_cleared(monkeypatch):
+def test_edit_sensor_scan_interval_can_be_cleared():
     options = {
         const.CONF_SENSORS: [
-            {const.CONF_ADDRESS: "DB1.DBX0.0", const.CONF_SCAN_INTERVAL: 1.5}
+            {const.CONF_ADDRESS: "DB1,X0.0", const.CONF_SCAN_INTERVAL: 1.5}
         ]
     }
 
@@ -243,12 +237,10 @@ def test_edit_sensor_scan_interval_can_be_cleared(monkeypatch):
     flow._action = "edit"
     flow._edit_target = ("s", 0)
 
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
-
     result = run_flow(
         flow.async_step_edit_sensor(
             {
-                const.CONF_ADDRESS: "DB1.DBX0.0",
+                const.CONF_ADDRESS: "DB1,X0.0",
                 CONF_NAME: "",
                 const.CONF_SCAN_INTERVAL: "",
             }
@@ -260,15 +252,13 @@ def test_edit_sensor_scan_interval_can_be_cleared(monkeypatch):
     assert const.CONF_SCAN_INTERVAL not in sensor
     
 
-def test_add_sensor_with_value_multiplier(monkeypatch):
+def test_add_sensor_with_value_multiplier():
     flow = make_options_flow(options={const.CONF_SENSORS: []})
-
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
 
     result = run_flow(
         flow.async_step_sensors(
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,W0",
                 const.CONF_VALUE_MULTIPLIER: "0.25",
             }
         )
@@ -279,15 +269,13 @@ def test_add_sensor_with_value_multiplier(monkeypatch):
     assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
 
 
-def test_add_sensor_with_value_multiplier_comma_decimal(monkeypatch):
+def test_add_sensor_with_value_multiplier_comma_decimal():
     flow = make_options_flow(options={const.CONF_SENSORS: []})
-
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
 
     result = run_flow(
         flow.async_step_sensors(
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,W0",
                 const.CONF_VALUE_MULTIPLIER: "0,25",
             }
         )
@@ -298,11 +286,11 @@ def test_add_sensor_with_value_multiplier_comma_decimal(monkeypatch):
     assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
 
 
-def test_edit_sensor_value_multiplier_can_be_cleared(monkeypatch):
+def test_edit_sensor_value_multiplier_can_be_cleared():
     options = {
         const.CONF_SENSORS: [
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,W0",
                 const.CONF_VALUE_MULTIPLIER: 2.0,
             }
         ]
@@ -312,12 +300,11 @@ def test_edit_sensor_value_multiplier_can_be_cleared(monkeypatch):
     flow._action = "edit"
     flow._edit_target = ("s", 0)
 
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: None)
 
     result = run_flow(
         flow.async_step_edit_sensor(
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,W0",
                 CONF_NAME: "",
                 const.CONF_VALUE_MULTIPLIER: "",
             }
@@ -329,12 +316,12 @@ def test_edit_sensor_value_multiplier_can_be_cleared(monkeypatch):
     assert const.CONF_VALUE_MULTIPLIER not in sensor
 
     
-def test_number_limits_clamped_on_edit(monkeypatch):
+def test_number_limits_clamped_on_edit():
     options = {
         const.CONF_NUMBERS: [
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
-                const.CONF_MIN_VALUE: -100.0,
+                const.CONF_ADDRESS: "DB1,W0",
+                const.CONF_MIN_VALUE: 0.0,
                 const.CONF_MAX_VALUE: 100.0,
             }
         ]
@@ -343,14 +330,10 @@ def test_number_limits_clamped_on_edit(monkeypatch):
     flow.hass = HomeAssistant()
     flow._edit_target = ("nm", 0)
 
-    tag = SimpleNamespace(data_type="INT")
-    monkeypatch.setattr(config_flow, "parse_tag", lambda addr: tag)
-    monkeypatch.setattr(config_flow, "get_numeric_limits", lambda data_type: (0.0, 100.0))
-
     result = run_flow(
         flow.async_step_edit_number(
             {
-                const.CONF_ADDRESS: "DB1.DBW0",
+                const.CONF_ADDRESS: "DB1,W0",
                 const.CONF_MIN_VALUE: -50,
                 const.CONF_MAX_VALUE: 200,
             }
@@ -359,8 +342,8 @@ def test_number_limits_clamped_on_edit(monkeypatch):
 
     assert result["type"] == "create_entry"
     stored = flow._options[const.CONF_NUMBERS][0]
-    assert stored[const.CONF_MIN_VALUE] == 0.0
-    assert stored[const.CONF_MAX_VALUE] == 100.0
+    assert stored[const.CONF_MIN_VALUE] == 0.0 # clamped for WORD data type
+    assert stored[const.CONF_MAX_VALUE] == 200.0
     assert flow._edit_target is None
 
 
