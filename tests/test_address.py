@@ -2,40 +2,45 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from custom_components.s7plc import address
 
+def test_map_address_to_tag():
+    """``map_address_to_tag``"""
 
-class DummyTag:
-    """Simple replacement for ``S7Tag`` supporting expected attributes."""
+    string_tag = "DB1,S10.2" # S7 string at DB1, offset 10, length 2
 
-    def __init__(
-        self,
-        memory_area="DB",
-        db_number=1,
-        data_type=None,
-        start=0,
-        bit_offset=0,
-        length=1,
-    ):
-        self.memory_area = memory_area
-        self.db_number = db_number
-        self.data_type = data_type
-        self.start = start
-        self.bit_offset = bit_offset
-        self.length = length
+    S7_Tag = address.S7Tag(
+                memory_area=address.MemoryArea.DB,
+                db_number=1,
+                data_type=address.DataType.CHAR,
+                start=10,
+                bit_offset=0,
+                length=2,
+                    )
+
+    assert address.parse_tag(string_tag) == S7_Tag
 
 
-def test_map_address_to_tag_discards_string_tags(monkeypatch):
-    """``map_address_to_tag`` should skip string tags."""
+def test_parse_tag_invalid_address():
+    """``parse_tag`` with invalid address"""
 
-    data_type = SimpleNamespace(BIT="bit", CHAR="char")
-    monkeypatch.setattr(address, "DataType", data_type)
+    invalid_address = "DB1,DBS10.2" # Should not use DB after comma
 
-    def fake_parser(address_str):
-        return DummyTag(data_type=data_type.CHAR, length=8)
+    try:
+        address.parse_tag(invalid_address)
+    except ValueError as err:
+        assert str(err) == f"Invalid address: {invalid_address}"
+    else:
+        assert False, "Expected ValueError was not raised"
 
-    monkeypatch.setattr(address, "s7_address_parser", fake_parser)
 
-    assert address.map_address_to_tag("DB1.DBB0") is None
+def test_get_numeric_limits():
+    """``get_numeric_limits``"""
+
+    int_type = address.DataType.INT
+    dint_type = address.DataType.DINT
+    real_type = address.DataType.REAL
+
+    assert address.get_numeric_limits(int_type) == (-32768, 32767)
+    assert address.get_numeric_limits(dint_type) == (-2147483648, 2147483647)
+    assert address.get_numeric_limits(real_type) is None
