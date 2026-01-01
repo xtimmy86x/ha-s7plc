@@ -233,27 +233,19 @@ def test_button_press_write_failures():
 
 def test_number_clamps_configured_limits(monkeypatch):
     coord = DummyCoordinator()
-    monkeypatch.setattr(
-        number_comp, "parse_tag", lambda addr: SimpleNamespace(data_type="INT")
-    )
-    monkeypatch.setattr(
-        number_comp,
-        "get_numeric_limits",
-        lambda data_type: (-32768.0, 32767.0),
-    )
 
     number_entity = S7Number(
         coord,
         name="Number",
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
-        topic="number:db1.dbw0",
-        address="db1.dbw0",
-        command_address="db1.dbw0",
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
         min_value=-99999,
         max_value=99999,
         step=None,
     )
 
-    assert number_entity.native_min_value == -32768.0
-    assert number_entity.native_max_value == 32767.0
+    assert number_entity.native_min_value == 0.0 # clamped for WORD data type
+    assert number_entity.native_max_value == 65535.0 # clamped for WORD data type
