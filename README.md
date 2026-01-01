@@ -214,7 +214,7 @@ Example: adding a light entity via the UI:
 Example: adding a number entity via the UI:
 
 1. Open the integration and choose **Add items**.
-2. Select **Number** and type the PLC `address` (e.g., `DB1,DBW0` for an INT).
+2. Select **Number** and type the PLC `address` (e.g., `DB1,W0` for an INT).
 3. Optionally set a separate `command_address`, `min`, `max`, and `step`.
    Any limits that fall outside the PLC data type range are automatically tightened to the closest valid value.
 4. Submit to create the entity or keep **Add another** enabled to configure more numbers in one go.

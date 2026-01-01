@@ -116,7 +116,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
@@ -177,8 +177,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "open_command_address": "Indirizzo PLC che avvia l'apertura (es. Q0.0, DB1,DBX0.0).",
-          "close_command_address": "Indirizzo PLC che avvia la chiusura (es. Q0.1, DB1,DBX0.1).",
+          "open_command_address": "Indirizzo PLC che avvia l'apertura (es. Q0.0, DB1,X0.0).",
+          "close_command_address": "Indirizzo PLC che avvia la chiusura (es. Q0.1, DB1,X0.1).",
           "opening_state_address": "Indirizzo PLC opzionale che indica che la cover si sta aprendo. Lascia vuoto per riutilizzare l'indirizzo di comando apertura.",
           "closing_state_address": "Indirizzo PLC opzionale che indica che la cover si sta chiudendo. Lascia vuoto per riutilizzare l'indirizzo di comando chiusura.",
           "operate_time": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento.",
@@ -198,7 +198,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
           "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
           "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
@@ -240,7 +240,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,DBD0, DB2,DBW4).",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
@@ -273,7 +273,7 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,DBD0, MW10, DB1,DBW2).",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
@@ -347,7 +347,7 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,DBX0.1).",
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
           "button_pulse": "Durata dell'impulso in secondi.",
           "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
@@ -386,7 +386,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,DBD0, DB2,DBW4).",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",

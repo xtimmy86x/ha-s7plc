@@ -347,7 +347,7 @@ def test_write_number_handles_numeric_types(monkeypatch):
     int_tag = DummyTag(data_type=coordinator.DataType.INT)
     monkeypatch.setattr(coordinator, "parse_tag", lambda address: int_tag)
 
-    assert coord.write_number("DB1,DBW0", 12.6)
+    assert coord.write_number("DB1,W0", 12.6)
     assert writes == [([int_tag], [13])]
 
     writes.clear()
@@ -355,7 +355,7 @@ def test_write_number_handles_numeric_types(monkeypatch):
     coord._write_tags.clear()
     monkeypatch.setattr(coordinator, "parse_tag", lambda address: real_tag)
 
-    assert coord.write_number("DB1,DBD4", 7.25)
+    assert coord.write_number("DB1,D4", 7.25)
     assert writes[0][0] == [real_tag]
     assert writes[0][1][0] == pytest.approx(7.25)
 
@@ -379,4 +379,4 @@ def test_write_number_rejects_non_numeric(monkeypatch):
     )
 
     with pytest.raises(ValueError):
-        coord.write_number("DB1,DBB0", 65)
+        coord.write_number("DB1,B0", 65)

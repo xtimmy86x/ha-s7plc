@@ -116,7 +116,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC address to read (e.g., DB1000,DBD0, MW10, DB1,DBW2).",
+          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
@@ -177,8 +177,8 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,DBX0.0).",
-          "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,DBX0.1).",
+          "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0).",
+          "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,X0.1).",
           "opening_state_address": "Optional PLC address that indicates the cover is opening. Leave blank to reuse the open command address.",
           "closing_state_address": "Optional PLC address that indicates the cover is closing. Leave blank to reuse the close command address.",
           "operate_time": "Seconds to keep the command active before resetting the outputs and clearing the movement state.",
@@ -198,7 +198,7 @@
           "button_pulse": "Pulse duration"
         },
         "data_description": {
-          "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,DBX0.1).",
+          "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more buttons.",
@@ -240,7 +240,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC address to read the numeric value (e.g., DB1,DBD0, DB2,DBW4).",
+          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
@@ -273,7 +273,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC address to read (e.g., DB1000,DBD0, MW10, DB1,DBW2).",
+          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
@@ -347,7 +347,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,DBX0.1).",
+          "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
           "button_pulse": "Duration of the pulse in seconds.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
@@ -386,7 +386,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC address to read the numeric value (e.g., DB1,DBD0, DB2,DBW4).",
+          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
