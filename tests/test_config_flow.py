@@ -76,40 +76,40 @@ def test_add_step_routes_to_selected_handler(monkeypatch):
 def test_sanitize_and_normalize_address():
     flow = make_options_flow()
 
-    assert flow._sanitize_address("  DB1.DBX0.0  ") == "DB1.DBX0.0"
+    assert flow._sanitize_address("  DB1,X0.0  ") == "DB1,X0.0"
     assert flow._sanitize_address(123) == "123"
     assert flow._sanitize_address("   ") is None
     assert flow._sanitize_address(None) is None
 
-    assert flow._normalized_address("db1.dbx0.0") == "DB1.DBX0.0"
+    assert flow._normalized_address("db1,x0.0") == "DB1,X0.0"
     assert flow._normalized_address(None) is None
 
 
 def test_has_duplicate_uses_normalized_addresses():
     options = {
-        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1.DBX0.0"}],
+        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1,X0.0"}],
         const.CONF_SWITCHES: [
             {
-                const.CONF_STATE_ADDRESS: "DB1.DBX0.1",
-                const.CONF_COMMAND_ADDRESS: "DB1.DBX0.2",
+                const.CONF_STATE_ADDRESS: "DB1,X0.1",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.2",
             }
         ],
     }
 
     flow = make_options_flow(options)
 
-    assert flow._has_duplicate(const.CONF_SENSORS, "db1.dbx0.0") is True
-    assert flow._has_duplicate(const.CONF_SENSORS, "db1.dbx0.1") is False
+    assert flow._has_duplicate(const.CONF_SENSORS, "db1,x0.0") is True
+    assert flow._has_duplicate(const.CONF_SENSORS, "db1,x0.1") is False
     assert (
         flow._has_duplicate(
-            const.CONF_SENSORS, "db1.dbx0.0", skip_idx=0
+            const.CONF_SENSORS, "db1,x0.0", skip_idx=0
         )
         is False
     )
     assert (
         flow._has_duplicate(
             const.CONF_SWITCHES,
-            "db1.dbx0.1",
+            "db1,x0.1",
             keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
         )
         is True
@@ -117,7 +117,7 @@ def test_has_duplicate_uses_normalized_addresses():
     assert (
         flow._has_duplicate(
             const.CONF_SWITCHES,
-            "db1.dbx0.2",
+            "db1,x0.2",
             keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
         )
         is False
@@ -125,7 +125,7 @@ def test_has_duplicate_uses_normalized_addresses():
     assert (
         flow._has_duplicate(
             const.CONF_SWITCHES,
-            "db1.dbx0.1",
+            "db1,x0.1",
             keys=(const.CONF_STATE_ADDRESS, const.CONF_ADDRESS),
             skip_idx=0,
         )
@@ -349,7 +349,7 @@ def test_number_limits_clamped_on_edit():
 
 def test_build_export_data_includes_all_keys():
     options = {
-        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1.DBX0.0", CONF_NAME: "A"}],
+        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1,X0.0", CONF_NAME: "A"}],
         const.CONF_SWITCHES: [
             {
                 const.CONF_STATE_ADDRESS: "Q0.0",
@@ -366,13 +366,13 @@ def test_build_export_data_includes_all_keys():
     for key in config_flow.OPTION_KEYS:
         assert key in payload
 
-    assert payload[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB1.DBX0.0"
+    assert payload[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB1,X0.0"
     assert payload[const.CONF_SWITCHES][0][const.CONF_COMMAND_ADDRESS] == "Q0.1"
 
 
 def test_import_step_replaces_configuration():
     original = {
-        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1.DBX0.0"}],
+        const.CONF_SENSORS: [{const.CONF_ADDRESS: "DB1,X0.0"}],
         const.CONF_BUTTONS: [{const.CONF_ADDRESS: "Q0.0"}],
     }
 

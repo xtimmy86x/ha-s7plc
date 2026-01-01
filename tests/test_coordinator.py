@@ -171,7 +171,7 @@ def test_async_update_data_respects_item_scan_interval(monkeypatch):
     plan = TagPlan("topic/a", DummyTag())
     coord._plans_batch = {"topic/a": plan}
     coord._plans_str = {}
-    coord._items["topic/a"] = "DB1.DBX0.0"
+    coord._items["topic/a"] = "DB1,X0.0"
     coord._item_scan_intervals["topic/a"] = 2.0
     coord._item_next_read["topic/a"] = 0.0
     coord._data_cache.clear()

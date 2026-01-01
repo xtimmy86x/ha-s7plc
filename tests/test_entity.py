@@ -52,7 +52,7 @@ def test_base_entity_availability_and_attrs():
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="topic1",
-        address="db1.dbx0.0",
+        address="db1,x0.0",
     )
 
     assert not base.available
@@ -67,7 +67,7 @@ def test_base_entity_availability_and_attrs():
     coord.data = {"topic1": 1}
     assert base.available
 
-    assert base.extra_state_attributes == {"s7_address": "DB1.DBX0.0", "scan_interval": 10}
+    assert base.extra_state_attributes == {"s7_address": "DB1,X0.0", "scan_interval": 10}
 
 
 def test_bool_entity_commands_and_refresh():
@@ -78,8 +78,8 @@ def test_bool_entity_commands_and_refresh():
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="topic",
-        state_address="db1.dbx0.0",
-        command_address="db1.dbx0.1",
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
         sync_state=True,
     )
 
@@ -94,13 +94,13 @@ def test_bool_entity_commands_and_refresh():
     asyncio.run(ent.async_turn_on())
 
     assert ent._pending_command is True
-    assert coord.write_calls[-1] == ("db1.dbx0.1", True)
+    assert coord.write_calls[-1] == ("db1,x0.1", True)
     assert coord.refresh_called
 
     coord.refresh_called = False
     asyncio.run(ent.async_turn_off())
     assert ent._pending_command is False
-    assert coord.write_calls[-1] == ("db1.dbx0.1", False)
+    assert coord.write_calls[-1] == ("db1,x0.1", False)
     assert coord.refresh_called
 
 
@@ -112,8 +112,8 @@ def test_bool_entity_write_failure():
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="topic",
-        state_address="db1.dbx0.0",
-        command_address="db1.dbx0.1",
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
         sync_state=True,
     )
 
@@ -127,7 +127,7 @@ def test_bool_entity_write_failure():
     with pytest.raises(entity.HomeAssistantError):
         asyncio.run(ent.async_turn_on())
 
-    assert coord.write_calls[-1] == ("db1.dbx0.1", True)
+    assert coord.write_calls[-1] == ("db1,x0.1", True)
     assert ent._pending_command is None
     assert not coord.refresh_called
 
@@ -140,8 +140,8 @@ def test_bool_entity_ensure_connected():
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="topic",
-        state_address="db1.dbx0.0",
-        command_address="db1.dbx0.1",
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
         sync_state=True,
     )
 
@@ -157,8 +157,8 @@ def test_bool_entity_state_synchronization():
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="topic",
-        state_address="db1.dbx0.0",
-        command_address="db1.dbx0.1",
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
         sync_state=True,
     )
 
@@ -190,20 +190,20 @@ def test_bool_entity_state_synchronization():
     coord.data["topic"] = True
     ent._pending_command = None
     ent.async_write_ha_state()
-    assert calls == [("write_bool", ("db1.dbx0.1", True))]
+    assert calls == [("write_bool", ("db1,x0.1", True))]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
 
 
 def test_button_press_write_failures():
     coord = DummyCoordinator()
-    coord.data = {"button:db1.dbx0.0": True}
+    coord.data = {"button:db1,x0.0": True}
     button = S7Button(
         coord,
         name="Test Button",
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
-        address="db1.dbx0.0",
+        address="db1,x0.0",
         button_pulse=0,
     )
 
@@ -215,7 +215,7 @@ def test_button_press_write_failures():
     coord.set_default_write_result(False)
     with pytest.raises(entity.HomeAssistantError):
         asyncio.run(button.async_press())
-    assert coord.write_calls == [("db1.dbx0.0", True)]
+    assert coord.write_calls == [("db1,x0.0", True)]
 
     coord.write_calls.clear()
     coord.set_default_write_result(True)
@@ -225,8 +225,8 @@ def test_button_press_write_failures():
         asyncio.run(button.async_press())
 
     assert coord.write_calls == [
-        ("db1.dbx0.0", True),
-        ("db1.dbx0.0", False),
+        ("db1,x0.0", True),
+        ("db1,x0.0", False),
     ]
 
 def test_number_clamps_configured_limits(monkeypatch):
