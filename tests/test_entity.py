@@ -3,12 +3,10 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from types import SimpleNamespace
 
 from custom_components.s7plc import entity
 from custom_components.s7plc.button import S7Button
 from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity
-from custom_components.s7plc import number as number_comp
 from custom_components.s7plc.number import S7Number
 from homeassistant.core import HomeAssistant
 
