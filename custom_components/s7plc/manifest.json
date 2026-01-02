@@ -8,6 +8,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/xtimmy86x/ha-s7plc/issues",
   "loggers": ["custom_components.s7plc"],
-  "requirements": ["pys7==1.5.0"],
-  "version": "3.5.0"
+  "requirements": ["pys7==1.5.2"],
+  "version": "3.5.1"
 }
