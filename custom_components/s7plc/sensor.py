@@ -3,7 +3,11 @@ from __future__ import annotations
 import logging
 import numbers
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONCENTRATION_PARTS_PER_BILLION,
@@ -36,28 +40,84 @@ from .helpers import default_entity_name, get_coordinator_and_device_info
 _LOGGER = logging.getLogger(__name__)
 
 
-_CANDIDATE_UNITS: dict[str, str] = {
+_CANDIDATE_UNITS: dict[str, str | None] = {
+    # Environmental
     "TEMPERATURE": UnitOfTemperature.CELSIUS,
+    "TEMPERATURE_DELTA": UnitOfTemperature.CELSIUS,
     "HUMIDITY": PERCENTAGE,
-    "BATTERY": PERCENTAGE,
+    "MOISTURE": PERCENTAGE,
+    "ILLUMINANCE": "lx",
+    "IRRADIANCE": "W/m²",
+    "ATMOSPHERIC_PRESSURE": UnitOfPressure.HPA,
     "PRESSURE": UnitOfPressure.HPA,
+    "PRECIPITATION": "mm",
+    "PRECIPITATION_INTENSITY": "mm/h",
+    "WIND_SPEED": UnitOfSpeed.METERS_PER_SECOND,
+    "SPEED": UnitOfSpeed.METERS_PER_SECOND,
+    "WIND_DIRECTION": "°",
+    # Electrical / energy
     "POWER": UnitOfPower.WATT,
+    "APPARENT_POWER": "VA",
+    "REACTIVE_POWER": "var",
+    "POWER_FACTOR": None,  # unitless by default
     "ENERGY": UnitOfEnergy.KILO_WATT_HOUR,
     "ENERGY_STORAGE": UnitOfEnergy.KILO_WATT_HOUR,
-    "CURRENT": UnitOfElectricCurrent.AMPERE,
+    "REACTIVE_ENERGY": "varh",
     "VOLTAGE": UnitOfElectricPotential.VOLT,
+    "CURRENT": UnitOfElectricCurrent.AMPERE,
     "FREQUENCY": UnitOfFrequency.HERTZ,
-    "SPEED": UnitOfSpeed.METERS_PER_SECOND,
+    # Air quality
+    "AQI": None,
     "CO2": CONCENTRATION_PARTS_PER_MILLION,
-    "NITROGEN_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
+    "CO": CONCENTRATION_PARTS_PER_MILLION,
     "OZONE": CONCENTRATION_PARTS_PER_BILLION,
+    "NITROGEN_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
     "PM1": "µg/m³",
-    "PM10": "µg/m³",
     "PM25": "µg/m³",
-    "ILLUMINANCE": "lx",
+    "PM4": "µg/m³",
+    "PM10": "µg/m³",
+    # Misc
+    "BATTERY": PERCENTAGE,
+    "SIGNAL_STRENGTH": "dBm",
+    "SOUND_PRESSURE": "dB",
+    "PH": None,
+    "DURATION": "s",
+    "DISTANCE": "m",
+    "VOLUME": "m³",
+    "VOLUME_STORAGE": "m³",
+    "VOLUME_FLOW_RATE": "L/min",
+    "WEIGHT": "kg",
+    "DATA_RATE": "B/s",
+    "DATA_SIZE": "B",
+    # Non-numeric / special
+    "DATE": None,
+    "TIMESTAMP": None,
+    "ENUM": None,
+    "MONETARY": None,
 }
 
-DEVICE_CLASS_UNITS: dict[SensorDeviceClass, str] = {
+TOTAL_INCREASING_CLASSES = {
+    SensorDeviceClass.ENERGY,
+    SensorDeviceClass.ENERGY_STORAGE,
+    getattr(SensorDeviceClass, "REACTIVE_ENERGY", None),
+}
+
+NO_MEASUREMENT_CLASSES = {
+    SensorDeviceClass.GAS,
+    SensorDeviceClass.WATER,
+    getattr(SensorDeviceClass, "DATE", None),
+    getattr(SensorDeviceClass, "TIMESTAMP", None),
+    getattr(SensorDeviceClass, "ENUM", None),
+    getattr(SensorDeviceClass, "MONETARY", None),
+    SensorDeviceClass.VOLUME,
+    # Note: VOLUME_STORAGE is allowed as a device_class,
+    # but treat it as "stored amount" and do not mark it as MEASUREMENT
+    # to avoid "impossible state_class" warnings in some setups.
+    getattr(SensorDeviceClass, "VOLUME_STORAGE", None),
+}
+
+# Build a mapping using only device classes that exist
+DEVICE_CLASS_UNITS: dict[SensorDeviceClass, str | None] = {
     getattr(SensorDeviceClass, name): unit
     for name, unit in _CANDIDATE_UNITS.items()
     if hasattr(SensorDeviceClass, name)
@@ -137,6 +197,24 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                 unit = DEVICE_CLASS_UNITS.get(sensor_device_class)
                 if unit is not None:
                     self._attr_native_unit_of_measurement = unit
+
+        # Assign the correct state_class.
+        if sensor_device_class in TOTAL_INCREASING_CLASSES:
+            self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+        elif sensor_device_class in NO_MEASUREMENT_CLASSES:
+            # Instantaneous tank level / stored volume -> no state_class
+            # (HA disallows MEASUREMENT here)
+            self._attr_state_class = None
+
+        else:
+            # Default for instantaneous numeric sensors
+            if sensor_device_class not in (
+                getattr(SensorDeviceClass, "DATE", None),
+                getattr(SensorDeviceClass, "TIMESTAMP", None),
+                getattr(SensorDeviceClass, "ENUM", None),
+            ):
+                self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):
