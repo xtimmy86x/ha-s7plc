@@ -25,11 +25,15 @@ except RuntimeError as err:  # pragma: no cover
 
 if pyS7 is not None:  # pragma: no cover - exercised only when library available
     try:
-        from pyS7.errors import S7CommunicationError, S7ConnectionError
+        from pyS7.errors import (
+            S7CommunicationError,
+            S7ConnectionError,
+            S7ReadResponseError,
+        )
     except (ImportError, AttributeError):  # pragma: no cover - defensive
-        S7CommunicationError = S7ConnectionError = RuntimeError
+        S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
 else:  # pragma: no cover - library absent in tests
-    S7CommunicationError = S7ConnectionError = RuntimeError
+    S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
 
 
 S7ClientT = "pyS7.S7Client"
@@ -241,6 +245,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 struct.error,
                 S7CommunicationError,
                 S7ConnectionError,
+                S7ReadResponseError,
             ) as e:  # log, drop connection and retry
                 last_exc = e
                 _LOGGER.debug(
@@ -377,7 +382,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             for k, v in zip(order, values):
                 for plan in groups[k]:
                     results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
-        except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
+        except (
+            OSError,
+            RuntimeError,
+            S7CommunicationError,
+            S7ConnectionError,
+            S7ReadResponseError,
+        ):
             _LOGGER.exception("Batch read error")
             raise
         return results
@@ -400,6 +411,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 RuntimeError,
                 S7CommunicationError,
                 S7ConnectionError,
+                S7ReadResponseError,
             ) as err:
                 _LOGGER.exception("String read error %s", plan.topic)
                 raise UpdateFailed(f"String read error {plan.topic}: {err}") from err
@@ -436,7 +448,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     results.setdefault(plan.topic, None)
                 return results
 
-        except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError) as err:
+        except (
+            OSError,
+            RuntimeError,
+            S7CommunicationError,
+            S7ConnectionError,
+            S7ReadResponseError,
+        ) as err:
             _LOGGER.exception("Read error")
             self._drop_connection()
             raise UpdateFailed(f"Read error: {err}") from err
@@ -469,7 +487,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._ensure_connected()
                 self._retry(lambda: self._client.write([tag], [bool(value)]))
                 return True
-            except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+                S7ReadResponseError,
+            ):
                 _LOGGER.exception("Write error %s", address)
                 self._drop_connection()
                 return False
@@ -503,7 +527,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._ensure_connected()
                 self._retry(lambda: self._client.write([tag], [payload]))
                 return True
-            except (OSError, RuntimeError, S7CommunicationError, S7ConnectionError):
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+                S7ReadResponseError,
+            ):
                 _LOGGER.exception("Write error %s", address)
                 self._drop_connection()
                 return False
