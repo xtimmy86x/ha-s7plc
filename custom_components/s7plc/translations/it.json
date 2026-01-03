@@ -15,7 +15,8 @@
           "operation_timeout": "Timeout operazione (s)",
           "max_retries": "Tentativi di retry",
           "retry_backoff_initial": "Backoff iniziale retry (s)",
-          "retry_backoff_max": "Backoff massimo retry (s)"
+          "retry_backoff_max": "Backoff massimo retry (s)",
+          "optimize_read": "Ottimizza letture batch"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -27,7 +28,8 @@
           "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
           "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
           "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
-          "retry_backoff_max": "Attesa massima tra i tentativi di retry."
+          "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
         }
       }
     },
@@ -88,7 +90,8 @@
           "operation_timeout": "Timeout operazione (s)",
           "max_retries": "Tentativi di retry",
           "retry_backoff_initial": "Retry backoff iniziale (s)",
-          "retry_backoff_max": "Retry backoff max (s)"
+          "retry_backoff_max": "Retry backoff max (s)",
+          "optimize_read": "Ottimizza letture batch"
         },
         "data_description": {
           "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
@@ -100,7 +103,8 @@
           "operation_timeout": "Durata massima di una singola lettura/scrittura prima di riprovare.",
           "max_retries": "Quanti tentativi effettuare prima di rinunciare.",
           "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
-          "retry_backoff_max": "Ritardo massimo tra i tentativi di retry."
+          "retry_backoff_max": "Ritardo massimo tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
         }
       },
       "sensors": {

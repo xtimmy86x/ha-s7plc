@@ -21,6 +21,7 @@ class DummyCoordinator:
         max_retries,
         backoff_initial,
         backoff_max,
+        optimize_read,
     ):
         self.hass = hass
         self.host = host
@@ -32,6 +33,7 @@ class DummyCoordinator:
         self.max_retries = max_retries
         self.backoff_initial = backoff_initial
         self.backoff_max = backoff_max
+        self.optimize_read = optimize_read
         self.connected = False
         self.disconnected = False
         self.refresh_called = False
@@ -98,6 +100,7 @@ def test_async_setup_entry_initialises_coordinator(monkeypatch):
             s7init.CONF_MAX_RETRIES: 5,
             s7init.CONF_BACKOFF_INITIAL: 1.0,
             s7init.CONF_BACKOFF_MAX: 6.0,
+            s7init.CONF_OPTIMIZE_READ: True,
         },
         entry_id="entry1",
     )

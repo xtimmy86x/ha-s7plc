@@ -15,7 +15,8 @@
           "operation_timeout": "Operation timeout (s)",
           "max_retries": "Retry attempts",
           "retry_backoff_initial": "Retry backoff start (s)",
-          "retry_backoff_max": "Retry backoff max (s)"
+          "retry_backoff_max": "Retry backoff max (s)",
+          "optimize_read": "Optimize batch reads"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -27,7 +28,8 @@
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
           "retry_backoff_initial": "Delay before the first retry attempt.",
-          "retry_backoff_max": "Maximum delay between retry attempts."
+          "retry_backoff_max": "Maximum delay between retry attempts.",
+          "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option."
         }
       }
     },
@@ -88,7 +90,8 @@
           "operation_timeout": "Operation timeout (s)",
           "max_retries": "Retry attempts",
           "retry_backoff_initial": "Retry backoff start (s)",
-          "retry_backoff_max": "Retry backoff max (s)"
+          "retry_backoff_max": "Retry backoff max (s)",
+          "optimize_read": "Optimize batch reads"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -100,7 +103,8 @@
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
           "retry_backoff_initial": "Delay before the first retry attempt.",
-          "retry_backoff_max": "Maximum delay between retry attempts."
+          "retry_backoff_max": "Maximum delay between retry attempts.",
+          "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option."
         }
       },
       "sensors": {

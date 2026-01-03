@@ -41,6 +41,7 @@ from .const import (
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
+    CONF_OPTIMIZE_READ,
     CONF_RACK,
     CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
@@ -57,6 +58,7 @@ from .const import (
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPERATE_TIME,
+    DEFAULT_OPTIMIZE_READ,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -182,6 +184,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_BACKOFF_MAX, default=DEFAULT_BACKOFF_MAX): vol.All(
                     vol.Coerce(float), vol.Range(min=0.1, max=120)
                 ),
+                vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
             }
         )
 
@@ -214,6 +217,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
             )
             backoff_max = float(user_input.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
+            optimize_read = bool(
+                user_input.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
+            )
             name = user_input.get(CONF_NAME, "S7 PLC")
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
@@ -251,6 +257,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             max_retries=max_retries,
             backoff_initial=backoff_initial,
             backoff_max=backoff_max,
+            optimize_read=optimize_read,
         )
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
@@ -277,6 +284,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_MAX_RETRIES: max_retries,
                 CONF_BACKOFF_INITIAL: backoff_initial,
                 CONF_BACKOFF_MAX: backoff_max,
+                CONF_OPTIMIZE_READ: optimize_read,
             },
         )
 
@@ -1055,6 +1063,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
             ),
             CONF_BACKOFF_MAX: float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX)),
+            CONF_OPTIMIZE_READ: bool(
+                data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
+            ),
         }
 
         data_schema = vol.Schema(
@@ -1079,6 +1090,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_BACKOFF_MAX, default=defaults[CONF_BACKOFF_MAX]
                 ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=120)),
+                vol.Optional(
+                    CONF_OPTIMIZE_READ, default=defaults[CONF_OPTIMIZE_READ]
+                ): bool,
             }
         )
 
@@ -1119,6 +1133,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             backoff_max = float(
                 user_input.get(CONF_BACKOFF_MAX, defaults[CONF_BACKOFF_MAX])
+            )
+            optimize_read = bool(
+                user_input.get(CONF_OPTIMIZE_READ, defaults[CONF_OPTIMIZE_READ])
             )
             name = (
                 user_input.get(CONF_NAME) or defaults[CONF_NAME]
@@ -1174,6 +1191,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             max_retries=max_retries,
             backoff_initial=backoff_initial,
             backoff_max=backoff_max,
+            optimize_read=optimize_read,
         )
 
         try:
@@ -1199,6 +1217,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_MAX_RETRIES: max_retries,
             CONF_BACKOFF_INITIAL: backoff_initial,
             CONF_BACKOFF_MAX: backoff_max,
+            CONF_OPTIMIZE_READ: optimize_read,
         }
 
         update_result = self.hass.config_entries.async_update_entry(

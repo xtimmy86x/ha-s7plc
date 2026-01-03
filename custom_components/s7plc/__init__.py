@@ -14,12 +14,14 @@ from .const import (
     CONF_BACKOFF_MAX,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
+    CONF_OPTIMIZE_READ,
     CONF_RACK,
     CONF_SLOT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
+    DEFAULT_OPTIMIZE_READ,
     DEFAULT_PORT,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -52,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     max_retries = int(data.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES))
     backoff_initial = float(data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL))
     backoff_max = float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
+    optimize_read = bool(data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ))
 
     coordinator = S7Coordinator(
         hass,
@@ -64,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         max_retries=max_retries,
         backoff_initial=backoff_initial,
         backoff_max=backoff_max,
+        optimize_read=optimize_read,
     )
 
     device_id = slugify(f"s7plc-{host}-{rack}-{slot}")

@@ -133,6 +133,10 @@ During the initial setup you can now tune the PLC communication resilience direc
 | **Retry attempts** | Number of retry attempts before the operation is considered failed. | 3 |
 | **Retry backoff start (s)** | Delay before the first retry after an error. | 0.5 |
 | **Retry backoff max (s)** | Maximum delay used between subsequent retries. | 2.0 |
+| **Optimize batch reads** | Enable optimized batch read operations for potentially better performance. Disable if you experience read errors. | `true` |
+
+**About optimized batch reads:**  
+When enabled, the integration uses pyS7's optimized read mode which attempts to consolidate multiple read requests into fewer, more efficient operations. This can significantly improve performance when reading many tags. However, some older PLCs or specific network configurations may not support this optimization properly, leading to communication errors. If you experience intermittent read failures or incorrect values, try disabling this option. The integration defaults to enabled (`true`) for modern S7-1200/1500 PLCs where optimization typically works well.
 
 Use the following guidelines based on the typical round-trip latency between Home Assistant and the PLC:
 

@@ -60,6 +60,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         max_retries: int = 3,  # number of retries per operation
         backoff_initial: float = 0.5,  # initial backoff
         backoff_max: float = 2.0,  # max backoff between retries
+        optimize_read: bool = True,  # enable optimized batch reads
     ):
         super().__init__(
             hass,
@@ -81,6 +82,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._max_retries = int(max_retries)
         self._backoff_initial = float(backoff_initial)
         self._backoff_max = float(backoff_max)
+        self._optimize_read = bool(optimize_read)
 
         self._lock = threading.RLock()
         self._client: Optional[Any] = None  # S7Client when available
@@ -327,7 +329,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Header: max_len, cur_len
         hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
         # Changed in pyS7 1.5.0 optimized=True by default
-        max_len, cur_len = self._retry(lambda: self._client.read([hdr_tag]))[0]
+        max_len, cur_len = self._retry(
+            lambda: self._client.read([hdr_tag], optimize=self._optimize_read)
+        )[0]
+        _LOGGER.debug(
+            "Reading S7 string DB%d.%d max_len=%d cur_len=%d optimize=%s",
+            db,
+            start,
+            max_len,
+            cur_len,
+            self._optimize_read,
+        )
         # Type safety
         max_len = int(max_len)
         cur_len = int(cur_len)
@@ -344,7 +356,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
             )
             # Changed in pyS7 1.5.0 optimized=True by default
-            chunk = self._retry(lambda: self._client.read([data_tag]))[0]
+            chunk = self._retry(
+                lambda: self._client.read([data_tag], optimize=self._optimize_read)
+            )[0]
+            _LOGGER.debug(
+                "Read S7 string chunk DB%d.%d len=%d optimize=%s",
+                db,
+                start + 2 + offset,
+                chunk_len,
+                self._optimize_read,
+            )
             data.extend(chunk)
             offset += chunk_len
 
@@ -378,7 +399,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         try:
             tags = [groups[k][0].tag for k in order]
             # Changed in pyS7 1.5.0 optimized=True by default
-            values = self._retry(lambda: self._client.read(tags))
+            values = self._retry(
+                lambda: self._client.read(tags, optimize=self._optimize_read)
+            )
+            _LOGGER.debug(
+                "Batch read %d tags optimize=%s", len(tags), self._optimize_read
+            )
             for k, v in zip(order, values):
                 for plan in groups[k]:
                     results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
@@ -469,7 +495,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
             return self._read_s7_string(tag.db_number, tag.start)
         # Changed in pyS7 1.5.0 optimized=True by default
-        value = self._retry(lambda: self._client.read([tag]))[0]
+        value = self._retry(
+            lambda: self._client.read([tag], optimize=self._optimize_read)
+        )[0]
+        _LOGGER.debug("Read single tag %s optimize=%s", address, self._optimize_read)
         # Normalize BIT to bool
         if tag.data_type == DataType.BIT:
             return bool(value)
