@@ -26,6 +26,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
+from .address import DataType
 from .const import (
     CONF_ADDRESS,
     CONF_DEVICE_CLASS,
@@ -187,7 +188,14 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         self._value_multiplier = (
             float(value_multiplier) if value_multiplier not in (None, "") else None
         )
-        if device_class:
+
+        # Check if this is a string or char sensor
+        is_string_or_char = self._is_string_or_char_sensor()
+
+        sensor_device_class = None
+
+        # Don't set device_class or state_class for string/char sensors
+        if not is_string_or_char and device_class:
             try:
                 sensor_device_class = SensorDeviceClass(device_class)
             except ValueError:
@@ -199,22 +207,37 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                     self._attr_native_unit_of_measurement = unit
 
         # Assign the correct state_class.
-        if sensor_device_class in TOTAL_INCREASING_CLASSES:
-            self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        if not is_string_or_char and sensor_device_class is not None:
+            if sensor_device_class in TOTAL_INCREASING_CLASSES:
+                self._attr_state_class = SensorStateClass.TOTAL_INCREASING
 
-        elif sensor_device_class in NO_MEASUREMENT_CLASSES:
-            # Instantaneous tank level / stored volume -> no state_class
-            # (HA disallows MEASUREMENT here)
-            self._attr_state_class = None
+            elif sensor_device_class in NO_MEASUREMENT_CLASSES:
+                # Instantaneous tank level / stored volume -> no state_class
+                # (HA disallows MEASUREMENT here)
+                self._attr_state_class = None
 
-        else:
-            # Default for instantaneous numeric sensors
-            if sensor_device_class not in (
-                getattr(SensorDeviceClass, "DATE", None),
-                getattr(SensorDeviceClass, "TIMESTAMP", None),
-                getattr(SensorDeviceClass, "ENUM", None),
-            ):
-                self._attr_state_class = SensorStateClass.MEASUREMENT
+            else:
+                # Default for instantaneous numeric sensors
+                if sensor_device_class not in (
+                    getattr(SensorDeviceClass, "DATE", None),
+                    getattr(SensorDeviceClass, "TIMESTAMP", None),
+                    getattr(SensorDeviceClass, "ENUM", None),
+                ):
+                    self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    def _is_string_or_char_sensor(self) -> bool:
+        """Check if this sensor is a string or char data type."""
+        # Check if it's a string plan (multi-char)
+        if self._topic in self.coordinator._plans_str:
+            return True
+
+        # Check if it's a char plan (single char)
+        if self._topic in self.coordinator._plans_batch:
+            plan = self.coordinator._plans_batch[self._topic]
+            if plan.tag.data_type == DataType.CHAR:
+                return True
+
+        return False
 
     @property
     def native_value(self):
