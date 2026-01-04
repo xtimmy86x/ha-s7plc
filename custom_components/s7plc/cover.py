@@ -146,7 +146,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._reset_handles: dict[str, Callable[[], None]] = {}
         self._is_opening = False
         self._is_closing = False
-        self._assumed_closed: bool | None = None  # Tracks position when using operate_time
+        self._assumed_closed: bool | None = (
+            None  # Tracks position when using operate_time
+        )
 
     def _get_topic_state(self, topic: str | None) -> bool | None:
         if topic is None:
@@ -246,28 +248,28 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
         await self._ensure_connected()
-        
+
         # Stop both operations
         errors = []
-        
+
         if self._is_opening:
             try:
                 await self._stop_operation("open")
             except Exception as err:
                 errors.append(f"open: {err}")
-        
+
         if self._is_closing:
             try:
                 await self._stop_operation("close")
             except Exception as err:
                 errors.append(f"close: {err}")
-        
+
         if errors:
             _LOGGER.error("Failed to stop cover: %s", "; ".join(errors))
             raise HomeAssistantError(
                 f"Failed to stop cover movement: {'; '.join(errors)}"
             )
-        
+
         self._is_opening = False
         self._is_closing = False
         self.async_write_ha_state()
@@ -366,14 +368,14 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 )
         self._is_opening = False
         self._is_closing = False
-        
+
         # Update assumed position when using operate_time
         if not self._use_state_topics:
             if direction == "open":
                 self._assumed_closed = False
             elif direction == "close":
                 self._assumed_closed = True
-        
+
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
 
