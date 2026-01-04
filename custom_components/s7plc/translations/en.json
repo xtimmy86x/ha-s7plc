@@ -173,9 +173,10 @@
         "data": {
           "open_command_address": "Open command address",
           "close_command_address": "Close command address",
-          "opening_state_address": "Opening state address",
-          "closing_state_address": "Closing state address",
+          "opening_state_address": "Opened state address",
+          "closing_state_address": "Closed state address",
           "operate_time": "Operate time (s)",
+          "use_state_topics": "Use state topics for position",
           "name": "Name",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
@@ -183,9 +184,10 @@
         "data_description": {
           "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0).",
           "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,X0.1).",
-          "opening_state_address": "Optional PLC address that indicates the cover is opening. Leave blank to reuse the open command address.",
-          "closing_state_address": "Optional PLC address that indicates the cover is closing. Leave blank to reuse the close command address.",
+          "opening_state_address": "Optional PLC address that indicates the cover is opened.",
+          "closing_state_address": "Optional PLC address that indicates the cover is closed.",
           "operate_time": "Seconds to keep the command active before resetting the outputs and clearing the movement state.",
+          "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more covers."
@@ -325,18 +327,20 @@
         "data": {
           "open_command_address": "Open command address",
           "close_command_address": "Close command address",
-          "opening_state_address": "Opening state address",
-          "closing_state_address": "Closing state address",
+          "opening_state_address": "Opened state address",
+          "closing_state_address": "Closed state address",
           "operate_time": "Operate time (s)",
+          "use_state_topics": "Use state topics for position",
           "name": "Name",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
           "open_command_address": "PLC address that triggers the opening action.",
           "close_command_address": "PLC address that triggers the closing action.",
-          "opening_state_address": "Optional PLC address that signals the cover is opening.",
-          "closing_state_address": "Optional PLC address that signals the cover is closing.",
+          "opening_state_address": "Optional PLC address that signals the cover is opened.",
+          "closing_state_address": "Optional PLC address that signals the cover is closed.",
           "operate_time": "Seconds the cover should operate before the integration resets the command outputs and clears the state flags.",
+          "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
         }
@@ -425,6 +429,7 @@
     "error": {
       "invalid_address": "Invalid address format.",
       "duplicate_entry": "This item already exists.",
+      "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
       "no_items": "There are no configured items to edit.",
       "cannot_connect": "Cannot connect to the PLC with the provided settings.",
       "already_configured": "Another S7 PLC entry already uses these connection parameters.",

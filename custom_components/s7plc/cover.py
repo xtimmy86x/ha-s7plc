@@ -19,6 +19,7 @@ from .const import (
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_USE_STATE_TOPICS,
     DEFAULT_OPERATE_TIME,
 )
 from .entity import S7BaseEntity
@@ -50,25 +51,25 @@ async def async_setup_entry(
         closing_state = item.get(CONF_CLOSING_STATE_ADDRESS) or close_command
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
-        opening_topic = None
-        closing_topic = None
+        opened_topic = None
+        closed_topic = None
 
         if opening_state:
-            opening_topic = f"cover:opening:{opening_state}"
+            opened_topic = f"cover:opened:{opening_state}"
             await hass.async_add_executor_job(
-                coord.add_item, opening_topic, opening_state, scan_interval
+                coord.add_item, opened_topic, opening_state, scan_interval
             )
 
         if closing_state:
-            closing_topic = f"cover:closing:{closing_state}"
+            closed_topic = f"cover:closed:{closing_state}"
             await hass.async_add_executor_job(
-                coord.add_item, closing_topic, closing_state, scan_interval
+                coord.add_item, closed_topic, closing_state, scan_interval
             )
 
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), open_command
         )
-        unique_topic = opening_topic or closing_topic or f"cover:command:{open_command}"
+        unique_topic = opened_topic or closed_topic or f"cover:command:{open_command}"
         unique_id = f"{device_id}:{unique_topic}"
 
         raw_operate_time = item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)
@@ -80,6 +81,8 @@ async def async_setup_entry(
             if operate_time < 0:
                 operate_time = float(DEFAULT_OPERATE_TIME)
 
+        use_state_topics = bool(item.get(CONF_USE_STATE_TOPICS, False))
+
         entities.append(
             S7Cover(
                 coord,
@@ -90,9 +93,10 @@ async def async_setup_entry(
                 close_command,
                 opening_state,
                 closing_state,
-                opening_topic,
-                closing_topic,
+                opened_topic,
+                closed_topic,
                 operate_time,
+                use_state_topics,
             )
         )
 
@@ -104,7 +108,9 @@ async def async_setup_entry(
 class S7Cover(S7BaseEntity, CoverEntity):
     """Representation of an S7 cover entity."""
 
-    _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
+    _attr_supported_features = (
+        CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+    )
     _attr_assumed_state = True
 
     def __init__(
@@ -117,25 +123,30 @@ class S7Cover(S7BaseEntity, CoverEntity):
         close_command: str,
         opening_state: str | None,
         closing_state: str | None,
-        opening_topic: str | None,
-        closing_topic: str | None,
+        opened_topic: str | None,
+        closed_topic: str | None,
         operate_time: float,
+        use_state_topics: bool,
     ) -> None:
         super().__init__(
             coordinator,
             name=name,
             unique_id=unique_id,
             device_info=device_info,
-            topic=opening_topic or closing_topic,
+            topic=opened_topic or closed_topic,
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
         self._opening_state_address = opening_state
         self._closing_state_address = closing_state
-        self._opening_topic = opening_topic
-        self._closing_topic = closing_topic
+        self._opened_topic = opened_topic
+        self._closed_topic = closed_topic
         self._operate_time = max(float(operate_time), 0.0)
+        self._use_state_topics = use_state_topics
         self._reset_handles: dict[str, Callable[[], None]] = {}
+        self._is_opening = False
+        self._is_closing = False
+        self._assumed_closed: bool | None = None  # Tracks position when using operate_time
 
     def _get_topic_state(self, topic: str | None) -> bool | None:
         if topic is None:
@@ -152,23 +163,47 @@ class S7Cover(S7BaseEntity, CoverEntity):
     def available(self) -> bool:
         if not self._coord.is_connected():
             return False
-        topics = [t for t in (self._opening_topic, self._closing_topic) if t]
+        topics = [t for t in (self._opened_topic, self._closed_topic) if t]
         if not topics:
             return True
         data = self.coordinator.data or {}
         return all((topic in data and data[topic] is not None) for topic in topics)
 
     @property
-    def is_opening(self) -> bool | None:
-        return self._get_topic_state(self._opening_topic)
+    def is_opening(self) -> bool:
+        """Return True when the open command output is active."""
+        return self._is_opening
 
     @property
-    def is_closing(self) -> bool | None:
-        return self._get_topic_state(self._closing_topic)
+    def is_closing(self) -> bool:
+        """Return True when the close command output is active."""
+        return self._is_closing
 
     @property
     def is_closed(self) -> bool | None:
-        return None
+        if self._use_state_topics:
+            # Use state topics for position feedback
+            closed_state = self._get_topic_state(self._closed_topic)
+            opened_state = self._get_topic_state(self._opened_topic)
+
+            # Closed topic is True → cover is closed
+            if closed_state is True and opened_state is not True:
+                return True
+
+            # Opened topic is True → cover is open (not closed)
+            if opened_state is True and closed_state is not True:
+                return False
+
+            # Both are False or None → unknown state
+            return None
+        else:
+            # Use operate time logic - assume cover reaches position after operate_time
+            if self._is_opening:
+                return False  # Opening, so not closed
+            if self._is_closing:
+                return False  # Closing but not yet closed
+            # Return last known/assumed position
+            return self._assumed_closed
 
     async def async_open_cover(self, **kwargs) -> None:
         await self._ensure_connected()
@@ -183,8 +218,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
             raise HomeAssistantError(
                 f"Failed to send open command to PLC: {self._open_command_address}."
             )
-        self._apply_state_updates(opening=True, closing=False)
+        self._is_opening = True
+        self._is_closing = False
         self._schedule_reset("open")
+        self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
 
     async def async_close_cover(self, **kwargs) -> None:
@@ -200,8 +237,40 @@ class S7Cover(S7BaseEntity, CoverEntity):
             raise HomeAssistantError(
                 f"Failed to send close command to PLC: {self._close_command_address}."
             )
-        self._apply_state_updates(opening=False, closing=True)
+        self._is_opening = False
+        self._is_closing = True
         self._schedule_reset("close")
+        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
+
+    async def async_stop_cover(self, **kwargs) -> None:
+        """Stop the cover movement."""
+        await self._ensure_connected()
+        
+        # Stop both operations
+        errors = []
+        
+        if self._is_opening:
+            try:
+                await self._stop_operation("open")
+            except Exception as err:
+                errors.append(f"open: {err}")
+        
+        if self._is_closing:
+            try:
+                await self._stop_operation("close")
+            except Exception as err:
+                errors.append(f"close: {err}")
+        
+        if errors:
+            _LOGGER.error("Failed to stop cover: %s", "; ".join(errors))
+            raise HomeAssistantError(
+                f"Failed to stop cover movement: {'; '.join(errors)}"
+            )
+        
+        self._is_opening = False
+        self._is_closing = False
+        self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
 
     @property
@@ -212,17 +281,17 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if self._close_command_address:
             attrs["s7_close_command_address"] = self._close_command_address.upper()
         if self._opening_state_address:
-            attrs["s7_opening_state_address"] = self._opening_state_address.upper()
+            attrs["s7_opened_state_address"] = self._opening_state_address.upper()
         if self._closing_state_address:
-            attrs["s7_closing_state_address"] = self._closing_state_address.upper()
+            attrs["s7_closed_state_address"] = self._closing_state_address.upper()
 
-        if self._opening_topic:
-            attrs["opening_scan_interval"] = self._coord._item_scan_intervals.get(
-                self._opening_topic, self._coord._default_scan_interval
+        if self._opened_topic:
+            attrs["opened_scan_interval"] = self._coord._item_scan_intervals.get(
+                self._opened_topic, self._coord._default_scan_interval
             )
-        if self._closing_topic:
-            attrs["closing_scan_interval"] = self._coord._item_scan_intervals.get(
-                self._closing_topic, self._coord._default_scan_interval
+        if self._closed_topic:
+            attrs["closed_scan_interval"] = self._coord._item_scan_intervals.get(
+                self._closed_topic, self._coord._default_scan_interval
             )
         attrs["operate_time"] = f"{self._operate_time:.1f} s"
 
@@ -240,12 +309,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
             await self._complete_operation(direction)
 
         if self._operate_time <= 0:
-            self.hass.async_create_task(_async_reset())
+            self.hass.create_task(_async_reset())
             return
 
         def _callback(_now) -> None:
             self._reset_handles.pop(direction, None)
-            self.hass.async_create_task(_async_reset())
+            self.hass.create_task(_async_reset())
 
         self._reset_handles[direction] = async_call_later(
             self.hass, self._operate_time, _callback
@@ -271,10 +340,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 )
 
         if direction == "open":
-            self._apply_state_updates(opening=False)
+            self._is_opening = False
         else:
-            self._apply_state_updates(closing=False)
+            self._is_closing = False
 
+        self.async_write_ha_state()
         if not success:
             await self.coordinator.async_request_refresh()
 
@@ -294,23 +364,18 @@ class S7Cover(S7BaseEntity, CoverEntity):
                     address,
                     direction,
                 )
-        self._apply_state_updates(opening=False, closing=False)
+        self._is_opening = False
+        self._is_closing = False
+        
+        # Update assumed position when using operate_time
+        if not self._use_state_topics:
+            if direction == "open":
+                self._assumed_closed = False
+            elif direction == "close":
+                self._assumed_closed = True
+        
+        self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
-
-    def _apply_state_updates(
-        self, *, opening: bool | None = None, closing: bool | None = None
-    ) -> None:
-        updates: dict[str, bool] = {}
-        if opening is not None and self._opening_topic:
-            updates[self._opening_topic] = opening
-        if closing is not None and self._closing_topic:
-            updates[self._closing_topic] = closing
-        if not updates:
-            return
-
-        current = dict(self.coordinator.data or {})
-        current.update(updates)
-        self.coordinator.async_set_updated_data(current)
 
     async def async_will_remove_from_hass(self) -> None:
         for cancel in list(self._reset_handles.values()):

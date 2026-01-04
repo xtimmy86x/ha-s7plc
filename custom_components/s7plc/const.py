@@ -46,6 +46,7 @@ CONF_REAL_PRECISION = "real_precision"
 CONF_OPENING_STATE_ADDRESS = "opening_state_address"
 CONF_CLOSING_STATE_ADDRESS = "closing_state_address"
 CONF_OPERATE_TIME = "operate_time"
+CONF_USE_STATE_TOPICS = "use_state_topics"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
@@ -53,6 +54,7 @@ DEFAULT_SLOT = 1
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_BUTTON_PULSE = 1  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds
+DEFAULT_USE_STATE_TOPICS = False  # use operate_time by default
 DEFAULT_REAL_PRECISION = 1
 
 CONF_OP_TIMEOUT = "operation_timeout"

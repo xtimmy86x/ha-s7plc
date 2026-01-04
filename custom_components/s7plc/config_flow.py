@@ -51,6 +51,7 @@ from .const import (
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
@@ -63,6 +64,7 @@ from .const import (
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
+    DEFAULT_USE_STATE_TOPICS,
     DOMAIN,
     OPTION_KEYS,
 )
@@ -734,10 +736,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             user_input.get(CONF_CLOSING_STATE_ADDRESS)
         )
         operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
+        use_state_topics = bool(user_input.get(CONF_USE_STATE_TOPICS, False))
 
         if not open_command or not close_command:
             errors["base"] = "invalid_address"
             return None, errors
+
+        # If use_state_topics is enabled, both state addresses are required
+        if use_state_topics:
+            if not opening_state or not closing_state:
+                errors["base"] = "state_addresses_required"
+                return None, errors
 
         for candidate in (open_command, close_command, opening_state, closing_state):
             if candidate:
@@ -767,6 +776,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input.get(CONF_NAME):
             item[CONF_NAME] = user_input[CONF_NAME]
         item[CONF_OPERATE_TIME] = operate_time
+        item[CONF_USE_STATE_TOPICS] = use_state_topics
 
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -1386,6 +1396,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
                 ): operate_time_selector,
+                vol.Optional(
+                    CONF_USE_STATE_TOPICS, default=False
+                ): selector.BooleanSelector(),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -1911,6 +1924,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_OPERATE_TIME,
                     default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
                 ): operate_time_selector,
+                vol.Optional(
+                    CONF_USE_STATE_TOPICS,
+                    default=item.get(CONF_USE_STATE_TOPICS, DEFAULT_USE_STATE_TOPICS),
+                ): selector.BooleanSelector(),
             }
 
             key_scan, val_scan = self._optional_field(
