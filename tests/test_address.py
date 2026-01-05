@@ -12,7 +12,7 @@ def test_map_address_to_tag():
     S7_Tag = address.S7Tag(
                 memory_area=address.MemoryArea.DB,
                 db_number=1,
-                data_type=address.DataType.CHAR,
+                data_type=address.DataType.STRING,
                 start=10,
                 bit_offset=0,
                 length=2,

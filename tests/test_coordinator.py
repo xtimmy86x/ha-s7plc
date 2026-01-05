@@ -254,7 +254,7 @@ def test_read_strings_raises_on_timeout(monkeypatch, caplog):
 
     read_calls = []
 
-    def fake_read(db, start):
+    def fake_read(db, start, is_wstring=False):
         read_calls.append((db, start))
         return "value"
 
@@ -273,7 +273,7 @@ def test_read_strings_raises_on_error(monkeypatch, caplog):
 
     plans = [StringPlan("topic/a", 1, 0)]
 
-    def fake_read(db, start):
+    def fake_read(db, start, is_wstring=False):
         raise RuntimeError("boom")
 
     coord._read_s7_string = fake_read

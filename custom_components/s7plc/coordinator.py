@@ -325,51 +325,75 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         )
         return max(1, int(size) - 30)
 
-    def _read_s7_string(self, db: int, start: int) -> str:
-        # Header: max_len, cur_len
-        hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, 2)
+    def _read_s7_string(self, db: int, start: int, is_wstring: bool = False) -> str:
+        # WSTRING: 4-byte header (2 bytes max_len, 2 bytes cur_len), UTF-16 data
+        # STRING: 2-byte header (1 byte max_len, 1 byte cur_len), Latin-1 data
+        header_size = 4 if is_wstring else 2
+        hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, header_size)
         # Changed in pyS7 1.5.0 optimized=True by default
-        max_len, cur_len = self._retry(
+        header_bytes = self._retry(
             lambda: self._client.read([hdr_tag], optimize=self._optimize_read)
         )[0]
+
+        if is_wstring:
+            # WSTRING: 2-byte words for max_len and cur_len
+            max_len = int.from_bytes(header_bytes[0:2], byteorder="big")
+            cur_len = int.from_bytes(header_bytes[2:4], byteorder="big")
+            bytes_per_char = 2  # UTF-16
+        else:
+            # STRING: 1-byte for max_len and cur_len
+            max_len = int(header_bytes[0])
+            cur_len = int(header_bytes[1])
+            bytes_per_char = 1  # Latin-1
+
         _LOGGER.debug(
-            "Reading S7 string DB%d.%d max_len=%d cur_len=%d optimize=%s",
+            "Reading S7 %s DB%d.%d max_len=%d cur_len=%d optimize=%s",
+            "WSTRING" if is_wstring else "STRING",
             db,
             start,
             max_len,
             cur_len,
             self._optimize_read,
         )
-        # Type safety
-        max_len = int(max_len)
-        cur_len = int(cur_len)
-        target = max(0, min(max_len, cur_len))
-        if target == 0:
+
+        target_chars = max(0, min(max_len, cur_len))
+        if target_chars == 0:
             return ""
 
+        target_bytes = target_chars * bytes_per_char
         data = bytearray()
         pdu_limit = self._get_pdu_limit()
         offset = 0
-        while offset < target:
-            chunk_len = min(target - offset, pdu_limit)
+
+        while offset < target_bytes:
+            chunk_len = min(target_bytes - offset, pdu_limit)
             data_tag = S7Tag(
-                MemoryArea.DB, db, DataType.BYTE, start + 2 + offset, 0, chunk_len
+                MemoryArea.DB,
+                db,
+                DataType.BYTE,
+                start + header_size + offset,
+                0,
+                chunk_len,
             )
             # Changed in pyS7 1.5.0 optimized=True by default
             chunk = self._retry(
                 lambda: self._client.read([data_tag], optimize=self._optimize_read)
             )[0]
             _LOGGER.debug(
-                "Read S7 string chunk DB%d.%d len=%d optimize=%s",
+                "Read S7 %s chunk DB%d.%d len=%d optimize=%s",
+                "WSTRING" if is_wstring else "STRING",
                 db,
-                start + 2 + offset,
+                start + header_size + offset,
                 chunk_len,
                 self._optimize_read,
             )
             data.extend(chunk)
             offset += chunk_len
 
-        return bytes(data).decode("latin-1", errors="ignore")
+        if is_wstring:
+            return bytes(data).decode("utf-16-be", errors="ignore")
+        else:
+            return bytes(data).decode("latin-1", errors="ignore")
 
     def _tag_key(self, tag) -> tuple:
         return (
@@ -431,7 +455,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     f"String read timeout reached ({self._op_timeout:.2f}s)"
                 )
             try:
-                results[plan.topic] = self._read_s7_string(plan.db, plan.start)
+                results[plan.topic] = self._read_s7_string(
+                    plan.db, plan.start, plan.is_wstring
+                )
             except (
                 OSError,
                 RuntimeError,

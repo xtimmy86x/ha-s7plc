@@ -23,11 +23,12 @@ class TagPlan:
 
 @dataclass
 class StringPlan:
-    """Plan for reading an S7 string."""
+    """Plan for an S7 string."""
 
     topic: str
     db: int
     start: int
+    is_wstring: bool = False
 
 
 def apply_postprocess(
@@ -60,7 +61,21 @@ def build_plans(
             continue
 
         if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
-            plans_str.append(StringPlan(topic, tag.db_number, tag.start))
+            plans_str.append(
+                StringPlan(topic, tag.db_number, tag.start, is_wstring=False)
+            )
+            continue
+
+        if tag.data_type == DataType.STRING:
+            plans_str.append(
+                StringPlan(topic, tag.db_number, tag.start, is_wstring=False)
+            )
+            continue
+
+        if tag.data_type == DataType.WSTRING:
+            plans_str.append(
+                StringPlan(topic, tag.db_number, tag.start, is_wstring=True)
+            )
             continue
 
         def _mk_post(dt, precision):
