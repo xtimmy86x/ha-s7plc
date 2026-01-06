@@ -47,23 +47,25 @@ async def async_setup_entry(
             )
             continue
 
-        opening_state = item.get(CONF_OPENING_STATE_ADDRESS) or open_command
-        closing_state = item.get(CONF_CLOSING_STATE_ADDRESS) or close_command
+        # State addresses are for end-stop sensors (optional)
+        # If not provided, we use operate_time logic
+        opened_state = item.get(CONF_OPENING_STATE_ADDRESS)  # Finecorsa aperto
+        closed_state = item.get(CONF_CLOSING_STATE_ADDRESS)  # Finecorsa chiuso
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
         opened_topic = None
         closed_topic = None
 
-        if opening_state:
-            opened_topic = f"cover:opened:{opening_state}"
+        if opened_state:
+            opened_topic = f"cover:opened:{opened_state}"
             await hass.async_add_executor_job(
-                coord.add_item, opened_topic, opening_state, scan_interval
+                coord.add_item, opened_topic, opened_state, scan_interval
             )
 
-        if closing_state:
-            closed_topic = f"cover:closed:{closing_state}"
+        if closed_state:
+            closed_topic = f"cover:closed:{closed_state}"
             await hass.async_add_executor_job(
-                coord.add_item, closed_topic, closing_state, scan_interval
+                coord.add_item, closed_topic, closed_state, scan_interval
             )
 
         name = item.get(CONF_NAME) or default_entity_name(
@@ -91,8 +93,8 @@ async def async_setup_entry(
                 device_info,
                 open_command,
                 close_command,
-                opening_state,
-                closing_state,
+                opened_state,
+                closed_state,
                 opened_topic,
                 closed_topic,
                 operate_time,
@@ -121,8 +123,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         device_info: DeviceInfo,
         open_command: str,
         close_command: str,
-        opening_state: str | None,
-        closing_state: str | None,
+        opened_state: str | None,
+        closed_state: str | None,
         opened_topic: str | None,
         closed_topic: str | None,
         operate_time: float,
@@ -137,8 +139,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
-        self._opening_state_address = opening_state
-        self._closing_state_address = closing_state
+        self._opened_state_address = opened_state  # Finecorsa aperto
+        self._closed_state_address = closed_state  # Finecorsa chiuso
         self._opened_topic = opened_topic
         self._closed_topic = closed_topic
         self._operate_time = max(float(operate_time), 0.0)
@@ -146,8 +148,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._reset_handles: dict[str, Callable[[], None]] = {}
         self._is_opening = False
         self._is_closing = False
-        self._assumed_closed: bool | None = (
-            None  # Tracks position when using operate_time
+        self._assumed_closed: bool = (
+            False  # Assume open by default when using operate_time
         )
 
     def _get_topic_state(self, topic: str | None) -> bool | None:
@@ -222,6 +224,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
             )
         self._is_opening = True
         self._is_closing = False
+        if not self._use_state_topics:
+            self._assumed_closed = False  # Assume open when opening starts
         self._schedule_reset("open")
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
@@ -241,6 +245,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
             )
         self._is_opening = False
         self._is_closing = True
+        if not self._use_state_topics:
+            self._assumed_closed = True  # Assume closed when closing starts
         self._schedule_reset("close")
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
@@ -282,11 +288,14 @@ class S7Cover(S7BaseEntity, CoverEntity):
             attrs["s7_open_command_address"] = self._open_command_address.upper()
         if self._close_command_address:
             attrs["s7_close_command_address"] = self._close_command_address.upper()
-        if self._opening_state_address:
-            attrs["s7_opened_state_address"] = self._opening_state_address.upper()
-        if self._closing_state_address:
-            attrs["s7_closed_state_address"] = self._closing_state_address.upper()
-
+        if self._use_state_topics:
+            if self._opened_state_address:
+                attrs["s7_opened_state_address"] = self._opened_state_address.upper()
+            if self._closed_state_address:
+                attrs["s7_closed_state_address"] = self._closed_state_address.upper()
+            attrs["state_topics_used"] = True
+        else:
+            attrs["state_topics_used"] = False
         if self._opened_topic:
             attrs["opened_scan_interval"] = self._coord._item_scan_intervals.get(
                 self._opened_topic, self._coord._default_scan_interval
@@ -346,6 +355,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
         else:
             self._is_closing = False
 
+        # When stopped, maintain last known position
+        # No change to _assumed_closed - it keeps the last state
+
         self.async_write_ha_state()
         if not success:
             await self.coordinator.async_request_refresh()
@@ -369,12 +381,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._is_opening = False
         self._is_closing = False
 
-        # Update assumed position when using operate_time
-        if not self._use_state_topics:
-            if direction == "open":
-                self._assumed_closed = False
-            elif direction == "close":
-                self._assumed_closed = True
+        # _assumed_closed is already set when operation starts
 
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
