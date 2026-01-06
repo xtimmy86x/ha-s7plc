@@ -163,6 +163,25 @@ class S7Cover(S7BaseEntity, CoverEntity):
             return None
         return bool(value)
 
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # If using state topics (limit switches), check if movement should stop
+        if self._use_state_topics:
+            opened_state = self._get_topic_state(self._opened_topic)
+            closed_state = self._get_topic_state(self._closed_topic)
+
+            # If opening and reached open position, stop
+            if self._is_opening and opened_state is True:
+                _LOGGER.debug("Cover %s reached open position, stopping", self.name)
+                self.hass.create_task(self._complete_operation("open"))
+
+            # If closing and reached closed position, stop
+            elif self._is_closing and closed_state is True:
+                _LOGGER.debug("Cover %s reached closed position, stopping", self.name)
+                self.hass.create_task(self._complete_operation("close"))
+
+        super()._handle_coordinator_update()
+
     @property
     def available(self) -> bool:
         if not self._coord.is_connected():
@@ -198,7 +217,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             if opened_state is True and closed_state is not True:
                 return False
 
-            # Both are False or None → unknown state
+            # Both are False or None → unknown state (cover is between positions)
             return None
         else:
             # Use operate time logic - assume cover reaches position after operate_time
