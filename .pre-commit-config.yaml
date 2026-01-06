@@ -1,4 +1,5 @@
 exclude: ^tests/
+exclude: manifest.json$
 files: ^custom_components/s7plc/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
