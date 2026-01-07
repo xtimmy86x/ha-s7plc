@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configura collegamento al PLC S7",
-        "description": "Inserisci i dati di connessione del PLC S7. Porta predefinita: {default_port}, rack: {default_rack}, slot: {default_slot}, scan: {default_scan}s, timeout: {default_timeout}s, retry: {default_retries}, backoff: {default_backoff_initial}-{default_backoff_max}s. Verrà effettuato un test di connessione prima di salvare.",
+        "description": "Inserisci i dati di connessione del PLC S7. Verrà effettuato un test di connessione prima di salvare.",
         "data": {
           "name": "Nome",
           "host": "Host",
