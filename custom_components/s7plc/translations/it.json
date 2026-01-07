@@ -434,7 +434,10 @@
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
       "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
       "invalid_json": "Payload JSON non valido.",
-      "invalid_selection": "Seleziona un tipo di elemento valido."
+      "invalid_selection": "Seleziona un tipo di elemento valido.",
+      "invalid_number": "Valore numerico non valido.",
+      "invalid_range": "Il valore minimo deve essere inferiore al valore massimo.",
+      "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL."
     }
   },
   "entity": {

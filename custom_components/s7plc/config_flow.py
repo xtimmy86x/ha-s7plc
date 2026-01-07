@@ -937,6 +937,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "invalid_number"
                 return None, errors
 
+        # Check if REAL or LREAL type requires min/max
+        if address_tag is not None:
+            from .address import DataType
+
+            real_type = getattr(DataType, "REAL", None)
+            lreal_type = getattr(DataType, "LREAL", None)
+
+            if address_tag.data_type in (real_type, lreal_type):
+                if min_value is None or max_value is None:
+                    errors["base"] = "min_max_required_for_real"
+                    return None, errors
+
         # PLC data-type limits
         if address_tag is not None:
             limits = get_numeric_limits(address_tag.data_type)
