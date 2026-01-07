@@ -140,7 +140,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     self._rack,
                     self._slot,
                 )
-            except (OSError, RuntimeError) as err:
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+            ) as err:
                 raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
