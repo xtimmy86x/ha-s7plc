@@ -20,6 +20,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .address import get_numeric_limits, parse_tag
+
+# Import S7-specific exceptions if available
+try:
+    from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
+except (ImportError, AttributeError):
+    # Fallback to base exceptions if pyS7 not available
+    S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
+
 from .const import (
     CONF_ADDRESS,
     CONF_BACKOFF_INITIAL,
@@ -264,9 +272,65 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
-        except (OSError, RuntimeError):
-            _LOGGER.warning(
-                "Cannot connect to S7 PLC at %s (rack %s slot %s)", host, rack, slot
+        except S7ConnectionError as err:
+            _LOGGER.error(
+                "S7 connection error to PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="user", data_schema=data_schema, errors=errors
+            )
+        except S7CommunicationError as err:
+            _LOGGER.error(
+                "S7 communication error with PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="user", data_schema=data_schema, errors=errors
+            )
+        except OSError as err:
+            _LOGGER.error(
+                "Network error connecting to S7 PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="user", data_schema=data_schema, errors=errors
+            )
+        except RuntimeError as err:
+            _LOGGER.error(
+                "Runtime error with S7 PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="user", data_schema=data_schema, errors=errors
+            )
+        except Exception:
+            _LOGGER.exception(
+                "Unexpected error connecting to S7 PLC at %s:%s (rack %s slot %s)",
+                host,
+                port,
+                rack,
+                slot,
             )
             errors["base"] = "cannot_connect"
             return self.async_show_form(
@@ -1219,7 +1283,78 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
-        except (OSError, RuntimeError):
+        except S7ConnectionError as err:
+            _LOGGER.error(
+                "S7 connection error to PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+        except S7CommunicationError as err:
+            _LOGGER.error(
+                "S7 communication error with PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+        except OSError as err:
+            _LOGGER.error(
+                "Network error connecting to S7 PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+        except RuntimeError as err:
+            _LOGGER.error(
+                "Runtime error with S7 PLC at %s:%s (rack %s slot %s): %s",
+                host,
+                port,
+                rack,
+                slot,
+                err,
+            )
+            errors["base"] = "cannot_connect"
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors=errors,
+                description_placeholders=description_placeholders,
+            )
+        except Exception:
+            _LOGGER.exception(
+                "Unexpected error connecting to S7 PLC at %s:%s (rack %s slot %s)",
+                host,
+                port,
+                rack,
+                slot,
+            )
             errors["base"] = "cannot_connect"
             return self.async_show_form(
                 step_id="connection",
