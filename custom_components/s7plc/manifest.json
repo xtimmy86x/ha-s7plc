@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/xtimmy86x/ha-s7plc/issues",
   "loggers": ["custom_components.s7plc"],
   "requirements": ["pys7==2.0.0"],
-  "version": "4.0.0"
+  "version": "4.0.2"
 }
