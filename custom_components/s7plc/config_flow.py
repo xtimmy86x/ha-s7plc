@@ -47,12 +47,14 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
+    CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
+    CONF_WRITERS,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
@@ -125,6 +127,7 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "buttons",
     "lights",
     "numbers",
+    "writers",
 )
 
 ADD_ENTITY_LABELS: dict[str, str] = {
@@ -135,6 +138,7 @@ ADD_ENTITY_LABELS: dict[str, str] = {
     "buttons": "Button",
     "lights": "Light",
     "numbers": "Number",
+    "writers": "Writer",
 }
 
 
@@ -399,6 +403,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
             CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
+            CONF_WRITERS: list(config_entry.options.get(CONF_WRITERS, [])),
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
@@ -971,6 +976,76 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return item, errors
 
+    def _build_writer_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'writer' item from user input."""
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        source_entity = user_input.get(CONF_SOURCE_ENTITY, "").strip()
+
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        if not source_entity:
+            errors["base"] = "invalid_source_entity"
+            return None, errors
+
+        # Validate address
+        try:
+            parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        # Check for duplicates
+        if self._has_duplicate(CONF_WRITERS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        # Build item
+        item: dict[str, Any] = {
+            CONF_ADDRESS: address,
+            CONF_SOURCE_ENTITY: source_entity,
+        }
+
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+
+        # Optional min/max values
+        min_value: float | None = None
+        max_value: float | None = None
+
+        try:
+            if user_input.get(CONF_MIN_VALUE) is not None:
+                min_value = float(user_input[CONF_MIN_VALUE])
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        try:
+            if user_input.get(CONF_MAX_VALUE) is not None:
+                max_value = float(user_input[CONF_MAX_VALUE])
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        if min_value is not None and max_value is not None and min_value > max_value:
+            errors["base"] = "invalid_range"
+            return None, errors
+
+        if min_value is not None:
+            item[CONF_MIN_VALUE] = min_value
+        if max_value is not None:
+            item[CONF_MAX_VALUE] = max_value
+
+        return item, errors
+
     @staticmethod
     def _labelize(prefix: str, item: dict[str, Any]) -> str:
         name = item.get(CONF_NAME)
@@ -983,6 +1058,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "bt": "Button",
             "lt": "Light",
             "nm": "Number",
+            "wr": "Writer",
         }[prefix]
         base = name or address
         return f"{type_label} • {base} [{address}]"
@@ -1011,6 +1087,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             number_item = {**it}
             number_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
             items[f"nm:{i}"] = self._labelize("nm", number_item)
+        for i, it in enumerate(self._options.get(CONF_WRITERS, [])):
+            items[f"wr:{i}"] = self._labelize("wr", it)
         return items
 
     def _exportable_options(self) -> dict[str, list[dict[str, Any]]]:
@@ -1538,6 +1616,45 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="numbers", data_schema=data_schema)
 
+    # ====== ADD: writers ======
+    async def async_step_writers(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        number_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                mode=selector.NumberSelectorMode.BOX, step=0.01
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_SOURCE_ENTITY): selector.EntitySelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_MIN_VALUE): number_selector,
+                vol.Optional(CONF_MAX_VALUE): number_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_writer_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="writers", data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[CONF_WRITERS].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_writers()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="writers", data_schema=data_schema)
+
     # ====== EXPORT ======
     async def async_step_export(self, user_input: dict[str, Any] | None = None):
         export_text = self._build_export_data()
@@ -1628,6 +1745,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 rm_bt = {int(k.split(":")[1]) for k in to_remove if k.startswith("bt:")}
                 rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
                 rm_nm = {int(k.split(":")[1]) for k in to_remove if k.startswith("nm:")}
+                rm_wr = {int(k.split(":")[1]) for k in to_remove if k.startswith("wr:")}
 
                 self._options[CONF_SENSORS] = [
                     v
@@ -1663,6 +1781,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     v
                     for idx, v in enumerate(self._options.get(CONF_NUMBERS, []))
                     if idx not in rm_nm
+                ]
+                self._options[CONF_WRITERS] = [
+                    v
+                    for idx, v in enumerate(self._options.get(CONF_WRITERS, []))
+                    if idx not in rm_wr
                 ]
 
             # Save and close: __init__.py will reload the entry
@@ -1732,6 +1855,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_light()
         if prefix == "nm":
             return await self.async_step_edit_number()
+        if prefix == "wr":
+            return await self.async_step_edit_writer()
 
         return await self.async_step_edit()
 
@@ -2094,5 +2219,50 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             build_schema=build_schema,
             process_input=process_input,
             step_id="edit_number",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: writer ======
+    async def async_step_edit_writer(self, user_input: dict[str, Any] | None = None):
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            number_selector = selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX, step=0.01
+                )
+            )
+
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Required(
+                    CONF_SOURCE_ENTITY, default=item.get(CONF_SOURCE_ENTITY, "")
+                ): selector.EntitySelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+                ): number_selector,
+                vol.Optional(
+                    CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+                ): number_selector,
+            }
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_writer_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_WRITERS,
+            prefix="wr",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_writer",
             user_input=user_input,
         )

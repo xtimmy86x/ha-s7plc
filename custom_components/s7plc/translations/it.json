@@ -64,7 +64,8 @@
           "covers": "Copertura",
           "buttons": "Pulsante",
           "lights": "Luce",
-          "numbers": "Numero"
+          "numbers": "Numero",
+          "writers": "Scrittore"
         }
       },
       "remove": {
@@ -257,6 +258,28 @@
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
       },
+      "writers": {
+        "title": "Aggiungi Scrittore",
+        "description": "Crea un'entità scrittore che invia periodicamente i valori delle entità di Home Assistant al PLC.",
+        "data": {
+          "address": "Indirizzo PLC",
+          "source_entity": "Entità sorgente",
+          "name": "Nome",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo",
+          "scan_interval": "Intervallo di aggiornamento (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
+          "name": "Nome descrittivo opzionale per l'entità scrittore.",
+          "min_value": "Valore minimo opzionale per limitare il valore dell'entità sorgente.",
+          "max_value": "Valore massimo opzionale per limitare il valore dell'entità sorgente.",
+          "scan_interval": "Frequenza di controllo e scrittura del valore in secondi (opzionale).",
+          "add_another": "Rimani in questa schermata per aggiungere altri scrittori."
+        }
+      },
       "edit": {
         "title": "Modifica Elementi",
         "description": "Seleziona l'elemento che vuoi modificare.",
@@ -405,6 +428,24 @@
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
         }
       },
+      "edit_writer": {
+        "title": "Modifica Scrittore",
+        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente, il nome o i limiti del valore per questo scrittore.",
+        "data": {
+          "address": "Indirizzo PLC",
+          "source_entity": "Entit\u00e0 sorgente",
+          "name": "Nome",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "source_entity": "Entit\u00e0 di Home Assistant il cui valore verr\u00e0 scritto sul PLC.",
+          "name": "Nome descrittivo opzionale per l'entit\u00e0 scrittore.",
+          "min_value": "Valore minimo opzionale per limitare il valore dell'entit\u00e0 sorgente.",
+          "max_value": "Valore massimo opzionale per limitare il valore dell'entit\u00e0 sorgente."
+        }
+      },
       "export": {
         "title": "Esporta configurazione",
         "description": "Copia il JSON qui sotto per eseguire il backup di {item_count} elementi configurati. Puoi anche {download_link_start}scaricare la configurazione{download_link_end} per salvare {download_filename}. Invia la finestra di dialogo quando hai finito.",
@@ -429,6 +470,9 @@
     "error": {
       "invalid_address": "Formato indirizzo non valido.",
       "duplicate_entry": "Questo elemento è già presente.",
+      "invalid_source_entity": "L'entità sorgente è obbligatoria.",
+      "invalid_number": "Valore numerico non valido.",
+      "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
       "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",
       "no_items": "Non ci sono elementi configurati da modificare.",
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",

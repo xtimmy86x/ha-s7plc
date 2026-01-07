@@ -19,6 +19,7 @@ CONF_COVERS = "covers"
 CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
+CONF_WRITERS = "writers"
 
 OPTION_KEYS = (
     CONF_SENSORS,
@@ -28,9 +29,11 @@ OPTION_KEYS = (
     CONF_LIGHTS,
     CONF_BUTTONS,
     CONF_NUMBERS,
+    CONF_WRITERS,
 )
 
 CONF_ADDRESS = "address"
+CONF_SOURCE_ENTITY = "source_entity"
 CONF_DEVICE_CLASS = "device_class"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
