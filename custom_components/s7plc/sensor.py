@@ -88,6 +88,8 @@ _CANDIDATE_UNITS: dict[str, str | None] = {
     "VOLUME_STORAGE": "m³",
     "VOLUME_FLOW_RATE": "L/min",
     "WEIGHT": "kg",
+    "WATER": "m³",
+    "GAS": "m³",
     "DATA_RATE": "B/s",
     "DATA_SIZE": "B",
     # Non-numeric / special
