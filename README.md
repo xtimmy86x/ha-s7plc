@@ -288,9 +288,10 @@ Writer entities provide a powerful way to send data from Home Assistant to your 
 A **Writer** is a special sensor entity that:
 
 1. **Monitors a source entity**: Tracks state changes of any Home Assistant entity (sensor, input_number, calculated template, etc.)
-2. **Converts to numeric value**: Extracts the numeric state value from the source entity
+2. **Converts to appropriate value**: Extracts numeric or boolean values from the source entity
 3. **Writes to PLC**: Automatically writes the value to the specified PLC address whenever the source entity changes
-4. **Reports statistics**: Tracks successful writes and errors as entity attributes
+4. **Adapts representation**: Binary writers (BIT addresses) display `on`/`off` states with toggle icons, while numeric writers show numerical values with upload icons
+5. **Reports statistics**: Tracks successful writes and errors as entity attributes
 
 Writers appear as sensor entities in Home Assistant showing the last successfully written value, making it easy to verify what data was sent to the PLC.
 
@@ -354,6 +355,22 @@ Name: Power Consumption Writer
 ```
 Continuously sends your home's real-time power consumption to the PLC for monitoring or demand response logic.
 
+**Example 4: Binary sensor to PLC bit**
+```
+Address: DB1,X0.5
+Source Entity: binary_sensor.front_door
+Name: Front Door Status Writer
+```
+Writes the front door binary sensor state (`on`/`off`) to a PLC bit `DB1,X0.5`. When the door opens (state = `on`), the bit is set to `true`; when closed (state = `off`), it's set to `false`.
+
+**Example 5: Switch state to PLC bit**
+```
+Address: DB10,X5.2
+Source Entity: switch.irrigation_zone_1
+Name: Irrigation Zone 1 Writer
+```
+Mirrors a Home Assistant switch state to a PLC bit. Useful for monitoring HA automation states from the PLC or coordinating with PLC-based interlocks.
+
 ### Entity attributes
 
 Writer entities expose useful diagnostic attributes:
@@ -366,6 +383,7 @@ Writer entities expose useful diagnostic attributes:
 | `source_last_updated` | Timestamp when source entity last changed |
 | `write_count` | Total number of successful writes since entity creation |
 | `error_count` | Total number of failed write attempts |
+| `writer_type` | Type of writer: `binary` (for BIT addresses) or `numeric` (for other types) |
 
 Access these attributes in automations, scripts, or display them on dashboards to monitor writer performance.
 
@@ -373,15 +391,21 @@ Access these attributes in automations, scripts, or display them on dashboards t
 
 Writers automatically detect the PLC data type from the address and handle conversions:
 
+- **BIT** (`DB#,X#.#`): Writes boolean values. Accepts states like `on`, `off`, `true`, `false`, `1`, `0`, `yes`, `no` (case-insensitive) or any numeric value (non-zero = true, zero = false)
 - **REAL** (`DB#,R#`): Writes floating-point values with full precision
 - **INT/WORD** (`DB#,W#`): Converts to 16-bit signed integer (-32768 to 32767)
 - **DINT/DWORD** (`DB#,DW#`): Converts to 32-bit signed integer
 - **BYTE** (`DB#,B#`): Converts to unsigned byte (0 to 255)
 
-If the source entity provides a non-numeric state (e.g., "unavailable", "unknown"), the write is skipped and `error_count` increments. The writer logs a warning to help with troubleshooting.
+If the source entity provides a non-numeric state (e.g., "unavailable", "unknown") or an invalid boolean state for BIT addresses, the write is skipped and `error_count` increments. The writer logs a warning to help with troubleshooting.
 
 ### Behavior notes
+Automatic type detection**
+- Writers automatically detect if the PLC address is a BIT type and adapt their behavior and representation
+- Binary writers (BIT addresses) display `on`/`off` states with dynamic toggle switch icons
+- Numeric writers display numerical values with an upload icon
 
+**
 **Initial write**
 - Writers perform an immediate write when first added to Home Assistant
 - If the source entity is unavailable at startup, the write is skipped until the entity becomes available

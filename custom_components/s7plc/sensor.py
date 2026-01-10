@@ -309,8 +309,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 class S7Writer(S7BaseEntity, SensorEntity):
     """Writer entity that sends HA entity values to PLC."""
 
-    _attr_icon = "mdi:upload"
-
     def __init__(
         self,
         coordinator,
@@ -342,6 +340,11 @@ class S7Writer(S7BaseEntity, SensorEntity):
             _LOGGER.error("Invalid PLC address: %s", address)
             self._data_type = None
 
+        # Detect if this is a binary writer (BIT address)
+        from .address import DataType
+
+        self._is_binary = self._data_type == DataType.BIT
+
     async def async_added_to_hass(self) -> None:
         """Handle entity added to hass."""
         await super().async_added_to_hass()
@@ -370,64 +373,157 @@ class S7Writer(S7BaseEntity, SensorEntity):
 
     async def _async_write_to_plc(self, source_state: State) -> None:
         """Write value to PLC."""
-        try:
-            # Get numeric value from state
-            value = float(source_state.state)
-        except (ValueError, TypeError):
-            _LOGGER.warning(
-                "Cannot convert source entity %s state '%s' to numeric value",
-                self._source_entity,
-                source_state.state,
-            )
-            self._error_count += 1
-            self.async_write_ha_state()
-            return
-
-        # Check if coordinator is connected
-        if not self._coord.is_connected():
-            _LOGGER.debug(
-                "Writer %s: Cannot write, coordinator not connected", self.name
-            )
-            self._error_count += 1
-            self.async_write_ha_state()
-            return
-
-        # Write to PLC
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_number, self._address, value
-        )
-        _LOGGER.debug(
-            "Writer %s: Write attempt of value %.2f to %s returned %s",
-            self.name,
-            value,
-            self._address,
-            success,
+        state_str = (
+            source_state.state.lower()
+            if isinstance(source_state.state, str)
+            else str(source_state.state)
         )
 
-        if success:
-            self._last_written_value = value
-            self._write_count += 1
+        # Check if this is a BIT address
+        from .address import DataType
+
+        is_bit_address = self._data_type == DataType.BIT
+
+        if is_bit_address:
+            # Handle boolean/binary states for BIT addresses
+            bool_value = None
+
+            # Try to parse as boolean
+            if state_str in ("on", "true", "1", "yes"):
+                bool_value = True
+            elif state_str in ("off", "false", "0", "no"):
+                bool_value = False
+            else:
+                # Try numeric conversion for BIT (0 or 1)
+                try:
+                    num_value = float(source_state.state)
+                    bool_value = bool(num_value)
+                except (ValueError, TypeError):
+                    _LOGGER.warning(
+                        "Cannot convert source entity %s state '%s' to "
+                        "boolean value for BIT address",
+                        self._source_entity,
+                        source_state.state,
+                    )
+                    self._error_count += 1
+                    self.async_write_ha_state()
+                    return
+
+            # Check if coordinator is connected
+            if not self._coord.is_connected():
+                _LOGGER.debug(
+                    "Writer %s: Cannot write, coordinator not connected", self.name
+                )
+                self._error_count += 1
+                self.async_write_ha_state()
+                return
+
+            # Write boolean to PLC
+            success = await self.hass.async_add_executor_job(
+                self._coord.write_bool, self._address, bool_value
+            )
             _LOGGER.debug(
-                "Writer %s: Successfully wrote value %.2f to %s",
+                "Writer %s: Write attempt of boolean value %s to %s returned %s",
                 self.name,
-                value,
+                bool_value,
                 self._address,
+                success,
             )
+
+            if success:
+                self._last_written_value = 1.0 if bool_value else 0.0
+                self._write_count += 1
+                _LOGGER.debug(
+                    "Writer %s: Successfully wrote boolean value %s to %s",
+                    self.name,
+                    bool_value,
+                    self._address,
+                )
+            else:
+                self._error_count += 1
+                _LOGGER.error(
+                    "Writer %s: Failed to write boolean value %s to %s",
+                    self.name,
+                    bool_value,
+                    self._address,
+                )
         else:
-            self._error_count += 1
-            _LOGGER.error(
-                "Writer %s: Failed to write value %.2f to %s",
+            # Handle numeric values for non-BIT addresses
+            try:
+                # Get numeric value from state
+                value = float(source_state.state)
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Cannot convert source entity %s state '%s' to numeric value",
+                    self._source_entity,
+                    source_state.state,
+                )
+                self._error_count += 1
+                self.async_write_ha_state()
+                return
+
+            # Check if coordinator is connected
+            if not self._coord.is_connected():
+                _LOGGER.debug(
+                    "Writer %s: Cannot write, coordinator not connected", self.name
+                )
+                self._error_count += 1
+                self.async_write_ha_state()
+                return
+
+            # Write to PLC
+            success = await self.hass.async_add_executor_job(
+                self._coord.write_number, self._address, value
+            )
+            _LOGGER.debug(
+                "Writer %s: Write attempt of value %.2f to %s returned %s",
                 self.name,
                 value,
                 self._address,
+                success,
             )
+
+            if success:
+                self._last_written_value = value
+                self._write_count += 1
+                _LOGGER.debug(
+                    "Writer %s: Successfully wrote value %.2f to %s",
+                    self.name,
+                    value,
+                    self._address,
+                )
+            else:
+                self._error_count += 1
+                _LOGGER.error(
+                    "Writer %s: Failed to write value %.2f to %s",
+                    self.name,
+                    value,
+                    self._address,
+                )
 
         self.async_write_ha_state()
 
     @property
-    def native_value(self) -> float | None:
+    def native_value(self) -> str | float | None:
         """Return the last written value."""
+        if self._last_written_value is None:
+            return None
+
+        # For binary writers, return on/off string
+        if self._is_binary:
+            return "on" if self._last_written_value else "off"
+
         return self._last_written_value
+
+    @property
+    def icon(self) -> str:
+        """Return icon based on writer type."""
+        if self._is_binary:
+            # Use toggle icon for binary writers
+            if self._last_written_value:
+                return "mdi:toggle-switch"
+            return "mdi:toggle-switch-off-outline"
+        return "mdi:upload"
 
     @property
     def extra_state_attributes(self):
@@ -437,6 +533,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             "source_entity": self._source_entity,
             "write_count": self._write_count,
             "error_count": self._error_count,
+            "writer_type": "binary" if self._is_binary else "numeric",
         }
 
         # Get source entity current state
