@@ -1,48 +1,24 @@
+"""Tests for S7Coordinator - Refactored with fixtures."""
+
 from __future__ import annotations
 
 import struct
-
 import pytest
-
 import asyncio
 
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import StringPlan, TagPlan
+from conftest import DummyCoordinatorClient, DummyTag
 
 
-class DummyCoordinatorClient:
-    def __init__(self, values):
-        self._values = values
-        self.calls = []
-
-    def read(self, tags, optimize=True):
-        self.calls.append((list(tags), optimize))
-        result = self._values.pop(0)
-        if isinstance(result, BaseException):
-            raise result
-        return result
-
-
-class DummyTag:
-    def __init__(
-        self,
-        memory_area="DB",
-        db_number=1,
-        data_type=None,
-        start=0,
-        bit_offset=0,
-        length=1,
-    ):
-        self.memory_area = memory_area
-        self.db_number = db_number
-        self.data_type = data_type
-        self.start = start
-        self.bit_offset = bit_offset
-        self.length = length
+# ============================================================================
+# Helper Functions
+# ============================================================================
 
 
 def make_coordinator(monkeypatch, **kwargs):
+    """Factory function to create a coordinator for testing."""
     hass = coordinator.HomeAssistant()
     coord = S7Coordinator(hass, host="plc.local", **kwargs)
     # Avoid interacting with a real S7 client
@@ -51,8 +27,27 @@ def make_coordinator(monkeypatch, **kwargs):
     return coord
 
 
-def test_retry_retries_until_success(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def coord_factory(monkeypatch):
+    """Factory fixture for creating coordinators."""
+    def _create_coordinator(**kwargs):
+        return make_coordinator(monkeypatch, **kwargs)
+    return _create_coordinator
+
+
+# ============================================================================
+# Retry Mechanism Tests
+# ============================================================================
+
+
+def test_retry_retries_until_success(coord_factory):
+    """Test retry mechanism retries until success."""
+    coord = coord_factory()
 
     sleep_calls: list[float] = []
     ensure_calls = 0
@@ -89,8 +84,9 @@ def test_retry_retries_until_success(monkeypatch):
     assert sleep_calls == [coord._backoff_initial]
 
 
-def test_retry_raises_after_exhaustion(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+def test_retry_raises_after_exhaustion(coord_factory):
+    """Test retry mechanism raises after exhausting retries."""
+    coord = coord_factory()
     coord._max_retries = 1
 
     drop_calls = 0
@@ -107,8 +103,9 @@ def test_retry_raises_after_exhaustion(monkeypatch):
     assert drop_calls == 2
 
 
-def test_retry_handles_struct_error(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+def test_retry_handles_struct_error(coord_factory):
+    """Test retry mechanism handles struct errors."""
+    coord = coord_factory()
     coord._max_retries = 0
 
     drop_calls = 0
@@ -125,19 +122,25 @@ def test_retry_handles_struct_error(monkeypatch):
     assert drop_calls == 1
 
 
-def test_read_batch_deduplicates_tags(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# Batch Reading Tests
+# ============================================================================
 
-    tag_a = DummyTag(data_type=coordinator.DataType.WORD, start=0)
-    tag_b = DummyTag(data_type=coordinator.DataType.DINT, start=4)
+
+def test_read_batch_deduplicates_tags(coord_factory, dummy_tag, dummy_client):
+    """Test read batch deduplicates identical tags."""
+    coord = coord_factory()
+
+    tag_a = dummy_tag(data_type=coordinator.DataType.WORD, start=0)
+    tag_b = dummy_tag(data_type=coordinator.DataType.DINT, start=4)
 
     plans = [
         TagPlan("topic/a", tag_a, lambda v: v + 1),
-        TagPlan("topic/b", DummyTag(data_type=coordinator.DataType.WORD, start=0)),
+        TagPlan("topic/b", dummy_tag(data_type=coordinator.DataType.WORD, start=0)),
         TagPlan("topic/c", tag_b, lambda v: v * 2),
     ]
 
-    client = DummyCoordinatorClient([[10, 5]])
+    client = dummy_client([[10, 5]])
     coord._client = client
     coord._retry = lambda func: func()
 
@@ -151,13 +154,14 @@ def test_read_batch_deduplicates_tags(monkeypatch):
     }
 
 
-def test_read_batch_raises_on_error(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+def test_read_batch_raises_on_error(coord_factory, dummy_tag, dummy_client):
+    """Test read batch raises on client error."""
+    coord = coord_factory()
 
-    tag = DummyTag(data_type=coordinator.DataType.WORD)
+    tag = dummy_tag(data_type=coordinator.DataType.WORD)
     plans = [TagPlan("topic/a", tag), TagPlan("topic/b", tag)]
 
-    client = DummyCoordinatorClient([OSError("boom")])
+    client = dummy_client([OSError("boom")])
     coord._client = client
     coord._retry = lambda func: func()
 
@@ -165,10 +169,16 @@ def test_read_batch_raises_on_error(monkeypatch):
         coord._read_batch(plans)
 
 
-def test_async_update_data_respects_item_scan_interval(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# Update Data Tests
+# ============================================================================
 
-    plan = TagPlan("topic/a", DummyTag())
+
+def test_async_update_data_respects_item_scan_interval(coord_factory, dummy_tag):
+    """Test async update respects item-specific scan intervals."""
+    coord = coord_factory()
+
+    plan = TagPlan("topic/a", dummy_tag())
     coord._plans_batch = {"topic/a": plan}
     coord._plans_str = {}
     coord._items["topic/a"] = "DB1,X0.0"
@@ -204,8 +214,14 @@ def test_async_update_data_respects_item_scan_interval(monkeypatch):
     assert len(read_calls) == 1
 
 
-def test_read_all_raises_update_failed_on_connection_error(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# Error Handling Tests
+# ============================================================================
+
+
+def test_read_all_raises_update_failed_on_connection_error(coord_factory):
+    """Test read_all raises UpdateFailed on connection error."""
+    coord = coord_factory()
 
     def raise_connect():
         raise RuntimeError("connect boom")
@@ -218,9 +234,10 @@ def test_read_all_raises_update_failed_on_connection_error(monkeypatch):
     assert "connect boom" in str(err.value)
 
 
-def test_read_all_raises_update_failed_on_read_error(monkeypatch):
-    coord = make_coordinator(monkeypatch)
-    plans = [TagPlan("topic/a", DummyTag())]
+def test_read_all_raises_update_failed_on_read_error(coord_factory, dummy_tag):
+    """Test read_all raises UpdateFailed on read error."""
+    coord = coord_factory()
+    plans = [TagPlan("topic/a", dummy_tag())]
 
     drop_calls: list[bool] = []
 
@@ -241,8 +258,14 @@ def test_read_all_raises_update_failed_on_read_error(monkeypatch):
     assert "read boom" in str(err.value)
 
     
-def test_read_strings_raises_on_timeout(monkeypatch, caplog):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# String Reading Tests
+# ============================================================================
+
+
+def test_read_strings_raises_on_timeout(coord_factory, monkeypatch, caplog):
+    """Test read_strings raises on timeout."""
+    coord = coord_factory()
 
     plans = [
         StringPlan("topic/a", 1, 0),
@@ -268,8 +291,9 @@ def test_read_strings_raises_on_timeout(monkeypatch, caplog):
     assert any("String read timeout" in message for message in caplog.messages)
 
 
-def test_read_strings_raises_on_error(monkeypatch, caplog):
-    coord = make_coordinator(monkeypatch)
+def test_read_strings_raises_on_error(coord_factory, monkeypatch, caplog):
+    """Test read_strings raises on read error."""
+    coord = coord_factory()
 
     plans = [StringPlan("topic/a", 1, 0)]
 
@@ -286,8 +310,9 @@ def test_read_strings_raises_on_error(monkeypatch, caplog):
     assert any("String read error" in message for message in caplog.messages)
 
 
-def test_read_all_propagates_string_failures(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+def test_read_all_propagates_string_failures(coord_factory):
+    """Test read_all propagates string reading failures."""
+    coord = coord_factory()
 
     plans = [StringPlan("topic/a", 1, 0)]
 
@@ -300,11 +325,17 @@ def test_read_all_propagates_string_failures(monkeypatch):
         coord._read_all([], plans)
 
 
-def test_read_one_handles_bit_string_and_scalars(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+# ============================================================================
+# Read One Tests
+# ============================================================================
+
+
+def test_read_one_handles_bit_string_and_scalars(coord_factory, dummy_tag, monkeypatch):
+    """Test read_one handles different data types correctly."""
+    coord = coord_factory()
 
     # String path
-    string_tag = DummyTag(
+    string_tag = dummy_tag(
         data_type=coordinator.DataType.CHAR,
         length=8,
         db_number=1,
@@ -321,7 +352,7 @@ def test_read_one_handles_bit_string_and_scalars(monkeypatch):
     assert coord._read_one("STRING") == "test"
 
     # Bit normalization
-    bit_tag = DummyTag(data_type=coordinator.DataType.BIT)
+    bit_tag = dummy_tag(data_type=coordinator.DataType.BIT)
     monkeypatch.setattr(coordinator, "parse_tag", lambda addr: bit_tag)
     coord._retry = lambda func: [1]
     assert coord._read_one("BIT") is True
@@ -332,8 +363,15 @@ def test_read_one_handles_bit_string_and_scalars(monkeypatch):
     coord._retry = lambda func: [1.234]
     assert coord._read_one("REAL") == pytest.approx(1.2)
 
-def test_write_number_handles_numeric_types(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+
+# ============================================================================
+# Write Tests
+# ============================================================================
+
+
+def test_write_number_handles_numeric_types(coord_factory, dummy_tag, monkeypatch):
+    """Test write_number handles different numeric types correctly."""
+    coord = coord_factory()
 
     writes: list[tuple[list[DummyTag], list[float | int]]] = []
 
@@ -344,14 +382,14 @@ def test_write_number_handles_numeric_types(monkeypatch):
     coord._client = DummyClient()
     coord._retry = lambda func: func()
 
-    int_tag = DummyTag(data_type=coordinator.DataType.INT)
+    int_tag = dummy_tag(data_type=coordinator.DataType.INT)
     monkeypatch.setattr(coordinator, "parse_tag", lambda address: int_tag)
 
     assert coord.write_number("DB1,W0", 12.6)
     assert writes == [([int_tag], [13])]
 
     writes.clear()
-    real_tag = DummyTag(data_type=coordinator.DataType.REAL)
+    real_tag = dummy_tag(data_type=coordinator.DataType.REAL)
     coord._write_tags.clear()
     monkeypatch.setattr(coordinator, "parse_tag", lambda address: real_tag)
 
@@ -360,13 +398,14 @@ def test_write_number_handles_numeric_types(monkeypatch):
     assert writes[0][1][0] == pytest.approx(7.25)
 
 
-def test_write_number_rejects_non_numeric(monkeypatch):
-    coord = make_coordinator(monkeypatch)
+def test_write_number_rejects_non_numeric(coord_factory, dummy_tag, monkeypatch):
+    """Test write_number rejects non-numeric data types."""
+    coord = coord_factory()
 
     monkeypatch.setattr(
         coordinator,
         "parse_tag",
-        lambda address: DummyTag(data_type=coordinator.DataType.BIT),
+        lambda address: dummy_tag(data_type=coordinator.DataType.BIT),
     )
 
     with pytest.raises(ValueError):
@@ -375,8 +414,8 @@ def test_write_number_rejects_non_numeric(monkeypatch):
     monkeypatch.setattr(
         coordinator,
         "parse_tag",
-        lambda address: DummyTag(data_type=coordinator.DataType.CHAR, length=1),
+        lambda address: dummy_tag(data_type=coordinator.DataType.CHAR, length=10),
     )
 
     with pytest.raises(ValueError):
-        coord.write_number("DB1,B0", 65)
+        coord.write_number("DB1,STRING", 42)

@@ -1,8 +1,8 @@
+"""Tests for S7 entity classes - Refactored with fixtures."""
+
 from __future__ import annotations
 
-import asyncio
 import pytest
-from typing import Any, Callable
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -19,99 +19,28 @@ from custom_components.s7plc.const import (
 )
 
 
-class DummyCoordinator:
-    def __init__(self, connected: bool = True):
-        self._connected = connected
-        self.data = {}
-        self.write_calls: list[tuple[str, object]] = []
-        self.refresh_called = False
-        self._write_queue: list[bool] = []
-        self._default_write_result = True
-        self._item_scan_intervals = {}
-        self._default_scan_interval = 10
-        self._item_real_precisions = {}
-
-    def is_connected(self):
-        return self._connected
-
-    def set_connected(self, value: bool):
-        self._connected = value
-
-    def add_item(self, *args, **kwargs):
-        return None
-
-    def write_bool(self, address: str, value: bool) -> bool:
-        self.write_calls.append((address, bool(value)))
-        if self._write_queue:
-            return self._write_queue.pop(0)
-        return self._default_write_result
-
-    def write_number(self, address: str, value: float) -> bool:
-        self.write_calls.append((address, float(value)))
-        if self._write_queue:
-            return self._write_queue.pop(0)
-        return self._default_write_result
-
-    def set_write_queue(self, *results: bool) -> None:
-        self._write_queue = list(results)
-
-    def set_default_write_result(self, value: bool) -> None:
-        self._default_write_result = value
-
-    async def async_request_refresh(self):
-        self.refresh_called = True
+# ============================================================================
+# Fixtures
+# ============================================================================
 
 
-class _ImmediateAwaitable:
-    """Awaitable that immediately returns a value (no event loop needed)."""
-    def __init__(self, value: Any = None, exc: Exception | None = None):
-        self._value = value
-        self._exc = exc
-
-    def __await__(self):
-        if self._exc is not None:
-            raise self._exc
-        if False:
-            yield  # pragma: no cover (keeps this a generator)
-        return self._value
+@pytest.fixture
+def dummy_entry():
+    """Provide a dummy entry factory (already in conftest)."""
+    def _create_entry(options):
+        from conftest import DummyEntry
+        return DummyEntry(options)
+    return _create_entry
 
 
-class FakeHass:
-    """Fake hass compatible with both async and sync tests on modern asyncio."""
-
-    def __init__(self):
-        self.calls = []
-        self.data = {}
-
-    def async_add_executor_job(self, func: Callable, *args, **kwargs):
-        self.calls.append((func.__name__, args))
-        try:
-            result = func(*args, **kwargs)
-        except Exception as exc:
-            # If we're in an async test (running loop), return a Future with exception.
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                return _ImmediateAwaitable(exc=exc)
-            fut = loop.create_future()
-            fut.set_exception(exc)
-            return fut
-
-        # Success path: return Future if loop is running, else immediate awaitable.
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return _ImmediateAwaitable(result)
-        fut = loop.create_future()
-        fut.set_result(result)
-        return fut
+# ============================================================================
+# Helper Name Tests
+# ============================================================================
 
 
-class DummyEntry:
-    def __init__(self, options):
-        self.options = options
-        self.data = {}
-        self.entry_id = "test_entry"
+# ============================================================================
+# Helper Name Tests
+# ============================================================================
 
 
 def test_default_entity_name_humanizes_address():
@@ -123,8 +52,14 @@ def test_default_entity_name_humanizes_address():
     assert default_entity_name(None, None) is None
 
 
-def test_base_entity_availability_and_attrs():
-    coord = DummyCoordinator(connected=False)
+# ============================================================================
+# S7BaseEntity Tests
+# ============================================================================
+
+
+def test_base_entity_availability_and_attrs(mock_coordinator_disconnected):
+    """Test base entity availability based on connection and data."""
+    coord = mock_coordinator_disconnected
     base = S7BaseEntity(
         coord,
         unique_id="uid",
@@ -148,9 +83,15 @@ def test_base_entity_availability_and_attrs():
     assert base.extra_state_attributes == {"s7_address": "DB1,X0.0", "scan_interval": 10}
 
 
+# ============================================================================
+# S7BoolSyncEntity Tests
+# ============================================================================
+
+
 @pytest.mark.asyncio
-async def test_bool_entity_commands_and_refresh():
-    coord = DummyCoordinator()
+async def test_bool_entity_commands_and_refresh(mock_coordinator, fake_hass):
+    """Test boolean entity turn on/off commands."""
+    coord = mock_coordinator
     coord.data = {"topic": False}
 
     ent = S7BoolSyncEntity(
@@ -162,25 +103,25 @@ async def test_bool_entity_commands_and_refresh():
         command_address="db1,x0.1",
         sync_state=True,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     await ent.async_turn_on()
     assert ent._pending_command is True
-    assert coord.write_calls[-1] == ("db1,x0.1", True)
+    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", True)
     assert coord.refresh_called
 
     coord.refresh_called = False
     await ent.async_turn_off()
     assert ent._pending_command is False
-    assert coord.write_calls[-1] == ("db1,x0.1", False)
+    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", False)
     assert coord.refresh_called
 
 
 @pytest.mark.asyncio
-async def test_bool_entity_write_failure():
-    coord = DummyCoordinator()
+async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
+    """Test boolean entity handles write failure."""
+    coord = mock_coordinator_failing
     coord.data = {"topic": False}
-    coord.set_default_write_result(False)
 
     ent = S7BoolSyncEntity(
         coord,
@@ -191,19 +132,20 @@ async def test_bool_entity_write_failure():
         command_address="db1,x0.1",
         sync_state=True,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     with pytest.raises(HomeAssistantError):
         await ent.async_turn_on()
 
-    assert coord.write_calls[-1] == ("db1,x0.1", True)
+    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", True)
     assert ent._pending_command is None
     assert not coord.refresh_called
 
 
 @pytest.mark.asyncio
-async def test_bool_entity_ensure_connected():
-    coord = DummyCoordinator(connected=False)
+async def test_bool_entity_ensure_connected(mock_coordinator_disconnected, fake_hass):
+    """Test boolean entity requires connection."""
+    coord = mock_coordinator_disconnected
     coord.data = {"topic": False}
 
     ent = S7BoolSyncEntity(
@@ -215,14 +157,15 @@ async def test_bool_entity_ensure_connected():
         command_address="db1,x0.1",
         sync_state=True,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     with pytest.raises(HomeAssistantError):
         await ent.async_turn_on()
 
 
-def test_bool_entity_state_synchronization_fire_and_forget():
-    coord = DummyCoordinator()
+def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinator, fake_hass):
+    """Test state synchronization with fire-and-forget writes."""
+    coord = mock_coordinator
     coord.data = {"topic": True}
 
     ent = S7BoolSyncEntity(
@@ -234,7 +177,7 @@ def test_bool_entity_state_synchronization_fire_and_forget():
         command_address="db1,x0.1",
         sync_state=True,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     ent.async_write_ha_state()
     assert ent._last_state is True
@@ -255,14 +198,20 @@ def test_bool_entity_state_synchronization_fire_and_forget():
     ent.async_write_ha_state()
 
     assert ent.hass.calls == [("write_bool", ("db1,x0.1", True))]
-    assert coord.write_calls == [("db1,x0.1", True)]
+    assert coord.write_calls == [("write_bool", "db1,x0.1", True)]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
 
 
+# ============================================================================
+# S7Button Tests
+# ============================================================================
+
+
 @pytest.mark.asyncio
-async def test_button_press_write_failures(monkeypatch):
-    coord = DummyCoordinator()
+async def test_button_press_write_failures(mock_coordinator, fake_hass, monkeypatch):
+    """Test button press handles write failures."""
+    coord = mock_coordinator
     coord.data = {"button:db1,x0.0": True}
 
     # patch sleep to avoid waiting
@@ -279,12 +228,12 @@ async def test_button_press_write_failures(monkeypatch):
         address="db1,x0.0",
         button_pulse=0,
     )
-    button.hass = FakeHass()
+    button.hass = fake_hass
 
     coord.set_default_write_result(False)
     with pytest.raises(HomeAssistantError):
         await button.async_press()
-    assert coord.write_calls == [("db1,x0.0", True)]
+    assert coord.write_calls == [("write_bool", "db1,x0.0", True)]
 
     coord.write_calls.clear()
     coord.set_default_write_result(True)
@@ -294,13 +243,19 @@ async def test_button_press_write_failures(monkeypatch):
         await button.async_press()
 
     assert coord.write_calls == [
-        ("db1,x0.0", True),
-        ("db1,x0.0", False),
+        ("write_bool", "db1,x0.0", True),
+        ("write_bool", "db1,x0.0", False),
     ]
 
 
-def test_number_clamps_configured_limits():
-    coord = DummyCoordinator()
+# ============================================================================
+# S7Number Tests
+# ============================================================================
+
+
+def test_number_clamps_configured_limits(mock_coordinator):
+    """Test number entity clamps limits to data type bounds."""
+    coord = mock_coordinator
 
     number_entity = S7Number(
         coord,
@@ -320,8 +275,9 @@ def test_number_clamps_configured_limits():
 
 
 @pytest.mark.asyncio
-async def test_number_async_set_native_value_success():
-    coord = DummyCoordinator()
+async def test_number_async_set_native_value_success(mock_coordinator, fake_hass):
+    """Test number entity set value successfully."""
+    coord = mock_coordinator
     coord.data = {"number:db1,w0": 10}
 
     ent = S7Number(
@@ -336,18 +292,18 @@ async def test_number_async_set_native_value_success():
         max_value=None,
         step=None,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     await ent.async_set_native_value(42)
-    assert coord.write_calls[-1] == ("db1,w0", 42.0)
+    assert coord.write_calls[-1] == ("write_number", "db1,w0", 42.0)
     assert coord.refresh_called
 
 
 @pytest.mark.asyncio
-async def test_number_async_set_native_value_failure():
-    coord = DummyCoordinator()
+async def test_number_async_set_native_value_failure(mock_coordinator_failing, fake_hass):
+    """Test number entity handles write failure."""
+    coord = mock_coordinator_failing
     coord.data = {"number:db1,w0": 10}
-    coord.set_default_write_result(False)
 
     ent = S7Number(
         coord,
@@ -361,19 +317,24 @@ async def test_number_async_set_native_value_failure():
         max_value=None,
         step=None,
     )
-    ent.hass = FakeHass()
+    ent.hass = fake_hass
 
     with pytest.raises(HomeAssistantError):
         await ent.async_set_native_value(42)
 
-    assert coord.write_calls[-1] == ("db1,w0", 42.0)
+    assert coord.write_calls[-1] == ("write_number", "db1,w0", 42.0)
     assert not coord.refresh_called
 
 
+# ============================================================================
+# Setup Entry Tests
+# ============================================================================
+
+
 @pytest.mark.asyncio
-async def test_number_setup_entry_generates_name_from_address(monkeypatch):
-    hass = FakeHass()
-    coord = DummyCoordinator()
+async def test_number_setup_entry_generates_name_from_address(mock_coordinator, fake_hass, dummy_entry, monkeypatch):
+    """Test number setup entry generates default names."""
+    coord = mock_coordinator
 
     def fake_get_coordinator_and_device_info(hass_in, entry_in):
         return coord, {"name": "PLC"}, "deviceid"
@@ -383,7 +344,7 @@ async def test_number_setup_entry_generates_name_from_address(monkeypatch):
         fake_get_coordinator_and_device_info,
     )
 
-    entry = DummyEntry(
+    entry = dummy_entry(
         options={
             CONF_NUMBERS: [
                 {CONF_ADDRESS: "db1,w0"}  # no name -> default_entity_name()
@@ -396,16 +357,16 @@ async def test_number_setup_entry_generates_name_from_address(monkeypatch):
     def fake_async_add_entities(entities, *args, **kwargs):
         added.extend(entities)
 
-    await number_setup_entry(hass, entry, fake_async_add_entities)
+    await number_setup_entry(fake_hass, entry, fake_async_add_entities)
 
     assert len(added) == 1
     assert getattr(added[0], "_attr_name", None) == "PLC DB1 W0"
 
 
 @pytest.mark.asyncio
-async def test_button_setup_entry_pulse_parsing(monkeypatch):
-    hass = FakeHass()
-    coord = DummyCoordinator()
+async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dummy_entry, monkeypatch):
+    """Test button setup entry parses pulse configuration."""
+    coord = mock_coordinator
 
     def fake_get_coordinator_and_device_info(hass_in, entry_in):
         return coord, {"name": "PLC"}, "deviceid"
@@ -415,7 +376,7 @@ async def test_button_setup_entry_pulse_parsing(monkeypatch):
         fake_get_coordinator_and_device_info,
     )
 
-    entry = DummyEntry(
+    entry = dummy_entry(
         options={
             CONF_BUTTONS: [
                 {CONF_ADDRESS: "db1,x0.0", CONF_BUTTON_PULSE: "2"},
@@ -431,7 +392,7 @@ async def test_button_setup_entry_pulse_parsing(monkeypatch):
     def fake_async_add_entities(entities, *args, **kwargs):
         added.extend(entities)
 
-    await button_setup_entry(hass, entry, fake_async_add_entities)
+    await button_setup_entry(fake_hass, entry, fake_async_add_entities)
 
     assert len(added) == 4
     pulses = [e._button_pulse for e in added]

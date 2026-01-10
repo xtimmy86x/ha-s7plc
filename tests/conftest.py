@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar
+import pytest
 
 # ---------------------------------------------------------------------------
 # Stub minimal Home Assistant modules so the integration package can import.
@@ -541,3 +543,207 @@ def pytest_configure(config):  # pragma: no cover - register custom marks
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
+
+
+# ============================================================================
+# Shared Mock Classes for Tests
+# ============================================================================
+
+
+class DummyCoordinator:
+    """Shared coordinator mock for all tests."""
+
+    def __init__(self, connected: bool = True):
+        self._connected = connected
+        self.data = {}
+        self.write_calls: list[tuple[str, object]] = []
+        self.refresh_called = False
+        self._write_queue: list[bool] = []
+        self._default_write_result = True
+        self._item_scan_intervals = {}
+        self._default_scan_interval = 10
+        self._item_real_precisions = {}
+
+    def is_connected(self):
+        return self._connected
+
+    def set_connected(self, value: bool):
+        self._connected = value
+
+    def add_item(self, *args, **kwargs):
+        return None
+
+    def write_bool(self, address: str, value: bool) -> bool:
+        self.write_calls.append(("write_bool", address, bool(value)))
+        if self._write_queue:
+            return self._write_queue.pop(0)
+        return self._default_write_result
+
+    def write_number(self, address: str, value: float) -> bool:
+        self.write_calls.append(("write_number", address, float(value)))
+        if self._write_queue:
+            return self._write_queue.pop(0)
+        return self._default_write_result
+
+    def set_write_queue(self, *results: bool) -> None:
+        self._write_queue = list(results)
+
+    def set_default_write_result(self, value: bool) -> None:
+        self._default_write_result = value
+
+    async def async_request_refresh(self):
+        self.refresh_called = True
+
+
+class _ImmediateAwaitable:
+    """Awaitable that immediately returns a value (no event loop needed)."""
+
+    def __init__(self, value: Any = None, exc: Exception | None = None):
+        self._value = value
+        self._exc = exc
+
+    def __await__(self):
+        if self._exc is not None:
+            raise self._exc
+        if False:
+            yield  # pragma: no cover
+        return self._value
+
+
+class FakeHass:
+    """Fake hass compatible with both async and sync tests."""
+
+    def __init__(self):
+        from unittest.mock import MagicMock
+        self.calls = []
+        self.data = {}
+        self.states = MagicMock()
+
+    def async_add_executor_job(self, func: Callable, *args, **kwargs):
+        self.calls.append((func.__name__, args))
+        try:
+            result = func(*args, **kwargs)
+        except Exception as exc:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return _ImmediateAwaitable(exc=exc)
+            fut = loop.create_future()
+            fut.set_exception(exc)
+            return fut
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return _ImmediateAwaitable(result)
+        fut = loop.create_future()
+        fut.set_result(result)
+        return fut
+
+    def create_task(self, coro):
+        """Mock create_task."""
+        try:
+            loop = asyncio.get_running_loop()
+            return loop.create_task(coro)
+        except RuntimeError:
+            from unittest.mock import MagicMock
+            return MagicMock()
+
+
+class DummyEntry:
+    """Shared entry mock for tests."""
+
+    def __init__(self, options):
+        self.options = options
+        self.data = {}
+        self.entry_id = "test_entry"
+
+
+class DummyCoordinatorClient:
+    """Shared coordinator client mock for tests."""
+
+    def __init__(self, values):
+        self._values = values
+        self.calls = []
+
+    def read(self, tags, optimize=True):
+        self.calls.append((list(tags), optimize))
+        result = self._values.pop(0)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+
+class DummyTag:
+    """Shared tag mock for tests."""
+
+    def __init__(
+        self,
+        memory_area="DB",
+        db_number=1,
+        data_type=None,
+        start=0,
+        bit_offset=0,
+        length=1,
+    ):
+        self.memory_area = memory_area
+        self.db_number = db_number
+        self.data_type = data_type
+        self.start = start
+        self.bit_offset = bit_offset
+        self.length = length
+
+
+# ============================================================================
+# Shared Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def mock_coordinator():
+    """Provide a connected mock coordinator for tests."""
+    return DummyCoordinator()
+
+
+@pytest.fixture
+def mock_coordinator_disconnected():
+    """Provide a disconnected mock coordinator for tests."""
+    return DummyCoordinator(connected=False)
+
+
+@pytest.fixture
+def mock_coordinator_failing():
+    """Provide a mock coordinator that fails writes."""
+    coord = DummyCoordinator()
+    coord.set_default_write_result(False)
+    return coord
+
+
+@pytest.fixture
+def fake_hass():
+    """Provide a fake hass instance for tests."""
+    return FakeHass()
+
+
+@pytest.fixture
+def dummy_entry():
+    """Provide a dummy entry factory."""
+    def _create_entry(options):
+        return DummyEntry(options)
+    return _create_entry
+
+
+@pytest.fixture
+def dummy_tag():
+    """Factory fixture for creating dummy tags."""
+    def _create_tag(**kwargs):
+        return DummyTag(**kwargs)
+    return _create_tag
+
+
+@pytest.fixture
+def dummy_client():
+    """Factory fixture for creating dummy clients."""
+    def _create_client(values):
+        return DummyCoordinatorClient(values)
+    return _create_client
