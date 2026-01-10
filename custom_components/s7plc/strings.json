@@ -44,14 +44,32 @@
     "step": {
       "init": {
         "title": "S7 PLC Options",
-        "description": "Choose what you want to do.",
+        "description": "Choose what you want to manage.",
         "menu_options": {
-          "connection": "Edit PLC connection",
-          "add": "Add items",
-          "edit": "Edit items",
-          "remove": "Remove items",
-          "export": "Export items",
-          "import": "Import items"
+          "setup_connection": "Connection",
+          "setup_entities": "Entities",
+          "manage_configuration": "Configuration"
+        }
+      },
+      "setup_connection": {
+        "title": "Setup PLC Connection",
+        "description": "Configure or modify the PLC connection parameters."
+      },
+      "setup_entities": {
+        "title": "Setup Entities",
+        "description": "Add, edit, or remove entities for this PLC.",
+        "menu_options": {
+          "add": "Add entities",
+          "edit": "Edit entities",
+          "remove": "Remove entities"
+        }
+      },
+      "manage_configuration": {
+        "title": "Manage Configuration",
+        "description": "Export or import your PLC configuration.",
+        "menu_options": {
+          "export": "Export configuration",
+          "import": "Import configuration"
         }
       },
       "add": {

@@ -1439,18 +1439,47 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_create_entry(title="", data=self._options)
 
-    # ====== STEP 0: choose action (add or remove) ======
+    # ====== STEP 0: choose action (main menu) ======
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        # Show a menu with the next steps; labels come from strings.json
+        # Show a simplified main menu with 3 main options
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "connection",  # modify connection parameters
-                "add",  # guided item addition flow
-                "edit",  # modify existing entities
+                "setup_connection",  # modify connection parameters
+                "setup_entities",  # add or edit entities
+                "manage_configuration",  # remove, export or import configuration
+            ],
+        )
+
+    # ====== STEP: setup connection (redirect) ======
+    async def async_step_setup_connection(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Redirect to connection step."""
+        return await self.async_step_connection(user_input)
+
+    # ====== STEP: setup entities (submenu) ======
+    async def async_step_setup_entities(self, user_input: dict[str, Any] | None = None):
+        """Show submenu for entity operations."""
+        return self.async_show_menu(
+            step_id="setup_entities",
+            menu_options=[
+                "add",  # add new entities
+                "edit",  # edit existing entities
                 "remove",  # remove existing entities
+            ],
+        )
+
+    # ====== STEP: manage configuration (submenu) ======
+    async def async_step_manage_configuration(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Show submenu for configuration management."""
+        return self.async_show_menu(
+            step_id="manage_configuration",
+            menu_options=[
                 "export",  # export configuration
-                "import",  # import configuration from JSON
+                "import",  # import configuration
             ],
         )
 
