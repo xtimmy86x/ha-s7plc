@@ -79,6 +79,56 @@ const.CONF_HOST = "host"
 const.CONF_NAME = "name"
 const.CONF_PORT = "port"
 const.CONF_SCAN_INTERVAL = "scan_interval"
+const.CONCENTRATION_PARTS_PER_BILLION = "ppb"
+const.CONCENTRATION_PARTS_PER_MILLION = "ppm"
+const.PERCENTAGE = "%"
+
+
+class _UnitEnum:
+    """Base class for unit enums."""
+    pass
+
+
+class UnitOfElectricCurrent(_UnitEnum):
+    AMPERE = "A"
+
+
+class UnitOfElectricPotential(_UnitEnum):
+    VOLT = "V"
+
+
+class UnitOfEnergy(_UnitEnum):
+    KILO_WATT_HOUR = "kWh"
+
+
+class UnitOfFrequency(_UnitEnum):
+    HERTZ = "Hz"
+
+
+class UnitOfPower(_UnitEnum):
+    WATT = "W"
+
+
+class UnitOfPressure(_UnitEnum):
+    HPA = "hPa"
+
+
+class UnitOfSpeed(_UnitEnum):
+    METERS_PER_SECOND = "m/s"
+
+
+class UnitOfTemperature(_UnitEnum):
+    CELSIUS = "°C"
+
+
+const.UnitOfElectricCurrent = UnitOfElectricCurrent
+const.UnitOfElectricPotential = UnitOfElectricPotential
+const.UnitOfEnergy = UnitOfEnergy
+const.UnitOfFrequency = UnitOfFrequency
+const.UnitOfPower = UnitOfPower
+const.UnitOfPressure = UnitOfPressure
+const.UnitOfSpeed = UnitOfSpeed
+const.UnitOfTemperature = UnitOfTemperature
 sys.modules["homeassistant.const"] = const
 homeassistant.const = const
 
@@ -88,6 +138,25 @@ core = ModuleType("homeassistant.core")
 
 def callback(func):  # pragma: no cover - simple passthrough decorator
     return func
+
+
+class State:  # pragma: no cover - simple stub
+    """Minimal State stub for testing."""
+
+    def __init__(self, entity_id: str, state: str, attributes=None):
+        self.entity_id = entity_id
+        self.state = state
+        self.attributes = attributes or {}
+        from datetime import datetime
+        self.last_updated = datetime.now()
+
+
+class Event:  # pragma: no cover - simple stub
+    """Minimal Event stub for testing."""
+
+    def __init__(self, event_type: str, data=None):
+        self.event_type = event_type
+        self.data = data or {}
 
 
 class HomeAssistant:  # pragma: no cover - simple stub
@@ -139,6 +208,8 @@ class HomeAssistant:  # pragma: no cover - simple stub
 
 core.HomeAssistant = HomeAssistant
 core.callback = callback
+core.State = State
+core.Event = Event
 sys.modules["homeassistant.core"] = core
 homeassistant.core = core
 
@@ -229,6 +300,19 @@ class DeviceInfo(dict):  # pragma: no cover - simple stub
 helpers_entity.DeviceInfo = DeviceInfo
 sys.modules["homeassistant.helpers.entity"] = helpers_entity
 helpers.entity = helpers_entity
+
+# helpers.event module
+helpers_event = ModuleType("homeassistant.helpers.event")
+
+
+def async_track_state_change_event(hass, entity_ids, action):  # pragma: no cover - stub
+    """Mock for async_track_state_change_event."""
+    return lambda: None
+
+
+helpers_event.async_track_state_change_event = async_track_state_change_event
+sys.modules["homeassistant.helpers.event"] = helpers_event
+helpers.event = helpers_event
 
 # helpers.selector module
 selector = ModuleType("homeassistant.helpers.selector")
@@ -365,10 +449,29 @@ components.number = number
 
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
     TEMPERATURE = "temperature"
+    ENERGY = "energy"
+    ENERGY_STORAGE = "energy_storage"
+    GAS = "gas"
+    WATER = "water"
+    VOLUME = "volume"
+
+
+class SensorEntity:  # pragma: no cover - simple stub
+    """Minimal SensorEntity stub."""
+    pass
+
+
+class SensorStateClass:  # pragma: no cover - simple stub
+    """Minimal SensorStateClass stub."""
+    MEASUREMENT = "measurement"
+    TOTAL = "total"
+    TOTAL_INCREASING = "total_increasing"
 
 
 sensor = ModuleType("homeassistant.components.sensor")
 sensor.SensorDeviceClass = SensorDeviceClass
+sensor.SensorEntity = SensorEntity
+sensor.SensorStateClass = SensorStateClass
 sys.modules["homeassistant.components.sensor"] = sensor
 components.sensor = sensor
 
