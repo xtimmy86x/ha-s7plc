@@ -42,12 +42,13 @@
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`.
-- 🧩 **Multiple entity types**: `light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`,  `number`.
+- 🧩 **Multiple entity types**: `light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`,  `number`, and `writer`.
 - 🧮 **Value multipliers**: scale raw PLC values before Home Assistant sees them (e.g., convert tenths or hundredths to human-friendly units).
 - 🪶 **Lightweight**: minimal overhead, no broker/services required.
 - 🛠️ **Full UI configuration**: set up and manage the integration entirely from Home Assistant's UI.
 - 🔍 **Optional auto-discovery**: the setup wizard pre-populates PLCs found on your local network while still allowing manual IP entry.
 - 📄 **S7 `STRING` support** for text sensors.
+- 🔄 **Writer entities**: automatically synchronize any Home Assistant entity state to PLC addresses in real-time.
 
 ---
 
@@ -92,10 +93,10 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
 3. Pick one of the auto-discovered PLC hosts or type the PLC `host` manually, then fill in `rack`, `slot`, and `port` values when prompted.
 4. Once the integration is added, open it and choose **Configure** to manage entities.
 5. Pick **Add items** to create a new entity or **Remove items** to delete existing ones.
-   - When adding, select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`) and fill in the form fields.
+   - When adding, select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `writer`) and fill in the form fields.
    - `switch`/`light` entries may use separate `state_address` and `command_address`.
      If `command_address` is omitted it defaults to the state address.
-     Enable `sync_state` to mirror PLC state changes to the command address.
+     Enable `sync_state` to automatically synchronize external PLC state changes back to the command address (see [State Synchronization](#state-synchronization) below).
    - `cover` entries define separate `open`/`close` command addresses and optional
      `opening`/`closing` state addresses (leave blank to reuse the command tag).
      Set an `operate time` (default 60 s) to automatically reset the command outputs
@@ -109,6 +110,7 @@ Configuration is now handled entirely through the Home Assistant UI. After insta
      You may set `min`, `max`, and `step` for Home Assistant; limits outside the PLC data type range are automatically clamped to the closest supported value so you can express relative bounds without worrying about overflows.
      Optionally set a per-entity `REAL precision` to round `REAL` reads to a fixed
      number of decimal places.
+   - `writer` entries monitor any Home Assistant entity and automatically write its numeric state to a PLC address whenever it changes. Perfect for sending sensor readings, calculated values, or external system data to the PLC (see [Writer Entities](#writer-entities) below).
    - Every item lets you override the **scan interval** just for that tag. 
      Leave the field empty to inherit the PLC default defined during setup.
    - Use **Add another** to chain the creation of multiple entities; after the last 
@@ -203,6 +205,235 @@ Some addressing examples:
 | `1`     | `DB1,X1.3`               | R/W access (use booleans) |
 | `2..3`  | `DB1,WORD2`              | R/W access |
 | `4..7`  | `DB1,DWORD4`             | R/W access |
+
+---
+
+## State Synchronization
+
+The **Sync State** feature is available for `switch` and `light` entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
+
+### How it works
+
+When `sync_state` is enabled:
+
+1. **Home Assistant commands are tracked**: When you turn on/off a switch or light from Home Assistant, the integration writes to the `command_address` and marks the change as "pending".
+
+2. **PLC feedback is monitored**: The integration continuously reads the `state_address` to detect the actual PLC state.
+
+3. **Echo prevention**: If the PLC state matches the pending command, the integration knows the command was successful and clears the pending flag. This prevents sending duplicate commands back to the PLC.
+
+4. **External changes are synchronized**: If the PLC state changes externally (e.g., from a physical button, PLC program logic, or another system), the integration detects the mismatch and automatically writes the new state to the `command_address`. This keeps both addresses in sync.
+
+### When to use Sync State
+
+Enable `sync_state` when:
+
+- **Physical controls exist**: Your system has physical buttons, switches, or HMI panels that can change the state independently of Home Assistant
+- **PLC program logic**: The PLC itself can change states based on timers, sensors, or automation logic
+- **Multiple control systems**: You have multiple systems (SCADA, other automation platforms) that can command the same outputs
+- **Separate state/command architecture**: Your PLC uses different addresses for reading the actual state and writing commands
+
+**Example scenario**: A conveyor belt with:
+- `DB1,X0.0` (state_address) = actual motor running status from a contactor feedback
+- `DB1,X0.1` (command_address) = motor start command from automation system
+- Physical start/stop buttons on the control panel
+- Emergency stop system that can halt the motor
+
+With `sync_state` enabled, if someone presses the physical stop button (changing `DB1,X0.0` to `false`), Home Assistant will automatically write `false` to `DB1,X0.1` to keep the command address synchronized.
+
+### When NOT to use Sync State
+
+Disable `sync_state` (default) when:
+
+- **Single control point**: Only Home Assistant controls the output
+- **Same address for state and command**: The PLC uses a single address for both reading and writing
+- **PLC handles synchronization**: Your PLC program already manages any necessary feedback logic
+- **Performance concerns**: High-frequency state monitoring or write operations might impact PLC performance
+
+### Configuration
+
+To enable sync state for a switch or light:
+
+1. Open the integration from **Settings → Devices & Services**
+2. Click **Configure** and choose **Add items** (for new entities) or **Remove items** → **Edit** (for existing ones)
+3. Select `switch` or `light` as the entity type
+4. Enter the `state_address` (the PLC address to read the actual state)
+5. Enter the `command_address` (the PLC address to write commands) - if omitted, defaults to state_address
+6. **Enable the `Sync State` checkbox**
+7. Save the configuration
+
+### Technical details
+
+- The synchronization logic runs during the normal polling cycle based on your configured scan interval
+- State changes are written asynchronously to avoid blocking the coordinator
+- The integration maintains internal state tracking to distinguish between Home Assistant commands and external PLC changes
+- Initial state on entity creation is read-only (no synchronization) to avoid unintended writes during startup
+
+### Performance considerations
+
+- Each synchronized entity adds one write operation when external changes are detected
+- For systems with many synchronized entities and frequent state changes, consider:
+  - Increasing the scan interval for less critical entities
+  - Using PLC-side logic to handle rapid state changes
+  - Monitoring PLC CPU load if you notice performance issues
+
+---
+
+## Writer Entities
+
+Writer entities provide a powerful way to send data from Home Assistant to your PLC by monitoring any entity and automatically writing its state to a configured PLC address whenever it changes.
+
+### What is a Writer?
+
+A **Writer** is a special sensor entity that:
+
+1. **Monitors a source entity**: Tracks state changes of any Home Assistant entity (sensor, input_number, calculated template, etc.)
+2. **Converts to numeric value**: Extracts the numeric state value from the source entity
+3. **Writes to PLC**: Automatically writes the value to the specified PLC address whenever the source entity changes
+4. **Reports statistics**: Tracks successful writes and errors as entity attributes
+
+Writers appear as sensor entities in Home Assistant showing the last successfully written value, making it easy to verify what data was sent to the PLC.
+
+### Common use cases
+
+**Data integration**
+- Send weather data from Home Assistant weather integrations to PLC for HVAC control
+- Forward energy consumption from smart meters to PLC monitoring systems
+- Push setpoints from Home Assistant `input_number` helpers to PLC controllers
+- Transmit calculated values from template sensors to PLC
+
+**Multi-system coordination**
+- Synchronize data between different automation platforms through the PLC
+- Feed external sensor readings into PLC-based control algorithms
+- Send occupancy or presence detection to PLC for lighting/HVAC automation
+- Forward alarm states or security system status to PLC logic
+
+**Process control**
+- Update PLC recipe values from Home Assistant dashboards
+- Send production targets or parameters to PLC from business systems
+- Forward quality control measurements to PLC data logging
+
+### Configuration
+
+To create a writer entity:
+
+1. Open the integration from **Settings → Devices & Services**
+2. Click **Configure** and choose **Add items**
+3. Select **Writer** as the entity type
+4. Configure the following fields:
+   - **Address**: The PLC address where values will be written (e.g., `DB1,R0` for a REAL, `DB1,W0` for an INT)
+   - **Source Entity**: The Home Assistant entity to monitor (use the entity picker to select any entity)
+   - **Name** (optional): A friendly name for the writer entity (defaults to "Writer [address]")
+5. Save the configuration
+
+The writer will immediately read the current state of the source entity and write it to the PLC, then continue monitoring for any future changes.
+
+### Example configuration
+
+**Example 1: Weather temperature to PLC**
+```
+Address: DB10,R0
+Source Entity: sensor.openweathermap_temperature
+Name: Outside Temperature Writer
+```
+Writes the current outside temperature to `DB10,R0` (REAL) whenever the weather sensor updates.
+
+**Example 2: Input number setpoint**
+```
+Address: DB20,W10
+Source Entity: input_number.hvac_setpoint
+Name: HVAC Setpoint Writer
+```
+Writes the value from an `input_number` helper to `DB20,W10` (INT/WORD) whenever you adjust the setpoint slider in Home Assistant.
+
+**Example 3: Power consumption monitoring**
+```
+Address: DB5,R100
+Source Entity: sensor.home_power_consumption
+Name: Power Consumption Writer
+```
+Continuously sends your home's real-time power consumption to the PLC for monitoring or demand response logic.
+
+### Entity attributes
+
+Writer entities expose useful diagnostic attributes:
+
+| Attribute | Description |
+|-----------|-------------|
+| `s7_address` | The PLC address being written to |
+| `source_entity` | The entity ID being monitored |
+| `source_state` | Current state of the source entity |
+| `source_last_updated` | Timestamp when source entity last changed |
+| `write_count` | Total number of successful writes since entity creation |
+| `error_count` | Total number of failed write attempts |
+
+Access these attributes in automations, scripts, or display them on dashboards to monitor writer performance.
+
+### Data type handling
+
+Writers automatically detect the PLC data type from the address and handle conversions:
+
+- **REAL** (`DB#,R#`): Writes floating-point values with full precision
+- **INT/WORD** (`DB#,W#`): Converts to 16-bit signed integer (-32768 to 32767)
+- **DINT/DWORD** (`DB#,DW#`): Converts to 32-bit signed integer
+- **BYTE** (`DB#,B#`): Converts to unsigned byte (0 to 255)
+
+If the source entity provides a non-numeric state (e.g., "unavailable", "unknown"), the write is skipped and `error_count` increments. The writer logs a warning to help with troubleshooting.
+
+### Behavior notes
+
+**Initial write**
+- Writers perform an immediate write when first added to Home Assistant
+- If the source entity is unavailable at startup, the write is skipped until the entity becomes available
+
+**Change detection**
+- Writes occur only when the source entity state actually changes
+- No unnecessary PLC traffic when values remain stable
+
+**Error handling**
+- If a write fails (PLC disconnected, invalid data), the `error_count` increments
+- The writer continues monitoring and will retry on the next state change
+- Check entity attributes and Home Assistant logs for diagnostic information
+
+**Performance**
+- Writers use event-driven updates (no polling overhead)
+- Write operations run asynchronously to avoid blocking other entities
+- Multiple writers operate independently
+
+### When to use Writers vs. Number entities
+
+**Use Writer when:**
+- Source data comes from external integrations (weather, energy meters, etc.)
+- You need one-way data flow from HA to PLC
+- The value is calculated or derived from other entities
+- You want to log write statistics and errors
+
+**Use Number entity when:**
+- You need bidirectional control (read and write)
+- The PLC is the source of truth for the value
+- You want direct user control with min/max/step validation
+- The data originates from the PLC
+
+**You can use both together:**
+Combine a `number` entity (for PLC → HA data flow) with a `writer` (for external data → PLC flow) to create complex data exchange patterns.
+
+### Troubleshooting
+
+**Writer shows unavailable**
+- Check that the source entity exists and is available
+- Verify PLC connection is active
+
+**Error count increasing**
+- Check Home Assistant logs for specific error messages
+- Verify the source entity provides numeric values
+- Confirm the PLC address is correct and accessible
+- Ensure the PLC data type matches the values being written
+
+**Values not updating in PLC**
+- Verify the source entity is actually changing (check its history)
+- Ensure the PLC data block is not write-protected
+- Check that `write_count` is incrementing (confirms writes are succeeding)
+- Monitor PLC program to ensure it's reading the address
 
 ---
 
