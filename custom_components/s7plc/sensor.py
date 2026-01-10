@@ -23,17 +23,20 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.event import async_track_state_change_event
 
-from .address import DataType
+from .address import DataType, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
+    CONF_SOURCE_ENTITY,
     CONF_VALUE_MULTIPLIER,
+    CONF_WRITERS,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -166,6 +169,40 @@ async def async_setup_entry(
         async_add_entities(entities)
         await coord.async_request_refresh()
 
+    # Setup Writers
+    writer_entities = []
+    for item in entry.options.get(CONF_WRITERS, []):
+        address = item.get(CONF_ADDRESS)
+        source_entity = item.get(CONF_SOURCE_ENTITY)
+
+        if not address or not source_entity:
+            _LOGGER.debug(
+                "Skipping writer with missing address or source entity: "
+                "address=%s, source=%s",
+                address,
+                source_entity,
+            )
+            continue
+
+        name = item.get(CONF_NAME) or default_entity_name(
+            device_info.get("name"), f"Writer {address}"
+        )
+        unique_id = f"{device_id}:writer:{address}"
+
+        writer_entities.append(
+            S7Writer(
+                coord,
+                name,
+                unique_id,
+                device_info,
+                address,
+                source_entity,
+            )
+        )
+
+    if writer_entities:
+        async_add_entities(writer_entities)
+
 
 class S7Sensor(S7BaseEntity, SensorEntity):
     def __init__(
@@ -267,3 +304,150 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         if self._value_multiplier is not None:
             attrs["value_multiplier"] = self._value_multiplier
         return attrs
+
+
+class S7Writer(S7BaseEntity, SensorEntity):
+    """Writer entity that sends HA entity values to PLC."""
+
+    _attr_icon = "mdi:upload"
+
+    def __init__(
+        self,
+        coordinator,
+        name: str,
+        unique_id: str,
+        device_info: DeviceInfo,
+        address: str,
+        source_entity: str,
+    ) -> None:
+        """Initialize the writer."""
+        super().__init__(
+            coordinator,
+            name=name,
+            unique_id=unique_id,
+            device_info=device_info,
+            topic=None,
+        )
+        self._address = address
+        self._source_entity = source_entity
+        self._last_written_value: float | None = None
+        self._write_count = 0
+        self._error_count = 0
+
+        # Parse address to get data type limits
+        try:
+            tag = parse_tag(address)
+            self._data_type = tag.data_type
+        except (RuntimeError, ValueError):
+            _LOGGER.error("Invalid PLC address: %s", address)
+            self._data_type = None
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity added to hass."""
+        await super().async_added_to_hass()
+
+        # Track state changes of the source entity
+        @callback
+        def state_changed(event: Event) -> None:
+            """Handle state changes of source entity."""
+            new_state: State | None = event.data.get("new_state")
+            if new_state is None:
+                return
+
+            # Schedule write on next update cycle
+            self.hass.create_task(self._async_write_to_plc(new_state))
+
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, [self._source_entity], state_changed
+            )
+        )
+
+        # Write initial value
+        source_state = self.hass.states.get(self._source_entity)
+        if source_state is not None:
+            await self._async_write_to_plc(source_state)
+
+    async def _async_write_to_plc(self, source_state: State) -> None:
+        """Write value to PLC."""
+        try:
+            # Get numeric value from state
+            value = float(source_state.state)
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "Cannot convert source entity %s state '%s' to numeric value",
+                self._source_entity,
+                source_state.state,
+            )
+            self._error_count += 1
+            self.async_write_ha_state()
+            return
+
+        # Check if coordinator is connected
+        if not self._coord.is_connected():
+            _LOGGER.debug(
+                "Writer %s: Cannot write, coordinator not connected", self.name
+            )
+            self._error_count += 1
+            self.async_write_ha_state()
+            return
+
+        # Write to PLC
+        success = await self.hass.async_add_executor_job(
+            self._coord.write_number, self._address, value
+        )
+        _LOGGER.debug(
+            "Writer %s: Write attempt of value %.2f to %s returned %s",
+            self.name,
+            value,
+            self._address,
+            success,
+        )
+
+        if success:
+            self._last_written_value = value
+            self._write_count += 1
+            _LOGGER.debug(
+                "Writer %s: Successfully wrote value %.2f to %s",
+                self.name,
+                value,
+                self._address,
+            )
+        else:
+            self._error_count += 1
+            _LOGGER.error(
+                "Writer %s: Failed to write value %.2f to %s",
+                self.name,
+                value,
+                self._address,
+            )
+
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the last written value."""
+        return self._last_written_value
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        attrs = {
+            "s7_address": self._address.upper(),
+            "source_entity": self._source_entity,
+            "write_count": self._write_count,
+            "error_count": self._error_count,
+        }
+
+        # Get source entity current state
+        source_state = self.hass.states.get(self._source_entity)
+        if source_state:
+            attrs["source_state"] = source_state.state
+            attrs["source_last_updated"] = source_state.last_updated.isoformat()
+
+        return attrs
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._coord.is_connected()

@@ -64,7 +64,8 @@
           "covers": "Cover",
           "buttons": "Button",
           "lights": "Light",
-          "numbers": "Number"
+          "numbers": "Number",
+          "writers": "Entity to PLC writer"
         }
       },
       "remove": {
@@ -257,6 +258,22 @@
           "add_another": "Stay on this step to add more number entities."
         }
       },
+      "writers": {
+        "title": "Add Writer",
+        "description": "Create a writer entity that sends Home Assistant entity values to the PLC periodically.",
+        "data": {
+          "address": "PLC address",
+          "source_entity": "Source entity",
+          "name": "Name",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
+          "source_entity": "Home Assistant entity whose value will be written to the PLC.",
+          "name": "Optional friendly name for the writer entity.",
+          "add_another": "Stay on this step to add more writer entities."
+        }
+      },
       "edit": {
         "title": "Edit Items",
         "description": "Select the item you want to modify.",
@@ -405,6 +422,20 @@
           "add_another": "Stay on this step to add more number entities."
         }
       },
+      "edit_writer": {
+        "title": "Edit Writer",
+        "description": "Update the PLC address, source entity, name, or value limits for this writer.",
+        "data": {
+          "address": "PLC address",
+          "source_entity": "Source entity",
+          "name": "Name"
+        },
+        "data_description": {
+          "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
+          "source_entity": "Home Assistant entity whose value will be written to the PLC.",
+          "name": "Optional friendly name for the writer entity."
+        }
+      },
       "export": {
         "title": "Export configuration",
         "description": "Copy the JSON below to back up {item_count} configured items. You can also {download_link_start}download the configuration{download_link_end} to save {download_filename}. Submit the dialog when you are done.",
@@ -430,13 +461,14 @@
       "invalid_address": "Invalid address format.",
       "duplicate_entry": "This item already exists.",
       "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
+      "invalid_source_entity": "Source entity is required.",
+      "invalid_number": "Invalid numeric value.",
+      "invalid_range": "Minimum value cannot be greater than maximum value.",
       "no_items": "There are no configured items to edit.",
       "cannot_connect": "Cannot connect to the PLC with the provided settings.",
       "already_configured": "Another S7 PLC entry already uses these connection parameters.",
       "invalid_json": "Invalid JSON payload.",
       "invalid_selection": "Select a valid item type.",
-      "invalid_number": "Invalid numeric value.",
-      "invalid_range": "Minimum value must be less than maximum value.",
       "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types."
     }
   },
