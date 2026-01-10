@@ -54,6 +54,12 @@ class DummyConfigEntry(ConfigEntry):
         self.data = data or {}
         self.options = options or {}
         self.entry_id = entry_id
+        self._on_unload = []
+
+    def async_on_unload(self, callback):
+        """Override to return None instead of coroutine."""
+        self._on_unload.append(callback)
+        return None
 
 
 def test_async_setup_creates_domain_storage():

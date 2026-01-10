@@ -657,6 +657,16 @@ class DummyEntry:
         self.options = options
         self.data = {}
         self.entry_id = "test_entry"
+        self._on_unload = []
+
+    def add_update_listener(self, listener):
+        """Mock add_update_listener."""
+        return listener
+
+    def async_on_unload(self, callback):
+        """Mock async_on_unload - returns None like the real implementation."""
+        self._on_unload.append(callback)
+        return None
 
 
 class DummyCoordinatorClient:
