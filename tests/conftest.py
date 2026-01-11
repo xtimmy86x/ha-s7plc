@@ -299,7 +299,14 @@ class DeviceInfo(dict):  # pragma: no cover - simple stub
         super().__init__(*args, **kwargs)
 
 
+class EntityCategory:  # pragma: no cover - simple stub
+    """Stub for EntityCategory enum."""
+    DIAGNOSTIC = "diagnostic"
+    CONFIG = "config"
+
+
 helpers_entity.DeviceInfo = DeviceInfo
+helpers_entity.EntityCategory = EntityCategory
 sys.modules["homeassistant.helpers.entity"] = helpers_entity
 helpers.entity = helpers_entity
 

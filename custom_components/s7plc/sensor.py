@@ -24,7 +24,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import Event, HomeAssistant, State, callback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .address import DataType, parse_tag
@@ -308,6 +308,8 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 
 class S7Writer(S7BaseEntity, SensorEntity):
     """Writer entity that sends HA entity values to PLC."""
+
+    entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
         self,
