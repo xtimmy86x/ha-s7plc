@@ -169,15 +169,15 @@ async def async_setup_entry(
         async_add_entities(entities)
         await coord.async_request_refresh()
 
-    # Setup Writers
-    writer_entities = []
+    # Setup Entity Syncs
+    sync_entities = []
     for item in entry.options.get(CONF_WRITERS, []):
         address = item.get(CONF_ADDRESS)
         source_entity = item.get(CONF_SOURCE_ENTITY)
 
         if not address or not source_entity:
             _LOGGER.debug(
-                "Skipping writer with missing address or source entity: "
+                "Skipping entity sync with missing address or source entity: "
                 "address=%s, source=%s",
                 address,
                 source_entity,
@@ -185,12 +185,12 @@ async def async_setup_entry(
             continue
 
         name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), f"Writer {address}"
+            device_info.get("name"), f"Entity Sync {address}"
         )
-        unique_id = f"{device_id}:writer:{address}"
+        unique_id = f"{device_id}:entity_sync:{address}"
 
-        writer_entities.append(
-            S7Writer(
+        sync_entities.append(
+            S7EntitySync(
                 coord,
                 name,
                 unique_id,
@@ -200,8 +200,8 @@ async def async_setup_entry(
             )
         )
 
-    if writer_entities:
-        async_add_entities(writer_entities)
+    if sync_entities:
+        async_add_entities(sync_entities)
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
@@ -306,8 +306,8 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         return attrs
 
 
-class S7Writer(S7BaseEntity, SensorEntity):
-    """Writer entity that sends HA entity values to PLC."""
+class S7EntitySync(S7BaseEntity, SensorEntity):
+    """Entity sync that sends HA entity values to PLC."""
 
     entity_category = EntityCategory.DIAGNOSTIC
 
@@ -320,7 +320,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
         address: str,
         source_entity: str,
     ) -> None:
-        """Initialize the writer."""
+        """Initialize the entity sync."""
         super().__init__(
             coordinator,
             name=name,
@@ -342,7 +342,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             _LOGGER.error("Invalid PLC address: %s", address)
             self._data_type = None
 
-        # Detect if this is a binary writer (BIT address)
+        # Detect if this is a binary entity sync (BIT address)
         from .address import DataType
 
         self._is_binary = self._data_type == DataType.BIT
@@ -414,7 +414,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             # Check if coordinator is connected
             if not self._coord.is_connected():
                 _LOGGER.debug(
-                    "Writer %s: Cannot write, coordinator not connected", self.name
+                    "EntitySync %s: Cannot write, coordinator not connected", self.name
                 )
                 self._error_count += 1
                 self.async_write_ha_state()
@@ -425,7 +425,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
                 self._coord.write_bool, self._address, bool_value
             )
             _LOGGER.debug(
-                "Writer %s: Write attempt of boolean value %s to %s returned %s",
+                "EntitySync %s: Write attempt of boolean value %s to %s returned %s",
                 self.name,
                 bool_value,
                 self._address,
@@ -436,7 +436,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
                 self._last_written_value = 1.0 if bool_value else 0.0
                 self._write_count += 1
                 _LOGGER.debug(
-                    "Writer %s: Successfully wrote boolean value %s to %s",
+                    "EntitySync %s: Successfully wrote boolean value %s to %s",
                     self.name,
                     bool_value,
                     self._address,
@@ -444,7 +444,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             else:
                 self._error_count += 1
                 _LOGGER.error(
-                    "Writer %s: Failed to write boolean value %s to %s",
+                    "EntitySync %s: Failed to write boolean value %s to %s",
                     self.name,
                     bool_value,
                     self._address,
@@ -467,7 +467,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             # Check if coordinator is connected
             if not self._coord.is_connected():
                 _LOGGER.debug(
-                    "Writer %s: Cannot write, coordinator not connected", self.name
+                    "EntitySync %s: Cannot write, coordinator not connected", self.name
                 )
                 self._error_count += 1
                 self.async_write_ha_state()
@@ -478,7 +478,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
                 self._coord.write_number, self._address, value
             )
             _LOGGER.debug(
-                "Writer %s: Write attempt of value %.2f to %s returned %s",
+                "EntitySync %s: Write attempt of value %.2f to %s returned %s",
                 self.name,
                 value,
                 self._address,
@@ -489,7 +489,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
                 self._last_written_value = value
                 self._write_count += 1
                 _LOGGER.debug(
-                    "Writer %s: Successfully wrote value %.2f to %s",
+                    "EntitySync %s: Successfully wrote value %.2f to %s",
                     self.name,
                     value,
                     self._address,
@@ -497,7 +497,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             else:
                 self._error_count += 1
                 _LOGGER.error(
-                    "Writer %s: Failed to write value %.2f to %s",
+                    "EntitySync %s: Failed to write value %.2f to %s",
                     self.name,
                     value,
                     self._address,
@@ -519,9 +519,9 @@ class S7Writer(S7BaseEntity, SensorEntity):
 
     @property
     def icon(self) -> str:
-        """Return icon based on writer type."""
+        """Return icon based on entity sync type."""
         if self._is_binary:
-            # Use toggle icon for binary writers
+            # Use toggle icon for binary entity syncs
             if self._last_written_value:
                 return "mdi:toggle-switch"
             return "mdi:toggle-switch-off-outline"
@@ -535,7 +535,7 @@ class S7Writer(S7BaseEntity, SensorEntity):
             "source_entity": self._source_entity,
             "write_count": self._write_count,
             "error_count": self._error_count,
-            "writer_type": "binary" if self._is_binary else "numeric",
+            "entity_sync_type": "binary" if self._is_binary else "numeric",
         }
 
         # Get source entity current state

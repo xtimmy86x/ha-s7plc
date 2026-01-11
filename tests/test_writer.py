@@ -1,4 +1,4 @@
-"""Tests for S7Writer entity - Refactored with fixtures and parametrization."""
+"""Tests for S7EntitySync entity - Refactored with fixtures and parametrization."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from homeassistant.core import State
 
-from custom_components.s7plc.sensor import S7Writer
+from custom_components.s7plc.sensor import S7EntitySync
 from custom_components.s7plc.address import DataType
 from conftest import DummyCoordinator
 
@@ -19,12 +19,12 @@ from conftest import DummyCoordinator
 
 @pytest.fixture
 def writer_factory(mock_coordinator, fake_hass):
-    """Factory fixture to create S7Writer instances easily."""
+    """Factory fixture to create S7EntitySync instances easily."""
     def _create_writer(
         address: str,
         data_type,
         source_entity: str = "sensor.test",
-        name: str = "Test Writer",
+        name: str = "Test Entity Sync",
         coordinator = None,
     ):
         coord = coordinator if coordinator is not None else mock_coordinator
@@ -34,7 +34,7 @@ def writer_factory(mock_coordinator, fake_hass):
             mock_tag.data_type = data_type
             mock_parse.return_value = mock_tag
 
-            writer = S7Writer(
+            writer = S7EntitySync(
                 coord,
                 name=name,
                 unique_id="uid",
@@ -161,18 +161,18 @@ def test_writer_extra_attributes(writer_factory):
     assert attrs["source_entity"] == "sensor.test"
     assert attrs["write_count"] == 5
     assert attrs["error_count"] == 2
-    assert attrs["writer_type"] == "numeric"
+    assert attrs["entity_sync_type"] == "numeric"
     assert attrs["source_state"] == "25.5"
     assert attrs["source_last_updated"] == "2026-01-10T10:00:00"
 
 
 def test_writer_extra_attributes_binary(writer_factory):
-    """Test binary writer has correct writer_type."""
+    """Test binary entity sync has correct entity_sync_type."""
     writer = writer_factory("db1,x0.0", DataType.BIT, "binary_sensor.test")
     writer.hass.states.get.return_value = None
 
     attrs = writer.extra_state_attributes
-    assert attrs["writer_type"] == "binary"
+    assert attrs["entity_sync_type"] == "binary"
 
 
 # ============================================================================
