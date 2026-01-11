@@ -12,11 +12,15 @@ from homeassistant.util import slugify
 from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
+    CONF_CONNECTION_TYPE,
+    CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
     CONF_RACK,
+    CONF_REMOTE_TSAP,
     CONF_SLOT,
+    CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_MAX_RETRIES,
@@ -45,8 +49,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = entry.data
     host = data[CONF_HOST]
-    rack = data.get(CONF_RACK, DEFAULT_RACK)
-    slot = data.get(CONF_SLOT, DEFAULT_SLOT)
     port = data.get(CONF_PORT, DEFAULT_PORT)
     scan_s = float(data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
     name = data.get(CONF_NAME, "S7 PLC")
@@ -56,11 +58,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     backoff_max = float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
     optimize_read = bool(data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ))
 
+    # Get connection parameters based on type
+    connection_type = data.get(CONF_CONNECTION_TYPE, "rack_slot")
+
+    if connection_type == CONNECTION_TYPE_TSAP:
+        local_tsap = data.get(CONF_LOCAL_TSAP, "01.00")
+        remote_tsap = data.get(CONF_REMOTE_TSAP, "01.01")
+        rack = None
+        slot = None
+        device_id = slugify(f"s7plc-{host}-tsap-{local_tsap}-{remote_tsap}")
+    else:
+        rack = data.get(CONF_RACK, DEFAULT_RACK)
+        slot = data.get(CONF_SLOT, DEFAULT_SLOT)
+        local_tsap = None
+        remote_tsap = None
+        device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
+
     coordinator = S7Coordinator(
         hass,
         host=host,
         rack=rack,
         slot=slot,
+        local_tsap=local_tsap,
+        remote_tsap=remote_tsap,
         port=port,
         scan_interval=scan_s,
         op_timeout=op_timeout,
@@ -69,8 +89,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         backoff_max=backoff_max,
         optimize_read=optimize_read,
     )
-
-    device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {

@@ -38,9 +38,11 @@ from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
+    CONF_CONNECTION_TYPE,
     CONF_COVERS,
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
+    CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
@@ -52,6 +54,7 @@ from .const import (
     CONF_OPTIMIZE_READ,
     CONF_RACK,
     CONF_REAL_PRECISION,
+    CONF_REMOTE_TSAP,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
@@ -63,6 +66,8 @@ from .const import (
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
     CONF_WRITERS,
+    CONNECTION_TYPE_RACK_SLOT,
+    CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
@@ -159,8 +164,45 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialise the flow."""
 
         self._discovered_hosts: list[str] | None = None
+        self._connection_data: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
+        """Handle the initial step - choose connection type."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            CONF_CONNECTION_TYPE, default=CONNECTION_TYPE_RACK_SLOT
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[
+                                    selector.SelectOptionDict(
+                                        value=CONNECTION_TYPE_RACK_SLOT,
+                                        label="Rack/Slot",
+                                    ),
+                                    selector.SelectOptionDict(
+                                        value=CONNECTION_TYPE_TSAP,
+                                        label="TSAP",
+                                    ),
+                                ],
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
+                        )
+                    }
+                ),
+            )
+
+        self._connection_data[CONF_CONNECTION_TYPE] = user_input[CONF_CONNECTION_TYPE]
+
+        if user_input[CONF_CONNECTION_TYPE] == CONNECTION_TYPE_RACK_SLOT:
+            return await self.async_step_rack_slot()
+        else:
+            return await self.async_step_tsap()
+
+    async def async_step_rack_slot(self, user_input: dict[str, Any] | None = None):
+        """Handle rack/slot connection configuration."""
         errors: dict[str, str] = {}
 
         discovered_hosts = await self._async_get_discovered_hosts()
@@ -204,7 +246,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is None:
             return self.async_show_form(
-                step_id="user",
+                step_id="rack_slot",
                 data_schema=data_schema,
                 description_placeholders={
                     "default_port": str(DEFAULT_PORT),
@@ -219,10 +261,75 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors=errors,
             )
 
+        return await self._async_validate_and_create(user_input, errors, data_schema)
+
+    async def async_step_tsap(self, user_input: dict[str, Any] | None = None):
+        """Handle TSAP connection configuration."""
+        errors: dict[str, str] = {}
+
+        discovered_hosts = await self._async_get_discovered_hosts()
+
+        host_selector = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value=host, label=host)
+                    for host in discovered_hosts
+                ],
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME, default="S7 PLC"): str,
+                vol.Required(CONF_HOST): host_selector,
+                vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
+                vol.Required(CONF_LOCAL_TSAP, default="01.00"): str,
+                vol.Required(CONF_REMOTE_TSAP, default="01.01"): str,
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
+                vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.5, max=120)
+                ),
+                vol.Optional(CONF_MAX_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=10)
+                ),
+                vol.Optional(
+                    CONF_BACKOFF_INITIAL, default=DEFAULT_BACKOFF_INITIAL
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=30)),
+                vol.Optional(CONF_BACKOFF_MAX, default=DEFAULT_BACKOFF_MAX): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.1, max=120)
+                ),
+                vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="tsap",
+                data_schema=data_schema,
+                description_placeholders={
+                    "default_port": str(DEFAULT_PORT),
+                    "default_scan": str(DEFAULT_SCAN_INTERVAL),
+                    "default_timeout": f"{DEFAULT_OP_TIMEOUT:.1f}",
+                    "default_retries": str(DEFAULT_MAX_RETRIES),
+                    "default_backoff_initial": f"{DEFAULT_BACKOFF_INITIAL:.2f}",
+                    "default_backoff_max": f"{DEFAULT_BACKOFF_MAX:.1f}",
+                },
+                errors=errors,
+            )
+
+        return await self._async_validate_and_create(user_input, errors, data_schema)
+
+    async def _async_validate_and_create(
+        self, user_input: dict[str, Any], errors: dict[str, str], data_schema
+    ):
+        """Validate connection and create entry."""
+
         try:
             host = user_input[CONF_HOST]
-            rack = int(user_input.get(CONF_RACK, DEFAULT_RACK))
-            slot = int(user_input.get(CONF_SLOT, DEFAULT_SLOT))
             port = int(user_input.get(CONF_PORT, DEFAULT_PORT))
             scan_s = float(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
             op_timeout = float(user_input.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT))
@@ -235,10 +342,33 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
             )
             name = user_input.get(CONF_NAME, "S7 PLC")
+
+            # Get connection parameters based on type
+            connection_type = self._connection_data.get(
+                CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT
+            )
+
+            if connection_type == CONNECTION_TYPE_TSAP:
+                local_tsap = user_input.get(CONF_LOCAL_TSAP, "01.00")
+                remote_tsap = user_input.get(CONF_REMOTE_TSAP, "01.01")
+                rack = None
+                slot = None
+            else:
+                rack = int(user_input.get(CONF_RACK, DEFAULT_RACK))
+                slot = int(user_input.get(CONF_SLOT, DEFAULT_SLOT))
+                local_tsap = None
+                remote_tsap = None
+
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
+            step_id = (
+                "tsap"
+                if self._connection_data.get(CONF_CONNECTION_TYPE)
+                == CONNECTION_TYPE_TSAP
+                else "rack_slot"
+            )
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
 
         if scan_s <= 0:
@@ -256,7 +386,12 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if backoff_max < backoff_initial:
             backoff_max = max(backoff_initial, backoff_max)
 
-        unique_id = f"{host}-{rack}-{slot}"
+        # Generate unique_id based on connection type
+        if connection_type == CONNECTION_TYPE_TSAP:
+            unique_id = f"{host}-tsap-{local_tsap}-{remote_tsap}"
+        else:
+            unique_id = f"{host}-{rack}-{slot}"
+
         await self.async_set_unique_id(unique_id, raise_on_progress=False)
         self._abort_if_unique_id_configured()
 
@@ -265,6 +400,8 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host=host,
             rack=rack,
             slot=slot,
+            local_tsap=local_tsap,
+            remote_tsap=remote_tsap,
             port=port,
             scan_interval=scan_s,
             op_timeout=op_timeout,
@@ -277,86 +414,117 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
         except S7ConnectionError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if connection_type == CONNECTION_TYPE_TSAP
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "S7 connection error to PLC at %s:%s (rack %s slot %s): %s",
+                "S7 connection error to PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
         except S7CommunicationError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if connection_type == CONNECTION_TYPE_TSAP
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "S7 communication error with PLC at %s:%s (rack %s slot %s): %s",
+                "S7 communication error with PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
         except OSError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if connection_type == CONNECTION_TYPE_TSAP
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "Network error connecting to S7 PLC at %s:%s (rack %s slot %s): %s",
+                "Network error connecting to S7 PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
         except RuntimeError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if connection_type == CONNECTION_TYPE_TSAP
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "Runtime error with S7 PLC at %s:%s (rack %s slot %s): %s",
+                "Runtime error with S7 PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
         except Exception:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if connection_type == CONNECTION_TYPE_TSAP
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.exception(
-                "Unexpected error connecting to S7 PLC at %s:%s (rack %s slot %s)",
+                "Unexpected error connecting to S7 PLC at %s:%s (%s)",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
             )
             errors["base"] = "cannot_connect"
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return self.async_show_form(
-                step_id="user", data_schema=data_schema, errors=errors
+                step_id=step_id, data_schema=data_schema, errors=errors
             )
 
-        return self.async_create_entry(
-            title=name,
-            data={
-                CONF_NAME: name,
-                CONF_HOST: host,
-                CONF_PORT: port,
-                CONF_RACK: rack,
-                CONF_SLOT: slot,
-                CONF_SCAN_INTERVAL: scan_s,
-                CONF_OP_TIMEOUT: op_timeout,
-                CONF_MAX_RETRIES: max_retries,
-                CONF_BACKOFF_INITIAL: backoff_initial,
-                CONF_BACKOFF_MAX: backoff_max,
-                CONF_OPTIMIZE_READ: optimize_read,
-            },
-        )
+        # Prepare data based on connection type
+        entry_data = {
+            CONF_NAME: name,
+            CONF_HOST: host,
+            CONF_PORT: port,
+            CONF_CONNECTION_TYPE: connection_type,
+            CONF_SCAN_INTERVAL: scan_s,
+            CONF_OP_TIMEOUT: op_timeout,
+            CONF_MAX_RETRIES: max_retries,
+            CONF_BACKOFF_INITIAL: backoff_initial,
+            CONF_BACKOFF_MAX: backoff_max,
+            CONF_OPTIMIZE_READ: optimize_read,
+        }
+
+        if connection_type == CONNECTION_TYPE_TSAP:
+            entry_data[CONF_LOCAL_TSAP] = local_tsap
+            entry_data[CONF_REMOTE_TSAP] = remote_tsap
+        else:
+            entry_data[CONF_RACK] = rack
+            entry_data[CONF_SLOT] = slot
+
+        return self.async_create_entry(title=name, data=entry_data)
 
     @staticmethod
     @callback
@@ -1185,12 +1353,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         data = self._config_entry.data
+
+        # Determine connection type from existing data
+        connection_type = data.get(CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT)
+        is_tsap = connection_type == CONNECTION_TYPE_TSAP
+
         defaults = {
             CONF_NAME: data.get(CONF_NAME) or self._config_entry.title or "S7 PLC",
             CONF_HOST: data.get(CONF_HOST, ""),
             CONF_PORT: int(data.get(CONF_PORT, DEFAULT_PORT)),
-            CONF_RACK: int(data.get(CONF_RACK, DEFAULT_RACK)),
-            CONF_SLOT: int(data.get(CONF_SLOT, DEFAULT_SLOT)),
             CONF_SCAN_INTERVAL: float(
                 data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
             ),
@@ -1205,13 +1376,34 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             ),
         }
 
-        data_schema = vol.Schema(
+        # Add connection-specific defaults
+        if is_tsap:
+            defaults[CONF_LOCAL_TSAP] = data.get(CONF_LOCAL_TSAP, "01.00")
+            defaults[CONF_REMOTE_TSAP] = data.get(CONF_REMOTE_TSAP, "01.01")
+        else:
+            defaults[CONF_RACK] = int(data.get(CONF_RACK, DEFAULT_RACK))
+            defaults[CONF_SLOT] = int(data.get(CONF_SLOT, DEFAULT_SLOT))
+
+        # Build schema based on connection type
+        schema_fields = {
+            vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
+            vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
+            vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
+        }
+
+        if is_tsap:
+            schema_fields[
+                vol.Required(CONF_LOCAL_TSAP, default=defaults[CONF_LOCAL_TSAP])
+            ] = str
+            schema_fields[
+                vol.Required(CONF_REMOTE_TSAP, default=defaults[CONF_REMOTE_TSAP])
+            ] = str
+        else:
+            schema_fields[vol.Optional(CONF_RACK, default=defaults[CONF_RACK])] = int
+            schema_fields[vol.Optional(CONF_SLOT, default=defaults[CONF_SLOT])] = int
+
+        schema_fields.update(
             {
-                vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
-                vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
-                vol.Optional(CONF_RACK, default=defaults[CONF_RACK]): int,
-                vol.Optional(CONF_SLOT, default=defaults[CONF_SLOT]): int,
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=defaults[CONF_SCAN_INTERVAL]
                 ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
@@ -1233,16 +1425,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             }
         )
 
+        data_schema = vol.Schema(schema_fields)
+
         description_placeholders = {
             "default_port": str(DEFAULT_PORT),
-            "default_rack": str(DEFAULT_RACK),
-            "default_slot": str(DEFAULT_SLOT),
             "default_scan": str(DEFAULT_SCAN_INTERVAL),
             "default_timeout": f"{DEFAULT_OP_TIMEOUT:.1f}",
             "default_retries": str(DEFAULT_MAX_RETRIES),
             "default_backoff_initial": f"{DEFAULT_BACKOFF_INITIAL:.2f}",
             "default_backoff_max": f"{DEFAULT_BACKOFF_MAX:.1f}",
         }
+
+        if not is_tsap:
+            description_placeholders["default_rack"] = str(DEFAULT_RACK)
+            description_placeholders["default_slot"] = str(DEFAULT_SLOT)
 
         if user_input is None:
             return self.async_show_form(
@@ -1253,8 +1449,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         try:
             host = str(user_input[CONF_HOST]).strip()
-            rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
-            slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
             port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
             scan_s = float(
                 user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
@@ -1277,6 +1471,21 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             name = (
                 user_input.get(CONF_NAME) or defaults[CONF_NAME]
             ).strip() or "S7 PLC"
+
+            # Get connection-specific parameters
+            if is_tsap:
+                local_tsap = user_input.get(CONF_LOCAL_TSAP, defaults[CONF_LOCAL_TSAP])
+                remote_tsap = user_input.get(
+                    CONF_REMOTE_TSAP, defaults[CONF_REMOTE_TSAP]
+                )
+                rack = None
+                slot = None
+            else:
+                rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
+                slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
+                local_tsap = None
+                remote_tsap = None
+
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
             return self.async_show_form(
@@ -1301,7 +1510,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if backoff_max < backoff_initial:
             backoff_max = max(backoff_initial, backoff_max)
 
-        new_unique_id = f"{host}-{rack}-{slot}"
+        # Generate unique_id based on connection type
+        if is_tsap:
+            new_unique_id = f"{host}-tsap-{local_tsap}-{remote_tsap}"
+        else:
+            new_unique_id = f"{host}-{rack}-{slot}"
+
         for entry in self.hass.config_entries.async_entries(DOMAIN):
             if entry.entry_id == self._config_entry.entry_id:
                 continue
@@ -1322,6 +1536,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             host=host,
             rack=rack,
             slot=slot,
+            local_tsap=local_tsap,
+            remote_tsap=remote_tsap,
             port=port,
             scan_interval=scan_s,
             op_timeout=op_timeout,
@@ -1335,12 +1551,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
         except S7ConnectionError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if is_tsap
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "S7 connection error to PLC at %s:%s (rack %s slot %s): %s",
+                "S7 connection error to PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
@@ -1351,12 +1571,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
         except S7CommunicationError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if is_tsap
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "S7 communication error with PLC at %s:%s (rack %s slot %s): %s",
+                "S7 communication error with PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
@@ -1367,12 +1591,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
         except OSError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if is_tsap
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "Network error connecting to S7 PLC at %s:%s (rack %s slot %s): %s",
+                "Network error connecting to S7 PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
@@ -1383,12 +1611,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
         except RuntimeError as err:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if is_tsap
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.error(
-                "Runtime error with S7 PLC at %s:%s (rack %s slot %s): %s",
+                "Runtime error with S7 PLC at %s:%s (%s): %s",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
                 err,
             )
             errors["base"] = "cannot_connect"
@@ -1399,12 +1631,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
         except Exception:
+            connection_desc = (
+                f"TSAP {local_tsap}/{remote_tsap}"
+                if is_tsap
+                else f"rack {rack} slot {slot}"
+            )
             _LOGGER.exception(
-                "Unexpected error connecting to S7 PLC at %s:%s (rack %s slot %s)",
+                "Unexpected error connecting to S7 PLC at %s:%s (%s)",
                 host,
                 port,
-                rack,
-                slot,
+                connection_desc,
             )
             errors["base"] = "cannot_connect"
             return self.async_show_form(
@@ -1414,12 +1650,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
 
+        # Build new data based on connection type
         new_data = {
             CONF_NAME: name,
             CONF_HOST: host,
             CONF_PORT: port,
-            CONF_RACK: rack,
-            CONF_SLOT: slot,
+            CONF_CONNECTION_TYPE: connection_type,
             CONF_SCAN_INTERVAL: scan_s,
             CONF_OP_TIMEOUT: op_timeout,
             CONF_MAX_RETRIES: max_retries,
@@ -1427,6 +1663,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BACKOFF_MAX: backoff_max,
             CONF_OPTIMIZE_READ: optimize_read,
         }
+
+        if is_tsap:
+            new_data[CONF_LOCAL_TSAP] = local_tsap
+            new_data[CONF_REMOTE_TSAP] = remote_tsap
+        else:
+            new_data[CONF_RACK] = rack
+            new_data[CONF_SLOT] = slot
 
         update_result = self.hass.config_entries.async_update_entry(
             self._config_entry,

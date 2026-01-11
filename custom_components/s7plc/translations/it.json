@@ -3,8 +3,15 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configura collegamento al PLC S7",
-        "description": "Inserisci i dati di connessione del PLC S7. Verrà effettuato un test di connessione prima di salvare.",
+        "title": "Scegli tipo di connessione",
+        "description": "Seleziona come vuoi connetterti al tuo PLC S7.",
+        "data": {
+          "connection_type": "Tipo di connessione"
+        }
+      },
+      "rack_slot": {
+        "title": "Configura collegamento al PLC S7 (Rack/Slot)",
+        "description": "Inserisci i dati di connessione del PLC S7 usando Rack e Slot. Verrà effettuato un test di connessione prima di salvare.",
         "data": {
           "name": "Nome",
           "host": "Host",
@@ -24,6 +31,36 @@
           "port": "Porta ISO-on-TCP, in genere 102.",
           "rack": "Numero di rack della CPU (di solito 0).",
           "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
+          "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
+          "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
+          "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
+          "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
+          "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
+        }
+      },
+      "tsap": {
+        "title": "Configura collegamento al PLC S7 (TSAP)",
+        "description": "Inserisci i dati di connessione del PLC S7 usando gli indirizzi TSAP. Verrà effettuato un test di connessione prima di salvare.",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "local_tsap": "TSAP Locale",
+          "remote_tsap": "TSAP Remoto",
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Backoff iniziale retry (s)",
+          "retry_backoff_max": "Backoff massimo retry (s)",
+          "optimize_read": "Ottimizza letture batch"
+        },
+        "data_description": {
+          "name": "Nome leggibile del PLC (usato nei nomi entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, in genere 102.",
+          "local_tsap": "Indirizzo TSAP locale (es. 01.00 o 03.00).",
+          "remote_tsap": "Indirizzo TSAP remoto (es. 01.01 o 03.01).",
           "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
           "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
           "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",

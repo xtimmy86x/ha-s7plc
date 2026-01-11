@@ -51,8 +51,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self,
         hass: HomeAssistant,
         host: str,
-        rack: int = 0,
-        slot: int = 1,
+        rack: int | None = None,
+        slot: int | None = None,
+        local_tsap: str | None = None,
+        remote_tsap: str | None = None,
         port: int = 102,
         scan_interval: float = 0.5,
         # Timeout/Retry configuration
@@ -73,6 +75,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._host = host
         self._rack = rack
         self._slot = slot
+        self._local_tsap = local_tsap
+        self._remote_tsap = remote_tsap
         self._port = port
 
         self._default_scan_interval = max(float(scan_interval), self._MIN_SCAN_INTERVAL)
@@ -128,18 +132,37 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if self._client is None:
             if pyS7 is None:
                 raise RuntimeError("pyS7 not available")
-            self._client = pyS7.S7Client(
-                self._host, self._rack, self._slot, port=self._port
-            )
+
+            # Create client based on connection type
+            if self._local_tsap and self._remote_tsap:
+                self._client = pyS7.S7Client(
+                    address=self._host,
+                    local_tsap=self._local_tsap,
+                    remote_tsap=self._remote_tsap,
+                    port=self._port,
+                )
+            else:
+                self._client = pyS7.S7Client(
+                    self._host, self._rack, self._slot, port=self._port
+                )
+
         if not getattr(self._client, "socket", None):
             try:
                 self._client.connect()
-                _LOGGER.info(
-                    "Connected to S7 PLC %s (rack=%s slot=%s)",
-                    self._host,
-                    self._rack,
-                    self._slot,
-                )
+                if self._local_tsap and self._remote_tsap:
+                    _LOGGER.info(
+                        "Connected to S7 PLC %s (TSAP %s/%s)",
+                        self._host,
+                        self._local_tsap,
+                        self._remote_tsap,
+                    )
+                else:
+                    _LOGGER.info(
+                        "Connected to S7 PLC %s (rack=%s slot=%s)",
+                        self._host,
+                        self._rack,
+                        self._slot,
+                    )
             except (
                 OSError,
                 RuntimeError,

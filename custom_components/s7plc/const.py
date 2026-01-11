@@ -11,6 +11,12 @@ PLATFORMS = [
 
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
+CONF_CONNECTION_TYPE = "connection_type"
+CONF_LOCAL_TSAP = "local_tsap"
+CONF_REMOTE_TSAP = "remote_tsap"
+
+CONNECTION_TYPE_RACK_SLOT = "rack_slot"
+CONNECTION_TYPE_TSAP = "tsap"
 
 CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"

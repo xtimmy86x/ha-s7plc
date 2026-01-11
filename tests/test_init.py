@@ -15,6 +15,8 @@ class DummyCoordinator:
         host,
         rack,
         slot,
+        local_tsap,
+        remote_tsap,
         port,
         scan_interval,
         op_timeout,
@@ -27,6 +29,8 @@ class DummyCoordinator:
         self.host = host
         self.rack = rack
         self.slot = slot
+        self.local_tsap = local_tsap
+        self.remote_tsap = remote_tsap
         self.port = port
         self.scan_interval = scan_interval
         self.op_timeout = op_timeout
