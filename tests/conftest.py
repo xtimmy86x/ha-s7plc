@@ -463,6 +463,17 @@ sys.modules["homeassistant.components.number"] = number
 components.number = number
 
 
+class SwitchEntity:  # pragma: no cover - simple stub
+    """Minimal SwitchEntity stub."""
+    pass
+
+
+switch = ModuleType("homeassistant.components.switch")
+switch.SwitchEntity = SwitchEntity
+sys.modules["homeassistant.components.switch"] = switch
+components.switch = switch
+
+
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
     TEMPERATURE = "temperature"
     ENERGY = "energy"
