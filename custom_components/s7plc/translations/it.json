@@ -314,8 +314,8 @@
         }
       },
       "writers": {
-        "title": "Aggiungi Scrittore",
-        "description": "Crea un'entità scrittore che invia periodicamente i valori delle entità di Home Assistant al PLC.",
+        "title": "Aggiungi Entity Sync",
+        "description": "Crea un Entity Sync che monitora un'entità di Home Assistant e scrive automaticamente il suo valore al PLC.",
         "data": {
           "address": "Indirizzo PLC",
           "source_entity": "Entità sorgente",
@@ -325,8 +325,8 @@
         "data_description": {
           "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
           "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
-          "name": "Nome descrittivo opzionale per l'entità scrittore.",
-          "add_another": "Rimani in questa schermata per aggiungere altri scrittori."
+          "name": "Nome descrittivo opzionale per l'Entity Sync.",
+          "add_another": "Rimani in questa schermata per aggiungere altri Entity Sync."
         }
       },
       "edit": {
@@ -478,8 +478,8 @@
         }
       },
       "edit_writer": {
-        "title": "Modifica Scrittore",
-        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente, il nome o i limiti del valore per questo scrittore.",
+        "title": "Modifica Entity Sync",
+        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente, il nome o i limiti di valore per questo Entity Sync.",
         "data": {
           "address": "Indirizzo PLC",
           "source_entity": "Entit\u00e0 sorgente",
@@ -488,7 +488,7 @@
         "data_description": {
           "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
           "source_entity": "Entit\u00e0 di Home Assistant il cui valore verr\u00e0 scritto sul PLC.",
-          "name": "Nome descrittivo opzionale per l'entit\u00e0 scrittore."
+          "name": "Nome descrittivo opzionale per l'Entity Sync."
         }
       },
       "export": {

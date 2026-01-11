@@ -151,7 +151,7 @@ ADD_ENTITY_LABELS: dict[str, str] = {
     "buttons": "Button",
     "lights": "Light",
     "numbers": "Number",
-    "writers": "Writer",
+    "writers": "Entity Sync",
 }
 
 

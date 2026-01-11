@@ -120,7 +120,7 @@
           "buttons": "Button",
           "lights": "Light",
           "numbers": "Number",
-          "writers": "Entity to PLC writer"
+          "writers": "Entity to PLC Sync"
         }
       },
       "remove": {
@@ -314,8 +314,8 @@
         }
       },
       "writers": {
-        "title": "Add Writer",
-        "description": "Create a writer entity that sends Home Assistant entity values to the PLC periodically.",
+        "title": "Add Entity Sync",
+        "description": "Create an Entity Sync that monitors a Home Assistant entity and automatically writes its value to the PLC.",
         "data": {
           "address": "PLC address",
           "source_entity": "Source entity",
@@ -325,8 +325,8 @@
         "data_description": {
           "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant entity whose value will be written to the PLC.",
-          "name": "Optional friendly name for the writer entity.",
-          "add_another": "Stay on this step to add more writer entities."
+          "name": "Optional friendly name for the Entity Sync.",
+          "add_another": "Stay on this step to add more Entity Syncs."
         }
       },
       "edit": {
@@ -478,8 +478,8 @@
         }
       },
       "edit_writer": {
-        "title": "Edit Writer",
-        "description": "Update the PLC address, source entity, name, or value limits for this writer.",
+        "title": "Edit Entity Sync",
+        "description": "Update the PLC address, source entity, name, or value limits for this Entity Sync.",
         "data": {
           "address": "PLC address",
           "source_entity": "Source entity",
@@ -488,7 +488,7 @@
         "data_description": {
           "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant entity whose value will be written to the PLC.",
-          "name": "Optional friendly name for the writer entity."
+          "name": "Optional friendly name for the Entity Sync."
         }
       },
       "export": {
