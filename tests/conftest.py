@@ -319,7 +319,13 @@ def async_track_state_change_event(hass, entity_ids, action):  # pragma: no cove
     return lambda: None
 
 
+def async_call_later(hass, delay, action):  # pragma: no cover - stub
+    """Mock for async_call_later."""
+    return lambda: None
+
+
 helpers_event.async_track_state_change_event = async_track_state_change_event
+helpers_event.async_call_later = async_call_later
 sys.modules["homeassistant.helpers.event"] = helpers_event
 helpers.event = helpers_event
 
@@ -489,6 +495,30 @@ light.ColorMode = ColorMode
 light.LightEntity = LightEntity
 sys.modules["homeassistant.components.light"] = light
 components.light = light
+
+
+class CoverEntityFeature:  # pragma: no cover - simple stub
+    """Minimal CoverEntityFeature stub."""
+    OPEN = 1
+    CLOSE = 2
+    SET_POSITION = 4
+    STOP = 8
+    OPEN_TILT = 16
+    CLOSE_TILT = 32
+    STOP_TILT = 64
+    SET_TILT_POSITION = 128
+
+
+class CoverEntity:  # pragma: no cover - simple stub
+    """Minimal CoverEntity stub."""
+    pass
+
+
+cover = ModuleType("homeassistant.components.cover")
+cover.CoverEntityFeature = CoverEntityFeature
+cover.CoverEntity = CoverEntity
+sys.modules["homeassistant.components.cover"] = cover
+components.cover = cover
 
 
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
