@@ -1282,30 +1282,78 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     def _build_items_map(self) -> Dict[str, str]:
         items: Dict[str, str] = {}
-        for i, it in enumerate(self._options.get(CONF_SENSORS, [])):
-            items[f"s:{i}"] = self._labelize("s", it)
-        for i, it in enumerate(self._options.get(CONF_BINARY_SENSORS, [])):
-            items[f"bs:{i}"] = self._labelize("bs", it)
-        for i, it in enumerate(self._options.get(CONF_SWITCHES, [])):
+
+        # Helper function to get sort key (name or address)
+        def get_sort_key(item: dict[str, Any]) -> str:
+            name = item.get(CONF_NAME, "")
+            if name:
+                return name.lower()
+            address = (
+                item.get(CONF_ADDRESS)
+                or item.get(CONF_STATE_ADDRESS)
+                or item.get(CONF_OPEN_COMMAND_ADDRESS)
+                or ""
+            )
+            return address.lower()
+
+        # Sensors - sorted alphabetically
+        sensors = self._options.get(CONF_SENSORS, [])
+        sorted_sensors = sorted(enumerate(sensors), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_sensors:
+            items[f"s:{orig_idx}"] = self._labelize("s", it)
+
+        # Binary Sensors - sorted alphabetically
+        binary_sensors = self._options.get(CONF_BINARY_SENSORS, [])
+        sorted_binary = sorted(
+            enumerate(binary_sensors), key=lambda x: get_sort_key(x[1])
+        )
+        for orig_idx, it in sorted_binary:
+            items[f"bs:{orig_idx}"] = self._labelize("bs", it)
+
+        # Switches - sorted alphabetically
+        switches = self._options.get(CONF_SWITCHES, [])
+        sorted_switches = sorted(enumerate(switches), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_switches:
             switch_item = {**it}
             switch_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
-            items[f"sw:{i}"] = self._labelize("sw", switch_item)
-        for i, it in enumerate(self._options.get(CONF_COVERS, [])):
+            items[f"sw:{orig_idx}"] = self._labelize("sw", switch_item)
+
+        # Covers - sorted alphabetically
+        covers = self._options.get(CONF_COVERS, [])
+        sorted_covers = sorted(enumerate(covers), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_covers:
             cover_item = {**it}
             cover_item.setdefault(CONF_ADDRESS, it.get(CONF_OPEN_COMMAND_ADDRESS))
-            items[f"cv:{i}"] = self._labelize("cv", cover_item)
-        for i, it in enumerate(self._options.get(CONF_BUTTONS, [])):
-            items[f"bt:{i}"] = self._labelize("bt", it)
-        for i, it in enumerate(self._options.get(CONF_LIGHTS, [])):
+            items[f"cv:{orig_idx}"] = self._labelize("cv", cover_item)
+
+        # Buttons - sorted alphabetically
+        buttons = self._options.get(CONF_BUTTONS, [])
+        sorted_buttons = sorted(enumerate(buttons), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_buttons:
+            items[f"bt:{orig_idx}"] = self._labelize("bt", it)
+
+        # Lights - sorted alphabetically
+        lights = self._options.get(CONF_LIGHTS, [])
+        sorted_lights = sorted(enumerate(lights), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_lights:
             light_item = {**it}
             light_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
-            items[f"lt:{i}"] = self._labelize("lt", light_item)
-        for i, it in enumerate(self._options.get(CONF_NUMBERS, [])):
+            items[f"lt:{orig_idx}"] = self._labelize("lt", light_item)
+
+        # Numbers - sorted alphabetically
+        numbers = self._options.get(CONF_NUMBERS, [])
+        sorted_numbers = sorted(enumerate(numbers), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_numbers:
             number_item = {**it}
             number_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
-            items[f"nm:{i}"] = self._labelize("nm", number_item)
-        for i, it in enumerate(self._options.get(CONF_WRITERS, [])):
-            items[f"wr:{i}"] = self._labelize("wr", it)
+            items[f"nm:{orig_idx}"] = self._labelize("nm", number_item)
+
+        # Writers - sorted alphabetically
+        writers = self._options.get(CONF_WRITERS, [])
+        sorted_writers = sorted(enumerate(writers), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_writers:
+            items[f"wr:{orig_idx}"] = self._labelize("wr", it)
+
         return items
 
     def _exportable_options(self) -> dict[str, list[dict[str, Any]]]:

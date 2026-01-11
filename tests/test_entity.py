@@ -80,7 +80,7 @@ def test_base_entity_availability_and_attrs(mock_coordinator_disconnected):
     coord.data = {"topic1": 1}
     assert base.available
 
-    assert base.extra_state_attributes == {"s7_address": "DB1,X0.0", "scan_interval": 10}
+    assert base.extra_state_attributes == {"s7_address": "DB1,X0.0", "scan_interval": "10 s"}
 
 
 # ============================================================================
