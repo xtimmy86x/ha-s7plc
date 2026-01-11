@@ -171,6 +171,7 @@
           "name": "Nome",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
+          "unit_of_measurement": "Unità di misura",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -180,6 +181,7 @@
           "name": "Nome descrittivo opzionale per il sensore.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri sensori."
@@ -347,6 +349,7 @@
           "name": "Nome",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
+          "unit_of_measurement": "Unità di misura",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)"
         },
@@ -355,6 +358,7 @@
           "name": "Nome descrittivo opzionale per il sensore.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }

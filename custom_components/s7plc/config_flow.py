@@ -63,6 +63,7 @@ from .const import (
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
     CONF_WRITERS,
@@ -864,6 +865,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_NAME] = user_input[CONF_NAME]
         if user_input.get(CONF_DEVICE_CLASS):
             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+        if user_input.get(CONF_UNIT_OF_MEASUREMENT):
+            item[CONF_UNIT_OF_MEASUREMENT] = user_input[CONF_UNIT_OF_MEASUREMENT]
 
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
@@ -1804,6 +1807,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     )
                 ),
                 vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
+                vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
                 vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2329,20 +2333,27 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             schema_dict[key_dc] = val_dc
 
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
             key_mul, val_mul = self._optional_field(
                 CONF_VALUE_MULTIPLIER, item, value_multiplier_selector
             )
             schema_dict[key_mul] = val_mul
 
+            key_unit, val_unit = self._optional_field(
+                CONF_UNIT_OF_MEASUREMENT,
+                item,
+                selector.TextSelector(),
+            )
+            schema_dict[key_unit] = val_unit
+
             key_precision, val_precision = self._optional_field(
                 CONF_REAL_PRECISION, item, real_precision_selector
             )
             schema_dict[key_precision] = val_precision
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
 
             return vol.Schema(schema_dict)
 

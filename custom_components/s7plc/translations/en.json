@@ -171,6 +171,7 @@
           "name": "Name",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
+          "unit_of_measurement": "Unit of measurement",
           "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
@@ -180,6 +181,7 @@
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
+          "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more sensors."
@@ -347,6 +349,7 @@
           "name": "Name",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
+          "unit_of_measurement": "Unit of measurement",
           "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)"
         },
@@ -355,6 +358,7 @@
           "name": "Optional friendly name for the sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
+          "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
