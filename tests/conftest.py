@@ -463,8 +463,84 @@ class NumberEntity:  # pragma: no cover - simple stub
         return getattr(self, "_attr_native_max_value", None)
 
 
+class _NumberDeviceClassMeta(type):
+    """Metaclass to make NumberDeviceClass iterable."""
+    def __iter__(cls):
+        return iter([
+            cls.APPARENT_POWER, cls.AQI, cls.ATMOSPHERIC_PRESSURE, cls.BATTERY,
+            cls.CURRENT, cls.DATA_RATE, cls.DATA_SIZE, cls.DISTANCE, cls.DURATION,
+            cls.ENERGY, cls.ENERGY_STORAGE, cls.FREQUENCY, cls.GAS, cls.HUMIDITY,
+            cls.ILLUMINANCE, cls.IRRADIANCE, cls.MOISTURE, cls.MONETARY,
+            cls.NITROGEN_DIOXIDE, cls.NITROUS_OXIDE, cls.OZONE, cls.PH,
+            cls.PM1, cls.PM10, cls.PM25, cls.POWER, cls.POWER_FACTOR,
+            cls.PRECIPITATION, cls.PRECIPITATION_INTENSITY, cls.PRESSURE,
+            cls.REACTIVE_POWER, cls.SIGNAL_STRENGTH, cls.SOUND_PRESSURE,
+            cls.SPEED, cls.SULPHUR_DIOXIDE, cls.TEMPERATURE,
+            cls.VOLATILE_ORGANIC_COMPOUNDS, cls.VOLATILE_ORGANIC_COMPOUNDS_PARTS,
+            cls.VOLTAGE, cls.VOLUME, cls.VOLUME_FLOW_RATE, cls.VOLUME_STORAGE,
+            cls.WATER, cls.WEIGHT, cls.WIND_SPEED
+        ])
+
+
+class NumberDeviceClass(metaclass=_NumberDeviceClassMeta):  # pragma: no cover - stub for device classes
+    """Enum-like class for number device classes."""
+    
+    class _DeviceClass:
+        def __init__(self, value):
+            self.value = value
+    
+    APPARENT_POWER = _DeviceClass("apparent_power")
+    AQI = _DeviceClass("aqi")
+    ATMOSPHERIC_PRESSURE = _DeviceClass("atmospheric_pressure")
+    BATTERY = _DeviceClass("battery")
+    CURRENT = _DeviceClass("current")
+    DATA_RATE = _DeviceClass("data_rate")
+    DATA_SIZE = _DeviceClass("data_size")
+    DISTANCE = _DeviceClass("distance")
+    DURATION = _DeviceClass("duration")
+    ENERGY = _DeviceClass("energy")
+    ENERGY_STORAGE = _DeviceClass("energy_storage")
+    FREQUENCY = _DeviceClass("frequency")
+    GAS = _DeviceClass("gas")
+    HUMIDITY = _DeviceClass("humidity")
+    ILLUMINANCE = _DeviceClass("illuminance")
+    IRRADIANCE = _DeviceClass("irradiance")
+    MOISTURE = _DeviceClass("moisture")
+    MONETARY = _DeviceClass("monetary")
+    NITROGEN_DIOXIDE = _DeviceClass("nitrogen_dioxide")
+    NITROUS_OXIDE = _DeviceClass("nitrous_oxide")
+    OZONE = _DeviceClass("ozone")
+    PH = _DeviceClass("ph")
+    PM1 = _DeviceClass("pm1")
+    PM10 = _DeviceClass("pm10")
+    PM25 = _DeviceClass("pm25")
+    POWER = _DeviceClass("power")
+    POWER_FACTOR = _DeviceClass("power_factor")
+    PRECIPITATION = _DeviceClass("precipitation")
+    PRECIPITATION_INTENSITY = _DeviceClass("precipitation_intensity")
+    PRESSURE = _DeviceClass("pressure")
+    REACTIVE_POWER = _DeviceClass("reactive_power")
+    SIGNAL_STRENGTH = _DeviceClass("signal_strength")
+    SOUND_PRESSURE = _DeviceClass("sound_pressure")
+    SPEED = _DeviceClass("speed")
+    SULPHUR_DIOXIDE = _DeviceClass("sulphur_dioxide")
+    TEMPERATURE = _DeviceClass("temperature")
+    VOLATILE_ORGANIC_COMPOUNDS = _DeviceClass("volatile_organic_compounds")
+    VOLATILE_ORGANIC_COMPOUNDS_PARTS = _DeviceClass("volatile_organic_compounds_parts")
+    VOLTAGE = _DeviceClass("voltage")
+    VOLUME = _DeviceClass("volume")
+    VOLUME_FLOW_RATE = _DeviceClass("volume_flow_rate")
+    VOLUME_STORAGE = _DeviceClass("volume_storage")
+    WATER = _DeviceClass("water")
+    WEIGHT = _DeviceClass("weight")
+    WIND_SPEED = _DeviceClass("wind_speed")
+    WEIGHT = _DeviceClass("weight")
+    WIND_SPEED = _DeviceClass("wind_speed")
+
+
 number = ModuleType("homeassistant.components.number")
 number.NumberEntity = NumberEntity
+number.NumberDeviceClass = NumberDeviceClass
 sys.modules["homeassistant.components.number"] = number
 components.number = number
 

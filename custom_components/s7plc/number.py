@@ -4,7 +4,14 @@ import logging
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
+from homeassistant.const import (
+    CONF_NAME,
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfPower,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -13,17 +20,70 @@ from .address import get_numeric_limits, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_COMMAND_ADDRESS,
+    CONF_DEVICE_CLASS,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_STEP,
+    CONF_UNIT_OF_MEASUREMENT,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
+
+# Map NumberDeviceClass to default units
+NUMBER_DEVICE_CLASS_UNITS: dict[str, str | None] = {
+    "APPARENT_POWER": "VA",
+    "AQI": None,
+    "ATMOSPHERIC_PRESSURE": "hPa",
+    "BATTERY": PERCENTAGE,
+    "CO": "ppm",
+    "CO2": "ppm",
+    "CURRENT": UnitOfElectricCurrent.AMPERE,
+    "DATA_RATE": "B/s",
+    "DATA_SIZE": "B",
+    "DISTANCE": "m",
+    "DURATION": "s",
+    "ENERGY": "kWh",
+    "ENERGY_STORAGE": "kWh",
+    "FREQUENCY": "Hz",
+    "GAS": "m³",
+    "HUMIDITY": PERCENTAGE,
+    "ILLUMINANCE": "lx",
+    "IRRADIANCE": "W/m²",
+    "MOISTURE": PERCENTAGE,
+    "MONETARY": None,
+    "NITROGEN_DIOXIDE": "ppb",
+    "NITROUS_OXIDE": "ppb",
+    "OZONE": "ppb",
+    "PH": None,
+    "PM1": "µg/m³",
+    "PM10": "µg/m³",
+    "PM25": "µg/m³",
+    "POWER": UnitOfPower.WATT,
+    "POWER_FACTOR": None,
+    "PRECIPITATION": "mm",
+    "PRECIPITATION_INTENSITY": "mm/h",
+    "PRESSURE": "hPa",
+    "REACTIVE_POWER": "var",
+    "SIGNAL_STRENGTH": "dBm",
+    "SOUND_PRESSURE": "dB",
+    "SPEED": "m/s",
+    "SULPHUR_DIOXIDE": "ppb",
+    "TEMPERATURE": UnitOfTemperature.CELSIUS,
+    "VOLATILE_ORGANIC_COMPOUNDS": "ppb",
+    "VOLATILE_ORGANIC_COMPOUNDS_PARTS": "ppm",
+    "VOLTAGE": UnitOfElectricPotential.VOLT,
+    "VOLUME": "m³",
+    "VOLUME_FLOW_RATE": "L/min",
+    "VOLUME_STORAGE": "m³",
+    "WATER": "m³",
+    "WEIGHT": "kg",
+    "WIND_SPEED": "m/s",
+}
 
 
 async def async_setup_entry(
@@ -45,6 +105,8 @@ async def async_setup_entry(
         min_value = item.get(CONF_MIN_VALUE)
         max_value = item.get(CONF_MAX_VALUE)
         step = item.get(CONF_STEP)
+        device_class = item.get(CONF_DEVICE_CLASS)
+        unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
         real_precision = item.get(CONF_REAL_PRECISION)
 
         scan_interval = item.get(CONF_SCAN_INTERVAL)
@@ -63,6 +125,8 @@ async def async_setup_entry(
                 min_value,
                 max_value,
                 step,
+                device_class,
+                unit_of_measurement,
             )
         )
 
@@ -86,6 +150,8 @@ class S7Number(S7BaseEntity, NumberEntity):
         min_value: float | None,
         max_value: float | None,
         step: float | None,
+        device_class: str | None = None,
+        unit_of_measurement: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -96,6 +162,22 @@ class S7Number(S7BaseEntity, NumberEntity):
             address=address,
         )
         self._command_address = command_address
+
+        # Set device_class if provided
+        if device_class:
+            self._attr_device_class = device_class
+
+            # Derive unit from device_class if not explicitly provided
+            if not unit_of_measurement:
+                dc_upper = device_class.upper()
+                if dc_upper in NUMBER_DEVICE_CLASS_UNITS:
+                    unit = NUMBER_DEVICE_CLASS_UNITS[dc_upper]
+                    if unit is not None:
+                        self._attr_native_unit_of_measurement = unit
+
+        # Override with custom unit if provided
+        if unit_of_measurement:
+            self._attr_native_unit_of_measurement = unit_of_measurement
 
         # Always initialize native attributes to avoid AttributeError
         self._attr_native_min_value = None

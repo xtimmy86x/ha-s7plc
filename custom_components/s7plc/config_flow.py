@@ -13,6 +13,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import network
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
@@ -97,6 +98,11 @@ bs_device_class_options = [
 s_device_class_options = [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
     for dc in SensorDeviceClass
+]
+
+n_device_class_options = [
+    selector.SelectOptionDict(value=dc.value, label=dc.value)
+    for dc in NumberDeviceClass
 ]
 
 scan_interval_selector = selector.NumberSelector(
@@ -1211,6 +1217,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_COMMAND_ADDRESS] = command_address
         if user_input.get(CONF_NAME):
             item[CONF_NAME] = user_input[CONF_NAME]
+        if user_input.get(CONF_DEVICE_CLASS):
+            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+        if user_input.get(CONF_UNIT_OF_MEASUREMENT):
+            item[CONF_UNIT_OF_MEASUREMENT] = user_input[CONF_UNIT_OF_MEASUREMENT]
         if min_value is not None:
             item[CONF_MIN_VALUE] = min_value
         if max_value is not None:
@@ -2033,6 +2043,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=n_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
                 vol.Optional(CONF_MIN_VALUE): number_selector,
                 vol.Optional(CONF_MAX_VALUE): number_selector,
                 vol.Optional(CONF_STEP): positive_selector,
@@ -2624,13 +2641,35 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_NAME, default=item.get(CONF_NAME, "")
                 ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-                ): number_selector,
-                vol.Optional(
-                    CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-                ): number_selector,
             }
+
+            key_dc, val_dc = self._optional_field(
+                CONF_DEVICE_CLASS,
+                item,
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=n_device_class_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            )
+            schema_dict[key_dc] = val_dc
+
+            key_unit, val_unit = self._optional_field(
+                CONF_UNIT_OF_MEASUREMENT, item, selector.TextSelector()
+            )
+            schema_dict[key_unit] = val_unit
+
+            schema_dict.update(
+                {
+                    vol.Optional(
+                        CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+                    ): number_selector,
+                    vol.Optional(
+                        CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+                    ): number_selector,
+                }
+            )
 
             key_step, val_step = self._optional_field(
                 CONF_STEP, item, positive_selector
