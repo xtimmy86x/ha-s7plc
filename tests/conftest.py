@@ -421,10 +421,17 @@ from enum import Enum
 
 class BinarySensorDeviceClass(Enum):  # pragma: no cover - simple stub
     DOOR = "door"
+    CONNECTIVITY = "connectivity"
+
+
+class BinarySensorEntity:  # pragma: no cover - simple stub
+    """Stub for BinarySensorEntity."""
+    pass
 
 
 binary_sensor = ModuleType("homeassistant.components.binary_sensor")
 binary_sensor.BinarySensorDeviceClass = BinarySensorDeviceClass
+binary_sensor.BinarySensorEntity = BinarySensorEntity
 sys.modules["homeassistant.components.binary_sensor"] = binary_sensor
 components.binary_sensor = binary_sensor
 

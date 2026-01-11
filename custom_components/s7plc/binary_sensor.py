@@ -106,7 +106,7 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
         super().__init__(
             coordinator, name=None, unique_id=unique_id, device_info=device_info
         )
-        self._plc_name = self.device_info.get("name", "")
+        self._plc_name = self._attr_device_info.get("name", "")
 
     @property
     def translation_placeholders(self) -> dict[str, str]:
