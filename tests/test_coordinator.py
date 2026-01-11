@@ -419,3 +419,268 @@ def test_write_number_rejects_non_numeric(coord_factory, dummy_tag, monkeypatch)
 
     with pytest.raises(ValueError):
         coord.write_number("DB1,STRING", 42)
+
+
+# ============================================================================
+# Connection Tests
+# ============================================================================
+
+
+def test_is_connected_no_client():
+    """Test is_connected when no client exists."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    
+    assert coord.is_connected() is False
+
+
+def test_is_connected_client_no_socket(monkeypatch):
+    """Test is_connected when client exists but no socket."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    
+    # Mock client without socket
+    mock_client = type('MockClient', (), {})()
+    coord._client = mock_client
+    
+    assert coord.is_connected() is False
+
+
+def test_is_connected_with_socket(monkeypatch):
+    """Test is_connected when client has socket."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    
+    # Mock client with socket
+    mock_client = type('MockClient', (), {'socket': object()})()
+    coord._client = mock_client
+    
+    assert coord.is_connected() is True
+
+
+def test_connect_calls_ensure_connected(monkeypatch):
+    """Test connect method calls _ensure_connected."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    
+    connected = []
+    monkeypatch.setattr(coord, "_ensure_connected", lambda: connected.append(True))
+    
+    coord.connect()
+    assert len(connected) == 1
+
+
+def test_disconnect_calls_drop_connection(monkeypatch):
+    """Test disconnect method calls _drop_connection."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    
+    disconnected = []
+    monkeypatch.setattr(coord, "_drop_connection", lambda: disconnected.append(True))
+    
+    coord.disconnect()
+    assert len(disconnected) == 1
+
+
+def test_host_property():
+    """Test host property returns correct host."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="192.168.1.100")
+    
+    assert coord.host == "192.168.1.100"
+
+
+# ============================================================================
+# Item Management Tests
+# ============================================================================
+
+
+def test_add_item_basic(coord_factory):
+    """Test add_item stores item correctly."""
+    coord = coord_factory()
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0")
+    
+    assert "sensor:DB1,REAL0" in coord._items
+    assert coord._items["sensor:DB1,REAL0"] == "DB1,REAL0"
+
+
+def test_add_item_with_scan_interval(coord_factory):
+    """Test add_item stores custom scan interval."""
+    coord = coord_factory()
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", scan_interval=2.5)
+    
+    assert coord._item_scan_intervals["sensor:DB1,REAL0"] == 2.5
+
+
+def test_add_item_with_real_precision(coord_factory):
+    """Test add_item stores real precision."""
+    coord = coord_factory()
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2)
+    
+    assert coord._item_real_precisions["sensor:DB1,REAL0"] == 2
+
+
+def test_add_item_clears_real_precision_when_none(coord_factory):
+    """Test add_item removes precision when set to None."""
+    coord = coord_factory()
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2)
+    assert "sensor:DB1,REAL0" in coord._item_real_precisions
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=None)
+    assert "sensor:DB1,REAL0" not in coord._item_real_precisions
+
+
+def test_add_item_invalidates_cache(coord_factory, monkeypatch):
+    """Test add_item invalidates plans cache."""
+    coord = coord_factory()
+    
+    # Add some fake plans
+    coord._plans_batch = {"fake": None}
+    coord._plans_str = {"fake": None}
+    coord._write_tags = {"fake": None}
+    
+    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0")
+    
+    # Cache should be cleared
+    assert len(coord._plans_batch) == 0
+    assert len(coord._plans_str) == 0
+    assert len(coord._write_tags) == 0
+
+
+def test_normalize_scan_interval_none_uses_default(coord_factory):
+    """Test _normalize_scan_interval uses default when None."""
+    coord = coord_factory(scan_interval=5.0)
+    
+    result = coord._normalize_scan_interval(None)
+    assert result == 5.0
+
+
+def test_normalize_scan_interval_negative_uses_default(coord_factory):
+    """Test _normalize_scan_interval uses default for negative values."""
+    coord = coord_factory(scan_interval=5.0)
+    
+    result = coord._normalize_scan_interval(-1.0)
+    assert result == 5.0
+
+
+def test_normalize_scan_interval_zero_uses_default(coord_factory):
+    """Test _normalize_scan_interval uses default for zero."""
+    coord = coord_factory(scan_interval=5.0)
+    
+    result = coord._normalize_scan_interval(0)
+    assert result == 5.0
+
+
+def test_normalize_scan_interval_enforces_minimum(coord_factory):
+    """Test _normalize_scan_interval enforces minimum."""
+    coord = coord_factory()
+    
+    # MIN_SCAN_INTERVAL is 0.05
+    result = coord._normalize_scan_interval(0.01)
+    assert result == 0.05
+
+
+def test_normalize_scan_interval_accepts_valid(coord_factory):
+    """Test _normalize_scan_interval accepts valid values."""
+    coord = coord_factory()
+    
+    result = coord._normalize_scan_interval(2.5)
+    assert result == 2.5
+
+
+def test_normalize_scan_interval_converts_int(coord_factory):
+    """Test _normalize_scan_interval converts integers."""
+    coord = coord_factory()
+    
+    result = coord._normalize_scan_interval(3)
+    assert result == 3.0
+
+
+def test_normalize_scan_interval_invalid_type_uses_default(coord_factory):
+    """Test _normalize_scan_interval handles invalid types."""
+    coord = coord_factory(scan_interval=5.0)
+    
+    result = coord._normalize_scan_interval("invalid")
+    assert result == 5.0
+
+
+def test_update_min_interval_locked_no_items(coord_factory):
+    """Test _update_min_interval_locked with no items uses default."""
+    coord = coord_factory(scan_interval=5.0)
+    
+    coord._update_min_interval_locked()
+    
+    assert coord.update_interval.total_seconds() == 5.0
+
+
+def test_update_min_interval_locked_finds_minimum(coord_factory):
+    """Test _update_min_interval_locked finds minimum interval."""
+    coord = coord_factory()
+    
+    coord._item_scan_intervals = {
+        "topic1": 5.0,
+        "topic2": 2.0,
+        "topic3": 10.0,
+    }
+    
+    coord._update_min_interval_locked()
+    
+    assert coord.update_interval.total_seconds() == 2.0
+
+
+def test_update_min_interval_locked_enforces_minimum(coord_factory):
+    """Test _update_min_interval_locked enforces MIN_SCAN_INTERVAL."""
+    coord = coord_factory()
+    
+    coord._item_scan_intervals = {
+        "topic1": 0.01,  # Below minimum
+    }
+    
+    coord._update_min_interval_locked()
+    
+    assert coord.update_interval.total_seconds() == 0.05
+
+
+# ============================================================================
+# PDU Limit Tests
+# ============================================================================
+
+
+def test_get_pdu_limit_default(coord_factory):
+    """Test _get_pdu_limit with default PDU size."""
+    coord = coord_factory()
+    coord._client = type('MockClient', (), {'pdu_length': 240})()
+    
+    result = coord._get_pdu_limit()
+    assert result == 210  # 240 - 30
+
+
+def test_get_pdu_limit_fallback_to_pdu_size(coord_factory):
+    """Test _get_pdu_limit falls back to pdu_size."""
+    coord = coord_factory()
+    coord._client = type('MockClient', (), {'pdu_size': 480})()
+    
+    result = coord._get_pdu_limit()
+    assert result == 450  # 480 - 30
+
+
+def test_get_pdu_limit_minimum(coord_factory):
+    """Test _get_pdu_limit enforces minimum of 1."""
+    coord = coord_factory()
+    coord._client = type('MockClient', (), {'pdu_length': 20})()
+    
+    result = coord._get_pdu_limit()
+    assert result == 1  # max(1, 20 - 30)
+
+
+def test_get_pdu_limit_no_attributes(coord_factory):
+    """Test _get_pdu_limit with no pdu attributes defaults to 240."""
+    coord = coord_factory()
+    coord._client = type('MockClient', (), {})()
+    
+    result = coord._get_pdu_limit()
+    assert result == 210  # 240 - 30 (default)
