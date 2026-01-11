@@ -474,6 +474,23 @@ sys.modules["homeassistant.components.switch"] = switch
 components.switch = switch
 
 
+class ColorMode:  # pragma: no cover - simple stub
+    """Minimal ColorMode stub."""
+    ONOFF = "onoff"
+
+
+class LightEntity:  # pragma: no cover - simple stub
+    """Minimal LightEntity stub."""
+    pass
+
+
+light = ModuleType("homeassistant.components.light")
+light.ColorMode = ColorMode
+light.LightEntity = LightEntity
+sys.modules["homeassistant.components.light"] = light
+components.light = light
+
+
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
     TEMPERATURE = "temperature"
     ENERGY = "energy"
