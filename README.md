@@ -156,6 +156,32 @@ Values outside these ranges are supported, but increasing them further may delay
   - S7-300/400: often `rack: 0`, `slot: 2` (verify in hardware config)
 - Keep `port: 102` unless you know you changed it in the PLC/CP.
 
+### TSAP Connection Mode
+
+In addition to the standard **Rack/Slot** connection method, this integration also supports **TSAP (Transport Service Access Point)** connections. TSAP is an alternative addressing mode that may be required for specific PLC configurations, older S7 models, or when connecting through gateways and communication processors.
+
+**When to use TSAP:**
+- Some S7-300/400 CPUs with specific firmware versions
+- Connecting through CP (Communication Processor) modules
+- Network configurations that require explicit TSAP addressing
+- Legacy systems where rack/slot addressing is not available
+
+**Configuration:**
+During the initial setup, you can choose between two connection types:
+
+1. **Rack/Slot** (default): The standard connection method using rack and slot numbers.
+   - Example: `rack: 0`, `slot: 1` for S7-1200/1500
+
+2. **TSAP**: Uses Local TSAP and Remote TSAP hexadecimal identifiers.
+   - **Local TSAP**: The TSAP identifier of the client (Home Assistant). Format: `XX.YY` (e.g., `01.00`)
+   - **Remote TSAP**: The TSAP identifier of the PLC. Format: `XX.YY` (e.g., `01.01`)
+
+**Common TSAP values:**
+- For S7-300/400 CPUs: often `Local: 01.00`, `Remote: 01.02` or `Remote: 01.01`
+- Check your PLC hardware configuration or consult your system documentation for the correct TSAP values
+
+**Note:** You can change the connection type later by editing the integration configuration. When switching between Rack/Slot and TSAP modes, the integration will automatically use the appropriate connection method.
+
 ---
 
 ## Addressing reference (S7)
