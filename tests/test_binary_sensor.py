@@ -36,6 +36,11 @@ def mock_coordinator():
     coord.is_connected.return_value = True
     coord.add_item = MagicMock()
     coord.async_request_refresh = AsyncMock()
+    coord.connection_type = "rack_slot"
+    coord.rack = 0
+    coord.slot = 1
+    coord.local_tsap = None
+    coord.remote_tsap = None
     return coord
 
 
@@ -211,6 +216,32 @@ def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     
     attrs = sensor.extra_state_attributes
     assert attrs["s7_ip"] == "192.168.1.100"
+    assert attrs["connection_type"] == "Rack/Slot"
+    assert attrs["rack"] == 0
+    assert attrs["slot"] == 1
+
+
+def test_plc_connection_sensor_extra_attributes_tsap(device_info):
+    """Test connection sensor extra state attributes with TSAP connection."""
+    coord = MagicMock(spec=DummyCoordinator)
+    coord.host = "192.168.1.100"
+    coord.connection_type = "tsap"
+    coord.local_tsap = "01.00"
+    coord.remote_tsap = "01.01"
+    coord.rack = None
+    coord.slot = None
+    
+    sensor = PlcConnectionBinarySensor(
+        coord,
+        device_info,
+        "test_device:connection"
+    )
+    
+    attrs = sensor.extra_state_attributes
+    assert attrs["s7_ip"] == "192.168.1.100"
+    assert attrs["connection_type"] == "TSAP"
+    assert attrs["local_tsap"] == "01.00"
+    assert attrs["remote_tsap"] == "01.01"
 
 
 def test_plc_connection_sensor_available(mock_coordinator, device_info):

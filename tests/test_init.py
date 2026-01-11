@@ -13,6 +13,7 @@ class DummyCoordinator:
         self,
         hass,
         host,
+        connection_type,
         rack,
         slot,
         local_tsap,
@@ -27,6 +28,7 @@ class DummyCoordinator:
     ):
         self.hass = hass
         self.host = host
+        self.connection_type = connection_type
         self.rack = rack
         self.slot = slot
         self.local_tsap = local_tsap

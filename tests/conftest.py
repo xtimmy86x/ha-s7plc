@@ -625,8 +625,9 @@ if str(ROOT_DIR) not in sys.path:
 class DummyCoordinator:
     """Shared coordinator mock for all tests."""
 
-    def __init__(self, connected: bool = True):
-        self._connected = connected
+    def __init__(self, *args, **kwargs):
+        self._connected = kwargs.pop("connected", True)
+        self.connection_type = kwargs.pop("connection_type", "rack_slot")
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
         self.refresh_called = False

@@ -77,6 +77,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = S7Coordinator(
         hass,
         host=host,
+        connection_type=connection_type,
         rack=rack,
         slot=slot,
         local_tsap=local_tsap,

@@ -51,6 +51,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self,
         hass: HomeAssistant,
         host: str,
+        connection_type: str = "rack_slot",
         rack: int | None = None,
         slot: int | None = None,
         local_tsap: str | None = None,
@@ -73,6 +74,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             ),
         )
         self._host = host
+        self._connection_type = connection_type
         self._rack = rack
         self._slot = slot
         self._local_tsap = local_tsap
@@ -116,6 +118,31 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
         return self._host
+
+    @property
+    def connection_type(self) -> str:
+        """Return connection type: 'rack_slot' or 'tsap'."""
+        return self._connection_type
+
+    @property
+    def rack(self) -> int | None:
+        """Return rack number for rack/slot connection."""
+        return self._rack
+
+    @property
+    def slot(self) -> int | None:
+        """Return slot number for rack/slot connection."""
+        return self._slot
+
+    @property
+    def local_tsap(self) -> str | None:
+        """Return local TSAP for TSAP connection."""
+        return self._local_tsap
+
+    @property
+    def remote_tsap(self) -> str | None:
+        """Return remote TSAP for TSAP connection."""
+        return self._remote_tsap
 
     # -------------------------
     # Connection handling
