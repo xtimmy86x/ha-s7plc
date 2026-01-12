@@ -61,6 +61,7 @@ from .const import (
     CONF_SLOT,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
+    CONF_STATE_CLASS,
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
@@ -873,6 +874,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
         if user_input.get(CONF_UNIT_OF_MEASUREMENT):
             item[CONF_UNIT_OF_MEASUREMENT] = user_input[CONF_UNIT_OF_MEASUREMENT]
+        if user_input.get(CONF_STATE_CLASS):
+            item[CONF_STATE_CLASS] = user_input[CONF_STATE_CLASS]
 
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
@@ -1818,6 +1821,21 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
+                vol.Optional(CONF_STATE_CLASS): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value="none", label="none"),
+                            selector.SelectOptionDict(
+                                value="measurement", label="measurement"
+                            ),
+                            selector.SelectOptionDict(value="total", label="total"),
+                            selector.SelectOptionDict(
+                                value="total_increasing", label="total_increasing"
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2361,6 +2379,27 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 selector.TextSelector(),
             )
             schema_dict[key_unit] = val_unit
+
+            key_state, val_state = self._optional_field(
+                CONF_STATE_CLASS,
+                item,
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value="none", label="none"),
+                            selector.SelectOptionDict(
+                                value="measurement", label="measurement"
+                            ),
+                            selector.SelectOptionDict(value="total", label="total"),
+                            selector.SelectOptionDict(
+                                value="total_increasing", label="total_increasing"
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            )
+            schema_dict[key_state] = val_state
 
             key_precision, val_precision = self._optional_field(
                 CONF_REAL_PRECISION, item, real_precision_selector

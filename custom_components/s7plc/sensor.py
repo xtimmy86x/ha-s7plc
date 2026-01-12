@@ -35,6 +35,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
+    CONF_STATE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
     CONF_WRITERS,
@@ -149,6 +150,7 @@ async def async_setup_entry(
         device_class = item.get(CONF_DEVICE_CLASS)
         value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
+        state_class = item.get(CONF_STATE_CLASS)
         real_precision = item.get(CONF_REAL_PRECISION)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await hass.async_add_executor_job(
@@ -165,6 +167,7 @@ async def async_setup_entry(
                 device_class,
                 value_multiplier,
                 unit_of_measurement,
+                state_class,
             )
         )
 
@@ -219,6 +222,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         device_class: str | None,
         value_multiplier: float | None,
         unit_of_measurement: str | None = None,
+        state_class: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -254,8 +258,13 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         if self._custom_unit:
             self._attr_native_unit_of_measurement = self._custom_unit
 
-        # Assign the correct state_class.
-        if not is_string_or_char and sensor_device_class is not None:
+        # Set state_class: user config takes precedence,
+        # otherwise derive from device_class
+        if state_class and state_class != "none":
+            # User explicitly configured state_class
+            self._attr_state_class = state_class
+        elif not is_string_or_char and sensor_device_class is not None:
+            # Auto-derive state_class from device_class
             if sensor_device_class in TOTAL_INCREASING_CLASSES:
                 self._attr_state_class = SensorStateClass.TOTAL_INCREASING
 
