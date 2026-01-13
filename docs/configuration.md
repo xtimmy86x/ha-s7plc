@@ -26,7 +26,8 @@ The standard connection method using rack and slot numbers.
 **Common settings:**
 - S7-1200/1500: `rack: 0`, `slot: 1`
 - S7-300/400: often `rack: 0`, `slot: 2` (verify in hardware config)
-- Logo! 8 (0BA8+): `rack: 0`, `slot: 2`
+- Logo! 8 (0BA8 and newer): `rack: 0`, `slot: 2`
+- Logo! 0BA7 and older: Use TSAP connection (see below)
 
 **Configuration parameters:**
 - **Host**: IP address or hostname of the PLC
@@ -39,6 +40,7 @@ The standard connection method using rack and slot numbers.
 TSAP (Transport Service Access Point) is an alternative addressing mode that may be required for specific PLC configurations, older S7 models, or when connecting through gateways and communication processors.
 
 **When to use TSAP:**
+- **Logo! 0BA7 and older versions** (0BA6, 0BA5, etc.) - Required instead of Rack/Slot
 - Some S7-300/400 CPUs with specific firmware versions
 - Connecting through CP (Communication Processor) modules
 - Network configurations that require explicit TSAP addressing
@@ -51,6 +53,7 @@ TSAP (Transport Service Access Point) is an alternative addressing mode that may
 - **Remote TSAP**: The TSAP identifier of the PLC. Format: `XX.YY` (e.g., `01.01`)
 
 **Common TSAP values:**
+- **Logo! 0BA7**: `Local: 10.00`, `Remote: 10.01`
 - For S7-300/400 CPUs: often `Local: 01.00`, `Remote: 01.02` or `Remote: 01.01`
 - Check your PLC hardware configuration or consult your system documentation for the correct TSAP values
 

@@ -66,7 +66,61 @@ The integration automatically handles conversions:
 
 ## Logo! 8 Addressing
 
-On the Logo! (from 0BA8 version) logic modules, use the default Rack/Slot value of 0/2.
+### Logo! 0BA8 and Newer
+
+On the Logo! 0BA8 (and newer) logic modules, use the default **Rack/Slot** connection with values `rack: 0`, `slot: 2`.
+
+### Logo! 0BA7 and Older
+
+For **Logo! 0BA7** and older versions (0BA6, 0BA5, etc.), you must use **TSAP connection** instead of Rack/Slot:
+
+**Connection Settings:**
+- **Connection Type**: TSAP
+- **Local TSAP**: `10.00`
+- **Remote TSAP**: `10.01`
+- **Port**: `102` (default)
+
+**Important Notes for 0BA7:**
+- The VM memory layout differs significantly from 0BA8+
+- Always use `DB1` for addressing
+- Network function blocks are not available in older versions
+- Only basic I/O and flag areas are accessible
+
+**I/O Mapping for Logo! 0BA7:**
+
+| I/O Type | Logo! Symbol | VM Address | Access |
+|----------|--------------|------------|--------|
+| **Digital Inputs** | I1-I8 | V923.0 - V923.7 | R |
+| | I9-I16 | V924.0 - V924.7 | R |
+| | I17-I24 | V925.0 - V925.7 | R |
+| **Digital Outputs** | Q1-Q8 | V942.0 - V942.7 | R |
+| | Q9-Q16 | V943.0 - V943.7 | R |
+| **Analog Inputs** | AI1 | VW926 (Word) | R |
+| | AI2 | VW928 | R |
+| | AI3-AI8 | VW930, VW932, VW934, VW936, VW938, VW940 | R |
+| **Analog Outputs** | AQ1 | VW944 | R |
+| | AQ2 | VW946 | R |
+| **Digital Flags** | M1-M8 | V948.0 - V948.7 | R/W |
+| | M9-M16 | V949.0 - V949.7 | R/W |
+| | M17-M24 | V950.0 - V950.7 | R/W |
+| | M25-M27 | V951.0 - V951.2 | R/W |
+| **Analog Flags** | AM1-AM2 | VW952, VW954 | R/W |
+| | AM3-AM8 | VW956, VW958, VW960, VW962, VW964, VW966 | R/W |
+| | AM9-AM16 | VW968, VW970, VW972, VW974, VW976, VW978, VW980, VW982 | R/W |
+
+**Special Reserved Addresses (0BA7):**
+
+| VM Address | Description | Type |
+|------------|-------------|------|
+| V984 | Diagnostic bit array | Byte |
+| V985-V990 | RTC (Year, Month, Day, Hour, Minute, Second) | 6 Bytes |
+
+**Addressing Examples for 0BA7:**
+- Digital input I1: `DB1,X923.0` or `DB1,BYTE923` (all 8 inputs)
+- Analog input AI1: `DB1,WORD926`
+- Digital output Q1: `DB1,X942.0`
+- Flag M1: `DB1,X948.0`
+- Analog flag AM1: `DB1,WORD952`
 
 ### Read-Only System Areas
 
