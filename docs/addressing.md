@@ -66,91 +66,114 @@ The integration automatically handles conversions:
 
 ## Logo! 8 Addressing
 
-### Logo! 0BA8 and Newer
+Logo! controllers use different connection methods and memory layouts depending on the version. **It's critical to use the correct addressing for your Logo! version.**
 
-On the Logo! 0BA8 (and newer) logic modules, use the default **Rack/Slot** connection with values `rack: 0`, `slot: 2`.
+---
 
-### Logo! 0BA7 and Older
-
-For **Logo! 0BA7** and older versions (0BA6, 0BA5, etc.), you must use **TSAP connection** instead of Rack/Slot:
+### Logo! 0BA8 and Newer (Recommended)
 
 **Connection Settings:**
-- **Connection Type**: TSAP
+- **Connection Type**: Rack/Slot
+- **Rack**: `0`
+- **Slot**: `2`
+- **Port**: `102` (default)
+
+#### System I/O Areas (0BA8+)
+
+The following memory areas are accessible without additional configuration (read-only):
+
+| Logo! Block | VM Range | Example Address | Description | Access |
+|-------------|----------|-----------------|-------------|--------|
+| `I` | 1024-1031 | `DB1,BYTE1024` or `DB1,X1024.5` | Digital inputs I1-I8 | R |
+| `AI` | 1032-1063 | `DB1,WORD1032` | Analog input AI1 (16 analog inputs total) | R |
+| `Q` | 1064-1071 | `DB1,BYTE1064` or `DB1,X1064.5` | Digital outputs Q1-Q8 | R |
+| `AQ` | 1072-1103 | `DB1,WORD1072` | Analog output AQ1 | R |
+| `M` | 1104-1117 | `DB1,BYTE1104` or `DB1,X1104.5` | Digital flags M1-M8 | R |
+| `AM` | 1118-1245 | `DB1,WORD1118` | Analog flag AM1 | R |
+| `NI` | 1246-1261 | `DB1,BYTE1246` | Network input NI1-NI8 | R |
+| `NAI` | 1262-1389 | `DB1,WORD1262` | Analog network input NAI1 | R |
+| `NQ` | 1390-1405 | `DB1,BYTE1390` | Network output NQ1-NQ8 | R |
+| `NAQ` | 1406-1469 | `DB1,WORD1406` | Analog network output NAQ1 | R |
+
+#### User Memory (0BA8+)
+
+VM memory areas **0-849** can be used for read/write operations. These must be mapped in your Logo! program using **"Network" function blocks** with the *"Local variable memory (VM)"* option.
+
+**Addressing Examples (0BA8):**
+- Digital input I1: `DB1,X1024.0`
+- Analog input AI1: `DB1,WORD1032`
+- Digital output Q1: `DB1,X1064.0`
+- User VM byte 0: `DB1,BYTE0`
+- User VM bit 1.3: `DB1,X1.3`
+- User VM word 2-3: `DB1,WORD2`
+
+---
+
+### Logo! 0BA7 and Older (Legacy)
+
+**Connection Settings:**
+- **Connection Type**: TSAP ⚠️ **Required** (Rack/Slot not supported)
 - **Local TSAP**: `10.00`
 - **Remote TSAP**: `10.01`
 - **Port**: `102` (default)
 
-**Important Notes for 0BA7:**
-- The VM memory layout differs significantly from 0BA8+
+**Important Limitations:**
+- VM memory layout is completely different from 0BA8+
+- Network function blocks (NI, NAI, NQ, NAQ) are **not available**
 - Always use `DB1` for addressing
-- Network function blocks are not available in older versions
-- Only basic I/O and flag areas are accessible
+- No user-configurable VM areas (0-849) available
 
-**I/O Mapping for Logo! 0BA7:**
+#### I/O Mapping (0BA7)
 
-| I/O Type | Logo! Symbol | VM Address | Access |
-|----------|--------------|------------|--------|
-| **Digital Inputs** | I1-I8 | V923.0 - V923.7 | R |
-| | I9-I16 | V924.0 - V924.7 | R |
-| | I17-I24 | V925.0 - V925.7 | R |
-| **Digital Outputs** | Q1-Q8 | V942.0 - V942.7 | R |
-| | Q9-Q16 | V943.0 - V943.7 | R |
-| **Analog Inputs** | AI1 | VW926 (Word) | R |
-| | AI2 | VW928 | R |
-| | AI3-AI8 | VW930, VW932, VW934, VW936, VW938, VW940 | R |
-| **Analog Outputs** | AQ1 | VW944 | R |
-| | AQ2 | VW946 | R |
-| **Digital Flags** | M1-M8 | V948.0 - V948.7 | R/W |
-| | M9-M16 | V949.0 - V949.7 | R/W |
-| | M17-M24 | V950.0 - V950.7 | R/W |
-| | M25-M27 | V951.0 - V951.2 | R/W |
-| **Analog Flags** | AM1-AM2 | VW952, VW954 | R/W |
-| | AM3-AM8 | VW956, VW958, VW960, VW962, VW964, VW966 | R/W |
-| | AM9-AM16 | VW968, VW970, VW972, VW974, VW976, VW978, VW980, VW982 | R/W |
+| I/O Type | Logo! Symbol | VM Address | Example Address | Access |
+|----------|--------------|------------|-----------------|--------|
+| **Digital Inputs** | I1-I8 | V923.0 - V923.7 | `DB1,X923.0` (I1) | R |
+| | I9-I16 | V924.0 - V924.7 | `DB1,BYTE924` (I9-I16) | R |
+| | I17-I24 | V925.0 - V925.7 | `DB1,X925.0` (I17) | R |
+| **Digital Outputs** | Q1-Q8 | V942.0 - V942.7 | `DB1,X942.0` (Q1) | R |
+| | Q9-Q16 | V943.0 - V943.7 | `DB1,X943.0` (Q9) | R |
+| **Analog Inputs** | AI1-AI8 | VW926-VW940 (even) | `DB1,WORD926` (AI1) | R |
+| **Analog Outputs** | AQ1-AQ2 | VW944, VW946 | `DB1,WORD944` (AQ1) | R |
+| **Digital Flags** | M1-M8 | V948.0 - V948.7 | `DB1,X948.0` (M1) | R/W |
+| | M9-M16 | V949.0 - V949.7 | `DB1,X949.0` (M9) | R/W |
+| | M17-M24 | V950.0 - V950.7 | `DB1,X950.0` (M17) | R/W |
+| | M25-M27 | V951.0 - V951.2 | `DB1,X951.0` (M25) | R/W |
+| **Analog Flags** | AM1-AM16 | VW952-VW982 (even) | `DB1,WORD952` (AM1) | R/W |
 
-**Special Reserved Addresses (0BA7):**
+#### Special Addresses (0BA7)
 
-| VM Address | Description | Type |
-|------------|-------------|------|
-| V984 | Diagnostic bit array | Byte |
-| V985-V990 | RTC (Year, Month, Day, Hour, Minute, Second) | 6 Bytes |
+| VM Address | Description | Example Address |
+|------------|-------------|-----------------|
+| V984 | Diagnostic bit array | `DB1,BYTE984` |
+| V985-V990 | RTC: Year, Month, Day, Hour, Minute, Second | `DB1,BYTE985` (Year) |
 
-**Addressing Examples for 0BA7:**
-- Digital input I1: `DB1,X923.0` or `DB1,BYTE923` (all 8 inputs)
-- Analog input AI1: `DB1,WORD926`
-- Digital output Q1: `DB1,X942.0`
-- Flag M1: `DB1,X948.0`
-- Analog flag AM1: `DB1,WORD952`
+**Complete Addressing Examples (0BA7):**
+```
+DB1,X923.0      → Digital input I1 (bit access)
+DB1,BYTE923     → Digital inputs I1-I8 (byte access)
+DB1,WORD926     → Analog input AI1
+DB1,X942.0      → Digital output Q1
+DB1,X948.0      → Digital flag M1 (Read/Write)
+DB1,WORD952     → Analog flag AM1 (Read/Write)
+DB1,BYTE984     → Diagnostic byte
+DB1,BYTE985     → RTC Year
+```
 
-### Read-Only System Areas
+---
 
-The following memory areas are accessible without additional settings (read-only):
+### Quick Reference Table
 
-| Logo Block | VM Range | Example Address | Description | Access |
-|------------|----------|-----------------|-------------|--------|
-| `I` | 1024-1031 | `DB1,BYTE1024` or `DB1,X1024.5` | Input terminals 1-8 (or word 1-16) | R |
-| `AI` | 1032-1063 | `DB1,WORD1032` | Analog input terminal 1 | R |
-| `Q` | 1064-1071 | `DB1,BYTE1064` or `DB1,X1064.5` | Output terminals 1-8 (or word 1-16) | R |
-| `AQ` | 1072-1103 | `DB1,WORD1072` | Analog output terminal 1 | R |
-| `M` | 1104-1117 | `DB1,BYTE1104` or `DB1,X1104.5` | Bit flags M1-8 (or word M1-16) | R |
-| `AM` | 1118-1245 | `DB1,WORD1118` | Analog flag 1 | R |
-| `NI` | 1246-1261 | `DB1,BYTE1246` | Network input 1-8 (or word 1-16) | R |
-| `NAI` | 1262-1389 | `DB1,WORD1262` | Analog network input 1 | R |
-| `NQ` | 1390-1405 | `DB1,BYTE1390` | Network output 1-8 (or word 1-16) | R |
-| `NAQ` | 1406-1469 | `DB1,WORD1406` | Analog network output 1 | R |
+| Feature | 0BA7 and Older | 0BA8 and Newer |
+|---------|----------------|----------------|
+| **Connection** | TSAP (`10.00` / `10.01`) | Rack/Slot (`0` / `2`) |
+| **DB Number** | DB1 only | DB1 only |
+| **Digital I/O** | V923-V925 (I), V942-V943 (Q) | VM 1024-1031 (I), 1064-1071 (Q) |
+| **Analog I/O** | VW926-VW940 (AI), VW944-VW946 (AQ) | VM 1032-1063 (AI), 1072-1103 (AQ) |
+| **Flags** | V948-V951 (M), VW952-VW982 (AM) | VM 1104-1117 (M), 1118-1245 (AM) |
+| **Network I/O** | ❌ Not available | ✅ VM 1246-1469 (NI, NAI, NQ, NAQ) |
+| **User VM (0-849)** | ❌ Not available | ✅ Available with Network blocks |
 
-### Read/Write User Memory
-
-Logo memory areas VM 0-849 are mutable from outside the controller, but they need to be mapped into the Logo program using "Network" function blocks (with *"Local variable memory (VM)"* option).
-
-**Addressing examples:**
-
-| Logo VM | Example Address | Description |
-|---------|----------------|-------------|
-| `0` | `DB1,BYTE0` | R/W access byte |
-| `1` | `DB1,X1.3` | R/W access bit 3 |
-| `2-3` | `DB1,WORD2` | R/W access word |
-| `4-7` | `DB1,DWORD4` | R/W access dword |
+---
 
 ## Address Validation
 
@@ -182,10 +205,17 @@ If validation fails, the configuration form will show a specific error message i
 
 ### Logo! Soft Comfort
 
+**For Logo! 0BA8 and newer:**
 1. Open your Logo! program
-2. If using VM areas, note which VM addresses are mapped to Network function blocks
-3. Use the VM range table above for system areas
-4. Use format: `DB1,<type><offset>` (Logo always uses DB1)
+2. Configure "Network" function blocks to map VM areas (0-849) for read/write access
+3. System I/O areas (1024+) are always accessible without configuration
+4. Use format: `DB1,<type><offset>` (Logo! always uses DB1)
+
+**For Logo! 0BA7 and older:**
+1. Open your Logo! program
+2. Refer to the I/O mapping table above for the correct VM addresses
+3. Only I/O and flags are accessible (no user VM areas)
+4. Use format: `DB1,<type><offset>` (Logo! always uses DB1)
 
 ## Common Mistakes
 
