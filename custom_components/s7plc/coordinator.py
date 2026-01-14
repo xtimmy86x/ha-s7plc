@@ -287,7 +287,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _retry(self, func, *args, **kwargs):
         """Execute ``func`` with retries using exponential backoff.
+
         Reconnects to the PLC between attempts on error.
+
+        Note: This method uses synchronous time.sleep() for backoff delays.
+        It must be called via hass.async_add_executor_job() to avoid blocking
+        the Home Assistant event loop.
         """
         attempt = 0
         last_exc: Exception | None = None
