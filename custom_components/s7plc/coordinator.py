@@ -5,7 +5,7 @@ import struct
 import threading
 import time
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -285,7 +285,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         except OSError as err:
             _LOGGER.debug("Sleep interrupted: %s", err)
 
-    def _retry(self, func, *args, **kwargs):
+    def _retry(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute ``func`` with retries using exponential backoff.
 
         Reconnects to the PLC between attempts on error.
@@ -293,6 +293,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Note: This method uses synchronous time.sleep() for backoff delays.
         It must be called via hass.async_add_executor_job() to avoid blocking
         the Home Assistant event loop.
+
+        Args:
+            func: The callable to execute with retries.
+            *args: Positional arguments to pass to func.
+            **kwargs: Keyword arguments to pass to func.
+
+        Returns:
+            The return value of func if successful.
+
+        Raises:
+            RuntimeError: If all retry attempts are exhausted.
         """
         attempt = 0
         last_exc: Exception | None = None
