@@ -279,10 +279,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Retry/timeout helpers
     # -------------------------
     def _sleep(self, seconds: float) -> None:
+        """Sleep for the specified duration, handling interruptions gracefully."""
         try:
             time.sleep(max(0.0, seconds))
-        except OSError:
-            pass
+        except OSError as err:
+            _LOGGER.debug("Sleep interrupted: %s", err)
 
     def _retry(self, func, *args, **kwargs):
         """Execute ``func`` with retries using exponential backoff.
