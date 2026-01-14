@@ -121,7 +121,7 @@ VM memory areas **0-849** can be used for read/write operations. These must be m
 - VM memory layout is completely different from 0BA8+
 - Network function blocks (NI, NAI, NQ, NAQ) are **not available**
 - Always use `DB1` for addressing
-- No user-configurable VM areas (0-849) available
+- VM memory areas **0-849** can be used for read/write operations. 
 
 #### I/O Mapping (0BA7)
 
