@@ -232,9 +232,20 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             topic=topic,
             address=address,
         )
-        self._value_multiplier = (
-            float(value_multiplier) if value_multiplier not in (None, "") else None
-        )
+
+        # Parse value_multiplier with defensive validation
+        self._value_multiplier = None
+        if value_multiplier not in (None, ""):
+            try:
+                self._value_multiplier = float(value_multiplier)
+            except (TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Invalid value_multiplier '%s' for sensor %s: %s. Ignoring.",
+                    value_multiplier,
+                    name,
+                    err,
+                )
+
         self._custom_unit = unit_of_measurement if unit_of_measurement else None
 
         # Check if this is a string or char sensor
