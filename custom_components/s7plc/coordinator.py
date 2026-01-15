@@ -25,6 +25,7 @@ except RuntimeError as err:  # pragma: no cover
 
 if pyS7 is not None:  # pragma: no cover - exercised only when library available
     try:
+        from pyS7.constants import ConnectionType
         from pyS7.errors import (
             S7CommunicationError,
             S7ConnectionError,
@@ -32,8 +33,10 @@ if pyS7 is not None:  # pragma: no cover - exercised only when library available
         )
     except (ImportError, AttributeError):  # pragma: no cover - defensive
         S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
+        ConnectionType = None
 else:  # pragma: no cover - library absent in tests
     S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
+    ConnectionType = None
 
 
 S7ClientT = "pyS7.S7Client"
@@ -56,6 +59,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         slot: int | None = None,
         local_tsap: str | None = None,
         remote_tsap: str | None = None,
+        pys7_connection_type: str = "pg",  # PG, OP, or S7Basic
         port: int = 102,
         scan_interval: float = 0.5,
         # Timeout/Retry configuration
@@ -80,6 +84,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._local_tsap = local_tsap
         self._remote_tsap = remote_tsap
         self._port = port
+
+        # Map string to ConnectionType enum
+        self._pys7_connection_type_str = pys7_connection_type
+        self._pys7_connection_type = self._get_connection_type_enum(
+            pys7_connection_type
+        )
 
         self._default_scan_interval = max(float(scan_interval), self._MIN_SCAN_INTERVAL)
 
@@ -118,6 +128,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
         return self._host
+
+    def _get_connection_type_enum(self, connection_type_str: str):
+        """Convert string connection type to pyS7 ConnectionType enum."""
+        if ConnectionType is None:
+            return None
+
+        connection_type_map = {
+            "pg": ConnectionType.PG,
+            "op": ConnectionType.OP,
+            "s7basic": ConnectionType.S7Basic,
+        }
+        return connection_type_map.get(connection_type_str.lower(), ConnectionType.PG)
 
     @property
     def connection_type(self) -> str:
@@ -167,10 +189,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     local_tsap=self._local_tsap,
                     remote_tsap=self._remote_tsap,
                     port=self._port,
+                    connection_type=self._pys7_connection_type,
                 )
             else:
                 self._client = pyS7.S7Client(
-                    self._host, self._rack, self._slot, port=self._port
+                    self._host,
+                    self._rack,
+                    self._slot,
+                    port=self._port,
+                    connection_type=self._pys7_connection_type,
                 )
 
         if not getattr(self._client, "socket", None):

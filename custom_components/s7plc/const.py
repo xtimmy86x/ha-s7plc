@@ -12,11 +12,17 @@ PLATFORMS = [
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
 CONF_CONNECTION_TYPE = "connection_type"
+CONF_PYS7_CONNECTION_TYPE = "pys7_connection_type"
 CONF_LOCAL_TSAP = "local_tsap"
 CONF_REMOTE_TSAP = "remote_tsap"
 
 CONNECTION_TYPE_RACK_SLOT = "rack_slot"
 CONNECTION_TYPE_TSAP = "tsap"
+
+# pyS7 ConnectionType values
+PYS7_CONNECTION_TYPE_PG = "pg"
+PYS7_CONNECTION_TYPE_OP = "op"
+PYS7_CONNECTION_TYPE_S7BASIC = "s7basic"
 
 CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"
@@ -63,6 +69,7 @@ CONF_USE_STATE_TOPICS = "use_state_topics"
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
 DEFAULT_SLOT = 1
+DEFAULT_PYS7_CONNECTION_TYPE = PYS7_CONNECTION_TYPE_PG  # PG as default
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_BUTTON_PULSE = 1  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds

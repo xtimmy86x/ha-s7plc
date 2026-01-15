@@ -41,6 +41,7 @@ def mock_coordinator():
     coord.slot = 1
     coord.local_tsap = None
     coord.remote_tsap = None
+    coord._pys7_connection_type_str = "pg"
     return coord
 
 
@@ -230,6 +231,7 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     coord.remote_tsap = "01.01"
     coord.rack = None
     coord.slot = None
+    coord._pys7_connection_type_str = "pg"
     
     sensor = PlcConnectionBinarySensor(
         coord,

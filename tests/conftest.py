@@ -704,6 +704,21 @@ class DummyCoordinator:
     def __init__(self, *args, **kwargs):
         self._connected = kwargs.pop("connected", True)
         self.connection_type = kwargs.pop("connection_type", "rack_slot")
+        self.pys7_connection_type = kwargs.pop("pys7_connection_type", "pg")
+        self._pys7_connection_type_str = self.pys7_connection_type
+        # Pop all other coordinator parameters that might be passed
+        kwargs.pop("host", None)
+        kwargs.pop("rack", None)
+        kwargs.pop("slot", None)
+        kwargs.pop("local_tsap", None)
+        kwargs.pop("remote_tsap", None)
+        kwargs.pop("port", None)
+        kwargs.pop("scan_interval", None)
+        kwargs.pop("op_timeout", None)
+        kwargs.pop("max_retries", None)
+        kwargs.pop("backoff_initial", None)
+        kwargs.pop("backoff_max", None)
+        kwargs.pop("optimize_read", None)
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
         self.refresh_called = False

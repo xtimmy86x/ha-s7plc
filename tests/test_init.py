@@ -18,6 +18,7 @@ class DummyCoordinator:
         slot,
         local_tsap,
         remote_tsap,
+        pys7_connection_type,
         port,
         scan_interval,
         op_timeout,
@@ -33,6 +34,8 @@ class DummyCoordinator:
         self.slot = slot
         self.local_tsap = local_tsap
         self.remote_tsap = remote_tsap
+        self.pys7_connection_type = pys7_connection_type
+        self._pys7_connection_type_str = pys7_connection_type
         self.port = port
         self.scan_interval = scan_interval
         self.op_timeout = op_timeout

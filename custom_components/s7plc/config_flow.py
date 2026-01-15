@@ -53,6 +53,7 @@ from .const import (
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_OPTIMIZE_READ,
+    CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REAL_PRECISION,
     CONF_REMOTE_TSAP,
@@ -79,12 +80,16 @@ from .const import (
     DEFAULT_OPERATE_TIME,
     DEFAULT_OPTIMIZE_READ,
     DEFAULT_PORT,
+    DEFAULT_PYS7_CONNECTION_TYPE,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DEFAULT_USE_STATE_TOPICS,
     DOMAIN,
     OPTION_KEYS,
+    PYS7_CONNECTION_TYPE_OP,
+    PYS7_CONNECTION_TYPE_PG,
+    PYS7_CONNECTION_TYPE_S7BASIC,
 )
 from .coordinator import S7Coordinator
 from .export import build_export_json, build_export_payload, register_export_download
@@ -247,6 +252,27 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
                 vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
                 vol.Optional(
+                    CONF_PYS7_CONNECTION_TYPE, default=DEFAULT_PYS7_CONNECTION_TYPE
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_PG,
+                                label="PG (Programming Console)",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_OP,
+                                label="OP (Operator Panel)",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_S7BASIC,
+                                label="S7 Basic",
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
                 ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
                 vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
@@ -309,6 +335,27 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_LOCAL_TSAP, default="01.00"): str,
                 vol.Required(CONF_REMOTE_TSAP, default="01.01"): str,
                 vol.Optional(
+                    CONF_PYS7_CONNECTION_TYPE, default=DEFAULT_PYS7_CONNECTION_TYPE
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_PG,
+                                label="PG (Programming Console)",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_OP,
+                                label="OP (Operator Panel)",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_S7BASIC,
+                                label="S7 Basic",
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
                 ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=3600)),
                 vol.Optional(CONF_OP_TIMEOUT, default=DEFAULT_OP_TIMEOUT): vol.All(
@@ -363,6 +410,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
             )
             name = user_input.get(CONF_NAME, "S7 PLC")
+            pys7_connection_type = user_input.get(
+                CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
+            )
 
             # Get connection parameters based on type
             connection_type = self._connection_data.get(
@@ -419,10 +469,12 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         coordinator = S7Coordinator(
             self.hass,
             host=host,
+            connection_type=connection_type,
             rack=rack,
             slot=slot,
             local_tsap=local_tsap,
             remote_tsap=remote_tsap,
+            pys7_connection_type=pys7_connection_type,
             port=port,
             scan_interval=scan_s,
             op_timeout=op_timeout,
@@ -520,6 +572,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_HOST: host,
             CONF_PORT: port,
             CONF_CONNECTION_TYPE: connection_type,
+            CONF_PYS7_CONNECTION_TYPE: pys7_connection_type,
             CONF_SCAN_INTERVAL: scan_s,
             CONF_OP_TIMEOUT: op_timeout,
             CONF_MAX_RETRIES: max_retries,

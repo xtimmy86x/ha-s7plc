@@ -120,6 +120,7 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
     def extra_state_attributes(self):
         attrs = {}
         attrs["s7_ip"] = self._coord.host
+        attrs["pys7_connection_type"] = self._coord._pys7_connection_type_str
         if self._coord.connection_type == "rack_slot":
             attrs["connection_type"] = "Rack/Slot"
             attrs["rack"] = self._coord.rack

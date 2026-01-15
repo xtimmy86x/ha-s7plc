@@ -17,6 +17,7 @@ from .const import (
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
+    CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REMOTE_TSAP,
     CONF_SLOT,
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPTIMIZE_READ,
     DEFAULT_PORT,
+    DEFAULT_PYS7_CONNECTION_TYPE,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
@@ -57,6 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     backoff_initial = float(data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL))
     backoff_max = float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
     optimize_read = bool(data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ))
+    pys7_connection_type = data.get(
+        CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
+    )
 
     # Get connection parameters based on type
     connection_type = data.get(CONF_CONNECTION_TYPE, "rack_slot")
@@ -82,6 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slot=slot,
         local_tsap=local_tsap,
         remote_tsap=remote_tsap,
+        pys7_connection_type=pys7_connection_type,
         port=port,
         scan_interval=scan_s,
         op_timeout=op_timeout,
