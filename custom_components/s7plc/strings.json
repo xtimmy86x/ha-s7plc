@@ -200,7 +200,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,DBX0.1).",
+          "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
@@ -219,7 +219,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,DBX0.0).",
+          "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0).",
           "command_address": "PLC address to write commands (optional). If omitted, only state will be read.",
           "name": "Optional friendly name for the switch.",
           "sync_state": "When enabled, the command address is automatically updated with the current state.",
@@ -381,7 +381,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,DBX0.1).",
+          "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
@@ -398,7 +398,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,DBX0.0).",
+          "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0).",
           "command_address": "PLC address to write commands (optional).",
           "name": "Optional friendly name for the switch.",
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
