@@ -684,3 +684,50 @@ def test_get_pdu_limit_no_attributes(coord_factory):
     
     result = coord._get_pdu_limit()
     assert result == 210  # 240 - 30 (default)
+
+
+def test_get_pdu_limit_cached(coord_factory, monkeypatch):
+    """Test _get_pdu_limit caches result for performance."""
+    coord = coord_factory()
+    
+    # Remove the monkeypatch for _drop_connection so we can test cache invalidation
+    monkeypatch.undo()
+    
+    # Create a mock client with a counter to track attribute access
+    access_count = {"count": 0}
+    
+    class MockClient:
+        def __init__(self):
+            self.socket = None  # Instance attribute
+        
+        def disconnect(self):
+            """Mock disconnect method."""
+            pass
+        
+        @property
+        def pdu_length(self):
+            access_count["count"] += 1
+            return 480
+    
+    coord._client = MockClient()
+    
+    # First call should access attribute
+    result1 = coord._get_pdu_limit()
+    assert result1 == 450  # 480 - 30
+    assert access_count["count"] == 1
+    
+    # Second call should use cache, not access attribute again
+    result2 = coord._get_pdu_limit()
+    assert result2 == 450
+    assert access_count["count"] == 1  # Still 1, not 2
+    
+    # After dropping connection, cache should be invalidated
+    coord._drop_connection()
+    assert coord._pdu_limit_cache is None  # Cache cleared
+    
+    # Reassign client and test cache is recalculated
+    coord._client = MockClient()
+    result3 = coord._get_pdu_limit()
+    assert result3 == 450
+    assert access_count["count"] == 2  # Accessed again after cache clear
+    assert access_count["count"] == 2  # Now 2, cache was invalidated

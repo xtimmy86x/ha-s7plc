@@ -135,6 +135,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # is not due for polling in the current cycle.
         self._data_cache: Dict[str, Any] = {}
 
+        # Performance: Cache PDU limit to avoid repeated attribute lookups
+        self._pdu_limit_cache: int | None = None
+
     @property
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
@@ -195,6 +198,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         2. On failure, attempt direct socket.close()
         3. Clear socket reference to enable reconnection
         """
+        # Invalidate PDU cache immediately - must happen regardless of client state
+        self._pdu_limit_cache = None
+
         if self._client:
             try:
                 self._client.disconnect()
@@ -595,16 +601,25 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _get_pdu_limit(self) -> int:
         """Calculate usable PDU size for payload, accounting for protocol headers.
 
+        Uses cached value if available to avoid repeated attribute lookups.
+        Cache is invalidated when connection is dropped.
+
         Returns:
             Maximum payload size in bytes (PDU size minus reserved header space),
             minimum value of 1 byte
         """
+        # Return cached value if available
+        if self._pdu_limit_cache is not None:
+            return self._pdu_limit_cache
+
+        # Calculate and cache the PDU limit
         size = getattr(
             self._client,
             "pdu_length",
             getattr(self._client, "pdu_size", self._DEFAULT_PDU_SIZE),
         )
-        return max(1, int(size) - self._PDU_HEADER_RESERVED)
+        self._pdu_limit_cache = max(1, int(size) - self._PDU_HEADER_RESERVED)
+        return self._pdu_limit_cache
 
     def _read_s7_string(self, db: int, start: int, is_wstring: bool = False) -> str:
         """Read S7 STRING or WSTRING from PLC memory.
