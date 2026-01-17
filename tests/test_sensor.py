@@ -24,7 +24,7 @@ def mock_coordinator():
     coord.data = {}
     coord._plans_str = {}
     coord._plans_batch = {}
-    coord.add_item = MagicMock()
+    coord.add_item = AsyncMock()
     coord.async_request_refresh = MagicMock(return_value=None)
     return coord
 
@@ -289,7 +289,7 @@ async def test_async_setup_entry_with_sensors():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.add_item = MagicMock()
+        mock_coord.add_item = AsyncMock()
         mock_coord.async_request_refresh = AsyncMock(return_value=None)
         mock_get_coord.return_value = (
             mock_coord,
@@ -434,7 +434,7 @@ async def test_async_setup_entry_default_names():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.add_item = MagicMock()
+        mock_coord.add_item = AsyncMock()
         mock_coord.async_request_refresh = AsyncMock(return_value=None)
         mock_get_coord.return_value = (
             mock_coord,

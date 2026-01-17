@@ -39,9 +39,7 @@ async def async_setup_entry(
         topic = f"light:{state_address}"
         unique_id = f"{device_id}:{topic}"
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await hass.async_add_executor_job(
-            coord.add_item, topic, state_address, scan_interval
-        )
+        await coord.add_item(topic, state_address, scan_interval)
         entities.append(
             S7Light(
                 coord,

@@ -34,7 +34,7 @@ def mock_coordinator():
     coord.data = {}
     coord.host = "192.168.1.100"
     coord.is_connected.return_value = True
-    coord.add_item = MagicMock()
+    coord.add_item = AsyncMock()
     coord.async_request_refresh = AsyncMock()
     coord.connection_type = "rack_slot"
     coord.rack = 0

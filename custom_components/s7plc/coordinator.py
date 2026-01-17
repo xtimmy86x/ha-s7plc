@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import struct
 import threading
@@ -100,7 +101,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._backoff_max = float(backoff_max)
         self._optimize_read = bool(optimize_read)
 
-        self._lock = threading.RLock()
+        # Lock for async operations (state management)
+        self._async_lock = asyncio.Lock()
+        # Lock for sync operations in executor (PLC communication)
+        self._sync_lock = threading.RLock()
         self._client: Optional[Any] = None  # S7Client when available
 
         # Address configuration: topic -> address string
@@ -226,23 +230,23 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
-        with self._lock:
+        with self._sync_lock:
             return bool(self._client and getattr(self._client, "socket", None))
 
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe)."""
-        with self._lock:
+        with self._sync_lock:
             self._ensure_connected()
 
     def disconnect(self) -> None:
         """Close the PLC connection (thread-safe)."""
-        with self._lock:
+        with self._sync_lock:
             self._drop_connection()
 
     # -------------------------
     # Address management
     # -------------------------
-    def add_item(
+    async def add_item(
         self,
         topic: str,
         address: str,
@@ -250,7 +254,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         real_precision: int | None = None,
     ) -> None:
         """Map a topic to a PLC address and invalidate caches."""
-        with self._lock:
+        async with self._async_lock:
             self._items[topic] = address
             self._item_scan_intervals[topic] = self._normalize_scan_interval(
                 scan_interval
@@ -374,7 +378,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     async def _async_update_data(self) -> Dict[str, Any]:
         now = time.monotonic()
 
-        with self._lock:
+        async with self._async_lock:
             if not self._plans_batch and not self._plans_str:
                 self._build_tag_cache()
             due_topics = [
@@ -400,13 +404,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             ]
 
         if not plans_batch and not plans_str:
-            return dict(self._data_cache)
+            async with self._async_lock:
+                return dict(self._data_cache)
 
         results = await self.hass.async_add_executor_job(
             self._read_all, plans_batch, plans_str
         )
 
-        with self._lock:
+        async with self._async_lock:
             read_time = time.monotonic()
             for topic in due_topics:
                 interval = self._item_scan_intervals.get(
@@ -571,7 +576,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _read_all(
         self, plans_batch: list[TagPlan], plans_str: list[StringPlan]
     ) -> Dict[str, Any]:
-        with self._lock:
+        with self._sync_lock:
             try:
                 self._ensure_connected()
             except (OSError, RuntimeError) as err:
@@ -616,18 +621,21 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Ad-hoc reads/writes
     # -------------------------
     def _read_one(self, address: str) -> Any:
-        tag = parse_tag(address)
-        if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
-            return self._read_s7_string(tag.db_number, tag.start)
-        # Changed in pyS7 1.5.0 optimized=True by default
-        value = self._retry(
-            lambda: self._client.read([tag], optimize=self._optimize_read)
-        )[0]
-        _LOGGER.debug("Read single tag %s optimize=%s", address, self._optimize_read)
-        # Normalize BIT to bool
-        if tag.data_type == DataType.BIT:
-            return bool(value)
-        return apply_postprocess(tag.data_type, value)
+        with self._sync_lock:
+            tag = parse_tag(address)
+            if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
+                return self._read_s7_string(tag.db_number, tag.start)
+            # Changed in pyS7 1.5.0 optimized=True by default
+            value = self._retry(
+                lambda: self._client.read([tag], optimize=self._optimize_read)
+            )[0]
+            _LOGGER.debug(
+                "Read single tag %s optimize=%s", address, self._optimize_read
+            )
+            # Normalize BIT to bool
+            if tag.data_type == DataType.BIT:
+                return bool(value)
+            return apply_postprocess(tag.data_type, value)
 
     def write_bool(self, address: str, value: bool) -> bool:
         tag = self._write_tags.get(address)
@@ -636,7 +644,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._write_tags[address] = tag
         if tag.data_type != DataType.BIT:
             raise ValueError("write_bool supports only bit addresses")
-        with self._lock:
+        with self._sync_lock:
             try:
                 self._ensure_connected()
                 self._retry(lambda: self._client.write([tag], [bool(value)]))
@@ -676,7 +684,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         else:  # pragma: no cover - defensive for unexpected future types
             raise ValueError("Unsupported data type for write_number")
 
-        with self._lock:
+        with self._sync_lock:
             try:
                 self._ensure_connected()
                 self._retry(lambda: self._client.write([tag], [payload]))

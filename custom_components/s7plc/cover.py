@@ -58,15 +58,11 @@ async def async_setup_entry(
 
         if opened_state:
             opened_topic = f"cover:opened:{opened_state}"
-            await hass.async_add_executor_job(
-                coord.add_item, opened_topic, opened_state, scan_interval
-            )
+            await coord.add_item(opened_topic, opened_state, scan_interval)
 
         if closed_state:
             closed_topic = f"cover:closed:{closed_state}"
-            await hass.async_add_executor_job(
-                coord.add_item, closed_topic, closed_state, scan_interval
-            )
+            await coord.add_item(closed_topic, closed_state, scan_interval)
 
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), open_command

@@ -734,7 +734,7 @@ class DummyCoordinator:
     def set_connected(self, value: bool):
         self._connected = value
 
-    def add_item(self, *args, **kwargs):
+    async def add_item(self, *args, **kwargs):
         return None
 
     def write_bool(self, address: str, value: bool) -> bool:

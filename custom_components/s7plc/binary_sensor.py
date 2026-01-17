@@ -44,7 +44,7 @@ async def async_setup_entry(
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await hass.async_add_executor_job(coord.add_item, topic, address, scan_interval)
+        await coord.add_item(topic, address, scan_interval)
 
         entities.append(
             S7BinarySensor(

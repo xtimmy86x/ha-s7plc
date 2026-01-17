@@ -499,7 +499,7 @@ def test_add_item_basic(coord_factory):
     """Test add_item stores item correctly."""
     coord = coord_factory()
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0")
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0"))
     
     assert "sensor:DB1,REAL0" in coord._items
     assert coord._items["sensor:DB1,REAL0"] == "DB1,REAL0"
@@ -509,7 +509,7 @@ def test_add_item_with_scan_interval(coord_factory):
     """Test add_item stores custom scan interval."""
     coord = coord_factory()
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", scan_interval=2.5)
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", scan_interval=2.5))
     
     assert coord._item_scan_intervals["sensor:DB1,REAL0"] == 2.5
 
@@ -518,7 +518,7 @@ def test_add_item_with_real_precision(coord_factory):
     """Test add_item stores real precision."""
     coord = coord_factory()
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2)
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2))
     
     assert coord._item_real_precisions["sensor:DB1,REAL0"] == 2
 
@@ -527,10 +527,10 @@ def test_add_item_clears_real_precision_when_none(coord_factory):
     """Test add_item removes precision when set to None."""
     coord = coord_factory()
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2)
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=2))
     assert "sensor:DB1,REAL0" in coord._item_real_precisions
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=None)
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0", real_precision=None))
     assert "sensor:DB1,REAL0" not in coord._item_real_precisions
 
 
@@ -543,7 +543,7 @@ def test_add_item_invalidates_cache(coord_factory, monkeypatch):
     coord._plans_str = {"fake": None}
     coord._write_tags = {"fake": None}
     
-    coord.add_item("sensor:DB1,REAL0", "DB1,REAL0")
+    asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0"))
     
     # Cache should be cleared
     assert len(coord._plans_batch) == 0

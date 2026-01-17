@@ -153,9 +153,7 @@ async def async_setup_entry(
         state_class = item.get(CONF_STATE_CLASS)
         real_precision = item.get(CONF_REAL_PRECISION)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await hass.async_add_executor_job(
-            coord.add_item, topic, address, scan_interval, real_precision
-        )
+        await coord.add_item(topic, address, scan_interval, real_precision)
         entities.append(
             S7Sensor(
                 coord,

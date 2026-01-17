@@ -30,7 +30,7 @@ def mock_coordinator():
     coord = MagicMock(spec=DummyCoordinator)
     coord.data = {}
     coord.is_connected.return_value = True
-    coord.add_item = MagicMock()
+    coord.add_item = AsyncMock()
     coord.async_request_refresh = AsyncMock()
     coord.write_bool = MagicMock(return_value=True)
     return coord
