@@ -174,14 +174,30 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Connection handling
     # -------------------------
     def _drop_connection(self) -> None:
+        """Safely close PLC connection, ensuring socket cleanup even on errors."""
         if self._client:
             try:
                 self._client.disconnect()
             except (OSError, RuntimeError) as err:  # pragma: no cover
-                _LOGGER.debug("Error during disconnection: %s", err)
-        # Do not reset the instance; only the socket will reconnect
+                _LOGGER.debug("Error during disconnect call: %s", err)
+                # Fallback: try to close socket directly if disconnect() failed
+                try:
+                    socket = getattr(self._client, "socket", None)
+                    if socket:
+                        socket.close()
+                        _LOGGER.debug("Socket closed directly after disconnect failure")
+                except Exception as socket_err:  # pragma: no cover
+                    _LOGGER.debug("Failed to close socket directly: %s", socket_err)
+            finally:
+                # Clear socket reference to ensure reconnection
+                try:
+                    if hasattr(self._client, "socket"):
+                        self._client.socket = None
+                except Exception:  # pragma: no cover
+                    pass
 
     def _ensure_connected(self) -> None:
+        """Ensure PLC connection is established, with proper cleanup on failure."""
         if self._client is None:
             if pyS7 is None:
                 raise RuntimeError("pyS7 not available")
@@ -227,6 +243,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 S7CommunicationError,
                 S7ConnectionError,
             ) as err:
+                # Ensure cleanup if connection failed
+                self._drop_connection()
                 raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
@@ -576,6 +594,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def _read_all(
         self, plans_batch: list[TagPlan], plans_str: list[StringPlan]
     ) -> Dict[str, Any]:
+        """Read all planned tags with proper resource cleanup."""
         with self._sync_lock:
             try:
                 self._ensure_connected()
@@ -614,6 +633,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             _LOGGER.exception("Read error")
             self._drop_connection()
             raise UpdateFailed(f"Read error: {err}") from err
+        except Exception as err:  # pragma: no cover - catch unexpected errors
+            _LOGGER.exception("Unexpected error during read")
+            self._drop_connection()
+            raise UpdateFailed(f"Unexpected read error: {err}") from err
 
         return results
 
@@ -638,6 +661,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             return apply_postprocess(tag.data_type, value)
 
     def write_bool(self, address: str, value: bool) -> bool:
+        """Write boolean value to PLC with proper error handling and cleanup."""
         tag = self._write_tags.get(address)
         if tag is None:
             tag = parse_tag(address)
@@ -659,9 +683,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 _LOGGER.exception("Write error %s", address)
                 self._drop_connection()
                 return False
+            except Exception:  # pragma: no cover - catch unexpected errors
+                _LOGGER.exception("Unexpected write error %s", address)
+                self._drop_connection()
+                return False
 
     def write_number(self, address: str, value: float) -> bool:
-        """Write a numeric value to the PLC."""
+        """Write numeric value to PLC with proper error handling and cleanup."""
 
         tag = self._write_tags.get(address)
         if tag is None:
@@ -697,5 +725,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 S7ReadResponseError,
             ):
                 _LOGGER.exception("Write error %s", address)
+                self._drop_connection()
+                return False
+            except Exception:  # pragma: no cover - catch unexpected errors
+                _LOGGER.exception("Unexpected write error %s", address)
                 self._drop_connection()
                 return False
