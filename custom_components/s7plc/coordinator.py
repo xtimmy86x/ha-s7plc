@@ -879,6 +879,54 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # -------------------------
     # Ad-hoc reads/writes
     # -------------------------
+    def _get_or_parse_tag(self, address: str) -> S7Tag:
+        """Get tag from cache or parse and cache it.
+
+        Args:
+            address: PLC address string
+
+        Returns:
+            Parsed S7Tag object
+        """
+        tag = self._write_tags.get(address)
+        if tag is None:
+            tag = parse_tag(address)
+            self._write_tags[address] = tag
+        return tag
+
+    def _write_with_retry(self, address: str, tag: S7Tag, payload: Any) -> bool:
+        """Execute write with retry and error handling.
+
+        Centralized error handling for PLC write operations.
+
+        Args:
+            address: PLC address string (for logging)
+            tag: Parsed S7Tag object
+            payload: Value to write
+
+        Returns:
+            True if write was successful, False otherwise
+        """
+        with self._sync_lock:
+            try:
+                self._ensure_connected()
+                self._retry(lambda: self._client.write([tag], [payload]))
+                return True
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+                S7ReadResponseError,
+            ):
+                _LOGGER.exception("Write error %s", address)
+                self._drop_connection()
+                return False
+            except Exception:  # pragma: no cover - catch unexpected errors
+                _LOGGER.exception("Unexpected write error %s", address)
+                self._drop_connection()
+                return False
+
     def _read_one(self, address: str) -> Any:
         """Read a single tag from PLC by address.
 
@@ -916,31 +964,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Returns:
             True if write was successful, False otherwise
         """
-        tag = self._write_tags.get(address)
-        if tag is None:
-            tag = parse_tag(address)
-            self._write_tags[address] = tag
+        tag = self._get_or_parse_tag(address)
         if tag.data_type != DataType.BIT:
             raise ValueError("write_bool supports only bit addresses")
-        with self._sync_lock:
-            try:
-                self._ensure_connected()
-                self._retry(lambda: self._client.write([tag], [bool(value)]))
-                return True
-            except (
-                OSError,
-                RuntimeError,
-                S7CommunicationError,
-                S7ConnectionError,
-                S7ReadResponseError,
-            ):
-                _LOGGER.exception("Write error %s", address)
-                self._drop_connection()
-                return False
-            except Exception:  # pragma: no cover - catch unexpected errors
-                _LOGGER.exception("Unexpected write error %s", address)
-                self._drop_connection()
-                return False
+        return self._write_with_retry(address, tag, bool(value))
 
     def write_number(self, address: str, value: float) -> bool:
         """Write numeric value to PLC with proper error handling and cleanup.
@@ -953,10 +980,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             True if write was successful, False otherwise
         """
 
-        tag = self._write_tags.get(address)
-        if tag is None:
-            tag = parse_tag(address)
-            self._write_tags[address] = tag
+        tag = self._get_or_parse_tag(address)
 
         if tag.data_type in (DataType.BIT, DataType.CHAR):
             raise ValueError("write_number requires a numeric address")
@@ -974,22 +998,4 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         else:  # pragma: no cover - defensive for unexpected future types
             raise ValueError("Unsupported data type for write_number")
 
-        with self._sync_lock:
-            try:
-                self._ensure_connected()
-                self._retry(lambda: self._client.write([tag], [payload]))
-                return True
-            except (
-                OSError,
-                RuntimeError,
-                S7CommunicationError,
-                S7ConnectionError,
-                S7ReadResponseError,
-            ):
-                _LOGGER.exception("Write error %s", address)
-                self._drop_connection()
-                return False
-            except Exception:  # pragma: no cover - catch unexpected errors
-                _LOGGER.exception("Unexpected write error %s", address)
-                self._drop_connection()
-                return False
+        return self._write_with_retry(address, tag, payload)

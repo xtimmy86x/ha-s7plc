@@ -83,6 +83,50 @@ class S7BaseEntity(CoordinatorEntity):
             attrs["real_precision"] = precision
         return attrs
 
+    async def _async_write_bool(
+        self, address: str, value: bool, *, error_msg: str | None = None
+    ) -> None:
+        """Write boolean value to PLC with error handling.
+
+        Args:
+            address: PLC address to write to
+            value: Boolean value to write
+            error_msg: Custom error message (defaults to generic message)
+
+        Raises:
+            HomeAssistantError: If write fails
+        """
+        success = await self.hass.async_add_executor_job(
+            self._coord.write_bool, address, value
+        )
+        if not success:
+            if error_msg is None:
+                error_msg = f"Failed to write {value} to PLC address {address}"
+            _LOGGER.error("%s", error_msg)
+            raise HomeAssistantError(f"Failed to send command to PLC: {address}.")
+
+    async def _async_write_number(
+        self, address: str, value: float, *, error_msg: str | None = None
+    ) -> None:
+        """Write numeric value to PLC with error handling.
+
+        Args:
+            address: PLC address to write to
+            value: Numeric value to write
+            error_msg: Custom error message (defaults to generic message)
+
+        Raises:
+            HomeAssistantError: If write fails
+        """
+        success = await self.hass.async_add_executor_job(
+            self._coord.write_number, address, value
+        )
+        if not success:
+            if error_msg is None:
+                error_msg = f"Failed to write {value} to PLC address {address}"
+            _LOGGER.error("%s", error_msg)
+            raise HomeAssistantError(f"Failed to send command to PLC: {address}.")
+
 
 class S7BoolSyncEntity(S7BaseEntity):
     """Base class for boolean entities with synchronization logic."""
@@ -159,17 +203,17 @@ class S7BoolSyncEntity(S7BaseEntity):
         """
         await self._ensure_connected()
         self._pending_command = True
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_bool, self._command_address, True
-        )
-        if not success:
-            _LOGGER.error(
-                "Failed to write True to PLC address %s", self._command_address
+        try:
+            await self._async_write_bool(
+                self._command_address,
+                True,
+                error_msg=(
+                    f"Failed to write True to PLC address {self._command_address}"
+                ),
             )
+        except HomeAssistantError:
             self._pending_command = None
-            raise HomeAssistantError(
-                f"Failed to send command to PLC: {self._command_address}."
-            )
+            raise
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -180,17 +224,17 @@ class S7BoolSyncEntity(S7BaseEntity):
         """
         await self._ensure_connected()
         self._pending_command = False
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_bool, self._command_address, False
-        )
-        if not success:
-            _LOGGER.error(
-                "Failed to write False to PLC address %s", self._command_address
+        try:
+            await self._async_write_bool(
+                self._command_address,
+                False,
+                error_msg=(
+                    f"Failed to write False to PLC address {self._command_address}"
+                ),
             )
+        except HomeAssistantError:
             self._pending_command = None
-            raise HomeAssistantError(
-                f"Failed to send command to PLC: {self._command_address}."
-            )
+            raise
         await self.coordinator.async_request_refresh()
 
     @callback
