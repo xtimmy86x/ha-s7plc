@@ -24,6 +24,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import Event, HomeAssistant, State, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -448,9 +449,12 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 return
 
             # Write boolean to PLC
-            success = await self.hass.async_add_executor_job(
-                self._coord.write_bool, self._address, bool_value
-            )
+            try:
+                await self._async_write_bool(self._address, bool_value)
+                success = True
+            except HomeAssistantError:
+                success = False
+
             _LOGGER.debug(
                 "EntitySync %s: Write attempt of boolean value %s to %s returned %s",
                 self.name,
@@ -501,9 +505,12 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 return
 
             # Write to PLC
-            success = await self.hass.async_add_executor_job(
-                self._coord.write_number, self._address, value
-            )
+            try:
+                await self._async_write_number(self._address, value)
+                success = True
+            except HomeAssistantError:
+                success = False
+
             _LOGGER.debug(
                 "EntitySync %s: Write attempt of value %.2f to %s returned %s",
                 self.name,

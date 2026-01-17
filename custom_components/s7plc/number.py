@@ -226,16 +226,13 @@ class S7Number(S7BaseEntity, NumberEntity):
         if not self._command_address:
             raise HomeAssistantError("No command address configured for this entity.")
 
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_number, self._command_address, float(value)
+        await self._async_write_number(
+            self._command_address,
+            float(value),
+            error_msg=(
+                f"Failed to write {value:.3f} to PLC address {self._command_address}",
+            ),
         )
-        if not success:
-            _LOGGER.error(
-                "Failed to write %.3f to PLC address %s", value, self._command_address
-            )
-            raise HomeAssistantError(
-                f"Failed to send command to PLC: {self._command_address}."
-            )
         await self.coordinator.async_request_refresh()
 
     @property

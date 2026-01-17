@@ -227,16 +227,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_open_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("close")
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_bool, self._open_command_address, True
+        await self._async_write_bool(
+            self._open_command_address,
+            True,
+            error_msg=(
+                f"Failed to write True to PLC address {self._open_command_address}"
+            ),
         )
-        if not success:
-            _LOGGER.error(
-                "Failed to write True to PLC address %s", self._open_command_address
-            )
-            raise HomeAssistantError(
-                f"Failed to send open command to PLC: {self._open_command_address}."
-            )
         self._is_opening = True
         self._is_closing = False
         if not self._use_state_topics:
@@ -248,16 +245,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_close_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("open")
-        success = await self.hass.async_add_executor_job(
-            self._coord.write_bool, self._close_command_address, True
+        await self._async_write_bool(
+            self._close_command_address,
+            True,
+            error_msg=(
+                f"Failed to write True to PLC address {self._close_command_address}"
+            ),
         )
-        if not success:
-            _LOGGER.error(
-                "Failed to write True to PLC address %s", self._close_command_address
-            )
-            raise HomeAssistantError(
-                f"Failed to send close command to PLC: {self._close_command_address}."
-            )
         self._is_opening = False
         self._is_closing = True
         if not self._use_state_topics:
@@ -355,15 +349,17 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         success = True
         if address:
-            success = await self.hass.async_add_executor_job(
-                self._coord.write_bool, address, False
-            )
-            if not success:
-                _LOGGER.error(
-                    "Failed to reset PLC address %s while stopping %s command",
+            try:
+                await self._async_write_bool(
                     address,
-                    direction,
+                    False,
+                    error_msg=(
+                        f"Failed to reset PLC address {address} "
+                        f"while stopping {direction} command"
+                    ),
                 )
+            except HomeAssistantError:
+                success = False
 
         if direction == "open":
             self._is_opening = False
@@ -384,15 +380,17 @@ class S7Cover(S7BaseEntity, CoverEntity):
             else self._close_command_address
         )
         if address:
-            success = await self.hass.async_add_executor_job(
-                self._coord.write_bool, address, False
-            )
-            if not success:
-                _LOGGER.error(
-                    "Failed to reset PLC address %s after %s operation",
+            try:
+                await self._async_write_bool(
                     address,
-                    direction,
+                    False,
+                    error_msg=(
+                        f"Failed to reset PLC address {address} "
+                        f"after {direction} operation"
+                    ),
                 )
+            except HomeAssistantError:
+                pass  # Non-critical, already logged
         self._is_opening = False
         self._is_closing = False
 
