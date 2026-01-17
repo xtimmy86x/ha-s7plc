@@ -201,7 +201,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Invalidate PDU cache immediately - must happen regardless of client state
         self._pdu_limit_cache = None
 
-        if self._client:
+        if self._client and self._client.is_connected:
             try:
                 self._client.disconnect()
             except (OSError, RuntimeError) as err:  # pragma: no cover
@@ -283,13 +283,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def is_connected(self) -> bool:
         """Check if PLC connection is active.
 
-        Thread-safe check for client and socket existence.
+        Thread-safe check using S7Client's is_connected property.
+
+        Note:
+            Requires pyS7 >= 2.3.0 for is_connected property support.
 
         Returns:
-            True if client exists and has an active socket
+            True if client exists and is connected
         """
         with self._sync_lock:
-            return bool(self._client and getattr(self._client, "socket", None))
+            return bool(self._client and self._client.is_connected)
 
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe).

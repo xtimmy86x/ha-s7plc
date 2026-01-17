@@ -435,24 +435,24 @@ def test_is_connected_no_client():
 
 
 def test_is_connected_client_no_socket(monkeypatch):
-    """Test is_connected when client exists but no socket."""
+    """Test is_connected when client exists but not connected."""
     hass = coordinator.HomeAssistant()
     coord = S7Coordinator(hass, host="plc.local")
     
-    # Mock client without socket
-    mock_client = type('MockClient', (), {})()
+    # Mock client that is not connected
+    mock_client = type('MockClient', (), {'is_connected': False})()
     coord._client = mock_client
     
     assert coord.is_connected() is False
 
 
 def test_is_connected_with_socket(monkeypatch):
-    """Test is_connected when client has socket."""
+    """Test is_connected when client is connected."""
     hass = coordinator.HomeAssistant()
     coord = S7Coordinator(hass, host="plc.local")
     
-    # Mock client with socket
-    mock_client = type('MockClient', (), {'socket': object()})()
+    # Mock client that is connected
+    mock_client = type('MockClient', (), {'is_connected': True})()
     coord._client = mock_client
     
     assert coord.is_connected() is True
@@ -699,10 +699,11 @@ def test_get_pdu_limit_cached(coord_factory, monkeypatch):
     class MockClient:
         def __init__(self):
             self.socket = None  # Instance attribute
+            self.is_connected = True  # Add is_connected property
         
         def disconnect(self):
             """Mock disconnect method."""
-            pass
+            self.is_connected = False
         
         @property
         def pdu_length(self):
