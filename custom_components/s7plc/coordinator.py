@@ -51,6 +51,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     _MIN_SCAN_INTERVAL = 0.05  # seconds
 
+    # PDU (Protocol Data Unit) size constants
+    _DEFAULT_PDU_SIZE = 240  # Default PDU size for S7 communication (bytes)
+    _PDU_HEADER_RESERVED = 30  # Reserved space for PDU headers (bytes)
+    # Note: Snap7 internally reserves ~18 bytes for headers, we use 30 for safety margin
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -513,11 +518,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             return dict(self._data_cache)
 
     def _get_pdu_limit(self) -> int:
-        # payload < PDU to leave space for headers (snap7 reserves ~18B)
+        """Calculate usable PDU size for payload, accounting for protocol headers."""
         size = getattr(
-            self._client, "pdu_length", getattr(self._client, "pdu_size", 240)
+            self._client,
+            "pdu_length",
+            getattr(self._client, "pdu_size", self._DEFAULT_PDU_SIZE),
         )
-        return max(1, int(size) - 30)
+        return max(1, int(size) - self._PDU_HEADER_RESERVED)
 
     def _read_s7_string(self, db: int, start: int, is_wstring: bool = False) -> str:
         # WSTRING: 4-byte header (2 bytes max_len, 2 bytes cur_len), UTF-16 data
