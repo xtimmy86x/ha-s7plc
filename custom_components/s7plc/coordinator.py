@@ -356,37 +356,109 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """
         attempt = 0
         last_exc: Exception | None = None
+        error_category = "unknown"
+
         while attempt <= self._max_retries:
             try:
                 # Ensure connection before each attempt
                 self._ensure_connected()
                 return func(*args, **kwargs)
-            except (
-                OSError,
-                RuntimeError,
-                IndexError,
-                struct.error,
-                S7CommunicationError,
-                S7ConnectionError,
-                S7ReadResponseError,
-            ) as e:  # log, drop connection and retry
+            except (S7CommunicationError, S7ConnectionError) as e:
+                # S7-specific communication errors (most common)
                 last_exc = e
+                error_category = "s7_communication"
                 _LOGGER.debug(
-                    "Attempt %s failed: %s",
+                    "S7 communication error on attempt %s/%s: %s",
                     attempt + 1,
+                    self._max_retries + 1,
                     e,
-                    exc_info=isinstance(e, IndexError),
                 )
                 self._drop_connection()
-                if attempt == self._max_retries:
-                    break
-                backoff = min(self._backoff_initial * (2**attempt), self._backoff_max)
-                self._sleep(backoff)
-                attempt += 1
-        # Attempts exhausted
+            except S7ReadResponseError as e:
+                # S7 response parsing errors
+                last_exc = e
+                error_category = "s7_response"
+                _LOGGER.debug(
+                    "S7 response error on attempt %s/%s: %s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
+                )
+                self._drop_connection()
+            except OSError as e:
+                # Network/socket errors
+                last_exc = e
+                error_category = "network"
+                _LOGGER.debug(
+                    "Network error on attempt %s/%s: %s (errno: %s)",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
+                    getattr(e, "errno", "unknown"),
+                )
+                self._drop_connection()
+            except struct.error as e:
+                # Data parsing errors (usually indicates protocol mismatch)
+                last_exc = e
+                error_category = "data_parsing"
+                _LOGGER.warning(
+                    "Data parsing error on attempt %s/%s: %s (check PLC data type)",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
+                )
+                self._drop_connection()
+            except IndexError as e:
+                # Array access errors (unexpected response size)
+                last_exc = e
+                error_category = "unexpected_response"
+                _LOGGER.warning(
+                    "Unexpected response size on attempt %s/%s: %s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
+                    exc_info=True,
+                )
+                self._drop_connection()
+            except RuntimeError as e:
+                # Generic runtime errors (catch-all for pyS7 issues)
+                last_exc = e
+                error_category = "runtime"
+                _LOGGER.debug(
+                    "Runtime error on attempt %s/%s: %s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    e,
+                )
+                self._drop_connection()
+
+            # Check if we should retry
+            if attempt == self._max_retries:
+                break
+
+            # Exponential backoff
+            backoff = min(self._backoff_initial * (2**attempt), self._backoff_max)
+            _LOGGER.debug(
+                "Retrying after %.2fs backoff (attempt %s/%s, error: %s)",
+                backoff,
+                attempt + 1,
+                self._max_retries,
+                error_category,
+            )
+            self._sleep(backoff)
+            attempt += 1
+
+        # All attempts exhausted
         if last_exc is not None:
+            _LOGGER.error(
+                "Operation failed after %s attempts (category: %s): %s",
+                self._max_retries + 1,
+                error_category,
+                last_exc,
+            )
             raise RuntimeError(
-                f"Operation failed after retries: {last_exc}"
+                f"Operation failed after {self._max_retries + 1} attempts "
+                f"({error_category}): {last_exc}"
             ) from last_exc
         raise RuntimeError("Operation failed without specific exception")
 
@@ -554,14 +626,19 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             for k, v in zip(order, values):
                 for plan in groups[k]:
                     results[plan.topic] = plan.postprocess(v) if plan.postprocess else v
+        except (OSError, RuntimeError) as err:
+            _LOGGER.error("Batch read failed for %d tags: %s", len(plans_batch), err)
+            raise
         except (
-            OSError,
-            RuntimeError,
             S7CommunicationError,
             S7ConnectionError,
             S7ReadResponseError,
-        ):
-            _LOGGER.exception("Batch read error")
+        ) as err:
+            _LOGGER.error(
+                "S7 communication error during batch read of %d tags: %s",
+                len(plans_batch),
+                err,
+            )
             raise
         return results
 
@@ -581,14 +658,30 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     plan.db, plan.start, plan.is_wstring
                 )
             except (
-                OSError,
-                RuntimeError,
                 S7CommunicationError,
                 S7ConnectionError,
                 S7ReadResponseError,
             ) as err:
-                _LOGGER.exception("String read error %s", plan.topic)
-                raise UpdateFailed(f"String read error {plan.topic}: {err}") from err
+                _LOGGER.error(
+                    "String read error: "
+                    "S7 communication error reading %s (DB%d.%d): %s",
+                    plan.topic,
+                    plan.db,
+                    plan.start,
+                    err,
+                )
+                raise UpdateFailed(
+                    f"S7 error reading string {plan.topic}: {err}"
+                ) from err
+            except (OSError, RuntimeError) as err:
+                _LOGGER.error(
+                    "String read error: Network/runtime error reading %s (DB%d.%d): %s",
+                    plan.topic,
+                    plan.db,
+                    plan.start,
+                    err,
+                )
+                raise UpdateFailed(f"Error reading string {plan.topic}: {err}") from err
         return results
 
     def _read_all(
