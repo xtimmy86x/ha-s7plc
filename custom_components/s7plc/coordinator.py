@@ -6,7 +6,7 @@ import struct
 import threading
 import time
 from datetime import timedelta
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, TypeVar, Union
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -40,7 +40,8 @@ else:  # pragma: no cover - library absent in tests
     ConnectionType = None
 
 
-S7ClientT = "pyS7.S7Client"
+# Type variable for S7Client (pyS7.S7Client when available)
+S7ClientT = TypeVar("S7ClientT")
 
 
 # -----------------------------
@@ -53,8 +54,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     # PDU (Protocol Data Unit) size constants
     _DEFAULT_PDU_SIZE = 240  # Default PDU size for S7 communication (bytes)
-    _PDU_HEADER_RESERVED = 30  # Reserved space for PDU headers (bytes)
-    # Note: Snap7 internally reserves ~18 bytes for headers, we use 30 for safety margin
+    _PDU_HEADER_RESERVED = (
+        30  # Leave space in PDU for headers to avoid oversize read chunks
+    )
 
     def __init__(
         self,
@@ -110,36 +112,43 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._async_lock = asyncio.Lock()
         # Lock for sync operations in executor (PLC communication)
         self._sync_lock = threading.RLock()
-        self._client: Optional[Any] = None  # S7Client when available
+        self._client: Any | None = None  # pyS7.S7Client when available
 
         # Address configuration: topic -> address string
         self._items: Dict[str, str] = {}
 
         # Read plan cache
-        self._plans_batch: dict[str, TagPlan] = {}
-        self._plans_str: dict[str, StringPlan] = {}
+        self._plans_batch: Dict[str, TagPlan] = {}
+        self._plans_str: Dict[str, StringPlan] = {}
 
         # Cache for parsed tags used by writes
-        self._write_tags: dict[str, S7Tag] = {}
+        self._write_tags: Dict[str, S7Tag] = {}
 
         # Scan interval bookkeeping
-        self._item_scan_intervals: dict[str, float] = {}
-        self._item_next_read: dict[str, float] = {}
+        self._item_scan_intervals: Dict[str, float] = {}
+        self._item_next_read: Dict[str, float] = {}
 
         # Precision for REAL items (topic -> decimals or None for full precision)
-        self._item_real_precisions: dict[str, int | None] = {}
+        self._item_real_precisions: Dict[str, int | None] = {}
 
         # Store the latest values so entities keep their last state when a tag
         # is not due for polling in the current cycle.
-        self._data_cache: dict[str, Any] = {}
+        self._data_cache: Dict[str, Any] = {}
 
     @property
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
         return self._host
 
-    def _get_connection_type_enum(self, connection_type_str: str):
-        """Convert string connection type to pyS7 ConnectionType enum."""
+    def _get_connection_type_enum(self, connection_type_str: str) -> Any | None:
+        """Convert string connection type to pyS7 ConnectionType enum.
+
+        Args:
+            connection_type_str: String identifier ('pg', 'op', or 's7basic')
+
+        Returns:
+            Corresponding ConnectionType enum value, or None if library unavailable
+        """
         if ConnectionType is None:
             return None
 
@@ -179,7 +188,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Connection handling
     # -------------------------
     def _drop_connection(self) -> None:
-        """Safely close PLC connection, ensuring socket cleanup even on errors."""
+        """Safely close PLC connection, ensuring socket cleanup even on errors.
+
+        Uses multi-level cleanup strategy:
+        1. Call disconnect() on client
+        2. On failure, attempt direct socket.close()
+        3. Clear socket reference to enable reconnection
+        """
         if self._client:
             try:
                 self._client.disconnect()
@@ -202,7 +217,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     pass
 
     def _ensure_connected(self) -> None:
-        """Ensure PLC connection is established, with proper cleanup on failure."""
+        """Ensure PLC connection is established, with proper cleanup on failure.
+
+        Creates S7Client if needed and establishes connection using either
+        TSAP or rack/slot addressing.
+
+        Raises:
+            RuntimeError: If pyS7 unavailable or connection fails
+        """
         if self._client is None:
             if pyS7 is None:
                 raise RuntimeError("pyS7 not available")
@@ -253,16 +275,29 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
+        """Check if PLC connection is active.
+
+        Thread-safe check for client and socket existence.
+
+        Returns:
+            True if client exists and has an active socket
+        """
         with self._sync_lock:
             return bool(self._client and getattr(self._client, "socket", None))
 
     def connect(self) -> None:
-        """Establish the connection if needed (thread-safe)."""
+        """Establish the connection if needed (thread-safe).
+
+        Wrapper around _ensure_connected with thread synchronization.
+        """
         with self._sync_lock:
             self._ensure_connected()
 
     def disconnect(self) -> None:
-        """Close the PLC connection (thread-safe)."""
+        """Close the PLC connection (thread-safe).
+
+        Wrapper around _drop_connection with thread synchronization.
+        """
         with self._sync_lock:
             self._drop_connection()
 
@@ -273,10 +308,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self,
         topic: str,
         address: str,
-        scan_interval: float | int | None = None,
+        scan_interval: Union[float, int, None] = None,
         real_precision: int | None = None,
     ) -> None:
-        """Map a topic to a PLC address and invalidate caches."""
+        """Map a topic to a PLC address and invalidate caches.
+
+        Args:
+            topic: Unique identifier for this data point
+            address: PLC address string (e.g., 'DB1.DBX0.0')
+            scan_interval: Custom scan interval (seconds), None for default
+            real_precision: Decimal places for REAL values, None for full precision
+        """
         async with self._async_lock:
             self._items[topic] = address
             self._item_scan_intervals[topic] = self._normalize_scan_interval(
@@ -291,21 +333,35 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._update_min_interval_locked()
 
     def _invalidate_cache(self) -> None:
-        """Clear read and write plan caches."""
+        """Clear read and write plan caches.
+
+        Called when items are added or modified to ensure plans are rebuilt.
+        """
         self._plans_batch.clear()
         self._plans_str.clear()
         self._write_tags.clear()
 
     def _build_tag_cache(self) -> None:
-        """Build read plans for scalar and string tags."""
+        """Build read plans for scalar and string tags.
+
+        Separates items into batch-readable scalars and strings that require
+        individual handling. Stores results in _plans_batch and _plans_str.
+        """
         plans_batch, plans_str = build_plans(
             self._items, precisions=self._item_real_precisions
         )
         self._plans_batch = {plan.topic: plan for plan in plans_batch}
         self._plans_str = {plan.topic: plan for plan in plans_str}
 
-    def _normalize_scan_interval(self, scan_interval: float | int | None) -> float:
-        """Return a sanitized scan interval for an item."""
+    def _normalize_scan_interval(self, scan_interval: Union[float, int, None]) -> float:
+        """Return a sanitized scan interval for an item.
+
+        Args:
+            scan_interval: Requested scan interval (seconds) or None for default
+
+        Returns:
+            Validated scan interval, enforcing minimum and default values
+        """
 
         if scan_interval is None:
             return self._default_scan_interval
@@ -319,7 +375,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return max(interval, self._MIN_SCAN_INTERVAL)
 
     def _update_min_interval_locked(self) -> None:
-        """Update the coordinator polling interval based on registered tags."""
+        """Update the coordinator polling interval based on registered tags.
+
+        Sets update_interval to the minimum of all item scan intervals,
+        ensuring it doesn't go below _MIN_SCAN_INTERVAL.
+        """
 
         if self._item_scan_intervals:
             min_interval = min(self._item_scan_intervals.values())
@@ -333,7 +393,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Retry/timeout helpers
     # -------------------------
     def _sleep(self, seconds: float) -> None:
-        """Sleep for the specified duration, handling interruptions gracefully."""
+        """Sleep for the specified duration, handling interruptions gracefully.
+
+        Args:
+            seconds: Duration to sleep (seconds), negative values are clamped to 0
+        """
         try:
             time.sleep(max(0.0, seconds))
         except OSError as err:
@@ -471,6 +535,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Update loop
     # -------------------------
     async def _async_update_data(self) -> Dict[str, Any]:
+        """Fetch data from PLC (called by DataUpdateCoordinator).
+
+        Determines which tags are due for reading based on their individual
+        scan intervals, reads them via executor, and updates the cache.
+
+        Returns:
+            Dictionary of all cached values (due and non-due items)
+
+        Raises:
+            UpdateFailed: On connection or read errors
+        """
         now = time.monotonic()
 
         async with self._async_lock:
@@ -518,7 +593,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             return dict(self._data_cache)
 
     def _get_pdu_limit(self) -> int:
-        """Calculate usable PDU size for payload, accounting for protocol headers."""
+        """Calculate usable PDU size for payload, accounting for protocol headers.
+
+        Returns:
+            Maximum payload size in bytes (PDU size minus reserved header space),
+            minimum value of 1 byte
+        """
         size = getattr(
             self._client,
             "pdu_length",
@@ -527,6 +607,20 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return max(1, int(size) - self._PDU_HEADER_RESERVED)
 
     def _read_s7_string(self, db: int, start: int, is_wstring: bool = False) -> str:
+        """Read S7 STRING or WSTRING from PLC memory.
+
+        Handles both STRING (Latin-1, max 254 chars)
+        and WSTRING (UTF-16, max 16382 chars).
+        Reads in chunks if string exceeds PDU limit.
+
+        Args:
+            db: Data block number
+            start: Starting byte address in the data block
+            is_wstring: True for WSTRING (UTF-16), False for STRING (Latin-1)
+
+        Returns:
+            Decoded string content
+        """
         # WSTRING: 4-byte header (2 bytes max_len, 2 bytes cur_len), UTF-16 data
         # STRING: 2-byte header (1 byte max_len, 1 byte cur_len), Latin-1 data
         header_size = 4 if is_wstring else 2
@@ -596,7 +690,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         else:
             return bytes(data).decode("latin-1", errors="ignore")
 
-    def _tag_key(self, tag) -> tuple:
+    def _tag_key(self, tag: S7Tag) -> tuple[Any, ...]:
+        """Generate a unique key for tag deduplication.
+
+        Args:
+            tag: S7Tag instance to generate key for
+
+        Returns:
+            Tuple of tag attributes that uniquely identify it
+        """
         return (
             tag.memory_area,
             tag.db_number,
@@ -606,8 +708,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tag.length,
         )
 
-    def _read_batch(self, plans_batch: list[TagPlan]) -> Dict[str, Any]:
-        """Read scalar tags in batch handling deduplication and post-processing."""
+    def _read_batch(self, plans_batch: List[TagPlan]) -> Dict[str, Any]:
+        """Read scalar tags in batch handling deduplication and post-processing.
+
+        Args:
+            plans_batch: List of TagPlan objects for scalar reads
+
+        Returns:
+            Dictionary mapping topic names to their read values
+
+        Raises:
+            OSError, RuntimeError, S7 errors: On communication failures
+        """
         results: Dict[str, Any] = {}
         if not plans_batch:
             return results
@@ -650,9 +762,20 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return results
 
     def _read_strings(
-        self, plans_str: list[StringPlan], deadline: float
+        self, plans_str: List[StringPlan], deadline: float
     ) -> Dict[str, Any]:
-        """Read strings respecting an absolute deadline."""
+        """Read strings respecting an absolute deadline.
+
+        Args:
+            plans_str: List of StringPlan objects for string reads
+            deadline: Absolute monotonic timestamp to stop reading
+
+        Returns:
+            Dictionary mapping topic names to their string values
+
+        Raises:
+            UpdateFailed: On timeout or communication failures
+        """
         results: Dict[str, Any] = {}
         for plan in plans_str:
             if time.monotonic() > deadline:
@@ -692,9 +815,22 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return results
 
     def _read_all(
-        self, plans_batch: list[TagPlan], plans_str: list[StringPlan]
+        self, plans_batch: List[TagPlan], plans_str: List[StringPlan]
     ) -> Dict[str, Any]:
-        """Read all planned tags with proper resource cleanup."""
+        """Read all planned tags with proper resource cleanup.
+
+        Executed in executor thread pool to avoid blocking async event loop.
+
+        Args:
+            plans_batch: List of scalar tag plans to read
+            plans_str: List of string plans to read
+
+        Returns:
+            Dictionary mapping all topic names to their values
+
+        Raises:
+            UpdateFailed: On connection or read failures
+        """
         with self._sync_lock:
             try:
                 self._ensure_connected()
@@ -744,6 +880,16 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Ad-hoc reads/writes
     # -------------------------
     def _read_one(self, address: str) -> Any:
+        """Read a single tag from PLC by address.
+
+        Handles both strings and scalar values. Thread-safe via sync_lock.
+
+        Args:
+            address: PLC address string (e.g., 'DB1.DBX0.0', 'DB1.DBW10')
+
+        Returns:
+            Value read from PLC (type depends on tag data type)
+        """
         with self._sync_lock:
             tag = parse_tag(address)
             if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
@@ -761,7 +907,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             return apply_postprocess(tag.data_type, value)
 
     def write_bool(self, address: str, value: bool) -> bool:
-        """Write boolean value to PLC with proper error handling and cleanup."""
+        """Write boolean value to PLC with proper error handling and cleanup.
+
+        Args:
+            address: PLC address for the boolean tag
+            value: Boolean value to write
+
+        Returns:
+            True if write was successful, False otherwise
+        """
         tag = self._write_tags.get(address)
         if tag is None:
             tag = parse_tag(address)
@@ -789,7 +943,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 return False
 
     def write_number(self, address: str, value: float) -> bool:
-        """Write numeric value to PLC with proper error handling and cleanup."""
+        """Write numeric value to PLC with proper error handling and cleanup.
+
+        Args:
+            address: PLC address for the numeric tag
+            value: Numeric value to write (converted to int or float based on data type)
+
+        Returns:
+            True if write was successful, False otherwise
+        """
 
         tag = self._write_tags.get(address)
         if tag is None:

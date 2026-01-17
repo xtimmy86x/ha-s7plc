@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any, Dict
 
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+if TYPE_CHECKING:
+    from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,16 +22,26 @@ class S7BaseEntity(CoordinatorEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: S7Coordinator,
         *,
         name: str | None = None,
         unique_id: str,
         device_info: DeviceInfo,
         topic: str | None = None,
         address: str | None = None,
-    ):
+    ) -> None:
+        """Initialize S7 base entity.
+
+        Args:
+            coordinator: S7 coordinator instance
+            name: Optional entity name
+            unique_id: Unique identifier for the entity
+            device_info: Device information for entity grouping
+            topic: Optional topic name for data lookup
+            address: Optional PLC address string
+        """
         super().__init__(coordinator)
-        self._coord = coordinator
+        self._coord: S7Coordinator = coordinator
         if name is not None:
             self._attr_name = name
         self._attr_unique_id = unique_id
@@ -35,7 +49,12 @@ class S7BaseEntity(CoordinatorEntity):
         self._topic = topic
         self._address = address
 
-    async def _ensure_connected(self):
+    async def _ensure_connected(self) -> None:
+        """Ensure PLC connection is active before command execution.
+
+        Raises:
+            HomeAssistantError: If PLC is not connected
+        """
         if not self.available:
             raise HomeAssistantError("PLC not connected: cannot execute command.")
 
@@ -49,8 +68,9 @@ class S7BaseEntity(CoordinatorEntity):
         return (self._topic in data) and (data[self._topic] is not None)
 
     @property
-    def extra_state_attributes(self):
-        attrs = {}
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return entity state attributes including S7-specific info."""
+        attrs: Dict[str, Any] = {}
         if self._address:
             attrs["s7_address"] = self._address.upper()
         interval = self._coord._item_scan_intervals.get(
@@ -69,7 +89,7 @@ class S7BoolSyncEntity(S7BaseEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: S7Coordinator,
         *,
         name: str | None = None,
         unique_id: str,
@@ -78,7 +98,19 @@ class S7BoolSyncEntity(S7BaseEntity):
         state_address: str,
         command_address: str,
         sync_state: bool,
-    ):
+    ) -> None:
+        """Initialize boolean sync entity.
+
+        Args:
+            coordinator: S7 coordinator instance
+            name: Optional entity name
+            unique_id: Unique identifier for the entity
+            device_info: Device information for entity grouping
+            topic: Topic name for state data lookup
+            state_address: PLC address to read state from
+            command_address: PLC address to write commands to
+            sync_state: Whether to sync state changes back to PLC
+        """
         super().__init__(
             coordinator,
             name=name,
@@ -98,8 +130,9 @@ class S7BoolSyncEntity(S7BaseEntity):
         return None if val is None else bool(val)
 
     @property
-    def extra_state_attributes(self):
-        attrs = {}
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return entity state attributes with command/state address info."""
+        attrs: Dict[str, Any] = {}
         if self._address:
             attrs["s7_state_address"] = self._address.upper()
             attrs["s7_command_address"] = self._command_address.upper()
@@ -109,11 +142,21 @@ class S7BoolSyncEntity(S7BaseEntity):
         attrs["scan_interval"] = interval
         return attrs
 
-    async def _ensure_connected(self):
+    async def _ensure_connected(self) -> None:
+        """Ensure PLC connection is active before command execution.
+
+        Raises:
+            HomeAssistantError: If PLC is not connected
+        """
         if not self.available:
             raise HomeAssistantError("PLC not connected: cannot execute command.")
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on by writing True to PLC.
+
+        Raises:
+            HomeAssistantError: If write fails or PLC not connected
+        """
         await self._ensure_connected()
         self._pending_command = True
         success = await self.hass.async_add_executor_job(
@@ -129,7 +172,12 @@ class S7BoolSyncEntity(S7BaseEntity):
             )
         await self.coordinator.async_request_refresh()
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off by writing False to PLC.
+
+        Raises:
+            HomeAssistantError: If write fails or PLC not connected
+        """
         await self._ensure_connected()
         self._pending_command = False
         success = await self.hass.async_add_executor_job(
