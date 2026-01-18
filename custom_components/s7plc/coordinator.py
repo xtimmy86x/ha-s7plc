@@ -1034,7 +1034,12 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         tag = self._get_or_parse_tag(address)
 
-        if tag.data_type in (DataType.BIT, DataType.CHAR):
+        if tag.data_type in (
+            DataType.BIT,
+            DataType.CHAR,
+            DataType.STRING,
+            DataType.WSTRING,
+        ):
             raise ValueError("write_number requires a numeric address")
 
         if tag.data_type == DataType.REAL:
