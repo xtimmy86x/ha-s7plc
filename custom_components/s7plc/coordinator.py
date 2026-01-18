@@ -955,22 +955,56 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         Returns:
             Value read from PLC (type depends on tag data type)
+
+        Raises:
+            RuntimeError: On connection or read failures
         """
         with self._sync_lock:
-            tag = parse_tag(address)
-            if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
-                return self._read_s7_string(tag.db_number, tag.start)
-            # Changed in pyS7 1.5.0 optimized=True by default
-            value = self._retry(
-                lambda: self._client.read([tag], optimize=self._optimize_read)
-            )[0]
-            _LOGGER.debug(
-                "Read single tag %s optimize=%s", address, self._optimize_read
-            )
-            # Normalize BIT to bool
-            if tag.data_type == DataType.BIT:
-                return bool(value)
-            return apply_postprocess(tag.data_type, value)
+            try:
+                self._ensure_connected()
+                tag = parse_tag(address)
+
+                # Handle STRING types (CHAR array, STRING, WSTRING)
+                if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
+                    return self._read_s7_string(
+                        tag.db_number, tag.start, is_wstring=False
+                    )
+                elif tag.data_type == DataType.STRING:
+                    return self._read_s7_string(
+                        tag.db_number, tag.start, is_wstring=False
+                    )
+                elif tag.data_type == DataType.WSTRING:
+                    return self._read_s7_string(
+                        tag.db_number, tag.start, is_wstring=True
+                    )
+
+                # Changed in pyS7 1.5.0 optimized=True by default
+                value = self._retry(
+                    lambda: self._client.read([tag], optimize=self._optimize_read)
+                )[0]
+                _LOGGER.debug(
+                    "Read single tag %s optimize=%s", address, self._optimize_read
+                )
+                # Normalize BIT to bool
+                if tag.data_type == DataType.BIT:
+                    return bool(value)
+                return apply_postprocess(tag.data_type, value)
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+                S7ReadResponseError,
+            ) as err:
+                _LOGGER.error("Read error for %s: %s", address, err)
+                self._drop_connection()
+                raise RuntimeError(f"Failed to read {address}: {err}") from err
+            except Exception as err:  # pragma: no cover - catch unexpected errors
+                _LOGGER.exception("Unexpected read error for %s", address)
+                self._drop_connection()
+                raise RuntimeError(
+                    f"Unexpected error reading {address}: {err}"
+                ) from err
 
     def write_bool(self, address: str, value: bool) -> bool:
         """Write boolean value to PLC with proper error handling and cleanup.

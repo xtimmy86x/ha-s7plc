@@ -348,7 +348,7 @@ def test_read_one_handles_bit_string_and_scalars(coord_factory, dummy_tag, monke
         lambda addr: string_tag,
     )
 
-    coord._read_s7_string = lambda db, start: "test"
+    coord._read_s7_string = lambda db, start, is_wstring=False: "test"
     assert coord._read_one("STRING") == "test"
 
     # Bit normalization
