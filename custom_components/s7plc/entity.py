@@ -55,7 +55,7 @@ class S7BaseEntity(CoordinatorEntity):
         Raises:
             HomeAssistantError: If PLC is not connected
         """
-        if not self.available:
+        if not self._coord.is_connected():
             raise HomeAssistantError("PLC not connected: cannot execute command.")
 
     @property
@@ -183,17 +183,8 @@ class S7BoolSyncEntity(S7BaseEntity):
         interval = self._coord._item_scan_intervals.get(
             self._topic, self._coord._default_scan_interval
         )
-        attrs["scan_interval"] = interval
+        attrs["scan_interval"] = f"{interval} s"
         return attrs
-
-    async def _ensure_connected(self) -> None:
-        """Ensure PLC connection is active before command execution.
-
-        Raises:
-            HomeAssistantError: If PLC is not connected
-        """
-        if not self.available:
-            raise HomeAssistantError("PLC not connected: cannot execute command.")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on by writing True to PLC.
@@ -249,7 +240,7 @@ class S7BoolSyncEntity(S7BaseEntity):
 
         # If the state change comes from HA (pending) and matches the PLC
         # response, do not send the command again (avoid echo)
-        if self._sync_state and new_state is not None and self.available:
+        if self._sync_state and new_state is not None and self._coord.is_connected():
             if self._pending_command is not None:
                 if new_state == self._pending_command:
                     # Internal change completed -> update registers and clear

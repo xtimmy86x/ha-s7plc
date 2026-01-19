@@ -27,7 +27,7 @@ S7ClientT = TypeVar("S7ClientT")
 # Coordinator
 # -----------------------------
 class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
-    """Coordinator handling Snap7 connection, polling and writes."""
+    """Coordinator handling pys7 connection, polling and writes."""
 
     _MIN_SCAN_INTERVAL = 0.05  # seconds
 
