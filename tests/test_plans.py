@@ -19,7 +19,7 @@ def test_build_plans_splits_scalar_and_strings(monkeypatch):
 
     batch_plans, string_plans = plans.build_plans(items)
 
-    assert string_plans == [plans.StringPlan("topic/string", 2, 4)]
+    assert string_plans == [plans.StringPlan("topic/string", 2, 4, 12)]
     assert len(batch_plans) == 1
     assert batch_plans[0].topic == "topic/int"
     assert batch_plans[0].tag.data_type == DataType.WORD

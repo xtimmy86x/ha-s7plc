@@ -268,8 +268,8 @@ def test_read_strings_raises_on_timeout(coord_factory, monkeypatch, caplog):
     coord = coord_factory()
 
     plans = [
-        StringPlan("topic/a", 1, 0),
-        StringPlan("topic/b", 2, 0),
+        StringPlan("topic/a", 1, 0, 254),
+        StringPlan("topic/b", 2, 0, 254),
     ]
 
     times = iter([10.0, 60.0])
@@ -277,7 +277,7 @@ def test_read_strings_raises_on_timeout(coord_factory, monkeypatch, caplog):
 
     read_calls = []
 
-    def fake_read(db, start, is_wstring=False):
+    def fake_read(db, start, length, is_wstring=False):
         read_calls.append((db, start))
         return "value"
 
@@ -295,9 +295,9 @@ def test_read_strings_raises_on_error(coord_factory, monkeypatch, caplog):
     """Test read_strings raises on read error."""
     coord = coord_factory()
 
-    plans = [StringPlan("topic/a", 1, 0)]
+    plans = [StringPlan("topic/a", 1, 0, 254)]
 
-    def fake_read(db, start, is_wstring=False):
+    def fake_read(db, start, length, is_wstring=False):
         raise RuntimeError("boom")
 
     coord._read_s7_string = fake_read
@@ -314,7 +314,7 @@ def test_read_all_propagates_string_failures(coord_factory):
     """Test read_all propagates string reading failures."""
     coord = coord_factory()
 
-    plans = [StringPlan("topic/a", 1, 0)]
+    plans = [StringPlan("topic/a", 1, 0, 254)]
 
     coord._read_batch = lambda plans: {}
     coord._read_strings = lambda plans, deadline: (_ for _ in ()).throw(
@@ -348,7 +348,7 @@ def test_read_one_handles_bit_string_and_scalars(coord_factory, dummy_tag, monke
         lambda addr: string_tag,
     )
 
-    coord._read_s7_string = lambda db, start, is_wstring=False: "test"
+    coord._read_s7_string = lambda db, start, length, is_wstring=False: "test"
     assert coord._read_one("STRING") == "test"
 
     # Bit normalization
@@ -650,85 +650,3 @@ def test_update_min_interval_locked_enforces_minimum(coord_factory):
 # ============================================================================
 
 
-def test_get_pdu_limit_default(coord_factory):
-    """Test _get_pdu_limit with default PDU size."""
-    coord = coord_factory()
-    coord._client = type('MockClient', (), {'pdu_length': 240})()
-    
-    result = coord._get_pdu_limit()
-    assert result == 210  # 240 - 30
-
-
-def test_get_pdu_limit_fallback_to_pdu_size(coord_factory):
-    """Test _get_pdu_limit falls back to pdu_size."""
-    coord = coord_factory()
-    coord._client = type('MockClient', (), {'pdu_size': 480})()
-    
-    result = coord._get_pdu_limit()
-    assert result == 450  # 480 - 30
-
-
-def test_get_pdu_limit_minimum(coord_factory):
-    """Test _get_pdu_limit enforces minimum of 1."""
-    coord = coord_factory()
-    coord._client = type('MockClient', (), {'pdu_length': 20})()
-    
-    result = coord._get_pdu_limit()
-    assert result == 1  # max(1, 20 - 30)
-
-
-def test_get_pdu_limit_no_attributes(coord_factory):
-    """Test _get_pdu_limit with no pdu attributes defaults to 240."""
-    coord = coord_factory()
-    coord._client = type('MockClient', (), {})()
-    
-    result = coord._get_pdu_limit()
-    assert result == 210  # 240 - 30 (default)
-
-
-def test_get_pdu_limit_cached(coord_factory, monkeypatch):
-    """Test _get_pdu_limit caches result for performance."""
-    coord = coord_factory()
-    
-    # Remove the monkeypatch for _drop_connection so we can test cache invalidation
-    monkeypatch.undo()
-    
-    # Create a mock client with a counter to track attribute access
-    access_count = {"count": 0}
-    
-    class MockClient:
-        def __init__(self):
-            self.socket = None  # Instance attribute
-            self.is_connected = True  # Add is_connected property
-        
-        def disconnect(self):
-            """Mock disconnect method."""
-            self.is_connected = False
-        
-        @property
-        def pdu_length(self):
-            access_count["count"] += 1
-            return 480
-    
-    coord._client = MockClient()
-    
-    # First call should access attribute
-    result1 = coord._get_pdu_limit()
-    assert result1 == 450  # 480 - 30
-    assert access_count["count"] == 1
-    
-    # Second call should use cache, not access attribute again
-    result2 = coord._get_pdu_limit()
-    assert result2 == 450
-    assert access_count["count"] == 1  # Still 1, not 2
-    
-    # After dropping connection, cache should be invalidated
-    coord._drop_connection()
-    assert coord._pdu_limit_cache is None  # Cache cleared
-    
-    # Reassign client and test cache is recalculated
-    coord._client = MockClient()
-    result3 = coord._get_pdu_limit()
-    assert result3 == 450
-    assert access_count["count"] == 2  # Accessed again after cache clear
-    assert access_count["count"] == 2  # Now 2, cache was invalidated

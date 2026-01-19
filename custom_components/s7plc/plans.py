@@ -28,6 +28,7 @@ class StringPlan:
     topic: str
     db: int
     start: int
+    length: int
     is_wstring: bool = False
 
 
@@ -62,19 +63,23 @@ def build_plans(
 
         if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
             plans_str.append(
-                StringPlan(topic, tag.db_number, tag.start, is_wstring=False)
+                StringPlan(
+                    topic, tag.db_number, tag.start, tag.length, is_wstring=False
+                )
             )
             continue
 
         if tag.data_type == DataType.STRING:
             plans_str.append(
-                StringPlan(topic, tag.db_number, tag.start, is_wstring=False)
+                StringPlan(
+                    topic, tag.db_number, tag.start, tag.length, is_wstring=False
+                )
             )
             continue
 
         if tag.data_type == DataType.WSTRING:
             plans_str.append(
-                StringPlan(topic, tag.db_number, tag.start, is_wstring=True)
+                StringPlan(topic, tag.db_number, tag.start, tag.length, is_wstring=True)
             )
             continue
 

@@ -52,12 +52,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     _MIN_SCAN_INTERVAL = 0.05  # seconds
 
-    # PDU (Protocol Data Unit) size constants
-    _DEFAULT_PDU_SIZE = 240  # Default PDU size for S7 communication (bytes)
-    _PDU_HEADER_RESERVED = (
-        30  # Leave space in PDU for headers to avoid oversize read chunks
-    )
-
     def __init__(
         self,
         hass: HomeAssistant,
@@ -135,9 +129,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # is not due for polling in the current cycle.
         self._data_cache: Dict[str, Any] = {}
 
-        # Performance: Cache PDU limit to avoid repeated attribute lookups
-        self._pdu_limit_cache: int | None = None
-
     @property
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
@@ -198,9 +189,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         2. On failure, attempt direct socket.close()
         3. Clear socket reference to enable reconnection
         """
-        # Invalidate PDU cache immediately - must happen regardless of client state
-        self._pdu_limit_cache = None
-
         if self._client and self._client.is_connected:
             try:
                 self._client.disconnect()
@@ -601,112 +589,45 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._data_cache.update(results)
             return dict(self._data_cache)
 
-    def _get_pdu_limit(self) -> int:
-        """Calculate usable PDU size for payload, accounting for protocol headers.
-
-        Uses cached value if available to avoid repeated attribute lookups.
-        Cache is invalidated when connection is dropped.
-
-        Returns:
-            Maximum payload size in bytes (PDU size minus reserved header space),
-            minimum value of 1 byte
-        """
-        # Return cached value if available
-        if self._pdu_limit_cache is not None:
-            return self._pdu_limit_cache
-
-        # Calculate and cache the PDU limit
-        size = getattr(
-            self._client,
-            "pdu_length",
-            getattr(self._client, "pdu_size", self._DEFAULT_PDU_SIZE),
-        )
-        self._pdu_limit_cache = max(1, int(size) - self._PDU_HEADER_RESERVED)
-        return self._pdu_limit_cache
-
-    def _read_s7_string(self, db: int, start: int, is_wstring: bool = False) -> str:
+    def _read_s7_string(
+        self, db: int, start: int, length: int, is_wstring: bool = False
+    ) -> str:
         """Read S7 STRING or WSTRING from PLC memory.
 
         Handles both STRING (Latin-1, max 254 chars)
         and WSTRING (UTF-16, max 16382 chars).
-        Reads in chunks if string exceeds PDU limit.
+
+        Note:
+            pyS7 handles all string parsing, decoding, and chunking automatically.
 
         Args:
             db: Data block number
             start: Starting byte address in the data block
+            length: Maximum length of the string as declared in PLC
             is_wstring: True for WSTRING (UTF-16), False for STRING (Latin-1)
 
         Returns:
             Decoded string content
         """
-        # WSTRING: 4-byte header (2 bytes max_len, 2 bytes cur_len), UTF-16 data
-        # STRING: 2-byte header (1 byte max_len, 1 byte cur_len), Latin-1 data
-        header_size = 4 if is_wstring else 2
-        hdr_tag = S7Tag(MemoryArea.DB, db, DataType.BYTE, start, 0, header_size)
-        # Changed in pyS7 1.5.0 optimized=True by default
-        header_bytes = self._retry(
-            lambda: self._client.read([hdr_tag], optimize=self._optimize_read)
+        data_type = DataType.WSTRING if is_wstring else DataType.STRING
+        # Use the length declared in the tag (e.g., S308.50 -> length=50)
+        tag = S7Tag(MemoryArea.DB, db, data_type, start, 0, length)
+
+        # pyS7 handles header parsing, data reading, and decoding
+        value = self._retry(
+            lambda: self._client.read([tag], optimize=self._optimize_read)
         )[0]
 
-        if is_wstring:
-            # WSTRING: 2-byte words for max_len and cur_len
-            max_len = int.from_bytes(header_bytes[0:2], byteorder="big")
-            cur_len = int.from_bytes(header_bytes[2:4], byteorder="big")
-            bytes_per_char = 2  # UTF-16
-        else:
-            # STRING: 1-byte for max_len and cur_len
-            max_len = int(header_bytes[0])
-            cur_len = int(header_bytes[1])
-            bytes_per_char = 1  # Latin-1
-
         _LOGGER.debug(
-            "Reading S7 %s DB%d.%d max_len=%d cur_len=%d optimize=%s",
+            "Read S7 %s DB%d.%d value=%s optimize=%s",
             "WSTRING" if is_wstring else "STRING",
             db,
             start,
-            max_len,
-            cur_len,
+            repr(value[:50] if len(value) > 50 else value) if value else value,
             self._optimize_read,
         )
 
-        target_chars = max(0, min(max_len, cur_len))
-        if target_chars == 0:
-            return ""
-
-        target_bytes = target_chars * bytes_per_char
-        data = bytearray()
-        pdu_limit = self._get_pdu_limit()
-        offset = 0
-
-        while offset < target_bytes:
-            chunk_len = min(target_bytes - offset, pdu_limit)
-            data_tag = S7Tag(
-                MemoryArea.DB,
-                db,
-                DataType.BYTE,
-                start + header_size + offset,
-                0,
-                chunk_len,
-            )
-            # Changed in pyS7 1.5.0 optimized=True by default
-            chunk = self._retry(
-                lambda: self._client.read([data_tag], optimize=self._optimize_read)
-            )[0]
-            _LOGGER.debug(
-                "Read S7 %s chunk DB%d.%d len=%d optimize=%s",
-                "WSTRING" if is_wstring else "STRING",
-                db,
-                start + header_size + offset,
-                chunk_len,
-                self._optimize_read,
-            )
-            data.extend(chunk)
-            offset += chunk_len
-
-        if is_wstring:
-            return bytes(data).decode("utf-16-be", errors="ignore")
-        else:
-            return bytes(data).decode("latin-1", errors="ignore")
+        return value if isinstance(value, str) else str(value)
 
     def _tag_key(self, tag: S7Tag) -> tuple[Any, ...]:
         """Generate a unique key for tag deduplication.
@@ -803,7 +724,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 )
             try:
                 results[plan.topic] = self._read_s7_string(
-                    plan.db, plan.start, plan.is_wstring
+                    plan.db, plan.start, plan.length, plan.is_wstring
                 )
             except (
                 S7CommunicationError,
@@ -967,15 +888,15 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 # Handle STRING types (CHAR array, STRING, WSTRING)
                 if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
                     return self._read_s7_string(
-                        tag.db_number, tag.start, is_wstring=False
+                        tag.db_number, tag.start, tag.length, is_wstring=False
                     )
                 elif tag.data_type == DataType.STRING:
                     return self._read_s7_string(
-                        tag.db_number, tag.start, is_wstring=False
+                        tag.db_number, tag.start, tag.length, is_wstring=False
                     )
                 elif tag.data_type == DataType.WSTRING:
                     return self._read_s7_string(
-                        tag.db_number, tag.start, is_wstring=True
+                        tag.db_number, tag.start, tag.length, is_wstring=True
                     )
 
                 # Changed in pyS7 1.5.0 optimized=True by default
