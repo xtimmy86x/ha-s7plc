@@ -2,36 +2,10 @@
 
 from __future__ import annotations
 
-import logging
-from types import SimpleNamespace
-from typing import Any
-
-_LOGGER = logging.getLogger(__name__)
-
-try:  # pragma: no cover - fallback is for environments without pyS7
-    import pyS7
-    from pyS7.address_parser import S7AddressError, map_address_to_tag
-    from pyS7.constants import DataType, MemoryArea
-    from pyS7.tag import S7Tag
-except ImportError as err:  # pragma: no cover
-    _LOGGER.error("Unable to import pyS7: %s", err, exc_info=True)
-    pyS7 = None
-    DataType = SimpleNamespace(
-        BIT=0,
-        BYTE=1,
-        WORD=2,
-        DWORD=3,
-        INT=4,
-        DINT=5,
-        REAL=6,
-        CHAR=7,
-        LREAL=0x1F,
-    )
-    MemoryArea = SimpleNamespace(DB=0, INPUT=1, OUTPUT=2, MERKER=3)
-    S7Tag = Any
-    map_address_to_tag = None
-    S7AddressError = Exception
-
+import pyS7
+from pyS7.address_parser import S7AddressError, map_address_to_tag
+from pyS7.constants import DataType, MemoryArea
+from pyS7.tag import S7Tag
 
 __all__ = [
     "DataType",
@@ -49,10 +23,6 @@ def parse_tag(address: str) -> S7Tag:
     Raises ``ValueError`` if the address cannot be parsed. The returned tag
     always has the bit offset remapped when needed.
     """
-
-    if map_address_to_tag is None:
-        raise RuntimeError("S7 address parser not available")
-
     try:
         tag = map_address_to_tag(address)
     except S7AddressError as err:

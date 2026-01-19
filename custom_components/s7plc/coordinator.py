@@ -10,34 +10,13 @@ from typing import Any, Callable, Dict, List, TypeVar, Union
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from pyS7.constants import ConnectionType
+from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
 
+from .address import DataType, MemoryArea, S7Tag, parse_tag, pyS7
 from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
 
 _LOGGER = logging.getLogger(__name__)
-
-try:
-    from .address import DataType, MemoryArea, S7Tag, parse_tag, pyS7
-except ImportError as err:
-    _LOGGER.error("Failed to import S7 address helpers: %s", err)
-    raise
-except RuntimeError as err:  # pragma: no cover
-    _LOGGER.error("Unexpected error importing S7 helpers: %s", err)
-    raise
-
-if pyS7 is not None:  # pragma: no cover - exercised only when library available
-    try:
-        from pyS7.constants import ConnectionType
-        from pyS7.errors import (
-            S7CommunicationError,
-            S7ConnectionError,
-            S7ReadResponseError,
-        )
-    except (ImportError, AttributeError):  # pragma: no cover - defensive
-        S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
-        ConnectionType = None
-else:  # pragma: no cover - library absent in tests
-    S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
-    ConnectionType = None
 
 
 # Type variable for S7Client (pyS7.S7Client when available)
@@ -217,12 +196,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         TSAP or rack/slot addressing.
 
         Raises:
-            RuntimeError: If pyS7 unavailable or connection fails
+            RuntimeError: If connection fails
         """
         if self._client is None:
-            if pyS7 is None:
-                raise RuntimeError("pyS7 not available")
-
             # Create client based on connection type
             if self._local_tsap and self._remote_tsap:
                 self._client = pyS7.S7Client(
