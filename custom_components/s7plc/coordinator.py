@@ -977,3 +977,27 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             raise ValueError("Unsupported data type for write_number")
 
         return self._write_with_retry(address, tag, payload)
+
+    def write_string(self, address: str, value: str) -> bool:
+        """Write string value to PLC with proper error handling and cleanup.
+
+        Supports STRING (Latin-1, max 254 chars) and WSTRING (UTF-16, max 16382 chars).
+        pyS7 handles encoding and header generation automatically.
+
+        Args:
+            address: PLC address for the string tag (e.g., 'DB1.S0.50' or 'DB1.WS0.100')
+            value: String value to write
+
+        Returns:
+            True if write was successful, False otherwise
+
+        Raises:
+            ValueError: If address is not a STRING or WSTRING type
+        """
+        tag = self._get_or_parse_tag(address)
+
+        if tag.data_type not in (DataType.STRING, DataType.WSTRING):
+            raise ValueError("write_string requires STRING or WSTRING address")
+
+        # pyS7 handles string encoding and header generation
+        return self._write_with_retry(address, tag, str(value))

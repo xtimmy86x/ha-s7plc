@@ -421,6 +421,50 @@ def test_write_number_rejects_non_numeric(coord_factory, dummy_tag, monkeypatch)
         coord.write_number("DB1,STRING", 42)
 
 
+def test_write_string_accepts_string_types(coord_factory, dummy_tag, monkeypatch):
+    """Test write_string accepts STRING and WSTRING data types."""
+    coord = coord_factory()
+
+    # Test STRING
+    string_tag = dummy_tag(data_type=coordinator.DataType.STRING, length=50)
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: string_tag)
+    coord._write_with_retry = lambda address, tag, payload: payload == "hello"
+
+    assert coord.write_string("DB1,S0.50", "hello") is True
+
+    # Test WSTRING
+    wstring_tag = dummy_tag(data_type=coordinator.DataType.WSTRING, length=100)
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: wstring_tag)
+    coord._write_with_retry = lambda address, tag, payload: payload == "world"
+
+    assert coord.write_string("DB1,WS0.100", "world") is True
+
+
+def test_write_string_rejects_non_string_types(coord_factory, dummy_tag, monkeypatch):
+    """Test write_string rejects non-string data types."""
+    coord = coord_factory()
+
+    # Test BIT rejection
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: dummy_tag(data_type=coordinator.DataType.BIT),
+    )
+
+    with pytest.raises(ValueError, match="STRING or WSTRING"):
+        coord.write_string("Q0.0", "test")
+
+    # Test WORD rejection
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: dummy_tag(data_type=coordinator.DataType.WORD),
+    )
+
+    with pytest.raises(ValueError, match="STRING or WSTRING"):
+        coord.write_string("DB1,W0", "test")
+
+
 # ============================================================================
 # Connection Tests
 # ============================================================================
