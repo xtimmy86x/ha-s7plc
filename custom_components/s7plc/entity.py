@@ -230,35 +230,63 @@ class S7BoolSyncEntity(S7BaseEntity):
 
     @callback
     def async_write_ha_state(self) -> None:
-        new_state = self.is_on
+        """Write entity state to Home Assistant with bidirectional sync logic.
 
-        # Store the initial state without sending commands to the PLC
+        Implements three synchronization scenarios:
+        1. Initial state: Store first PLC value without sending commands
+        2. HA command echo: Pending command matches PLC response, avoid loop
+        3. External change: PLC state changed externally, sync command address
+        """
+        new_state = self.is_on
+        entity_name = getattr(self, "entity_id", self._attr_unique_id)
+
+        # Scenario 1: Initial state from PLC - store without commanding
         if self._last_state is None and new_state is not None:
             self._last_state = new_state
+            _LOGGER.debug(
+                "%s: Initial state from PLC: %s",
+                entity_name,
+                new_state,
+            )
             super().async_write_ha_state()
             return
 
-        # If the state change comes from HA (pending) and matches the PLC
-        # response, do not send the command again (avoid echo)
+        # Scenario 2 & 3: Handle sync logic if enabled and connected
         if self._sync_state and new_state is not None and self._coord.is_connected():
+            # Check for pending command echo from PLC
             if self._pending_command is not None:
                 if new_state == self._pending_command:
-                    # Internal change completed -> update registers and clear
+                    # PLC confirmed our command - clear pending and update
+                    _LOGGER.debug(
+                        "%s: PLC confirmed command: %s",
+                        entity_name,
+                        new_state,
+                    )
                     self._last_state = new_state
                     self._pending_command = None
                     super().async_write_ha_state()
                     return
                 else:
-                    # PLC responded differently; clear pending and let logic decide
+                    # PLC responded with different value - external override
+                    _LOGGER.debug(
+                        "%s: PLC override: expected %s, got %s",
+                        entity_name,
+                        self._pending_command,
+                        new_state,
+                    )
                     self._pending_command = None
 
-            # External change or mismatch: sync the PLC
+            # External state change detected - sync command address
             if new_state != self._last_state:
+                _LOGGER.debug(
+                    "%s: External change detected: %s -> %s, syncing command address",
+                    entity_name,
+                    self._last_state,
+                    new_state,
+                )
                 self._last_state = new_state
-                # `async_add_executor_job` schedules work in the executor and
-                # returns a Future. It is already scheduled to run, so creating
-                # an additional task around it leads to a ``TypeError`` in recent
-                # Python versions. We just call it directly to fire-and-forget.
+                # Fire-and-forget write to command address
+                # Note: Intentionally not awaited to avoid blocking state updates
                 self.hass.async_add_executor_job(
                     self._coord.write_bool, self._command_address, new_state
                 )
