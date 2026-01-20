@@ -1,20 +1,36 @@
+<div align="center">
+
 # ha-s7plc
+
+**Home Assistant integration for Siemens S7 PLCs**  
+Direct + lightweight custom component using `pys7`.  
+**No MQTT • No REST • No middleware**
+
+<br/>
+
+docs/banner.png
 
 [![Release](https://img.shields.io/github/v/release/xtimmy86x/ha-s7plc)](https://github.com/xtimmy86x/ha-s7plc/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Component-41BDF5)](https://www.home-assistant.io/)
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
 [![pyS7](https://img.shields.io/badge/Library-pys7-informational)](https://github.com/xtimmy86x/pyS7)
 
-**Home Assistant integration for Siemens S7 PLCs** — a direct, lightweight custom component that uses `pys7` to read and write PLC data and expose it as Home Assistant entities.  
-**No MQTT, no REST API, no middle layer.**
-
----
-
-## Like my work? A coffee would be awesome!
+<br/>
 
 <a href="https://www.buymeacoffee.com/xtimmy86x" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200" />
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="175" />
 </a>
+
+<br/>
+
+**Quick Links**  
+[✨ Features](#features) •
+[🚀 Quick Start](#quick-start) •
+[📚 Documentation](#documentation) •
+[🧩 Entities](#supported-entities) •
+[🛠️ Troubleshooting](#troubleshooting)
+
+</div>
 
 ---
 
