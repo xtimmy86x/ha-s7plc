@@ -10,6 +10,8 @@ Direct + lightweight custom component using `pys7`.
 
 <img src="docs/banner.png" alt="ha-s7plc banner" width="100%"/>
 
+<br/>
+
 [![Release](https://img.shields.io/github/v/release/xtimmy86x/ha-s7plc)](https://github.com/xtimmy86x/ha-s7plc/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Component-41BDF5)](https://www.home-assistant.io/)
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB)](https://www.python.org/)
