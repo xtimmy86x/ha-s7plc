@@ -737,14 +737,8 @@ class DummyCoordinator:
     async def add_item(self, *args, **kwargs):
         return None
 
-    def write_bool(self, address: str, value: bool) -> bool:
-        self.write_calls.append(("write_bool", address, bool(value)))
-        if self._write_queue:
-            return self._write_queue.pop(0)
-        return self._default_write_result
-
-    def write_number(self, address: str, value: float) -> bool:
-        self.write_calls.append(("write_number", address, float(value)))
+    def write(self, address: str, value: bool | int | float | str) -> bool:
+        self.write_calls.append(("write", address, value))
         if self._write_queue:
             return self._write_queue.pop(0)
         return self._default_write_result

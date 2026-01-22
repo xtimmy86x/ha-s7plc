@@ -19,7 +19,7 @@ from .plans import StringPlan, TagPlan, apply_postprocess, build_plans
 _LOGGER = logging.getLogger(__name__)
 
 
-# Type variable for S7Client (pyS7.S7Client when available)
+# Type variable for S7Client
 S7ClientT = TypeVar("S7ClientT")
 
 
@@ -903,44 +903,48 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     f"Unexpected error reading {address}: {err}"
                 ) from err
 
-    def write_bool(self, address: str, value: bool) -> bool:
-        """Write boolean value to PLC with proper error handling and cleanup.
+    def write(self, address: str, value: bool | int | float | str) -> bool:
+        """Write value to PLC with automatic type handling.
+
+        Automatically determines the appropriate conversion based on the PLC
+        data type and Python value type.
 
         Args:
-            address: PLC address for the boolean tag
-            value: Boolean value to write
+            address: PLC address (e.g., 'DB1.DBX0.0', 'DB1.DBW10', 'DB1.S0.50')
+            value: Value to write (bool, int, float, or str)
 
         Returns:
             True if write was successful, False otherwise
+
+        Raises:
+            ValueError: If value type doesn't match address data type
         """
         tag = self._get_or_parse_tag(address)
-        if tag.data_type != DataType.BIT:
-            raise ValueError("write_bool supports only bit addresses")
-        return self._write_with_retry(address, tag, bool(value))
 
-    def write_number(self, address: str, value: float) -> bool:
-        """Write numeric value to PLC with proper error handling and cleanup.
+        # Determine payload based on data type
+        if tag.data_type == DataType.BIT:
+            if not isinstance(value, bool):
+                raise ValueError(
+                    f"BIT address requires bool value, got {type(value).__name__}"
+                )
+            payload = bool(value)
 
-        Args:
-            address: PLC address for the numeric tag
-            value: Numeric value to write (converted to int or float based on data type)
+        elif tag.data_type in (DataType.STRING, DataType.WSTRING):
+            if not isinstance(value, str):
+                raise ValueError(
+                    f"STRING/WSTRING address requires str value, "
+                    f"got {type(value).__name__}"
+                )
+            payload = str(value)
 
-        Returns:
-            True if write was successful, False otherwise
-        """
-
-        tag = self._get_or_parse_tag(address)
-
-        if tag.data_type in (
-            DataType.BIT,
-            DataType.CHAR,
-            DataType.STRING,
-            DataType.WSTRING,
-        ):
-            raise ValueError("write_number requires a numeric address")
-
-        if tag.data_type == DataType.REAL:
+        elif tag.data_type == DataType.REAL:
+            if not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"REAL address requires numeric value, "
+                    f"got {type(value).__name__}"
+                )
             payload = float(value)
+
         elif tag.data_type in (
             DataType.BYTE,
             DataType.WORD,
@@ -948,32 +952,17 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             DataType.INT,
             DataType.DINT,
         ):
+            if not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"{tag.data_type.name} address requires numeric value, "
+                    f"got {type(value).__name__}"
+                )
             payload = int(round(float(value)))
-        else:  # pragma: no cover - defensive for unexpected future types
-            raise ValueError("Unsupported data type for write_number")
+
+        elif tag.data_type == DataType.CHAR:
+            raise ValueError("CHAR arrays not supported for write, use STRING instead")
+
+        else:
+            raise ValueError(f"Unsupported data type for write: {tag.data_type}")
 
         return self._write_with_retry(address, tag, payload)
-
-    def write_string(self, address: str, value: str) -> bool:
-        """Write string value to PLC with proper error handling and cleanup.
-
-        Supports STRING (Latin-1, max 254 chars) and WSTRING (UTF-16, max 16382 chars).
-        pyS7 handles encoding and header generation automatically.
-
-        Args:
-            address: PLC address for the string tag (e.g., 'DB1.S0.50' or 'DB1.WS0.100')
-            value: String value to write
-
-        Returns:
-            True if write was successful, False otherwise
-
-        Raises:
-            ValueError: If address is not a STRING or WSTRING type
-        """
-        tag = self._get_or_parse_tag(address)
-
-        if tag.data_type not in (DataType.STRING, DataType.WSTRING):
-            raise ValueError("write_string requires STRING or WSTRING address")
-
-        # pyS7 handles string encoding and header generation
-        return self._write_with_retry(address, tag, str(value))

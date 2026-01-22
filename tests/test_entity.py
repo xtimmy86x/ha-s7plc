@@ -107,13 +107,13 @@ async def test_bool_entity_commands_and_refresh(mock_coordinator, fake_hass):
 
     await ent.async_turn_on()
     assert ent._pending_command is True
-    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", True)
+    assert coord.write_calls[-1] == ("write", "db1,x0.1", True)
     assert coord.refresh_called
 
     coord.refresh_called = False
     await ent.async_turn_off()
     assert ent._pending_command is False
-    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", False)
+    assert coord.write_calls[-1] == ("write", "db1,x0.1", False)
     assert coord.refresh_called
 
 
@@ -137,7 +137,7 @@ async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
     with pytest.raises(HomeAssistantError):
         await ent.async_turn_on()
 
-    assert coord.write_calls[-1] == ("write_bool", "db1,x0.1", True)
+    assert coord.write_calls[-1] == ("write", "db1,x0.1", True)
     assert ent._pending_command is None
     assert not coord.refresh_called
 
@@ -197,8 +197,8 @@ def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinator, fak
     ent._pending_command = None
     ent.async_write_ha_state()
 
-    assert ent.hass.calls == [("write_bool", ("db1,x0.1", True))]
-    assert coord.write_calls == [("write_bool", "db1,x0.1", True)]
+    assert ent.hass.calls == [("write", ("db1,x0.1", True))]
+    assert coord.write_calls == [("write", "db1,x0.1", True)]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
 
@@ -233,7 +233,7 @@ async def test_button_press_write_failures(mock_coordinator, fake_hass, monkeypa
     coord.set_default_write_result(False)
     with pytest.raises(HomeAssistantError):
         await button.async_press()
-    assert coord.write_calls == [("write_bool", "db1,x0.0", True)]
+    assert coord.write_calls == [("write", "db1,x0.0", True)]
 
     coord.write_calls.clear()
     coord.set_default_write_result(True)
@@ -243,8 +243,8 @@ async def test_button_press_write_failures(mock_coordinator, fake_hass, monkeypa
         await button.async_press()
 
     assert coord.write_calls == [
-        ("write_bool", "db1,x0.0", True),
-        ("write_bool", "db1,x0.0", False),
+        ("write", "db1,x0.0", True),
+        ("write", "db1,x0.0", False),
     ]
 
 
@@ -295,7 +295,7 @@ async def test_number_async_set_native_value_success(mock_coordinator, fake_hass
     ent.hass = fake_hass
 
     await ent.async_set_native_value(42)
-    assert coord.write_calls[-1] == ("write_number", "db1,w0", 42.0)
+    assert coord.write_calls[-1] == ("write", "db1,w0", 42.0)
     assert coord.refresh_called
 
 
@@ -322,7 +322,7 @@ async def test_number_async_set_native_value_failure(mock_coordinator_failing, f
     with pytest.raises(HomeAssistantError):
         await ent.async_set_native_value(42)
 
-    assert coord.write_calls[-1] == ("write_number", "db1,w0", 42.0)
+    assert coord.write_calls[-1] == ("write", "db1,w0", 42.0)
     assert not coord.refresh_called
 
 

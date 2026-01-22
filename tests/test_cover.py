@@ -36,7 +36,7 @@ def mock_coordinator():
     coord.is_connected.return_value = True
     coord.add_item = AsyncMock()
     coord.async_request_refresh = AsyncMock()
-    coord.write_bool = MagicMock(return_value=True)
+    coord.write = MagicMock(return_value=True)
     coord._item_scan_intervals = {}
     coord._default_scan_interval = 10
     return coord
@@ -247,7 +247,7 @@ async def test_async_open_cover(cover_factory, mock_coordinator):
     
     await cover.async_open_cover()
     
-    mock_coordinator.write_bool.assert_called_with("db1,x0.0", True)
+    mock_coordinator.write.assert_called_with("db1,x0.0", True)
     assert cover._is_opening is True
     assert cover._is_closing is False
     assert cover._assumed_closed is False
@@ -256,7 +256,7 @@ async def test_async_open_cover(cover_factory, mock_coordinator):
 @pytest.mark.asyncio
 async def test_async_open_cover_write_failure(cover_factory, mock_coordinator):
     """Test opening cover when write fails."""
-    mock_coordinator.write_bool.return_value = False
+    mock_coordinator.write.return_value = False
     cover = cover_factory()
     cover._coord.data = {}
     
@@ -277,7 +277,7 @@ async def test_async_close_cover(cover_factory, mock_coordinator):
     
     await cover.async_close_cover()
     
-    mock_coordinator.write_bool.assert_called_with("db1,x0.1", True)
+    mock_coordinator.write.assert_called_with("db1,x0.1", True)
     assert cover._is_opening is False
     assert cover._is_closing is True
     assert cover._assumed_closed is True
@@ -286,7 +286,7 @@ async def test_async_close_cover(cover_factory, mock_coordinator):
 @pytest.mark.asyncio
 async def test_async_close_cover_write_failure(cover_factory, mock_coordinator):
     """Test closing cover when write fails."""
-    mock_coordinator.write_bool.return_value = False
+    mock_coordinator.write.return_value = False
     cover = cover_factory()
     cover._coord.data = {}
     
@@ -308,7 +308,7 @@ async def test_async_stop_cover_while_opening(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write_bool.assert_called_with("db1,x0.0", False)
+    mock_coordinator.write.assert_called_with("db1,x0.0", False)
     assert cover._is_opening is False
     assert cover._is_closing is False
 
@@ -322,7 +322,7 @@ async def test_async_stop_cover_while_closing(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write_bool.assert_called_with("db1,x0.1", False)
+    mock_coordinator.write.assert_called_with("db1,x0.1", False)
     assert cover._is_opening is False
     assert cover._is_closing is False
 

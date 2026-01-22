@@ -97,7 +97,7 @@ class S7BaseEntity(CoordinatorEntity):
             HomeAssistantError: If write fails
         """
         success = await self.hass.async_add_executor_job(
-            self._coord.write_bool, address, value
+            self._coord.write, address, value
         )
         if not success:
             if error_msg is None:
@@ -119,7 +119,7 @@ class S7BaseEntity(CoordinatorEntity):
             HomeAssistantError: If write fails
         """
         success = await self.hass.async_add_executor_job(
-            self._coord.write_number, address, value
+            self._coord.write, address, value
         )
         if not success:
             if error_msg is None:
@@ -288,7 +288,7 @@ class S7BoolSyncEntity(S7BaseEntity):
                 # Fire-and-forget write to command address
                 # Note: Intentionally not awaited to avoid blocking state updates
                 self.hass.async_add_executor_job(
-                    self._coord.write_bool, self._command_address, new_state
+                    self._coord.write, self._command_address, new_state
                 )
 
         super().async_write_ha_state()
