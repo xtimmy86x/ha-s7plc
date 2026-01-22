@@ -44,8 +44,10 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
+    CONF_MAX_LENGTH,
     CONF_MAX_RETRIES,
     CONF_MAX_VALUE,
+    CONF_MIN_LENGTH,
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
@@ -53,6 +55,7 @@ from .const import (
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
     CONF_OPTIMIZE_READ,
+    CONF_PATTERN,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REAL_PRECISION,
@@ -66,6 +69,7 @@ from .const import (
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_TEXTS,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
@@ -153,6 +157,7 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "buttons",
     "lights",
     "numbers",
+    "texts",
     "writers",
 )
 
@@ -699,6 +704,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_LIGHTS: list(config_entry.options.get(CONF_LIGHTS, [])),
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
             CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
+            CONF_TEXTS: list(config_entry.options.get(CONF_TEXTS, [])),
             CONF_WRITERS: list(config_entry.options.get(CONF_WRITERS, [])),
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
@@ -1305,6 +1311,104 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return item, errors
 
+    def _build_text_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'text' item from user input.
+
+        Returns (item, errors). If there is an error,
+        item is None and errors["base"] is set.
+        """
+        errors: dict[str, str] = {}
+
+        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
+
+        if not address:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        # Validate main address
+        try:
+            address_tag = parse_tag(address)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        # Validate that it's a STRING or WSTRING type
+        from .address import DataType
+
+        if address_tag.data_type not in (DataType.STRING, DataType.WSTRING):
+            errors["base"] = "text_requires_string_type"
+            return None, errors
+
+        # Check for duplicates
+        if self._has_duplicate(CONF_TEXTS, address, skip_idx=skip_idx):
+            errors["base"] = "duplicate_entry"
+            return None, errors
+
+        # Validate command address (if present)
+        if command_address:
+            try:
+                parse_tag(command_address)
+            except (RuntimeError, ValueError):
+                errors["base"] = "invalid_address"
+                return None, errors
+
+        # Parse min/max length
+        min_length: int | None = None
+        max_length: int | None = None
+
+        try:
+            if user_input.get(CONF_MIN_LENGTH) is not None:
+                min_length = int(user_input[CONF_MIN_LENGTH])
+                if min_length < 0:
+                    errors["base"] = "invalid_number"
+                    return None, errors
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        try:
+            if user_input.get(CONF_MAX_LENGTH) is not None:
+                max_length = int(user_input[CONF_MAX_LENGTH])
+                if max_length <= 0:
+                    errors["base"] = "invalid_number"
+                    return None, errors
+        except (TypeError, ValueError):
+            errors["base"] = "invalid_number"
+            return None, errors
+
+        # Validate range
+        if (
+            min_length is not None
+            and max_length is not None
+            and min_length > max_length
+        ):
+            errors["base"] = "invalid_range"
+            return None, errors
+
+        # Build item
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+
+        if command_address:
+            item[CONF_COMMAND_ADDRESS] = command_address
+        if user_input.get(CONF_NAME):
+            item[CONF_NAME] = user_input[CONF_NAME]
+        if min_length is not None:
+            item[CONF_MIN_LENGTH] = min_length
+        if max_length is not None:
+            item[CONF_MAX_LENGTH] = max_length
+        if user_input.get(CONF_PATTERN):
+            item[CONF_PATTERN] = user_input[CONF_PATTERN]
+
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, errors
+
     def _build_writer_item(
         self,
         user_input: dict[str, Any],
@@ -1360,6 +1464,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "bt": "Button",
             "lt": "Light",
             "nm": "Number",
+            "tx": "Text",
             "wr": "Writer",
         }[prefix]
         base = name or address
@@ -1432,6 +1537,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             number_item = {**it}
             number_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
             items[f"nm:{orig_idx}"] = self._labelize("nm", number_item)
+
+        # Texts - sorted alphabetically
+        texts = self._options.get(CONF_TEXTS, [])
+        sorted_texts = sorted(enumerate(texts), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_texts:
+            text_item = {**it}
+            text_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
+            items[f"tx:{orig_idx}"] = self._labelize("tx", text_item)
 
         # Writers - sorted alphabetically
         writers = self._options.get(CONF_WRITERS, [])
@@ -2169,6 +2282,49 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="numbers", data_schema=data_schema)
 
+    # ====== ADD: texts ======
+    async def async_step_texts(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        positive_int_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                mode=selector.NumberSelectorMode.BOX,
+                min=0,
+                step=1,
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_MIN_LENGTH): positive_int_selector,
+                vol.Optional(CONF_MAX_LENGTH): positive_int_selector,
+                vol.Optional(CONF_PATTERN): selector.TextSelector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_text_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="texts", data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[CONF_TEXTS].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_texts()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="texts", data_schema=data_schema)
+
     # ====== ADD: writers ======
     async def async_step_writers(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
@@ -2400,6 +2556,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_light()
         if prefix == "nm":
             return await self.async_step_edit_number()
+        if prefix == "tx":
+            return await self.async_step_edit_text()
         if prefix == "wr":
             return await self.async_step_edit_writer()
 
@@ -2814,6 +2972,68 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             build_schema=build_schema,
             process_input=process_input,
             step_id="edit_number",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: text ======
+    async def async_step_edit_text(self, user_input: dict[str, Any] | None = None):
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            positive_int_selector = selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=0,
+                    step=1,
+                )
+            )
+
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
+
+            key_min, val_min = self._optional_field(
+                CONF_MIN_LENGTH, item, positive_int_selector
+            )
+            schema_dict[key_min] = val_min
+
+            key_max, val_max = self._optional_field(
+                CONF_MAX_LENGTH, item, positive_int_selector
+            )
+            schema_dict[key_max] = val_max
+
+            key_pattern, val_pattern = self._optional_field(
+                CONF_PATTERN, item, selector.TextSelector()
+            )
+            schema_dict[key_pattern] = val_pattern
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_text_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_TEXTS,
+            prefix="tx",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_text",
             user_input=user_input,
         )
 

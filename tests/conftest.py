@@ -545,6 +545,17 @@ sys.modules["homeassistant.components.number"] = number
 components.number = number
 
 
+class TextEntity:  # pragma: no cover - simple stub
+    """Minimal TextEntity stub."""
+    pass
+
+
+text = ModuleType("homeassistant.components.text")
+text.TextEntity = TextEntity
+sys.modules["homeassistant.components.text"] = text
+components.text = text
+
+
 class SwitchEntity:  # pragma: no cover - simple stub
     """Minimal SwitchEntity stub."""
     pass

@@ -124,6 +124,7 @@
           "buttons": "Button",
           "lights": "Light",
           "numbers": "Number",
+          "texts": "Text",
           "writers": "Entity to PLC Sync"
         }
       },
@@ -323,6 +324,30 @@
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
+        }
+      },
+      "texts": {
+        "title": "Add Text",
+        "description": "Create a text entity that reads STRING or WSTRING values from the PLC and can optionally write text back.",
+        "data": {
+          "address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "min_length": "Minimum length",
+          "max_length": "Maximum length",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
+          "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the text entity.",
+          "min_length": "Minimum text length (default: 0).",
+          "max_length": "Maximum text length. Leave blank to use the tag length from the address.",
+          "pattern": "Optional regex pattern to validate the text input.",
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more text entities."
         }
       },
       "writers": {
@@ -544,7 +569,8 @@
       "already_configured": "Another S7 PLC entry already uses these connection parameters.",
       "invalid_json": "Invalid JSON payload.",
       "invalid_selection": "Select a valid item type.",
-      "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types."
+      "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
+      "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses."
     }
   },
   "entity": {

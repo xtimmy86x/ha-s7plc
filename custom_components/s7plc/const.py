@@ -7,6 +7,7 @@ PLATFORMS = [
     "light",
     "button",
     "number",
+    "text",
 ]
 
 CONF_RACK = "rack"
@@ -31,6 +32,7 @@ CONF_COVERS = "covers"
 CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
+CONF_TEXTS = "texts"
 CONF_WRITERS = "writers"
 
 OPTION_KEYS = (
@@ -41,6 +43,7 @@ OPTION_KEYS = (
     CONF_LIGHTS,
     CONF_BUTTONS,
     CONF_NUMBERS,
+    CONF_TEXTS,
     CONF_WRITERS,
 )
 
@@ -56,6 +59,9 @@ CONF_BUTTON_PULSE = "button_pulse"
 CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
+CONF_MIN_LENGTH = "min_length"
+CONF_MAX_LENGTH = "max_length"
+CONF_PATTERN = "pattern"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_VALUE_MULTIPLIER = "value_multiplier"
 CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"

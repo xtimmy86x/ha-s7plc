@@ -124,6 +124,7 @@
           "buttons": "Pulsante",
           "lights": "Luce",
           "numbers": "Numero",
+          "texts": "Testo",
           "writers": "Sincronizza Entità a PLC"
         }
       },
@@ -323,6 +324,30 @@
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
+        }
+      },
+      "texts": {
+        "title": "Aggiungi Testo",
+        "description": "Crea un'entità di tipo testo che legge valori STRING o WSTRING dal PLC e può opzionalmente scrivere testo.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "min_length": "Lunghezza minima",
+          "max_length": "Lunghezza massima",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,W0.128).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità testo.",
+          "min_length": "Lunghezza minima del testo (default: 0).",
+          "max_length": "Lunghezza massima del testo. Lascia vuoto per usare la lunghezza specificata nell'indirizzo.",
+          "pattern": "Pattern regex opzionale per validare l'input del testo.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
         }
       },
       "writers": {
@@ -544,7 +569,8 @@
       "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
       "invalid_json": "Payload JSON non valido.",
       "invalid_selection": "Seleziona un tipo di elemento valido.",
-      "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL."
+      "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
+      "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
     }
   },
   "entity": {
