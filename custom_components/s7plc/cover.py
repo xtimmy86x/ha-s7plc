@@ -227,7 +227,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_open_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("close")
-        await self._async_write_bool(
+        await self._async_write(
             self._open_command_address,
             True,
             error_msg=(
@@ -245,7 +245,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_close_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("open")
-        await self._async_write_bool(
+        await self._async_write(
             self._close_command_address,
             True,
             error_msg=(
@@ -350,7 +350,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         success = True
         if address:
             try:
-                await self._async_write_bool(
+                await self._async_write(
                     address,
                     False,
                     error_msg=(
@@ -381,7 +381,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         if address:
             try:
-                await self._async_write_bool(
+                await self._async_write(
                     address,
                     False,
                     error_msg=(

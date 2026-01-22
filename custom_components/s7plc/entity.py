@@ -83,36 +83,18 @@ class S7BaseEntity(CoordinatorEntity):
             attrs["real_precision"] = precision
         return attrs
 
-    async def _async_write_bool(
-        self, address: str, value: bool, *, error_msg: str | None = None
+    async def _async_write(
+        self,
+        address: str,
+        value: bool | int | float | str,
+        *,
+        error_msg: str | None = None,
     ) -> None:
-        """Write boolean value to PLC with error handling.
+        """Write value to PLC with error handling.
 
         Args:
             address: PLC address to write to
-            value: Boolean value to write
-            error_msg: Custom error message (defaults to generic message)
-
-        Raises:
-            HomeAssistantError: If write fails
-        """
-        success = await self.hass.async_add_executor_job(
-            self._coord.write, address, value
-        )
-        if not success:
-            if error_msg is None:
-                error_msg = f"Failed to write {value} to PLC address {address}"
-            _LOGGER.error("%s", error_msg)
-            raise HomeAssistantError(f"Failed to send command to PLC: {address}.")
-
-    async def _async_write_number(
-        self, address: str, value: float, *, error_msg: str | None = None
-    ) -> None:
-        """Write numeric value to PLC with error handling.
-
-        Args:
-            address: PLC address to write to
-            value: Numeric value to write
+            value: Value to write (bool, int, float, or str)
             error_msg: Custom error message (defaults to generic message)
 
         Raises:
@@ -195,7 +177,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         await self._ensure_connected()
         self._pending_command = True
         try:
-            await self._async_write_bool(
+            await self._async_write(
                 self._command_address,
                 True,
                 error_msg=(
@@ -216,7 +198,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         await self._ensure_connected()
         self._pending_command = False
         try:
-            await self._async_write_bool(
+            await self._async_write(
                 self._command_address,
                 False,
                 error_msg=(

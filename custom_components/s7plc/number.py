@@ -226,7 +226,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         if not self._command_address:
             raise HomeAssistantError("No command address configured for this entity.")
 
-        await self._async_write_number(
+        await self._async_write(
             self._command_address,
             float(value),
             error_msg=(

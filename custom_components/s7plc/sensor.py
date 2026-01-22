@@ -450,7 +450,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
             # Write boolean to PLC
             try:
-                await self._async_write_bool(self._address, bool_value)
+                await self._async_write(self._address, bool_value)
                 success = True
             except HomeAssistantError:
                 success = False
@@ -506,7 +506,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
             # Write to PLC
             try:
-                await self._async_write_number(self._address, value)
+                await self._async_write(self._address, value)
                 success = True
             except HomeAssistantError:
                 success = False
