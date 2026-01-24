@@ -329,8 +329,6 @@
           "address": "State address",
           "command_address": "Command address",
           "name": "Name",
-          "min_length": "Minimum length",
-          "max_length": "Maximum length",
           "pattern": "Pattern (regex)",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
@@ -339,11 +337,27 @@
           "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
           "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the text entity.",
-          "min_length": "Minimum text length (default: 0).",
-          "max_length": "Maximum text length. Leave blank to use the tag length from the address.",
           "pattern": "Optional regex pattern to validate the text input.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more text entities."
+        }
+      },
+      "edit_text": {
+        "title": "Edit Text",
+        "description": "Update the PLC address, command address, name, or pattern for this text entity.",
+        "data": {
+          "address": "State address",
+          "command_address": "Command address",
+          "name": "Name",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
+          "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the text entity.",
+          "pattern": "Optional regex pattern to validate the text input.",
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
       "writers": {

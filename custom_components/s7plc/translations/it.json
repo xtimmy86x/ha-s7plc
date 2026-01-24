@@ -18,7 +18,7 @@
           "port": "Porta",
           "rack": "Rack",
           "slot": "Slot",
-          "pys7_connection_type": "Tipo di Connessione",
+          "pys7_connection_type": "Tipo di connessione",
           "scan_interval": "Intervallo di scansione (s)",
           "operation_timeout": "Timeout operazione (s)",
           "max_retries": "Tentativi di retry",
@@ -50,7 +50,7 @@
           "port": "Porta",
           "local_tsap": "TSAP Locale",
           "remote_tsap": "TSAP Remoto",
-          "pys7_connection_type": "Tipo di Connessione",
+          "pys7_connection_type": "Tipo di connessione",
           "scan_interval": "Intervallo di scansione (s)",
           "operation_timeout": "Timeout operazione (s)",
           "max_retries": "Tentativi di retry",
@@ -333,8 +333,6 @@
           "address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
-          "min_length": "Lunghezza minima",
-          "max_length": "Lunghezza massima",
           "pattern": "Pattern (regex)",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -343,8 +341,6 @@
           "address": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,W0.128).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità testo.",
-          "min_length": "Lunghezza minima del testo (default: 0).",
-          "max_length": "Lunghezza massima del testo. Lascia vuoto per usare la lunghezza specificata nell'indirizzo.",
           "pattern": "Pattern regex opzionale per validare l'input del testo.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
@@ -464,7 +460,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
-          "button_pulse": "Duarata impulso",
+          "button_pulse": "Durata impulso",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
@@ -505,8 +501,7 @@
           "max_value": "Valore massimo",
           "step": "Passo",
           "real_precision": "Numero decimali REAL",
-          "scan_interval": "Intervallo di scansione (s)",
-          "add_another": "Aggiungi un altro dopo il salvataggio"
+          "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
@@ -518,21 +513,38 @@
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
-          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
+          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_text": {
+        "title": "Modifica Testo",
+        "description": "Aggiorna l'indirizzo PLC, l'indirizzo comando, il nome o il pattern per questa entità di testo.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC STRING o WSTRING da leggere (es. DB1,S0.254, DB2,W0.128).",
+          "command_address": "Indirizzo PLC su cui scrivere i valori testuali (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità di testo.",
+          "pattern": "Pattern regex opzionale per validare l'input testo.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Lascia vuoto per usare l'intervallo predefinito del PLC."
         }
       },
       "edit_writer": {
         "title": "Modifica Entity Sync",
-        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente, il nome o i limiti di valore per questo Entity Sync.",
+        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente o il nome per questo Entity Sync.",
         "data": {
           "address": "Indirizzo PLC",
-          "source_entity": "Entit\u00e0 sorgente",
+          "source_entity": "Entità sorgente",
           "name": "Nome"
         },
         "data_description": {
           "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
-          "source_entity": "Entit\u00e0 di Home Assistant il cui valore verr\u00e0 scritto sul PLC.",
+          "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
           "name": "Nome descrittivo opzionale per l'Entity Sync."
         }
       },
