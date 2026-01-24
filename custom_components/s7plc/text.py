@@ -13,8 +13,6 @@ from .address import parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_COMMAND_ADDRESS,
-    CONF_MAX_LENGTH,
-    CONF_MIN_LENGTH,
     CONF_PATTERN,
     CONF_SCAN_INTERVAL,
     CONF_TEXTS,
@@ -42,13 +40,7 @@ async def async_setup_entry(
         address = text_config[CONF_ADDRESS]
         command_address = text_config.get(CONF_COMMAND_ADDRESS) or address
         scan_interval = text_config.get(CONF_SCAN_INTERVAL)
-        min_length = text_config.get(CONF_MIN_LENGTH, 0)
-        max_length = text_config.get(CONF_MAX_LENGTH)
         pattern = text_config.get(CONF_PATTERN)
-
-        # Create unique ID
-        slug_name = name or address
-        unique_id = f"{entry.entry_id}_{slug_name}_text"
 
         # Parse tag to get data type and validate
         try:
@@ -71,13 +63,13 @@ async def async_setup_entry(
             )
             continue
 
-        # Determine max_length from tag if not specified
-        if max_length is None:
-            max_length = tag.length if tag.length is not None else 254
+        # Use PLC tag length for limits: min=0, max=tag.length
+        # This prevents configuration errors and matches PLC declaration
+        min_length = 0
+        max_length = tag.length if tag.length is not None else 254
 
         topic = f"text:{address}"
         unique_id = f"{device_id}:{topic}"
-        scan_interval = text_config.get(CONF_SCAN_INTERVAL)
         await coordinator.add_item(topic, address, scan_interval, None)
 
         entity_name = default_entity_name(name, address)

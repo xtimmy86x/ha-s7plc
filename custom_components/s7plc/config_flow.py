@@ -44,10 +44,8 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
-    CONF_MAX_LENGTH,
     CONF_MAX_RETRIES,
     CONF_MAX_VALUE,
-    CONF_MIN_LENGTH,
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
@@ -1358,50 +1356,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "invalid_address"
                 return None, errors
 
-        # Parse min/max length
-        min_length: int | None = None
-        max_length: int | None = None
-
-        try:
-            if user_input.get(CONF_MIN_LENGTH) is not None:
-                min_length = int(user_input[CONF_MIN_LENGTH])
-                if min_length < 0:
-                    errors["base"] = "invalid_number"
-                    return None, errors
-        except (TypeError, ValueError):
-            errors["base"] = "invalid_number"
-            return None, errors
-
-        try:
-            if user_input.get(CONF_MAX_LENGTH) is not None:
-                max_length = int(user_input[CONF_MAX_LENGTH])
-                if max_length <= 0:
-                    errors["base"] = "invalid_number"
-                    return None, errors
-        except (TypeError, ValueError):
-            errors["base"] = "invalid_number"
-            return None, errors
-
-        # Validate range
-        if (
-            min_length is not None
-            and max_length is not None
-            and min_length > max_length
-        ):
-            errors["base"] = "invalid_range"
-            return None, errors
-
-        # Build item
+        # Build item - min/max length are automatically derived from PLC tag
         item: dict[str, Any] = {CONF_ADDRESS: address}
 
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
         if user_input.get(CONF_NAME):
             item[CONF_NAME] = user_input[CONF_NAME]
-        if min_length is not None:
-            item[CONF_MIN_LENGTH] = min_length
-        if max_length is not None:
-            item[CONF_MAX_LENGTH] = max_length
         if user_input.get(CONF_PATTERN):
             item[CONF_PATTERN] = user_input[CONF_PATTERN]
 
@@ -2286,21 +2247,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_texts(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
-        positive_int_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                min=0,
-                step=1,
-            )
-        )
-
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_MIN_LENGTH): positive_int_selector,
-                vol.Optional(CONF_MAX_LENGTH): positive_int_selector,
                 vol.Optional(CONF_PATTERN): selector.TextSelector(),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2978,14 +2929,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     # ====== EDIT: text ======
     async def async_step_edit_text(self, user_input: dict[str, Any] | None = None):
         def build_schema(item: dict[str, Any]) -> vol.Schema:
-            positive_int_selector = selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=0,
-                    step=1,
-                )
-            )
-
             schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
@@ -2998,16 +2941,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_NAME, default=item.get(CONF_NAME, "")
                 ): selector.TextSelector(),
             }
-
-            key_min, val_min = self._optional_field(
-                CONF_MIN_LENGTH, item, positive_int_selector
-            )
-            schema_dict[key_min] = val_min
-
-            key_max, val_max = self._optional_field(
-                CONF_MAX_LENGTH, item, positive_int_selector
-            )
-            schema_dict[key_max] = val_max
 
             key_pattern, val_pattern = self._optional_field(
                 CONF_PATTERN, item, selector.TextSelector()
