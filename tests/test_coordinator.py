@@ -696,3 +696,132 @@ def test_update_min_interval_locked_enforces_minimum(coord_factory):
 # ============================================================================
 
 
+def test_write_multi_empty_list(coord_factory):
+    """Test write_multi with empty list returns empty dict."""
+    coord = coord_factory()
+    
+    result = coord.write_multi([])
+    
+    assert result == {}
+
+
+def test_write_multi_single_write(coord_factory, monkeypatch):
+    """Test write_multi with single write."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    result = coord.write_multi([('DB1,X0.0', True)])
+    
+    coord._client.write.assert_called_once()
+    tags, payloads = coord._client.write.call_args[0]
+    assert len(tags) == 1
+    assert payloads == [True]
+    assert result == {'DB1,X0.0': True}
+
+
+def test_write_multi_multiple_writes(coord_factory, monkeypatch):
+    """Test write_multi with multiple writes in single batch."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    writes = [
+        ('DB1,X0.0', True),
+        ('DB1,W10', 42),
+        ('DB1,REAL20', 3.14),
+    ]
+    
+    result = coord.write_multi(writes)
+    
+    # Should be single batch write
+    coord._client.write.assert_called_once()
+    tags, payloads = coord._client.write.call_args[0]
+    assert len(tags) == 3
+    assert payloads == [True, 42, 3.14]
+    assert result == {
+        'DB1,X0.0': True,
+        'DB1,W10': True,
+        'DB1,REAL20': True,
+    }
+
+
+def test_write_multi_type_conversion(coord_factory, monkeypatch):
+    """Test write_multi performs correct type conversion."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    writes = [
+        ('DB1,X0.0', True),         # bool
+        ('DB1,W10', 42.7),          # int from float
+        ('DB1,REAL20', 3.14),       # real
+        ('DB1,S0.254', 'test'),     # string
+    ]
+    
+    result = coord.write_multi(writes)
+    
+    coord._client.write.assert_called_once()
+    tags, payloads = coord._client.write.call_args[0]
+    assert payloads[0] is True           # bool
+    assert payloads[1] == 43             # rounded to int
+    assert payloads[2] == 3.14           # float
+    assert payloads[3] == 'test'         # string
+
+
+def test_write_multi_invalid_address(coord_factory):
+    """Test write_multi handles invalid address gracefully."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    writes = [
+        ('DB1,X0.0', True),
+        ('INVALID', 42),
+    ]
+    
+    result = coord.write_multi(writes)
+    
+    # Valid write should succeed, invalid should fail
+    assert result['DB1,X0.0'] is True
+    assert result['INVALID'] is False
+
+
+def test_write_multi_type_mismatch(coord_factory):
+    """Test write_multi handles type mismatch."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    writes = [
+        ('DB1,X0.0', 42),  # bool address with int value
+    ]
+    
+    result = coord.write_multi(writes)
+    
+    assert result['DB1,X0.0'] is False
+
+
+def test_write_multi_write_error(coord_factory, monkeypatch):
+    """Test write_multi marks all as failed on write error."""
+    from unittest.mock import MagicMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    coord._client.write.side_effect = OSError("Connection failed")
+    
+    writes = [
+        ('DB1,X0.0', True),
+        ('DB1,W10', 42),
+    ]
+    
+    result = coord.write_multi(writes)
+    
+    # All should fail
+    assert result['DB1,X0.0'] is False
+    assert result['DB1,W10'] is False

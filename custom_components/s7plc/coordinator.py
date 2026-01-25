@@ -1075,3 +1075,127 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             raise ValueError(f"Unsupported data type for write: {tag.data_type}")
 
         return self._write_with_retry(address, tag, payload)
+
+    def write_multi(
+        self, writes: list[tuple[str, bool | int | float | str]]
+    ) -> dict[str, bool]:
+        """Write multiple values to PLC in a single batch operation.
+
+        Optimizes multiple writes by grouping them into a single PLC request.
+        This is significantly faster than individual write() calls when updating
+        multiple tags at once.
+
+        Args:
+            writes: List of (address, value) tuples to write
+
+        Returns:
+            Dictionary mapping each address to its write success status (True/False)
+
+        Example:
+            >>> coordinator.write_multi([
+            ...     ('DB1.DBX0.0', True),
+            ...     ('DB1.DBW10', 42),
+            ...     ('DB1.DBD20', 3.14),
+            ... ])
+            {'DB1.DBX0.0': True, 'DB1.DBW10': True, 'DB1.DBD20': True}
+        """
+        if not writes:
+            return {}
+
+        # Parse all addresses and prepare payloads
+        tags = []
+        payloads = []
+        addresses = []
+        results = {}
+
+        for address, value in writes:
+            try:
+                tag = self._get_or_parse_tag(address)
+                addresses.append(address)
+
+                # Determine payload based on data type (same logic as write())
+                if tag.data_type == DataType.BIT:
+                    if not isinstance(value, bool):
+                        raise ValueError(
+                            f"BIT address {address} requires bool value, "
+                            f"got {type(value).__name__}"
+                        )
+                    payload = bool(value)
+
+                elif tag.data_type in (DataType.STRING, DataType.WSTRING):
+                    if not isinstance(value, str):
+                        raise ValueError(
+                            f"STRING/WSTRING address {address} requires str value, "
+                            f"got {type(value).__name__}"
+                        )
+                    payload = str(value)
+
+                elif tag.data_type == DataType.REAL:
+                    if not isinstance(value, (int, float)):
+                        raise ValueError(
+                            f"REAL address {address} requires numeric value, "
+                            f"got {type(value).__name__}"
+                        )
+                    payload = float(value)
+
+                elif tag.data_type in (
+                    DataType.BYTE,
+                    DataType.WORD,
+                    DataType.DWORD,
+                    DataType.INT,
+                    DataType.DINT,
+                ):
+                    if not isinstance(value, (int, float)):
+                        raise ValueError(
+                            f"{tag.data_type.name} address {address} requires "
+                            f"numeric value, got {type(value).__name__}"
+                        )
+                    payload = int(round(float(value)))
+
+                elif tag.data_type == DataType.CHAR:
+                    raise ValueError(
+                        f"CHAR arrays not supported for write at {address}, "
+                        "use STRING instead"
+                    )
+
+                else:
+                    raise ValueError(
+                        f"Unsupported data type for write at {address}: "
+                        f"{tag.data_type}"
+                    )
+
+                tags.append(tag)
+                payloads.append(payload)
+
+            except (ValueError, Exception) as e:
+                _LOGGER.error("Failed to prepare write for %s: %s", address, e)
+                results[address] = False
+
+        # Execute batch write
+        if tags:
+            with self._sync_lock:
+                try:
+                    self._ensure_connected()
+                    self._retry(lambda: self._client.write(tags, payloads))
+                    # Mark all as successful
+                    for addr in addresses:
+                        results[addr] = True
+                except (
+                    OSError,
+                    RuntimeError,
+                    S7CommunicationError,
+                    S7ConnectionError,
+                    S7ReadResponseError,
+                ):
+                    _LOGGER.exception("Batch write error for %d tags", len(tags))
+                    self._drop_connection()
+                    # Mark all as failed
+                    for addr in addresses:
+                        results[addr] = False
+                except Exception:  # pragma: no cover - catch unexpected errors
+                    _LOGGER.exception("Unexpected batch write error")
+                    self._drop_connection()
+                    for addr in addresses:
+                        results[addr] = False
+
+        return results
