@@ -1,0 +1,597 @@
+{
+  "title": "Siemens S7",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbindungstyp auswählen",
+        "description": "Wählen Sie aus, wie Sie sich mit Ihrer S7-SPS verbinden möchten.",
+        "data": {
+          "connection_type": "Verbindungstyp"
+        }
+      },
+      "rack_slot": {
+        "title": "Mit S7-SPS verbinden (Rack/Slot)",
+        "description": "Geben Sie Ihre S7-SPS-Verbindungsdetails mit Rack und Slot ein. Vor dem Speichern wird ein Verbindungstest durchgeführt.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "rack": "Rack",
+          "slot": "Slot",
+          "pys7_connection_type": "Verbindungstyp",
+          "scan_interval": "Scan-Intervall (s)",
+          "operation_timeout": "Betriebstimeout (s)",
+          "max_retries": "Wiederholungsversuche",
+          "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
+          "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
+          "optimize_read": "Batch-Lesevorgänge optimieren"
+        },
+        "data_description": {
+          "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
+          "host": "IP oder Hostname der SPS.",
+          "port": "ISO-on-TCP-Port, normalerweise 102.",
+          "rack": "CPU-Rack-Nummer (normalerweise 0).",
+          "slot": "CPU-Slot-Nummer (z.B. 1 für S7-1200/1500).",
+          "pys7_connection_type": "Typ der S7-Verbindung (PG für Programmierung, OP für Bedienerpanel, S7 Basic für Basisverbindung).",
+          "scan_interval": "Wie oft die SPS abgefragt werden soll, in Sekunden. Verwenden Sie Dezimalwerte für Millisekundenpräzision.",
+          "operation_timeout": "Maximale Dauer für einen einzelnen Lese-/Schreibzyklus vor der Wiederholung.",
+          "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
+          "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
+          "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+        }
+      },
+      "tsap": {
+        "title": "Mit S7-SPS verbinden (TSAP)",
+        "description": "Geben Sie Ihre S7-SPS-Verbindungsdetails mit TSAP-Adressen ein. Vor dem Speichern wird ein Verbindungstest durchgeführt.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "local_tsap": "Lokales TSAP",
+          "remote_tsap": "Remote TSAP",
+          "pys7_connection_type": "Verbindungstyp",
+          "scan_interval": "Scan-Intervall (s)",
+          "operation_timeout": "Betriebstimeout (s)",
+          "max_retries": "Wiederholungsversuche",
+          "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
+          "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
+          "optimize_read": "Batch-Lesevorgänge optimieren"
+        },
+        "data_description": {
+          "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
+          "host": "IP oder Hostname der SPS.",
+          "port": "ISO-on-TCP-Port, normalerweise 102.",
+          "local_tsap": "Lokale TSAP-Adresse (z.B. 01.00 oder 03.00).",
+          "remote_tsap": "Remote TSAP-Adresse (z.B. 01.01 oder 03.01).",
+          "pys7_connection_type": "Typ der S7-Verbindung (PG für Programmierung, OP für Bedienerpanel, S7 Basic für Basisverbindung).",
+          "scan_interval": "Wie oft die SPS abgefragt werden soll, in Sekunden. Verwenden Sie Dezimalwerte für Millisekundenpräzision.",
+          "operation_timeout": "Maximale Dauer für einen einzelnen Lese-/Schreibzyklus vor der Wiederholung.",
+          "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
+          "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
+          "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zur SPS nicht möglich. Überprüfen Sie Host, Rack, Slot, Port und Netzwerk."
+    },
+    "abort": {
+      "already_configured": "Diese SPS ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "S7-SPS-Optionen",
+        "description": "Wählen Sie aus, was Sie verwalten möchten.",
+        "menu_options": {
+          "setup_connection": "Verbindung",
+          "setup_entities": "Entitäten",
+          "manage_configuration": "Konfiguration"
+        }
+      },
+      "setup_connection": {
+        "title": "SPS-Verbindung einrichten",
+        "description": "Konfigurieren oder ändern Sie die SPS-Verbindungsparameter."
+      },
+      "setup_entities": {
+        "title": "Entitäten einrichten",
+        "description": "Entitäten für diese SPS hinzufügen, bearbeiten oder entfernen.",
+        "menu_options": {
+          "add": "Entitäten hinzufügen",
+          "edit": "Entitäten bearbeiten",
+          "remove": "Entitäten entfernen"
+        }
+      },
+      "manage_configuration": {
+        "title": "Konfiguration verwalten",
+        "description": "Exportieren oder importieren Sie Ihre SPS-Konfiguration.",
+        "menu_options": {
+          "export": "Konfiguration exportieren",
+          "import": "Konfiguration importieren"
+        }
+      },
+      "add": {
+        "title": "Elemente hinzufügen",
+        "description": "Wählen Sie den Typ des Elements aus, das Sie hinzufügen möchten.",
+        "menu_options": {
+          "sensors": "Sensor",
+          "binary_sensors": "Binärsensor",
+          "switches": "Schalter",
+          "covers": "Abdeckung",
+          "buttons": "Taste",
+          "lights": "Licht",
+          "numbers": "Nummer",
+          "texts": "Text",
+          "writers": "Entität zu SPS-Synchronisierung"
+        }
+      },
+      "remove": {
+        "title": "Elemente entfernen",
+        "description": "Wählen Sie die Elemente aus, die Sie aus dieser SPS-Konfiguration entfernen möchten.",
+        "data": {
+          "remove_items": "Zu entfernende Elemente"
+        },
+        "data_description": {
+          "remove_items": "Markierte Elemente werden entfernt. Die Integration wird neu geladen, um die Änderungen anzuwenden."
+        }
+      },
+      "connection": {
+        "title": "SPS-Verbindung bearbeiten",
+        "description": "Aktualisieren Sie den SPS-Host, Rack, Slot und die Kommunikations-Timing-Parameter. Vor dem Speichern wird ein Verbindungstest durchgeführt.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "rack": "Rack",
+          "slot": "Slot",
+          "scan_interval": "Scan-Intervall (s)",
+          "operation_timeout": "Betriebstimeout (s)",
+          "max_retries": "Wiederholungsversuche",
+          "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
+          "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
+          "optimize_read": "Batch-Lesevorgänge optimieren"
+        },
+        "data_description": {
+          "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
+          "host": "IP oder Hostname der SPS.",
+          "port": "ISO-on-TCP-Port, normalerweise 102.",
+          "rack": "CPU-Rack-Nummer (normalerweise 0).",
+          "slot": "CPU-Slot-Nummer (z.B. 1 für S7-1200/1500).",
+          "scan_interval": "Wie oft die SPS abgefragt werden soll, in Sekunden. Verwenden Sie Dezimalwerte für Millisekundenpräzision.",
+          "operation_timeout": "Maximale Dauer für einen einzelnen Lese-/Schreibzyklus vor der Wiederholung.",
+          "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
+          "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
+          "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+        }
+      },
+      "sensors": {
+        "title": "Sensor hinzufügen",
+        "description": "Erstellen Sie einen Sensor, der einen Wert von der SPS liest (z.B. DB, MW, usw.). Geben Sie die Adresse und optional einen Namen an.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "value_multiplier": "Wertmultiplikator",
+          "unit_of_measurement": "Maßeinheit",
+          "state_class": "Zustandsklasse",
+          "real_precision": "REAL-Rundungspräzision",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
+          "name": "Optionaler freundlicher Name für den Sensor.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der Benutzeroberfläche/des Verhaltens (z.B. battery, power).",
+          "value_multiplier": "Multiplizieren Sie den rohen SPS-Wert, bevor er gemeldet wird. Leer lassen, um den Originalwert zu behalten.",
+          "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leer lassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
+          "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die abnehmen können, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leer lassen für automatisch.",
+          "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leer lassen, um die ursprüngliche Präzision zu behalten (1).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Sensoren hinzuzufügen."
+        }
+      },
+      "binary_sensors": {
+        "title": "Binärsensor hinzufügen",
+        "description": "Erstellen Sie einen Binärsensor (ein/aus) von der SPS. Legen Sie die Adresse, den Namen und optional die Geräteklasse fest.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
+          "name": "Optionaler freundlicher Name für den Binärsensor.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der Benutzeroberfläche/des Verhaltens (z.B. door, window, power).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Binärsensoren hinzuzufügen."
+        }
+      },
+      "switches": {
+        "title": "Schalter hinzufügen",
+        "description": "Erstellen Sie einen Schalter mit einer Zustandsadresse und einer optionalen Befehlsadresse. Sie können die Zustandssynchronisierung aktivieren.",
+        "data": {
+          "state_address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "sync_state": "Zustand mit Befehlsadresse synchronisieren",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "state_address": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0).",
+          "command_address": "SPS-Adresse zum Schreiben von Befehlen (optional). Wenn weggelassen, wird nur der Zustand gelesen.",
+          "name": "Optionaler freundlicher Name für den Schalter.",
+          "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Zustand aktualisiert.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Schalter hinzuzufügen."
+        }
+      },
+      "covers": {
+        "title": "Abdeckung hinzufügen",
+        "description": "Erstellen Sie eine Abdeckung mit dedizierten Öffnen-/Schließen-Befehlsadressen und optionalem Öffnungs-/Schließzustandsfeedback.",
+        "data": {
+          "open_command_address": "Öffnen-Befehlsadresse",
+          "close_command_address": "Schließen-Befehlsadresse",
+          "opening_state_address": "Geöffneter Zustandsadresse",
+          "closing_state_address": "Geschlossener Zustandsadresse",
+          "operate_time": "Betriebszeit (s)",
+          "use_state_topics": "Zustandsthemen für Position verwenden",
+          "name": "Name",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "open_command_address": "SPS-Adresse zum Auslösen des Öffnens (z.B. Q0.0, DB1,X0.0).",
+          "close_command_address": "SPS-Adresse zum Auslösen des Schließens (z.B. Q0.1, DB1,X0.1).",
+          "opening_state_address": "Optionale SPS-Adresse, die anzeigt, dass die Abdeckung geöffnet ist.",
+          "closing_state_address": "Optionale SPS-Adresse, die anzeigt, dass die Abdeckung geschlossen ist.",
+          "operate_time": "Sekunden, um den Befehl aktiv zu halten, bevor die Ausgänge zurückgesetzt und der Bewegungszustand gelöscht wird.",
+          "use_state_topics": "Aktivieren Sie diese Option, um Zustandsfeedback-Adressen zur Bestimmung der Abdeckungsposition zu verwenden. Wenn deaktiviert, wird die Position aus der Betriebszeit abgeleitet.",
+          "name": "Optionaler freundlicher Name für die Abdeckung.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Abdeckungen hinzuzufügen."
+        }
+      },
+      "buttons": {
+        "title": "Taste hinzufügen",
+        "description": "Erstellen Sie eine zustandslose Taste, die eine SPS-Bool-Adresse für die konfigurierte Anzahl von Sekunden pulsiert, wenn sie gedrückt wird.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen",
+          "button_pulse": "Pulsdauer"
+        },
+        "data_description": {
+          "address": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1).",
+          "name": "Optionaler freundlicher Name für die Taste.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Tasten hinzuzufügen.",
+          "button_pulse": "Dauer des Pulses in Sekunden."
+        }
+      },
+      "lights": {
+        "title": "Licht hinzufügen",
+        "description": "Konfigurieren Sie ein Licht mit einer Zustandsadresse und einer optionalen Befehlsadresse. Sie können die Zustandssynchronisierung aktivieren.",
+        "data": {
+          "state_address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "sync_state": "Zustand mit Befehlsadresse synchronisieren",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
+          "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
+          "name": "Optionaler freundlicher Name für das Licht.",
+          "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Zustand aktualisiert.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Lichter hinzuzufügen."
+        }
+      },
+      "numbers": {
+        "title": "Nummer hinzufügen",
+        "description": "Erstellen Sie eine Nummerentität, die einen Wert von der SPS liest und optional Befehle zurückschreiben kann.",
+        "data": {
+          "address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "unit_of_measurement": "Maßeinheit",
+          "min_value": "Mindestwert",
+          "max_value": "Maximalwert",
+          "step": "Schritt",
+          "real_precision": "REAL-Rundungspräzision",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
+          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "name": "Optionaler freundlicher Name für die Nummerentität.",
+          "device_class": "Geräteklasse für die Nummerentität (z.B. temperature, voltage, power).",
+          "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leer lassen, falls nicht benötigt.",
+          "min_value": "Optionale Untergrenze für den in Home Assistant angezeigten Wert.",
+          "max_value": "Optionale Obergrenze für den in Home Assistant angezeigten Wert.",
+          "step": "Optionale Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird.",
+          "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leer lassen, um die ursprüngliche Präzision zu behalten (1).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Nummerentitäten hinzuzufügen."
+        }
+      },
+      "texts": {
+        "title": "Text hinzufügen",
+        "description": "Erstellen Sie eine Textentität, die STRING- oder WSTRING-Werte von der SPS liest und optional Text zurückschreiben kann.",
+        "data": {
+          "address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "pattern": "Muster (Regex)",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
+          "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "name": "Optionaler freundlicher Name für die Textentität.",
+          "pattern": "Optionales Regex-Muster zur Validierung der Texteingabe.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Textentitäten hinzuzufügen."
+        }
+      },
+      "edit_text": {
+        "title": "Text bearbeiten",
+        "description": "Aktualisieren Sie die SPS-Adresse, Befehlsadresse, Name oder Muster für diese Textentität.",
+        "data": {
+          "address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "pattern": "Muster (Regex)",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
+          "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "name": "Optionaler freundlicher Name für die Textentität.",
+          "pattern": "Optionales Regex-Muster zur Validierung der Texteingabe.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "writers": {
+        "title": "Entitätssynchronisierung hinzufügen",
+        "description": "Erstellen Sie eine Entitätssynchronisierung, die eine Home Assistant-Entität überwacht und automatisch ihren Wert in die SPS schreibt.",
+        "data": {
+          "address": "SPS-Adresse",
+          "source_entity": "Quellentität",
+          "name": "Name",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4).",
+          "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
+          "name": "Optionaler freundlicher Name für die Entitätssynchronisierung.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Entitätssynchronisierungen hinzuzufügen."
+        }
+      },
+      "edit": {
+        "title": "Elemente bearbeiten",
+        "description": "Wählen Sie das Element aus, das Sie ändern möchten.",
+        "data": {
+          "edit_item": "Zu bearbeitendes Element"
+        },
+        "data_description": {
+          "edit_item": "Wählen Sie eine vorhandene Entität zum Aktualisieren aus."
+        }
+      },
+      "edit_sensor": {
+        "title": "Sensor bearbeiten",
+        "description": "Aktualisieren Sie die Adresse, den Namen oder die Geräteklasse für diesen Sensor.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "value_multiplier": "Wertmultiplikator",
+          "unit_of_measurement": "Maßeinheit",
+          "state_class": "Zustandsklasse",
+          "real_precision": "REAL-Rundungspräzision",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
+          "name": "Optionaler freundlicher Name für den Sensor.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der Benutzeroberfläche/des Verhaltens (z.B. battery, power).",
+          "value_multiplier": "Multiplizieren Sie den rohen SPS-Wert, bevor er gemeldet wird. Leer lassen, um den Originalwert zu behalten.",
+          "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leer lassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
+          "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die abnehmen können, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leer lassen für automatisch.",
+          "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leer lassen, um die ursprüngliche Präzision zu behalten (1).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_binary_sensor": {
+        "title": "Binärsensor bearbeiten",
+        "description": "Aktualisieren Sie die Adresse, den Namen oder die Geräteklasse für diesen Binärsensor.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
+          "name": "Optionaler freundlicher Name für den Binärsensor.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der Benutzeroberfläche/des Verhaltens (z.B. door, window, power).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_switch": {
+        "title": "Schalter bearbeiten",
+        "description": "Aktualisieren Sie die Zustandsadresse, Befehlsadresse, Name oder Synchronisationsoption für diesen Schalter.",
+        "data": {
+          "state_address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "sync_state": "Zustand mit SPS synchronisieren",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "state_address": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0).",
+          "command_address": "SPS-Adresse zum Schreiben von Befehlen (optional).",
+          "name": "Optionaler freundlicher Name für den Schalter.",
+          "sync_state": "Wenn aktiviert, wird der Entitätszustand periodisch von der SPS synchronisiert.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_cover": {
+        "title": "Abdeckung bearbeiten",
+        "description": "Aktualisieren Sie die Befehls- oder Zustandsadressen für diese Abdeckung und ändern Sie optional ihren Namen.",
+        "data": {
+          "open_command_address": "Öffnen-Befehlsadresse",
+          "close_command_address": "Schließen-Befehlsadresse",
+          "opening_state_address": "Geöffneter Zustandsadresse",
+          "closing_state_address": "Geschlossener Zustandsadresse",
+          "operate_time": "Betriebszeit (s)",
+          "use_state_topics": "Zustandsthemen für Position verwenden",
+          "name": "Name",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "open_command_address": "SPS-Adresse, die die Öffnungsaktion auslöst.",
+          "close_command_address": "SPS-Adresse, die die Schließaktion auslöst.",
+          "opening_state_address": "Optionale SPS-Adresse, die signalisiert, dass die Abdeckung geöffnet ist.",
+          "closing_state_address": "Optionale SPS-Adresse, die signalisiert, dass die Abdeckung geschlossen ist.",
+          "operate_time": "Sekunden, die die Abdeckung betrieben werden soll, bevor die Integration die Befehlsausgänge zurücksetzt und die Zustandsflags löscht.",
+          "use_state_topics": "Aktivieren Sie diese Option, um Zustandsfeedback-Adressen zur Bestimmung der Abdeckungsposition zu verwenden. Wenn deaktiviert, wird die Position aus der Betriebszeit abgeleitet.",
+          "name": "Optionaler freundlicher Name für die Abdeckung.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_button": {
+        "title": "Taste bearbeiten",
+        "description": "Aktualisieren Sie die Adresse, den Namen oder die Pulsdauer für diese Taste.",
+        "data": {
+          "address": "Adresse",
+          "name": "Name",
+          "button_pulse": "Pulsdauer",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "address": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1).",
+          "name": "Optionaler freundlicher Name für die Taste.",
+          "button_pulse": "Dauer des Pulses in Sekunden.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_light": {
+        "title": "Licht bearbeiten",
+        "description": "Aktualisieren Sie die Zustandsadresse, Befehlsadresse, Name oder Synchronisationsoption für dieses Licht.",
+        "data": {
+          "state_address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "sync_state": "Zustand mit SPS synchronisieren",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
+          "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
+          "name": "Optionaler freundlicher Name für das Licht.",
+          "sync_state": "Wenn aktiviert, wird der Entitätszustand periodisch von der SPS synchronisiert.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_number": {
+        "title": "Nummer bearbeiten",
+        "description": "Aktualisieren Sie die Zustandsadresse, Befehlsadresse, Name, Mindestwert, Maximalwert oder Schritt für diese Nummer.",
+        "data": {
+          "address": "Zustandsadresse",
+          "command_address": "Befehlsadresse",
+          "name": "Name",
+          "device_class": "Geräteklasse",
+          "unit_of_measurement": "Maßeinheit",
+          "min_value": "Mindestwert",
+          "max_value": "Maximalwert",
+          "step": "Schritt",
+          "real_precision": "REAL-Rundungspräzision",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
+          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "name": "Optionaler freundlicher Name für die Nummerentität.",
+          "device_class": "Geräteklasse für die Nummerentität (z.B. temperature, voltage, power).",
+          "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leer lassen, falls nicht benötigt.",
+          "min_value": "Optionale Untergrenze für den in Home Assistant angezeigten Wert.",
+          "max_value": "Optionale Obergrenze für den in Home Assistant angezeigten Wert.",
+          "step": "Optionale Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird.",
+          "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leer lassen, um die ursprüngliche Präzision zu behalten (1).",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für dieses Tag in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Bleiben Sie in diesem Schritt, um weitere Nummerentitäten hinzuzufügen."
+        }
+      },
+      "edit_writer": {
+        "title": "Entitätssynchronisierung bearbeiten",
+        "description": "Aktualisieren Sie die SPS-Adresse, Quellentität, Name oder Wertgrenzen für diese Entitätssynchronisierung.",
+        "data": {
+          "address": "SPS-Adresse",
+          "source_entity": "Quellentität",
+          "name": "Name"
+        },
+        "data_description": {
+          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4).",
+          "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
+          "name": "Optionaler freundlicher Name für die Entitätssynchronisierung."
+        }
+      },
+      "export": {
+        "title": "Konfiguration exportieren",
+        "description": "Kopieren Sie das untenstehende JSON, um {item_count} konfigurierte Elemente zu sichern. Sie können auch {download_link_start}die Konfiguration herunterladen{download_link_end}, um {download_filename} zu speichern. Senden Sie den Dialog ab, wenn Sie fertig sind.",
+        "data": {
+          "export_json": "Konfigurations-JSON"
+        },
+        "data_description": {
+          "export_json": "Kopieren und speichern Sie dieses JSON, um Ihre Variablen und deren Einstellungen zu exportieren. Sie können auch die Download-Schaltfläche oben verwenden, um die Konfiguration in einer Datei zu speichern."
+        }
+      },
+      "import": {
+        "title": "Konfiguration importieren",
+        "description": "Fügen Sie einen JSON-Export ein, um die aktuelle Konfiguration zu ersetzen. {item_count} Elemente sind derzeit konfiguriert.",
+        "data": {
+          "import_json": "Konfigurations-JSON"
+        },
+        "data_description": {
+          "import_json": "Fügen Sie JSON ein, das durch die Exportaktion erstellt wurde. Alle vorhandenen Variablen werden ersetzt."
+        }
+      }
+    },
+    "error": {
+      "invalid_address": "Ungültiges Adressformat.",
+      "duplicate_entry": "Dieses Element existiert bereits.",
+      "state_addresses_required": "Wenn 'Zustandsthemen verwenden' aktiviert ist, sind sowohl geöffnete als auch geschlossene Zustandsadressen erforderlich.",
+      "invalid_source_entity": "Quellentität ist erforderlich.",
+      "invalid_number": "Ungültiger numerischer Wert.",
+      "invalid_range": "Der Mindestwert darf nicht größer als der Maximalwert sein.",
+      "no_items": "Es sind keine konfigurierten Elemente zum Bearbeiten vorhanden.",
+      "cannot_connect": "Verbindung zur SPS mit den angegebenen Einstellungen nicht möglich.",
+      "already_configured": "Ein anderer S7-SPS-Eintrag verwendet bereits diese Verbindungsparameter.",
+      "invalid_json": "Ungültige JSON-Nutzlast.",
+      "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
+      "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
+      "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenadressen."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "plc_connection": {
+        "name": "{plc_name} Verbindung"
+      }
+    }
+  }
+}
