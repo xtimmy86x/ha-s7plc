@@ -122,6 +122,18 @@ async def async_get_config_entry_diagnostics(
             "latency_seconds": coordinator.last_health_latency,
         }
 
+        # Error diagnostics
+        error_info: dict[str, Any] = {
+            "last_error_category": coordinator.last_error_category,
+            "last_error_message": coordinator.last_error_message,
+            "error_counts_by_category": coordinator.error_count_by_category,
+        }
+        if coordinator.error_count_by_category:
+            error_info["total_errors"] = sum(
+                coordinator.error_count_by_category.values()
+            )
+        coordinator_info["errors"] = error_info
+
         runtime_info["coordinator"] = coordinator_info
 
     diagnostics["runtime"] = runtime_info

@@ -133,6 +133,17 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
         # Health probe results
         attrs["last_health_ok"] = self._coord.last_health_ok
         attrs["last_health_latency_s"] = self._coord.last_health_latency
+
+        # Error diagnostics
+        if self._coord.last_error_category:
+            attrs["last_error_category"] = self._coord.last_error_category
+            attrs["last_error_message"] = self._coord.last_error_message
+
+        error_counts = self._coord.error_count_by_category
+        if error_counts:
+            attrs["error_counts"] = error_counts
+            attrs["total_errors"] = sum(error_counts.values())
+
         return attrs
 
     @property

@@ -112,6 +112,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._last_health_ok: bool | None = None
         self._last_health_latency: float | None = None
 
+        # Error tracking
+        self._last_error_category: str | None = None
+        self._last_error_message: str | None = None
+        self._error_count_by_category: Dict[str, int] = {}
+
     @property
     def host(self) -> str:
         """IP/hostname of the associated PLC."""
@@ -323,6 +328,21 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     @property
     def last_health_latency(self) -> float | None:
         return self._last_health_latency
+
+    @property
+    def last_error_category(self) -> str | None:
+        """Return the category of the last error encountered."""
+        return self._last_error_category
+
+    @property
+    def last_error_message(self) -> str | None:
+        """Return the message of the last error encountered."""
+        return self._last_error_message
+
+    @property
+    def error_count_by_category(self) -> Dict[str, int]:
+        """Return error counts grouped by category."""
+        return dict(self._error_count_by_category)
 
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe).
@@ -558,6 +578,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         # All attempts exhausted
         if last_exc is not None:
+            # Track error for diagnostics
+            self._last_error_category = error_category
+            self._last_error_message = str(last_exc)
+            self._error_count_by_category[error_category] = (
+                self._error_count_by_category.get(error_category, 0) + 1
+            )
+
             _LOGGER.error(
                 "Operation failed after %s attempts (category: %s): %s",
                 self._max_retries + 1,
@@ -626,6 +653,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             latency = time.monotonic() - start_time
             self._last_health_ok = True
             self._last_health_latency = latency
+            # Clear error info on success
+            self._last_error_category = None
+            self._last_error_message = None
         except UpdateFailed:
             # Update health: read failed
             latency = time.monotonic() - start_time

@@ -211,7 +211,9 @@ def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     """Test connection sensor extra state attributes."""
     mock_coordinator.last_health_ok = True
     mock_coordinator.last_health_latency = 0.123
-    mock_coordinator.last_health_time = None
+    mock_coordinator.last_error_category = None
+    mock_coordinator.last_error_message = None
+    mock_coordinator.error_count_by_category = {}
     
     sensor = PlcConnectionBinarySensor(
         mock_coordinator,
@@ -226,6 +228,8 @@ def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     assert attrs["slot"] == 1
     assert attrs["last_health_ok"] is True
     assert attrs["last_health_latency_s"] == 0.123
+    assert "last_error_category" not in attrs
+    assert "error_counts" not in attrs
 
 
 def test_plc_connection_sensor_extra_attributes_tsap(device_info):
@@ -240,6 +244,9 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     coord._pys7_connection_type_str = "pg"
     coord.last_health_ok = False
     coord.last_health_latency = 1.5
+    coord.last_error_category = None
+    coord.last_error_message = None
+    coord.error_count_by_category = {}
     
     sensor = PlcConnectionBinarySensor(
         coord,
@@ -254,6 +261,36 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     assert attrs["remote_tsap"] == "01.01"
     assert attrs["last_health_ok"] is False
     assert attrs["last_health_latency_s"] == 1.5
+
+
+def test_plc_connection_sensor_error_attributes(device_info):
+    """Test connection sensor exposes error diagnostics in attributes."""
+    coord = MagicMock(spec=DummyCoordinator)
+    coord.host = "192.168.1.100"
+    coord.connection_type = "rack_slot"
+    coord.rack = 0
+    coord.slot = 1
+    coord._pys7_connection_type_str = "pg"
+    coord.last_health_ok = False
+    coord.last_health_latency = 2.5
+    coord.last_error_category = "s7_communication"
+    coord.last_error_message = "Connection timeout"
+    coord.error_count_by_category = {
+        "s7_communication": 5,
+        "network": 2,
+    }
+    
+    sensor = PlcConnectionBinarySensor(
+        coord,
+        device_info,
+        "test_device:connection"
+    )
+    
+    attrs = sensor.extra_state_attributes
+    assert attrs["last_error_category"] == "s7_communication"
+    assert attrs["last_error_message"] == "Connection timeout"
+    assert attrs["error_counts"] == {"s7_communication": 5, "network": 2}
+    assert attrs["total_errors"] == 7
 
 
 def test_plc_connection_sensor_available(mock_coordinator, device_info):
