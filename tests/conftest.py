@@ -1,4 +1,25 @@
-"""Pytest configuration and stubs for Home Assistant dependencies."""
+"""Pytest configuration and stubs for Home Assistant dependencies.
+
+Testing Approach:
+-----------------
+This test suite uses a stub-based approach with custom mocks instead of the
+official pytest-homeassistant-custom-component package. This choice provides:
+
+- Fast test execution: ~5 seconds for 254 tests
+- Full control over mock behavior
+- No version compatibility issues between HA versions
+- Lightweight fixtures focused on integration logic
+
+The official pytest-homeassistant-custom-component package was evaluated but
+rejected due to:
+- Version sensitivity requiring exact HA API alignment
+- Slower test execution (30-60s vs 5s)
+- Heavy auto-mocking that can obscure integration-specific issues
+- Additional maintenance burden tracking HA core changes
+
+All mocks are centralized in this file for consistency. Individual test files
+should import fixtures from here rather than defining local duplicates.
+"""
 
 from __future__ import annotations
 
