@@ -42,6 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SERVICE_HEALTH_CHECK = "health_check"
+SERVICE_WRITE_MULTI = "write_multi"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -131,6 +132,57 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _async_health_check_service,
             schema=vol.Schema({vol.Required("entry_id"): str}),
         )
+
+        async def _async_write_multi_service(call) -> None:
+            entry_id = call.data["entry_id"]
+            writes = call.data["writes"]
+
+            runtime = hass.data[DOMAIN].get(entry_id)
+            if not runtime:
+                raise vol.Invalid(f"Unknown entry_id: {entry_id}")
+
+            coord: S7Coordinator = runtime["coordinator"]
+
+            # Convert list of dicts to list of tuples
+            write_list = [(w["address"], w["value"]) for w in writes]
+
+            # Execute batch write
+            results = await hass.async_add_executor_job(coord.write_multi, write_list)
+
+            # Log results
+            success_count = sum(1 for v in results.values() if v)
+            total_count = len(results)
+            _LOGGER.info(
+                "Batch write for %s: %d/%d successful",
+                entry_id,
+                success_count,
+                total_count,
+            )
+
+            # Log failures
+            for address, success in results.items():
+                if not success:
+                    _LOGGER.warning("Failed to write to %s in batch operation", address)
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_WRITE_MULTI,
+            _async_write_multi_service,
+            schema=vol.Schema(
+                {
+                    vol.Required("entry_id"): str,
+                    vol.Required("writes"): [
+                        vol.Schema(
+                            {
+                                vol.Required("address"): str,
+                                vol.Required("value"): object,
+                            }
+                        )
+                    ],
+                }
+            ),
+        )
+
         hass.data[DOMAIN]["_services_registered"] = True
 
     await coordinator.async_config_entry_first_refresh()

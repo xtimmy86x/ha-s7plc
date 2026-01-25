@@ -10,3 +10,29 @@ health_check:
       selector:
         config_entry:
           integration: s7plc
+
+write_multi:
+  name: Write Multiple Values
+  description: Scrive più valori al PLC in un'unica operazione batch ottimizzata.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID dell'entry di configurazione S7 su cui scrivere i valori.
+      required: true
+      example: "abcd1234"
+      selector:
+        config_entry:
+          integration: s7plc
+    writes:
+      name: Values to Write
+      description: Lista di coppie indirizzo/valore da scrivere al PLC.
+      required: true
+      example: |
+        - address: "DB1,X0.0"
+          value: true
+        - address: "DB1,W10"
+          value: 42
+        - address: "DB1,REAL20"
+          value: 3.14
+      selector:
+        object:

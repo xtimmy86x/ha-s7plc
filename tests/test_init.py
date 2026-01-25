@@ -161,3 +161,45 @@ def test_update_listener_triggers_reload():
 
     asyncio.run(s7init._async_update_listener(hass, entry))
     assert reload_called == [entry.entry_id]
+
+
+def test_write_multi_service_registration(monkeypatch):
+    """Test that write_multi service is registered."""
+    hass = HomeAssistant()
+    
+    service_calls = []
+    def fake_async_register(*args, **kwargs):
+        # args[0] = self (the services object)
+        # args[1] = domain
+        # args[2] = service
+        # args[3] = handler
+        if len(args) >= 3:
+            service_calls.append((args[1], args[2]))
+    hass.services = type('obj', (object,), {'async_register': fake_async_register})()
+
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+    
+    def fake_coordinator(*args, **kwargs):
+        obj = DummyCoordinator(*args, **kwargs)
+        return obj
+    
+    monkeypatch.setattr(s7init, "S7Coordinator", fake_coordinator)
+    
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        entry_id="entry1",
+    )
+    
+    hass.async_add_executor_job = lambda func, *args, **kwargs: func(*args, **kwargs)
+    
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+    
+    # Should register both health_check and write_multi services
+    assert len(service_calls) == 2, f"Expected 2 services, got {len(service_calls)}: {service_calls}"
+    registered_services = [s for (d, s) in service_calls]
+    assert "health_check" in registered_services, f"health_check not in {registered_services}"
+    assert "write_multi" in registered_services, f"write_multi not in {registered_services}"
