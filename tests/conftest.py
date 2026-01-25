@@ -743,20 +743,21 @@ class DummyCoordinator:
         self.connection_type = kwargs.pop("connection_type", "rack_slot")
         self.pys7_connection_type = kwargs.pop("pys7_connection_type", "pg")
         self._pys7_connection_type_str = self.pys7_connection_type
-        # Pop all other coordinator parameters that might be passed
-        kwargs.pop("host", None)
-        kwargs.pop("rack", None)
-        kwargs.pop("slot", None)
-        kwargs.pop("local_tsap", None)
-        kwargs.pop("remote_tsap", None)
-        kwargs.pop("port", None)
-        kwargs.pop("scan_interval", None)
-        kwargs.pop("op_timeout", None)
-        kwargs.pop("max_retries", None)
-        kwargs.pop("backoff_initial", None)
-        kwargs.pop("backoff_max", None)
-        kwargs.pop("optimize_read", None)
-        kwargs.pop("enable_write_batching", None)
+        # Store or pop all other coordinator parameters
+        self.hass = kwargs.pop("hass", None) or (args[0] if args else None)
+        self.host = kwargs.pop("host", None)
+        self.rack = kwargs.pop("rack", None)
+        self.slot = kwargs.pop("slot", None)
+        self.local_tsap = kwargs.pop("local_tsap", None)
+        self.remote_tsap = kwargs.pop("remote_tsap", None)
+        self.port = kwargs.pop("port", None)
+        self.scan_interval = kwargs.pop("scan_interval", None)
+        self.op_timeout = kwargs.pop("op_timeout", None)
+        self.max_retries = kwargs.pop("max_retries", None)
+        self.backoff_initial = kwargs.pop("backoff_initial", None)
+        self.backoff_max = kwargs.pop("backoff_max", None)
+        self.optimize_read = kwargs.pop("optimize_read", None)
+        self.enable_write_batching = kwargs.pop("enable_write_batching", None)
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
         self.refresh_called = False
@@ -765,6 +766,8 @@ class DummyCoordinator:
         self._item_scan_intervals = {}
         self._default_scan_interval = 10
         self._item_real_precisions = {}
+        self.connected = False
+        self.disconnected = False
 
     def is_connected(self):
         return self._connected
@@ -794,6 +797,20 @@ class DummyCoordinator:
 
     async def async_request_refresh(self):
         self.refresh_called = True
+
+    async def async_config_entry_first_refresh(self):
+        """Mock for coordinator first refresh."""
+        self.refresh_called = True
+
+    def connect(self):
+        """Mock connect method."""
+        self.connected = True
+        self._connected = True
+
+    def disconnect(self):
+        """Mock disconnect method."""
+        self.disconnected = True
+        self._connected = False
 
 
 class _ImmediateAwaitable:

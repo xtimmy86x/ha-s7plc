@@ -4,59 +4,9 @@ import asyncio
 
 import custom_components.s7plc.__init__ as s7init
 from custom_components.s7plc import const
+from conftest import DummyCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-
-class DummyCoordinator:
-    def __init__(
-        self,
-        hass,
-        host,
-        connection_type,
-        rack,
-        slot,
-        local_tsap,
-        remote_tsap,
-        pys7_connection_type,
-        port,
-        scan_interval,
-        op_timeout,
-        max_retries,
-        backoff_initial,
-        backoff_max,
-        optimize_read,
-        enable_write_batching,
-    ):
-        self.hass = hass
-        self.host = host
-        self.connection_type = connection_type
-        self.rack = rack
-        self.slot = slot
-        self.local_tsap = local_tsap
-        self.remote_tsap = remote_tsap
-        self.pys7_connection_type = pys7_connection_type
-        self._pys7_connection_type_str = pys7_connection_type
-        self.port = port
-        self.scan_interval = scan_interval
-        self.op_timeout = op_timeout
-        self.max_retries = max_retries
-        self.backoff_initial = backoff_initial
-        self.backoff_max = backoff_max
-        self.optimize_read = optimize_read
-        self.enable_write_batching = enable_write_batching
-        self.connected = False
-        self.disconnected = False
-        self.refresh_called = False
-
-    async def async_config_entry_first_refresh(self):
-        self.refresh_called = True
-
-    def connect(self):
-        self.connected = True
-
-    def disconnect(self):
-        self.disconnected = True
 
 
 class DummyConfigEntry(ConfigEntry):
