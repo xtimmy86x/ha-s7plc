@@ -247,7 +247,7 @@ async def test_async_open_cover(cover_factory, mock_coordinator):
     
     await cover.async_open_cover()
     
-    mock_coordinator.write.assert_called_with("db1,x0.0", True)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.0", True)
     assert cover._is_opening is True
     assert cover._is_closing is False
     assert cover._assumed_closed is False
@@ -255,13 +255,16 @@ async def test_async_open_cover(cover_factory, mock_coordinator):
 
 @pytest.mark.asyncio
 async def test_async_open_cover_write_failure(cover_factory, mock_coordinator):
-    """Test opening cover when write fails."""
-    mock_coordinator.write.return_value = False
+    """Test opening cover when write fails - batched writes don't raise exceptions."""
+    mock_coordinator.write_batched.return_value = None  # Batched writes are fire-and-forget
     cover = cover_factory()
     cover._coord.data = {}
     
-    with pytest.raises(Exception):  # HomeAssistantError
-        await cover.async_open_cover()
+    # Batched writes don't raise exceptions, they just log errors
+    await cover.async_open_cover()
+    
+    # Verify the write was attempted
+    mock_coordinator.write_batched.assert_called()
 
 
 # ============================================================================
@@ -277,7 +280,7 @@ async def test_async_close_cover(cover_factory, mock_coordinator):
     
     await cover.async_close_cover()
     
-    mock_coordinator.write.assert_called_with("db1,x0.1", True)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.1", True)
     assert cover._is_opening is False
     assert cover._is_closing is True
     assert cover._assumed_closed is True
@@ -285,13 +288,16 @@ async def test_async_close_cover(cover_factory, mock_coordinator):
 
 @pytest.mark.asyncio
 async def test_async_close_cover_write_failure(cover_factory, mock_coordinator):
-    """Test closing cover when write fails."""
-    mock_coordinator.write.return_value = False
+    """Test closing cover when write fails - batched writes don't raise exceptions."""
+    mock_coordinator.write_batched.return_value = None
     cover = cover_factory()
     cover._coord.data = {}
     
-    with pytest.raises(Exception):  # HomeAssistantError
-        await cover.async_close_cover()
+    # Batched writes don't raise exceptions
+    await cover.async_close_cover()
+    
+    # Verify the write was attempted
+    mock_coordinator.write_batched.assert_called()
 
 
 # ============================================================================
@@ -308,7 +314,7 @@ async def test_async_stop_cover_while_opening(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write.assert_called_with("db1,x0.0", False)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.0", False)
     assert cover._is_opening is False
     assert cover._is_closing is False
 
@@ -322,7 +328,7 @@ async def test_async_stop_cover_while_closing(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write.assert_called_with("db1,x0.1", False)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.1", False)
     assert cover._is_opening is False
     assert cover._is_closing is False
 
