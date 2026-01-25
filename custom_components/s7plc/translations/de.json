@@ -24,7 +24,8 @@
           "max_retries": "Wiederholungsversuche",
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
-          "optimize_read": "Batch-Lesevorgänge optimieren"
+          "optimize_read": "Batch-Lesevorgänge optimieren",
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
         },
         "data_description": {
           "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -38,7 +39,8 @@
           "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
-          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
         }
       },
       "tsap": {
@@ -56,7 +58,8 @@
           "max_retries": "Wiederholungsversuche",
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
-          "optimize_read": "Batch-Lesevorgänge optimieren"
+          "optimize_read": "Batch-Lesevorgänge optimieren",
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
         },
         "data_description": {
           "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -70,7 +73,8 @@
           "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
-          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
         }
       }
     },
@@ -152,7 +156,8 @@
           "max_retries": "Wiederholungsversuche",
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
-          "optimize_read": "Batch-Lesevorgänge optimieren"
+          "optimize_read": "Batch-Lesevorgänge optimieren",
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
         },
         "data_description": {
           "name": "Ein freundlicher Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -165,7 +170,8 @@
           "max_retries": "Wie oft ein fehlgeschlagener SPS-Vorgang wiederholt werden soll, bevor aufgegeben wird.",
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
-          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option."
+          "optimize_read": "Aktivieren Sie optimierte Batch-Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
         }
       },
       "sensors": {

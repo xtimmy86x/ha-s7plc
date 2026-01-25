@@ -49,6 +49,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         backoff_initial: float = 0.5,  # initial backoff
         backoff_max: float = 2.0,  # max backoff between retries
         optimize_read: bool = True,  # enable optimized batch reads
+        enable_write_batching: bool = True,  # enable automatic write batching
     ):
         super().__init__(
             hass,
@@ -80,6 +81,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._backoff_initial = float(backoff_initial)
         self._backoff_max = float(backoff_max)
         self._optimize_read = bool(optimize_read)
+        self._enable_write_batching = bool(enable_write_batching)
 
         # Lock for async operations (state management)
         self._async_lock = asyncio.Lock()
@@ -933,12 +935,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     async def write_batched(
         self, address: str, value: bool | int | float | str
     ) -> None:
-        """Write value to PLC with automatic batching.
+        """Write value to PLC with optional automatic batching.
 
-        Instead of writing immediately, this method accumulates writes in a buffer
-        and executes them as a batch after a short delay (50ms by default). This
-        dramatically improves performance when multiple entities are updated
-        simultaneously (e.g., turning on 2+ lights at once).
+        If batching is enabled, writes are accumulated in a buffer and executed
+        as a batch after a short delay (50ms by default). This dramatically
+        improves performance when multiple entities are updated simultaneously.
+
+        If batching is disabled, writes are executed immediately without delay.
 
         The write is fire-and-forget; errors are logged but not returned.
 
@@ -949,8 +952,22 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Example:
             >>> await coordinator.write_batched('DB1.DBX0.0', True)
             >>> await coordinator.write_batched('DB1.DBX0.1', True)
-            # Both writes will be executed together in ~50ms
+            # If batching enabled: both writes executed together in ~50ms
+            # If batching disabled: each write executed immediately
         """
+        # If batching disabled, execute write immediately
+        if not self._enable_write_batching:
+            try:
+                result = await self.hass.async_add_executor_job(
+                    self.write, address, value
+                )
+                if not result:
+                    _LOGGER.warning("Write failed for %s", address)
+            except Exception as e:  # pragma: no cover
+                _LOGGER.error("Write error for %s: %s", address, e)
+            return
+
+        # Batching enabled: accumulate writes
         async with self._async_lock:
             # Add to buffer
             self._write_batch_buffer[address] = value

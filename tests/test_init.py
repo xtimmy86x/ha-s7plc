@@ -26,6 +26,7 @@ class DummyCoordinator:
         backoff_initial,
         backoff_max,
         optimize_read,
+        enable_write_batching,
     ):
         self.hass = hass
         self.host = host
@@ -43,6 +44,7 @@ class DummyCoordinator:
         self.backoff_initial = backoff_initial
         self.backoff_max = backoff_max
         self.optimize_read = optimize_read
+        self.enable_write_batching = enable_write_batching
         self.connected = False
         self.disconnected = False
         self.refresh_called = False

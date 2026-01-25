@@ -756,6 +756,7 @@ class DummyCoordinator:
         kwargs.pop("backoff_initial", None)
         kwargs.pop("backoff_max", None)
         kwargs.pop("optimize_read", None)
+        kwargs.pop("enable_write_batching", None)
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
         self.refresh_called = False

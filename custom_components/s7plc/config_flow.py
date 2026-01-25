@@ -42,6 +42,7 @@ from .const import (
     CONF_CONNECTION_TYPE,
     CONF_COVERS,
     CONF_DEVICE_CLASS,
+    CONF_ENABLE_WRITE_BATCHING,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
@@ -77,6 +78,7 @@ from .const import (
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
+    DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPERATE_TIME,
@@ -291,6 +293,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Coerce(float), vol.Range(min=0.1, max=120)
                 ),
                 vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
+                vol.Optional(
+                    CONF_ENABLE_WRITE_BATCHING, default=DEFAULT_ENABLE_WRITE_BATCHING
+                ): bool,
             }
         )
 
@@ -373,6 +378,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_BACKOFF_MAX, default=DEFAULT_BACKOFF_MAX): vol.All(
                     vol.Coerce(float), vol.Range(min=0.1, max=120)
                 ),
+                vol.Optional(
+                    CONF_ENABLE_WRITE_BATCHING, default=DEFAULT_ENABLE_WRITE_BATCHING
+                ): bool,
                 vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
             }
         )
@@ -411,6 +419,11 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             backoff_max = float(user_input.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
             optimize_read = bool(
                 user_input.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
+            )
+            enable_write_batching = bool(
+                user_input.get(
+                    CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING
+                )
             )
             name = user_input.get(CONF_NAME, "S7 PLC")
             pys7_connection_type = user_input.get(
@@ -582,6 +595,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_BACKOFF_INITIAL: backoff_initial,
             CONF_BACKOFF_MAX: backoff_max,
             CONF_OPTIMIZE_READ: optimize_read,
+            CONF_ENABLE_WRITE_BATCHING: enable_write_batching,
         }
 
         if connection_type == CONNECTION_TYPE_TSAP:
@@ -1578,6 +1592,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
             ),
             CONF_BACKOFF_MAX: float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX)),
+            CONF_ENABLE_WRITE_BATCHING: bool(
+                data.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
+            ),
             CONF_OPTIMIZE_READ: bool(
                 data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
             ),
@@ -1629,6 +1646,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_OPTIMIZE_READ, default=defaults[CONF_OPTIMIZE_READ]
                 ): bool,
+                vol.Optional(
+                    CONF_ENABLE_WRITE_BATCHING,
+                    default=defaults[CONF_ENABLE_WRITE_BATCHING],
+                ): bool,
             }
         )
 
@@ -1674,6 +1695,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             optimize_read = bool(
                 user_input.get(CONF_OPTIMIZE_READ, defaults[CONF_OPTIMIZE_READ])
+            )
+            enable_write_batching = bool(
+                user_input.get(
+                    CONF_ENABLE_WRITE_BATCHING, defaults[CONF_ENABLE_WRITE_BATCHING]
+                )
             )
             name = (
                 user_input.get(CONF_NAME) or defaults[CONF_NAME]
@@ -1874,6 +1900,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BACKOFF_INITIAL: backoff_initial,
             CONF_BACKOFF_MAX: backoff_max,
             CONF_OPTIMIZE_READ: optimize_read,
+            CONF_ENABLE_WRITE_BATCHING: enable_write_batching,
         }
 
         if is_tsap:
