@@ -133,11 +133,6 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
         # Health probe results
         attrs["last_health_ok"] = self._coord.last_health_ok
         attrs["last_health_latency_s"] = self._coord.last_health_latency
-        attrs["last_health_time"] = (
-            self._coord.last_health_time.isoformat()
-            if self._coord.last_health_time
-            else None
-        )
         return attrs
 
     @property

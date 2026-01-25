@@ -226,7 +226,6 @@ def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     assert attrs["slot"] == 1
     assert attrs["last_health_ok"] is True
     assert attrs["last_health_latency_s"] == 0.123
-    assert attrs["last_health_time"] is None
 
 
 def test_plc_connection_sensor_extra_attributes_tsap(device_info):
@@ -241,7 +240,6 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     coord._pys7_connection_type_str = "pg"
     coord.last_health_ok = False
     coord.last_health_latency = 1.5
-    coord.last_health_time = None
     
     sensor = PlcConnectionBinarySensor(
         coord,

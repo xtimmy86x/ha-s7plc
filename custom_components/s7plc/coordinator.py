@@ -111,7 +111,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Health check bookkeeping (updated by normal read cycle)
         self._last_health_ok: bool | None = None
         self._last_health_latency: float | None = None
-        self._last_health_time: datetime | None = None
 
     @property
     def host(self) -> str:
@@ -313,7 +312,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "ok": ok,
                 "latency": latency,
                 "error": error,
-                "timestamp": self._last_health_time,
             }
 
         return await self.hass.async_add_executor_job(_probe)
@@ -325,10 +323,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     @property
     def last_health_latency(self) -> float | None:
         return self._last_health_latency
-
-    @property
-    def last_health_time(self) -> datetime | None:
-        return self._last_health_time
 
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe).
@@ -632,13 +626,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             latency = time.monotonic() - start_time
             self._last_health_ok = True
             self._last_health_latency = latency
-            self._last_health_time = datetime.now()
         except UpdateFailed:
             # Update health: read failed
             latency = time.monotonic() - start_time
             self._last_health_ok = False
             self._last_health_latency = latency
-            self._last_health_time = datetime.now()
             raise
 
         async with self._async_lock:
