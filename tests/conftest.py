@@ -167,6 +167,26 @@ class HomeAssistant:  # pragma: no cover - simple stub
     def __init__(self):
         self.data = {}
         self.config_entries = ModuleType("config_entries_api")
+        self.services = ModuleType("services_api")
+        
+        # Mock services.async_call
+        async def async_call(domain, service, service_data=None, blocking=True, **kwargs):
+            return None
+        
+        self.services.async_call = async_call
+        
+        # Mock event loop with call_later
+        import asyncio
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # If no loop is running, create a minimal mock
+            class MockLoop:
+                def call_later(self, delay, callback):
+                    # Execute immediately in tests
+                    callback()
+                    return None
+            self.loop = MockLoop()
 
         async def async_forward_entry_setups(entry, platforms):
             return None
@@ -198,6 +218,11 @@ class HomeAssistant:  # pragma: no cover - simple stub
 
         async def async_add_executor_job(func, *args, **kwargs):
             return func(*args, **kwargs)
+        
+        def async_create_task(coro):
+            """Mock for hass.async_create_task - executes immediately in tests."""
+            import asyncio
+            return asyncio.create_task(coro)
 
         self.config_entries.async_forward_entry_setups = async_forward_entry_setups
         self.config_entries.async_unload_platforms = async_unload_platforms
@@ -206,6 +231,7 @@ class HomeAssistant:  # pragma: no cover - simple stub
         self.config_entries.async_entries = async_entries
         self.config_entries._entries = []
         self.async_add_executor_job = async_add_executor_job
+        self.async_create_task = async_create_task
 
 
 core.HomeAssistant = HomeAssistant
@@ -730,6 +756,7 @@ class DummyCoordinator:
         kwargs.pop("backoff_initial", None)
         kwargs.pop("backoff_max", None)
         kwargs.pop("optimize_read", None)
+        kwargs.pop("enable_write_batching", None)
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
         self.refresh_called = False
@@ -753,6 +780,11 @@ class DummyCoordinator:
         if self._write_queue:
             return self._write_queue.pop(0)
         return self._default_write_result
+
+    async def write_batched(self, address: str, value: bool | int | float | str) -> None:
+        """Mock batched write - behaves like regular write for testing."""
+        self.write_calls.append(("write_batched", address, value))
+        # Batched writes are fire-and-forget, so no return value
 
     def set_write_queue(self, *results: bool) -> None:
         self._write_queue = list(results)
@@ -787,6 +819,11 @@ class FakeHass:
         self.calls = []
         self.data = {}
         self.states = MagicMock()
+
+    def async_create_task(self, coro):
+        """Mock for hass.async_create_task - executes immediately in tests."""
+        import asyncio
+        return asyncio.create_task(coro)
 
     def async_add_executor_job(self, func: Callable, *args, **kwargs):
         self.calls.append((func.__name__, args))

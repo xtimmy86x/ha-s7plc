@@ -167,7 +167,7 @@ async def test_light_turn_on(light_factory, mock_coordinator, fake_hass):
     
     await light.async_turn_on()
     
-    mock_coordinator.write.assert_called_once_with("db1,x0.0", True)
+    mock_coordinator.write_batched.assert_called_once_with("db1,x0.0", True)
 
 
 @pytest.mark.asyncio
@@ -179,7 +179,7 @@ async def test_light_turn_off(light_factory, mock_coordinator, fake_hass):
     
     await light.async_turn_off()
     
-    mock_coordinator.write.assert_called_once_with("db1,x0.0", False)
+    mock_coordinator.write_batched.assert_called_once_with("db1,x0.0", False)
 
 
 @pytest.mark.asyncio
@@ -194,7 +194,7 @@ async def test_light_turn_on_different_command_address(light_factory, mock_coord
     
     await light.async_turn_on()
     
-    mock_coordinator.write.assert_called_once_with("db1,x0.1", True)
+    mock_coordinator.write_batched.assert_called_once_with("db1,x0.1", True)
 
 
 @pytest.mark.asyncio
@@ -209,7 +209,7 @@ async def test_light_turn_off_different_command_address(light_factory, mock_coor
     
     await light.async_turn_off()
     
-    mock_coordinator.write.assert_called_once_with("db1,x0.1", False)
+    mock_coordinator.write_batched.assert_called_once_with("db1,x0.1", False)
 
 
 # ============================================================================

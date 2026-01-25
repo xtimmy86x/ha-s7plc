@@ -613,7 +613,7 @@ async def test_entity_sync_numeric_write(entity_sync_factory):
 
     # Verify write_number was called
     assert len(coord.write_calls) == 1
-    assert coord.write_calls[0] == ("write", "db1,r0", 42.5)
+    assert coord.write_calls[0] == ("write_batched", "db1,r0", 42.5)
     assert entity_sync._last_written_value == 42.5
     assert entity_sync._write_count == 1
     assert entity_sync._error_count == 0
@@ -661,7 +661,7 @@ async def test_entity_sync_binary_write_states(
     await entity_sync._async_write_to_plc(mock_state)
 
     assert len(coord.write_calls) == 1
-    assert coord.write_calls[0] == ("write", "db1,x0.0", expected_bool)
+    assert coord.write_calls[0] == ("write_batched", "db1,x0.0", expected_bool)
     assert entity_sync._last_written_value == expected_value
     assert entity_sync._write_count == 1
     assert entity_sync._error_count == 0
@@ -719,11 +719,12 @@ async def test_entity_sync_write_failure(entity_sync_factory):
     mock_state = State("sensor.test", "42.5")
     await entity_sync._async_write_to_plc(mock_state)
 
-    # Write was attempted but failed
-    assert len(coord.write_calls) == 1
-    assert entity_sync._error_count == 1
-    assert entity_sync._write_count == 0
-    assert entity_sync._last_written_value is None
+    # Batched write was attempted
+    assert len(coord.write_calls) >= 1
+    assert coord.write_calls[0][0] == "write_batched"
+    # Batched writes don't update error count synchronously
+    assert entity_sync._write_count == 1  # Write is counted as attempted
+    assert entity_sync._last_written_value == 42.5
 
 
 def test_entity_sync_available(entity_sync_factory):

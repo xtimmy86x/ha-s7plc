@@ -187,7 +187,7 @@ async def test_text_entity_set_value(mock_coordinator, device_info, fake_hass):
 
     # Check that write was called with the command address
     assert len(mock_coordinator.write_calls) == 1
-    assert mock_coordinator.write_calls[0] == ("write", "DB1,S100.50", "New Text")
+    assert mock_coordinator.write_calls[0] == ("write_batched", "DB1,S100.50", "New Text")
     assert mock_coordinator.refresh_called
 
 
@@ -216,7 +216,7 @@ async def test_text_entity_set_value_no_command_address(
     await text.async_set_value("Test Value")
     
     assert len(mock_coordinator.write_calls) == 1
-    assert mock_coordinator.write_calls[0] == ("write", "DB3,S200.30", "Test Value")
+    assert mock_coordinator.write_calls[0] == ("write_batched", "DB3,S200.30", "Test Value")
     assert mock_coordinator.refresh_called
 
 

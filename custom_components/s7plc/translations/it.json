@@ -24,7 +24,8 @@
           "max_retries": "Tentativi di retry",
           "retry_backoff_initial": "Backoff iniziale retry (s)",
           "retry_backoff_max": "Backoff massimo retry (s)",
-          "optimize_read": "Ottimizza letture batch"
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -38,7 +39,8 @@
           "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
           "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
           "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
-          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
         }
       },
       "tsap": {
@@ -56,7 +58,8 @@
           "max_retries": "Tentativi di retry",
           "retry_backoff_initial": "Backoff iniziale retry (s)",
           "retry_backoff_max": "Backoff massimo retry (s)",
-          "optimize_read": "Ottimizza letture batch"
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -70,7 +73,8 @@
           "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
           "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
           "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
-          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
         }
       }
     },
@@ -152,7 +156,8 @@
           "max_retries": "Tentativi di retry",
           "retry_backoff_initial": "Retry backoff iniziale (s)",
           "retry_backoff_max": "Retry backoff max (s)",
-          "optimize_read": "Ottimizza letture batch"
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
         },
         "data_description": {
           "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
@@ -165,7 +170,8 @@
           "max_retries": "Quanti tentativi effettuare prima di rinunciare.",
           "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
           "retry_backoff_max": "Ritardo massimo tra i tentativi di retry.",
-          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione."
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
         }
       },
       "sensors": {

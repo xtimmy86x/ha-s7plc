@@ -90,24 +90,22 @@ class S7BaseEntity(CoordinatorEntity):
         *,
         error_msg: str | None = None,
     ) -> None:
-        """Write value to PLC with error handling.
+        """Write value to PLC with automatic batching.
+
+        Uses write_batched() which automatically groups writes that occur within
+        a short time window (50ms), dramatically improving performance when
+        multiple entities are updated simultaneously.
 
         Args:
             address: PLC address to write to
             value: Value to write (bool, int, float, or str)
             error_msg: Custom error message (defaults to generic message)
 
-        Raises:
-            HomeAssistantError: If write fails
+        Note:
+            Errors are logged but not raised since batched writes are fire-and-forget
+            for performance. Critical write failures will be visible in logs.
         """
-        success = await self.hass.async_add_executor_job(
-            self._coord.write, address, value
-        )
-        if not success:
-            if error_msg is None:
-                error_msg = f"Failed to write {value} to PLC address {address}"
-            _LOGGER.error("%s", error_msg)
-            raise HomeAssistantError(f"Failed to send command to PLC: {address}.")
+        await self._coord.write_batched(address, value)
 
 
 class S7BoolSyncEntity(S7BaseEntity):
@@ -267,10 +265,10 @@ class S7BoolSyncEntity(S7BaseEntity):
                     new_state,
                 )
                 self._last_state = new_state
-                # Fire-and-forget write to command address
+                # Fire-and-forget batched write to command address
                 # Note: Intentionally not awaited to avoid blocking state updates
-                self.hass.async_add_executor_job(
-                    self._coord.write, self._command_address, new_state
+                self.hass.async_create_task(
+                    self._coord.write_batched(self._command_address, new_state)
                 )
 
         super().async_write_ha_state()

@@ -87,9 +87,11 @@ CONF_MAX_RETRIES = "max_retries"
 CONF_BACKOFF_INITIAL = "retry_backoff_initial"
 CONF_BACKOFF_MAX = "retry_backoff_max"
 CONF_OPTIMIZE_READ = "optimize_read"
+CONF_ENABLE_WRITE_BATCHING = "enable_write_batching"
 
 DEFAULT_OP_TIMEOUT = 5.0  # seconds
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_INITIAL = 0.5  # seconds
 DEFAULT_BACKOFF_MAX = 2.0  # seconds
 DEFAULT_OPTIMIZE_READ = True  # enabled by default for better performance
+DEFAULT_ENABLE_WRITE_BATCHING = True  # enabled by default for better performance

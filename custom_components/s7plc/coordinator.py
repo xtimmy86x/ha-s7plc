@@ -49,6 +49,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         backoff_initial: float = 0.5,  # initial backoff
         backoff_max: float = 2.0,  # max backoff between retries
         optimize_read: bool = True,  # enable optimized batch reads
+        enable_write_batching: bool = True,  # enable automatic write batching
     ):
         super().__init__(
             hass,
@@ -80,6 +81,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._backoff_initial = float(backoff_initial)
         self._backoff_max = float(backoff_max)
         self._optimize_read = bool(optimize_read)
+        self._enable_write_batching = bool(enable_write_batching)
 
         # Lock for async operations (state management)
         self._async_lock = asyncio.Lock()
@@ -116,6 +118,13 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._last_error_category: str | None = None
         self._last_error_message: str | None = None
         self._error_count_by_category: Dict[str, int] = {}
+
+        # Write batching for automatic optimization
+        self._write_batch_buffer: Dict[str, bool | int | float | str] = {}
+        self._write_batch_timer: asyncio.TimerHandle | None = None
+        self._write_batch_delay: float = 0.05  # 50ms window to collect writes
+        self._last_write_error_notification: float = 0.0  # Rate limit notifications
+        self._write_error_notification_interval: float = 300.0  # 5 minutes
 
     @property
     def host(self) -> str:
@@ -357,6 +366,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         Wrapper around _drop_connection with thread synchronization.
         """
+        # Cancel any pending write batch timer
+        if self._write_batch_timer is not None:
+            self._write_batch_timer.cancel()
+            self._write_batch_timer = None
+
         with self._sync_lock:
             self._drop_connection()
 
@@ -917,6 +931,148 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tag = parse_tag(address)
             self._write_tags[address] = tag
         return tag
+
+    async def write_batched(
+        self, address: str, value: bool | int | float | str
+    ) -> None:
+        """Write value to PLC with optional automatic batching.
+
+        If batching is enabled, writes are accumulated in a buffer and executed
+        as a batch after a short delay (50ms by default). This dramatically
+        improves performance when multiple entities are updated simultaneously.
+
+        If batching is disabled, writes are executed immediately without delay.
+
+        The write is fire-and-forget; errors are logged but not returned.
+
+        Args:
+            address: PLC address (e.g., 'DB1.DBX0.0', 'DB1.DBW10')
+            value: Value to write (bool, int, float, or str)
+
+        Example:
+            >>> await coordinator.write_batched('DB1.DBX0.0', True)
+            >>> await coordinator.write_batched('DB1.DBX0.1', True)
+            # If batching enabled: both writes executed together in ~50ms
+            # If batching disabled: each write executed immediately
+        """
+        # If batching disabled, execute write immediately
+        if not self._enable_write_batching:
+            try:
+                result = await self.hass.async_add_executor_job(
+                    self.write, address, value
+                )
+                if not result:
+                    _LOGGER.warning("Write failed for %s", address)
+            except Exception as e:  # pragma: no cover
+                _LOGGER.error("Write error for %s: %s", address, e)
+            return
+
+        # Batching enabled: accumulate writes
+        async with self._async_lock:
+            # Add to buffer
+            self._write_batch_buffer[address] = value
+
+            # Cancel existing timer if any
+            if self._write_batch_timer is not None:
+                self._write_batch_timer.cancel()
+
+            # Schedule flush after delay (check loop exists for shutdown safety)
+            if self.hass.loop is not None:
+                self._write_batch_timer = self.hass.loop.call_later(
+                    self._write_batch_delay,
+                    lambda: self.hass.async_create_task(self._flush_write_batch()),
+                )
+            else:
+                # Fallback: execute immediately if loop unavailable (shutdown)
+                _LOGGER.debug("Event loop unavailable, executing write immediately")
+                self.hass.async_create_task(self._flush_write_batch())
+
+    async def _flush_write_batch(self) -> None:
+        """Flush accumulated writes to PLC using write_multi."""
+        async with self._async_lock:
+            if not self._write_batch_buffer:
+                return
+
+            # Get buffered writes
+            writes = list(self._write_batch_buffer.items())
+            self._write_batch_buffer.clear()
+            self._write_batch_timer = None
+
+        # Execute batch write in executor
+        try:
+            results = await self.hass.async_add_executor_job(self.write_multi, writes)
+
+            # Log results
+            success_count = sum(1 for v in results.values() if v)
+            total_count = len(results)
+
+            if success_count == total_count:
+                _LOGGER.debug(
+                    "Batched write: %d/%d addresses successful",
+                    success_count,
+                    total_count,
+                )
+            else:
+                failed_addresses = [
+                    addr for addr, success in results.items() if not success
+                ]
+                error_msg = (
+                    f"S7 PLC write failed for {len(failed_addresses)} address(es): "
+                    f"{', '.join(failed_addresses[:5])}"
+                )
+                if len(failed_addresses) > 5:
+                    error_msg += f" (and {len(failed_addresses) - 5} more)"
+
+                _LOGGER.error(error_msg)
+
+                # Create persistent notification for user (rate limited to avoid spam)
+                import time
+
+                current_time = time.monotonic()
+                if (
+                    current_time - self._last_write_error_notification
+                    >= self._write_error_notification_interval
+                ):
+                    self._last_write_error_notification = current_time
+                    notification_id = (
+                        f"s7plc_write_error_{self._host.replace('.', '_')}"
+                    )
+                    await self.hass.services.async_call(
+                        "persistent_notification",
+                        "create",
+                        {
+                            "title": "S7 PLC Write Error",
+                            "message": error_msg,
+                            "notification_id": notification_id,
+                        },
+                        blocking=False,
+                    )
+                else:
+                    _LOGGER.debug(
+                        "Suppressing notification (last sent %.0fs ago)",
+                        current_time - self._last_write_error_notification,
+                    )
+
+        except Exception as e:  # pragma: no cover
+            error_msg = f"S7 PLC batch write failed: {e}"
+            _LOGGER.exception(error_msg)
+
+            # Create persistent notification for critical errors
+            try:
+                notification_id = f"s7plc_write_error_{self._host.replace('.', '_')}"
+                await self.hass.services.async_call(
+                    "persistent_notification",
+                    "create",
+                    {
+                        "title": "S7 PLC Write Error",
+                        "message": error_msg,
+                        "notification_id": notification_id,
+                    },
+                    blocking=False,
+                )
+            except Exception:  # pragma: no cover
+                # Don't fail if notification fails
+                pass
 
     def _write_with_retry(self, address: str, tag: S7Tag, payload: Any) -> bool:
         """Execute write with retry and error handling.

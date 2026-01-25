@@ -14,6 +14,7 @@ from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_CONNECTION_TYPE,
+    CONF_ENABLE_WRITE_BATCHING,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
@@ -25,6 +26,7 @@ from .const import (
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
+    DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPTIMIZE_READ,
@@ -62,6 +64,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     backoff_initial = float(data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL))
     backoff_max = float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
     optimize_read = bool(data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ))
+    enable_write_batching = bool(
+        data.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
+    )
     pys7_connection_type = data.get(
         CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
     )
@@ -98,6 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         backoff_initial=backoff_initial,
         backoff_max=backoff_max,
         optimize_read=optimize_read,
+        enable_write_batching=enable_write_batching,
     )
 
     hass.data.setdefault(DOMAIN, {})

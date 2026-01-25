@@ -825,3 +825,64 @@ def test_write_multi_write_error(coord_factory, monkeypatch):
     # All should fail
     assert result['DB1,X0.0'] is False
     assert result['DB1,W10'] is False
+
+
+@pytest.mark.asyncio
+async def test_write_batched_creates_notification_on_error(coord_factory, monkeypatch):
+    """Test write_batched creates persistent notification on write failures."""
+    from unittest.mock import MagicMock, AsyncMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    # Mock write_multi to return failures
+    def mock_write_multi(writes):
+        return {addr: False for addr, _ in writes}
+    
+    monkeypatch.setattr(coord, 'write_multi', mock_write_multi)
+    
+    # Mock services.async_call
+    coord.hass.services.async_call = AsyncMock()
+    
+    # Add some writes to batch
+    await coord.write_batched('DB1,X0.0', True)
+    await coord.write_batched('DB1,W10', 42)
+    
+    # Wait for batch to flush
+    await asyncio.sleep(0.1)
+    
+    # Verify notification service was called
+    coord.hass.services.async_call.assert_called_once()
+    call_args = coord.hass.services.async_call.call_args
+    assert call_args[0][0] == 'persistent_notification'
+    assert call_args[0][1] == 'create'
+    assert 'DB1,X0.0' in call_args[0][2]['message']
+    assert 'DB1,W10' in call_args[0][2]['message']
+
+
+@pytest.mark.asyncio
+async def test_write_batched_no_notification_on_success(coord_factory, monkeypatch):
+    """Test write_batched does not create notification on success."""
+    from unittest.mock import MagicMock, AsyncMock
+    
+    coord = coord_factory()
+    coord._client = MagicMock()
+    
+    # Mock write_multi to return success
+    def mock_write_multi(writes):
+        return {addr: True for addr, _ in writes}
+    
+    monkeypatch.setattr(coord, 'write_multi', mock_write_multi)
+    
+    # Mock services.async_call
+    coord.hass.services.async_call = AsyncMock()
+    
+    # Add some writes to batch
+    await coord.write_batched('DB1,X0.0', True)
+    await coord.write_batched('DB1,W10', 42)
+    
+    # Wait for batch to flush
+    await asyncio.sleep(0.1)
+    
+    # Verify no notification was created
+    coord.hass.services.async_call.assert_not_called()
