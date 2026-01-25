@@ -209,6 +209,10 @@ def test_plc_connection_sensor_is_on_disconnected(mock_coordinator, device_info)
 
 def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     """Test connection sensor extra state attributes."""
+    mock_coordinator.last_health_ok = True
+    mock_coordinator.last_health_latency = 0.123
+    mock_coordinator.last_health_time = None
+    
     sensor = PlcConnectionBinarySensor(
         mock_coordinator,
         device_info,
@@ -220,6 +224,9 @@ def test_plc_connection_sensor_extra_attributes(mock_coordinator, device_info):
     assert attrs["connection_type"] == "Rack/Slot"
     assert attrs["rack"] == 0
     assert attrs["slot"] == 1
+    assert attrs["last_health_ok"] is True
+    assert attrs["last_health_latency_s"] == 0.123
+    assert attrs["last_health_time"] is None
 
 
 def test_plc_connection_sensor_extra_attributes_tsap(device_info):
@@ -232,6 +239,9 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     coord.rack = None
     coord.slot = None
     coord._pys7_connection_type_str = "pg"
+    coord.last_health_ok = False
+    coord.last_health_latency = 1.5
+    coord.last_health_time = None
     
     sensor = PlcConnectionBinarySensor(
         coord,
@@ -244,6 +254,8 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     assert attrs["connection_type"] == "TSAP"
     assert attrs["local_tsap"] == "01.00"
     assert attrs["remote_tsap"] == "01.01"
+    assert attrs["last_health_ok"] is False
+    assert attrs["last_health_latency_s"] == 1.5
 
 
 def test_plc_connection_sensor_available(mock_coordinator, device_info):

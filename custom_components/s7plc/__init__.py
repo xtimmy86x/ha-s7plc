@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
@@ -40,6 +41,7 @@ from .coordinator import S7Coordinator
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+SERVICE_HEALTH_CHECK = "health_check"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -104,6 +106,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "host": host,
         "device_id": device_id,
     }
+
+    # Register services once
+    if not hass.data[DOMAIN].get("_services_registered"):
+
+        async def _async_health_check_service(call) -> None:
+            entry_id = call.data["entry_id"]
+            runtime = hass.data[DOMAIN].get(entry_id)
+            if not runtime:
+                raise vol.Invalid(f"Unknown entry_id: {entry_id}")
+            coord: S7Coordinator = runtime["coordinator"]
+            result = await coord.async_health_check()
+            _LOGGER.info(
+                "Health check for %s: ok=%s latency=%.3fs error=%s",
+                entry_id,
+                result.get("ok"),
+                result.get("latency"),
+                result.get("error"),
+            )
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_HEALTH_CHECK,
+            _async_health_check_service,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+        hass.data[DOMAIN]["_services_registered"] = True
 
     await coordinator.async_config_entry_first_refresh()
 

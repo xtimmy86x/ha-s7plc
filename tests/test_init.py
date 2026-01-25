@@ -93,6 +93,14 @@ def test_async_setup_entry_initialises_coordinator(monkeypatch):
 
     hass.config_entries.async_forward_entry_setups = fake_forward
     hass.config_entries.async_unload_platforms = fake_unload
+    
+    # Mock services
+    from unittest.mock import MagicMock
+    service_calls = []
+    def fake_async_register(domain, service, handler, schema=None):
+        service_calls.append((domain, service))
+    hass.services = MagicMock()
+    hass.services.async_register = fake_async_register
 
     created = []
 

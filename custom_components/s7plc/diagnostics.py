@@ -116,6 +116,13 @@ async def async_get_config_entry_diagnostics(
         if last_exception is not None:
             coordinator_info["last_exception"] = repr(last_exception)
 
+        # Health probe info
+        coordinator_info["health"] = {
+            "ok": coordinator.last_health_ok,
+            "latency_seconds": coordinator.last_health_latency,
+            "timestamp": _iso_or_none(coordinator.last_health_time),
+        }
+
         runtime_info["coordinator"] = coordinator_info
 
     diagnostics["runtime"] = runtime_info

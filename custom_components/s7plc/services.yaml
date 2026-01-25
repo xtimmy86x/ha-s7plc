@@ -1,0 +1,12 @@
+health_check:
+  name: Health Check
+  description: Esegue un probe di connettività/lettura leggero sul PLC configurato.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID dell'entry di configurazione S7 (entry_id) su cui eseguire l'health check.
+      required: true
+      example: "abcd1234"
+      selector:
+        config_entry:
+          integration: s7plc

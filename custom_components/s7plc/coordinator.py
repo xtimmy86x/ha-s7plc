@@ -5,7 +5,7 @@ import logging
 import struct
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, TypeVar, Union
 
 from homeassistant.core import HomeAssistant
@@ -107,6 +107,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Store the latest values so entities keep their last state when a tag
         # is not due for polling in the current cycle.
         self._data_cache: Dict[str, Any] = {}
+
+        # Health check bookkeeping (updated by normal read cycle)
+        self._last_health_ok: bool | None = None
+        self._last_health_latency: float | None = None
+        self._last_health_time: datetime | None = None
 
     @property
     def host(self) -> str:
@@ -257,6 +262,73 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """
         with self._sync_lock:
             return bool(self._client and self._client.is_connected)
+
+    async def async_health_check(self) -> dict[str, Any]:
+        """Run a lightweight health check against the PLC.
+
+        Performs the probe in the executor to avoid blocking the event loop.
+        Updates internal health bookkeeping and returns a summary dict.
+        """
+
+        def _probe() -> dict[str, Any]:
+            start = time.monotonic()
+            ok = False
+            error: str | None = None
+            try:
+                with self._sync_lock:
+                    self._ensure_connected()
+                    client = self._client
+                    if client is None:
+                        raise RuntimeError("Client not initialized")
+
+                    # Prefer a real PLC call if available;
+                    # otherwise rely on connection flag
+                    if hasattr(client, "get_cpu_info"):
+                        try:
+                            client.get_cpu_info()
+                        except Exception as err:  # noqa: BLE001
+                            raise RuntimeError(f"CPU info probe failed: {err}") from err
+                    else:
+                        # Fallback: ensure the driver reports connected
+                        if not getattr(client, "is_connected", False):
+                            raise RuntimeError("Client reports not connected")
+
+                    ok = True
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+            ) as err:
+                error = str(err)
+            finally:
+                latency = time.monotonic() - start
+
+            # Record state
+            self._last_health_ok = ok
+            self._last_health_latency = latency
+            self._last_health_time = datetime.now()
+
+            return {
+                "ok": ok,
+                "latency": latency,
+                "error": error,
+                "timestamp": self._last_health_time,
+            }
+
+        return await self.hass.async_add_executor_job(_probe)
+
+    @property
+    def last_health_ok(self) -> bool | None:
+        return self._last_health_ok
+
+    @property
+    def last_health_latency(self) -> float | None:
+        return self._last_health_latency
+
+    @property
+    def last_health_time(self) -> datetime | None:
+        return self._last_health_time
 
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe).
@@ -512,6 +584,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         Determines which tags are due for reading based on their individual
         scan intervals, reads them via executor, and updates the cache.
+        Updates health status based on read cycle outcome.
 
         Returns:
             Dictionary of all cached values (due and non-due items)
@@ -519,7 +592,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Raises:
             UpdateFailed: On connection or read errors
         """
-        now = time.monotonic()
+        start_time = time.monotonic()
+        now = start_time
 
         async with self._async_lock:
             if not self._plans_batch and not self._plans_str:
@@ -550,9 +624,22 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             async with self._async_lock:
                 return dict(self._data_cache)
 
-        results = await self.hass.async_add_executor_job(
-            self._read_all, plans_batch, plans_str
-        )
+        try:
+            results = await self.hass.async_add_executor_job(
+                self._read_all, plans_batch, plans_str
+            )
+            # Update health: read succeeded
+            latency = time.monotonic() - start_time
+            self._last_health_ok = True
+            self._last_health_latency = latency
+            self._last_health_time = datetime.now()
+        except UpdateFailed:
+            # Update health: read failed
+            latency = time.monotonic() - start_time
+            self._last_health_ok = False
+            self._last_health_latency = latency
+            self._last_health_time = datetime.now()
+            raise
 
         async with self._async_lock:
             read_time = time.monotonic()

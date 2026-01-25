@@ -129,6 +129,15 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
             attrs["connection_type"] = "TSAP"
             attrs["local_tsap"] = self._coord.local_tsap
             attrs["remote_tsap"] = self._coord.remote_tsap
+
+        # Health probe results
+        attrs["last_health_ok"] = self._coord.last_health_ok
+        attrs["last_health_latency_s"] = self._coord.last_health_latency
+        attrs["last_health_time"] = (
+            self._coord.last_health_time.isoformat()
+            if self._coord.last_health_time
+            else None
+        )
         return attrs
 
     @property
