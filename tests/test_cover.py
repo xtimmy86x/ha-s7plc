@@ -54,15 +54,6 @@ def device_info():
 
 
 @pytest.fixture
-def fake_hass():
-    """Create a fake hass object."""
-    hass = MagicMock()
-    hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
-    hass.create_task = MagicMock()
-    return hass
-
-
-@pytest.fixture
 def cover_factory(mock_coordinator, device_info, fake_hass):
     """Factory fixture to create S7Cover instances easily."""
     def _create_cover(

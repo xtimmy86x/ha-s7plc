@@ -48,14 +48,6 @@ def device_info():
 
 
 @pytest.fixture
-def fake_hass():
-    """Create a fake hass object."""
-    hass = MagicMock()
-    hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
-    return hass
-
-
-@pytest.fixture
 def light_factory(mock_coordinator, device_info):
     """Factory fixture to create S7Light instances easily."""
     def _create_light(

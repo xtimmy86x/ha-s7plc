@@ -954,8 +954,25 @@ def mock_coordinator_failing():
 
 @pytest.fixture
 def fake_hass():
-    """Provide a fake hass instance for tests."""
-    return FakeHass()
+    """Provide a fake hass instance for entity tests (MagicMock-based)."""
+    from unittest.mock import MagicMock, AsyncMock
+    import asyncio
+    
+    hass = MagicMock()
+    hass.calls = []  # For compatibility with test_entity.py
+    hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
+    
+    # Make async_create_task actually execute the coroutine
+    def create_task_impl(coro):
+        try:
+            return asyncio.create_task(coro)
+        except RuntimeError:
+            # If no event loop is running, return a mock
+            return MagicMock()
+    
+    hass.async_create_task = create_task_impl
+    hass.create_task = MagicMock()
+    return hass
 
 
 @pytest.fixture
