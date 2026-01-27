@@ -121,8 +121,8 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 |-------------|------|-------|----------|
 | **Binary Sensor** | ✅ | ❌ | Device classes, bit addressing, state inversion |
 | **Sensor** | ✅ | ❌ | Numeric types, strings, multipliers, precision |
-| **Switch** | ✅ | ✅ | State sync, separate state/command addresses |
-| **Light** | ✅ | ✅ | State sync, separate state/command addresses |
+| **Switch** | ✅ | ✅ | State sync, pulse command mode, separate state/command addresses |
+| **Light** | ✅ | ✅ | State sync, pulse command mode, separate state/command addresses |
 | **Cover** | ✅ | ✅ | Open/close commands, position feedback, timing |
 | **Button** | ❌ | ✅ | Pulse output with configurable duration (0.1-60s, supports decimals) |
 | **Number** | ✅ | ✅ | Min/max/step, separate read/write addresses |
