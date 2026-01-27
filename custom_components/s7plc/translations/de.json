@@ -207,6 +207,7 @@
                     "address": "Adresse",
                     "name": "Name",
                     "device_class": "Geräteklasse",
+                    "invert_state": "Zustand invertieren",
                     "scan_interval": "Scan-Intervall (s)",
                     "add_another": "Nach dem Speichern weitere hinzufügen ?"
                 },
@@ -214,6 +215,7 @@
                     "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Name für den Binärsensor (optional).",
                     "device_class": "Home Assistant Geräteklasse (z.B. door, window, power).",
+                    "invert_state": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed).",
                     "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
                     "add_another": "Weitere Binärsensoren hinzuzufügen ?"
                 }
@@ -427,12 +429,14 @@
                     "address": "Adresse",
                     "name": "Name",
                     "device_class": "Geräteklasse",
+                    "invert_state": "Zustand invertieren",
                     "scan_interval": "Scan-Intervall (s)"
                 },
                 "data_description": {
                     "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Name für den Binärsensor (optional).",
                     "device_class": "Home Assistant Geräteklasse (z.B. door, window, power).",
+                    "invert_state": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed).",
                     "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
                 }
             },

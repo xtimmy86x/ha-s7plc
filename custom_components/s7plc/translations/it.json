@@ -207,6 +207,7 @@
                     "address": "Indirizzo",
                     "name": "Nome",
                     "device_class": "Device class",
+                    "invert_state": "Inverti stato",
                     "scan_interval": "Intervallo di scansione (s)",
                     "add_another": "Aggiungi un altro dopo il salvataggio"
                 },
@@ -214,6 +215,7 @@
                     "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Nome descrittivo opzionale per il binary sensor.",
                     "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+                    "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
                     "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
                     "add_another": "Rimani in questo step per aggiungere altri binary sensor."
                 }
@@ -409,12 +411,14 @@
                     "address": "Indirizzo",
                     "name": "Nome",
                     "device_class": "Device class",
+                    "invert_state": "Inverti stato",
                     "scan_interval": "Intervallo di scansione (s)"
                 },
                 "data_description": {
                     "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Nome descrittivo opzionale per il binary sensor.",
                     "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+                    "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
                     "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
                 }
             },

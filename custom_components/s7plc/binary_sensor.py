@@ -15,6 +15,7 @@ from .const import (
     CONF_ADDRESS,
     CONF_BINARY_SENSORS,
     CONF_DEVICE_CLASS,
+    CONF_INVERT_STATE,
     CONF_SCAN_INTERVAL,
 )
 from .entity import S7BaseEntity
@@ -43,6 +44,7 @@ async def async_setup_entry(
         topic = f"binary_sensor:{address}"
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
+        invert_state = item.get(CONF_INVERT_STATE, False)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await coord.add_item(topic, address, scan_interval)
 
@@ -55,6 +57,7 @@ async def async_setup_entry(
                 topic,
                 address,
                 device_class,
+                invert_state,
             )
         )
 
@@ -74,6 +77,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         topic: str,
         address: str,
         device_class: str | None,
+        invert_state: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -83,6 +87,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
             topic=topic,
             address=address,
         )
+        self._invert_state = invert_state
         if device_class:
             try:
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
@@ -92,7 +97,10 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         val = (self.coordinator.data or {}).get(self._topic)
-        return None if val is None else bool(val)
+        if val is None:
+            return None
+        result = bool(val)
+        return not result if self._invert_state else result
 
 
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):

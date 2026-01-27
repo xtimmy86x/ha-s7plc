@@ -197,6 +197,7 @@
           "address": "Address",
           "name": "Name",
           "device_class": "Device class",
+          "invert_state": "Invert state",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -204,6 +205,7 @@
           "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
+          "invert_state": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more binary sensors."
         }
@@ -417,12 +419,14 @@
           "address": "Address",
           "name": "Name",
           "device_class": "Device class",
+          "invert_state": "Invert state",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
           "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
+          "invert_state": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },

@@ -207,6 +207,7 @@
                     "address": "Adresa",
                     "name": "Název",
                     "device_class": "Třída zařízení",
+                    "invert_state": "Invertovat stav",
                     "scan_interval": "Interval čtení (s)",
                     "add_another": "Přidat další po uložení"
                 },
@@ -214,6 +215,7 @@
                     "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Volitelný srozumitelný název binárního senzoru.",
                     "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
+                    "invert_state": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty.",
                     "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
                     "add_another": "Zůstat v tomto kroku a přidat další binární senzory."
                 }
@@ -427,12 +429,14 @@
                     "address": "Adresa",
                     "name": "Název",
                     "device_class": "Třída zařízení",
+                    "invert_state": "Invertovat stav",
                     "scan_interval": "Interval čtení (s)"
                 },
                 "data_description": {
                     "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
                     "name": "Volitelný srozumitelný název binárního senzoru.",
                     "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
+                    "invert_state": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty.",
                     "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
                 }
             },

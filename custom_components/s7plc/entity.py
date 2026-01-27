@@ -79,8 +79,11 @@ class S7BaseEntity(CoordinatorEntity):
         attrs["scan_interval"] = f"{interval} s"
         item_real_precisions = getattr(self._coord, "_item_real_precisions", {})
         precision = item_real_precisions.get(self._topic)
+        invert_state = getattr(self, "_invert_state", None)
         if precision is not None:
             attrs["real_precision"] = precision
+        if invert_state is not None:
+            attrs["invert_state"] = invert_state
         return attrs
 
     async def _async_write(

@@ -50,6 +50,7 @@ OPTION_KEYS = (
 CONF_ADDRESS = "address"
 CONF_SOURCE_ENTITY = "source_entity"
 CONF_DEVICE_CLASS = "device_class"
+CONF_INVERT_STATE = "invert_state"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
 CONF_OPEN_COMMAND_ADDRESS = "open_command_address"

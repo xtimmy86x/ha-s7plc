@@ -43,6 +43,7 @@ from .const import (
     CONF_COVERS,
     CONF_DEVICE_CLASS,
     CONF_ENABLE_WRITE_BATCHING,
+    CONF_INVERT_STATE,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
@@ -998,6 +999,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_NAME] = user_input[CONF_NAME]
         if user_input.get(CONF_DEVICE_CLASS):
             item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+        if user_input.get(CONF_INVERT_STATE):
+            item[CONF_INVERT_STATE] = user_input[CONF_INVERT_STATE]
 
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -2049,6 +2052,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Optional(
+                    CONF_INVERT_STATE, default=False
+                ): selector.BooleanSelector(),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -2670,6 +2676,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ),
             )
             schema_dict[key_dc] = val_dc
+
+            schema_dict[
+                vol.Optional(
+                    CONF_INVERT_STATE, default=item.get(CONF_INVERT_STATE, False)
+                )
+            ] = selector.BooleanSelector()
 
             key_scan, val_scan = self._optional_field(
                 CONF_SCAN_INTERVAL, item, scan_interval_selector

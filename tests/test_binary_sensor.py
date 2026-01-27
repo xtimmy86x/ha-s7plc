@@ -65,6 +65,7 @@ def binary_sensor_factory(mock_coordinator, device_info):
         topic: str = "binary_sensor:db1,x0.0",
         unique_id: str = "test_device:binary_sensor:db1,x0.0",
         device_class: str | None = None,
+        invert_state: bool = False,
     ):
         return S7BinarySensor(
             mock_coordinator,
@@ -74,6 +75,7 @@ def binary_sensor_factory(mock_coordinator, device_info):
             topic=topic,
             address=address,
             device_class=device_class,
+            invert_state=invert_state,
         )
     return _create_sensor
 
@@ -154,6 +156,38 @@ def test_binary_sensor_is_on_falsy_value(binary_sensor_factory, mock_coordinator
     sensor = binary_sensor_factory()
     
     assert sensor.is_on is False
+
+
+def test_binary_sensor_invert_state_true(binary_sensor_factory, mock_coordinator):
+    """Test binary sensor with invert_state inverts True to False."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": True}
+    sensor = binary_sensor_factory(invert_state=True)
+    
+    assert sensor.is_on is False
+
+
+def test_binary_sensor_invert_state_false(binary_sensor_factory, mock_coordinator):
+    """Test binary sensor with invert_state inverts False to True."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": False}
+    sensor = binary_sensor_factory(invert_state=True)
+    
+    assert sensor.is_on is True
+
+
+def test_binary_sensor_invert_state_none(binary_sensor_factory, mock_coordinator):
+    """Test binary sensor with invert_state returns None when data is None."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": None}
+    sensor = binary_sensor_factory(invert_state=True)
+    
+    assert sensor.is_on is None
+
+
+def test_binary_sensor_no_invert_state_default(binary_sensor_factory, mock_coordinator):
+    """Test binary sensor defaults to no inversion when invert_state not specified."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": True}
+    sensor = binary_sensor_factory()
+    
+    assert sensor.is_on is True
 
 
 # ============================================================================
@@ -451,3 +485,34 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
     mock_coordinator.add_item.assert_called_once_with(
         "binary_sensor:db1,x0.0", "db1,x0.0", 5
     )
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_with_invert_state(fake_hass, mock_coordinator, device_info):
+    """Test setup with invert_state option."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_BINARY_SENSORS: [
+            {
+                CONF_ADDRESS: "db1,x0.0",
+                CONF_NAME: "Inverted Sensor",
+                "invert_state": True,
+            }
+        ]
+    }
+    
+    async_add_entities = MagicMock()
+    
+    with patch("custom_components.s7plc.binary_sensor.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+    
+    # Should add connection sensor + 1 binary sensor
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 2
+    
+    # Check that the binary sensor has invert_state enabled
+    binary_sensor = entities[1]
+    assert isinstance(binary_sensor, S7BinarySensor)
+    assert binary_sensor._invert_state is True
