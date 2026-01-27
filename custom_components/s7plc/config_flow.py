@@ -56,6 +56,8 @@ from .const import (
     CONF_OPERATE_TIME,
     CONF_OPTIMIZE_READ,
     CONF_PATTERN,
+    CONF_PULSE_COMMAND,
+    CONF_PULSE_DURATION,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REAL_PRECISION,
@@ -85,6 +87,7 @@ from .const import (
     DEFAULT_OPERATE_TIME,
     DEFAULT_OPTIMIZE_READ,
     DEFAULT_PORT,
+    DEFAULT_PULSE_DURATION,
     DEFAULT_PYS7_CONNECTION_TYPE,
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
@@ -820,6 +823,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return round(pulse, 1)
 
     @staticmethod
+    def _sanitize_pulse_duration(value: Any | None) -> float:
+        if value in (None, ""):
+            return DEFAULT_PULSE_DURATION
+        try:
+            pulse = float(value)
+        except (TypeError, ValueError):
+            return DEFAULT_PULSE_DURATION
+        if pulse < 0.1 or pulse > 60:
+            return DEFAULT_PULSE_DURATION
+        return round(pulse, 1)
+
+    @staticmethod
     def _apply_real_precision(item: dict[str, Any], value: Any | None) -> None:
         normalized = S7PLCOptionsFlow._normalize_real_precision(value)
         if normalized is None:
@@ -1051,6 +1066,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input.get(CONF_NAME):
             item[CONF_NAME] = user_input[CONF_NAME]
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+        item[CONF_PULSE_COMMAND] = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        pulse_dur = self._sanitize_pulse_duration(user_input.get(CONF_PULSE_DURATION))
+        if pulse_dur is not None:
+            item[CONF_PULSE_DURATION] = pulse_dur
 
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -1198,6 +1217,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input.get(CONF_NAME):
             item[CONF_NAME] = user_input[CONF_NAME]
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+
+        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        if pulse_command:
+            item[CONF_PULSE_COMMAND] = True
+            raw_pulse = user_input.get(CONF_PULSE_DURATION)
+            if raw_pulse is not None:
+                pulse_duration = self._sanitize_pulse_duration(raw_pulse)
+                item[CONF_PULSE_DURATION] = pulse_duration
 
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -2090,6 +2117,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_COMMAND, default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0.1, max=60, step=0.1, mode="box")
+                ),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -2202,6 +2237,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_COMMAND, default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.BOX,
+                        min=0.1,
+                        max=60,
+                        step=0.1,
+                    )
+                ),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -2724,6 +2772,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_COMMAND,
+                    default=bool(item.get(CONF_PULSE_COMMAND, False)),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_DURATION,
+                    default=float(
+                        item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0.1, max=60, step=0.1, mode="box")
+                ),
             }
 
             key_scan, val_scan = self._optional_field(
@@ -2860,6 +2920,21 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_SYNC_STATE,
                     default=bool(item.get(CONF_SYNC_STATE, False)),
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_COMMAND,
+                    default=bool(item.get(CONF_PULSE_COMMAND, False)),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_PULSE_DURATION,
+                    default=item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.BOX,
+                        min=0.1,
+                        max=60,
+                        step=0.1,
+                    )
+                ),
             }
 
             key_scan, val_scan = self._optional_field(

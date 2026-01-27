@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Dict
 
@@ -125,6 +126,8 @@ class S7BoolSyncEntity(S7BaseEntity):
         state_address: str,
         command_address: str,
         sync_state: bool,
+        pulse_command: bool = False,
+        pulse_duration: float = 0.5,
     ) -> None:
         """Initialize boolean sync entity.
 
@@ -137,6 +140,8 @@ class S7BoolSyncEntity(S7BaseEntity):
             state_address: PLC address to read state from
             command_address: PLC address to write commands to
             sync_state: Whether to sync state changes back to PLC
+            pulse_command: Whether to send pulse instead of on/off commands
+            pulse_duration: Duration of pulse in seconds
         """
         super().__init__(
             coordinator,
@@ -148,6 +153,8 @@ class S7BoolSyncEntity(S7BaseEntity):
         )
         self._command_address = command_address
         self._sync_state = sync_state
+        self._pulse_command = pulse_command
+        self._pulse_duration = pulse_duration
         self._last_state: bool | None = None
         self._pending_command: bool | None = None
 
@@ -167,48 +174,85 @@ class S7BoolSyncEntity(S7BaseEntity):
             self._topic, self._coord._default_scan_interval
         )
         attrs["scan_interval"] = f"{interval} s"
+        if self._pulse_command:
+            attrs.update(
+                {
+                    "pulse_command": self._pulse_command,
+                    "pulse_duration": self._pulse_duration,
+                }
+            )
         return attrs
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on by writing True to PLC.
 
+        If pulse_command is enabled, sends a pulse instead.
+
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
-        await self._ensure_connected()
-        self._pending_command = True
-        try:
-            await self._async_write(
-                self._command_address,
-                True,
-                error_msg=(
-                    f"Failed to write True to PLC address {self._command_address}"
-                ),
-            )
-        except HomeAssistantError:
-            self._pending_command = None
-            raise
-        await self.coordinator.async_request_refresh()
+        if self._pulse_command:
+            await self._async_pulse()
+        else:
+            await self._ensure_connected()
+            self._pending_command = True
+            try:
+                await self._async_write(
+                    self._command_address,
+                    True,
+                    error_msg=(
+                        f"Failed to write True to PLC address {self._command_address}"
+                    ),
+                )
+            except HomeAssistantError:
+                self._pending_command = None
+                raise
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off by writing False to PLC.
 
+        If pulse_command is enabled, sends a pulse instead.
+
+        Raises:
+            HomeAssistantError: If write fails or PLC not connected
+        """
+        if self._pulse_command:
+            await self._async_pulse()
+        else:
+            await self._ensure_connected()
+            self._pending_command = False
+            try:
+                await self._async_write(
+                    self._command_address,
+                    False,
+                    error_msg=(
+                        f"Failed to write False to PLC address {self._command_address}"
+                    ),
+                )
+            except HomeAssistantError:
+                self._pending_command = None
+                raise
+            await self.coordinator.async_request_refresh()
+
+    async def _async_pulse(self) -> None:
+        """Send a pulse to the command address.
+
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
         await self._ensure_connected()
-        self._pending_command = False
-        try:
-            await self._async_write(
-                self._command_address,
-                False,
-                error_msg=(
-                    f"Failed to write False to PLC address {self._command_address}"
-                ),
-            )
-        except HomeAssistantError:
-            self._pending_command = None
-            raise
+        await self._async_write(
+            self._command_address,
+            True,
+            error_msg=f"Failed to pulse at {self._command_address}",
+        )
+        await asyncio.sleep(self._pulse_duration)
+        await self._async_write(
+            self._command_address,
+            False,
+            error_msg=f"Failed to release pulse at {self._command_address}",
+        )
         await self.coordinator.async_request_refresh()
 
     @callback

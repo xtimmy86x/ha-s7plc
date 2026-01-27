@@ -10,10 +10,13 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
     CONF_COMMAND_ADDRESS,
+    CONF_PULSE_COMMAND,
+    CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    DEFAULT_PULSE_DURATION,
 )
 from .entity import S7BoolSyncEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -33,6 +36,17 @@ async def async_setup_entry(
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
+        pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
+        raw_pulse = item.get(CONF_PULSE_DURATION)
+        pulse_duration = DEFAULT_PULSE_DURATION
+        if raw_pulse is not None:
+            try:
+                pulse_duration = float(raw_pulse)
+            except (TypeError, ValueError):
+                pulse_duration = DEFAULT_PULSE_DURATION
+            else:
+                if pulse_duration < 0.1 or pulse_duration > 60:
+                    pulse_duration = DEFAULT_PULSE_DURATION
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), state_address
         )
@@ -50,6 +64,8 @@ async def async_setup_entry(
                 state_address,
                 command_address,
                 sync_state,
+                pulse_command,
+                pulse_duration,
             )
         )
 
@@ -69,6 +85,8 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
         state_address: str,
         command_address: str,
         sync_state: bool,
+        pulse_command: bool = False,
+        pulse_duration: float = DEFAULT_PULSE_DURATION,
     ):
         super().__init__(
             coordinator,
@@ -79,4 +97,6 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             state_address=state_address,
             command_address=command_address,
             sync_state=sync_state,
+            pulse_command=pulse_command,
+            pulse_duration=pulse_duration,
         )

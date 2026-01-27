@@ -1,605 +1,621 @@
 {
-    "title": "Siemens S7",
-    "config": {
-        "step": {
-            "user": {
-                "title": "Scegli tipo di connessione",
-                "description": "Seleziona come vuoi connetterti al tuo PLC S7.",
-                "data": {
-                    "connection_type": "Tipo di connessione"
-                }
-            },
-            "rack_slot": {
-                "title": "Configura collegamento al PLC S7 (Rack/Slot)",
-                "description": "Inserisci i dati di connessione del PLC S7 usando Rack e Slot. Verrà effettuato un test di connessione prima di salvare.",
-                "data": {
-                    "name": "Nome",
-                    "host": "Host",
-                    "port": "Porta",
-                    "rack": "Rack",
-                    "slot": "Slot",
-                    "pys7_connection_type": "Tipo di connessione",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "operation_timeout": "Timeout operazione (s)",
-                    "max_retries": "Tentativi di retry",
-                    "retry_backoff_initial": "Backoff iniziale retry (s)",
-                    "retry_backoff_max": "Backoff massimo retry (s)",
-                    "optimize_read": "Ottimizza letture batch",
-                    "enable_write_batching": "Abilita batching scritture"
-                },
-                "data_description": {
-                    "name": "Nome leggibile del PLC (usato nei nomi entità).",
-                    "host": "IP o hostname del PLC.",
-                    "port": "Porta ISO-on-TCP, in genere 102.",
-                    "rack": "Numero di rack della CPU (di solito 0).",
-                    "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
-                    "pys7_connection_type": "Tipo di connessione S7 (PG per programmazione, OP per pannello operatore, S7 Basic per connessione base).",
-                    "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
-                    "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
-                    "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
-                    "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
-                    "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
-                    "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-                    "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
-                }
-            },
-            "tsap": {
-                "title": "Configura collegamento al PLC S7 (TSAP)",
-                "description": "Inserisci i dati di connessione del PLC S7 usando gli indirizzi TSAP. Verrà effettuato un test di connessione prima di salvare.",
-                "data": {
-                    "name": "Nome",
-                    "host": "Host",
-                    "port": "Porta",
-                    "local_tsap": "TSAP Locale",
-                    "remote_tsap": "TSAP Remoto",
-                    "pys7_connection_type": "Tipo di connessione",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "operation_timeout": "Timeout operazione (s)",
-                    "max_retries": "Tentativi di retry",
-                    "retry_backoff_initial": "Backoff iniziale retry (s)",
-                    "retry_backoff_max": "Backoff massimo retry (s)",
-                    "optimize_read": "Ottimizza letture batch",
-                    "enable_write_batching": "Abilita batching scritture"
-                },
-                "data_description": {
-                    "name": "Nome leggibile del PLC (usato nei nomi entità).",
-                    "host": "IP o hostname del PLC.",
-                    "port": "Porta ISO-on-TCP, in genere 102.",
-                    "local_tsap": "Indirizzo TSAP locale (es. 01.00 o 03.00).",
-                    "remote_tsap": "Indirizzo TSAP remoto (es. 01.01 o 03.01).",
-                    "pys7_connection_type": "Tipo di connessione S7 (PG per programmazione, OP per pannello operatore, S7 Basic per connessione base).",
-                    "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
-                    "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
-                    "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
-                    "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
-                    "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
-                    "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-                    "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
-                }
-            }
-        },
-        "error": {
-            "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete."
-        },
-        "abort": {
-            "already_configured": "Questo PLC è già configurato."
+  "title": "Siemens S7",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Scegli tipo di connessione",
+        "description": "Seleziona come vuoi connetterti al tuo PLC S7.",
+        "data": {
+          "connection_type": "Tipo di connessione"
         }
+      },
+      "rack_slot": {
+        "title": "Configura collegamento al PLC S7 (Rack/Slot)",
+        "description": "Inserisci i dati di connessione del PLC S7 usando Rack e Slot. Verrà effettuato un test di connessione prima di salvare.",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "rack": "Rack",
+          "slot": "Slot",
+          "pys7_connection_type": "Tipo di connessione",
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Backoff iniziale retry (s)",
+          "retry_backoff_max": "Backoff massimo retry (s)",
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
+        },
+        "data_description": {
+          "name": "Nome leggibile del PLC (usato nei nomi entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, in genere 102.",
+          "rack": "Numero di rack della CPU (di solito 0).",
+          "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
+          "pys7_connection_type": "Tipo di connessione S7 (PG per programmazione, OP per pannello operatore, S7 Basic per connessione base).",
+          "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
+          "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
+          "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
+          "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
+          "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+        }
+      },
+      "tsap": {
+        "title": "Configura collegamento al PLC S7 (TSAP)",
+        "description": "Inserisci i dati di connessione del PLC S7 usando gli indirizzi TSAP. Verrà effettuato un test di connessione prima di salvare.",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "local_tsap": "TSAP Locale",
+          "remote_tsap": "TSAP Remoto",
+          "pys7_connection_type": "Tipo di connessione",
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Backoff iniziale retry (s)",
+          "retry_backoff_max": "Backoff massimo retry (s)",
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
+        },
+        "data_description": {
+          "name": "Nome leggibile del PLC (usato nei nomi entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, in genere 102.",
+          "local_tsap": "Indirizzo TSAP locale (es. 01.00 o 03.00).",
+          "remote_tsap": "Indirizzo TSAP remoto (es. 01.01 o 03.01).",
+          "pys7_connection_type": "Tipo di connessione S7 (PG per programmazione, OP per pannello operatore, S7 Basic per connessione base).",
+          "scan_interval": "Frequenza di polling del PLC, in secondi. Usa valori decimali per precisione al millisecondo.",
+          "operation_timeout": "Durata massima di un singolo ciclo di lettura/scrittura prima del retry.",
+          "max_retries": "Quante volte ritentare un'operazione fallita prima di rinunciare.",
+          "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
+          "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+        }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "Opzioni S7 PLC",
-                "description": "Scegli cosa vuoi gestire.",
-                "menu_options": {
-                    "setup_connection": "Connessione",
-                    "setup_entities": "Entità",
-                    "manage_configuration": "Configurazione"
-                }
-            },
-            "setup_connection": {
-                "title": "Imposta connessione PLC",
-                "description": "Configura o modifica i parametri di connessione del PLC."
-            },
-            "setup_entities": {
-                "title": "Imposta entità",
-                "description": "Aggiungi, modifica o rimuovi le entità per questo PLC.",
-                "menu_options": {
-                    "add": "Aggiungi entità",
-                    "edit": "Modifica entità",
-                    "remove": "Rimuovi entità"
-                }
-            },
-            "manage_configuration": {
-                "title": "Gestione configurazione",
-                "description": "Esporta o importa la configurazione del PLC.",
-                "menu_options": {
-                    "export": "Esporta configurazione",
-                    "import": "Importa configurazione"
-                }
-            },
-            "add": {
-                "title": "Aggiungi Elementi",
-                "description": "Seleziona il tipo di elemento che vuoi aggiungere a questa configurazione del PLC.",
-                "menu_options": {
-                    "sensors": "Sensore",
-                    "binary_sensors": "Sensore binario",
-                    "switches": "Interruttore",
-                    "covers": "Copertura",
-                    "buttons": "Pulsante",
-                    "lights": "Luce",
-                    "numbers": "Numero",
-                    "texts": "Testo",
-                    "writers": "Sincronizza Entità a PLC"
-                }
-            },
-            "remove": {
-                "title": "Rimuovi Elementi",
-                "description": "Seleziona gli elementi che vuoi rimuovere da questa configurazione del PLC.",
-                "data": {
-                    "remove_items": "Elementi da rimuovere"
-                },
-                "data_description": {
-                    "remove_items": "Gli elementi selezionati verranno rimossi. L'integrazione verrà ricaricata per applicare le modifiche."
-                }
-            },
-            "connection": {
-                "title": "Modifica connessione PLC",
-                "description": "Aggiorna host, rack, slot e parametri di comunicazione del PLC. Prima del salvataggio verrà eseguito un test di connessione.",
-                "data": {
-                    "name": "Nome",
-                    "host": "Host",
-                    "port": "Porta",
-                    "rack": "Rack",
-                    "slot": "Slot",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "operation_timeout": "Timeout operazione (s)",
-                    "max_retries": "Tentativi di retry",
-                    "retry_backoff_initial": "Retry backoff iniziale (s)",
-                    "retry_backoff_max": "Retry backoff max (s)",
-                    "optimize_read": "Ottimizza letture batch",
-                    "enable_write_batching": "Abilita batching scritture"
-                },
-                "data_description": {
-                    "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
-                    "host": "IP o hostname del PLC.",
-                    "port": "Porta ISO-on-TCP, tipicamente 102.",
-                    "rack": "Numero di rack della CPU (di solito 0).",
-                    "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
-                    "scan_interval": "Frequenza di polling del PLC in secondi. Usa valori decimali per precisione al millisecondo.",
-                    "operation_timeout": "Durata massima di una singola lettura/scrittura prima di riprovare.",
-                    "max_retries": "Quanti tentativi effettuare prima di rinunciare.",
-                    "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
-                    "retry_backoff_max": "Ritardo massimo tra i tentativi di retry.",
-                    "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-                    "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
-                }
-            },
-            "sensors": {
-                "title": "Aggiungi Sensore",
-                "description": "Definisci un sensore che legge un valore dal PLC (es. DB, MW, ecc.). Inserisci l'indirizzo e, facoltativamente, un nome.",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "value_multiplier": "Moltiplicatore di valore",
-                    "unit_of_measurement": "Unità di misura",
-                    "state_class": "State class",
-                    "real_precision": "Numero decimali REAL",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
-                    "name": "Nome descrittivo opzionale per il sensore.",
-                    "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
-                    "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-                    "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
-                    "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
-                    "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
-                    "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questo step per aggiungere altri sensori."
-                }
-            },
-            "binary_sensors": {
-                "title": "Aggiungi Binary Sensor",
-                "description": "Crea un sensore binario (on/off) dal PLC. Imposta indirizzo, nome e device_class (opzionale).",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "invert_state": "Inverti stato",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
-                    "name": "Nome descrittivo opzionale per il binary sensor.",
-                    "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
-                    "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
-                    "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questo step per aggiungere altri binary sensor."
-                }
-            },
-            "switches": {
-                "title": "Aggiungi Switch",
-                "description": "Crea uno switch con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
-                "data": {
-                    "state_address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "sync_state": "Sincronizza stato su indirizzo comando",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
-                    "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
-                    "name": "Nome descrittivo opzionale per lo switch.",
-                    "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
-                    "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questo step per aggiungere altri switch."
-                }
-            },
-            "covers": {
-                "title": "Aggiungi Cover",
-                "description": "Crea una cover con indirizzi di comando dedicati per apertura/chiusura e feedback di stato opzionale.",
-                "data": {
-                    "open_command_address": "Indirizzo comando apertura",
-                    "close_command_address": "Indirizzo comando chiusura",
-                    "opening_state_address": "Indirizzo stato aperto",
-                    "closing_state_address": "Indirizzo stato chiuso",
-                    "operate_time": "Tempo di manovra (s)",
-                    "use_state_topics": "Usa feedback di stato per posizione",
-                    "name": "Nome",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "open_command_address": "Indirizzo PLC che avvia l'apertura (es. Q0.0, DB1,X0.0).",
-                    "close_command_address": "Indirizzo PLC che avvia la chiusura (es. Q0.1, DB1,X0.1).",
-                    "opening_state_address": "Indirizzo PLC opzionale che indica che la cover è aperta.",
-                    "closing_state_address": "Indirizzo PLC opzionale che indica che la cover è chiusa.",
-                    "operate_time": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento.",
-                    "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
-                    "name": "Nome descrittivo opzionale per la cover.",
-                    "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questo step per aggiungere altre cover."
-                }
-            },
-            "buttons": {
-                "title": "Aggiungi Pulsante",
-                "description": "Crea un pulsante senza stato che impulsa un indirizzo booleano del PLC per il numero di secondi configurato quando viene premuto.",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "button_pulse": "Durata impulso",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
-                    "name": "Nome descrittivo opzionale per il pulsante.",
-                    "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
-                    "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms)."
-                }
-            },
-            "lights": {
-                "title": "Aggiungi Luce",
-                "description": "Configura una luce con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
-                "data": {
-                    "state_address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "sync_state": "Sincronizza stato su indirizzo comando",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
-                    "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
-                    "name": "Nome descrittivo opzionale per la luce.",
-                    "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
-                    "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questo step per aggiungere altre luci."
-                }
-            },
-            "numbers": {
-                "title": "Aggiungi Numero",
-                "description": "Crea un'entità di tipo numero che legge un valore dal PLC e può opzionalmente inviare comandi di scrittura.",
-                "data": {
-                    "address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "unit_of_measurement": "Unità di misura",
-                    "min_value": "Valore minimo",
-                    "max_value": "Valore massimo",
-                    "step": "Passo",
-                    "real_precision": "Numero decimali REAL",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
-                    "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
-                    "name": "Nome descrittivo opzionale per l'entità numero.",
-                    "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
-                    "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
-                    "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
-                    "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
-                    "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
-                    "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
-                    "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
-                }
-            },
-            "texts": {
-                "title": "Aggiungi Testo",
-                "description": "Crea un'entità di tipo testo che legge valori STRING o WSTRING dal PLC e può opzionalmente scrivere testo.",
-                "data": {
-                    "address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "pattern": "Pattern (regex)",
-                    "scan_interval": "Intervallo di scansione (s)",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,W0.128).",
-                    "command_address": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato.",
-                    "name": "Nome descrittivo opzionale per l'entità testo.",
-                    "pattern": "Pattern regex opzionale per validare l'input del testo.",
-                    "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-                    "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
-                }
-            },
-            "writers": {
-                "title": "Aggiungi Entity Sync",
-                "description": "Crea un Entity Sync che monitora un'entità di Home Assistant e scrive automaticamente il suo valore al PLC.",
-                "data": {
-                    "address": "Indirizzo PLC",
-                    "source_entity": "Entità sorgente",
-                    "name": "Nome",
-                    "add_another": "Aggiungi un altro dopo il salvataggio"
-                },
-                "data_description": {
-                    "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
-                    "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
-                    "name": "Nome descrittivo opzionale per l'Entity Sync.",
-                    "add_another": "Rimani in questa schermata per aggiungere altri Entity Sync."
-                }
-            },
-            "edit": {
-                "title": "Modifica Elementi",
-                "description": "Seleziona l'elemento che vuoi modificare.",
-                "data": {
-                    "edit_item": "Elemento da modificare"
-                },
-                "data_description": {
-                    "edit_item": "Scegli un'entità esistente da aggiornare."
-                }
-            },
-            "edit_sensor": {
-                "title": "Modifica Sensore",
-                "description": "Aggiorna indirizzo, nome o device class di questo sensore.",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "value_multiplier": "Moltiplicatore di valore",
-                    "unit_of_measurement": "Unità di misura",
-                    "state_class": "State class",
-                    "real_precision": "Numero decimali REAL",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
-                    "name": "Nome descrittivo opzionale per il sensore.",
-                    "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
-                    "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-                    "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
-                    "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
-                    "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
-                    "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_binary_sensor": {
-                "title": "Modifica Binary Sensor",
-                "description": "Aggiorna indirizzo, nome o device class di questo binary sensor.",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "invert_state": "Inverti stato",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
-                    "name": "Nome descrittivo opzionale per il binary sensor.",
-                    "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
-                    "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
-                    "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_switch": {
-                "title": "Modifica Switch",
-                "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione dello switch.",
-                "data": {
-                    "state_address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "sync_state": "Sincronizza stato con il PLC",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
-                    "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale).",
-                    "name": "Nome descrittivo opzionale per lo switch.",
-                    "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
-                    "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_cover": {
-                "title": "Modifica Cover",
-                "description": "Aggiorna gli indirizzi di comando o stato per questa cover e, se necessario, modifica il nome.",
-                "data": {
-                    "open_command_address": "Indirizzo comando apertura",
-                    "close_command_address": "Indirizzo comando chiusura",
-                    "opening_state_address": "Indirizzo stato aperto",
-                    "closing_state_address": "Indirizzo stato chiuso",
-                    "operate_time": "Tempo di manovra (s)",
-                    "use_state_topics": "Usa feedback di stato per posizione",
-                    "name": "Nome",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "open_command_address": "Indirizzo PLC che attiva l'azione di apertura.",
-                    "close_command_address": "Indirizzo PLC che attiva l'azione di chiusura.",
-                    "opening_state_address": "Indirizzo PLC opzionale che segnala che la cover è aperta.",
-                    "closing_state_address": "Indirizzo PLC opzionale che segnala che la cover è chiusa.",
-                    "operate_time": "Secondi di funzionamento prima che l'integrazione ripristini gli output di comando e azzeri le segnalazioni di movimento.",
-                    "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
-                    "name": "Nome descrittivo opzionale per la cover.",
-                    "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_button": {
-                "title": "Modifica Pulsante",
-                "description": "Aggiorna indirizzo, nome o durata dell'impulso per questo pulsante.",
-                "data": {
-                    "address": "Indirizzo",
-                    "name": "Nome",
-                    "button_pulse": "Durata impulso",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
-                    "name": "Nome descrittivo opzionale per il pulsante.",
-                    "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms).",
-                    "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_light": {
-                "title": "Modifica Luce",
-                "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione della luce.",
-                "data": {
-                    "state_address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "sync_state": "Sincronizza stato con il PLC",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
-                    "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
-                    "name": "Nome descrittivo opzionale per la luce.",
-                    "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
-                    "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_number": {
-                "title": "Modifica Numero",
-                "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome, valore minimo, valore massimo o passo per questo numero.",
-                "data": {
-                    "address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "device_class": "Device class",
-                    "unit_of_measurement": "Unità di misura",
-                    "min_value": "Valore minimo",
-                    "max_value": "Valore massimo",
-                    "step": "Passo",
-                    "real_precision": "Numero decimali REAL",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
-                    "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
-                    "name": "Nome descrittivo opzionale per l'entità numero.",
-                    "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
-                    "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
-                    "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
-                    "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
-                    "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
-                    "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
-                    "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
-                }
-            },
-            "edit_text": {
-                "title": "Modifica Testo",
-                "description": "Aggiorna l'indirizzo PLC, l'indirizzo comando, il nome o il pattern per questa entità di testo.",
-                "data": {
-                    "address": "Indirizzo stato",
-                    "command_address": "Indirizzo comando",
-                    "name": "Nome",
-                    "pattern": "Pattern (regex)",
-                    "scan_interval": "Intervallo di scansione (s)"
-                },
-                "data_description": {
-                    "address": "Indirizzo PLC STRING o WSTRING da leggere (es. DB1,S0.254, DB2,W0.128).",
-                    "command_address": "Indirizzo PLC su cui scrivere i valori testuali (opzionale). Se omesso, viene usato l'indirizzo di stato.",
-                    "name": "Nome descrittivo opzionale per l'entità di testo.",
-                    "pattern": "Pattern regex opzionale per validare l'input testo.",
-                    "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Lascia vuoto per usare l'intervallo predefinito del PLC."
-                }
-            },
-            "edit_writer": {
-                "title": "Modifica Entity Sync",
-                "description": "Aggiorna l'indirizzo PLC, l'entità sorgente o il nome per questo Entity Sync.",
-                "data": {
-                    "address": "Indirizzo PLC",
-                    "source_entity": "Entità sorgente",
-                    "name": "Nome"
-                },
-                "data_description": {
-                    "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
-                    "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
-                    "name": "Nome descrittivo opzionale per l'Entity Sync."
-                }
-            },
-            "export": {
-                "title": "Esporta configurazione",
-                "description": "Copia il JSON qui sotto per eseguire il backup di {item_count} elementi configurati. Puoi anche {download_link_start}scaricare la configurazione{download_link_end} per salvare {download_filename}. Invia la finestra di dialogo quando hai finito.",
-                "data": {
-                    "export_json": "JSON di configurazione"
-                },
-                "data_description": {
-                    "export_json": "Copia e conserva questo JSON per esportare le variabili e le relative impostazioni. Puoi anche usare il pulsante di download sopra per salvare la configurazione in un file."
-                }
-            },
-            "import": {
-                "title": "Importa configurazione",
-                "description": "Incolla un JSON esportato per sostituire la configurazione attuale. Al momento sono configurati {item_count} elementi.",
-                "data": {
-                    "import_json": "JSON di configurazione"
-                },
-                "data_description": {
-                    "import_json": "Incolla il JSON prodotto dall'azione di esportazione. Tutte le variabili esistenti verranno sostituite."
-                }
-            }
-        },
-        "error": {
-            "invalid_address": "Formato indirizzo non valido.",
-            "duplicate_entry": "Questo elemento è già presente.",
-            "invalid_source_entity": "L'entità sorgente è obbligatoria.",
-            "invalid_number": "Valore numerico non valido.",
-            "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
-            "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",
-            "no_items": "Non ci sono elementi configurati da modificare.",
-            "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
-            "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
-            "invalid_json": "Payload JSON non valido.",
-            "invalid_selection": "Seleziona un tipo di elemento valido.",
-            "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
-            "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
-        }
+    "error": {
+      "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete."
     },
-    "entity": {
-        "binary_sensor": {
-            "plc_connection": {
-                "name": "Connessione {plc_name}"
-            }
-        }
+    "abort": {
+      "already_configured": "Questo PLC è già configurato."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni S7 PLC",
+        "description": "Scegli cosa vuoi gestire.",
+        "menu_options": {
+          "setup_connection": "Connessione",
+          "setup_entities": "Entità",
+          "manage_configuration": "Configurazione"
+        }
+      },
+      "setup_connection": {
+        "title": "Imposta connessione PLC",
+        "description": "Configura o modifica i parametri di connessione del PLC."
+      },
+      "setup_entities": {
+        "title": "Imposta entità",
+        "description": "Aggiungi, modifica o rimuovi le entità per questo PLC.",
+        "menu_options": {
+          "add": "Aggiungi entità",
+          "edit": "Modifica entità",
+          "remove": "Rimuovi entità"
+        }
+      },
+      "manage_configuration": {
+        "title": "Gestione configurazione",
+        "description": "Esporta o importa la configurazione del PLC.",
+        "menu_options": {
+          "export": "Esporta configurazione",
+          "import": "Importa configurazione"
+        }
+      },
+      "add": {
+        "title": "Aggiungi Elementi",
+        "description": "Seleziona il tipo di elemento che vuoi aggiungere a questa configurazione del PLC.",
+        "menu_options": {
+          "sensors": "Sensore",
+          "binary_sensors": "Sensore binario",
+          "switches": "Interruttore",
+          "covers": "Copertura",
+          "buttons": "Pulsante",
+          "lights": "Luce",
+          "numbers": "Numero",
+          "texts": "Testo",
+          "writers": "Sincronizza Entità a PLC"
+        }
+      },
+      "remove": {
+        "title": "Rimuovi Elementi",
+        "description": "Seleziona gli elementi che vuoi rimuovere da questa configurazione del PLC.",
+        "data": {
+          "remove_items": "Elementi da rimuovere"
+        },
+        "data_description": {
+          "remove_items": "Gli elementi selezionati verranno rimossi. L'integrazione verrà ricaricata per applicare le modifiche."
+        }
+      },
+      "connection": {
+        "title": "Modifica connessione PLC",
+        "description": "Aggiorna host, rack, slot e parametri di comunicazione del PLC. Prima del salvataggio verrà eseguito un test di connessione.",
+        "data": {
+          "name": "Nome",
+          "host": "Host",
+          "port": "Porta",
+          "rack": "Rack",
+          "slot": "Slot",
+          "scan_interval": "Intervallo di scansione (s)",
+          "operation_timeout": "Timeout operazione (s)",
+          "max_retries": "Tentativi di retry",
+          "retry_backoff_initial": "Retry backoff iniziale (s)",
+          "retry_backoff_max": "Retry backoff max (s)",
+          "optimize_read": "Ottimizza letture batch",
+          "enable_write_batching": "Abilita batching scritture"
+        },
+        "data_description": {
+          "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
+          "host": "IP o hostname del PLC.",
+          "port": "Porta ISO-on-TCP, tipicamente 102.",
+          "rack": "Numero di rack della CPU (di solito 0).",
+          "slot": "Numero di slot della CPU (es. 1 per S7-1200/1500).",
+          "scan_interval": "Frequenza di polling del PLC in secondi. Usa valori decimali per precisione al millisecondo.",
+          "operation_timeout": "Durata massima di una singola lettura/scrittura prima di riprovare.",
+          "max_retries": "Quanti tentativi effettuare prima di rinunciare.",
+          "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
+          "retry_backoff_max": "Ritardo massimo tra i tentativi di retry.",
+          "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+        }
+      },
+      "sensors": {
+        "title": "Aggiungi Sensore",
+        "description": "Definisci un sensore che legge un valore dal PLC (es. DB, MW, ecc.). Inserisci l'indirizzo e, facoltativamente, un nome.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class",
+          "value_multiplier": "Moltiplicatore di valore",
+          "unit_of_measurement": "Unità di misura",
+          "state_class": "State class",
+          "real_precision": "Numero decimali REAL",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
+          "name": "Nome descrittivo opzionale per il sensore.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
+          "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
+          "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
+          "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
+          "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altri sensori."
+        }
+      },
+      "binary_sensors": {
+        "title": "Aggiungi Binary Sensor",
+        "description": "Crea un sensore binario (on/off) dal PLC. Imposta indirizzo, nome e device_class (opzionale).",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class",
+          "invert_state": "Inverti stato",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
+          "name": "Nome descrittivo opzionale per il binary sensor.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+          "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
+          "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altri binary sensor."
+        }
+      },
+      "switches": {
+        "title": "Aggiungi Switch",
+        "description": "Crea uno switch con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato su indirizzo comando",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio",
+          "pulse_command": "Modalità comando ad impulso",
+          "pulse_duration": "Durata impulso (s)"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
+          "name": "Nome descrittivo opzionale per lo switch.",
+          "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
+          "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altri switch.",
+          "pulse_command": "Quando attivato, invia un impulso (ON poi OFF) invece di uno stato continuo. Utile per relè bistabili o circuiti flip-flop.",
+          "pulse_duration": "Durata dell'impulso in secondi. Minimo: 0,1s, Massimo: 60s."
+        }
+      },
+      "covers": {
+        "title": "Aggiungi Cover",
+        "description": "Crea una cover con indirizzi di comando dedicati per apertura/chiusura e feedback di stato opzionale.",
+        "data": {
+          "open_command_address": "Indirizzo comando apertura",
+          "close_command_address": "Indirizzo comando chiusura",
+          "opening_state_address": "Indirizzo stato aperto",
+          "closing_state_address": "Indirizzo stato chiuso",
+          "operate_time": "Tempo di manovra (s)",
+          "use_state_topics": "Usa feedback di stato per posizione",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "open_command_address": "Indirizzo PLC che avvia l'apertura (es. Q0.0, DB1,X0.0).",
+          "close_command_address": "Indirizzo PLC che avvia la chiusura (es. Q0.1, DB1,X0.1).",
+          "opening_state_address": "Indirizzo PLC opzionale che indica che la cover è aperta.",
+          "closing_state_address": "Indirizzo PLC opzionale che indica che la cover è chiusa.",
+          "operate_time": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento.",
+          "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre cover."
+        }
+      },
+      "buttons": {
+        "title": "Aggiungi Pulsante",
+        "description": "Crea un pulsante senza stato che impulsa un indirizzo booleano del PLC per il numero di secondi configurato quando viene premuto.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "button_pulse": "Durata impulso",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
+          "name": "Nome descrittivo opzionale per il pulsante.",
+          "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
+          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms)."
+        }
+      },
+      "lights": {
+        "title": "Aggiungi Luce",
+        "description": "Configura una luce con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato su indirizzo comando",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio",
+          "pulse_command": "Modalità comando a impulso",
+          "pulse_duration": "Durata impulso (s)"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
+          "name": "Nome descrittivo opzionale per la luce.",
+          "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
+          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre luci.",
+          "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
+          "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
+        }
+      },
+      "numbers": {
+        "title": "Aggiungi Numero",
+        "description": "Crea un'entità di tipo numero che legge un valore dal PLC e può opzionalmente inviare comandi di scrittura.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "device_class": "Device class",
+          "unit_of_measurement": "Unità di misura",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo",
+          "step": "Passo",
+          "real_precision": "Numero decimali REAL",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità numero.",
+          "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
+          "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
+          "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
+          "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
+          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
+        }
+      },
+      "texts": {
+        "title": "Aggiungi Testo",
+        "description": "Crea un'entità di tipo testo che legge valori STRING o WSTRING dal PLC e può opzionalmente scrivere testo.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,W0.128).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità testo.",
+          "pattern": "Pattern regex opzionale per validare l'input del testo.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
+        }
+      },
+      "writers": {
+        "title": "Aggiungi Entity Sync",
+        "description": "Crea un Entity Sync che monitora un'entità di Home Assistant e scrive automaticamente il suo valore al PLC.",
+        "data": {
+          "address": "Indirizzo PLC",
+          "source_entity": "Entità sorgente",
+          "name": "Nome",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
+          "name": "Nome descrittivo opzionale per l'Entity Sync.",
+          "add_another": "Rimani in questa schermata per aggiungere altri Entity Sync."
+        }
+      },
+      "edit": {
+        "title": "Modifica Elementi",
+        "description": "Seleziona l'elemento che vuoi modificare.",
+        "data": {
+          "edit_item": "Elemento da modificare"
+        },
+        "data_description": {
+          "edit_item": "Scegli un'entità esistente da aggiornare."
+        }
+      },
+      "edit_sensor": {
+        "title": "Modifica Sensore",
+        "description": "Aggiorna indirizzo, nome o device class di questo sensore.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class",
+          "value_multiplier": "Moltiplicatore di valore",
+          "unit_of_measurement": "Unità di misura",
+          "state_class": "State class",
+          "real_precision": "Numero decimali REAL",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
+          "name": "Nome descrittivo opzionale per il sensore.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
+          "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
+          "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
+          "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
+          "scan_interval": "Frequenza di polling specifica per questo sensore in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_binary_sensor": {
+        "title": "Modifica Binary Sensor",
+        "description": "Aggiorna indirizzo, nome o device class di questo binary sensor.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "device_class": "Device class",
+          "invert_state": "Inverti stato",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
+          "name": "Nome descrittivo opzionale per il binary sensor.",
+          "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
+          "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
+          "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_switch": {
+        "title": "Modifica Switch",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione dello switch.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)",
+          "pulse_command": "Modalità comando ad impulso",
+          "pulse_duration": "Durata impulso (s)"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale).",
+          "name": "Nome descrittivo opzionale per lo switch.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "pulse_command": "Quando attivato, invia un impulso (ON poi OFF) invece di uno stato continuo. Utile per relè bistabili o circuiti flip-flop.",
+          "pulse_duration": "Durata dell'impulso in secondi. Minimo: 0,1s, Massimo: 60s."
+        }
+      },
+      "edit_cover": {
+        "title": "Modifica Cover",
+        "description": "Aggiorna gli indirizzi di comando o stato per questa cover e, se necessario, modifica il nome.",
+        "data": {
+          "open_command_address": "Indirizzo comando apertura",
+          "close_command_address": "Indirizzo comando chiusura",
+          "opening_state_address": "Indirizzo stato aperto",
+          "closing_state_address": "Indirizzo stato chiuso",
+          "operate_time": "Tempo di manovra (s)",
+          "use_state_topics": "Usa feedback di stato per posizione",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "open_command_address": "Indirizzo PLC che attiva l'azione di apertura.",
+          "close_command_address": "Indirizzo PLC che attiva l'azione di chiusura.",
+          "opening_state_address": "Indirizzo PLC opzionale che segnala che la cover è aperta.",
+          "closing_state_address": "Indirizzo PLC opzionale che segnala che la cover è chiusa.",
+          "operate_time": "Secondi di funzionamento prima che l'integrazione ripristini gli output di comando e azzeri le segnalazioni di movimento.",
+          "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_button": {
+        "title": "Modifica Pulsante",
+        "description": "Aggiorna indirizzo, nome o durata dell'impulso per questo pulsante.",
+        "data": {
+          "address": "Indirizzo",
+          "name": "Nome",
+          "button_pulse": "Durata impulso",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
+          "name": "Nome descrittivo opzionale per il pulsante.",
+          "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms).",
+          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_light": {
+        "title": "Modifica Luce",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione della luce.",
+        "data": {
+          "state_address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "sync_state": "Sincronizza stato con il PLC",
+          "scan_interval": "Intervallo di scansione (s)",
+          "pulse_command": "Modalità comando a impulso",
+          "pulse_duration": "Durata impulso (s)"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
+          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
+          "name": "Nome descrittivo opzionale per la luce.",
+          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
+          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
+          "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
+        }
+      },
+      "edit_number": {
+        "title": "Modifica Numero",
+        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome, valore minimo, valore massimo o passo per questo numero.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "device_class": "Device class",
+          "unit_of_measurement": "Unità di misura",
+          "min_value": "Valore minimo",
+          "max_value": "Valore massimo",
+          "step": "Passo",
+          "real_precision": "Numero decimali REAL",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità numero.",
+          "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
+          "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
+          "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
+          "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
+          "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
+          "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_text": {
+        "title": "Modifica Testo",
+        "description": "Aggiorna l'indirizzo PLC, l'indirizzo comando, il nome o il pattern per questa entità di testo.",
+        "data": {
+          "address": "Indirizzo stato",
+          "command_address": "Indirizzo comando",
+          "name": "Nome",
+          "pattern": "Pattern (regex)",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC STRING o WSTRING da leggere (es. DB1,S0.254, DB2,W0.128).",
+          "command_address": "Indirizzo PLC su cui scrivere i valori testuali (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per l'entità di testo.",
+          "pattern": "Pattern regex opzionale per validare l'input testo.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Lascia vuoto per usare l'intervallo predefinito del PLC."
+        }
+      },
+      "edit_writer": {
+        "title": "Modifica Entity Sync",
+        "description": "Aggiorna l'indirizzo PLC, l'entità sorgente o il nome per questo Entity Sync.",
+        "data": {
+          "address": "Indirizzo PLC",
+          "source_entity": "Entità sorgente",
+          "name": "Nome"
+        },
+        "data_description": {
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
+          "name": "Nome descrittivo opzionale per l'Entity Sync."
+        }
+      },
+      "export": {
+        "title": "Esporta configurazione",
+        "description": "Copia il JSON qui sotto per eseguire il backup di {item_count} elementi configurati. Puoi anche {download_link_start}scaricare la configurazione{download_link_end} per salvare {download_filename}. Invia la finestra di dialogo quando hai finito.",
+        "data": {
+          "export_json": "JSON di configurazione"
+        },
+        "data_description": {
+          "export_json": "Copia e conserva questo JSON per esportare le variabili e le relative impostazioni. Puoi anche usare il pulsante di download sopra per salvare la configurazione in un file."
+        }
+      },
+      "import": {
+        "title": "Importa configurazione",
+        "description": "Incolla un JSON esportato per sostituire la configurazione attuale. Al momento sono configurati {item_count} elementi.",
+        "data": {
+          "import_json": "JSON di configurazione"
+        },
+        "data_description": {
+          "import_json": "Incolla il JSON prodotto dall'azione di esportazione. Tutte le variabili esistenti verranno sostituite."
+        }
+      }
+    },
+    "error": {
+      "invalid_address": "Formato indirizzo non valido.",
+      "duplicate_entry": "Questo elemento è già presente.",
+      "invalid_source_entity": "L'entità sorgente è obbligatoria.",
+      "invalid_number": "Valore numerico non valido.",
+      "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
+      "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",
+      "no_items": "Non ci sono elementi configurati da modificare.",
+      "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
+      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
+      "invalid_json": "Payload JSON non valido.",
+      "invalid_selection": "Seleziona un tipo di elemento valido.",
+      "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
+      "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "plc_connection": {
+        "name": "Connessione {plc_name}"
+      }
+    }
+  }
 }
