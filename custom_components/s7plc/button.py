@@ -36,11 +36,11 @@ async def async_setup_entry(
         button_pulse = DEFAULT_BUTTON_PULSE
         if raw_pulse is not None:
             try:
-                button_pulse = int(raw_pulse)
+                button_pulse = float(raw_pulse)
             except (TypeError, ValueError):
                 button_pulse = DEFAULT_BUTTON_PULSE
             else:
-                if button_pulse < 0:
+                if button_pulse < 0.1 or button_pulse > 60:
                     button_pulse = DEFAULT_BUTTON_PULSE
         entities.append(
             S7Button(coord, name, unique_id, device_info, address, button_pulse)
@@ -61,7 +61,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
         unique_id: str,
         device_info: DeviceInfo,
         address: str,
-        button_pulse: int,
+        button_pulse: float,
     ):
         super().__init__(
             coordinator,

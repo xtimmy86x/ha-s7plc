@@ -807,16 +807,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return precision
 
     @staticmethod
-    def _sanitize_button_pulse(value: Any | None) -> int:
+    def _sanitize_button_pulse(value: Any | None) -> float:
         if value in (None, ""):
             return DEFAULT_BUTTON_PULSE
         try:
-            pulse = int(value)
+            pulse = float(value)
         except (TypeError, ValueError):
             return DEFAULT_BUTTON_PULSE
-        if pulse < 0:
+        if pulse < 0 or pulse > 60:
             return DEFAULT_BUTTON_PULSE
-        return pulse
+        return round(pulse, 1)
 
     @staticmethod
     def _apply_real_precision(item: dict[str, Any], value: Any | None) -> None:
@@ -2155,7 +2155,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE): int,
+                vol.Optional(
+                    CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=60, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -2799,8 +2805,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ): selector.TextSelector(),
                 vol.Optional(
                     CONF_BUTTON_PULSE,
-                    default=int(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
-                ): int,
+                    default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=60, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
             }
             return vol.Schema(schema_dict)
 

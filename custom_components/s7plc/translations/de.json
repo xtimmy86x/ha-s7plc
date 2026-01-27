@@ -279,7 +279,7 @@
                     "name": "Name für die Taste (optional).",
                     "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
                     "add_another": "Weitere Tasten hinzuzufügen ?",
-                    "button_pulse": "Dauer des Pulses in Sekunden."
+                    "button_pulse": "Dauer des Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0.1 für 100ms)."
                 }
             },
             "lights": {
@@ -490,7 +490,7 @@
                 "data_description": {
                     "address": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1).",
                     "name": "Name für die Taste (optional).",
-                    "button_pulse": "Dauer des Pulses in Sekunden.",
+                    "button_pulse": "Dauer des Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0.1 für 100ms).",
                     "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
                 }
             },

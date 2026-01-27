@@ -279,7 +279,7 @@
           "name": "Optional friendly name for the button.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more buttons.",
-          "button_pulse": "Duration of the pulse in seconds."
+          "button_pulse": "Duration of the pulse in seconds (supports decimals, e.g., 0.1 for 100ms)."
         }
       },
       "lights": {
@@ -490,7 +490,7 @@
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
-          "button_pulse": "Duration of the pulse in seconds.",
+          "button_pulse": "Duration of the pulse in seconds (supports decimals, e.g., 0.1 for 100ms).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },

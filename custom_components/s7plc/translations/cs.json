@@ -1,603 +1,603 @@
 {
-  "title": "Siemens S7",
-  "config": {
-    "step": {
-      "user": {
-        "title": "Zvolte typ připojení",
-        "description": "Vyberte, jak se chcete připojit k S7 PLC.",
-        "data": {
-          "connection_type": "Typ připojení"
-        }
-      },
-      "rack_slot": {
-        "title": "Připojit k S7 PLC (Rack/Slot)",
-        "description": "Zadejte parametry připojení k S7 PLC pomocí Rack a Slot. Před uložením proběhne test spojení.",
-        "data": {
-          "name": "Název",
-          "host": "Hostitel",
-          "port": "Port",
-          "rack": "Rack",
-          "slot": "Slot",
-          "pys7_connection_type": "Typ připojení",
-          "scan_interval": "Interval čtení (s)",
-          "operation_timeout": "Časový limit operace (s)",
-          "max_retries": "Počet pokusů",
-          "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
-          "retry_backoff_max": "Maximální prodleva při opakování (s)",
-          "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
+    "title": "Siemens S7",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Zvolte typ připojení",
+                "description": "Vyberte, jak se chcete připojit k S7 PLC.",
+                "data": {
+                    "connection_type": "Typ připojení"
+                }
+            },
+            "rack_slot": {
+                "title": "Připojit k S7 PLC (Rack/Slot)",
+                "description": "Zadejte parametry připojení k S7 PLC pomocí Rack a Slot. Před uložením proběhne test spojení.",
+                "data": {
+                    "name": "Název",
+                    "host": "Hostitel",
+                    "port": "Port",
+                    "rack": "Rack",
+                    "slot": "Slot",
+                    "pys7_connection_type": "Typ připojení",
+                    "scan_interval": "Interval čtení (s)",
+                    "operation_timeout": "Časový limit operace (s)",
+                    "max_retries": "Počet pokusů",
+                    "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
+                    "retry_backoff_max": "Maximální prodleva při opakování (s)",
+                    "optimize_read": "Optimalizovat dávkové čtení",
+                    "enable_write_batching": "Povolit dávkové zápisy"
+                },
+                "data_description": {
+                    "name": "Srozumitelný název PLC (používá se v názvech entit).",
+                    "host": "IP adresa nebo hostname PLC.",
+                    "port": "Port ISO-on-TCP, obvykle 102.",
+                    "rack": "Číslo racku CPU (většinou 0).",
+                    "slot": "Číslo slotu CPU (např. 1 pro S7-1200/1500).",
+                    "pys7_connection_type": "Typ S7 připojení (PG pro programování, OP pro operátorský panel, S7 Basic pro základní připojení).",
+                    "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
+                    "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
+                    "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
+                    "retry_backoff_initial": "Prodleva před prvním opakováním.",
+                    "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
+                    "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
+                    "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+                }
+            },
+            "tsap": {
+                "title": "Připojit k S7 PLC (TSAP)",
+                "description": "Zadejte parametry připojení k S7 PLC pomocí TSAP adres. Před uložením proběhne test spojení.",
+                "data": {
+                    "name": "Název",
+                    "host": "Hostitel",
+                    "port": "Port",
+                    "local_tsap": "Lokální TSAP",
+                    "remote_tsap": "Vzdálený TSAP",
+                    "pys7_connection_type": "Typ připojení",
+                    "scan_interval": "Interval čtení (s)",
+                    "operation_timeout": "Časový limit operace (s)",
+                    "max_retries": "Počet pokusů",
+                    "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
+                    "retry_backoff_max": "Maximální prodleva při opakování (s)",
+                    "optimize_read": "Optimalizovat dávkové čtení",
+                    "enable_write_batching": "Povolit dávkové zápisy"
+                },
+                "data_description": {
+                    "name": "Srozumitelný název PLC (používá se v názvech entit).",
+                    "host": "IP adresa nebo hostname PLC.",
+                    "port": "Port ISO-on-TCP, obvykle 102.",
+                    "local_tsap": "Lokální TSAP adresa (např. 01.00 nebo 03.00).",
+                    "remote_tsap": "Vzdálená TSAP adresa (např. 01.01 nebo 03.01).",
+                    "pys7_connection_type": "Typ S7 připojení (PG pro programování, OP pro operátorský panel, S7 Basic pro základní připojení).",
+                    "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
+                    "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
+                    "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
+                    "retry_backoff_initial": "Prodleva před prvním opakováním.",
+                    "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
+                    "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
+                    "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+                }
+            }
         },
-        "data_description": {
-          "name": "Srozumitelný název PLC (používá se v názvech entit).",
-          "host": "IP adresa nebo hostname PLC.",
-          "port": "Port ISO-on-TCP, obvykle 102.",
-          "rack": "Číslo racku CPU (většinou 0).",
-          "slot": "Číslo slotu CPU (např. 1 pro S7-1200/1500).",
-          "pys7_connection_type": "Typ S7 připojení (PG pro programování, OP pro operátorský panel, S7 Basic pro základní připojení).",
-          "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
-          "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
-          "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
-          "retry_backoff_initial": "Prodleva před prvním opakováním.",
-          "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
-          "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
-        }
-      },
-      "tsap": {
-        "title": "Připojit k S7 PLC (TSAP)",
-        "description": "Zadejte parametry připojení k S7 PLC pomocí TSAP adres. Před uložením proběhne test spojení.",
-        "data": {
-          "name": "Název",
-          "host": "Hostitel",
-          "port": "Port",
-          "local_tsap": "Lokální TSAP",
-          "remote_tsap": "Vzdálený TSAP",
-          "pys7_connection_type": "Typ připojení",
-          "scan_interval": "Interval čtení (s)",
-          "operation_timeout": "Časový limit operace (s)",
-          "max_retries": "Počet pokusů",
-          "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
-          "retry_backoff_max": "Maximální prodleva při opakování (s)",
-          "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
+        "error": {
+            "cannot_connect": "Nelze se připojit k PLC. Zkontrolujte hostitele, rack, slot, port a síť."
         },
-        "data_description": {
-          "name": "Srozumitelný název PLC (používá se v názvech entit).",
-          "host": "IP adresa nebo hostname PLC.",
-          "port": "Port ISO-on-TCP, obvykle 102.",
-          "local_tsap": "Lokální TSAP adresa (např. 01.00 nebo 03.00).",
-          "remote_tsap": "Vzdálená TSAP adresa (např. 01.01 nebo 03.01).",
-          "pys7_connection_type": "Typ S7 připojení (PG pro programování, OP pro operátorský panel, S7 Basic pro základní připojení).",
-          "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
-          "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
-          "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
-          "retry_backoff_initial": "Prodleva před prvním opakováním.",
-          "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
-          "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+        "abort": {
+            "already_configured": "Toto PLC je už nakonfigurováno."
         }
-      }
     },
-    "error": {
-      "cannot_connect": "Nelze se připojit k PLC. Zkontrolujte hostitele, rack, slot, port a síť."
+    "options": {
+        "step": {
+            "init": {
+                "title": "Možnosti S7 PLC",
+                "description": "Vyberte, co chcete spravovat.",
+                "menu_options": {
+                    "setup_connection": "Připojení",
+                    "setup_entities": "Entity",
+                    "manage_configuration": "Konfigurace"
+                }
+            },
+            "setup_connection": {
+                "title": "Nastavení připojení PLC",
+                "description": "Nakonfigurujte nebo upravte parametry připojení PLC."
+            },
+            "setup_entities": {
+                "title": "Nastavení entit",
+                "description": "Přidejte, upravte nebo odeberte entity pro toto PLC.",
+                "menu_options": {
+                    "add": "Přidat entity",
+                    "edit": "Upravit entity",
+                    "remove": "Odebrat entity"
+                }
+            },
+            "manage_configuration": {
+                "title": "Správa konfigurace",
+                "description": "Exportujte nebo importujte konfiguraci PLC.",
+                "menu_options": {
+                    "export": "Exportovat konfiguraci",
+                    "import": "Importovat konfiguraci"
+                }
+            },
+            "add": {
+                "title": "Přidat položky",
+                "description": "Vyberte typ položky, kterou chcete přidat.",
+                "menu_options": {
+                    "sensors": "Senzor",
+                    "binary_sensors": "Binární senzor",
+                    "switches": "Spínač",
+                    "covers": "Roleta / žaluzie",
+                    "buttons": "Tlačítko",
+                    "lights": "Světlo",
+                    "numbers": "Číslo",
+                    "texts": "Text",
+                    "writers": "Synchronizace entity do PLC"
+                }
+            },
+            "remove": {
+                "title": "Odebrat položky",
+                "description": "Vyberte položky, které chcete z této konfigurace PLC odebrat.",
+                "data": {
+                    "remove_items": "Položky k odebrání"
+                },
+                "data_description": {
+                    "remove_items": "Zaškrtnuté položky budou odebrány. Integrace se znovu načte, aby se změny projevily."
+                }
+            },
+            "connection": {
+                "title": "Upravit připojení PLC",
+                "description": "Aktualizujte hostitele PLC, rack, slot a časování komunikace. Před uložením proběhne test spojení.",
+                "data": {
+                    "name": "Název",
+                    "host": "Hostitel",
+                    "port": "Port",
+                    "rack": "Rack",
+                    "slot": "Slot",
+                    "scan_interval": "Interval čtení (s)",
+                    "operation_timeout": "Časový limit operace (s)",
+                    "max_retries": "Počet pokusů",
+                    "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
+                    "retry_backoff_max": "Maximální prodleva při opakování (s)",
+                    "optimize_read": "Optimalizovat dávkové čtení",
+                    "enable_write_batching": "Povolit dávkové zápisy"
+                },
+                "data_description": {
+                    "name": "Srozumitelný název PLC (používá se v názvech entit).",
+                    "host": "IP adresa nebo hostname PLC.",
+                    "port": "Port ISO-on-TCP, obvykle 102.",
+                    "rack": "Číslo racku CPU (většinou 0).",
+                    "slot": "Číslo slotu CPU (např. 1 pro S7-1200/1500).",
+                    "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
+                    "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
+                    "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
+                    "retry_backoff_initial": "Prodleva před prvním opakováním.",
+                    "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
+                    "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
+                    "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+                }
+            },
+            "sensors": {
+                "title": "Přidat senzor",
+                "description": "Vytvořte senzor, který čte hodnotu z PLC (např. DB, MW atd.). Zadejte adresu a případně název.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "value_multiplier": "Násobitel hodnoty",
+                    "unit_of_measurement": "Jednotka",
+                    "state_class": "Třída stavu",
+                    "real_precision": "Zaokrouhlení REAL",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
+                    "name": "Volitelný srozumitelný název senzoru.",
+                    "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
+                    "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
+                    "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
+                    "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
+                    "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další senzory."
+                }
+            },
+            "binary_sensors": {
+                "title": "Přidat binární senzor",
+                "description": "Vytvořte binární senzor (zapnuto/vypnuto) z PLC. Nastavte adresu, název a volitelnou třídu zařízení.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
+                    "name": "Volitelný srozumitelný název binárního senzoru.",
+                    "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další binární senzory."
+                }
+            },
+            "switches": {
+                "title": "Přidat spínač",
+                "description": "Vytvořte spínač se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
+                "data": {
+                    "state_address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "sync_state": "Synchronizovat stav s příkazovou adresou",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
+                    "command_address": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav.",
+                    "name": "Volitelný srozumitelný název spínače.",
+                    "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další spínače."
+                }
+            },
+            "covers": {
+                "title": "Přidat roletu/žaluzie",
+                "description": "Vytvořte krytinu (cover) s adresami pro otevření/zavření a volitelnou zpětnou vazbou stavu.",
+                "data": {
+                    "open_command_address": "Adresa příkazu otevřít",
+                    "close_command_address": "Adresa příkazu zavřít",
+                    "opening_state_address": "Adresa stavu otevřeno",
+                    "closing_state_address": "Adresa stavu zavřeno",
+                    "operate_time": "Doba chodu (s)",
+                    "use_state_topics": "Použít stavové adresy pro polohu",
+                    "name": "Název",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "open_command_address": "Adresa v PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
+                    "close_command_address": "Adresa v PLC pro spuštění zavírání (např. Q0.1, DB1,X0.1).",
+                    "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
+                    "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
+                    "operate_time": "Počet sekund, po které má být příkaz aktivní, než se výstupy resetují a stav pohybu se vymaže.",
+                    "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
+                    "name": "Volitelný srozumitelný název krytiny.",
+                    "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další krytiny."
+                }
+            },
+            "buttons": {
+                "title": "Přidat tlačítko",
+                "description": "Vytvořte bezstavové tlačítko, které při stisku na zadaný čas sepne booleovskou adresu v PLC.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení",
+                    "button_pulse": "Délka pulzu"
+                },
+                "data_description": {
+                    "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
+                    "name": "Volitelný srozumitelný název tlačítka.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další tlačítka.",
+                    "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms)."
+                }
+            },
+            "lights": {
+                "title": "Přidat světlo",
+                "description": "Nakonfigurujte světlo se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
+                "data": {
+                    "state_address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "sync_state": "Synchronizovat stav s příkazovou adresou",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
+                    "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
+                    "name": "Volitelný srozumitelný název světla.",
+                    "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další světla."
+                }
+            },
+            "numbers": {
+                "title": "Přidat číslo",
+                "description": "Vytvořte číselnou entitu, která čte hodnotu z PLC a volitelně může zapisovat příkazy zpět.",
+                "data": {
+                    "address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "unit_of_measurement": "Jednotka",
+                    "min_value": "Minimální hodnota",
+                    "max_value": "Maximální hodnota",
+                    "step": "Krok",
+                    "real_precision": "Zaokrouhlení REAL",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
+                    "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
+                    "name": "Volitelný srozumitelný název číselné entity.",
+                    "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
+                    "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
+                    "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
+                    "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
+                    "step": "Volitelný krok, o který se hodnota mění v UI.",
+                    "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
+                }
+            },
+            "texts": {
+                "title": "Přidat text",
+                "description": "Vytvořte textovou entitu, která čte STRING nebo WSTRING z PLC a volitelně může zapisovat text zpět.",
+                "data": {
+                    "address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "pattern": "Vzor (regex)",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
+                    "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
+                    "name": "Volitelný srozumitelný název textové entity.",
+                    "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další textové entity."
+                }
+            },
+            "edit_text": {
+                "title": "Upravit text",
+                "description": "Aktualizujte adresu PLC, příkazovou adresu, název nebo vzor pro tuto textovou entitu.",
+                "data": {
+                    "address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "pattern": "Vzor (regex)",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
+                    "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
+                    "name": "Volitelný srozumitelný název textové entity.",
+                    "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "writers": {
+                "title": "Přidat synchronizaci entity",
+                "description": "Vytvořte synchronizaci entity, která sleduje entitu v Home Assistant a automaticky zapisuje její hodnotu do PLC.",
+                "data": {
+                    "address": "Adresa PLC",
+                    "source_entity": "Zdrojová entita",
+                    "name": "Název",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
+                    "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
+                    "name": "Volitelný srozumitelný název synchronizace entity.",
+                    "add_another": "Zůstat v tomto kroku a přidat další synchronizace."
+                }
+            },
+            "edit": {
+                "title": "Upravit položky",
+                "description": "Vyberte položku, kterou chcete upravit.",
+                "data": {
+                    "edit_item": "Položka k úpravě"
+                },
+                "data_description": {
+                    "edit_item": "Vyberte existující entitu, kterou chcete aktualizovat."
+                }
+            },
+            "edit_sensor": {
+                "title": "Upravit senzor",
+                "description": "Aktualizujte adresu, název nebo třídu zařízení pro tento senzor.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "value_multiplier": "Násobitel hodnoty",
+                    "unit_of_measurement": "Jednotka",
+                    "state_class": "Třída stavu",
+                    "real_precision": "Zaokrouhlení REAL",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
+                    "name": "Volitelný srozumitelný název senzoru.",
+                    "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
+                    "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
+                    "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
+                    "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
+                    "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_binary_sensor": {
+                "title": "Upravit binární senzor",
+                "description": "Aktualizujte adresu, název nebo třídu zařízení pro tento binární senzor.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
+                    "name": "Volitelný srozumitelný název binárního senzoru.",
+                    "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_switch": {
+                "title": "Upravit spínač",
+                "description": "Aktualizujte stavovou adresu, příkazovou adresu, název nebo volbu synchronizace pro tento spínač.",
+                "data": {
+                    "state_address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "sync_state": "Synchronizovat stav s PLC",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
+                    "command_address": "Adresa v PLC pro zápis příkazů (volitelné).",
+                    "name": "Volitelný srozumitelný název spínače.",
+                    "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_cover": {
+                "title": "Upravit roletu/žaluzie",
+                "description": "Aktualizujte příkazové nebo stavové adresy pro tuto krytinu a případně změňte její název.",
+                "data": {
+                    "open_command_address": "Adresa příkazu otevřít",
+                    "close_command_address": "Adresa příkazu zavřít",
+                    "opening_state_address": "Adresa stavu otevřeno",
+                    "closing_state_address": "Adresa stavu zavřeno",
+                    "operate_time": "Doba chodu (s)",
+                    "use_state_topics": "Použít stavové adresy pro polohu",
+                    "name": "Název",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "open_command_address": "Adresa v PLC, která spouští akci otevření.",
+                    "close_command_address": "Adresa v PLC, která spouští akci zavření.",
+                    "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
+                    "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
+                    "operate_time": "Počet sekund, po které má krytina běžet, než integrace resetuje příkazové výstupy a vymaže stavové příznaky.",
+                    "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
+                    "name": "Volitelný srozumitelný název krytiny.",
+                    "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_button": {
+                "title": "Upravit tlačítko",
+                "description": "Aktualizujte adresu, název nebo délku pulzu pro toto tlačítko.",
+                "data": {
+                    "address": "Adresa",
+                    "name": "Název",
+                    "button_pulse": "Délka pulzu",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
+                    "name": "Volitelný srozumitelný název tlačítka.",
+                    "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_light": {
+                "title": "Upravit světlo",
+                "description": "Aktualizujte stavovou adresu, příkazovou adresu, název nebo volbu synchronizace pro toto světlo.",
+                "data": {
+                    "state_address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "sync_state": "Synchronizovat stav s PLC",
+                    "scan_interval": "Interval čtení (s)"
+                },
+                "data_description": {
+                    "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
+                    "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
+                    "name": "Volitelný srozumitelný název světla.",
+                    "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+                }
+            },
+            "edit_number": {
+                "title": "Upravit číslo",
+                "description": "Aktualizujte stavovou adresu, příkazovou adresu, název, minimální hodnotu, maximální hodnotu nebo krok pro tuto číselnou entitu.",
+                "data": {
+                    "address": "Stavová adresa",
+                    "command_address": "Příkazová adresa",
+                    "name": "Název",
+                    "device_class": "Třída zařízení",
+                    "unit_of_measurement": "Jednotka",
+                    "min_value": "Minimální hodnota",
+                    "max_value": "Maximální hodnota",
+                    "step": "Krok",
+                    "real_precision": "Zaokrouhlení REAL",
+                    "scan_interval": "Interval čtení (s)",
+                    "add_another": "Přidat další po uložení"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
+                    "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
+                    "name": "Volitelný srozumitelný název číselné entity.",
+                    "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
+                    "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
+                    "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
+                    "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
+                    "step": "Volitelný krok, o který se hodnota mění v UI.",
+                    "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+                    "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+                    "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
+                }
+            },
+            "edit_writer": {
+                "title": "Upravit synchronizaci entity",
+                "description": "Aktualizujte adresu PLC, zdrojovou entitu, název nebo limity hodnot pro tuto synchronizaci entity.",
+                "data": {
+                    "address": "Adresa PLC",
+                    "source_entity": "Zdrojová entita",
+                    "name": "Název"
+                },
+                "data_description": {
+                    "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
+                    "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
+                    "name": "Volitelný srozumitelný název synchronizace entity."
+                }
+            },
+            "export": {
+                "title": "Exportovat konfiguraci",
+                "description": "Zkopírujte JSON níže pro zálohu {item_count} nakonfigurovaných položek. Můžete také {download_link_start}stáhnout konfiguraci{download_link_end} a uložit ji jako {download_filename}. Po dokončení dialog odešlete.",
+                "data": {
+                    "export_json": "Konfigurační JSON"
+                },
+                "data_description": {
+                    "export_json": "Zkopírujte a uložte tento JSON pro export proměnných a jejich nastavení. Můžete také použít tlačítko pro stažení výše a uložit konfiguraci do souboru."
+                }
+            },
+            "import": {
+                "title": "Importovat konfiguraci",
+                "description": "Vložte exportovaný JSON pro nahrazení aktuální konfigurace. Aktuálně je nakonfigurováno {item_count} položek.",
+                "data": {
+                    "import_json": "Konfigurační JSON"
+                },
+                "data_description": {
+                    "import_json": "Vložte JSON vytvořený akcí exportu. Všechny existující proměnné budou nahrazeny."
+                }
+            }
+        },
+        "error": {
+            "invalid_address": "Neplatný formát adresy.",
+            "duplicate_entry": "Tato položka už existuje.",
+            "state_addresses_required": "Pokud je zapnuto „Použít stavové adresy“, jsou vyžadovány adresy pro otevřeno i zavřeno.",
+            "invalid_source_entity": "Je vyžadována zdrojová entita.",
+            "invalid_number": "Neplatná číselná hodnota.",
+            "invalid_range": "Minimální hodnota nesmí být větší než maximální.",
+            "no_items": "Nejsou nakonfigurovány žádné položky k úpravě.",
+            "cannot_connect": "Nelze se připojit k PLC s poskytnutým nastavením.",
+            "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení.",
+            "invalid_json": "Neplatný JSON.",
+            "invalid_selection": "Vyberte platný typ položky.",
+            "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
+            "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING."
+        }
     },
-    "abort": {
-      "already_configured": "Toto PLC je už nakonfigurováno."
+    "entity": {
+        "binary_sensor": {
+            "plc_connection": {
+                "name": "Připojení {plc_name}"
+            }
+        }
     }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Možnosti S7 PLC",
-        "description": "Vyberte, co chcete spravovat.",
-        "menu_options": {
-          "setup_connection": "Připojení",
-          "setup_entities": "Entity",
-          "manage_configuration": "Konfigurace"
-        }
-      },
-      "setup_connection": {
-        "title": "Nastavení připojení PLC",
-        "description": "Nakonfigurujte nebo upravte parametry připojení PLC."
-      },
-      "setup_entities": {
-        "title": "Nastavení entit",
-        "description": "Přidejte, upravte nebo odeberte entity pro toto PLC.",
-        "menu_options": {
-          "add": "Přidat entity",
-          "edit": "Upravit entity",
-          "remove": "Odebrat entity"
-        }
-      },
-      "manage_configuration": {
-        "title": "Správa konfigurace",
-        "description": "Exportujte nebo importujte konfiguraci PLC.",
-        "menu_options": {
-          "export": "Exportovat konfiguraci",
-          "import": "Importovat konfiguraci"
-        }
-      },
-      "add": {
-        "title": "Přidat položky",
-        "description": "Vyberte typ položky, kterou chcete přidat.",
-        "menu_options": {
-          "sensors": "Senzor",
-          "binary_sensors": "Binární senzor",
-          "switches": "Spínač",
-          "covers": "Roleta / žaluzie",
-          "buttons": "Tlačítko",
-          "lights": "Světlo",
-          "numbers": "Číslo",
-          "texts": "Text",
-          "writers": "Synchronizace entity do PLC"
-        }
-      },
-      "remove": {
-        "title": "Odebrat položky",
-        "description": "Vyberte položky, které chcete z této konfigurace PLC odebrat.",
-        "data": {
-          "remove_items": "Položky k odebrání"
-        },
-        "data_description": {
-          "remove_items": "Zaškrtnuté položky budou odebrány. Integrace se znovu načte, aby se změny projevily."
-        }
-      },
-      "connection": {
-        "title": "Upravit připojení PLC",
-        "description": "Aktualizujte hostitele PLC, rack, slot a časování komunikace. Před uložením proběhne test spojení.",
-        "data": {
-          "name": "Název",
-          "host": "Hostitel",
-          "port": "Port",
-          "rack": "Rack",
-          "slot": "Slot",
-          "scan_interval": "Interval čtení (s)",
-          "operation_timeout": "Časový limit operace (s)",
-          "max_retries": "Počet pokusů",
-          "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
-          "retry_backoff_max": "Maximální prodleva při opakování (s)",
-          "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
-        },
-        "data_description": {
-          "name": "Srozumitelný název PLC (používá se v názvech entit).",
-          "host": "IP adresa nebo hostname PLC.",
-          "port": "Port ISO-on-TCP, obvykle 102.",
-          "rack": "Číslo racku CPU (většinou 0).",
-          "slot": "Číslo slotu CPU (např. 1 pro S7-1200/1500).",
-          "scan_interval": "Jak často se má PLC číst, v sekundách. Pro milisekundové rozlišení použijte desetinné hodnoty.",
-          "operation_timeout": "Maximální doba jednoho cyklu čtení/zápisu před opakováním.",
-          "max_retries": "Kolikrát se má neúspěšná operace s PLC zopakovat, než se vzdá.",
-          "retry_backoff_initial": "Prodleva před prvním opakováním.",
-          "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
-          "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
-        }
-      },
-      "sensors": {
-        "title": "Přidat senzor",
-        "description": "Vytvořte senzor, který čte hodnotu z PLC (např. DB, MW atd.). Zadejte adresu a případně název.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "value_multiplier": "Násobitel hodnoty",
-          "unit_of_measurement": "Jednotka",
-          "state_class": "Třída stavu",
-          "real_precision": "Zaokrouhlení REAL",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
-          "name": "Volitelný srozumitelný název senzoru.",
-          "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
-          "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
-          "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další senzory."
-        }
-      },
-      "binary_sensors": {
-        "title": "Přidat binární senzor",
-        "description": "Vytvořte binární senzor (zapnuto/vypnuto) z PLC. Nastavte adresu, název a volitelnou třídu zařízení.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
-          "name": "Volitelný srozumitelný název binárního senzoru.",
-          "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další binární senzory."
-        }
-      },
-      "switches": {
-        "title": "Přidat spínač",
-        "description": "Vytvořte spínač se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
-        "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "sync_state": "Synchronizovat stav s příkazovou adresou",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
-          "command_address": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav.",
-          "name": "Volitelný srozumitelný název spínače.",
-          "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další spínače."
-        }
-      },
-      "covers": {
-        "title": "Přidat roletu/žaluzie",
-        "description": "Vytvořte krytinu (cover) s adresami pro otevření/zavření a volitelnou zpětnou vazbou stavu.",
-        "data": {
-          "open_command_address": "Adresa příkazu otevřít",
-          "close_command_address": "Adresa příkazu zavřít",
-          "opening_state_address": "Adresa stavu otevřeno",
-          "closing_state_address": "Adresa stavu zavřeno",
-          "operate_time": "Doba chodu (s)",
-          "use_state_topics": "Použít stavové adresy pro polohu",
-          "name": "Název",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "open_command_address": "Adresa v PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
-          "close_command_address": "Adresa v PLC pro spuštění zavírání (např. Q0.1, DB1,X0.1).",
-          "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
-          "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
-          "operate_time": "Počet sekund, po které má být příkaz aktivní, než se výstupy resetují a stav pohybu se vymaže.",
-          "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
-          "name": "Volitelný srozumitelný název krytiny.",
-          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další krytiny."
-        }
-      },
-      "buttons": {
-        "title": "Přidat tlačítko",
-        "description": "Vytvořte bezstavové tlačítko, které při stisku na zadaný čas sepne booleovskou adresu v PLC.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení",
-          "button_pulse": "Délka pulzu"
-        },
-        "data_description": {
-          "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
-          "name": "Volitelný srozumitelný název tlačítka.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další tlačítka.",
-          "button_pulse": "Délka pulzu v sekundách."
-        }
-      },
-      "lights": {
-        "title": "Přidat světlo",
-        "description": "Nakonfigurujte světlo se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
-        "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "sync_state": "Synchronizovat stav s příkazovou adresou",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
-          "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
-          "name": "Volitelný srozumitelný název světla.",
-          "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další světla."
-        }
-      },
-      "numbers": {
-        "title": "Přidat číslo",
-        "description": "Vytvořte číselnou entitu, která čte hodnotu z PLC a volitelně může zapisovat příkazy zpět.",
-        "data": {
-          "address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "unit_of_measurement": "Jednotka",
-          "min_value": "Minimální hodnota",
-          "max_value": "Maximální hodnota",
-          "step": "Krok",
-          "real_precision": "Zaokrouhlení REAL",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
-          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
-          "name": "Volitelný srozumitelný název číselné entity.",
-          "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
-          "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
-          "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
-          "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
-          "step": "Volitelný krok, o který se hodnota mění v UI.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
-        }
-      },
-      "texts": {
-        "title": "Přidat text",
-        "description": "Vytvořte textovou entitu, která čte STRING nebo WSTRING z PLC a volitelně může zapisovat text zpět.",
-        "data": {
-          "address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "pattern": "Vzor (regex)",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
-          "name": "Volitelný srozumitelný název textové entity.",
-          "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další textové entity."
-        }
-      },
-      "edit_text": {
-        "title": "Upravit text",
-        "description": "Aktualizujte adresu PLC, příkazovou adresu, název nebo vzor pro tuto textovou entitu.",
-        "data": {
-          "address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "pattern": "Vzor (regex)",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
-          "name": "Volitelný srozumitelný název textové entity.",
-          "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "writers": {
-        "title": "Přidat synchronizaci entity",
-        "description": "Vytvořte synchronizaci entity, která sleduje entitu v Home Assistant a automaticky zapisuje její hodnotu do PLC.",
-        "data": {
-          "address": "Adresa PLC",
-          "source_entity": "Zdrojová entita",
-          "name": "Název",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
-          "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
-          "name": "Volitelný srozumitelný název synchronizace entity.",
-          "add_another": "Zůstat v tomto kroku a přidat další synchronizace."
-        }
-      },
-      "edit": {
-        "title": "Upravit položky",
-        "description": "Vyberte položku, kterou chcete upravit.",
-        "data": {
-          "edit_item": "Položka k úpravě"
-        },
-        "data_description": {
-          "edit_item": "Vyberte existující entitu, kterou chcete aktualizovat."
-        }
-      },
-      "edit_sensor": {
-        "title": "Upravit senzor",
-        "description": "Aktualizujte adresu, název nebo třídu zařízení pro tento senzor.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "value_multiplier": "Násobitel hodnoty",
-          "unit_of_measurement": "Jednotka",
-          "state_class": "Třída stavu",
-          "real_precision": "Zaokrouhlení REAL",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
-          "name": "Volitelný srozumitelný název senzoru.",
-          "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
-          "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
-          "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_binary_sensor": {
-        "title": "Upravit binární senzor",
-        "description": "Aktualizujte adresu, název nebo třídu zařízení pro tento binární senzor.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
-          "name": "Volitelný srozumitelný název binárního senzoru.",
-          "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_switch": {
-        "title": "Upravit spínač",
-        "description": "Aktualizujte stavovou adresu, příkazovou adresu, název nebo volbu synchronizace pro tento spínač.",
-        "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "sync_state": "Synchronizovat stav s PLC",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
-          "command_address": "Adresa v PLC pro zápis příkazů (volitelné).",
-          "name": "Volitelný srozumitelný název spínače.",
-          "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_cover": {
-        "title": "Upravit roletu/žaluzie",
-        "description": "Aktualizujte příkazové nebo stavové adresy pro tuto krytinu a případně změňte její název.",
-        "data": {
-          "open_command_address": "Adresa příkazu otevřít",
-          "close_command_address": "Adresa příkazu zavřít",
-          "opening_state_address": "Adresa stavu otevřeno",
-          "closing_state_address": "Adresa stavu zavřeno",
-          "operate_time": "Doba chodu (s)",
-          "use_state_topics": "Použít stavové adresy pro polohu",
-          "name": "Název",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "open_command_address": "Adresa v PLC, která spouští akci otevření.",
-          "close_command_address": "Adresa v PLC, která spouští akci zavření.",
-          "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
-          "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
-          "operate_time": "Počet sekund, po které má krytina běžet, než integrace resetuje příkazové výstupy a vymaže stavové příznaky.",
-          "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
-          "name": "Volitelný srozumitelný název krytiny.",
-          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_button": {
-        "title": "Upravit tlačítko",
-        "description": "Aktualizujte adresu, název nebo délku pulzu pro toto tlačítko.",
-        "data": {
-          "address": "Adresa",
-          "name": "Název",
-          "button_pulse": "Délka pulzu",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
-          "name": "Volitelný srozumitelný název tlačítka.",
-          "button_pulse": "Délka pulzu v sekundách.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_light": {
-        "title": "Upravit světlo",
-        "description": "Aktualizujte stavovou adresu, příkazovou adresu, název nebo volbu synchronizace pro toto světlo.",
-        "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "sync_state": "Synchronizovat stav s PLC",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
-          "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
-          "name": "Volitelný srozumitelný název světla.",
-          "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
-        }
-      },
-      "edit_number": {
-        "title": "Upravit číslo",
-        "description": "Aktualizujte stavovou adresu, příkazovou adresu, název, minimální hodnotu, maximální hodnotu nebo krok pro tuto číselnou entitu.",
-        "data": {
-          "address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
-          "name": "Název",
-          "device_class": "Třída zařízení",
-          "unit_of_measurement": "Jednotka",
-          "min_value": "Minimální hodnota",
-          "max_value": "Maximální hodnota",
-          "step": "Krok",
-          "real_precision": "Zaokrouhlení REAL",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
-          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
-          "name": "Volitelný srozumitelný název číselné entity.",
-          "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
-          "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
-          "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
-          "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
-          "step": "Volitelný krok, o který se hodnota mění v UI.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
-        }
-      },
-      "edit_writer": {
-        "title": "Upravit synchronizaci entity",
-        "description": "Aktualizujte adresu PLC, zdrojovou entitu, název nebo limity hodnot pro tuto synchronizaci entity.",
-        "data": {
-          "address": "Adresa PLC",
-          "source_entity": "Zdrojová entita",
-          "name": "Název"
-        },
-        "data_description": {
-          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
-          "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
-          "name": "Volitelný srozumitelný název synchronizace entity."
-        }
-      },
-      "export": {
-        "title": "Exportovat konfiguraci",
-        "description": "Zkopírujte JSON níže pro zálohu {item_count} nakonfigurovaných položek. Můžete také {download_link_start}stáhnout konfiguraci{download_link_end} a uložit ji jako {download_filename}. Po dokončení dialog odešlete.",
-        "data": {
-          "export_json": "Konfigurační JSON"
-        },
-        "data_description": {
-          "export_json": "Zkopírujte a uložte tento JSON pro export proměnných a jejich nastavení. Můžete také použít tlačítko pro stažení výše a uložit konfiguraci do souboru."
-        }
-      },
-      "import": {
-        "title": "Importovat konfiguraci",
-        "description": "Vložte exportovaný JSON pro nahrazení aktuální konfigurace. Aktuálně je nakonfigurováno {item_count} položek.",
-        "data": {
-          "import_json": "Konfigurační JSON"
-        },
-        "data_description": {
-          "import_json": "Vložte JSON vytvořený akcí exportu. Všechny existující proměnné budou nahrazeny."
-        }
-      }
-    },
-    "error": {
-      "invalid_address": "Neplatný formát adresy.",
-      "duplicate_entry": "Tato položka už existuje.",
-      "state_addresses_required": "Pokud je zapnuto „Použít stavové adresy“, jsou vyžadovány adresy pro otevřeno i zavřeno.",
-      "invalid_source_entity": "Je vyžadována zdrojová entita.",
-      "invalid_number": "Neplatná číselná hodnota.",
-      "invalid_range": "Minimální hodnota nesmí být větší než maximální.",
-      "no_items": "Nejsou nakonfigurovány žádné položky k úpravě.",
-      "cannot_connect": "Nelze se připojit k PLC s poskytnutým nastavením.",
-      "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení.",
-      "invalid_json": "Neplatný JSON.",
-      "invalid_selection": "Vyberte platný typ položky.",
-      "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
-      "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING."
-    }
-  },
-  "entity": {
-    "binary_sensor": {
-      "plc_connection": {
-        "name": "Připojení {plc_name}"
-      }
-    }
-  }
 }
