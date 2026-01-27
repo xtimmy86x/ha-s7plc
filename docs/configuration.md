@@ -136,6 +136,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 - **Address**: PLC address to read
 - **Device Class**: Optional binary sensor device class
+- **Invert State**: Inverts the sensor state (PLC True → Off, PLC False → On). Useful for NC (Normally Closed) contacts or when PLC logic is inverted
 
 #### Entity Sync
 

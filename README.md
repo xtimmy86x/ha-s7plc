@@ -119,7 +119,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
 | Entity Type | Read | Write | Features |
 |-------------|------|-------|----------|
-| **Binary Sensor** | ✅ | ❌ | Device classes, bit addressing |
+| **Binary Sensor** | ✅ | ❌ | Device classes, bit addressing, state inversion |
 | **Sensor** | ✅ | ❌ | Numeric types, strings, multipliers, precision |
 | **Switch** | ✅ | ✅ | State sync, separate state/command addresses |
 | **Light** | ✅ | ✅ | State sync, separate state/command addresses |
