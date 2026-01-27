@@ -124,7 +124,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | **Switch** | ✅ | ✅ | State sync, separate state/command addresses |
 | **Light** | ✅ | ✅ | State sync, separate state/command addresses |
 | **Cover** | ✅ | ✅ | Open/close commands, position feedback, timing |
-| **Button** | ❌ | ✅ | Pulse output with configurable duration |
+| **Button** | ❌ | ✅ | Pulse output with configurable duration (0.1-60s, supports decimals) |
 | **Number** | ✅ | ✅ | Min/max/step, separate read/write addresses |
 | **Entity Sync** | ❌ | ✅ | Monitor any HA entity, write to PLC on change |
 

@@ -116,7 +116,7 @@ Values outside these ranges are supported, but increasing them further may delay
 #### Button
 
 - **Address**: PLC address to pulse
-- **Pulse Time**: Duration of the pulse in seconds
+- **Pulse Time**: Duration of the pulse in seconds (supports decimal values, e.g., `0.1` for 100ms, `1` default, up to 60s)
 
 #### Sensor
 
