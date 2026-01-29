@@ -21,6 +21,9 @@ from .const import (
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
+# Coordinator is used to centralize data updates
+PARALLEL_UPDATES = 0
+
 _LOGGER = logging.getLogger(__name__)
 
 

@@ -46,6 +46,9 @@ from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
+# Coordinator is used to centralize data updates
+PARALLEL_UPDATES = 0
+
 
 _CANDIDATE_UNITS: dict[str, str | None] = {
     # Environmental

@@ -21,6 +21,8 @@ from .const import (
 from .entity import S7BoolSyncEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
+PARALLEL_UPDATES = 1
+
 _LOGGER = logging.getLogger(__name__)
 
 

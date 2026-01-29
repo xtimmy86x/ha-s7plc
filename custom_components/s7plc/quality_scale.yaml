@@ -1,0 +1,232 @@
+# Integration Quality Scale Tracking for s7plc
+# This file tracks the implementation status of quality scale rules
+
+# Note: This is a custom integration (not in HA core)
+# Working towards Bronze/Silver tier compliance
+
+rules:
+  # ============================================================================
+  # BRONZE TIER
+  # ============================================================================
+
+  action-setup:
+    status: done
+    comment: Service actions registered in async_setup (__init__.py)
+
+  appropriate-polling:
+    status: done
+    comment: Configurable scan interval with reasonable defaults (5-60s)
+
+  brands:
+    status: done
+    comment: Branding assets available in docs/banner.png
+
+  common-modules:
+    status: done
+    comment: Common patterns in entity.py, helpers.py, address.py
+
+  config-flow-test-coverage:
+    status: done
+    comment: 16 tests in test_config_flow.py covering all flows
+
+  config-flow:
+    status: done
+    comment: |
+      Full UI config flow with data_description fields.
+      Correct use of ConfigEntry.data and ConfigEntry.options.
+
+  dependency-transparency:
+    status: done
+    comment: pys7==2.5.0 specified in manifest.json requirements
+
+  docs-actions:
+    status: done
+    comment: Service actions documented in configuration.md
+
+  docs-high-level-description:
+    status: done
+    comment: High-level description in README.md and docs/configuration.md
+
+  docs-installation-instructions:
+    status: done
+    comment: Step-by-step installation in README.md (HACS and manual)
+
+  docs-removal-instructions:
+    status: done
+    comment: Standard HA integration removal via UI
+
+  entity-event-setup:
+    status: done
+    comment: Events subscribed in coordinator update lifecycle
+
+  entity-unique-id:
+    status: done
+    comment: All entities have unique IDs based on device_id and topic
+
+  has-entity-name:
+    status: done
+    comment: _attr_has_entity_name = True in S7BaseEntity
+
+  runtime-data:
+    status: todo
+    comment: Currently using hass.data[DOMAIN][entry_id], should migrate to ConfigEntry.runtime_data
+
+  test-before-configure:
+    status: done
+    comment: Connection test in async_step_connection (config_flow.py)
+
+  test-before-setup:
+    status: done
+    comment: Connection check during coordinator initialization
+
+  unique-config-entry:
+    status: done
+    comment: Duplicate detection via _async_current_entries() in config flow
+
+  # ============================================================================
+  # SILVER TIER
+  # ============================================================================
+
+  action-exceptions:
+    status: done
+    comment: Service actions raise HomeAssistantError on failures
+
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry implemented in __init__.py
+
+  docs-configuration-parameters:
+    status: done
+    comment: All parameters documented in docs/configuration.md
+
+  docs-installation-parameters:
+    status: done
+    comment: Installation parameters in docs/configuration.md (timeout, retry, etc.)
+
+  entity-unavailable:
+    status: done
+    comment: Entities marked unavailable when coordinator has errors
+
+  integration-owner:
+    status: done
+    comment: Listed as codeowner in manifest.json
+
+  log-when-unavailable:
+    status: done
+    comment: Connection errors logged once, recovery logged once
+
+  parallel-updates:
+    status: done
+    comment: "PARALLEL_UPDATES set appropriately: 0 for read-only (binary_sensor, sensor), 1 for write operations (switch, light, cover, number, button)"
+
+  reauthentication-flow:
+    status: todo
+    comment: Could implement reauth flow for connection failures
+
+  test-coverage:
+    status: done
+    comment: 259 tests passing, >95% coverage
+
+  # ============================================================================
+  # GOLD TIER
+  # ============================================================================
+
+  devices:
+    status: done
+    comment: Device created per PLC with proper device_info
+
+  diagnostics:
+    status: done
+    comment: Diagnostics implemented in diagnostics.py
+
+  discovery-update-info:
+    status: exempt
+    comment: Manual configuration preferred for industrial PLCs
+
+  discovery:
+    status: partial
+    comment: Network discovery available but optional (zeroconf not required)
+
+  docs-data-update:
+    status: done
+    comment: Polling mechanism documented in configuration.md
+
+  docs-examples:
+    status: done
+    comment: Examples in docs/examples.md
+
+  docs-known-limitations:
+    status: done
+    comment: Limitations documented in docs/troubleshooting.md
+
+  docs-supported-devices:
+    status: done
+    comment: Supported PLCs listed in docs/configuration.md and addressing.md
+
+  docs-supported-functions:
+    status: done
+    comment: All entity types and features documented
+
+  docs-troubleshooting:
+    status: done
+    comment: Comprehensive troubleshooting guide in docs/troubleshooting.md
+
+  docs-use-cases:
+    status: done
+    comment: Use cases in README.md and docs/examples.md
+
+  dynamic-devices:
+    status: exempt
+    comment: Entities added via config flow, PLCs don't dynamically add devices
+
+  entity-category:
+    status: todo
+    comment: Should add EntityCategory.DIAGNOSTIC for PLC connection sensor
+
+  entity-device-class:
+    status: done
+    comment: Device classes used for binary_sensor and sensor entities
+
+  entity-disabled-by-default:
+    status: exempt
+    comment: All entities are intentionally configured by user
+
+  entity-translations:
+    status: done
+    comment: Translations in EN/IT/DE/CS for all entity UI strings
+
+  exception-translations:
+    status: todo
+    comment: Exception messages should use translation keys
+
+  icon-translations:
+    status: todo
+    comment: Could implement dynamic icons based on state
+
+  reconfiguration-flow:
+    status: done
+    comment: Reconfigure flow available via config flow edit_connection
+
+  repair-issues:
+    status: todo
+    comment: Could use repair issues for connection/configuration problems
+
+  stale-devices:
+    status: exempt
+    comment: Manual device removal appropriate for static PLC infrastructure
+
+  # ============================================================================
+  # PLATINUM TIER
+  # ============================================================================
+
+  async-dependency:
+    status: todo
+    comment: pys7 library is synchronous, runs in executor
+
+  inject-websession:
+    status: exempt
+    comment: S7 protocol uses raw TCP sockets, not HTTP
+
+  strict-typing:
+    status: partial
+    comment: Type hints present but not fully strict (no mypy --strict)

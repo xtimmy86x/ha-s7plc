@@ -14,6 +14,8 @@ from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DEFAULT_BUTTON
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
+PARALLEL_UPDATES = 1
+
 _LOGGER = logging.getLogger(__name__)
 
 
