@@ -119,6 +119,28 @@ n_device_class_options = [
     for dc in NumberDeviceClass
 ]
 
+# Reusable device class selectors
+binary_sensor_device_class_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=bs_device_class_options,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+sensor_device_class_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=s_device_class_options,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+number_device_class_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=n_device_class_options,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
 scan_interval_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         min=0.05,
@@ -150,6 +172,30 @@ value_multiplier_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
         mode=selector.NumberSelectorMode.BOX,
         step=0.05,
+    )
+)
+
+# State class options (reused in sensors)
+state_class_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value="none", label="none"),
+            selector.SelectOptionDict(value="measurement", label="measurement"),
+            selector.SelectOptionDict(value="total", label="total"),
+            selector.SelectOptionDict(
+                value="total_increasing", label="total_increasing"
+            ),
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+pulse_duration_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=0.1,
+        max=60,
+        step=0.1,
+        mode=selector.NumberSelectorMode.BOX,
     )
 )
 
@@ -2022,29 +2068,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=s_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
                 vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
-                vol.Optional(CONF_STATE_CLASS): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(value="none", label="none"),
-                            selector.SelectOptionDict(
-                                value="measurement", label="measurement"
-                            ),
-                            selector.SelectOptionDict(value="total", label="total"),
-                            selector.SelectOptionDict(
-                                value="total_increasing", label="total_increasing"
-                            ),
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                vol.Optional(CONF_STATE_CLASS): state_class_selector,
                 vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2077,12 +2104,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=bs_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                vol.Optional(CONF_DEVICE_CLASS): binary_sensor_device_class_selector,
                 vol.Optional(
                     CONF_INVERT_STATE, default=False
                 ): selector.BooleanSelector(),
@@ -2126,9 +2148,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=0.1, max=60, step=0.1, mode="box")
-                ),
+                ): pulse_duration_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -2202,11 +2222,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(
                     CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=60, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
+                ): pulse_duration_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -2246,14 +2262,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        min=0.1,
-                        max=60,
-                        step=0.1,
-                    )
-                ),
+                ): pulse_duration_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
@@ -2300,12 +2309,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_DEVICE_CLASS): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=n_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
                 vol.Optional(CONF_MIN_VALUE): number_selector,
                 vol.Optional(CONF_MAX_VALUE): number_selector,
@@ -2633,12 +2637,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             key_dc, val_dc = self._optional_field(
                 CONF_DEVICE_CLASS,
                 item,
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=s_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                sensor_device_class_selector,
             )
             schema_dict[key_dc] = val_dc
 
@@ -2657,21 +2656,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             key_state, val_state = self._optional_field(
                 CONF_STATE_CLASS,
                 item,
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(value="none", label="none"),
-                            selector.SelectOptionDict(
-                                value="measurement", label="measurement"
-                            ),
-                            selector.SelectOptionDict(value="total", label="total"),
-                            selector.SelectOptionDict(
-                                value="total_increasing", label="total_increasing"
-                            ),
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                state_class_selector,
             )
             schema_dict[key_state] = val_state
 
@@ -2720,12 +2705,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             key_dc, val_dc = self._optional_field(
                 CONF_DEVICE_CLASS,
                 item,
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=bs_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                binary_sensor_device_class_selector,
             )
             schema_dict[key_dc] = val_dc
 
@@ -2785,9 +2765,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     default=float(
                         item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
                     ),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=0.1, max=60, step=0.1, mode="box")
-                ),
+                ): pulse_duration_selector,
             }
 
             key_scan, val_scan = self._optional_field(
@@ -2882,11 +2860,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_BUTTON_PULSE,
                     default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=60, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
+                ): pulse_duration_selector,
             }
             return vol.Schema(schema_dict)
 
@@ -2931,14 +2905,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_PULSE_DURATION,
                     default=item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        min=0.1,
-                        max=60,
-                        step=0.1,
-                    )
-                ),
+                ): pulse_duration_selector,
             }
 
             key_scan, val_scan = self._optional_field(
@@ -2996,12 +2963,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             key_dc, val_dc = self._optional_field(
                 CONF_DEVICE_CLASS,
                 item,
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=n_device_class_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                number_device_class_selector,
             )
             schema_dict[key_dc] = val_dc
 
