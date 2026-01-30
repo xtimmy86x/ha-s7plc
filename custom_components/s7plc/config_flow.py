@@ -1694,6 +1694,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_OPTIMIZE_READ: bool(
                 data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
             ),
+            CONF_PYS7_CONNECTION_TYPE: data.get(
+                CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
+            ),
         }
 
         # Add connection-specific defaults
@@ -1746,6 +1749,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_ENABLE_WRITE_BATCHING,
                     default=defaults[CONF_ENABLE_WRITE_BATCHING],
                 ): bool,
+                vol.Optional(
+                    CONF_PYS7_CONNECTION_TYPE,
+                    default=defaults[CONF_PYS7_CONNECTION_TYPE],
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_PG,
+                                label="PG",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_OP,
+                                label="OP",
+                            ),
+                            selector.SelectOptionDict(
+                                value=PYS7_CONNECTION_TYPE_S7BASIC,
+                                label="S7 Basic",
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             }
         )
 
@@ -1774,6 +1799,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         try:
             host = str(user_input[CONF_HOST]).strip()
             port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
+            pys7_connection_type = user_input.get(
+                CONF_PYS7_CONNECTION_TYPE, defaults[CONF_PYS7_CONNECTION_TYPE]
+            )
             scan_s = float(
                 user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
             )
@@ -1990,6 +2018,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_HOST: host,
             CONF_PORT: port,
             CONF_CONNECTION_TYPE: connection_type,
+            CONF_PYS7_CONNECTION_TYPE: pys7_connection_type,
             CONF_SCAN_INTERVAL: scan_s,
             CONF_OP_TIMEOUT: op_timeout,
             CONF_MAX_RETRIES: max_retries,
