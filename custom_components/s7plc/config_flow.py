@@ -2495,6 +2495,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
                 rm_nm = {int(k.split(":")[1]) for k in to_remove if k.startswith("nm:")}
                 rm_wr = {int(k.split(":")[1]) for k in to_remove if k.startswith("wr:")}
+                rm_tx = {int(k.split(":")[1]) for k in to_remove if k.startswith("tx:")}
 
                 self._options[CONF_SENSORS] = [
                     v
@@ -2535,6 +2536,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     v
                     for idx, v in enumerate(self._options.get(CONF_WRITERS, []))
                     if idx not in rm_wr
+                ]
+                self._options[CONF_TEXTS] = [
+                    v
+                    for idx, v in enumerate(self._options.get(CONF_TEXTS, []))
+                    if idx not in rm_tx
                 ]
 
             # Save and close: __init__.py will reload the entry
