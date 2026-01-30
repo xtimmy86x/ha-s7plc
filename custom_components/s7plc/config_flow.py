@@ -199,6 +199,22 @@ pulse_duration_selector = selector.NumberSelector(
     )
 )
 
+# Number entity selectors (for min/max/step configuration)
+number_value_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        mode=selector.NumberSelectorMode.BOX,
+        step=0.01,
+    )
+)
+
+positive_number_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        mode=selector.NumberSelectorMode.BOX,
+        min=0,
+        step=0.01,
+    )
+)
+
 ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "sensors",
     "binary_sensors",
@@ -2290,20 +2306,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_numbers(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
-        number_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX, step=0.01
-            )
-        )
-
-        positive_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                min=0,
-                step=0.01,
-            )
-        )
-
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
@@ -2311,9 +2313,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
-                vol.Optional(CONF_MIN_VALUE): number_selector,
-                vol.Optional(CONF_MAX_VALUE): number_selector,
-                vol.Optional(CONF_STEP): positive_selector,
+                vol.Optional(CONF_MIN_VALUE): number_value_selector,
+                vol.Optional(CONF_MAX_VALUE): number_value_selector,
+                vol.Optional(CONF_STEP): positive_number_selector,
                 vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2934,19 +2936,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     # ====== EDIT: number ======
     async def async_step_edit_number(self, user_input: dict[str, Any] | None = None):
         def build_schema(item: dict[str, Any]) -> vol.Schema:
-            number_selector = selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX, step=0.01
-                )
-            )
-            positive_selector = selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=0,
-                    step=0.01,
-                )
-            )
-
             schema_dict: dict[Any, Any] = {
                 vol.Required(
                     CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
@@ -2976,15 +2965,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-                    ): number_selector,
+                    ): number_value_selector,
                     vol.Optional(
                         CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-                    ): number_selector,
+                    ): number_value_selector,
                 }
             )
 
             key_step, val_step = self._optional_field(
-                CONF_STEP, item, positive_selector
+                CONF_STEP, item, positive_number_selector
             )
             schema_dict[key_step] = val_step
 
