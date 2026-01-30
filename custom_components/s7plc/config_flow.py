@@ -945,6 +945,62 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             step_id=step_id, data_schema=data_schema, errors=errors
         )
 
+    # ====== COMMON VALIDATION HELPERS ======
+
+    def _validate_address_field(
+        self, address: str | None
+    ) -> tuple[str | None, dict[str, str]]:
+        """Validate and sanitize an address field.
+
+        Returns:
+            Tuple of (sanitized_address, errors_dict)
+        """
+        errors: dict[str, str] = {}
+
+        sanitized = self._sanitize_address(address)
+        if not sanitized:
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        try:
+            parse_tag(sanitized)
+        except (RuntimeError, ValueError):
+            errors["base"] = "invalid_address"
+            return None, errors
+
+        return sanitized, errors
+
+    def _copy_optional_fields(
+        self,
+        item: dict[str, Any],
+        user_input: dict[str, Any],
+        *fields: str,
+    ) -> None:
+        """Copy optional fields from user_input to item if they exist."""
+        for field in fields:
+            if user_input.get(field):
+                item[field] = user_input[field]
+
+    def _build_base_item(
+        self,
+        address: str,
+        user_input: dict[str, Any],
+        *optional_fields: str,
+    ) -> dict[str, Any]:
+        """Build a base item with address and optional fields.
+
+        Args:
+            address: The primary address (already validated)
+            user_input: User input dictionary
+            *optional_fields: Field names to copy if present
+
+        Returns:
+            Dictionary with address and optional fields
+        """
+        item: dict[str, Any] = {CONF_ADDRESS: address}
+        self._copy_optional_fields(item, user_input, *optional_fields)
+        return item
+
     # ====== BUILD ITEM HELPERS (add + edit share these) ======
 
     def _build_sensor_item(
@@ -953,33 +1009,26 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-        if not address:
-            errors["base"] = "invalid_address"
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
-        try:
-            parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
+        # Check for duplicates
         if self._has_duplicate(CONF_SENSORS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        item: dict[str, Any] = {CONF_ADDRESS: address}
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
-        if user_input.get(CONF_DEVICE_CLASS):
-            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-        if user_input.get(CONF_UNIT_OF_MEASUREMENT):
-            item[CONF_UNIT_OF_MEASUREMENT] = user_input[CONF_UNIT_OF_MEASUREMENT]
-        if user_input.get(CONF_STATE_CLASS):
-            item[CONF_STATE_CLASS] = user_input[CONF_STATE_CLASS]
+        # Build item with optional fields
+        item = self._build_base_item(
+            address,
+            user_input,
+            CONF_NAME,
+            CONF_DEVICE_CLASS,
+            CONF_UNIT_OF_MEASUREMENT,
+            CONF_STATE_CLASS,
+        )
 
+        # Apply specific transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -992,34 +1041,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-        if not address:
-            errors["base"] = "invalid_address"
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
-        try:
-            parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
+        # Check for duplicates
         if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        item: dict[str, Any] = {CONF_ADDRESS: address}
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
-        if user_input.get(CONF_DEVICE_CLASS):
-            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-        if user_input.get(CONF_INVERT_STATE):
-            item[CONF_INVERT_STATE] = user_input[CONF_INVERT_STATE]
+        # Build item with optional fields
+        item = self._build_base_item(
+            address,
+            user_input,
+            CONF_NAME,
+            CONF_DEVICE_CLASS,
+            CONF_INVERT_STATE,
+        )
 
+        # Apply specific transformations
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_switch_item(
         self,
@@ -1027,53 +1070,52 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
-
-        state_address = self._sanitize_address(
-            user_input.get(CONF_STATE_ADDRESS)
-        ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
-
-        if not state_address:
-            errors["base"] = "invalid_address"
+        # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
+        state_address, errors = self._validate_address_field(
+            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        )
+        if errors:
             return None, errors
 
-        try:
-            parse_tag(state_address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
+        # Check for duplicates
         if self._has_duplicate(
             CONF_SWITCHES,
             state_address,
             keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
             skip_idx=skip_idx,
         ):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        if command_address:
-            try:
-                parse_tag(command_address)
-            except (RuntimeError, ValueError):
-                errors["base"] = "invalid_address"
-                return None, errors
+        # Validate optional command address
+        command_address = None
+        if user_input.get(CONF_COMMAND_ADDRESS):
+            command_address, cmd_errors = self._validate_address_field(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+            if cmd_errors:
+                return None, cmd_errors
 
+        # Build item
         item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME)
+
+        # Add boolean flags
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
         item[CONF_PULSE_COMMAND] = bool(user_input.get(CONF_PULSE_COMMAND, False))
+
+        # Add pulse duration if present
         pulse_dur = self._sanitize_pulse_duration(user_input.get(CONF_PULSE_DURATION))
         if pulse_dur is not None:
             item[CONF_PULSE_DURATION] = pulse_dur
 
+        # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_cover_item(
         self,
@@ -1081,64 +1123,75 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
+        # Validate required open and close command addresses
+        open_command, open_errors = self._validate_address_field(
+            user_input.get(CONF_OPEN_COMMAND_ADDRESS)
+        )
+        if open_errors:
+            return None, open_errors
 
-        open_command = self._sanitize_address(user_input.get(CONF_OPEN_COMMAND_ADDRESS))
-        close_command = self._sanitize_address(
+        close_command, close_errors = self._validate_address_field(
             user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
         )
+        if close_errors:
+            return None, close_errors
+
+        # Get optional state addresses
         opening_state = self._sanitize_address(
             user_input.get(CONF_OPENING_STATE_ADDRESS)
         )
         closing_state = self._sanitize_address(
             user_input.get(CONF_CLOSING_STATE_ADDRESS)
         )
+
+        # Get other parameters
         operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
         use_state_topics = bool(user_input.get(CONF_USE_STATE_TOPICS, False))
-
-        if not open_command or not close_command:
-            errors["base"] = "invalid_address"
-            return None, errors
 
         # If use_state_topics is enabled, both state addresses are required
         if use_state_topics:
             if not opening_state or not closing_state:
-                errors["base"] = "state_addresses_required"
-                return None, errors
+                return None, {"base": "state_addresses_required"}
 
-        for candidate in (open_command, close_command, opening_state, closing_state):
+        # Validate optional state addresses if present
+        for candidate in (opening_state, closing_state):
             if candidate:
-                try:
-                    parse_tag(candidate)
-                except (RuntimeError, ValueError):
-                    errors["base"] = "invalid_address"
-                    return None, errors
+                _, addr_errors = self._validate_address_field(candidate)
+                if addr_errors:
+                    return None, addr_errors
 
+        # Check for duplicates
         if self._has_duplicate(
             CONF_COVERS,
             open_command,
             keys=(CONF_OPEN_COMMAND_ADDRESS,),
             skip_idx=skip_idx,
         ):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
+        # Build item
         item: dict[str, Any] = {
             CONF_OPEN_COMMAND_ADDRESS: open_command,
             CONF_CLOSE_COMMAND_ADDRESS: close_command,
         }
+
+        # Add optional state addresses
         if opening_state:
             item[CONF_OPENING_STATE_ADDRESS] = opening_state
         if closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME)
+
+        # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
         item[CONF_USE_STATE_TOPICS] = use_state_topics
 
+        # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_button_item(
         self,
@@ -1146,31 +1199,23 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-        if not address:
-            errors["base"] = "invalid_address"
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
-        try:
-            parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
+        # Check for duplicates
         if self._has_duplicate(CONF_BUTTONS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        item: dict[str, Any] = {CONF_ADDRESS: address}
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
+        # Build item with optional fields
+        item = self._build_base_item(address, user_input, CONF_NAME)
 
+        # Add button-specific fields
         button_pulse = self._sanitize_button_pulse(user_input.get(CONF_BUTTON_PULSE))
         item[CONF_BUTTON_PULSE] = button_pulse
 
-        return item, errors
+        return item, {}
 
     def _build_light_item(
         self,
@@ -1178,46 +1223,43 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        errors: dict[str, str] = {}
-
-        state_address = self._sanitize_address(
-            user_input.get(CONF_STATE_ADDRESS)
-        ) or self._sanitize_address(user_input.get(CONF_ADDRESS))
-        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
-
-        if not state_address:
-            errors["base"] = "invalid_address"
+        # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
+        state_address, errors = self._validate_address_field(
+            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        )
+        if errors:
             return None, errors
 
-        try:
-            parse_tag(state_address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
+        # Check for duplicates
         if self._has_duplicate(
             CONF_LIGHTS,
             state_address,
             keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
             skip_idx=skip_idx,
         ):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        if command_address:
-            try:
-                parse_tag(command_address)
-            except (RuntimeError, ValueError):
-                errors["base"] = "invalid_address"
-                return None, errors
+        # Validate optional command address
+        command_address = None
+        if user_input.get(CONF_COMMAND_ADDRESS):
+            command_address, cmd_errors = self._validate_address_field(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+            if cmd_errors:
+                return None, cmd_errors
 
+        # Build item
         item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME)
+
+        # Add boolean flags
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
 
+        # Add pulse command if enabled
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if pulse_command:
             item[CONF_PULSE_COMMAND] = True
@@ -1226,9 +1268,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 pulse_duration = self._sanitize_pulse_duration(raw_pulse)
                 item[CONF_PULSE_DURATION] = pulse_duration
 
+        # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_number_item(
         self,
@@ -1239,39 +1282,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         """Build a 'number' item from user input.
 
         Returns (item, errors). If there is an error,
-
         item is None and errors["base"] is set.
         """
-
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
-
-        address_tag = None
-        if not address:
-            errors["base"] = "invalid_address"
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
-        # Validate main address
-        try:
-            address_tag = parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
+        # Parse tag to get type information
+        address_tag = parse_tag(address)
 
-        # Duplicates
+        # Check for duplicates
         if self._has_duplicate(CONF_NUMBERS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        # Validate command address (if present)
-        if command_address:
-            try:
-                parse_tag(command_address)
-            except (RuntimeError, ValueError):
-                errors["base"] = "invalid_address"
-                return None, errors
+        # Validate optional command address
+        command_address = None
+        if user_input.get(CONF_COMMAND_ADDRESS):
+            command_address, cmd_errors = self._validate_address_field(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+            if cmd_errors:
+                return None, cmd_errors
 
         # Parse numeric values
         min_value: float | None = None
@@ -1282,65 +1314,60 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if user_input.get(CONF_MIN_VALUE) is not None:
                 min_value = float(user_input[CONF_MIN_VALUE])
         except (TypeError, ValueError):
-            errors["base"] = "invalid_number"
-            return None, errors
+            return None, {"base": "invalid_number"}
 
         try:
             if user_input.get(CONF_MAX_VALUE) is not None:
                 max_value = float(user_input[CONF_MAX_VALUE])
         except (TypeError, ValueError):
-            errors["base"] = "invalid_number"
-            return None, errors
+            return None, {"base": "invalid_number"}
 
         try:
             if user_input.get(CONF_STEP) is not None:
                 step_value = float(user_input[CONF_STEP])
         except (TypeError, ValueError):
-            errors["base"] = "invalid_number"
-            return None, errors
+            return None, {"base": "invalid_number"}
         else:
             if step_value is not None and step_value <= 0:
-                errors["base"] = "invalid_number"
-                return None, errors
+                return None, {"base": "invalid_number"}
 
         # Check if REAL or LREAL type requires min/max
-        if address_tag is not None:
-            from .address import DataType
+        from .address import DataType
 
-            real_type = getattr(DataType, "REAL", None)
-            lreal_type = getattr(DataType, "LREAL", None)
+        real_type = getattr(DataType, "REAL", None)
+        lreal_type = getattr(DataType, "LREAL", None)
 
-            if address_tag.data_type in (real_type, lreal_type):
-                if min_value is None or max_value is None:
-                    errors["base"] = "min_max_required_for_real"
-                    return None, errors
+        if address_tag.data_type in (real_type, lreal_type):
+            if min_value is None or max_value is None:
+                return None, {"base": "min_max_required_for_real"}
 
         # PLC data-type limits
-        if address_tag is not None:
-            limits = get_numeric_limits(address_tag.data_type)
-            if limits is not None:
-                dtype_min, dtype_max = limits
-                if min_value is not None:
-                    min_value = min(max(min_value, dtype_min), dtype_max)
-                if max_value is not None:
-                    max_value = min(max(max_value, dtype_min), dtype_max)
+        limits = get_numeric_limits(address_tag.data_type)
+        if limits is not None:
+            dtype_min, dtype_max = limits
+            if min_value is not None:
+                min_value = min(max(min_value, dtype_min), dtype_max)
+            if max_value is not None:
+                max_value = min(max(max_value, dtype_min), dtype_max)
 
         # Range consistency (min/max)
         if min_value is not None and max_value is not None and min_value > max_value:
-            errors["base"] = "invalid_range"
-            return None, errors
+            return None, {"base": "invalid_range"}
 
-        # Build item if everything is valid
-        item: dict[str, Any] = {CONF_ADDRESS: address}
+        # Build item
+        item = self._build_base_item(
+            address,
+            user_input,
+            CONF_NAME,
+            CONF_DEVICE_CLASS,
+            CONF_UNIT_OF_MEASUREMENT,
+        )
 
+        # Add command address if present
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
-        if user_input.get(CONF_DEVICE_CLASS):
-            item[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-        if user_input.get(CONF_UNIT_OF_MEASUREMENT):
-            item[CONF_UNIT_OF_MEASUREMENT] = user_input[CONF_UNIT_OF_MEASUREMENT]
+
+        # Add numeric constraints
         if min_value is not None:
             item[CONF_MIN_VALUE] = min_value
         if max_value is not None:
@@ -1348,10 +1375,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if step_value is not None:
             item[CONF_STEP] = step_value
 
+        # Apply transformations
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_text_item(
         self,
@@ -1364,55 +1392,42 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         Returns (item, errors). If there is an error,
         item is None and errors["base"] is set.
         """
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
-        command_address = self._sanitize_address(user_input.get(CONF_COMMAND_ADDRESS))
-
-        if not address:
-            errors["base"] = "invalid_address"
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
-        # Validate main address
-        try:
-            address_tag = parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
-            return None, errors
-
-        # Validate that it's a STRING or WSTRING type
+        # Parse tag to validate it's a STRING or WSTRING type
+        address_tag = parse_tag(address)
         from .address import DataType
 
         if address_tag.data_type not in (DataType.STRING, DataType.WSTRING):
-            errors["base"] = "text_requires_string_type"
-            return None, errors
+            return None, {"base": "text_requires_string_type"}
 
         # Check for duplicates
         if self._has_duplicate(CONF_TEXTS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
-        # Validate command address (if present)
-        if command_address:
-            try:
-                parse_tag(command_address)
-            except (RuntimeError, ValueError):
-                errors["base"] = "invalid_address"
-                return None, errors
+        # Validate optional command address
+        command_address = None
+        if user_input.get(CONF_COMMAND_ADDRESS):
+            command_address, cmd_errors = self._validate_address_field(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+            if cmd_errors:
+                return None, cmd_errors
 
-        # Build item - min/max length are automatically derived from PLC tag
-        item: dict[str, Any] = {CONF_ADDRESS: address}
+        # Build item with optional fields
+        item = self._build_base_item(address, user_input, CONF_NAME, CONF_PATTERN)
 
+        # Add command address if present
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
-        if user_input.get(CONF_PATTERN):
-            item[CONF_PATTERN] = user_input[CONF_PATTERN]
 
+        # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        return item, errors
+        return item, {}
 
     def _build_writer_item(
         self,
@@ -1421,30 +1436,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build a 'writer' item from user input."""
-        errors: dict[str, str] = {}
-
-        address = self._sanitize_address(user_input.get(CONF_ADDRESS))
+        # Validate source entity
         source_entity = user_input.get(CONF_SOURCE_ENTITY, "").strip()
-
-        if not address:
-            errors["base"] = "invalid_address"
-            return None, errors
-
         if not source_entity:
-            errors["base"] = "invalid_source_entity"
-            return None, errors
+            return None, {"base": "invalid_source_entity"}
 
         # Validate address
-        try:
-            parse_tag(address)
-        except (RuntimeError, ValueError):
-            errors["base"] = "invalid_address"
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
             return None, errors
 
         # Check for duplicates
         if self._has_duplicate(CONF_WRITERS, address, skip_idx=skip_idx):
-            errors["base"] = "duplicate_entry"
-            return None, errors
+            return None, {"base": "duplicate_entry"}
 
         # Build item
         item: dict[str, Any] = {
@@ -1452,10 +1456,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_SOURCE_ENTITY: source_entity,
         }
 
-        if user_input.get(CONF_NAME):
-            item[CONF_NAME] = user_input[CONF_NAME]
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME)
 
-        return item, errors
+        return item, {}
 
     @staticmethod
     def _labelize(prefix: str, item: dict[str, Any]) -> str:
