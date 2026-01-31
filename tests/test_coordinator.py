@@ -395,7 +395,7 @@ def test_write_handles_numeric_types(coord_factory, dummy_tag, monkeypatch):
 
     writes.clear()
     real_tag = dummy_tag(data_type=coordinator.DataType.REAL)
-    coord._write_tags.clear()
+    coord._tag_cache.clear()
     monkeypatch.setattr(coordinator, "parse_tag", lambda address: real_tag)
 
     assert coord.write("DB1,D4", 7.25)
@@ -592,14 +592,14 @@ def test_add_item_invalidates_cache(coord_factory, monkeypatch):
     # Add some fake plans
     coord._plans_batch = {"fake": None}
     coord._plans_str = {"fake": None}
-    coord._write_tags = {"fake": None}
+    coord._tag_cache = {"fake": None}
     
     asyncio.run(coord.add_item("sensor:DB1,REAL0", "DB1,REAL0"))
     
     # Cache should be cleared
     assert len(coord._plans_batch) == 0
     assert len(coord._plans_str) == 0
-    assert len(coord._write_tags) == 0
+    assert len(coord._tag_cache) == 0
 
 
 def test_normalize_scan_interval_none_uses_default(coord_factory):

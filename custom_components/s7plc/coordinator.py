@@ -96,8 +96,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._plans_batch: Dict[str, TagPlan] = {}
         self._plans_str: Dict[str, StringPlan] = {}
 
-        # Cache for parsed tags used by writes
-        self._write_tags: Dict[str, S7Tag] = {}
+        # Cache for parsed tags (shared by reads and writes)
+        self._tag_cache: Dict[str, S7Tag] = {}
 
         # Scan interval bookkeeping
         self._item_scan_intervals: Dict[str, float] = {}
@@ -412,7 +412,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """
         self._plans_batch.clear()
         self._plans_str.clear()
-        self._write_tags.clear()
+        self._tag_cache.clear()
 
     def _build_tag_cache(self) -> None:
         """Build read plans for scalar and string tags.
@@ -421,7 +421,9 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         individual handling. Stores results in _plans_batch and _plans_str.
         """
         plans_batch, plans_str = build_plans(
-            self._items, precisions=self._item_real_precisions
+            self._items,
+            precisions=self._item_real_precisions,
+            tag_cache=self._tag_cache,
         )
         self._plans_batch = {plan.topic: plan for plan in plans_batch}
         self._plans_str = {plan.topic: plan for plan in plans_str}
@@ -926,10 +928,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Returns:
             Parsed S7Tag object
         """
-        tag = self._write_tags.get(address)
+        tag = self._tag_cache.get(address)
         if tag is None:
             tag = parse_tag(address)
-            self._write_tags[address] = tag
+            self._tag_cache[address] = tag
         return tag
 
     async def write_batched(
@@ -1124,7 +1126,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         with self._sync_lock:
             try:
                 self._ensure_connected()
-                tag = parse_tag(address)
+                tag = self._get_or_parse_tag(address)
 
                 # Handle STRING types (CHAR array, STRING, WSTRING)
                 if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:

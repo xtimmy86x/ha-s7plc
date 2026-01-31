@@ -48,15 +48,29 @@ def build_plans(
     items: Dict[str, str],
     *,
     precisions: Dict[str, int | None] | None = None,
+    tag_cache: Dict[str, S7Tag] | None = None,
 ) -> Tuple[list[TagPlan], list[StringPlan]]:
-    """Build read plans from a topic to address mapping."""
+    """Build read plans from a topic to address mapping.
+
+    Args:
+        items: Mapping of topic names to PLC addresses
+        precisions: Optional precision settings for REAL values
+        tag_cache: Optional cache for parsed tags (improves performance on rebuilds)
+    """
 
     plans_batch: list[TagPlan] = []
     plans_str: list[StringPlan] = []
 
     for topic, addr in items.items():
         try:
-            tag = parse_tag(addr)
+            # Use cache if provided to avoid reparsing tags
+            if tag_cache is not None:
+                tag = tag_cache.get(addr)
+                if tag is None:
+                    tag = parse_tag(addr)
+                    tag_cache[addr] = tag
+            else:
+                tag = parse_tag(addr)
         except ValueError:
             _LOGGER.warning("Invalid address %s: %s", topic, addr)
             continue
