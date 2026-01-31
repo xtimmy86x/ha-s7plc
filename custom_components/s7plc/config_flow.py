@@ -1169,10 +1169,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
         item[CONF_PULSE_COMMAND] = bool(user_input.get(CONF_PULSE_COMMAND, False))
 
-        # Add pulse duration if present
-        pulse_dur = self._sanitize_pulse_duration(user_input.get(CONF_PULSE_DURATION))
-        if pulse_dur is not None:
-            item[CONF_PULSE_DURATION] = pulse_dur
+        # Add pulse duration only if pulse command is enabled
+        if item[CONF_PULSE_COMMAND]:
+            pulse_dur = self._sanitize_pulse_duration(
+                user_input.get(CONF_PULSE_DURATION)
+            )
+            if pulse_dur is not None:
+                item[CONF_PULSE_DURATION] = pulse_dur
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
