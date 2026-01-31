@@ -200,7 +200,7 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     
     # Trigger state update - need to give asyncio.create_task time to execute
     ent.async_write_ha_state()
-    await asyncio.sleep(0.1)  # Give task time to execute
+    await asyncio.sleep(0.01)  # Give task time to execute
 
     assert coord.write_calls == [("write_batched", "db1,x0.1", True)]
     assert ent._last_state is True

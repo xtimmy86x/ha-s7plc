@@ -90,12 +90,17 @@ def test_retry_raises_after_exhaustion(coord_factory):
     coord._max_retries = 1
 
     drop_calls = 0
+    sleep_calls = []
 
     def fake_drop():
         nonlocal drop_calls
         drop_calls += 1
 
+    def fake_sleep(seconds):
+        sleep_calls.append(seconds)
+
     coord._drop_connection = fake_drop
+    coord._sleep = fake_sleep
 
     with pytest.raises(RuntimeError):
         coord._retry(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
@@ -815,6 +820,9 @@ def test_write_multi_write_error(coord_factory, monkeypatch):
     coord._client = MagicMock()
     coord._client.write.side_effect = OSError("Connection failed")
     
+    # Mock _sleep to avoid real delays during retry
+    coord._sleep = lambda seconds: None
+    
     writes = [
         ('DB1,X0.0', True),
         ('DB1,W10', 42),
@@ -848,8 +856,8 @@ async def test_write_batched_creates_notification_on_error(coord_factory, monkey
     await coord.write_batched('DB1,X0.0', True)
     await coord.write_batched('DB1,W10', 42)
     
-    # Wait for batch to flush
-    await asyncio.sleep(0.1)
+    # Wait for batch to flush (needs a bit more time for async task to complete)
+    await asyncio.sleep(0.05)
     
     # Verify notification service was called
     coord.hass.services.async_call.assert_called_once()
@@ -882,7 +890,7 @@ async def test_write_batched_no_notification_on_success(coord_factory, monkeypat
     await coord.write_batched('DB1,W10', 42)
     
     # Wait for batch to flush
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.01)
     
     # Verify no notification was created
     coord.hass.services.async_call.assert_not_called()
