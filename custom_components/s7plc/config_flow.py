@@ -239,6 +239,95 @@ ADD_ENTITY_LABELS: dict[str, str] = {
 }
 
 
+def _get_connection_description(
+    connection_type: str,
+    local_tsap: str | None = None,
+    remote_tsap: str | None = None,
+    rack: int | None = None,
+    slot: int | None = None,
+) -> str:
+    """Return human-readable connection description."""
+    if connection_type == CONNECTION_TYPE_TSAP:
+        return f"TSAP {local_tsap}/{remote_tsap}"
+    return f"rack {rack} slot {slot}"
+
+
+def _handle_connection_error(
+    flow_instance,
+    err: Exception,
+    host: str,
+    port: int,
+    connection_type: str,
+    local_tsap: str | None,
+    remote_tsap: str | None,
+    rack: int | None,
+    slot: int | None,
+    step_id: str,
+    data_schema: vol.Schema,
+    errors: dict[str, str],
+    description_placeholders: dict[str, str] | None = None,
+):
+    """Handle connection test errors with logging."""
+    connection_desc = _get_connection_description(
+        connection_type, local_tsap, remote_tsap, rack, slot
+    )
+
+    if isinstance(err, S7ConnectionError):
+        _LOGGER.error(
+            "S7 connection error to PLC at %s:%s (%s): %s",
+            host,
+            port,
+            connection_desc,
+            err,
+        )
+    elif isinstance(err, S7CommunicationError):
+        _LOGGER.error(
+            "S7 communication error with PLC at %s:%s (%s): %s",
+            host,
+            port,
+            connection_desc,
+            err,
+        )
+    elif isinstance(err, OSError):
+        _LOGGER.error(
+            "Network error connecting to S7 PLC at %s:%s (%s): %s",
+            host,
+            port,
+            connection_desc,
+            err,
+        )
+    elif isinstance(err, RuntimeError):
+        _LOGGER.error(
+            "Runtime error with S7 PLC at %s:%s (%s): %s",
+            host,
+            port,
+            connection_desc,
+            err,
+        )
+    else:
+        _LOGGER.exception(
+            "Unexpected error connecting to S7 PLC at %s:%s (%s)",
+            host,
+            port,
+            connection_desc,
+        )
+
+    errors["base"] = "cannot_connect"
+
+    if description_placeholders:
+        return flow_instance.async_show_form(
+            step_id=step_id,
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders=description_placeholders,
+        )
+    return flow_instance.async_show_form(
+        step_id=step_id,
+        data_schema=data_schema,
+        errors=errors,
+    )
+
+
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
 
@@ -249,19 +338,6 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._discovered_hosts: list[str] | None = None
         self._connection_data: dict[str, Any] = {}
-
-    @staticmethod
-    def _get_connection_description(
-        connection_type: str,
-        local_tsap: str | None = None,
-        remote_tsap: str | None = None,
-        rack: int | None = None,
-        slot: int | None = None,
-    ) -> str:
-        """Return human-readable connection description."""
-        if connection_type == CONNECTION_TYPE_TSAP:
-            return f"TSAP {local_tsap}/{remote_tsap}"
-        return f"rack {rack} slot {slot}"
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step - choose connection type."""
@@ -568,84 +644,27 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
-        except S7ConnectionError as err:
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "S7 connection error to PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
+        except (
+            S7ConnectionError,
+            S7CommunicationError,
+            OSError,
+            RuntimeError,
+            Exception,
+        ) as err:
+            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
+            return _handle_connection_error(
+                self,
                 err,
-            )
-            errors["base"] = "cannot_connect"
-            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
-            return self.async_show_form(
-                step_id=step_id, data_schema=data_schema, errors=errors
-            )
-        except S7CommunicationError as err:
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "S7 communication error with PLC at %s:%s (%s): %s",
                 host,
                 port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
-            return self.async_show_form(
-                step_id=step_id, data_schema=data_schema, errors=errors
-            )
-        except OSError as err:
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "Network error connecting to S7 PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
-            return self.async_show_form(
-                step_id=step_id, data_schema=data_schema, errors=errors
-            )
-        except RuntimeError as err:
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "Runtime error with S7 PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
-            return self.async_show_form(
-                step_id=step_id, data_schema=data_schema, errors=errors
-            )
-        except Exception:
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.exception(
-                "Unexpected error connecting to S7 PLC at %s:%s (%s)",
-                host,
-                port,
-                connection_desc,
-            )
-            errors["base"] = "cannot_connect"
-            step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
-            return self.async_show_form(
-                step_id=step_id, data_schema=data_schema, errors=errors
+                connection_type,
+                local_tsap,
+                remote_tsap,
+                rack,
+                slot,
+                step_id,
+                data_schema,
+                errors,
             )
 
         # Prepare data based on connection type
@@ -787,19 +806,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
-
-    @staticmethod
-    def _get_connection_description(
-        connection_type: str,
-        local_tsap: str | None = None,
-        remote_tsap: str | None = None,
-        rack: int | None = None,
-        slot: int | None = None,
-    ) -> str:
-        """Return human-readable connection description."""
-        if connection_type == CONNECTION_TYPE_TSAP:
-            return f"TSAP {local_tsap}/{remote_tsap}"
-        return f"rack {rack} slot {slot}"
 
     @staticmethod
     def _sanitize_address(address: Any | None) -> str | None:
@@ -1906,109 +1912,30 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         try:
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
-        except S7ConnectionError as err:
+        except (
+            S7ConnectionError,
+            S7CommunicationError,
+            OSError,
+            RuntimeError,
+            Exception,
+        ) as err:
             connection_type = (
                 CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
             )
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "S7 connection error to PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
+            return _handle_connection_error(
+                self,
                 err,
-            )
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(
-                step_id="connection",
-                data_schema=data_schema,
-                errors=errors,
-                description_placeholders=description_placeholders,
-            )
-        except S7CommunicationError as err:
-            connection_type = (
-                CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
-            )
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "S7 communication error with PLC at %s:%s (%s): %s",
                 host,
                 port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(
-                step_id="connection",
-                data_schema=data_schema,
-                errors=errors,
-                description_placeholders=description_placeholders,
-            )
-        except OSError as err:
-            connection_type = (
-                CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
-            )
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "Network error connecting to S7 PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(
-                step_id="connection",
-                data_schema=data_schema,
-                errors=errors,
-                description_placeholders=description_placeholders,
-            )
-        except RuntimeError as err:
-            connection_type = (
-                CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
-            )
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.error(
-                "Runtime error with S7 PLC at %s:%s (%s): %s",
-                host,
-                port,
-                connection_desc,
-                err,
-            )
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(
-                step_id="connection",
-                data_schema=data_schema,
-                errors=errors,
-                description_placeholders=description_placeholders,
-            )
-        except Exception:
-            connection_type = (
-                CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
-            )
-            connection_desc = self._get_connection_description(
-                connection_type, local_tsap, remote_tsap, rack, slot
-            )
-            _LOGGER.exception(
-                "Unexpected error connecting to S7 PLC at %s:%s (%s)",
-                host,
-                port,
-                connection_desc,
-            )
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(
-                step_id="connection",
-                data_schema=data_schema,
-                errors=errors,
-                description_placeholders=description_placeholders,
+                connection_type,
+                local_tsap,
+                remote_tsap,
+                rack,
+                slot,
+                "connection",
+                data_schema,
+                errors,
+                description_placeholders,
             )
 
         # Build new data based on connection type
