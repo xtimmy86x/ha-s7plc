@@ -1608,17 +1608,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         numbers = self._options.get(CONF_NUMBERS, [])
         sorted_numbers = sorted(enumerate(numbers), key=lambda x: get_sort_key(x[1]))
         for orig_idx, it in sorted_numbers:
-            number_item = {**it}
-            number_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
-            items[f"nm:{orig_idx}"] = self._labelize("nm", number_item)
+            items[f"nm:{orig_idx}"] = self._labelize("nm", it)
 
         # Texts - sorted alphabetically
         texts = self._options.get(CONF_TEXTS, [])
         sorted_texts = sorted(enumerate(texts), key=lambda x: get_sort_key(x[1]))
         for orig_idx, it in sorted_texts:
-            text_item = {**it}
-            text_item.setdefault(CONF_COMMAND_ADDRESS, it.get(CONF_ADDRESS))
-            items[f"tx:{orig_idx}"] = self._labelize("tx", text_item)
+            items[f"tx:{orig_idx}"] = self._labelize("tx", it)
 
         # Writers - sorted alphabetically
         writers = self._options.get(CONF_WRITERS, [])
