@@ -703,6 +703,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self._discovered_hosts
 
         hosts_to_scan: list[str] = []
+        hosts_seen: set[str] = set()
         adapters = await network.async_get_adapters(self.hass)
 
         for adapter in adapters:
@@ -738,9 +739,9 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         continue
 
                     host_str = str(host)
-                    if host_str in hosts_to_scan:
+                    if host_str in hosts_seen:
                         continue
-
+                    hosts_seen.add(host_str)
                     hosts_to_scan.append(host_str)
 
                     if len(hosts_to_scan) >= 256:
@@ -773,6 +774,14 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 discovered.append(host)
 
         await asyncio.gather(*(_probe(host) for host in hosts_to_scan))
+
+        # Filter out already configured hosts
+        configured_hosts = {
+            entry.data.get(CONF_HOST)
+            for entry in self.hass.config_entries.async_entries(DOMAIN)
+            if entry.data.get(CONF_HOST)
+        }
+        discovered = [host for host in discovered if host not in configured_hosts]
 
         discovered.sort()
         self._discovered_hosts = discovered
