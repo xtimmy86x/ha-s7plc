@@ -2432,62 +2432,37 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             to_remove: List[str] = user_input.get("remove_items", [])
             # filter each list removing the selected indices
             if to_remove:
-                # build set of indices for type
-                rm_s = {int(k.split(":")[1]) for k in to_remove if k.startswith("s:")}
-                rm_bs = {int(k.split(":")[1]) for k in to_remove if k.startswith("bs:")}
-                rm_sw = {int(k.split(":")[1]) for k in to_remove if k.startswith("sw:")}
-                rm_cv = {int(k.split(":")[1]) for k in to_remove if k.startswith("cv:")}
-                rm_bt = {int(k.split(":")[1]) for k in to_remove if k.startswith("bt:")}
-                rm_lt = {int(k.split(":")[1]) for k in to_remove if k.startswith("lt:")}
-                rm_nm = {int(k.split(":")[1]) for k in to_remove if k.startswith("nm:")}
-                rm_wr = {int(k.split(":")[1]) for k in to_remove if k.startswith("wr:")}
-                rm_tx = {int(k.split(":")[1]) for k in to_remove if k.startswith("tx:")}
+                # Map prefix -> (config_key, set of indices to remove)
+                prefix_map = {
+                    "s": CONF_SENSORS,
+                    "bs": CONF_BINARY_SENSORS,
+                    "sw": CONF_SWITCHES,
+                    "cv": CONF_COVERS,
+                    "bt": CONF_BUTTONS,
+                    "lt": CONF_LIGHTS,
+                    "nm": CONF_NUMBERS,
+                    "wr": CONF_ENTITY_SYNC,
+                    "tx": CONF_TEXTS,
+                }
 
-                self._options[CONF_SENSORS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_SENSORS, []))
-                    if idx not in rm_s
-                ]
-                self._options[CONF_BINARY_SENSORS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_BINARY_SENSORS, []))
-                    if idx not in rm_bs
-                ]
-                self._options[CONF_SWITCHES] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_SWITCHES, []))
-                    if idx not in rm_sw
-                ]
-                self._options[CONF_COVERS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_COVERS, []))
-                    if idx not in rm_cv
-                ]
-                self._options[CONF_BUTTONS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_BUTTONS, []))
-                    if idx not in rm_bt
-                ]
-                self._options[CONF_LIGHTS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_LIGHTS, []))
-                    if idx not in rm_lt
-                ]
-                self._options[CONF_NUMBERS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_NUMBERS, []))
-                    if idx not in rm_nm
-                ]
-                self._options[CONF_ENTITY_SYNC] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_ENTITY_SYNC, []))
-                    if idx not in rm_wr
-                ]
-                self._options[CONF_TEXTS] = [
-                    v
-                    for idx, v in enumerate(self._options.get(CONF_TEXTS, []))
-                    if idx not in rm_tx
-                ]
+                # Build set of indices to remove for each prefix
+                remove_indices = {
+                    prefix: {
+                        int(k.split(":")[1])
+                        for k in to_remove
+                        if k.startswith(f"{prefix}:")
+                    }
+                    for prefix in prefix_map
+                }
+
+                # Filter each list
+                for prefix, conf_key in prefix_map.items():
+                    indices_to_remove = remove_indices[prefix]
+                    self._options[conf_key] = [
+                        v
+                        for idx, v in enumerate(self._options.get(conf_key, []))
+                        if idx not in indices_to_remove
+                    ]
 
             # Save and close: __init__.py will reload the entry
             # and the entities will disappear
