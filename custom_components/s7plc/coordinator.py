@@ -236,7 +236,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     connection_type=self._pys7_connection_type,
                 )
 
-        if not getattr(self._client, "socket", None):
+        if not self._client.is_connected:
             try:
                 self._client.connect()
                 if self._local_tsap and self._remote_tsap:
