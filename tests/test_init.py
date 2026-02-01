@@ -155,3 +155,104 @@ def test_write_multi_service_registration(monkeypatch):
     registered_services = [s for (d, s) in service_calls]
     assert "health_check" in registered_services, f"health_check not in {registered_services}"
     assert "write_multi" in registered_services, f"write_multi not in {registered_services}"
+
+
+def test_migrate_writers_to_entity_sync(monkeypatch):
+    """Test that old 'writers' key is migrated to 'entity_sync'."""
+    hass = HomeAssistant()
+    
+    # Mock services
+    service_calls = []
+    def fake_async_register(*args, **kwargs):
+        if len(args) >= 3:
+            service_calls.append((args[1], args[2]))
+    hass.services = type('obj', (object,), {'async_register': fake_async_register})()
+    
+    # Create entry with old "writers" key
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        options={
+            "sensors": [],
+            "writers": [
+                {"address": "DB1,REAL0", "source_entity": "sensor.test"}
+            ]
+        },
+        entry_id="test_migrate",
+    )
+    
+    # Track update calls
+    update_calls = []
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+    
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+    
+    def fake_coordinator(*args, **kwargs):
+        return DummyCoordinator(*args, **kwargs)
+    
+    monkeypatch.setattr(s7init, "S7Coordinator", fake_coordinator)
+    
+    # Run setup
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+    
+    # Verify migration happened
+    assert len(update_calls) == 1
+    assert update_calls[0][0] == "test_migrate"
+    new_options = update_calls[0][1]["options"]
+    assert "entity_sync" in new_options
+    assert "writers" not in new_options
+    assert new_options["entity_sync"] == [
+        {"address": "DB1,REAL0", "source_entity": "sensor.test"}
+    ]
+
+
+def test_no_migration_when_entity_sync_exists(monkeypatch):
+    """Test that no migration happens if 'writers' key doesn't exist."""
+    hass = HomeAssistant()
+    
+    # Mock services
+    service_calls = []
+    def fake_async_register(*args, **kwargs):
+        if len(args) >= 3:
+            service_calls.append((args[1], args[2]))
+    hass.services = type('obj', (object,), {'async_register': fake_async_register})()
+    
+    # Create entry with new "entity_sync" key
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        options={
+            "sensors": [],
+            "entity_sync": [
+                {"address": "DB1,REAL0", "source_entity": "sensor.test"}
+            ]
+        },
+        entry_id="test_no_migrate",
+    )
+    
+    # Track update calls
+    update_calls = []
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+    
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+    
+    def fake_coordinator(*args, **kwargs):
+        return DummyCoordinator(*args, **kwargs)
+    
+    monkeypatch.setattr(s7init, "S7Coordinator", fake_coordinator)
+    
+    # Run setup
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+    
+    # Verify no migration happened
+    assert len(update_calls) == 0

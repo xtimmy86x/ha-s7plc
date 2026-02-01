@@ -43,6 +43,7 @@ from .const import (
     CONF_COVERS,
     CONF_DEVICE_CLASS,
     CONF_ENABLE_WRITE_BATCHING,
+    CONF_ENTITY_SYNC,
     CONF_INVERT_STATE,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
@@ -75,7 +76,6 @@ from .const import (
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
-    CONF_WRITERS,
     CONNECTION_TYPE_RACK_SLOT,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
@@ -224,7 +224,7 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "lights",
     "numbers",
     "texts",
-    "writers",
+    "entity_sync",
 )
 
 ADD_ENTITY_LABELS: dict[str, str] = {
@@ -235,7 +235,7 @@ ADD_ENTITY_LABELS: dict[str, str] = {
     "buttons": "Button",
     "lights": "Light",
     "numbers": "Number",
-    "writers": "Entity Sync",
+    "entity_sync": "Entity Sync",
 }
 
 
@@ -802,7 +802,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
             CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
             CONF_TEXTS: list(config_entry.options.get(CONF_TEXTS, [])),
-            CONF_WRITERS: list(config_entry.options.get(CONF_WRITERS, [])),
+            CONF_ENTITY_SYNC: list(config_entry.options.get(CONF_ENTITY_SYNC, [])),
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
@@ -1518,7 +1518,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None, errors
 
         # Check for duplicates
-        if self._has_duplicate(CONF_WRITERS, address, skip_idx=skip_idx):
+        if self._has_duplicate(CONF_ENTITY_SYNC, address, skip_idx=skip_idx):
             return None, {"base": "duplicate_entry"}
 
         # Build item
@@ -1622,10 +1622,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         for orig_idx, it in sorted_texts:
             items[f"tx:{orig_idx}"] = self._labelize("tx", it)
 
-        # Writers - sorted alphabetically
-        writers = self._options.get(CONF_WRITERS, [])
-        sorted_writers = sorted(enumerate(writers), key=lambda x: get_sort_key(x[1]))
-        for orig_idx, it in sorted_writers:
+        # Entity Syncs - sorted alphabetically
+        entity_syncs = self._options.get(CONF_ENTITY_SYNC, [])
+        sorted_entity_syncs = sorted(
+            enumerate(entity_syncs), key=lambda x: get_sort_key(x[1])
+        )
+        for orig_idx, it in sorted_entity_syncs:
             items[f"wr:{orig_idx}"] = self._labelize("wr", it)
 
         return items
@@ -2328,8 +2330,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="texts", data_schema=data_schema)
 
-    # ====== ADD: writers ======
-    async def async_step_writers(self, user_input: dict[str, Any] | None = None):
+    # ====== ADD: entity_sync ======
+    async def async_step_entity_sync(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
@@ -2346,18 +2348,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
             if errors:
                 return self.async_show_form(
-                    step_id="writers", data_schema=data_schema, errors=errors
+                    step_id="entity_sync", data_schema=data_schema, errors=errors
                 )
 
             if item is not None:
-                self._options[CONF_WRITERS].append(item)
+                self._options[CONF_ENTITY_SYNC].append(item)
 
             if user_input.get("add_another"):
-                return await self.async_step_writers()
+                return await self.async_step_entity_sync()
 
             return self.async_create_entry(title="", data=self._options)
 
-        return self.async_show_form(step_id="writers", data_schema=data_schema)
+        return self.async_show_form(step_id="entity_sync", data_schema=data_schema)
 
     # ====== EXPORT ======
     async def async_step_export(self, user_input: dict[str, Any] | None = None):
@@ -2487,9 +2489,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     for idx, v in enumerate(self._options.get(CONF_NUMBERS, []))
                     if idx not in rm_nm
                 ]
-                self._options[CONF_WRITERS] = [
+                self._options[CONF_ENTITY_SYNC] = [
                     v
-                    for idx, v in enumerate(self._options.get(CONF_WRITERS, []))
+                    for idx, v in enumerate(self._options.get(CONF_ENTITY_SYNC, []))
                     if idx not in rm_wr
                 ]
                 self._options[CONF_TEXTS] = [
@@ -3036,7 +3038,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return self._build_writer_item(inp, skip_idx=idx)
 
         return await self._edit_entity(
-            option_key=CONF_WRITERS,
+            option_key=CONF_ENTITY_SYNC,
             prefix="wr",
             build_schema=build_schema,
             process_input=process_input,

@@ -129,7 +129,7 @@
           "lights": "Světlo",
           "numbers": "Číslo",
           "texts": "Text",
-          "writers": "Synchronizace entity do PLC"
+          "entity_sync": "Synchronizace entity do PLC"
         }
       },
       "remove": {
@@ -382,7 +382,7 @@
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
-      "writers": {
+      "entity_sync": {
         "title": "Přidat synchronizaci entity",
         "description": "Vytvořte synchronizaci entity, která sleduje entitu v Home Assistant a automaticky zapisuje její hodnotu do PLC.",
         "data": {

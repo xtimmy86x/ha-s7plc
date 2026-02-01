@@ -32,6 +32,7 @@ from .address import DataType, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_DEVICE_CLASS,
+    CONF_ENTITY_SYNC,
     CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
@@ -39,7 +40,6 @@ from .const import (
     CONF_STATE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
-    CONF_WRITERS,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -179,7 +179,7 @@ async def async_setup_entry(
 
     # Setup Entity Syncs
     sync_entities = []
-    for item in entry.options.get(CONF_WRITERS, []):
+    for item in entry.options.get(CONF_ENTITY_SYNC, []):
         address = item.get(CONF_ADDRESS)
         source_entity = item.get(CONF_SOURCE_ENTITY)
 
@@ -548,7 +548,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         if self._last_written_value is None:
             return None
 
-        # For binary writers, return on/off string
+        # For binary entity syncs, return on/off string
         if self._is_binary:
             return "on" if self._last_written_value else "off"
 

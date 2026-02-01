@@ -49,6 +49,29 @@ Note: Any limits that fall outside the PLC data type range are automatically cla
    - **Name**: "Tank Temperature"
 3. Save the configuration.
 
+### Adding a Button Entity
+
+1. Open the integration and choose **Add items**.
+2. Select **Button** and configure:
+   - **Address**: `DB3,X10.5` (pulse output for reset)
+   - **Pulse Time**: 1.0 (1 second pulse)
+   - **Name**: "System Reset"
+3. Save the configuration.
+
+When pressed in Home Assistant, the button sends a 1-second pulse to the PLC address.
+
+### Adding a Text Entity
+
+1. Open the integration and choose **Add items**.
+2. Select **Text** and configure:
+   - **Address**: `DB15,S0.20` (STRING with max 20 characters)
+   - **Command Address**: Leave blank (uses same address)
+   - **Pattern**: `^[A-Z0-9 ]{1,20}$` (optional regex for uppercase alphanumeric with spaces)
+   - **Name**: "Operator Name"
+3. Save the configuration.
+
+The text entity allows reading and writing STRING/WSTRING values from the PLC. Min/max length is automatically determined from the PLC tag declaration.
+
 ### Removing an Entity
 
 1. Open the integration from **Settings → Devices & Services** and click **Configure**.

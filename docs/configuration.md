@@ -92,7 +92,7 @@ Values outside these ranges are supported, but increasing them further may delay
 ### Adding Entities
 
 1. Open the integration and choose **Configure** → **Add items**.
-2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `entity_sync`).
+2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `Entity Sync`).
 3. Fill in the form fields based on entity type (see below for details).
 4. Use **Add another** to chain the creation of multiple entities.
 5. Click **Send** to persist the last entry.
@@ -134,6 +134,13 @@ Values outside these ranges are supported, but increasing them further may delay
 - **Min/Max/Step**: Value constraints for Home Assistant (automatically clamped to PLC data type limits)
 - **REAL Precision**: Number of decimal places for REAL values
 
+#### Text
+
+- **Address**: PLC address to read (must be STRING or WSTRING type)
+- **Command Address**: PLC address to write (optional, defaults to read address)
+- **Pattern**: Optional regex pattern for input validation (e.g., `^[A-Z0-9]{1,10}$` for uppercase alphanumeric)
+- **Min/Max Length**: Automatically determined from PLC string length declaration
+
 #### Binary Sensor
 
 - **Address**: PLC address to read
@@ -173,7 +180,7 @@ Need to move your configuration to another Home Assistant instance or keep a bac
 2. The dialog shows the JSON payload and offers a download link (active for 5 minutes).
 3. Save the file to your device.
 
-The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `cover`, `button`, `light`, `number`, `entity_sync`) together with their addresses, limits, scan intervals, and other metadata.
+The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `cover`, `button`, `light`, `number`, `text`, `entity_sync`) together with their addresses, limits, scan intervals, and other metadata.
 
 ### Importing Configuration
 

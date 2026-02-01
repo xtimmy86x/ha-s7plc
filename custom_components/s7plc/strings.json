@@ -121,7 +121,7 @@
           "lights": "Light",
           "numbers": "Number",
           "texts": "Text",
-          "writers": "Entity to PLC Sync"
+          "entity_sync": "Entity to PLC Sync"
         }
       },
       "remove": {
@@ -374,7 +374,7 @@
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
-      "writers": {
+      "entity_sync": {
         "title": "Add Entity Sync",
         "description": "Create an Entity Sync that monitors a Home Assistant entity and automatically writes its value to the PLC.",
         "data": {

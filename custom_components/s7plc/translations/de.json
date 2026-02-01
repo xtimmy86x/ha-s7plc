@@ -129,7 +129,7 @@
           "lights": "Licht",
           "numbers": "Nummer",
           "texts": "Text",
-          "writers": "Entität zu SPS-Synchronisierung"
+          "entity_sync": "Entität zu SPS-Synchronisierung"
         }
       },
       "remove": {
@@ -382,7 +382,7 @@
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
       },
-      "writers": {
+      "entity_sync": {
         "title": "Entitätssynchronisierung hinzufügen",
         "description": "Erstellen Sie eine Entitätssynchronisierung, die eine Home Assistant-Entität überwacht und automatisch ihren Wert in die SPS schreibt.",
         "data": {

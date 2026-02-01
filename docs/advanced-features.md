@@ -236,7 +236,7 @@ Continuously sends your home's real-time power consumption to the PLC for monito
 ```
 Address: DB1,X0.5
 Source Entity: binary_sensor.front_door
-Name: Front Door Status Writer
+Name: Front Door Status Sync
 ```
 Writes the front door binary sensor state (`on`/`off`) to a PLC bit `DB1,X0.5`. When the door opens (state = `on`), the bit is set to `true`; when closed (state = `off`), it's set to `false`.
 
@@ -244,13 +244,13 @@ Writes the front door binary sensor state (`on`/`off`) to a PLC bit `DB1,X0.5`. 
 ```
 Address: DB10,X5.2
 Source Entity: switch.irrigation_zone_1
-Name: Irrigation Zone 1 Writer
+Name: Irrigation Zone 1 Sync
 ```
 Mirrors a Home Assistant switch state to a PLC bit. Useful for monitoring HA automation states from the PLC or coordinating with PLC-based interlocks.
 
 ### Entity Attributes
 
-Writer entities expose useful diagnostic attributes:
+Entity Sync items expose useful diagnostic attributes:
 
 | Attribute | Description |
 |-----------|-------------|
@@ -260,13 +260,13 @@ Writer entities expose useful diagnostic attributes:
 | `source_last_updated` | Timestamp when source entity last changed |
 | `write_count` | Total number of successful writes since entity creation |
 | `error_count` | Total number of failed write attempts |
-| `writer_type` | Type of writer: `binary` (for BIT addresses) or `numeric` (for other types) |
+| `entity_sync_type` | Type: `binary` (for BIT addresses) or `numeric` (for other types) |
 
-Access these attributes in automations, scripts, or display them on dashboards to monitor writer performance.
+Access these attributes in automations, scripts, or display them on dashboards to monitor Entity Sync performance.
 
 ### Data Type Handling
 
-Writers automatically detect the PLC data type from the address and handle conversions:
+Entity Sync items automatically detect the PLC data type from the address and handle conversions:
 
 - **BIT** (`DB#,X#.#`): Writes boolean values. Accepts states like `on`, `off`, `true`, `false`, `1`, `0`, `yes`, `no` (case-insensitive) or any numeric value (non-zero = true, zero = false)
 - **REAL** (`DB#,R#`): Writes floating-point values with full precision
@@ -274,17 +274,17 @@ Writers automatically detect the PLC data type from the address and handle conve
 - **DINT/DWORD** (`DB#,DW#`): Converts to 32-bit signed integer
 - **BYTE** (`DB#,B#`): Converts to unsigned byte (0 to 255)
 
-If the source entity provides a non-numeric state (e.g., "unavailable", "unknown") or an invalid boolean state for BIT addresses, the write is skipped and `error_count` increments. The writer logs a warning to help with troubleshooting.
+If the source entity provides a non-numeric state (e.g., "unavailable", "unknown") or an invalid boolean state for BIT addresses, the write is skipped and `error_count` increments. The Entity Sync logs a warning to help with troubleshooting.
 
 ### Behavior Notes
 
 **Automatic type detection**
-- Writers automatically detect if the PLC address is a BIT type and adapt their behavior and representation
-- Binary writers (BIT addresses) display `on`/`off` states with dynamic toggle switch icons
-- Numeric writers display numerical values with an upload icon
+- Entity Sync items automatically detect if the PLC address is a BIT type and adapt their behavior and representation
+- Binary Entity Syncs (BIT addresses) display `on`/`off` states with dynamic toggle switch icons
+- Numeric Entity Syncs display numerical values with an upload icon
 
 **Initial write**
-- Writers perform an immediate write when first added to Home Assistant
+- Entity Sync items perform an immediate write when first added to Home Assistant
 - If the source entity is unavailable at startup, the write is skipped until the entity becomes available
 
 **Change detection**
@@ -293,13 +293,13 @@ If the source entity provides a non-numeric state (e.g., "unavailable", "unknown
 
 **Error handling**
 - If a write fails (PLC disconnected, invalid data), the `error_count` increments
-- The writer continues monitoring and will retry on the next state change
+- The Entity Sync continues monitoring and will retry on the next state change
 - Check entity attributes and Home Assistant logs for diagnostic information
 
 **Performance**
-- Writers use event-driven updates (no polling overhead)
+- Entity Sync items use event-driven updates (no polling overhead)
 - Write operations run asynchronously to avoid blocking other entities
-- Multiple writers operate independently
+- Multiple Entity Sync items operate independently
 
 ### When to Use Entity Sync vs. Number Entities
 

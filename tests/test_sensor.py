@@ -343,12 +343,12 @@ async def test_async_setup_entry_skip_empty_address():
 
 @pytest.mark.asyncio
 async def test_async_setup_entry_with_entity_syncs():
-    """Test setup with entity syncs (writers) configured."""
+    """Test setup with entity syncs configured."""
     hass = MagicMock()
     entry = MagicMock()
     entry.options = {
         "sensors": [],
-        "writers": [
+        "entity_sync": [
             {
                 "address": "DB1,REAL0",
                 "source_entity": "sensor.test",
@@ -384,7 +384,7 @@ async def test_async_setup_entry_skip_invalid_entity_syncs():
     entry = MagicMock()
     entry.options = {
         "sensors": [],
-        "writers": [
+        "entity_sync": [
             {
                 "address": "",  # Missing address
                 "source_entity": "sensor.test",

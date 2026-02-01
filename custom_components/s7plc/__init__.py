@@ -15,6 +15,7 @@ from .const import (
     CONF_BACKOFF_MAX,
     CONF_CONNECTION_TYPE,
     CONF_ENABLE_WRITE_BATCHING,
+    CONF_ENTITY_SYNC,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
@@ -54,6 +55,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Migrate old "writers" key to "entity_sync"
+    if "writers" in entry.options:
+        new_options = dict(entry.options)
+        new_options[CONF_ENTITY_SYNC] = new_options.pop("writers")
+        hass.config_entries.async_update_entry(entry, options=new_options)
+        _LOGGER.info(
+            "Migrated 'writers' configuration to 'entity_sync' for entry %s",
+            entry.entry_id,
+        )
+
     data = entry.data
     host = data[CONF_HOST]
     port = data.get(CONF_PORT, DEFAULT_PORT)

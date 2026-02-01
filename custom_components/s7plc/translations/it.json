@@ -129,7 +129,7 @@
           "lights": "Luce",
           "numbers": "Numero",
           "texts": "Testo",
-          "writers": "Sincronizza Entità a PLC"
+          "entity_sync": "Sincronizza Entità a PLC"
         }
       },
       "remove": {
@@ -364,7 +364,7 @@
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
         }
       },
-      "writers": {
+      "entity_sync": {
         "title": "Aggiungi Entity Sync",
         "description": "Crea un Entity Sync che monitora un'entità di Home Assistant e scrive automaticamente il suo valore al PLC.",
         "data": {

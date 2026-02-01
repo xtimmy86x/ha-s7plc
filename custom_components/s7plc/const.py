@@ -33,7 +33,7 @@ CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
 CONF_TEXTS = "texts"
-CONF_WRITERS = "writers"
+CONF_ENTITY_SYNC = "entity_sync"
 
 OPTION_KEYS = (
     CONF_SENSORS,
@@ -44,7 +44,7 @@ OPTION_KEYS = (
     CONF_BUTTONS,
     CONF_NUMBERS,
     CONF_TEXTS,
-    CONF_WRITERS,
+    CONF_ENTITY_SYNC,
 )
 
 CONF_ADDRESS = "address"
