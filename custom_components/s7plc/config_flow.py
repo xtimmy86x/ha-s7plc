@@ -1506,7 +1506,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        """Build a 'writer' item from user input."""
+        """Build an 'entity_sync' item from user input."""
         # Validate source entity
         source_entity = user_input.get(CONF_SOURCE_ENTITY, "").strip()
         if not source_entity:
@@ -1545,7 +1545,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "lt": "Light",
             "nm": "Number",
             "tx": "Text",
-            "wr": "Writer",
+            "wr": "Entity Sync",
         }[prefix]
         base = name or address
         return f"{type_label} • {base} [{address}]"
@@ -3012,7 +3012,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             user_input=user_input,
         )
 
-    # ====== EDIT: writer ======
+    # ====== EDIT: entity_sync ======
     async def async_step_edit_writer(self, user_input: dict[str, Any] | None = None):
         def build_schema(item: dict[str, Any]) -> vol.Schema:
 
