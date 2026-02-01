@@ -1643,17 +1643,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         sanitized: dict[str, list[dict[str, Any]]] = {}
         for key in OPTION_KEYS:
-            raw_items = payload.get(key, [])
-            if raw_items is None:
-                raw_items = []
-            if not isinstance(raw_items, list):
-                return None
-            sanitized[key] = []
-            for item in raw_items:
-                if not isinstance(item, dict):
+            if key in payload:
+                # This category is in the import JSON – apply it (partial import).
+                raw_items = payload.get(key, [])
+                if raw_items is None:
+                    raw_items = []
+                if not isinstance(raw_items, list):
                     return None
-                sanitized[key].append(dict(item))
-
+                sanitized[key] = []
+                for item in raw_items:
+                    if not isinstance(item, dict):
+                        return None
+                    sanitized[key].append(dict(item))
+            else:
+                # Category not in payload – keep current config unchanged.
+                existing = self._options.get(key)
+                if isinstance(existing, list):
+                    sanitized[key] = [
+                        dict(item) if isinstance(item, dict) else item
+                        for item in existing
+                    ]
+                else:
+                    sanitized[key] = existing if existing is not None else []
         # Preserve any other option keys currently in use to avoid losing data.
         for key, value in self._options.items():
             if key not in sanitized:
