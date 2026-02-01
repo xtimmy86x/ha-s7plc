@@ -1884,13 +1884,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
 
+        connection_type = CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
         coordinator = S7Coordinator(
             self.hass,
             host=host,
+            connection_type=connection_type,
             rack=rack,
             slot=slot,
             local_tsap=local_tsap,
             remote_tsap=remote_tsap,
+            pys7_connection_type=pys7_connection_type,
             port=port,
             scan_interval=scan_s,
             op_timeout=op_timeout,
@@ -1910,9 +1913,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             RuntimeError,
             Exception,
         ) as err:
-            connection_type = (
-                CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
-            )
             return _handle_connection_error(
                 self,
                 err,
