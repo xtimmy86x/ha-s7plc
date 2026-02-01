@@ -26,8 +26,13 @@ from .address import get_numeric_limits, parse_tag
 try:
     from pyS7.errors import S7CommunicationError, S7ConnectionError
 except (ImportError, AttributeError):
-    # Fallback to base exceptions if pyS7 not available
-    S7CommunicationError = S7ConnectionError = RuntimeError
+
+    class S7ConnectionError(RuntimeError):
+        """Fallback S7 connection error."""
+
+    class S7CommunicationError(RuntimeError):
+        """Fallback S7 communication error."""
+
 
 from .const import (
     CONF_ADDRESS,
