@@ -113,6 +113,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Health check bookkeeping (updated by normal read cycle)
         self._last_health_ok: bool | None = None
         self._last_health_latency: float | None = None
+        self._last_health_time: datetime | None = None
 
         # Error tracking
         self._last_error_category: str | None = None
