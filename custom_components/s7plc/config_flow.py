@@ -1047,7 +1047,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     ) -> None:
         """Copy optional fields from user_input to item if they exist."""
         for field in fields:
-            if user_input.get(field):
+            if field in user_input and user_input[field] is not None:
                 item[field] = user_input[field]
 
     def _build_base_item(
