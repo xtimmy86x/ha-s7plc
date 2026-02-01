@@ -1027,9 +1027,6 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 _LOGGER.error(error_msg)
 
-                # Create persistent notification for user (rate limited to avoid spam)
-                import time
-
                 current_time = time.monotonic()
                 if (
                     current_time - self._last_write_error_notification
