@@ -184,10 +184,15 @@ To restore a backup:
 3. The integration validates the structure before applying it.
 4. On success, all configured items are replaced with the contents of the file.
 
-**Notes:**
-- Use an empty list in the JSON to clear a category
+**Important Notes:**
+- **The import replaces ALL entity categories**, not just the ones in the JSON
+- Any category not included in the import JSON will be cleared (set to empty)
+- To keep existing entities in a category, you must include them in the import
 - Other integration options (connection settings) remain intact
-- Review the payload before submitting to avoid accidental data loss
+- Always export your current configuration before importing to avoid data loss
+- Review the payload carefully before submitting
+
+**Example:** If you import `{"numbers": []}`, ALL categories (sensors, switches, lights, etc.) will be cleared, not just numbers.
 
 ## Connection Management
 
