@@ -919,7 +919,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_SCAN_INTERVAL] = normalized
 
     @staticmethod
-    def _normalize_value_multiplier(value: Any | None) -> float | None:
+    def _normalize_numeric_value(value: Any | None) -> float | None:
+        """Normalize a numeric value, handling comma decimal separator."""
         if value in (None, ""):
             return None
 
@@ -931,18 +932,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             candidate = candidate.replace(",", ".")
 
         try:
-            multiplier = float(candidate)
+            result = float(candidate)
         except (TypeError, ValueError) as exc:
-            raise ValueError("invalid multiplier") from exc
+            raise ValueError("invalid numeric value") from exc
 
-        if not math.isfinite(multiplier):
-            raise ValueError("invalid multiplier")
+        if not math.isfinite(result):
+            raise ValueError("invalid numeric value")
 
-        return multiplier
+        return result
 
     @staticmethod
     def _apply_value_multiplier(item: dict[str, Any], value: Any | None) -> None:
-        normalized = S7PLCOptionsFlow._normalize_value_multiplier(value)
+        normalized = S7PLCOptionsFlow._normalize_numeric_value(value)
         if normalized is None:
             item.pop(CONF_VALUE_MULTIPLIER, None)
         else:
@@ -1382,25 +1383,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         step_value: float | None = None
 
         try:
-            if user_input.get(CONF_MIN_VALUE) is not None:
-                min_value = float(user_input[CONF_MIN_VALUE])
-        except (TypeError, ValueError):
-            return None, {"base": "invalid_number"}
-
-        try:
-            if user_input.get(CONF_MAX_VALUE) is not None:
-                max_value = float(user_input[CONF_MAX_VALUE])
-        except (TypeError, ValueError):
-            return None, {"base": "invalid_number"}
-
-        try:
-            if user_input.get(CONF_STEP) is not None:
-                step_value = float(user_input[CONF_STEP])
-        except (TypeError, ValueError):
-            return None, {"base": "invalid_number"}
-        else:
+            min_value = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
+            max_value = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
+            step_value = self._normalize_numeric_value(user_input.get(CONF_STEP))
             if step_value is not None and step_value <= 0:
                 return None, {"base": "invalid_number"}
+        except ValueError:
+            return None, {"base": "invalid_number"}
 
         # Check if REAL or LREAL type requires min/max
         from .address import DataType

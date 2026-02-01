@@ -535,3 +535,32 @@ def test_options_connection_detects_duplicate_unique_id(monkeypatch):
 
     assert result["type"] == "form"
     assert result["kwargs"]["errors"]["base"] == "already_configured"
+
+
+def test_number_comma_decimal_normalization():
+    """Test that comma decimals are normalized for min/max/step."""
+    flow = make_options_flow(
+        options={
+            "sensors": [],
+            "numbers": [],
+        }
+    )
+    flow.hass = HomeAssistant()
+
+    user_input = {
+        const.CONF_ADDRESS: "DB1,REAL0",
+        const.CONF_COMMAND_ADDRESS: "DB1,REAL4",
+        const.CONF_MIN_VALUE: "0,5",
+        const.CONF_MAX_VALUE: "100,75",
+        const.CONF_STEP: "0,25",
+    }
+
+    result = run_flow(flow.async_step_numbers(user_input))
+
+    # Should succeed and create entry
+    assert result["type"] == "create_entry"
+    numbers = flow._options[const.CONF_NUMBERS]
+    assert len(numbers) == 1
+    assert numbers[0][const.CONF_MIN_VALUE] == 0.5
+    assert numbers[0][const.CONF_MAX_VALUE] == 100.75
+    assert numbers[0][const.CONF_STEP] == 0.25
