@@ -2416,6 +2416,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
     # ====== STEP B: remove ======
+    def _parse_item_key(self, key: str) -> tuple[str, int] | None:
+        """Safely parse an item key like 's:0' into (prefix, index).
+
+        Returns None if the key is malformed.
+        """
+        try:
+            parts = key.split(":", 1)
+            if len(parts) != 2:
+                return None
+            prefix, idx_str = parts
+            return (prefix, int(idx_str))
+        except (ValueError, AttributeError):
+            return None
+
     async def async_step_remove(self, user_input: dict[str, Any] | None = None):
         # Build a key->label map for all configured items
         # Unique key: type prefix + index, e.g. "s:0", "bs:1", "sw:2", "lt:0"
@@ -2438,15 +2452,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     "tx": CONF_TEXTS,
                 }
 
-                # Build set of indices to remove for each prefix
-                remove_indices = {
-                    prefix: {
-                        int(k.split(":")[1])
-                        for k in to_remove
-                        if k.startswith(f"{prefix}:")
-                    }
-                    for prefix in prefix_map
-                }
+                # Build set of indices to remove for each prefix (safe parsing)
+                remove_indices = {prefix: set() for prefix in prefix_map}
+                for key in to_remove:
+                    parsed = self._parse_item_key(key)
+                    if parsed and parsed[0] in prefix_map:
+                        remove_indices[parsed[0]].add(parsed[1])
 
                 # Filter each list
                 for prefix, conf_key in prefix_map.items():
