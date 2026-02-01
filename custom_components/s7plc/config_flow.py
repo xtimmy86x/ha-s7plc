@@ -24,10 +24,10 @@ from .address import get_numeric_limits, parse_tag
 
 # Import S7-specific exceptions if available
 try:
-    from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
+    from pyS7.errors import S7CommunicationError, S7ConnectionError
 except (ImportError, AttributeError):
     # Fallback to base exceptions if pyS7 not available
-    S7CommunicationError = S7ConnectionError = S7ReadResponseError = RuntimeError
+    S7CommunicationError = S7ConnectionError = RuntimeError
 
 from .const import (
     CONF_ADDRESS,
