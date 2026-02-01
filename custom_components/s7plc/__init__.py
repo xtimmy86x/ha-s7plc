@@ -56,12 +56,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Migrate old "writers" key to "entity_sync"
+    # TODO: Remove this migration in version 5.0.0
     if "writers" in entry.options:
         new_options = dict(entry.options)
         new_options[CONF_ENTITY_SYNC] = new_options.pop("writers")
         hass.config_entries.async_update_entry(entry, options=new_options)
-        _LOGGER.info(
-            "Migrated 'writers' configuration to 'entity_sync' for entry %s",
+        _LOGGER.warning(
+            "Migrated deprecated 'writers' configuration to 'entity_sync' for entry %s."
+            "This automatic migration will be removed in version 5.0.0. ",
             entry.entry_id,
         )
 
