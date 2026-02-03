@@ -109,9 +109,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
     """Binary sensor reporting the PLC connection status."""
 
-    device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_translation_key = "plc_connection"
-    entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str):
         super().__init__(

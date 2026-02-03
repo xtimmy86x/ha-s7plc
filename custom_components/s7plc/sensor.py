@@ -340,7 +340,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 class S7EntitySync(S7BaseEntity, SensorEntity):
     """Entity sync that sends HA entity values to PLC."""
 
-    entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
         self,

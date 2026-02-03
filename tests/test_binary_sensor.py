@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.const import CONF_NAME
+from homeassistant.helpers.entity import EntityCategory
 
 from custom_components.s7plc.binary_sensor import (
     S7BinarySensor,
@@ -204,8 +205,8 @@ def test_plc_connection_sensor_init(mock_coordinator, device_info):
     )
     
     assert sensor._attr_unique_id == "test_device:connection"
-    assert sensor.device_class == BinarySensorDeviceClass.CONNECTIVITY
-    assert sensor.entity_category == "diagnostic"
+    assert sensor._attr_device_class == BinarySensorDeviceClass.CONNECTIVITY
+    assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
     assert sensor._attr_translation_key == "plc_connection"
 
 
