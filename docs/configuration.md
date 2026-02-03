@@ -124,6 +124,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 - **Address**: PLC address to read
 - **Device Class**: Optional sensor device class for proper display
+  - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Value Multiplier**: Scale factor to apply to raw PLC values (e.g., `0.1` to convert tenths to units)
 - **REAL Precision**: Number of decimal places for REAL values
 
@@ -131,6 +132,8 @@ Values outside these ranges are supported, but increasing them further may delay
 
 - **Address**: PLC address to read
 - **Command Address**: PLC address to write (optional, defaults to read address)
+- **Device Class**: Optional number device class
+  - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Min/Max/Step**: Value constraints for Home Assistant (automatically clamped to PLC data type limits)
 - **REAL Precision**: Number of decimal places for REAL values
 
@@ -145,6 +148,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 - **Address**: PLC address to read
 - **Device Class**: Optional binary sensor device class
+  - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Invert State**: Inverts the sensor state (PLC True → Off, PLC False → On). Useful for NC (Normally Closed) contacts or when PLC logic is inverted
 
 #### Entity Sync

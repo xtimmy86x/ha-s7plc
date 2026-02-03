@@ -110,16 +110,22 @@ from .export import build_export_json, build_export_payload, register_export_dow
 _LOGGER = logging.getLogger(__name__)
 
 bs_device_class_options = [
+    selector.SelectOptionDict(value="__none__", label="No device class"),
+] + [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
     for dc in BinarySensorDeviceClass
 ]
 
 s_device_class_options = [
+    selector.SelectOptionDict(value="__none__", label="No device class"),
+] + [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
     for dc in SensorDeviceClass
 ]
 
 n_device_class_options = [
+    selector.SelectOptionDict(value="__none__", label="No device class"),
+] + [
     selector.SelectOptionDict(value=dc.value, label=dc.value)
     for dc in NumberDeviceClass
 ]
@@ -987,7 +993,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         selector_obj: Any,
     ) -> tuple[Any, Any]:
         """Return (vol.Optional, selector) with or without default."""
-        if key in item and item[key] is not None:
+        if key in item and item[key] is not None and item[key] != "":
             return vol.Optional(key, default=item[key]), selector_obj
         return vol.Optional(key), selector_obj
 
@@ -1053,10 +1059,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         user_input: dict[str, Any],
         *fields: str,
     ) -> None:
-        """Copy optional fields from user_input to item if they exist."""
+        """Copy optional fields from user_input to item if they exist.
+
+        Empty strings and '__none__' are treated as removal signals,
+        allowing users to remove previously set optional values.
+        """
         for field in fields:
-            if field in user_input and user_input[field] is not None:
-                item[field] = user_input[field]
+            if field in user_input:
+                value = user_input[field]
+                # Treat empty strings and __none__ as removal (don't copy to item)
+                if value is not None and value != "" and value != "__none__":
+                    item[field] = value
+                # If value is None, "", or "__none__", field won't be in item (removed)
 
     def _build_base_item(
         self,
