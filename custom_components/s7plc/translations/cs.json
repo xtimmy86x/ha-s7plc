@@ -602,6 +602,7 @@
     "error": {
       "invalid_address": "Neplatný formát adresy.",
       "duplicate_entry": "Tato položka už existuje.",
+      "duplicate_addresses_in_import": "Import obsahuje duplicitní adresy ve stejném typu entity.",
       "state_addresses_required": "Pokud je zapnuto „Použít stavové adresy“, jsou vyžadovány adresy pro otevřeno i zavřeno.",
       "invalid_source_entity": "Je vyžadována zdrojová entita.",
       "invalid_number": "Neplatná číselná hodnota.",

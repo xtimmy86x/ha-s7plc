@@ -1651,9 +1651,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     def _sanitize_import_payload(
         self, payload: Any
-    ) -> dict[str, list[dict[str, Any]]] | None:
+    ) -> tuple[dict[str, list[dict[str, Any]]] | None, str | None]:
+        """Sanitize import payload.
+
+        Returns:
+            Tuple of (sanitized_data, error_key). If successful, error_key is None.
+            If failed, sanitized_data is None and
+            error_key contains the error message key.
+        """
         if not isinstance(payload, dict):
-            return None
+            return None, "invalid_json"
 
         sanitized: dict[str, list[dict[str, Any]]] = {}
         for key in OPTION_KEYS:
@@ -1661,12 +1668,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if raw_items is None:
                 raw_items = []
             if not isinstance(raw_items, list):
-                return None
+                return None, "invalid_json"
             sanitized[key] = []
             for item in raw_items:
                 if not isinstance(item, dict):
-                    return None
+                    return None, "invalid_json"
                 sanitized[key].append(dict(item))
+
+        # Validate for duplicate addresses within each entity type
+        if not self._validate_import_duplicates(sanitized):
+            return None, "duplicate_addresses_in_import"
 
         # Preserve any other option keys currently in use to avoid losing data.
         for key, value in self._options.items():
@@ -1678,7 +1689,45 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 else:
                     sanitized[key] = value
 
-        return sanitized
+        return sanitized, None
+
+    def _validate_import_duplicates(
+        self, sanitized: dict[str, list[dict[str, Any]]]
+    ) -> bool:
+        """Validate that imported data doesn't contain duplicate addresses.
+
+        Returns False if duplicates are found, True otherwise.
+        """
+        # Define which address keys to check for each entity type
+        address_keys_map = {
+            CONF_SENSORS: (CONF_ADDRESS,),
+            CONF_BINARY_SENSORS: (CONF_ADDRESS,),
+            CONF_SWITCHES: (CONF_STATE_ADDRESS, CONF_ADDRESS),
+            CONF_COVERS: (CONF_OPEN_COMMAND_ADDRESS,),
+            CONF_LIGHTS: (CONF_STATE_ADDRESS, CONF_ADDRESS),
+            CONF_BUTTONS: (CONF_ADDRESS,),
+            CONF_NUMBERS: (CONF_ADDRESS,),
+            CONF_TEXTS: (CONF_ADDRESS,),
+            CONF_ENTITY_SYNC: (CONF_ADDRESS,),
+        }
+
+        for entity_type, address_keys in address_keys_map.items():
+            items = sanitized.get(entity_type, [])
+            seen_addresses: set[str] = set()
+
+            for item in items:
+                # Check all relevant address keys for this entity type
+                for key in address_keys:
+                    address = item.get(key)
+                    if address:
+                        normalized = self._normalized_address(address)
+                        if normalized:
+                            if normalized in seen_addresses:
+                                # Duplicate found
+                                return False
+                            seen_addresses.add(normalized)
+
+        return True
 
     def _clear_edit_state(self) -> None:
         self._action = None
@@ -2419,9 +2468,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     except ValueError:
                         errors["base"] = "invalid_json"
                     else:
-                        sanitized = self._sanitize_import_payload(payload)
+                        sanitized, error_key = self._sanitize_import_payload(payload)
                         if sanitized is None:
-                            errors["base"] = "invalid_json"
+                            errors["base"] = error_key or "invalid_json"
                         else:
                             self._options = sanitized
                             return self.async_create_entry(title="", data=self._options)

@@ -602,6 +602,7 @@
     "error": {
       "invalid_address": "Ungültiges Adressformat.",
       "duplicate_entry": "Dieses Element existiert bereits.",
+      "duplicate_addresses_in_import": "Der Import enthält doppelte Adressen innerhalb desselben Entitätstyps.",
       "state_addresses_required": "Wenn 'Zustandsthemen verwenden' aktiviert ist, sind sowohl geöffnete als auch geschlossene Zustandsvariablen erforderlich.",
       "invalid_source_entity": "Quellentität ist erforderlich.",
       "invalid_number": "Ungültiger numerischer Wert.",

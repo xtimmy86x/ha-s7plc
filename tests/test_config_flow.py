@@ -408,6 +408,157 @@ def test_import_step_handles_invalid_json():
     assert result["type"] == "form"
     errors = result.get("errors") or result.get("kwargs", {}).get("errors")
     assert errors["base"] == "invalid_json"
+
+
+def test_import_step_rejects_duplicate_sensor_addresses():
+    """Test that import rejects duplicate addresses in sensors."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0", CONF_NAME: "Sensor 1"},
+            {const.CONF_ADDRESS: "DB1,X0.1", CONF_NAME: "Sensor 2"},
+            {const.CONF_ADDRESS: "db1,x0.0", CONF_NAME: "Duplicate"},  # Duplicate (case-insensitive)
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "form"
+    errors = result.get("errors") or result.get("kwargs", {}).get("errors")
+    assert errors["base"] == "duplicate_addresses_in_import"
+
+
+def test_import_step_rejects_duplicate_switch_addresses():
+    """Test that import rejects duplicate addresses in switches."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_SWITCHES: [
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.1",
+                CONF_NAME: "Switch 1",
+            },
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.2",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.3",
+                CONF_NAME: "Switch 2",
+            },
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",  # Duplicate
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.4",
+                CONF_NAME: "Duplicate",
+            },
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "form"
+    errors = result.get("errors") or result.get("kwargs", {}).get("errors")
+    assert errors["base"] == "duplicate_addresses_in_import"
+
+
+def test_import_step_rejects_duplicate_light_addresses():
+    """Test that import rejects duplicate addresses in lights."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_LIGHTS: [
+            {
+                const.CONF_STATE_ADDRESS: "Q1.0",
+                const.CONF_COMMAND_ADDRESS: "Q1.1",
+            },
+            {
+                const.CONF_STATE_ADDRESS: "Q1.0",  # Duplicate
+                const.CONF_COMMAND_ADDRESS: "Q1.2",
+            },
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "form"
+    errors = result.get("errors") or result.get("kwargs", {}).get("errors")
+    assert errors["base"] == "duplicate_addresses_in_import"
+
+
+def test_import_step_rejects_duplicate_cover_addresses():
+    """Test that import rejects duplicate addresses in covers."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_COVERS: [
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "Q2.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "Q2.1",
+            },
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "q2.0",  # Duplicate (case-insensitive)
+                const.CONF_CLOSE_COMMAND_ADDRESS: "Q2.2",
+            },
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "form"
+    errors = result.get("errors") or result.get("kwargs", {}).get("errors")
+    assert errors["base"] == "duplicate_addresses_in_import"
+
+
+def test_import_step_accepts_unique_addresses():
+    """Test that import accepts configuration with unique addresses."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0", CONF_NAME: "Sensor 1"},
+            {const.CONF_ADDRESS: "DB1,X0.1", CONF_NAME: "Sensor 2"},
+        ],
+        const.CONF_SWITCHES: [
+            {
+                const.CONF_STATE_ADDRESS: "DB2,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB2,X0.1",
+            },
+        ],
+        const.CONF_BUTTONS: [
+            {const.CONF_ADDRESS: "Q0.0"},
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "create_entry"
+    assert len(flow._options[const.CONF_SENSORS]) == 2
+    assert len(flow._options[const.CONF_SWITCHES]) == 1
+    assert len(flow._options[const.CONF_BUTTONS]) == 1
+
+
+def test_import_step_allows_same_address_across_entity_types():
+    """Test that same address can be used in different entity types (e.g., sensor and button)."""
+    flow = make_options_flow()
+
+    # Same address used in different entity types should be allowed
+    payload = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0", CONF_NAME: "Sensor"},
+        ],
+        const.CONF_BUTTONS: [
+            {const.CONF_ADDRESS: "DB1,X0.0"},  # Same as sensor - should be allowed
+        ],
+        const.CONF_BINARY_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0"},  # Same as sensor - should be allowed
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "create_entry"
+    assert len(flow._options[const.CONF_SENSORS]) == 1
+    assert len(flow._options[const.CONF_BUTTONS]) == 1
+    assert len(flow._options[const.CONF_BINARY_SENSORS]) == 1
     
 
 def test_options_connection_handles_connection_failure(monkeypatch):

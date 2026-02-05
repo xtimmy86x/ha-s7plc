@@ -594,6 +594,7 @@
     "error": {
       "invalid_address": "Invalid address format.",
       "duplicate_entry": "This item already exists.",
+      "duplicate_addresses_in_import": "The import contains duplicate addresses within the same entity type.",
       "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
       "invalid_source_entity": "Source entity is required.",
       "invalid_number": "Invalid numeric value.",

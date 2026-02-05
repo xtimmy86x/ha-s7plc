@@ -600,6 +600,7 @@
     "error": {
       "invalid_address": "Formato indirizzo non valido.",
       "duplicate_entry": "Questo elemento è già presente.",
+      "duplicate_addresses_in_import": "L'importazione contiene indirizzi duplicati nello stesso tipo di entità.",
       "invalid_source_entity": "L'entità sorgente è obbligatoria.",
       "invalid_number": "Valore numerico non valido.",
       "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
