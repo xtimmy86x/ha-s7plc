@@ -74,6 +74,8 @@ CONF_OPENING_STATE_ADDRESS = "opening_state_address"
 CONF_CLOSING_STATE_ADDRESS = "closing_state_address"
 CONF_OPERATE_TIME = "operate_time"
 CONF_USE_STATE_TOPICS = "use_state_topics"
+CONF_POSITION_STATE_ADDRESS = "position_state_address"
+CONF_POSITION_COMMAND_ADDRESS = "position_command_address"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0

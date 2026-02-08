@@ -18,6 +18,8 @@ from .const import (
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
+    CONF_POSITION_COMMAND_ADDRESS,
+    CONF_POSITION_STATE_ADDRESS,
     CONF_SCAN_INTERVAL,
     CONF_USE_STATE_TOPICS,
     DEFAULT_OPERATE_TIME,
@@ -35,9 +37,38 @@ async def async_setup_entry(
 ):
     coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
 
-    entities: list[S7Cover] = []
+    entities: list[S7Cover | S7PositionCover] = []
 
     for item in entry.options.get(CONF_COVERS, []):
+        # Check if this is a position-based cover
+        position_state = item.get(CONF_POSITION_STATE_ADDRESS)
+
+        if position_state:
+            # Position-based cover (0-100)
+            position_command = item.get(CONF_POSITION_COMMAND_ADDRESS)
+            scan_interval = item.get(CONF_SCAN_INTERVAL)
+
+            position_topic = f"cover:position:{position_state}"
+            await coord.add_item(position_topic, position_state, scan_interval)
+
+            name = item.get(CONF_NAME) or default_entity_name(
+                device_info.get("name"), position_state
+            )
+            unique_id = f"{device_id}:{position_topic}"
+
+            entities.append(
+                S7PositionCover(
+                    coord,
+                    name,
+                    unique_id,
+                    device_info,
+                    position_state,
+                    position_command,
+                )
+            )
+            continue
+
+        # Traditional open/close cover
         open_command = item.get(CONF_OPEN_COMMAND_ADDRESS)
         close_command = item.get(CONF_CLOSE_COMMAND_ADDRESS)
 
@@ -406,3 +437,133 @@ class S7Cover(S7BaseEntity, CoverEntity):
             cancel()
         self._reset_handles.clear()
         await super().async_will_remove_from_hass()
+
+
+class S7PositionCover(S7BaseEntity, CoverEntity):
+    """Representation of an S7 cover with position control (0-100)."""
+
+    _attr_supported_features = (
+        CoverEntityFeature.OPEN
+        | CoverEntityFeature.CLOSE
+        | CoverEntityFeature.SET_POSITION
+        | CoverEntityFeature.STOP
+    )
+
+    def __init__(
+        self,
+        coordinator,
+        name: str,
+        unique_id: str,
+        device_info: DeviceInfo,
+        position_state: str,
+        position_command: str | None,
+    ) -> None:
+        super().__init__(
+            coordinator,
+            name=name,
+            unique_id=unique_id,
+            device_info=device_info,
+            topic=f"cover:position:{position_state}",
+        )
+        self._position_state_address = position_state
+        self._position_command_address = position_command or position_state
+        self._position_topic = f"cover:position:{position_state}"
+
+    def _get_position_value(self) -> int | None:
+        """Get the current position value from coordinator data."""
+        data = self.coordinator.data or {}
+        if self._position_topic not in data:
+            return None
+        value = data.get(self._position_topic)
+        if value is None:
+            return None
+        try:
+            pos = int(value)
+            # Clamp to 0-100
+            return max(0, min(100, pos))
+        except (TypeError, ValueError):
+            return None
+
+    @property
+    def available(self) -> bool:
+        if not self._coord.is_connected():
+            return False
+        data = self.coordinator.data or {}
+        return self._position_topic in data and data[self._position_topic] is not None
+
+    @property
+    def current_cover_position(self) -> int | None:
+        """Return current position (0=closed, 100=open)."""
+        return self._get_position_value()
+
+    @property
+    def is_closed(self) -> bool | None:
+        """Return if the cover is closed (position == 0)."""
+        pos = self._get_position_value()
+        if pos is None:
+            return None
+        return pos == 0
+
+    @property
+    def is_opening(self) -> bool:
+        """Return False as we don't track opening state for position covers."""
+        return False
+
+    @property
+    def is_closing(self) -> bool:
+        """Return False as we don't track closing state for position covers."""
+        return False
+
+    async def async_open_cover(self, **kwargs) -> None:
+        """Open the cover (set position to 100)."""
+        await self.async_set_cover_position(position=100)
+
+    async def async_close_cover(self, **kwargs) -> None:
+        """Close the cover (set position to 0)."""
+        await self.async_set_cover_position(position=0)
+
+    async def async_set_cover_position(self, **kwargs) -> None:
+        """Set cover position (0-100)."""
+        await self._ensure_connected()
+
+        position = kwargs.get("position")
+        if position is None:
+            _LOGGER.error("No position provided for set_cover_position")
+            return
+
+        # Clamp to 0-100
+        position = max(0, min(100, int(position)))
+
+        await self._async_write(
+            self._position_command_address,
+            position,
+            error_msg=(
+                f"Failed to write position {position} to PLC address "
+                f"{self._position_command_address}"
+            ),
+        )
+
+        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
+
+    async def async_stop_cover(self, **kwargs) -> None:
+        """Stop the cover (not implemented for position-based covers)."""
+        _LOGGER.warning(
+            "Stop command not supported for position-based cover %s", self.name
+        )
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {}
+        if self._position_state_address:
+            attrs["s7_position_state_address"] = self._position_state_address.upper()
+        if self._position_command_address:
+            attrs["s7_position_command_address"] = (
+                self._position_command_address.upper()
+            )
+        attrs["cover_type"] = "position"
+        if self._position_topic:
+            attrs["position_scan_interval"] = self._coord._item_scan_intervals.get(
+                self._position_topic, self._coord._default_scan_interval
+            )
+        return attrs

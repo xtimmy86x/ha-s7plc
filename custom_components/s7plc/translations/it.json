@@ -129,7 +129,15 @@
           "lights": "Luce",
           "numbers": "Numero",
           "texts": "Testo",
-          "entity_sync": "Sincronizza Entità a PLC"
+          "entity_sync": "Sincronizzazione Entità verso PLC"
+        }
+      },
+      "covers": {
+        "title": "Aggiungi Copertura",
+        "description": "Seleziona il tipo di copertura da aggiungere.",
+        "menu_options": {
+          "covers_traditional": "Copertura (Apri/Chiudi)",
+          "covers_position": "Copertura (Posizione 0-100)"
         }
       },
       "remove": {
@@ -246,8 +254,8 @@
           "pulse_duration": "Durata dell'impulso in secondi. Minimo: 0,1s, Massimo: 60s."
         }
       },
-      "covers": {
-        "title": "Aggiungi Cover",
+      "covers_traditional": {
+        "title": "Aggiungi Cover (Apri/Chiudi)",
         "description": "Crea una cover con indirizzi di comando dedicati per apertura/chiusura e feedback di stato opzionale.",
         "data": {
           "open_command_address": "Indirizzo comando apertura",
@@ -270,6 +278,24 @@
           "name": "Nome descrittivo opzionale per la cover.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre cover."
+        }
+      },
+      "covers_position": {
+        "title": "Aggiungi Cover con Posizione",
+        "description": "Crea una cover controllata tramite valori di posizione (0-100). Lo stato 0 indica CHIUSO, valori >= 1 indicano APERTO.",
+        "data": {
+          "position_state_address": "Indirizzo stato posizione",
+          "position_command_address": "Indirizzo comando posizione",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4).",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre cover con posizione."
         }
       },
       "buttons": {
@@ -476,6 +502,22 @@
           "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
           "name": "Nome descrittivo opzionale per la cover.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_cover_position": {
+        "title": "Modifica Cover con Posizione",
+        "description": "Aggiorna gli indirizzi di stato o comando della posizione per questa cover basata su posizione e, se necessario, modifica il nome.",
+        "data": {
+          "position_state_address": "Indirizzo stato posizione",
+          "position_command_address": "Indirizzo comando posizione",
+          "name": "Nome",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100).",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per la cover.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_button": {

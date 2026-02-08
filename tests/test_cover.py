@@ -37,6 +37,7 @@ def mock_coordinator():
     coord.add_item = AsyncMock()
     coord.async_request_refresh = AsyncMock()
     coord.write = MagicMock(return_value=True)
+    coord.write_batched = AsyncMock(return_value=None)
     coord._item_scan_intervals = {}
     coord._default_scan_interval = 10
     return coord
@@ -638,3 +639,217 @@ async def test_async_setup_entry_use_state_topics(fake_hass, mock_coordinator, d
     
     entities = async_add_entities.call_args[0][0]
     assert entities[0]._use_state_topics is True
+
+
+# ============================================================================
+# Tests for S7PositionCover
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_position_cover_setup(fake_hass, mock_coordinator, device_info):
+    """Test position-based cover setup."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+    )
+    
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,b0",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
+                CONF_NAME: "Test Position Cover",
+            }
+        ]
+    }
+    
+    async_add_entities = MagicMock()
+    
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+    
+    mock_coordinator.add_item.assert_called_once()
+    mock_coordinator.async_request_refresh.assert_called_once()
+    
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 1
+    
+    cover = entities[0]
+    assert cover._attr_name == "Test Position Cover"
+    assert cover._position_state_address == "db1,b0"
+    assert cover._position_command_address == "db1,b1"
+
+
+@pytest.mark.asyncio
+async def test_position_cover_current_position(fake_hass, mock_coordinator, device_info):
+    """Test position cover current_cover_position property."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    
+    # Test with no data
+    assert cover.current_cover_position is None
+    
+    # Test with position data
+    mock_coordinator.data = {"cover:position:db1,b0": 50}
+    assert cover.current_cover_position == 50
+    
+    # Test clamping to 0-100
+    mock_coordinator.data = {"cover:position:db1,b0": 150}
+    assert cover.current_cover_position == 100
+    
+    mock_coordinator.data = {"cover:position:db1,b0": -10}
+    assert cover.current_cover_position == 0
+
+
+@pytest.mark.asyncio
+async def test_position_cover_is_closed(fake_hass, mock_coordinator, device_info):
+    """Test position cover is_closed property."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        None,
+    )
+    
+    # Closed when position is 0
+    mock_coordinator.data = {"cover:position:db1,b0": 0}
+    assert cover.is_closed is True
+    
+    # Open when position >= 1
+    mock_coordinator.data = {"cover:position:db1,b0": 1}
+    assert cover.is_closed is False
+    
+    mock_coordinator.data = {"cover:position:db1,b0": 50}
+    assert cover.is_closed is False
+    
+    mock_coordinator.data = {"cover:position:db1,b0": 100}
+    assert cover.is_closed is False
+    
+    # None when no data
+    mock_coordinator.data = {}
+    assert cover.is_closed is None
+
+
+@pytest.mark.asyncio
+async def test_position_cover_open(fake_hass, mock_coordinator, device_info):
+    """Test opening position cover (sets position to 100)."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+    
+    await cover.async_open_cover()
+    
+    # Should write 100 to command address
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 100)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_close(fake_hass, mock_coordinator, device_info):
+    """Test closing position cover (sets position to 0)."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+    
+    await cover.async_close_cover()
+    
+    # Should write 0 to command address
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 0)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_set_position(fake_hass, mock_coordinator, device_info):
+    """Test setting cover position."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+    
+    await cover.async_set_cover_position(position=75)
+    
+    # Should write 75 to command address
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 75)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_features(fake_hass, mock_coordinator, device_info):
+    """Test position cover supported features."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        None,
+    )
+    
+    features = cover._attr_supported_features
+    assert features & CoverEntityFeature.OPEN
+    assert features & CoverEntityFeature.CLOSE
+    assert features & CoverEntityFeature.SET_POSITION
+    assert features & CoverEntityFeature.STOP
+
+
+@pytest.mark.asyncio
+async def test_position_cover_extra_state_attributes(fake_hass, mock_coordinator, device_info):
+    """Test position cover extra state attributes."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    
+    attrs = cover.extra_state_attributes
+    assert "s7_position_state_address" in attrs
+    assert "s7_position_command_address" in attrs
+    assert attrs["cover_type"] == "position"
+    assert attrs["s7_position_state_address"] == "DB1,B0"
+    assert attrs["s7_position_command_address"] == "DB1,B1"

@@ -132,6 +132,14 @@
           "entity_sync": "Synchronizace entity do PLC"
         }
       },
+      "covers": {
+        "title": "Přidat kryt",
+        "description": "Vyberte typ krytu, který chcete přidat.",
+        "menu_options": {
+          "covers_traditional": "Kryt (Otevřít/Zavřít)",
+          "covers_position": "Kryt (Pozice 0-100)"
+        }
+      },
       "remove": {
         "title": "Odebrat položky",
         "description": "Vyberte položky, které chcete z této konfigurace PLC odebrat.",
@@ -246,8 +254,8 @@
           "pulse_duration": "Doba trvání pulzu v sekundách. Minimum: 0,1s, Maximum: 60s."
         }
       },
-      "covers": {
-        "title": "Přidat roletu/žaluzie",
+      "covers_traditional": {
+        "title": "Přidat roletu/žaluzie (Otevřít/Zavřít)",
         "description": "Vytvořte krytinu (cover) s adresami pro otevření/zavření a volitelnou zpětnou vazbou stavu.",
         "data": {
           "open_command_address": "Adresa příkazu otevřít",
@@ -270,6 +278,24 @@
           "name": "Volitelný srozumitelný název krytiny.",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další krytiny."
+        }
+      },
+      "covers_position": {
+        "title": "Přidat Kryt s Pozicí",
+        "description": "Vytvořte kryt ovládaný hodnotami pozice (0-100). Stav 0 znamená ZAVŘENO, hodnoty >= 1 znamenají OTEVŘENO.",
+        "data": {
+          "position_state_address": "Adresa stavu pozice",
+          "position_command_address": "Adresa příkazu pozice",
+          "name": "Název",
+          "scan_interval": "Interval skenování (s)",
+          "add_another": "Přidat další po uložení"
+        },
+        "data_description": {
+          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4).",
+          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
+          "name": "Volitelný popisný název krytu.",
+          "scan_interval": "Přepsat interval dotazování pro tyto značky v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
+          "add_another": "Zůstat v tomto kroku pro přidání dalších krytů s pozicí."
         }
       },
       "buttons": {
@@ -494,6 +520,22 @@
           "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
           "name": "Volitelný srozumitelný název krytiny.",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+        }
+      },
+      "edit_cover_position": {
+        "title": "Upravit Kryt s Pozicí",
+        "description": "Aktualizujte adresy stavu nebo příkazu pozice pro tento kryt založený na pozici a volitelně změňte jeho název.",
+        "data": {
+          "position_state_address": "Adresa stavu pozice",
+          "position_command_address": "Adresa příkazu pozice",
+          "name": "Název",
+          "scan_interval": "Interval skenování (s)"
+        },
+        "data_description": {
+          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100).",
+          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
+          "name": "Volitelný popisný název krytu.",
+          "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC."
         }
       },
       "edit_button": {

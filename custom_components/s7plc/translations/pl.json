@@ -132,6 +132,14 @@
           "entity_sync": "Synchronizacja encji z PLC"
         }
       },
+      "covers": {
+        "title": "Dodaj osłonę",
+        "description": "Wybierz typ osłony do dodania.",
+        "menu_options": {
+          "covers_traditional": "Osłona (Otwórz/Zamknij)",
+          "covers_position": "Osłona (Pozycja 0-100)"
+        }
+      },
       "remove": {
         "title": "Usuń elementy",
         "description": "Wybierz elementy, które chcesz usunąć z konfiguracji PLC.",
@@ -246,8 +254,8 @@
           "add_another": "Pozostań w tym kroku, aby dodać więcej przełączników."
         }
       },
-      "covers": {
-        "title": "Dodaj osłonę/roletę",
+      "covers_traditional": {
+        "title": "Dodaj osłonę/roletę (Otwórz/Zamknij)",
         "description": "Utwórz osłonę z dedykowanymi adresami poleceń otwarcia/zamknięcia i opcjonalnym feedbackiem stanu otwarcia/zamknięcia.",
         "data": {
           "open_command_address": "Adres polecenia otwarcia",
@@ -270,6 +278,24 @@
           "name": "Opcjonalna przyjazna nazwa osłony.",
           "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
           "add_another": "Pozostań w tym kroku, aby dodać więcej osłon."
+        }
+      },
+      "covers_position": {
+        "title": "Dodaj Pokrywę z Pozycją",
+        "description": "Utwórz pokrywę sterowaną wartościami pozycji (0-100). Stan 0 oznacza ZAMKNIĘTE, wartości >= 1 oznaczają OTWARTE.",
+        "data": {
+          "position_state_address": "Adres stanu pozycji",
+          "position_command_address": "Adres polecenia pozycji",
+          "name": "Nazwa",
+          "scan_interval": "Interwał skanowania (s)",
+          "add_another": "Dodaj kolejny po zapisaniu"
+        },
+        "data_description": {
+          "position_state_address": "Adres PLC do odczytu bieżącej wartości pozycji (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa pokrywy.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej pokryw opartych na pozycji."
         }
       },
       "buttons": {
@@ -494,6 +520,22 @@
           "use_state_topics": "Włącz, aby używać adresów zwrotnego stanu do określania pozycji osłony. Jeśli wyłączone, pozycja jest wnioskowana z czasu działania.",
           "name": "Opcjonalna przyjazna nazwa osłony.",
           "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+        }
+      },
+      "edit_cover_position": {
+        "title": "Edytuj Pokrywę z Pozycją",
+        "description": "Zaktualizuj adresy stanu lub polecenia pozycji dla tej pokrywy opartej na pozycji i opcjonalnie zmień jej nazwę.",
+        "data": {
+          "position_state_address": "Adres stanu pozycji",
+          "position_command_address": "Adres polecenia pozycji",
+          "name": "Nazwa",
+          "scan_interval": "Interwał skanowania (s)"
+        },
+        "data_description": {
+          "position_state_address": "Adres PLC do odczytu bieżącej wartości pozycji (0-100).",
+          "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa pokrywy.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_button": {

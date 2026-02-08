@@ -131,8 +131,14 @@
           "texts": "Text",
           "entity_sync": "Entität zu SPS-Synchronisierung"
         }
-      },
-      "remove": {
+      },      "covers": {
+        "title": "Abdeckung hinzufügen",
+        "description": "Wählen Sie den Typ der Abdeckung aus.",
+        "menu_options": {
+          "covers_traditional": "Abdeckung (Öffnen/Schließen)",
+          "covers_position": "Abdeckung (Position 0-100)"
+        }
+      },      "remove": {
         "title": "Elemente entfernen",
         "description": "Wählen Sie die Elemente aus, die Sie aus dieser SPS-Konfiguration entfernen möchten.",
         "data": {
@@ -246,8 +252,8 @@
           "pulse_duration": "Dauer des Impulses in Sekunden. Minimum: 0,1s, Maximum: 60s."
         }
       },
-      "covers": {
-        "title": "Jalousie/Raffstore hinzufügen",
+      "covers_traditional": {
+        "title": "Jalousie/Raffstore hinzufügen (Öffnen/Schließen)",
         "description": "Erstellen Sie eine Jalousie/Raffstore mit Öffnen-/Schließen-Befehlsvariablen und optionaler Öffnungs-/Schließzustandsvariable.",
         "data": {
           "open_command_address": "Befehlsvariable öffnen",
@@ -270,6 +276,24 @@
           "name": "Name für die Jalousie/Raffstore (optional).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?"
+        }
+      },
+      "covers_position": {
+        "title": "Jalousie/Raffstore mit Position hinzufügen",
+        "description": "Erstellen Sie eine Jalousie/Raffstore, die durch Positionswerte (0-100) gesteuert wird. Zustand 0 bedeutet GESCHLOSSEN, Werte >= 1 bedeuten OFFEN.",
+        "data": {
+          "position_state_address": "Positionszustandsadresse",
+          "position_command_address": "Positionsbefehlsadresse",
+          "name": "Name",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen ?"
+        },
+        "data_description": {
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4).",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "name": "Name für die Jalousie/Raffstore (optional).",
+          "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Weitere positionsbasierte Jalousie/Raffstores hinzuzufügen ?"
         }
       },
       "buttons": {
@@ -492,6 +516,22 @@
           "closing_state_address": "SPS-Adresse, die signalisiert, dass die Jalousie/Raffstore geschlossen ist (optional).",
           "operate_time": "Sekunden, die die Jalousie/Raffstore betrieben werden soll, bevor die Integration die Befehlsausgänge zurücksetzt und die Zustandsflags löscht.",
           "use_state_topics": "Aktivieren Sie diese Option, um Zustandsvariablen zur Bestimmung der Jalousie/Raffstoresposition zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet.",
+          "name": "Name für die Jalousie/Raffstore (optional).",
+          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_cover_position": {
+        "title": "Jalousie/Raffstore mit Position bearbeiten",
+        "description": "Aktualisieren Sie die Positionszustands- oder Befehlsvariablen für diese positionsbasierte Jalousie/Raffstore und ändern Sie optional ihren Namen.",
+        "data": {
+          "position_state_address": "Positionszustandsadresse",
+          "position_command_address": "Positionsbefehlsadresse",
+          "name": "Name",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }

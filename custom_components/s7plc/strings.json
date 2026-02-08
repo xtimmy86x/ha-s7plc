@@ -124,6 +124,14 @@
           "entity_sync": "Entity to PLC Sync"
         }
       },
+      "covers": {
+        "title": "Add Cover",
+        "description": "Select the type of cover to add.",
+        "menu_options": {
+          "covers_traditional": "Cover (Open/Close)",
+          "covers_position": "Cover (Position 0-100)"
+        }
+      },
       "remove": {
         "title": "Remove Items",
         "description": "Select the items you want to remove from this PLC configuration.",
@@ -238,8 +246,8 @@
           "add_another": "Stay on this step to add more switches."
         }
       },
-      "covers": {
-        "title": "Add Cover",
+      "covers_traditional": {
+        "title": "Add Cover (Open/Close)",
         "description": "Create a cover with dedicated open/close command addresses and optional opening/closing state feedback.",
         "data": {
           "open_command_address": "Open command address",
@@ -262,6 +270,24 @@
           "name": "Optional friendly name for the cover.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more covers."
+        }
+      },
+      "covers_position": {
+        "title": "Add Cover with Position",
+        "description": "Create a cover controlled by position values (0-100). State 0 means CLOSED, values >= 1 mean OPEN.",
+        "data": {
+          "position_state_address": "Position state address",
+          "position_command_address": "Position command address",
+          "name": "Name",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "position_state_address": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4).",
+          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "name": "Optional friendly name for the cover.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more position-based covers."
         }
       },
       "buttons": {
@@ -486,6 +512,22 @@
           "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "edit_cover_position": {
+        "title": "Edit Cover with Position",
+        "description": "Update the position state or command addresses for this position-based cover and optionally change its name.",
+        "data": {
+          "position_state_address": "Position state address",
+          "position_command_address": "Position command address",
+          "name": "Name",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "position_state_address": "PLC address to read the current position value (0-100).",
+          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "name": "Optional friendly name for the cover.",
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
       "edit_button": {

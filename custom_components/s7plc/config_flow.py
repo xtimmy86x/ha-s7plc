@@ -62,6 +62,8 @@ from .const import (
     CONF_OPERATE_TIME,
     CONF_OPTIMIZE_READ,
     CONF_PATTERN,
+    CONF_POSITION_COMMAND_ADDRESS,
+    CONF_POSITION_STATE_ADDRESS,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_PYS7_CONNECTION_TYPE,
@@ -1287,6 +1289,56 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return item, {}
 
+    def _build_cover_position_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        # Validate required position state address
+        position_state, state_errors = self._validate_address_field(
+            user_input.get(CONF_POSITION_STATE_ADDRESS)
+        )
+        if state_errors:
+            return None, state_errors
+
+        # Get optional position command address
+        position_command = self._sanitize_address(
+            user_input.get(CONF_POSITION_COMMAND_ADDRESS)
+        )
+
+        # Validate optional command address if present
+        if position_command:
+            _, cmd_errors = self._validate_address_field(position_command)
+            if cmd_errors:
+                return None, cmd_errors
+
+        # Check for duplicates
+        if self._has_duplicate(
+            CONF_COVERS,
+            position_state,
+            keys=(CONF_POSITION_STATE_ADDRESS,),
+            skip_idx=skip_idx,
+        ):
+            return None, {"base": "duplicate_entry"}
+
+        # Build item
+        item: dict[str, Any] = {
+            CONF_POSITION_STATE_ADDRESS: position_state,
+        }
+
+        # Add optional command address
+        if position_command:
+            item[CONF_POSITION_COMMAND_ADDRESS] = position_command
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME)
+
+        # Apply scan interval
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, {}
+
     def _build_button_item(
         self,
         user_input: dict[str, Any],
@@ -1552,6 +1604,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "bs": "Binary",
             "sw": "Switch",
             "cv": "Cover",
+            "cvp": "Cover (Position)",
             "bt": "Button",
             "lt": "Light",
             "nm": "Number",
@@ -1599,13 +1652,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             switch_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
             items[f"sw:{orig_idx}"] = self._labelize("sw", switch_item)
 
-        # Covers - sorted alphabetically
+        # Covers - sorted alphabetically (distinguish position-based covers)
         covers = self._options.get(CONF_COVERS, [])
         sorted_covers = sorted(enumerate(covers), key=lambda x: get_sort_key(x[1]))
         for orig_idx, it in sorted_covers:
             cover_item = {**it}
-            cover_item.setdefault(CONF_ADDRESS, it.get(CONF_OPEN_COMMAND_ADDRESS))
-            items[f"cv:{orig_idx}"] = self._labelize("cv", cover_item)
+            # Check if this is a position-based cover
+            if CONF_POSITION_STATE_ADDRESS in it:
+                cover_item.setdefault(CONF_ADDRESS, it.get(CONF_POSITION_STATE_ADDRESS))
+                items[f"cvp:{orig_idx}"] = self._labelize("cvp", cover_item)
+            else:
+                cover_item.setdefault(CONF_ADDRESS, it.get(CONF_OPEN_COMMAND_ADDRESS))
+                items[f"cv:{orig_idx}"] = self._labelize("cv", cover_item)
 
         # Buttons - sorted alphabetically
         buttons = self._options.get(CONF_BUTTONS, [])
@@ -1703,7 +1761,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_SENSORS: (CONF_ADDRESS,),
             CONF_BINARY_SENSORS: (CONF_ADDRESS,),
             CONF_SWITCHES: (CONF_STATE_ADDRESS, CONF_ADDRESS),
-            CONF_COVERS: (CONF_OPEN_COMMAND_ADDRESS,),
+            CONF_COVERS: (CONF_OPEN_COMMAND_ADDRESS, CONF_POSITION_STATE_ADDRESS),
             CONF_LIGHTS: (CONF_STATE_ADDRESS, CONF_ADDRESS),
             CONF_BUTTONS: (CONF_ADDRESS,),
             CONF_NUMBERS: (CONF_ADDRESS,),
@@ -2073,17 +2131,22 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add(self, user_input: dict[str, Any] | None = None):
+        _LOGGER.debug(f"async_step_add called with user_input={user_input}")
         if user_input is None:
+            _LOGGER.debug("Showing add menu")
             return self.async_show_menu(
                 step_id="add",
                 menu_options=list(ADD_ENTITY_STEP_IDS),
             )
 
         selection = user_input.get("menu_option") or user_input.get("item_type") or ""
+        _LOGGER.debug(f"User selected from add menu: '{selection}'")
 
         if selection not in ADD_ENTITY_STEP_IDS:
+            _LOGGER.warning(f"Invalid selection '{selection}', returning to add menu")
             return await self.async_step_add()
 
+        _LOGGER.debug(f"Calling handler async_step_{selection}")
         handler = getattr(self, f"async_step_{selection}")
         return await handler()
 
@@ -2200,7 +2263,32 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
     # ====== ADD: covers ======
+    # ====== ADD: covers (menu to choose type) ======
     async def async_step_covers(self, user_input: dict[str, Any] | None = None):
+        """Show menu to choose between traditional or position cover."""
+        _LOGGER.debug(f"async_step_covers called with user_input={user_input}")
+        if user_input is None:
+            _LOGGER.debug("Showing covers type selection menu")
+            return self.async_show_menu(
+                step_id="covers",
+                menu_options=["covers_traditional", "covers_position"],
+            )
+
+        selection = user_input.get("menu_option") or ""
+        _LOGGER.debug(f"User selected cover type: {selection}")
+
+        if selection == "covers_traditional":
+            return await self.async_step_covers_traditional()
+        elif selection == "covers_position":
+            return await self.async_step_covers_position()
+
+        _LOGGER.warning(f"Invalid cover type selection: {selection}")
+        return await self.async_step_covers()
+
+    # ====== ADD: covers_traditional ======
+    async def async_step_covers_traditional(
+        self, user_input: dict[str, Any] | None = None
+    ):
         errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
@@ -2226,18 +2314,54 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
             if errors:
                 return self.async_show_form(
-                    step_id="covers", data_schema=data_schema, errors=errors
+                    step_id="covers_traditional", data_schema=data_schema, errors=errors
                 )
 
             if item is not None:
                 self._options[CONF_COVERS].append(item)
 
             if user_input.get("add_another"):
-                return await self.async_step_covers()
+                return await self.async_step_covers_traditional()
 
             return self.async_create_entry(title="", data=self._options)
 
-        return self.async_show_form(step_id="covers", data_schema=data_schema)
+        return self.async_show_form(
+            step_id="covers_traditional", data_schema=data_schema
+        )
+
+    # ====== ADD: covers_position ======
+    async def async_step_covers_position(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_cover_position_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="covers_position", data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[CONF_COVERS].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_covers_position()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="covers_position", data_schema=data_schema)
 
     # ====== ADD: buttons ======
     async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
@@ -2517,6 +2641,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     "bs": CONF_BINARY_SENSORS,
                     "sw": CONF_SWITCHES,
                     "cv": CONF_COVERS,
+                    "cvp": CONF_COVERS,  # Position-based covers
                     "bt": CONF_BUTTONS,
                     "lt": CONF_LIGHTS,
                     "nm": CONF_NUMBERS,
@@ -2601,6 +2726,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_switch()
         if prefix == "cv":
             return await self.async_step_edit_cover()
+        if prefix == "cvp":
+            return await self.async_step_edit_cover_position()
         if prefix == "bt":
             return await self.async_step_edit_button()
         if prefix == "lt":
@@ -2849,6 +2976,48 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             build_schema=build_schema,
             process_input=process_input,
             step_id="edit_cover",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: cover_position ======
+    async def async_step_edit_cover_position(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_POSITION_STATE_ADDRESS,
+                    default=item.get(CONF_POSITION_STATE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_POSITION_COMMAND_ADDRESS,
+                    default=item.get(CONF_POSITION_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_cover_position_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_COVERS,
+            prefix="cvp",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_cover_position",
             user_input=user_input,
         )
 
