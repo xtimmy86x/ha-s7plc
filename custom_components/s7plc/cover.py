@@ -339,14 +339,17 @@ class S7Cover(S7BaseEntity, CoverEntity):
         else:
             attrs["state_topics_used"] = False
         if self._opened_topic:
-            attrs["opened_scan_interval"] = self._coord._item_scan_intervals.get(
+            interval = self._coord._item_scan_intervals.get(
                 self._opened_topic, self._coord._default_scan_interval
             )
+            attrs["opened_scan_interval"] = f"{interval} s"
         if self._closed_topic:
-            attrs["closed_scan_interval"] = self._coord._item_scan_intervals.get(
+            interval = self._coord._item_scan_intervals.get(
                 self._closed_topic, self._coord._default_scan_interval
             )
+            attrs["closed_scan_interval"] = f"{interval} s"
         attrs["operate_time"] = f"{self._operate_time:.1f} s"
+        attrs["cover_type"] = "open/close"
 
         return attrs
 
@@ -561,9 +564,9 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             attrs["s7_position_command_address"] = (
                 self._position_command_address.upper()
             )
+        interval = self._coord._item_scan_intervals.get(
+            self._position_topic, self._coord._default_scan_interval
+        )
+        attrs["closed_scan_interval"] = f"{interval} s"
         attrs["cover_type"] = "position"
-        if self._position_topic:
-            attrs["position_scan_interval"] = self._coord._item_scan_intervals.get(
-                self._position_topic, self._coord._default_scan_interval
-            )
         return attrs

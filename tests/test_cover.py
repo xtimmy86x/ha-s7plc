@@ -394,6 +394,7 @@ def test_extra_state_attributes_basic(cover_factory):
     assert attrs["s7_close_command_address"] == "DB1,X0.1"
     assert attrs["state_topics_used"] is False
     assert attrs["operate_time"] == "15.0 s"
+    assert attrs["cover_type"] == "open/close"
 
 
 def test_extra_state_attributes_with_state_topics(cover_factory):
@@ -410,7 +411,7 @@ def test_extra_state_attributes_with_state_topics(cover_factory):
     assert attrs["s7_opened_state_address"] == "DB1,X1.0"
     assert attrs["s7_closed_state_address"] == "DB1,X1.1"
     assert attrs["state_topics_used"] is True
-
+    assert attrs["cover_type"] == "open/close"
 
 # ============================================================================
 # async_setup_entry Tests
