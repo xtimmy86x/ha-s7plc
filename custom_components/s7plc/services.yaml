@@ -1,10 +1,10 @@
 health_check:
   name: Health Check
-  description: Esegue un probe di connettività/lettura leggero sul PLC configurato.
+  description: Performs a lightweight connectivity/read probe on the configured PLC.
   fields:
     entry_id:
       name: Config Entry ID
-      description: ID dell'entry di configurazione S7 (entry_id) su cui eseguire l'health check.
+      description: ID of the S7 configuration entry (entry_id) on which to perform the health check.
       required: true
       example: "abcd1234"
       selector:
@@ -13,11 +13,11 @@ health_check:
 
 write_multi:
   name: Write Multiple Values
-  description: Scrive più valori al PLC in un'unica operazione batch ottimizzata.
+  description: Writes multiple values to the PLC in a single optimized batch operation.
   fields:
     entry_id:
       name: Config Entry ID
-      description: ID dell'entry di configurazione S7 su cui scrivere i valori.
+      description: ID of the S7 configuration entry to write values to.
       required: true
       example: "abcd1234"
       selector:
@@ -25,7 +25,7 @@ write_multi:
           integration: s7plc
     writes:
       name: Values to Write
-      description: Lista di coppie indirizzo/valore da scrivere al PLC.
+      description: List of address/value pairs to write to the PLC.
       required: true
       example: |
         - address: "DB1,X0.0"
