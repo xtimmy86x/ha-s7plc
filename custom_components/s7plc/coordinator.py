@@ -983,12 +983,18 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if self.hass.loop is not None:
                 self._write_batch_timer = self.hass.loop.call_later(
                     self._write_batch_delay,
-                    lambda: self.hass.async_create_task(self._flush_write_batch()),
+                    lambda: self.hass.async_create_background_task(
+                        self._flush_write_batch(),
+                        name=f"s7plc_flush_batch_{self._host}",
+                    ),
                 )
             else:
                 # Fallback: execute immediately if loop unavailable (shutdown)
                 _LOGGER.debug("Event loop unavailable, executing write immediately")
-                self.hass.async_create_task(self._flush_write_batch())
+                self.hass.async_create_background_task(
+                    self._flush_write_batch(),
+                    name=f"s7plc_flush_batch_{self._host}",
+                )
 
     async def _flush_write_batch(self) -> None:
         """Flush accumulated writes to PLC using write_multi."""

@@ -244,6 +244,11 @@ class HomeAssistant:  # pragma: no cover - simple stub
             """Mock for hass.async_create_task - executes immediately in tests."""
             import asyncio
             return asyncio.create_task(coro)
+        
+        def async_create_background_task(coro, name=None):
+            """Mock for hass.async_create_background_task - executes immediately in tests."""
+            import asyncio
+            return asyncio.create_task(coro)
 
         self.config_entries.async_forward_entry_setups = async_forward_entry_setups
         self.config_entries.async_unload_platforms = async_unload_platforms
@@ -253,6 +258,7 @@ class HomeAssistant:  # pragma: no cover - simple stub
         self.config_entries._entries = []
         self.async_add_executor_job = async_add_executor_job
         self.async_create_task = async_create_task
+        self.async_create_background_task = async_create_background_task
 
 
 core.HomeAssistant = HomeAssistant
@@ -862,6 +868,11 @@ class FakeHass:
         """Mock for hass.async_create_task - executes immediately in tests."""
         import asyncio
         return asyncio.create_task(coro)
+    
+    def async_create_background_task(self, coro, name=None):
+        """Mock for hass.async_create_background_task - executes immediately in tests."""
+        import asyncio
+        return asyncio.create_task(coro)
 
     def async_add_executor_job(self, func: Callable, *args, **kwargs):
         self.calls.append((func.__name__, args))
@@ -991,7 +1002,16 @@ def fake_hass():
             # If no event loop is running, return a mock
             return MagicMock()
     
+    # Make async_create_background_task work the same way
+    def create_background_task_impl(coro, name=None):
+        try:
+            return asyncio.create_task(coro)
+        except RuntimeError:
+            # If no event loop is running, return a mock
+            return MagicMock()
+    
     hass.async_create_task = create_task_impl
+    hass.async_create_background_task = create_background_task_impl
     hass.create_task = MagicMock()
     return hass
 

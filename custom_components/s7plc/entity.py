@@ -315,8 +315,9 @@ class S7BoolSyncEntity(S7BaseEntity):
                 self._last_state = new_state
                 # Fire-and-forget batched write to command address
                 # Note: Intentionally not awaited to avoid blocking state updates
-                self.hass.async_create_task(
-                    self._coord.write_batched(self._command_address, new_state)
+                self.hass.async_create_background_task(
+                    self._coord.write_batched(self._command_address, new_state),
+                    name=f"s7plc_sync_write_{self._attr_unique_id}",
                 )
 
         super().async_write_ha_state()
