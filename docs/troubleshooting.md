@@ -35,7 +35,23 @@ Common issues and solutions for the S7 PLC integration.
 
 4. **Check PLC configuration**:
    - Ensure ISO-on-TCP communication is enabled
-   - Verify PUT/GET access is allowed
+   - **Verify PUT/GET access is allowed** (critical for read/write operations):
+     
+     **For S7-1200/1500 in TIA Portal:**
+     1. Open your project and select the CPU
+     2. Go to **Properties → Protection & Security → Connection mechanisms**
+     3. Check **"Permit access with PUT/GET communication from remote partner"**
+     4. Download the configuration to the PLC
+     
+     **For S7-300/400 in STEP 7:**
+     1. Open Hardware Config (HW Config)
+     2. Double-click the CPU
+     3. Go to **Protection** tab
+     4. Ensure PUT/GET access is not disabled
+     
+     **For Logo! 8:**
+     - PUT/GET is enabled by default, no configuration needed
+     
    - Check connection resources are available (not all consumed)
 
 5. **Test with minimal configuration**:
