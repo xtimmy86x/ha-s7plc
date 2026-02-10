@@ -23,7 +23,7 @@
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
-          "retry_backoff_max": "Maksymalne opóźnienie przy próbach (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów"
         },
@@ -31,14 +31,14 @@
           "name": "Przyjazna nazwa PLC (używana w nazwach encji).",
           "host": "Adres IP lub nazwa hosta PLC.",
           "port": "Port ISO-on-TCP, zazwyczaj 102.",
-          "rack": "Numer rack CPU (zwykle 0).",
-          "slot": "Numer slot CPU (np. 1 dla S7-1200/1500).",
+          "rack": "CPU rack (zwykle 0).",
+          "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
           "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji ms.",
           "operation_timeout": "Maksymalny czas pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
-          "max_retries": "Ile razy ponawiać nieudaną operację PLC przed poddaniem się.",
-          "retry_backoff_initial": "Opóźnienie przed pierwszą próbą ponowną.",
-          "retry_backoff_max": "Maksymalne opóźnienie między próbami ponownymi.",
+          "max_retries": "Maksymalna liczba prób komunikacji z PLC.",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
           "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
         }
@@ -57,7 +57,7 @@
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
-          "retry_backoff_max": "Maksymalne opóźnienie przy próbach (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów"
         },
@@ -70,9 +70,9 @@
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
           "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji ms.",
           "operation_timeout": "Maksymalny czas pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
-          "max_retries": "Ile razy ponawiać nieudaną operację PLC przed poddaniem się.",
-          "retry_backoff_initial": "Opóźnienie przed pierwszą próbą ponowną.",
-          "retry_backoff_max": "Maksymalne opóźnienie między próbami ponownymi.",
+          "max_retries": "Maksymalna liczba prób komunikacji z PLC",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
+          "retry_backoff_max": "Maksymalne opóźnienie między kolejnymi próbami komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
           "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
         }
@@ -89,7 +89,7 @@
     "step": {
       "init": {
         "title": "Opcje PLC S7",
-        "description": "Wybierz, co chcesz zarządzać.",
+        "description": "Wybierz, czym chcesz zarządzać.",
         "menu_options": {
           "setup_connection": "Połączenie",
           "setup_entities": "Encje",
@@ -124,7 +124,7 @@
           "sensors": "Czujnik",
           "binary_sensors": "Czujnik binarny",
           "switches": "Przełącznik",
-          "covers": "Roleta / Osłona",
+          "covers": "Roleta/Osłona",
           "buttons": "Przycisk",
           "lights": "Światło",
           "numbers": "Liczba",
@@ -133,11 +133,11 @@
         }
       },
       "covers": {
-        "title": "Dodaj osłonę",
-        "description": "Wybierz typ osłony do dodania.",
+        "title": "Dodaj roletę/osłonę",
+        "description": "Wybierz typ tolety/osłony do dodania.",
         "menu_options": {
-          "covers_traditional": "Osłona (Otwórz/Zamknij)",
-          "covers_position": "Osłona (Pozycja 0-100)"
+          "covers_traditional": "Otwórz/Zamknij",
+          "covers_position": "Z pozycjonowaniem 0-100"
         }
       },
       "remove": {
@@ -157,14 +157,14 @@
           "name": "Nazwa",
           "host": "Host",
           "port": "Port",
-          "rack": "Rack",
-          "slot": "Slot",
+          "rack": "CPU rack (zwykle 0).",
+          "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał odpytywania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
-          "retry_backoff_max": "Maksymalne opóźnienie przy próbach (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów"
         },
@@ -172,23 +172,23 @@
           "name": "Przyjazna nazwa PLC (używana w nazwach encji).",
           "host": "Adres IP lub nazwa hosta PLC.",
           "port": "Port ISO-on-TCP, zazwyczaj 102.",
-          "rack": "Numer rack CPU (zwykle 0).",
-          "slot": "Numer slot CPU (np. 1 dla S7-1200/1500).",
+          "rack": "CPU rack (zwykle 0).",
+          "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
           "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji ms.",
           "operation_timeout": "Maksymalny czas pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
-          "max_retries": "Ile razy ponawiać nieudaną operację PLC przed poddaniem się.",
-          "retry_backoff_initial": "Opóźnienie przed pierwszą próbą ponowną.",
-          "retry_backoff_max": "Maksymalne opóźnienie między próbami ponownymi.",
+          "max_retries": "Maksymalna liczba prób komunikacji z PLC",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
+          "retry_backoff_max": "Maksymalne opóźnienie między kolejnymi próbami komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
           "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
         }
       },
       "sensors": {
         "title": "Dodaj czujnik",
-        "description": "Utwórz czujnik odczytujący wartość z PLC (np. DB, MW). Podaj adres i opcjonalnie nazwę.",
+        "description": "Utwórz czujnik odczytujący wartości. Podaj adres i opcjonalnie nazwę.",
         "data": {
-          "address": "Adres",
+          "address": "Adres odczytu",
           "name": "Nazwa",
           "device_class": "Klasa urządzenia",
           "value_multiplier": "Mnożnik wartości",
@@ -199,22 +199,22 @@
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu (np. DB1000,D0, MW10, DB1,W2).",
+          "address": "Adres odczytu z PLC (np. DB1000,D0, MW10, DB1,W2).",
           "name": "Opcjonalna przyjazna nazwa czujnika.",
-          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować UI/zachowanie (np. battery, power).",
-          "value_multiplier": "Pomnóż surową wartość PLC przed zgłoszeniem. Pozostaw puste, aby zachować oryginalną wartość.",
+          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. bateria, zasilanie).",
+          "value_multiplier": "Pomnóż wartość z PLC przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
           "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Pozostaw puste dla automatycznej.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości REAL. Pozostaw puste dla oryginalnej precyzji (1).",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej czujników."
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "binary_sensors": {
         "title": "Dodaj czujnik binarny",
-        "description": "Utwórz czujnik binarny (on/off) z PLC. Ustaw adres, nazwę i opcjonalnie device_class.",
+        "description": "Utwórz czujnik binarny załączony/wyłączony. Ustaw adres, nazwę i opcjonalnie device_class.",
         "data": {
-          "address": "Adres",
+          "address": "Adres odczytu",
           "name": "Nazwa",
           "device_class": "Klasa urządzenia",
           "invert_state": "Odwróć stan",
@@ -222,22 +222,22 @@
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
-          "address": "Boolowski adres PLC (np. I0.0, Q1.3, DB10,X0.1).",
+          "address": "Adres odczytu z PLC (np. I0.0, Q1.3, DB10,X0.1).",
           "name": "Opcjonalna przyjazna nazwa czujnika binarnego.",
           "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować UI/zachowanie (np. door, window, power).",
           "invert_state": "Odwróć stan: PLC True = Off, PLC False = On. Przydatne dla NC (Normally Closed).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej czujników binarnych."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "switches": {
         "title": "Dodaj przełącznik",
-        "description": "Utwórz przełącznik z adresem stanu i opcjonalnym adresem polecenia. Można włączyć synchronizację stanu.",
+        "description": "Utwórz przełącznik odczyt/zapis. Można włączyć synchronizację stanu.",
         "data": {
-          "state_address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "state_address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
-          "sync_state": "Synchronizuj stan z adresem polecenia",
+          "sync_state": "Synchronizuj stan z adresem zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
           "scan_interval": "Interwał skanowania (s)",
@@ -245,25 +245,25 @@
         },
         "data_description": {
           "state_address": "Adres PLC do odczytu aktualnego stanu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres PLC do zapisu poleceń (opcjonalny). Jeśli pominięty, odczytywany jest tylko stan.",
+          "command_address": "Adres PLC do zapisu (opcjonalny). Jeśli pominięty, odczytywany jest tylko stan.",
           "name": "Opcjonalna przyjazna nazwa przełącznika.",
-          "sync_state": "Gdy włączone, adres polecenia jest automatycznie aktualizowany bieżącym stanem.",
-          "pulse_command": "Gdy włączone, wysyła impuls (ON → OFF) zamiast stanu ciągłego. Przydatne dla przekaźników bistabilnych.",
-          "pulse_duration": "Czas trwania impulsu w sekundach. Min: 0.1s, Max: 60s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej przełączników."
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
+          "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył) zamiast stanu ciągłego. Przydatne dla przyciskó.",
+          "pulse_duration": "Czas trwania impulsu w sekundach. Min: 0.1s, Maks: 60s.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "covers_traditional": {
         "title": "Dodaj osłonę/roletę (Otwórz/Zamknij)",
-        "description": "Utwórz osłonę z dedykowanymi adresami poleceń otwarcia/zamknięcia i opcjonalnym feedbackiem stanu otwarcia/zamknięcia.",
+        "description": "Utwórz osłonę/roletę z dedykowanymi adresami zapisu otwarcia/zamknięcia i opcjonalnym stanem otwarcia/zamknięcia.",
         "data": {
-          "open_command_address": "Adres polecenia otwarcia",
-          "close_command_address": "Adres polecenia zamknięcia",
-          "opening_state_address": "Adres stanu otwartego",
-          "closing_state_address": "Adres stanu zamkniętego",
-          "operate_time": "Czas działania (s)",
-          "use_state_topics": "Używaj tematów stanu do pozycji",
+          "open_command_address": "Adres zapisu otwarcia",
+          "close_command_address": "Adres zapisu zamknięcia",
+          "opening_state_address": "Adres odczytu stanu otwartego",
+          "closing_state_address": "Adres odczytu stanu zamkniętego",
+          "operate_time": "Czas otwarcia/zamknięcia (s)",
+          "use_state_topics": "Użyj stanu dla określenia pozycji",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejny po zapisaniu"
@@ -273,59 +273,59 @@
           "close_command_address": "Adres PLC do wyzwolenia zamknięcia (np. Q0.1, DB1,X0.1).",
           "opening_state_address": "Opcjonalny adres PLC wskazujący, że osłona jest otwarta.",
           "closing_state_address": "Opcjonalny adres PLC wskazujący, że osłona jest zamknięta.",
-          "operate_time": "Czas w sekundach, przez jaki polecenie jest aktywne, zanim wyjścia zostaną zresetowane.",
-          "use_state_topics": "Włącz, aby używać feedbacku stanu do określenia pozycji osłony. Gdy wyłączone, pozycja wynika z czasu operacji.",
+          "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmian€ pozycji z 0 na 100.",
+          "use_state_topics": "Włącz, aby używać raportowania stanu do określenia pozycji osłony. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna przyjazna nazwa osłony.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej osłon."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "covers_position": {
-        "title": "Dodaj Pokrywę z Pozycją",
-        "description": "Utwórz pokrywę sterowaną wartościami pozycji (0-100). Stan 0 oznacza ZAMKNIĘTE, wartości >= 1 oznaczają OTWARTE.",
+        "title": "Dodaj osłonę/roletę z pozycją",
+        "description": "Utwórz osłonę/roletę sterowaną wartościami (0-100). Stan 0 - ZAMKNIĘTA, wartości >= 1 - OTWARTA.",
         "data": {
-          "position_state_address": "Adres stanu pozycji",
-          "position_command_address": "Adres polecenia pozycji",
+          "position_state_address": "Adres odczytu pozycji",
+          "position_command_address": "Adres zapisu pozycji",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć pozycję (0=otwarte, 100=zamknięte)",
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącej wartości pozycji (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna przyjazna nazwa pokrywy.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowicie otwartego i 100 dla całkowicie zamkniętego (odwraca normalną logikę).",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej pokryw opartych na pozycji."
+          "position_state_address": "Adres PLC do odczytu bieżącej pozycji (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres PLC do zapisu nowej pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę).",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "buttons": {
         "title": "Dodaj przycisk",
-        "description": "Utwórz przycisk bezstanowy, który pulsu PLC boolean przez skonfigurowany czas po naciśnięciu.",
+        "description": "Utwórz przycisk, który wysyła okreslonej długości impuls do PLC po naciśnieciu.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejny po zapisaniu",
-          "button_pulse": "Czas impulsu"
+          "button_pulse": "Długość impulsu (s)"
         },
         "data_description": {
-          "address": "Boolowski adres PLC do impulsu (np. Q0.0, DB1,X0.1).",
+          "address": "Adres zapisu w PLC dla impulsu (np. Q0.0, DB1,X0.1).",
           "name": "Opcjonalna przyjazna nazwa przycisku.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej przycisków.",
-          "button_pulse": "Czas trwania impulsu w sekundach (obsługuje ułamki, np. 0.1 = 100ms)."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji.",
+          "button_pulse": "Czas trwania impulsu w sekundach (dla milisekund, np. 0.1 = 100ms)."
         }
       },
       "lights": {
         "title": "Dodaj światło",
-        "description": "Skonfiguruj światło z adresem stanu i opcjonalnym adresem polecenia. Można włączyć synchronizację stanu.",
+        "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
         "data": {
-          "state_address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "state_address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
-          "sync_state": "Synchronizuj stan z adresem polecenia",
+          "sync_state": "Synchronizuj stan z adresem zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
           "scan_interval": "Interwał skanowania (s)",
@@ -333,21 +333,21 @@
         },
         "data_description": {
           "state_address": "Adres PLC do odczytu aktualnego stanu światła.",
-          "command_address": "Adres PLC do zapisu poleceń światła (opcjonalny).",
+          "command_address": "Adres PLC do zapisu nowego stanu światła (opcjonalny).",
           "name": "Opcjonalna przyjazna nazwa światła.",
-          "sync_state": "Gdy włączone, adres polecenia jest automatycznie aktualizowany bieżącym stanem.",
-          "pulse_command": "Wyślij impuls zamiast poleceń ON/OFF. Przydatne dla przekaźników bistabilnych.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s, obsługuje ułamki). Domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej świateł."
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
+          "pulse_command": "Wyślij impuls zamiast załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s). Domyślnie: 0.5s.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "numbers": {
         "title": "Dodaj liczbę",
-        "description": "Utwórz encję liczbową, która odczytuje wartość z PLC i opcjonalnie może wysyłać polecenia.",
+        "description": "Utwórz encję liczbową, która odczytuje wartość z PLC i opcjonalniym adresem zapisu.",
         "data": {
-          "address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "device_class": "Klasa urządzenia",
           "unit_of_measurement": "Jednostka miary",
@@ -368,16 +368,16 @@
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w UI.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości REAL. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej encji liczbowych."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "texts": {
         "title": "Dodaj tekst",
-        "description": "Utwórz encję tekstową, która odczytuje wartości STRING lub WSTRING z PLC i opcjonalnie może wysyłać tekst.",
+        "description": "Utwórz encję tekstową, która odczytuje wartości STRING lub WSTRING z PLC i opcjonalnym adresem zapisu.",
         "data": {
-          "address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "pattern": "Wzorzec (regex)",
           "scan_interval": "Interwał skanowania (s)",
@@ -388,16 +388,16 @@
           "command_address": "Adres PLC do zapisu tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa encji tekstowej.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej encji tekstowych."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "edit_text": {
         "title": "Edytuj tekst",
-        "description": "Zaktualizuj adres PLC, adres polecenia, nazwę lub wzorzec dla tej encji tekstowej.",
+        "description": "Zaktualizuj adres PLC, adres zapisu, nazwę lub wzorzec dla tej encji tekstowej.",
         "data": {
-          "address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "pattern": "Wzorzec (regex)",
           "scan_interval": "Interwał skanowania (s)"
@@ -407,14 +407,14 @@
           "command_address": "Adres PLC do zapisu tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa encji tekstowej.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "entity_sync": {
         "title": "Dodaj synchronizację encji",
         "description": "Utwórz synchronizację encji, która monitoruje encję Home Assistant i automatycznie zapisuje jej wartość do PLC.",
         "data": {
-          "address": "Adres PLC",
+          "address": "Adres zapisu",
           "source_entity": "Źródłowa encja",
           "name": "Nazwa",
           "add_another": "Dodaj kolejny po zapisaniu"
@@ -423,7 +423,7 @@
           "address": "Adres PLC do zapisu wartości (np. DB1,D0, DB2,W4).",
           "source_entity": "Encja Home Assistant, której wartość będzie zapisywana do PLC.",
           "name": "Opcjonalna przyjazna nazwa synchronizacji encji.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej synchronizacji encji."
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "edit": {
@@ -457,7 +457,7 @@
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
           "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki. Pozostaw puste dla automatycznej.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości REAL. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_binary_sensor": {
@@ -471,19 +471,19 @@
           "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
-          "address": "Boolowski adres PLC (np. I0.0, Q1.3, DB10,X0.1).",
+          "address": "Adres w PLC (np. I0.0, Q1.3, DB10,X0.1).",
           "name": "Opcjonalna przyjazna nazwa czujnika binarnego.",
           "device_class": "Klasa urządzenia Home Assistant dla doprecyzowania UI/zachowania (np. door, window, power).",
-          "invert_state": "Odwróć stan: PLC True = Off, PLC False = On. Przydatne dla NC (Normally Closed).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "invert_state": "Odwróć stan: PLC True = Wył., PLC False = Zał.. Przydatne dla NC (Normalnie zamknięty).",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_switch": {
         "title": "Edytuj przełącznik",
-        "description": "Zaktualizuj adres stanu, adres polecenia, nazwę lub opcję synchronizacji dla tego przełącznika.",
+        "description": "Zaktualizuj adres odczytu, adres polecenia, nazwę lub opcję synchronizacji dla tego przełącznika.",
         "data": {
-          "state_address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "state_address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "sync_state": "Synchronizuj stan z PLC",
           "pulse_command": "Tryb impulsu",
@@ -492,59 +492,59 @@
         },
         "data_description": {
           "state_address": "Adres PLC do odczytu aktualnego stanu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres PLC do zapisu poleceń (opcjonalny).",
+          "command_address": "Adres PLC do zapisu (opcjonalny).",
           "name": "Opcjonalna przyjazna nazwa przełącznika.",
           "sync_state": "Gdy włączone, stan encji jest okresowo synchronizowany z PLC.",
           "pulse_command": "Gdy włączone, wysyła impuls (ON → OFF) zamiast stanu ciągłego. Przydatne dla przekaźników bistabilnych.",
           "pulse_duration": "Czas trwania impulsu w sekundach. Min: 0.1s, Max: 60s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_cover": {
-        "title": "Edytuj osłonę",
-        "description": "Zaktualizuj adresy poleceń lub stanu tej osłony i opcjonalnie zmień jej nazwę.",
+        "title": "Edytuj osłonę/roletę",
+        "description": "Zaktualizuj adresy zapisu lub odczytu tej osłony/rolety i opcjonalnie zmień jej nazwę.",
         "data": {
-          "open_command_address": "Adres polecenia otwarcia",
-          "close_command_address": "Adres polecenia zamknięcia",
-          "opening_state_address": "Adres stanu otwarcia",
-          "closing_state_address": "Adres stanu zamknięcia",
-          "operate_time": "Czas pracy (s)",
-          "use_state_topics": "Używaj tematów stanu do pozycji",
+          "open_command_address": "Adres zapisu otwarcia",
+          "close_command_address": "Adres zapisu zamknięcia",
+          "opening_state_address": "Adres odczytu stanu otwartego",
+          "closing_state_address": "Adres odczytu stanu zamkniętego",
+          "operate_time": "Czas otwarcia/zamknięcia (s)",
+          "use_state_topics": "Użyj stanu dla określenia pozycji",
           "name": "Nazwa",
           "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
-          "open_command_address": "Adres PLC wyzwalający otwarcie osłony.",
-          "close_command_address": "Adres PLC wyzwalający zamknięcie osłony.",
-          "opening_state_address": "Opcjonalny adres PLC sygnalizujący, że osłona jest otwarta.",
-          "closing_state_address": "Opcjonalny adres PLC sygnalizujący, że osłona jest zamknięta.",
-          "operate_time": "Sekundy, przez które osłona powinna działać, zanim integracja zresetuje wyjścia poleceń i wyczyści flagi stanu.",
-          "use_state_topics": "Włącz, aby używać adresów zwrotnego stanu do określania pozycji osłony. Jeśli wyłączone, pozycja jest wnioskowana z czasu działania.",
+          "open_command_address": "Adres PLC do wyzwolenia otwarcia (np. Q0.0, DB1,X0.0).",
+          "close_command_address": "Adres PLC do wyzwolenia zamknięcia (np. Q0.1, DB1,X0.1).",
+          "opening_state_address": "Opcjonalny adres PLC wskazujący, że osłona jest otwarta.",
+          "closing_state_address": "Opcjonalny adres PLC wskazujący, że osłona jest zamknięta.",
+          "operate_time": "Czas w sekundach, przez jaki polecenie jest aktywne, zanim wyjścia zostaną zresetowane.",
+          "use_state_topics": "Włącz, aby używać raportowania stanu do określenia pozycji osłony. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna przyjazna nazwa osłony.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_cover_position": {
         "title": "Edytuj Pokrywę z Pozycją",
         "description": "Zaktualizuj adresy stanu lub polecenia pozycji dla tej pokrywy opartej na pozycji i opcjonalnie zmień jej nazwę.",
         "data": {
-          "position_state_address": "Adres stanu pozycji",
-          "position_command_address": "Adres polecenia pozycji",
+          "position_state_address": "Adres odczytu pozycji",
+          "position_command_address": "Adres zapisu pozycji",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć pozycję (0=otwarte, 100=zamknięte)"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącej wartości pozycji (0-100).",
-          "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna przyjazna nazwa pokrywy.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowicie otwartego i 100 dla całkowicie zamkniętego (odwraca normalną logikę)."
+          "position_state_address": "Adres PLC do odczytu bieżącej pozycji (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres PLC do zapisu nowej pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę)."
         }
       },
       "edit_button": {
         "title": "Edytuj przycisk",
-        "description": "Zaktualizuj adres, nazwę lub czas trwania impulsu dla tego przycisku.",
+        "description": "Zaktualizuj adres, nazwę lub czas długości impulsu dla tego przycisku.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
@@ -552,18 +552,18 @@
           "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
-          "address": "Boolowski adres PLC do impulsu (np. Q0.0, DB1,X0.1).",
+          "address": "Adres w PLC do zapisu impulsu (np. Q0.0, DB1,X0.1).",
           "name": "Opcjonalna przyjazna nazwa przycisku.",
-          "button_pulse": "Czas trwania impulsu w sekundach (obsługuje ułamki, np. 0.1 = 100ms).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "button_pulse": "Czas długości impulsu w sekundach (milisekundy, np. 0.1 = 100ms).",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_light": {
         "title": "Edytuj światło",
-        "description": "Zaktualizuj adres stanu, adres polecenia, nazwę lub opcję synchronizacji dla tego światła.",
+        "description": "Zaktualizuj adres odczytu, adres zapisu, nazwę lub opcję synchronizacji dla tego światła.",
         "data": {
-          "state_address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "state_address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "sync_state": "Synchronizuj stan z PLC",
           "pulse_command": "Tryb impulsu",
@@ -572,20 +572,20 @@
         },
         "data_description": {
           "state_address": "Adres PLC do odczytu aktualnego stanu światła.",
-          "command_address": "Adres PLC do zapisu poleceń światła (opcjonalny).",
+          "command_address": "Adres PLC do zapisu nowego stanu światła (opcjonalny).",
           "name": "Opcjonalna przyjazna nazwa światła.",
-          "sync_state": "Gdy włączone, stan encji jest okresowo synchronizowany z PLC.",
-          "pulse_command": "Wysyłaj impuls zamiast poleceń włącz/wyłącz. Przydatne dla przekaźników bistabilnych lub układów typu flip-flop.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s, obsługuje ułamki). Domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC."
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
+          "pulse_command": "Wyślij impuls zamiast załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s). Domyślnie: 0.5s.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_number": {
         "title": "Edytuj liczbę",
-        "description": "Zaktualizuj adres stanu, adres polecenia, nazwę, minimalną wartość, maksymalną wartość lub przyrost dla tej liczby.",
+        "description": "Zaktualizuj adres odczytu, adres zapisu, nazwę, minimalną wartość, maksymalną wartość lub przyrost dla tej liczby.",
         "data": {
-          "address": "Adres stanu",
-          "command_address": "Adres polecenia",
+          "address": "Adres odczytu",
+          "command_address": "Adres zapisu",
           "name": "Nazwa",
           "device_class": "Klasa urządzenia",
           "unit_of_measurement": "Jednostka miary",
@@ -606,8 +606,8 @@
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w UI.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości REAL. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślny PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej encji liczbowych."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "edit_writer": {
@@ -649,7 +649,7 @@
       "invalid_address": "Nieprawidłowy format adresu.",
       "duplicate_entry": "Ten element już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
-      "state_addresses_required": "Gdy 'Użyj adresów stanu' jest włączone, wymagane są adresy stanu dla otwarcia i zamknięcia.",
+      "state_addresses_required": "Gdy 'użyj adresów odczytu' jest włączone, wymagane są adresy odczytu dla otwarcia i zamknięcia.",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
