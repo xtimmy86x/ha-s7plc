@@ -21,7 +21,7 @@
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał odpytywania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
-          "max_retries": "Ile razy ponawiać nieudaną operację z PLC",
+          "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przynkolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
@@ -55,7 +55,7 @@
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał odpytywania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
-          "max_retries": "Ile razy ponawiać nieudaną operację z PLC",
+          "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przynkolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
@@ -124,7 +124,7 @@
           "sensors": "Czujnik",
           "binary_sensors": "Czujnik binarny",
           "switches": "Przełącznik",
-          "covers": "Roleta / Osłona",
+          "covers": "Roleta/Osłona",
           "buttons": "Przycisk",
           "lights": "Światło",
           "numbers": "Liczba",
@@ -133,11 +133,11 @@
         }
       },
       "covers": {
-        "title": "Dodaj roletę / osłonę",
-        "description": "Wybierz typ tolety / osłony do dodania.",
+        "title": "Dodaj roletę/osłonę",
+        "description": "Wybierz typ tolety/osłony do dodania.",
         "menu_options": {
           "covers_traditional": "Otwórz/Zamknij",
-          "covers_position": " pozycjonowaniem 0-100"
+          "covers_position": "Z pozycjonowaniem 0-100"
         }
       },
       "remove": {
@@ -519,7 +519,7 @@
           "operate_time": "Czas w sekundach, przez jaki polecenie jest aktywne, zanim wyjścia zostaną zresetowane.",
           "use_state_topics": "Włącz, aby używać raportowania stanu do określenia pozycji osłony. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna przyjazna nazwa osłony.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_cover_position": {
@@ -529,7 +529,7 @@
           "position_state_address": "Adres odczytu pozycji",
           "position_command_address": "Adres zapisu pozycji",
           "name": "Nazwa",
-          "scan_interval": "Interwał skanowania (s)",
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "position_state_address": "Adres PLC do odczytu bieżącej pozycji (0-100, np. DB1,B0, DB2,W4).",
@@ -573,7 +573,7 @@
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
           "pulse_command": "Wyślij impuls zamiast załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s). Domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_number": {
@@ -602,7 +602,8 @@
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w UI.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości REAL. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
       },
       "edit_writer": {
