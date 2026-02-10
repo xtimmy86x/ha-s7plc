@@ -11,27 +11,27 @@ from custom_components.s7plc.const import DOMAIN
 
 
 def test_default_entity_name_with_both():
-    """Test default_entity_name with both PLC name and address."""
+    """Test default_entity_name returns only address (plc_name ignored with has_entity_name=True)."""
     result = default_entity_name("MyPLC", "DB1,REAL0")
-    assert result == "MyPLC DB1 REAL0"
+    assert result == "DB1 REAL0"
 
 
 def test_default_entity_name_with_special_chars():
     """Test default_entity_name normalizes special characters."""
     result = default_entity_name("MyPLC", "DB1,REAL0.5")
-    assert result == "MyPLC DB1 REAL0.5"
+    assert result == "DB1 REAL0.5"
 
 
 def test_default_entity_name_multiple_spaces():
     """Test default_entity_name normalizes multiple spaces."""
     result = default_entity_name("MyPLC", "DB1,,REAL0")
-    assert result == "MyPLC DB1 REAL0"
+    assert result == "DB1 REAL0"
 
 
 def test_default_entity_name_only_plc_name():
-    """Test default_entity_name with only PLC name."""
+    """Test default_entity_name with only PLC name returns None (address required)."""
     result = default_entity_name("MyPLC", None)
-    assert result == "MyPLC"
+    assert result is None
 
 
 def test_default_entity_name_only_address():
@@ -56,7 +56,7 @@ def test_default_entity_name_empty_strings():
 def test_default_entity_name_uppercase_conversion():
     """Test default_entity_name converts address to uppercase."""
     result = default_entity_name("MyPLC", "db1,real0")
-    assert result == "MyPLC DB1 REAL0"
+    assert result == "DB1 REAL0"
 
 
 def test_default_entity_name_strips_whitespace():

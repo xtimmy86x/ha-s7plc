@@ -45,11 +45,11 @@ def dummy_entry():
 
 
 def test_default_entity_name_humanizes_address():
-    assert default_entity_name("PLC", "db1,w0") == "PLC DB1 W0"
-    assert default_entity_name("PLC", "db1,x0.0") == "PLC DB1 X0.0"
-    assert default_entity_name("PLC", "db1, x0.0") == "PLC DB1 X0.0"
-    assert default_entity_name(None, "db1,w0") == "db1 w0"
-    assert default_entity_name("PLC", None) == "PLC"
+    assert default_entity_name("PLC", "db1,w0") == "DB1 W0"
+    assert default_entity_name("PLC", "db1,x0.0") == "DB1 X0.0"
+    assert default_entity_name("PLC", "db1, x0.0") == "DB1 X0.0"
+    assert default_entity_name(None, "db1,w0") == "DB1 W0"  # Now uppercase
+    assert default_entity_name("PLC", None) is None  # Now returns None
     assert default_entity_name(None, None) is None
 
 
@@ -357,7 +357,7 @@ async def test_number_setup_entry_generates_name_from_address(mock_coordinator, 
     await number_setup_entry(fake_hass, entry, fake_async_add_entities)
 
     assert len(added) == 1
-    assert getattr(added[0], "_attr_name", None) == "PLC DB1 W0"
+    assert getattr(added[0], "_attr_name", None) == "DB1 W0"
 
 
 @pytest.mark.asyncio
