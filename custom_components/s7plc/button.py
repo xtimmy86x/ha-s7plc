@@ -7,7 +7,6 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DEFAULT_BUTTON_PULSE
@@ -74,11 +73,6 @@ class S7Button(S7BaseEntity, ButtonEntity):
         )
 
         self._button_pulse = button_pulse
-
-    async def _ensure_connected(self):
-        """Raise if the PLC is not available."""
-        if not self.available:
-            raise HomeAssistantError("PLC not connected: cannot execute command.")
 
     async def async_press(self) -> None:
         """Press button by toggling the PLC address."""
