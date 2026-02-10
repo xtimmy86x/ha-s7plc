@@ -17,6 +17,11 @@ from custom_components.s7plc.const import (
 )
 from conftest import DummyCoordinator
 
+# Test constants
+TEST_STATE_ADDRESS = "db1,x0.0"
+TEST_COMMAND_ADDRESS = "db1,x0.1"
+TEST_TOPIC = "switch:db1,x0.0"
+
 
 # ============================================================================
 # Fixtures
@@ -130,62 +135,44 @@ def test_switch_is_on_missing_data(switch_factory, mock_coordinator):
 
 
 @pytest.mark.asyncio
-async def test_switch_turn_on(switch_factory, mock_coordinator, fake_hass):
-    """Test turning switch on."""
-    mock_coordinator.data = {"switch:db1,x0.0": False}  # Make entity available
+@pytest.mark.parametrize("action,initial_state,expected_value", [
+    ("turn_on", False, True),
+    ("turn_off", True, False),
+])
+async def test_switch_actions(switch_factory, mock_coordinator, fake_hass, action, initial_state, expected_value):
+    """Test switch turn on/off actions."""
+    mock_coordinator.data = {TEST_TOPIC: initial_state}
     switch = switch_factory()
     switch.hass = fake_hass
     
-    await switch.async_turn_on()
+    if action == "turn_on":
+        await switch.async_turn_on()
+    else:
+        await switch.async_turn_off()
     
-    # Verify write_batched was called with correct arguments
-    assert ("write_batched", "db1,x0.0", True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_STATE_ADDRESS, expected_value) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
-async def test_switch_turn_off(switch_factory, mock_coordinator, fake_hass):
-    """Test turning switch off."""
-    mock_coordinator.data = {"switch:db1,x0.0": True}  # Make entity available
-    switch = switch_factory()
-    switch.hass = fake_hass
-    
-    await switch.async_turn_off()
-    
-    # Verify write_batched was called with correct arguments
-    assert ("write_batched", "db1,x0.0", False) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_switch_turn_on_different_command_address(switch_factory, mock_coordinator, fake_hass):
-    """Test turning switch on with different command address."""
-    mock_coordinator.data = {"switch:db1,x0.0": False}  # Make entity available
+@pytest.mark.parametrize("action,initial_state,expected_value", [
+    ("turn_on", False, True),
+    ("turn_off", True, False),
+])
+async def test_switch_actions_different_command_address(switch_factory, mock_coordinator, fake_hass, action, initial_state, expected_value):
+    """Test switch turn on/off with different command address."""
+    mock_coordinator.data = {TEST_TOPIC: initial_state}
     switch = switch_factory(
-        state_address="db1,x0.0",
-        command_address="db1,x0.1"
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS
     )
     switch.hass = fake_hass
     
-    await switch.async_turn_on()
+    if action == "turn_on":
+        await switch.async_turn_on()
+    else:
+        await switch.async_turn_off()
     
-    # Verify write_batched was called with correct command address
-    assert ("write_batched", "db1,x0.1", True) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_switch_turn_off_different_command_address(switch_factory, mock_coordinator, fake_hass):
-    """Test turning switch off with different command address."""
-    mock_coordinator.data = {"switch:db1,x0.0": True}  # Make entity available
-    switch = switch_factory(
-        state_address="db1,x0.0",
-        command_address="db1,x0.1"
-    )
-    switch.hass = fake_hass
-    
-    await switch.async_turn_off()
-    
-    # Verify write_batched was called with correct command address
-    assert ("write_batched", "db1,x0.1", False) in mock_coordinator.write_calls
-    assert ("write_batched", "db1,x0.1", False) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, expected_value) in mock_coordinator.write_calls
 
 
 # ============================================================================

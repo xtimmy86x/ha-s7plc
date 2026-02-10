@@ -18,6 +18,11 @@ from custom_components.s7plc.const import (
 )
 from conftest import DummyCoordinator
 
+# Test constants
+TEST_STATE_ADDRESS = "db1,x0.0"
+TEST_COMMAND_ADDRESS = "db1,x0.1"
+TEST_TOPIC = "light:db1,x0.0"
+
 
 # ============================================================================
 # Fixtures
@@ -140,61 +145,44 @@ def test_light_is_on_missing_data(light_factory, mock_coordinator):
 
 
 @pytest.mark.asyncio
-async def test_light_turn_on(light_factory, mock_coordinator, fake_hass):
-    """Test turning light on."""
-    mock_coordinator.data = {"light:db1,x0.0": False}  # Make entity available
+@pytest.mark.parametrize("action,initial_state,expected_value", [
+    ("turn_on", False, True),
+    ("turn_off", True, False),
+])
+async def test_light_actions(light_factory, mock_coordinator, fake_hass, action, initial_state, expected_value):
+    """Test light turn on/off actions."""
+    mock_coordinator.data = {TEST_TOPIC: initial_state}
     light = light_factory()
     light.hass = fake_hass
     
-    await light.async_turn_on()
+    if action == "turn_on":
+        await light.async_turn_on()
+    else:
+        await light.async_turn_off()
     
-    # Verify write_batched was called with correct arguments
-    assert ("write_batched", "db1,x0.0", True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_STATE_ADDRESS, expected_value) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
-async def test_light_turn_off(light_factory, mock_coordinator, fake_hass):
-    """Test turning light off."""
-    mock_coordinator.data = {"light:db1,x0.0": True}  # Make entity available
-    light = light_factory()
-    light.hass = fake_hass
-    
-    await light.async_turn_off()
-    
-    # Verify write_batched was called with correct arguments
-    assert ("write_batched", "db1,x0.0", False) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_light_turn_on_different_command_address(light_factory, mock_coordinator, fake_hass):
-    """Test turning light on with different command address."""
-    mock_coordinator.data = {"light:db1,x0.0": False}  # Make entity available
+@pytest.mark.parametrize("action,initial_state,expected_value", [
+    ("turn_on", False, True),
+    ("turn_off", True, False),
+])
+async def test_light_actions_different_command_address(light_factory, mock_coordinator, fake_hass, action, initial_state, expected_value):
+    """Test light turn on/off with different command address."""
+    mock_coordinator.data = {TEST_TOPIC: initial_state}
     light = light_factory(
-        state_address="db1,x0.0",
-        command_address="db1,x0.1"
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS
     )
     light.hass = fake_hass
     
-    await light.async_turn_on()
+    if action == "turn_on":
+        await light.async_turn_on()
+    else:
+        await light.async_turn_off()
     
-    # Verify write_batched was called with correct command address
-    assert ("write_batched", "db1,x0.1", True) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_light_turn_off_different_command_address(light_factory, mock_coordinator, fake_hass):
-    """Test turning light off with different command address."""
-    mock_coordinator.data = {"light:db1,x0.0": True}  # Make entity available
-    light = light_factory(
-        state_address="db1,x0.0",
-        command_address="db1,x0.1"
-    )
-    light.hass = fake_hass
-    
-    await light.async_turn_off()
-    
-    # Verify write_batched was called with correct command address
-    assert ("write_batched", "db1,x0.1", False) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, expected_value) in mock_coordinator.write_calls
 
 
 # ============================================================================

@@ -95,28 +95,19 @@ def test_binary_sensor_with_invalid_device_class(binary_sensor_factory, caplog):
     assert "Invalid device class invalid_class" in caplog.text
 
 
-def test_binary_sensor_is_on_true(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor is_on returns True."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": True}
+@pytest.mark.parametrize("data_value,expected", [
+    (True, True),
+    (False, False),
+    (None, None),
+    (1, True),   # Truthy value
+    (0, False),  # Falsy value
+])
+def test_binary_sensor_is_on_values(binary_sensor_factory, mock_coordinator, data_value, expected):
+    """Test binary sensor is_on with various data values."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": data_value}
     sensor = binary_sensor_factory()
     
-    assert sensor.is_on is True
-
-
-def test_binary_sensor_is_on_false(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor is_on returns False."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": False}
-    sensor = binary_sensor_factory()
-    
-    assert sensor.is_on is False
-
-
-def test_binary_sensor_is_on_none(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor is_on returns None when data is None."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": None}
-    sensor = binary_sensor_factory()
-    
-    assert sensor.is_on is None
+    assert sensor.is_on is expected
 
 
 def test_binary_sensor_is_on_missing_data(binary_sensor_factory, mock_coordinator):
@@ -127,52 +118,18 @@ def test_binary_sensor_is_on_missing_data(binary_sensor_factory, mock_coordinato
     assert sensor.is_on is None
 
 
-def test_binary_sensor_is_on_truthy_value(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor is_on converts truthy values to bool."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": 1}
-    sensor = binary_sensor_factory()
+@pytest.mark.parametrize("invert,data_value,expected", [
+    (True, True, False),
+    (True, False, True),
+    (True, None, None),
+    (False, True, True),
+])
+def test_binary_sensor_invert_state(binary_sensor_factory, mock_coordinator, invert, data_value, expected):
+    """Test binary sensor with invert_state option."""
+    mock_coordinator.data = {"binary_sensor:db1,x0.0": data_value}
+    sensor = binary_sensor_factory(invert_state=invert)
     
-    assert sensor.is_on is True
-
-
-def test_binary_sensor_is_on_falsy_value(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor is_on converts falsy values to bool."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": 0}
-    sensor = binary_sensor_factory()
-    
-    assert sensor.is_on is False
-
-
-def test_binary_sensor_invert_state_true(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor with invert_state inverts True to False."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": True}
-    sensor = binary_sensor_factory(invert_state=True)
-    
-    assert sensor.is_on is False
-
-
-def test_binary_sensor_invert_state_false(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor with invert_state inverts False to True."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": False}
-    sensor = binary_sensor_factory(invert_state=True)
-    
-    assert sensor.is_on is True
-
-
-def test_binary_sensor_invert_state_none(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor with invert_state returns None when data is None."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": None}
-    sensor = binary_sensor_factory(invert_state=True)
-    
-    assert sensor.is_on is None
-
-
-def test_binary_sensor_no_invert_state_default(binary_sensor_factory, mock_coordinator):
-    """Test binary sensor defaults to no inversion when invert_state not specified."""
-    mock_coordinator.data = {"binary_sensor:db1,x0.0": True}
-    sensor = binary_sensor_factory()
-    
-    assert sensor.is_on is True
+    assert sensor.is_on is expected
 
 
 # ============================================================================
