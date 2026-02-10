@@ -280,6 +280,7 @@
           "position_command_address": "Position command address",
           "name": "Name",
           "scan_interval": "Scan interval (s)",
+          "invert_position": "Invert position (0=open, 100=closed)",
           "add_another": "Add another after saving"
         },
         "data_description": {
@@ -287,6 +288,7 @@
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
           "name": "Optional friendly name for the cover.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic).",
           "add_another": "Stay on this step to add more position-based covers."
         }
       },
@@ -521,13 +523,15 @@
           "position_state_address": "Position state address",
           "position_command_address": "Position command address",
           "name": "Name",
-          "scan_interval": "Scan interval (s)"
+          "scan_interval": "Scan interval (s)",
+          "invert_position": "Invert position (0=open, 100=closed)"
         },
         "data_description": {
           "position_state_address": "PLC address to read the current position value (0-100).",
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
           "name": "Optional friendly name for the cover.",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
+          "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic)."
         }
       },
       "edit_button": {
@@ -653,7 +657,6 @@
   "issues": {
     "orphaned_entities": {
       "title": "Orphaned entities found in {entry_name}",
-      "description": "The following {count} entities are no longer in the configuration and can be removed:\n\n{entity_list}\n\nThese entities will continue to work but will not receive updates. You can safely remove them from the entity registry.",
       "fix_flow": {
         "step": {
           "confirm": {

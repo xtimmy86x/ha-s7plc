@@ -854,3 +854,161 @@ async def test_position_cover_extra_state_attributes(fake_hass, mock_coordinator
     assert attrs["cover_type"] == "position"
     assert attrs["s7_position_state_address"] == "DB1,B0"
     assert attrs["s7_position_command_address"] == "DB1,B1"
+
+
+@pytest.mark.asyncio
+async def test_position_cover_inverted_current_position(fake_hass, mock_coordinator, device_info):
+    """Test position cover with inverted logic - current position."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    # Create inverted position cover
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Inverted",
+        "test_id_inv",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        invert_position=True,
+    )
+    
+    # Set up mock data: PLC reports 0, should appear as 100 (fully open)
+    mock_coordinator.data = {"cover:position:db1,b0": 0}
+    assert cover.current_cover_position == 100
+    
+    # PLC reports 100, should appear as 0 (fully closed)
+    mock_coordinator.data = {"cover:position:db1,b0": 100}
+    assert cover.current_cover_position == 0
+    
+    # PLC reports 50, should appear as 50 (middle position)
+    mock_coordinator.data = {"cover:position:db1,b0": 50}
+    assert cover.current_cover_position == 50
+    
+    # PLC reports 25, should appear as 75
+    mock_coordinator.data = {"cover:position:db1,b0": 25}
+    assert cover.current_cover_position == 75
+
+
+@pytest.mark.asyncio
+async def test_position_cover_inverted_is_closed(fake_hass, mock_coordinator, device_info):
+    """Test position cover with inverted logic - is_closed property."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    # Create inverted position cover
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Inverted",
+        "test_id_inv",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        invert_position=True,
+    )
+    
+    # PLC reports 100 -> appears as 0 -> closed
+    mock_coordinator.data = {"cover:position:db1,b0": 100}
+    assert cover.is_closed is True
+    
+    # PLC reports 0 -> appears as 100 -> open
+    mock_coordinator.data = {"cover:position:db1,b0": 0}
+    assert cover.is_closed is False
+    
+    # PLC reports 50 -> appears as 50 -> open
+    mock_coordinator.data = {"cover:position:db1,b0": 50}
+    assert cover.is_closed is False
+
+
+@pytest.mark.asyncio
+async def test_position_cover_inverted_set_position(fake_hass, mock_coordinator, device_info):
+    """Test position cover with inverted logic - set position command."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    # Create inverted position cover
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Inverted",
+        "test_id_inv",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        invert_position=True,
+    )
+    cover.hass = fake_hass
+    
+    # User wants position 100 (fully open) -> PLC should receive 0
+    await cover.async_set_cover_position(position=100)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 0)
+    
+    # User wants position 0 (fully closed) -> PLC should receive 100
+    await cover.async_set_cover_position(position=0)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 100)
+    
+    # User wants position 50 (middle) -> PLC should receive 50
+    await cover.async_set_cover_position(position=50)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 50)
+    
+    # User wants position 75 -> PLC should receive 25
+    await cover.async_set_cover_position(position=75)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 25)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_inverted_open_close(fake_hass, mock_coordinator, device_info):
+    """Test position cover with inverted logic - open and close commands."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    # Create inverted position cover
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Inverted",
+        "test_id_inv",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        invert_position=True,
+    )
+    cover.hass = fake_hass
+    
+    # Open command should write 0 to PLC (inverted: 100 becomes 0)
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 0)
+    
+    # Close command should write 100 to PLC (inverted: 0 becomes 100)
+    await cover.async_close_cover()
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 100)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_normal_mode_backward_compatibility(fake_hass, mock_coordinator, device_info):
+    """Test position cover without invert flag maintains normal behavior."""
+    from custom_components.s7plc.cover import S7PositionCover
+    
+    # Create normal position cover (no invert_position parameter)
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Normal",
+        "test_id_normal",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+    
+    # PLC reports 0 -> appears as 0 -> closed
+    mock_coordinator.data = {"cover:position:db1,b0": 0}
+    assert cover.current_cover_position == 0
+    assert cover.is_closed is True
+    
+    # PLC reports 100 -> appears as 100 -> open
+    mock_coordinator.data = {"cover:position:db1,b0": 100}
+    assert cover.current_cover_position == 100
+    assert cover.is_closed is False
+    
+    # User wants position 100 (fully open) -> PLC should receive 100
+    await cover.async_set_cover_position(position=100)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 100)
+    
+    # User wants position 0 (fully closed) -> PLC should receive 0
+    await cover.async_set_cover_position(position=0)
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 0)
+

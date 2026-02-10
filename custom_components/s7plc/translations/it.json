@@ -288,6 +288,7 @@
           "position_command_address": "Indirizzo comando posizione",
           "name": "Nome",
           "scan_interval": "Intervallo di scansione (s)",
+          "invert_position": "Inverti posizione (0=aperto, 100=chiuso)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -295,6 +296,7 @@
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per la cover.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "invert_position": "Abilita se il tuo PLC usa 0 per completamente aperto e 100 per completamente chiuso (inverte la logica normale).",
           "add_another": "Rimani in questo step per aggiungere altre cover con posizione."
         }
       },
@@ -511,13 +513,15 @@
           "position_state_address": "Indirizzo stato posizione",
           "position_command_address": "Indirizzo comando posizione",
           "name": "Nome",
-          "scan_interval": "Intervallo di scansione (s)"
+          "scan_interval": "Intervallo di scansione (s)",
+          "invert_position": "Inverti posizione (0=aperto, 100=chiuso)"
         },
         "data_description": {
           "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100).",
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per la cover.",
-          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "invert_position": "Abilita se il tuo PLC usa 0 per completamente aperto e 100 per completamente chiuso (inverte la logica normale)."
         }
       },
       "edit_button": {
@@ -661,7 +665,6 @@
   "issues": {
     "orphaned_entities": {
       "title": "Entità orfane trovate in {entry_name}",
-      "description": "Le seguenti {count} entità non sono più presenti nella configurazione e possono essere rimosse:\n\n{entity_list}\n\nQueste entità continueranno a funzionare ma non riceveranno aggiornamenti. Puoi rimuoverle in sicurezza dal registro delle entità.",
       "fix_flow": {
         "step": {
           "confirm": {

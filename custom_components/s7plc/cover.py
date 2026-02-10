@@ -15,6 +15,7 @@ from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVERS,
+    CONF_INVERT_POSITION,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
@@ -47,6 +48,7 @@ async def async_setup_entry(
             # Position-based cover (0-100)
             position_command = item.get(CONF_POSITION_COMMAND_ADDRESS)
             scan_interval = item.get(CONF_SCAN_INTERVAL)
+            invert_position = item.get(CONF_INVERT_POSITION, False)
 
             position_topic = f"cover:position:{position_state}"
             await coord.add_item(position_topic, position_state, scan_interval)
@@ -64,6 +66,7 @@ async def async_setup_entry(
                     device_info,
                     position_state,
                     position_command,
+                    invert_position,
                 )
             )
             continue
@@ -460,6 +463,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         device_info: DeviceInfo,
         position_state: str,
         position_command: str | None,
+        invert_position: bool = False,
     ) -> None:
         super().__init__(
             coordinator,
@@ -471,6 +475,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         self._position_state_address = position_state
         self._position_command_address = position_command or position_state
         self._position_topic = f"cover:position:{position_state}"
+        self._invert_position = invert_position
 
     def _get_position_value(self) -> int | None:
         """Get the current position value from coordinator data."""
@@ -483,7 +488,11 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         try:
             pos = int(value)
             # Clamp to 0-100
-            return max(0, min(100, pos))
+            pos = max(0, min(100, pos))
+            # Invert if needed: 0 becomes 100, 100 becomes 0
+            if self._invert_position:
+                pos = 100 - pos
+            return pos
         except (TypeError, ValueError):
             return None
 
@@ -537,11 +546,15 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # Clamp to 0-100
         position = max(0, min(100, int(position)))
 
+        # Invert if needed: when user wants 0=open/100=closed,
+        # we need to write the inverted value to the PLC
+        plc_value = (100 - position) if self._invert_position else position
+
         await self._async_write(
             self._position_command_address,
-            position,
+            plc_value,
             error_msg=(
-                f"Failed to write position {position} to PLC address "
+                f"Failed to write position {plc_value} to PLC address "
                 f"{self._position_command_address}"
             ),
         )

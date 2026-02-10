@@ -76,6 +76,7 @@ CONF_OPERATE_TIME = "operate_time"
 CONF_USE_STATE_TOPICS = "use_state_topics"
 CONF_POSITION_STATE_ADDRESS = "position_state_address"
 CONF_POSITION_COMMAND_ADDRESS = "position_command_address"
+CONF_INVERT_POSITION = "invert_position"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0

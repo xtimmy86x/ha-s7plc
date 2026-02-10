@@ -286,6 +286,7 @@
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
           "scan_interval": "Scan-Intervall (s)",
+          "invert_position": "Position umkehren (0=offen, 100=geschlossen)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
@@ -293,6 +294,7 @@
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um).",
           "add_another": "Weitere positionsbasierte Jalousie/Raffstores hinzuzufügen ?"
         }
       },
@@ -527,13 +529,15 @@
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
-          "scan_interval": "Scan-Intervall (s)"
+          "scan_interval": "Scan-Intervall (s)",
+          "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
         "data_description": {
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+          "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um)."
         }
       },
       "edit_button": {
@@ -659,7 +663,6 @@
   "issues": {
     "orphaned_entities": {
       "title": "Verwaiste Entitäten in {entry_name} gefunden",
-      "description": "Die folgenden {count} Entitäten sind nicht mehr in der Konfiguration vorhanden und können entfernt werden:\n\n{entity_list}\n\nDiese Entitäten werden weiterhin funktionieren, erhalten aber keine Aktualisierungen mehr. Sie können sie sicher aus dem Entitätsregister entfernen.",
       "fix_flow": {
         "step": {
           "confirm": {

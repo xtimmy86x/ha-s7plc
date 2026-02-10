@@ -661,7 +661,6 @@
   "issues": {
     "orphaned_entities": {
       "title": "Orphaned entities found in {entry_name}",
-      "description": "The following {count} entities are no longer in the configuration and can be removed:\n\n{entity_list}\n\nThese entities will continue to work but will not receive updates. You can safely remove them from the entity registry.",
       "fix_flow": {
         "step": {
           "confirm": {
