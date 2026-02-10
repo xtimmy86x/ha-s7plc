@@ -890,18 +890,25 @@ if str(ROOT_DIR) not in sys.path:
 
 
 class DummyCoordinator:
-    """Shared coordinator mock for all tests."""
+    """Shared coordinator mock for all tests.
+    
+    Extended to support all optional attributes used in various test scenarios:
+    - Connection attributes (host, rack, slot, tsap)
+    - Health/error tracking (last_health_ok, last_error_category, error_count_by_category)
+    - Plan tracking (_plans_str, _plans_batch) for sensor tests
+    """
 
     def __init__(self, *args, **kwargs):
         self._connected = kwargs.pop("connected", True)
         self.connection_type = kwargs.pop("connection_type", "rack_slot")
         self.pys7_connection_type = kwargs.pop("pys7_connection_type", "pg")
         self._pys7_connection_type_str = self.pys7_connection_type
+        
         # Store or pop all other coordinator parameters
         self.hass = kwargs.pop("hass", None) or (args[0] if args else None)
-        self.host = kwargs.pop("host", None)
-        self.rack = kwargs.pop("rack", None)
-        self.slot = kwargs.pop("slot", None)
+        self.host = kwargs.pop("host", "192.168.1.100")
+        self.rack = kwargs.pop("rack", 0)
+        self.slot = kwargs.pop("slot", 1)
         self.local_tsap = kwargs.pop("local_tsap", None)
         self.remote_tsap = kwargs.pop("remote_tsap", None)
         self.port = kwargs.pop("port", None)
@@ -912,9 +919,13 @@ class DummyCoordinator:
         self.backoff_max = kwargs.pop("backoff_max", None)
         self.optimize_read = kwargs.pop("optimize_read", None)
         self.enable_write_batching = kwargs.pop("enable_write_batching", None)
+        
+        # Core data structures
         self.data = {}
         self.write_calls: list[tuple[str, object]] = []
+        self.add_item_calls: list[tuple] = []  # Track add_item calls
         self.refresh_called = False
+        self.refresh_count = 0  # Track how many times refresh was called
         self._write_queue: list[bool] = []
         self._default_write_result = True
         self._item_scan_intervals = {}
@@ -922,6 +933,17 @@ class DummyCoordinator:
         self._item_real_precisions = {}
         self.connected = False
         self.disconnected = False
+        
+        # Health/error tracking attributes (for binary_sensor connection tests)
+        self.last_health_ok = kwargs.pop("last_health_ok", None)
+        self.last_health_latency = kwargs.pop("last_health_latency", None)
+        self.last_error_category = kwargs.pop("last_error_category", None)
+        self.last_error_message = kwargs.pop("last_error_message", None)
+        self.error_count_by_category = kwargs.pop("error_count_by_category", {})
+        
+        # Plan tracking (for sensor tests)
+        self._plans_str = kwargs.pop("_plans_str", {})
+        self._plans_batch = kwargs.pop("_plans_batch", {})
 
     def is_connected(self):
         return self._connected
@@ -930,6 +952,8 @@ class DummyCoordinator:
         self._connected = value
 
     async def add_item(self, *args, **kwargs):
+        """Track add_item calls for test verification."""
+        self.add_item_calls.append((args, kwargs))
         return None
 
     def write(self, address: str, value: bool | int | float | str) -> bool:
@@ -950,11 +974,14 @@ class DummyCoordinator:
         self._default_write_result = value
 
     async def async_request_refresh(self):
+        """Track async_request_refresh calls."""
         self.refresh_called = True
+        self.refresh_count += 1
 
     async def async_config_entry_first_refresh(self):
         """Mock for coordinator first refresh."""
         self.refresh_called = True
+        self.refresh_count += 1
 
     def connect(self):
         """Mock connect method."""

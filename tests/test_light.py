@@ -22,18 +22,7 @@ from conftest import DummyCoordinator
 # ============================================================================
 # Fixtures
 # ============================================================================
-
-
-@pytest.fixture
-def mock_coordinator():
-    """Create a mock coordinator."""
-    coord = MagicMock(spec=DummyCoordinator)
-    coord.data = {}
-    coord.is_connected.return_value = True
-    coord.add_item = AsyncMock()
-    coord.async_request_refresh = AsyncMock()
-    coord.write = MagicMock(return_value=True)
-    return coord
+# Note: mock_coordinator fixture is now imported from conftest.py (DummyCoordinator)
 
 
 @pytest.fixture
@@ -159,7 +148,8 @@ async def test_light_turn_on(light_factory, mock_coordinator, fake_hass):
     
     await light.async_turn_on()
     
-    mock_coordinator.write_batched.assert_called_once_with("db1,x0.0", True)
+    # Verify write_batched was called with correct arguments
+    assert ("write_batched", "db1,x0.0", True) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
@@ -171,7 +161,8 @@ async def test_light_turn_off(light_factory, mock_coordinator, fake_hass):
     
     await light.async_turn_off()
     
-    mock_coordinator.write_batched.assert_called_once_with("db1,x0.0", False)
+    # Verify write_batched was called with correct arguments
+    assert ("write_batched", "db1,x0.0", False) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
@@ -186,7 +177,8 @@ async def test_light_turn_on_different_command_address(light_factory, mock_coord
     
     await light.async_turn_on()
     
-    mock_coordinator.write_batched.assert_called_once_with("db1,x0.1", True)
+    # Verify write_batched was called with correct command address
+    assert ("write_batched", "db1,x0.1", True) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
@@ -201,7 +193,8 @@ async def test_light_turn_off_different_command_address(light_factory, mock_coor
     
     await light.async_turn_off()
     
-    mock_coordinator.write_batched.assert_called_once_with("db1,x0.1", False)
+    # Verify write_batched was called with correct command address
+    assert ("write_batched", "db1,x0.1", False) in mock_coordinator.write_calls
 
 
 # ============================================================================
@@ -224,7 +217,8 @@ async def test_async_setup_entry_empty(fake_hass, mock_coordinator, device_info)
     
     # Should not add any entities
     async_add_entities.assert_not_called()
-    mock_coordinator.async_request_refresh.assert_not_called()
+    # Verify refresh was not called
+    assert not mock_coordinator.refresh_called
 
 
 @pytest.mark.asyncio
@@ -259,9 +253,10 @@ async def test_async_setup_entry_with_lights(fake_hass, mock_coordinator, device
     assert isinstance(entities[1], S7Light)
     
     # Verify coordinator.add_item was called for each light
-    assert mock_coordinator.add_item.call_count == 2
+    assert len(mock_coordinator.add_item_calls) == 2
     
-    mock_coordinator.async_request_refresh.assert_called_once()
+    # Verify refresh was called
+    assert mock_coordinator.refresh_count == 1
 
 
 @pytest.mark.asyncio
@@ -288,7 +283,7 @@ async def test_async_setup_entry_skip_missing_state_address(fake_hass, mock_coor
     assert isinstance(entities[0], S7Light)
     
     # Only one light added to coordinator
-    assert mock_coordinator.add_item.call_count == 1
+    assert len(mock_coordinator.add_item_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -363,9 +358,9 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
         await async_setup_entry(fake_hass, config_entry, async_add_entities)
     
     # Verify scan_interval was passed to add_item
-    mock_coordinator.add_item.assert_called_once_with(
-        "light:db1,x0.0", "db1,x0.0", 5
-    )
+    assert len(mock_coordinator.add_item_calls) == 1
+    args, kwargs = mock_coordinator.add_item_calls[0]
+    assert args == ("light:db1,x0.0", "db1,x0.0", 5)
 
 
 @pytest.mark.asyncio

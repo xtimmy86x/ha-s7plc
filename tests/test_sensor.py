@@ -17,16 +17,8 @@ from custom_components.s7plc.sensor import (
 from custom_components.s7plc.address import DataType
 
 
-@pytest.fixture
-def mock_coordinator():
-    """Create a mock coordinator."""
-    coord = MagicMock()
-    coord.data = {}
-    coord._plans_str = {}
-    coord._plans_batch = {}
-    coord.add_item = AsyncMock()
-    coord.async_request_refresh = MagicMock(return_value=None)
-    return coord
+# Note: mock_coordinator fixture is now imported from conftest.py (DummyCoordinator)
+#       with _plans_str and _plans_batch attributes already initialized
 
 
 @pytest.fixture

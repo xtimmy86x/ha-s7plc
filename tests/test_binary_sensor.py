@@ -26,24 +26,8 @@ from conftest import DummyCoordinator
 # ============================================================================
 # Fixtures
 # ============================================================================
-
-
-@pytest.fixture
-def mock_coordinator():
-    """Create a mock coordinator."""
-    coord = MagicMock(spec=DummyCoordinator)
-    coord.data = {}
-    coord.host = "192.168.1.100"
-    coord.is_connected.return_value = True
-    coord.add_item = AsyncMock()
-    coord.async_request_refresh = AsyncMock()
-    coord.connection_type = "rack_slot"
-    coord.rack = 0
-    coord.slot = 1
-    coord.local_tsap = None
-    coord.remote_tsap = None
-    coord._pys7_connection_type_str = "pg"
-    return coord
+# Note: mock_coordinator fixture is now imported from conftest.py (DummyCoordinator)
+#       with all necessary attributes (host, rack, slot, connection_type, etc.)
 
 
 @pytest.fixture
@@ -212,7 +196,7 @@ def test_plc_connection_sensor_init(mock_coordinator, device_info):
 
 def test_plc_connection_sensor_is_on_connected(mock_coordinator, device_info):
     """Test connection sensor is_on when PLC is connected."""
-    mock_coordinator.is_connected.return_value = True
+    mock_coordinator.set_connected(True)
     sensor = PlcConnectionBinarySensor(
         mock_coordinator,
         device_info,
@@ -224,7 +208,7 @@ def test_plc_connection_sensor_is_on_connected(mock_coordinator, device_info):
 
 def test_plc_connection_sensor_is_on_disconnected(mock_coordinator, device_info):
     """Test connection sensor is_on when PLC is disconnected."""
-    mock_coordinator.is_connected.return_value = False
+    mock_coordinator.set_connected(False)
     sensor = PlcConnectionBinarySensor(
         mock_coordinator,
         device_info,
@@ -329,7 +313,7 @@ def test_plc_connection_sensor_available(mock_coordinator, device_info):
     )
     
     # Should be available even if coordinator is not connected
-    mock_coordinator.is_connected.return_value = False
+    mock_coordinator.set_connected(False)
     assert sensor.available is True
 
 
@@ -369,7 +353,8 @@ async def test_async_setup_entry_empty(fake_hass, mock_coordinator, device_info)
     assert len(entities) == 1
     assert isinstance(entities[0], PlcConnectionBinarySensor)
     
-    mock_coordinator.async_request_refresh.assert_called_once()
+    # Verify refresh was called
+    assert mock_coordinator.refresh_count == 1
 
 
 @pytest.mark.asyncio
@@ -405,9 +390,10 @@ async def test_async_setup_entry_with_sensors(fake_hass, mock_coordinator, devic
     assert isinstance(entities[2], S7BinarySensor)
     
     # Verify coordinator.add_item was called for each sensor
-    assert mock_coordinator.add_item.call_count == 2
+    assert len(mock_coordinator.add_item_calls) == 2
     
-    mock_coordinator.async_request_refresh.assert_called_once()
+    # Verify refresh was called
+    assert mock_coordinator.refresh_count == 1
 
 
 @pytest.mark.asyncio
@@ -435,7 +421,7 @@ async def test_async_setup_entry_skip_missing_address(fake_hass, mock_coordinato
     assert isinstance(entities[1], S7BinarySensor)
     
     # Only one sensor added to coordinator
-    assert mock_coordinator.add_item.call_count == 1
+    assert len(mock_coordinator.add_item_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -483,9 +469,9 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
         await async_setup_entry(fake_hass, config_entry, async_add_entities)
     
     # Verify scan_interval was passed to add_item
-    mock_coordinator.add_item.assert_called_once_with(
-        "binary_sensor:db1,x0.0", "db1,x0.0", 5
-    )
+    assert len(mock_coordinator.add_item_calls) == 1
+    args, kwargs = mock_coordinator.add_item_calls[0]
+    assert args == ("binary_sensor:db1,x0.0", "db1,x0.0", 5)
 
 
 @pytest.mark.asyncio

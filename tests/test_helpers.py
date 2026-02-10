@@ -10,59 +10,27 @@ from custom_components.s7plc.helpers import (
 from custom_components.s7plc.const import DOMAIN
 
 
-def test_default_entity_name_with_both():
-    """Test default_entity_name returns only address (plc_name ignored with has_entity_name=True)."""
-    result = default_entity_name("MyPLC", "DB1,REAL0")
-    assert result == "DB1 REAL0"
+def test_default_entity_name_basic():
+    """Test default_entity_name returns humanized uppercase address (plc_name is ignored)."""
+    # First parameter is ignored (kept for backward compatibility)
+    assert default_entity_name("MyPLC", "DB1,REAL0") == "DB1 REAL0"
+    assert default_entity_name(None, "DB1,REAL0") == "DB1 REAL0"
+    assert default_entity_name("Different", "DB1,REAL0") == "DB1 REAL0"
 
 
-def test_default_entity_name_with_special_chars():
-    """Test default_entity_name normalizes special characters."""
-    result = default_entity_name("MyPLC", "DB1,REAL0.5")
-    assert result == "DB1 REAL0.5"
+def test_default_entity_name_normalization():
+    """Test default_entity_name normalizes address: uppercase, multiple spaces, special chars."""
+    assert default_entity_name("PLC", "db1,real0") == "DB1 REAL0"
+    assert default_entity_name("PLC", "DB1,,REAL0") == "DB1 REAL0"
+    assert default_entity_name("PLC", "  DB1,REAL0  ") == "DB1 REAL0"
+    assert default_entity_name("PLC", "DB1,REAL0.5") == "DB1 REAL0.5"
 
 
-def test_default_entity_name_multiple_spaces():
-    """Test default_entity_name normalizes multiple spaces."""
-    result = default_entity_name("MyPLC", "DB1,,REAL0")
-    assert result == "DB1 REAL0"
-
-
-def test_default_entity_name_only_plc_name():
-    """Test default_entity_name with only PLC name returns None (address required)."""
-    result = default_entity_name("MyPLC", None)
-    assert result is None
-
-
-def test_default_entity_name_only_address():
-    """Test default_entity_name with only address."""
-    result = default_entity_name(None, "DB1,REAL0")
-    assert result == "DB1 REAL0"
-
-
-def test_default_entity_name_both_none():
-    """Test default_entity_name with both None."""
-    result = default_entity_name(None, None)
-    assert result is None
-
-
-def test_default_entity_name_empty_strings():
-    """Test default_entity_name with empty strings."""
-    result = default_entity_name("", "")
-    # Empty strings are falsy, so function returns None
-    assert result is None
-
-
-def test_default_entity_name_uppercase_conversion():
-    """Test default_entity_name converts address to uppercase."""
-    result = default_entity_name("MyPLC", "db1,real0")
-    assert result == "DB1 REAL0"
-
-
-def test_default_entity_name_strips_whitespace():
-    """Test default_entity_name strips leading/trailing whitespace."""
-    result = default_entity_name("MyPLC", "  DB1,REAL0  ")
-    assert "DB1 REAL0" in result
+def test_default_entity_name_none_cases():
+    """Test default_entity_name returns None when address is missing/empty."""
+    assert default_entity_name("MyPLC", None) is None
+    assert default_entity_name(None, None) is None
+    assert default_entity_name("", "") is None
 
 
 def test_get_coordinator_and_device_info():
