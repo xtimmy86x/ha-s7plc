@@ -346,10 +346,27 @@ async def _async_check_orphaned_entities(
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry and cleanup resources."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         data = hass.data[DOMAIN].pop(entry.entry_id)
         await hass.async_add_executor_job(data["coordinator"].disconnect)
+
+        # Unregister services if this is the last config entry
+        remaining_entries = [
+            e
+            for e in hass.config_entries.async_entries(DOMAIN)
+            if e.entry_id != entry.entry_id
+        ]
+
+        if not remaining_entries and hass.data[DOMAIN].get("_services_registered"):
+            _LOGGER.debug(
+                "Unregistering services as last config entry is being removed"
+            )
+            hass.services.async_remove(DOMAIN, SERVICE_HEALTH_CHECK)
+            hass.services.async_remove(DOMAIN, SERVICE_WRITE_MULTI)
+            hass.data[DOMAIN].pop("_services_registered", None)
+
     return unload_ok
 
 

@@ -191,11 +191,38 @@ class HomeAssistant:  # pragma: no cover - simple stub
         self.config_entries = ModuleType("config_entries_api")
         self.services = ModuleType("services_api")
         
+        # Track registered services
+        self._services_registry = {}
+        
         # Mock services.async_call
         async def async_call(domain, service, service_data=None, blocking=True, **kwargs):
             return None
         
         self.services.async_call = async_call
+        
+        # Mock services.async_register
+        def async_register(domain, service, handler, schema=None):
+            key = f"{domain}.{service}"
+            self._services_registry[key] = {
+                "handler": handler,
+                "schema": schema
+            }
+        
+        self.services.async_register = async_register
+        
+        # Mock services.async_remove
+        def async_remove(domain, service):
+            key = f"{domain}.{service}"
+            self._services_registry.pop(key, None)
+        
+        self.services.async_remove = async_remove
+        
+        # Mock services.has_service
+        def has_service(domain, service):
+            key = f"{domain}.{service}"
+            return key in self._services_registry
+        
+        self.services.has_service = has_service
         
         # Mock event loop with call_later
         import asyncio
