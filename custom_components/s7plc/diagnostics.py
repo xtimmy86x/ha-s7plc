@@ -15,7 +15,6 @@ from .const import (
     CONF_SENSORS,
     CONF_SLOT,
     CONF_SWITCHES,
-    DOMAIN,
 )
 
 
@@ -48,18 +47,18 @@ async def async_get_config_entry_diagnostics(
         "config_entry": entry_data,
     }
 
-    domain_data = hass.data.get(DOMAIN, {})
-    runtime = domain_data.get(entry.entry_id)
-    if not runtime:
+    # Access runtime data directly from the config entry
+    if not hasattr(entry, "runtime_data"):
         return diagnostics
 
-    coordinator = runtime.get("coordinator")
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
 
     runtime_info: dict[str, Any] = {
         "device": {
-            "name": runtime.get("name"),
-            "device_id": runtime.get("device_id"),
-            "host": runtime.get("host"),
+            "name": runtime_data.name,
+            "device_id": runtime_data.device_id,
+            "host": runtime_data.host,
         },
     }
 

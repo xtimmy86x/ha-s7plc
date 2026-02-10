@@ -42,6 +42,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import S7Coordinator
+from .helpers import RuntimeEntryData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -122,23 +123,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         enable_write_batching=enable_write_batching,
     )
 
+    # Store runtime data directly in the config entry
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=coordinator,
+        name=name,
+        host=host,
+        device_id=device_id,
+    )
+
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "name": name,
-        "host": host,
-        "device_id": device_id,
-    }
 
     # Register services once
     if not hass.data[DOMAIN].get("_services_registered"):
 
         async def _async_health_check_service(call) -> None:
             entry_id = call.data["entry_id"]
-            runtime = hass.data[DOMAIN].get(entry_id)
-            if not runtime:
+            # Find the config entry
+            target_entry = hass.config_entries.async_get_entry(entry_id)
+            if not target_entry or not hasattr(target_entry, "runtime_data"):
                 raise vol.Invalid(f"Unknown entry_id: {entry_id}")
-            coord: S7Coordinator = runtime["coordinator"]
+            coord: S7Coordinator = target_entry.runtime_data.coordinator
             result = await coord.async_health_check()
             _LOGGER.info(
                 "Health check for %s: ok=%s latency=%.3fs error=%s",
@@ -159,11 +163,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_id = call.data["entry_id"]
             writes = call.data["writes"]
 
-            runtime = hass.data[DOMAIN].get(entry_id)
-            if not runtime:
+            # Find the config entry
+            target_entry = hass.config_entries.async_get_entry(entry_id)
+            if not target_entry or not hasattr(target_entry, "runtime_data"):
                 raise vol.Invalid(f"Unknown entry_id: {entry_id}")
 
-            coord: S7Coordinator = runtime["coordinator"]
+            coord: S7Coordinator = target_entry.runtime_data.coordinator
 
             # Convert list of dicts to list of tuples
             write_list = [(w["address"], w["value"]) for w in writes]
@@ -232,7 +237,7 @@ async def _async_check_orphaned_entities(
 
     # Build set of expected unique_ids from current configuration
     expected_unique_ids = set()
-    device_id = hass.data[DOMAIN][entry.entry_id]["device_id"]
+    device_id = entry.runtime_data.device_id
 
     # Add unique_ids for all configured items
     options = entry.options
@@ -349,8 +354,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry and cleanup resources."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        data = hass.data[DOMAIN].pop(entry.entry_id)
-        await hass.async_add_executor_job(data["coordinator"].disconnect)
+        # Disconnect coordinator (runtime_data is automatically cleaned up by HA)
+        await hass.async_add_executor_job(entry.runtime_data.coordinator.disconnect)
 
         # Unregister services if this is the last config entry
         remaining_entries = [

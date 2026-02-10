@@ -67,26 +67,24 @@ def test_default_entity_name_strips_whitespace():
 
 def test_get_coordinator_and_device_info():
     """Test get_coordinator_and_device_info returns correct data."""
-    # Setup mock hass and entry
-    hass = MagicMock()
+    from custom_components.s7plc.helpers import RuntimeEntryData
+    
+    # Setup mock entry
     entry = MagicMock()
     entry.entry_id = "test-entry"
     
     # Setup mock coordinator
     mock_coordinator = MagicMock()
     
-    # Setup runtime data
-    hass.data = {
-        DOMAIN: {
-            "test-entry": {
-                "coordinator": mock_coordinator,
-                "name": "Test PLC",
-                "device_id": "test-device-id",
-            }
-        }
-    }
+    # Setup runtime data directly on the entry
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Test PLC",
+        host="192.168.1.1",
+        device_id="test-device-id",
+    )
     
-    coordinator, device_info, device_id = get_coordinator_and_device_info(hass, entry)
+    coordinator, device_info, device_id = get_coordinator_and_device_info(entry)
     
     # Verify returned values
     assert coordinator is mock_coordinator
@@ -99,23 +97,21 @@ def test_get_coordinator_and_device_info():
 
 def test_get_coordinator_and_device_info_different_names():
     """Test get_coordinator_and_device_info with different device names."""
-    hass = MagicMock()
+    from custom_components.s7plc.helpers import RuntimeEntryData
+    
     entry = MagicMock()
     entry.entry_id = "entry-123"
     
     mock_coordinator = MagicMock()
     
-    hass.data = {
-        DOMAIN: {
-            "entry-123": {
-                "coordinator": mock_coordinator,
-                "name": "Production Line 1",
-                "device_id": "prod-line-1",
-            }
-        }
-    }
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Production Line 1",
+        host="192.168.1.10",
+        device_id="prod-line-1",
+    )
     
-    coordinator, device_info, device_id = get_coordinator_and_device_info(hass, entry)
+    coordinator, device_info, device_id = get_coordinator_and_device_info(entry)
     
     assert device_info["name"] == "Production Line 1"
     assert device_id == "prod-line-1"

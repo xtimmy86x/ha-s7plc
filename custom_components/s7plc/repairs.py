@@ -9,8 +9,6 @@ from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -71,7 +69,7 @@ class OrphanedEntitiesRepairFlow(RepairsFlow):
     async def _get_expected_unique_ids(self, entry) -> set[str]:
         """Get the set of expected unique IDs from configuration."""
         expected_unique_ids = set()
-        device_id = self.hass.data[DOMAIN][entry.entry_id]["device_id"]
+        device_id = entry.runtime_data.device_id
         options = entry.options
 
         # Sensors

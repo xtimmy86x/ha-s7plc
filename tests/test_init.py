@@ -90,14 +90,14 @@ def test_async_setup_entry_initialises_coordinator(monkeypatch):
     assert created, "Coordinator should be instantiated"
     coordinator_obj = created[0]
     assert coordinator_obj.refresh_called
-    assert hass.data[const.DOMAIN][entry.entry_id]["coordinator"] is coordinator_obj
+    # After migration to runtime_data, coordinator is stored there
+    assert entry.runtime_data.coordinator is coordinator_obj
     assert forward_calls == [("entry1", tuple(const.PLATFORMS))]
 
     unload_ok = asyncio.run(s7init.async_unload_entry(hass, entry))
     assert unload_ok is True
     assert ("entry1", tuple(const.PLATFORMS)) in unload_calls
     assert coordinator_obj.disconnected
-    assert entry.entry_id not in hass.data.get(const.DOMAIN, {})
 
 
 def test_update_listener_triggers_reload():

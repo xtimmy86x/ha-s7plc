@@ -1,11 +1,21 @@
 """Tests for S7 PLC repairs."""
 
 import asyncio
+from dataclasses import dataclass
 
 import pytest
 
 import custom_components.s7plc.repairs as repairs
 from custom_components.s7plc.const import DOMAIN
+
+
+@dataclass
+class RuntimeEntryData:
+    """Mock runtime data."""
+    coordinator: object
+    name: str
+    host: str
+    device_id: str
 
 
 @pytest.fixture
@@ -38,13 +48,13 @@ def entry_with_orphans(monkeypatch):
         entry_id="test_entry",
     )
     
-    # Setup hass data
-    hass.data[DOMAIN] = {
-        entry.entry_id: {
-            "device_id": "test_device",
-            "coordinator": None,
-        }
-    }
+    # Setup runtime data on the entry
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=None,
+        name="Test PLC",
+        host="192.168.1.10",
+        device_id="test_device",
+    )
     
     # Add config entry to hass
     hass.config_entries._entries.append(entry)
@@ -216,7 +226,10 @@ def test_get_expected_unique_ids_traditional_cover_variants():
         },
         entry_id="test1",
     )
-    hass.data[DOMAIN] = {"test1": {"device_id": "dev1"}}
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=None, name="PLC1", host="192.168.1.1", device_id="dev1"
+    )
+    hass.data[DOMAIN] = {}
     hass.config_entries._entries.append(entry)
     
     flow = repairs.OrphanedEntitiesRepairFlow("test1")
@@ -237,7 +250,9 @@ def test_get_expected_unique_ids_traditional_cover_variants():
         },
         entry_id="test2",
     )
-    hass.data[DOMAIN]["test2"] = {"device_id": "dev2"}
+    entry2.runtime_data = RuntimeEntryData(
+        coordinator=None, name="PLC2", host="192.168.1.2", device_id="dev2"
+    )
     hass.config_entries._entries.append(entry2)
     
     flow2 = repairs.OrphanedEntitiesRepairFlow("test2")
@@ -257,7 +272,9 @@ def test_get_expected_unique_ids_traditional_cover_variants():
         },
         entry_id="test3",
     )
-    hass.data[DOMAIN]["test3"] = {"device_id": "dev3"}
+    entry3.runtime_data = RuntimeEntryData(
+        coordinator=None, name="PLC3", host="192.168.1.3", device_id="dev3"
+    )
     hass.config_entries._entries.append(entry3)
     
     flow3 = repairs.OrphanedEntitiesRepairFlow("test3")

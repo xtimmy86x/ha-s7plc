@@ -29,7 +29,7 @@ async def async_setup_entry(
     async_add_entities,
 ):
     """Set up text entities from config entry."""
-    coordinator, device_info, device_id = get_coordinator_and_device_info(hass, entry)
+    coordinator, device_info, device_id = get_coordinator_and_device_info(entry)
 
     config = entry.options or entry.data
     texts = config.get(CONF_TEXTS, [])

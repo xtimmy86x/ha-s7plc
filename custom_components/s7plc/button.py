@@ -22,7 +22,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
     """Set up button entities from a config entry."""
-    coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
+    coord, device_info, device_id = get_coordinator_and_device_info(entry)
 
     entities = []
     for item in entry.options.get(CONF_BUTTONS, []):

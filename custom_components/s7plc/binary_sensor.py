@@ -31,7 +31,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
     """Set up binary sensor entities from a config entry."""
-    coord, device_info, device_id = get_coordinator_and_device_info(hass, entry)
+    coord, device_info, device_id = get_coordinator_and_device_info(entry)
 
     entities = [
         PlcConnectionBinarySensor(coord, device_info, f"{device_id}:connection")

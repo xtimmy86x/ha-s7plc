@@ -1,5 +1,6 @@
 """Tests for diagnostics module."""
 
+from dataclasses import dataclass
 from datetime import datetime
 from unittest.mock import MagicMock
 import pytest
@@ -8,6 +9,15 @@ from custom_components.s7plc.diagnostics import (
     async_get_config_entry_diagnostics,
     _iso_or_none,
 )
+
+
+@dataclass
+class RuntimeEntryData:
+    """Mock runtime data."""
+    coordinator: object
+    name: str
+    host: str
+    device_id: str
 
 
 def test_iso_or_none_with_none():
@@ -51,13 +61,15 @@ async def test_diagnostics_no_runtime_data():
     entry.title = "Test PLC"
     entry.data = {"host": "192.168.1.1"}
     entry.options = {"sensors": []}
+    # Simulate entry without runtime_data
+    del entry.runtime_data
     
     result = await async_get_config_entry_diagnostics(hass, entry)
     
     assert "config_entry" in result
     assert result["config_entry"]["entry_id"] == "test-entry"
     assert result["config_entry"]["title"] == "Test PLC"
-    assert "runtime" not in result or result.get("runtime") is None
+    assert "runtime" not in result
 
 
 @pytest.mark.asyncio
@@ -88,20 +100,6 @@ async def test_diagnostics_with_coordinator():
     mock_coordinator.last_update_failure_time = None
     mock_coordinator.last_exception = None
     
-    # Setup runtime data
-    runtime_data = {
-        "coordinator": mock_coordinator,
-        "name": "Test PLC",
-        "device_id": "test-device",
-        "host": "192.168.1.1",
-    }
-    
-    hass.data = {
-        DOMAIN: {
-            "test-entry": runtime_data
-        }
-    }
-    
     # Setup config entry
     entry = MagicMock()
     entry.entry_id = "test-entry"
@@ -114,6 +112,13 @@ async def test_diagnostics_with_coordinator():
         "lights": [],
         "buttons": [],
     }
+    # Use runtime_data with dataclass
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Test PLC",
+        host="192.168.1.1",
+        device_id="test-device",
+    )
     
     result = await async_get_config_entry_diagnostics(hass, entry)
     
@@ -162,20 +167,17 @@ async def test_diagnostics_with_failure_time():
     mock_coordinator.last_update_failure_time = datetime(2026, 1, 10, 12, 30, 0)
     mock_coordinator.last_exception = RuntimeError("Connection failed")
     
-    runtime_data = {
-        "coordinator": mock_coordinator,
-        "name": "Test PLC",
-        "device_id": "test-device",
-        "host": "192.168.1.1",
-    }
-    
-    hass.data = {DOMAIN: {"test-entry": runtime_data}}
-    
     entry = MagicMock()
     entry.entry_id = "test-entry"
     entry.title = "Test PLC"
     entry.data = {}
     entry.options = {}
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Test PLC",
+        device_id="test-device",
+        host="192.168.1.1",
+    )
     
     result = await async_get_config_entry_diagnostics(hass, entry)
     
@@ -203,19 +205,17 @@ async def test_diagnostics_with_no_update_interval():
     mock_coordinator._items = {}
     mock_coordinator.data = {}
     
-    runtime_data = {
-        "coordinator": mock_coordinator,
-        "name": "Test PLC",
-        "device_id": "test-device",
-    }
-    
-    hass.data = {DOMAIN: {"test-entry": runtime_data}}
-    
     entry = MagicMock()
     entry.entry_id = "test-entry"
     entry.title = "Test PLC"
     entry.data = {}
     entry.options = {}
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Test PLC",
+        host="192.168.1.1",
+        device_id="test-device",
+    )
     
     result = await async_get_config_entry_diagnostics(hass, entry)
     
@@ -243,19 +243,17 @@ async def test_diagnostics_configured_items_sorted():
     }
     mock_coordinator.data = {}
     
-    runtime_data = {
-        "coordinator": mock_coordinator,
-        "name": "Test PLC",
-        "device_id": "test-device",
-    }
-    
-    hass.data = {DOMAIN: {"test-entry": runtime_data}}
-    
     entry = MagicMock()
     entry.entry_id = "test-entry"
     entry.title = "Test PLC"
     entry.data = {}
     entry.options = {}
+    entry.runtime_data = RuntimeEntryData(
+        coordinator=mock_coordinator,
+        name="Test PLC",
+        host="192.168.1.1",
+        device_id="test-device",
+    )
     
     result = await async_get_config_entry_diagnostics(hass, entry)
     

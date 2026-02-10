@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, TypedDict
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
@@ -15,23 +15,25 @@ if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
 
 
-class RuntimeEntryData(TypedDict):
+@dataclass
+class RuntimeEntryData:
     """Runtime data stored for each config entry."""
 
     coordinator: "S7Coordinator"
     name: str
+    host: str
     device_id: str
 
 
 def get_coordinator_and_device_info(
-    hass: HomeAssistant, entry: ConfigEntry
+    entry: ConfigEntry,
 ) -> tuple["S7Coordinator", DeviceInfo, str]:
     """Return the coordinator, device info and identifier for a config entry."""
 
-    data: RuntimeEntryData = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
-    device_id = data["device_id"]
-    device_name = data["name"]
+    data: RuntimeEntryData = entry.runtime_data
+    coordinator = data.coordinator
+    device_id = data.device_id
+    device_name = data.name
 
     device_info = DeviceInfo(
         identifiers={(DOMAIN, device_id)},

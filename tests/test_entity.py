@@ -333,7 +333,7 @@ async def test_number_setup_entry_generates_name_from_address(mock_coordinator, 
     """Test number setup entry generates default names."""
     coord = mock_coordinator
 
-    def fake_get_coordinator_and_device_info(hass_in, entry_in):
+    def fake_get_coordinator_and_device_info(entry_in):
         return coord, {"name": "PLC"}, "deviceid"
 
     monkeypatch.setattr(
@@ -365,7 +365,7 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
     """Test button setup entry parses pulse configuration."""
     coord = mock_coordinator
 
-    def fake_get_coordinator_and_device_info(hass_in, entry_in):
+    def fake_get_coordinator_and_device_info(entry_in):
         return coord, {"name": "PLC"}, "deviceid"
 
     monkeypatch.setattr(

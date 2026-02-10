@@ -51,6 +51,7 @@ class ConfigEntry:  # pragma: no cover - simple stub
         self.options = kwargs.get("options", {})
         self.entry_id = kwargs.get("entry_id", "test")
         self.title = kwargs.get("title", "Test Entry")
+        self.runtime_data = None  # Will be set by async_setup_entry
 
     async def async_on_unload(self, func):
         return func
