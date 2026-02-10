@@ -658,6 +658,20 @@
       "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
     }
   },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Entità orfane trovate in {entry_name}",
+      "description": "Le seguenti {count} entità non sono più presenti nella configurazione e possono essere rimosse:\n\n{entity_list}\n\nQueste entità continueranno a funzionare ma non riceveranno aggiornamenti. Puoi rimuoverle in sicurezza dal registro delle entità.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Rimuovi entità orfane",
+            "description": "Vuoi rimuovere {count} entità orfane da {entry_name}?\n\n{entity_list}\n\nQuesta azione non può essere annullata, ma puoi sempre ricreare le entità aggiungendole nuovamente alla configurazione."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "plc_connection": {

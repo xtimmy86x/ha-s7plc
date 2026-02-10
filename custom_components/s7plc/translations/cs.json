@@ -658,6 +658,20 @@
       "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING."
     }
   },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Osiřelé entity nalezeny v {entry_name}",
+      "description": "Následující entity ({count}) již nejsou v konfiguraci a mohou být odstraněny:\n\n{entity_list}\n\nTyto entity budou nadále fungovat, ale nebudou přijímat aktualizace. Můžete je bezpečně odstranit z registru entit.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Odstranit osiřelé entity",
+            "description": "Chcete odstranit {count} osiřelých entit z {entry_name}?\n\n{entity_list}\n\nTuto akci nelze vrátit zpět, ale entity můžete vždy znovu vytvořit jejich přidáním zpět do konfigurace."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "plc_connection": {

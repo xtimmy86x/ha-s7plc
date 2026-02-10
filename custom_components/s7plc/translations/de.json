@@ -656,6 +656,20 @@
       "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen."
     }
   },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Verwaiste Entitäten in {entry_name} gefunden",
+      "description": "Die folgenden {count} Entitäten sind nicht mehr in der Konfiguration vorhanden und können entfernt werden:\n\n{entity_list}\n\nDiese Entitäten werden weiterhin funktionieren, erhalten aber keine Aktualisierungen mehr. Sie können sie sicher aus dem Entitätsregister entfernen.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Verwaiste Entitäten entfernen",
+            "description": "Möchten Sie {count} verwaiste Entitäten aus {entry_name} entfernen?\n\n{entity_list}\n\nDiese Aktion kann nicht rückgängig gemacht werden, aber Sie können die Entitäten jederzeit neu erstellen, indem Sie sie wieder zur Konfiguration hinzufügen."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "plc_connection": {
