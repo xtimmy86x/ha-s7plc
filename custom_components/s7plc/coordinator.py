@@ -199,6 +199,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                         socket.close()
                         _LOGGER.debug("Socket closed directly after disconnect failure")
                 except Exception as socket_err:  # pragma: no cover
+                    # Socket may already be closed or invalid - catch any exception
+                    # to prevent cleanup errors from propagating
                     _LOGGER.debug("Failed to close socket directly: %s", socket_err)
             finally:
                 # Clear socket reference to ensure reconnection
@@ -206,6 +208,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     if hasattr(self._client, "socket"):
                         self._client.socket = None
                 except Exception:  # pragma: no cover
+                    # Silently ignore errors when clearing socket reference
+                    # (e.g., AttributeError if socket property is read-only)
                     pass
 
     def _ensure_connected(self) -> None:
@@ -300,7 +304,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     if hasattr(client, "get_cpu_info"):
                         try:
                             client.get_cpu_info()
-                        except Exception as err:  # noqa: BLE001
+                        except Exception as err:
+                            # Catch all exceptions from pyS7 library
+                            # calls which may raise various undocumented exception types
+                            # beyond the standard S7 errors
                             raise RuntimeError(f"CPU info probe failed: {err}") from err
                     else:
                         # Fallback: ensure the driver reports connected

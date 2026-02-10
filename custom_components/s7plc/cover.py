@@ -307,12 +307,16 @@ class S7Cover(S7BaseEntity, CoverEntity):
             try:
                 await self._stop_operation("open")
             except Exception as err:
+                # Catch any error during stop operation (PLC write failures,
+                # communication errors, etc.) and collect for error reporting
                 errors.append(f"open: {err}")
 
         if self._is_closing:
             try:
                 await self._stop_operation("close")
             except Exception as err:
+                # Catch any error during stop operation to ensure both
+                # open and close operations are attempted
                 errors.append(f"close: {err}")
 
         if errors:

@@ -659,6 +659,8 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
         except Exception as err:
+            # Catch all connection errors (OSError, S7 errors, RuntimeError, etc.)
+            # and present them to the user through the config flow UI
             step_id = "tsap" if connection_type == CONNECTION_TYPE_TSAP else "rack_slot"
             return _handle_connection_error(
                 self,
@@ -2041,6 +2043,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             await self.hass.async_add_executor_job(coordinator.connect)
             await self.hass.async_add_executor_job(coordinator.disconnect)
         except Exception as err:
+            # Catch all connection errors during options flow connection test
+            # to provide user-friendly error messages in the UI
             return _handle_connection_error(
                 self,
                 err,
