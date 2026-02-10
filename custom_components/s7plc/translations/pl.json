@@ -288,6 +288,7 @@
           "position_command_address": "Adres polecenia pozycji",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
+          "invert_position": "Odwróć pozycję (0=otwarte, 100=zamknięte)",
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
@@ -295,6 +296,7 @@
           "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa pokrywy.",
           "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowicie otwartego i 100 dla całkowicie zamkniętego (odwraca normalną logikę).",
           "add_another": "Pozostań w tym kroku, aby dodać więcej pokryw opartych na pozycji."
         }
       },
@@ -529,13 +531,15 @@
           "position_state_address": "Adres stanu pozycji",
           "position_command_address": "Adres polecenia pozycji",
           "name": "Nazwa",
-          "scan_interval": "Interwał skanowania (s)"
+          "scan_interval": "Interwał skanowania (s)",
+          "invert_position": "Odwróć pozycję (0=otwarte, 100=zamknięte)"
         },
         "data_description": {
           "position_state_address": "Adres PLC do odczytu bieżącej wartości pozycji (0-100).",
           "position_command_address": "Adres PLC do zapisu poleceń pozycji (0-100). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa pokrywy.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowicie otwartego i 100 dla całkowicie zamkniętego (odwraca normalną logikę)."
         }
       },
       "edit_button": {
@@ -656,6 +660,19 @@
       "invalid_selection": "Wybierz prawidłowy typ elementu.",
       "min_max_required_for_real": "Wartości minimalna i maksymalna są wymagane dla typów danych REAL i LREAL.",
       "text_requires_string_type": "Encje tekstowe wymagają adresów typu STRING lub WSTRING."
+    }
+  },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Znaleziono osierocone encje w {entry_name}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Usuń osierocone encje",
+            "description": "Czy chcesz usunąć {count} osieroconych encji z {entry_name}?\n\n{entity_list}\n\nTa akcja nie może być cofnięta, ale zawsze możesz ponownie utworzyć encje, dodając je z powrotem do konfiguracji."
+          }
+        }
+      }
     }
   },
   "entity": {
