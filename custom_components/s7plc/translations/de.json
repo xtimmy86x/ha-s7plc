@@ -286,6 +286,7 @@
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
           "scan_interval": "Scan-Intervall (s)",
+          "invert_position": "Position umkehren (0=offen, 100=geschlossen)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
@@ -293,6 +294,7 @@
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um).",
           "add_another": "Weitere positionsbasierte Jalousie/Raffstores hinzuzufügen ?"
         }
       },
@@ -527,13 +529,15 @@
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
-          "scan_interval": "Scan-Intervall (s)"
+          "scan_interval": "Scan-Intervall (s)",
+          "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
         "data_description": {
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+          "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um)."
         }
       },
       "edit_button": {
@@ -654,6 +658,19 @@
       "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
       "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
       "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen."
+    }
+  },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Verwaiste Entitäten in {entry_name} gefunden",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Verwaiste Entitäten entfernen",
+            "description": "Möchten Sie {count} verwaiste Entitäten aus {entry_name} entfernen?\n\n{entity_list}\n\nDiese Aktion kann nicht rückgängig gemacht werden, aber Sie können die Entitäten jederzeit neu erstellen, indem Sie sie wieder zur Konfiguration hinzufügen."
+          }
+        }
+      }
     }
   },
   "entity": {

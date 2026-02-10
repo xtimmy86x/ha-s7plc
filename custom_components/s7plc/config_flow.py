@@ -49,6 +49,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
+    CONF_INVERT_POSITION,
     CONF_INVERT_STATE,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
@@ -1334,6 +1335,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME)
 
+        # Add invert_position flag
+        if user_input.get(CONF_INVERT_POSITION, False):
+            item[CONF_INVERT_POSITION] = True
+
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -2341,6 +2346,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional(
+                    CONF_INVERT_POSITION, default=False
+                ): selector.BooleanSelector(),
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -3002,6 +3010,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
             schema_dict[key_scan] = val_scan
+
+            schema_dict[
+                vol.Optional(
+                    CONF_INVERT_POSITION, default=item.get(CONF_INVERT_POSITION, False)
+                )
+            ] = selector.BooleanSelector()
 
             return vol.Schema(schema_dict)
 

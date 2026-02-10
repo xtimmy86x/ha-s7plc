@@ -47,9 +47,10 @@ class ConfigEntry:  # pragma: no cover - simple stub
     """Minimal stub used for type checking during imports."""
 
     def __init__(self, *args, **kwargs):
-        self.data = {}
-        self.options = {}
-        self.entry_id = "test"
+        self.data = kwargs.get("data", {})
+        self.options = kwargs.get("options", {})
+        self.entry_id = kwargs.get("entry_id", "test")
+        self.title = kwargs.get("title", "Test Entry")
 
     async def async_on_unload(self, func):
         return func
@@ -250,11 +251,19 @@ class HomeAssistant:  # pragma: no cover - simple stub
             import asyncio
             return asyncio.create_task(coro)
 
+        def async_get_entry(entry_id):
+            """Get config entry by id."""
+            for entry in self.config_entries._entries:
+                if entry.entry_id == entry_id:
+                    return entry
+            return None
+
         self.config_entries.async_forward_entry_setups = async_forward_entry_setups
         self.config_entries.async_unload_platforms = async_unload_platforms
         self.config_entries.async_reload = async_reload
         self.config_entries.async_update_entry = async_update_entry
         self.config_entries.async_entries = async_entries
+        self.config_entries.async_get_entry = async_get_entry
         self.config_entries._entries = []
         self.async_add_executor_job = async_add_executor_job
         self.async_create_task = async_create_task
@@ -267,6 +276,18 @@ core.State = State
 core.Event = Event
 sys.modules["homeassistant.core"] = core
 homeassistant.core = core
+
+# data_entry_flow module
+data_entry_flow = ModuleType("homeassistant.data_entry_flow")
+
+
+class FlowResult(dict):  # pragma: no cover - simple stub
+    pass
+
+
+data_entry_flow.FlowResult = FlowResult
+sys.modules["homeassistant.data_entry_flow"] = data_entry_flow
+homeassistant.data_entry_flow = data_entry_flow
 
 # exceptions module
 exceptions = ModuleType("homeassistant.exceptions")
@@ -382,6 +403,71 @@ helpers_event.async_call_later = async_call_later
 sys.modules["homeassistant.helpers.event"] = helpers_event
 helpers.event = helpers_event
 
+# helpers.entity_registry module
+entity_registry = ModuleType("homeassistant.helpers.entity_registry")
+
+
+class MockEntityRegistryEntry:  # pragma: no cover - stub implementation
+    def __init__(self, entity_id: str, unique_id: str, config_entry_id: str):
+        self.entity_id = entity_id
+        self.unique_id = unique_id
+        self.config_entry_id = config_entry_id
+
+
+class MockEntityRegistry:  # pragma: no cover - stub implementation
+    def __init__(self):
+        self.entities = {}
+
+    def async_remove(self, entity_id: str):
+        """Remove entity from registry."""
+        self.entities.pop(entity_id, None)
+
+
+_mock_entity_registry = MockEntityRegistry()
+
+
+def async_get(hass):  # pragma: no cover - stub implementation
+    """Get entity registry."""
+    return _mock_entity_registry
+
+
+def async_entries_for_config_entry(registry, entry_id: str):  # pragma: no cover - stub implementation
+    """Return entities for a config entry."""
+    return [e for e in registry.entities.values() if e.config_entry_id == entry_id]
+
+
+entity_registry.async_get = async_get
+entity_registry.async_entries_for_config_entry = async_entries_for_config_entry
+entity_registry.MockEntityRegistry = MockEntityRegistry
+entity_registry.MockEntityRegistryEntry = MockEntityRegistryEntry
+sys.modules["homeassistant.helpers.entity_registry"] = entity_registry
+helpers.entity_registry = entity_registry
+
+# helpers.issue_registry module
+issue_registry = ModuleType("homeassistant.helpers.issue_registry")
+
+
+class IssueSeverity:  # pragma: no cover - stub implementation
+    WARNING = "warning"
+    ERROR = "error"
+
+
+def async_create_issue(hass, domain, issue_id, **kwargs):  # pragma: no cover - stub implementation
+    """Create an issue."""
+    pass
+
+
+def async_delete_issue(hass, domain, issue_id):  # pragma: no cover - stub implementation
+    """Delete an issue."""
+    pass
+
+
+issue_registry.IssueSeverity = IssueSeverity
+issue_registry.async_create_issue = async_create_issue
+issue_registry.async_delete_issue = async_delete_issue
+sys.modules["homeassistant.helpers.issue_registry"] = issue_registry
+helpers.issue_registry = issue_registry
+
 # helpers.selector module
 selector = ModuleType("homeassistant.helpers.selector")
 
@@ -474,6 +560,19 @@ async def async_get_adapters(hass):  # pragma: no cover - stub
 network.async_get_adapters = async_get_adapters
 sys.modules["homeassistant.components.network"] = network
 components.network = network
+
+# repairs component
+repairs = ModuleType("homeassistant.components.repairs")
+
+
+class RepairsFlow:  # pragma: no cover - stub
+    """Stub for RepairsFlow."""
+    pass
+
+
+repairs.RepairsFlow = RepairsFlow
+sys.modules["homeassistant.components.repairs"] = repairs
+components.repairs = repairs
 
 from enum import Enum
 

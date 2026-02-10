@@ -658,6 +658,19 @@
       "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses."
     }
   },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Orphaned entities found in {entry_name}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Remove orphaned entities",
+            "description": "Do you want to remove {count} orphaned entities from {entry_name}?\n\n{entity_list}\n\nThis action cannot be undone, but you can always recreate entities by adding them back to the configuration."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "plc_connection": {

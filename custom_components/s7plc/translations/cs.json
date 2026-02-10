@@ -288,6 +288,7 @@
           "position_command_address": "Adresa příkazu pozice",
           "name": "Název",
           "scan_interval": "Interval skenování (s)",
+          "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)",
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
@@ -295,6 +296,7 @@
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
           "name": "Volitelný popisný název krytu.",
           "scan_interval": "Přepsat interval dotazování pro tyto značky v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
+          "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku).",
           "add_another": "Zůstat v tomto kroku pro přidání dalších krytů s pozicí."
         }
       },
@@ -529,13 +531,15 @@
           "position_state_address": "Adresa stavu pozice",
           "position_command_address": "Adresa příkazu pozice",
           "name": "Název",
-          "scan_interval": "Interval skenování (s)"
+          "scan_interval": "Interval skenování (s)",
+          "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)"
         },
         "data_description": {
           "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100).",
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
           "name": "Volitelný popisný název krytu.",
-          "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC."
+          "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
+          "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku)."
         }
       },
       "edit_button": {
@@ -656,6 +660,19 @@
       "invalid_selection": "Vyberte platný typ položky.",
       "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
       "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING."
+    }
+  },
+  "issues": {
+    "orphaned_entities": {
+      "title": "Osiřelé entity nalezeny v {entry_name}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Odstranit osiřelé entity",
+            "description": "Chcete odstranit {count} osiřelých entit z {entry_name}?\n\n{entity_list}\n\nTuto akci nelze vrátit zpět, ale entity můžete vždy znovu vytvořit jejich přidáním zpět do konfigurace."
+          }
+        }
+      }
     }
   },
   "entity": {
