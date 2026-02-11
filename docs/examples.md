@@ -4,6 +4,8 @@ Practical examples and use cases for the S7 PLC integration.
 
 ## Basic Entity Configuration
 
+**Note**: All examples include a **Name** field for clarity, but this field is optional. If you omit the name, the integration automatically generates one based on the address (e.g., `DB1,X0.0` becomes "DB1 X0 0").
+
 ### Adding a Light Entity
 
 1. After the integration is installed, open it from **Settings → Devices & Services**.
@@ -64,13 +66,24 @@ When pressed in Home Assistant, the button sends a 1-second pulse to the PLC add
 
 1. Open the integration and choose **Add items**.
 2. Select **Text** and configure:
-   - **Address**: `DB15,S0.20` (STRING with max 20 characters)
+   - **Address**: `DB15,S0.20` (STRING with max 20 characters, ASCII)
    - **Command Address**: Leave blank (uses same address)
    - **Pattern**: `^[A-Z0-9 ]{1,20}$` (optional regex for uppercase alphanumeric with spaces)
    - **Name**: "Operator Name"
 3. Save the configuration.
 
 The text entity allows reading and writing STRING/WSTRING values from the PLC. Min/max length is automatically determined from the PLC tag declaration.
+
+### Adding a WString Text Entity (Unicode)
+
+1. Open the integration and choose **Add items**.
+2. Select **Text** and configure:
+   - **Address**: `DB20,WS0.30` (WSTRING with max 30 characters, Unicode UTF-16)
+   - **Command Address**: Leave blank (uses same address)
+   - **Name**: "Product Description (Multilingual)"
+3. Save the configuration.
+
+**Note**: Use WString (`WS`) for text that contains non-ASCII characters (e.g., Chinese, Arabic, emoji, accented characters). WString uses UTF-16 encoding (2 bytes per character) while String uses ASCII (1 byte per character).
 
 ### Removing an Entity
 
@@ -114,6 +127,20 @@ The text entity allows reading and writing STRING/WSTRING values from the PLC. M
 - **REAL Precision**: 1
 - **Entity Type**: Number
 - **Name**: "HVAC Setpoint"
+
+### High-Precision Scientific Data
+
+**Scenario**: Laboratory environment requiring high-precision measurements (double precision).
+
+**Configuration**:
+- **Address**: `DB50,LR0` (LREAL for high-precision sensor, 64-bit)
+- **Device Class**: temperature
+- **Value Multiplier**: 1.0
+- **REAL Precision**: 4 (four decimal places)
+- **Entity Type**: Sensor
+- **Name**: "Lab Temperature (High Precision)"
+
+**Note**: LReal (64-bit double precision) provides significantly higher precision than Real (32-bit float). Use LReal when your PLC stores values that require precision beyond ~7 significant digits. Common use cases: scientific measurements, GPS coordinates, precise flow rates.
 
 ### Multi-Point Lighting Control
 

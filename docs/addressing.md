@@ -6,14 +6,19 @@ This guide covers all supported addressing formats for Siemens S7 PLCs.
 
 Use standard S7 absolute addressing for all entity configurations:
 
-| Type                  | Example       | Size     | Typical meaning           |
-|-----------------------|---------------|----------|---------------------------|
-| Bit (boolean)         | `DB1,X0.0`    | 1 bit    | Discrete I/O, flags       |
-| Byte (unsigned)       | `DB1,B0`      | 8 bits   | Small counters/bytes      |
-| Word (signed 16-bit)  | `DB1,W2`      | 16 bits  | INT                       |
-| DWord (signed 32-bit) | `DB1,DW4`     | 32 bits  | DINT                      |
-| REAL (IEEE 754)       | `DB1,R4`      | 32 bits  | Float (temperature etc.)  |
-| String (S7)           | `DB1,S0.20`   | 2+N bytes| Text (S7 STRING)          |
+| Type                     | Example       | Size       | Range / Description                      |
+|--------------------------|---------------|------------|------------------------------------------|
+| Bit (boolean)            | `DB1,X0.0`    | 1 bit      | Boolean (0/1, false/true)                |
+| Byte (unsigned)          | `DB1,B0`      | 8 bits     | 0 to 255                                 |
+| Char                     | `DB1,C0`      | 8 bits     | Single ASCII character                   |
+| Word (unsigned)          | `DB1,W2`      | 16 bits    | 0 to 65535 (WORD)                        |
+| Int (signed)             | Not directly supported via `I` prefix | 16 bits | -32768 to 32767 (INT) - use Word address |
+| DWord (unsigned)         | `DB1,DW4`     | 32 bits    | 0 to 4294967295 (DWORD)                  |
+| DInt (signed)            | Not directly supported via `DI` prefix | 32 bits | -2147483648 to 2147483647 (DINT) - use DWord address |
+| Real (IEEE 754)          | `DB1,R4`      | 32 bits    | 32-bit floating point                    |
+| LReal (IEEE 754)         | `DB1,LR8`     | 64 bits    | 64-bit floating point (double precision) |
+| String (S7)              | `DB1,S0.20`   | 2+N bytes  | Text (S7 STRING, ASCII)                  |
+| WString (S7 Wide String) | `DB1,WS0.20`  | 4+2N bytes | Text (S7 WSTRING, Unicode UTF-16)        |
 
 ## Addressing Rules
 
@@ -29,20 +34,42 @@ All addresses must reference a Data Block (DB):
 
 - `X` = Bit/Boolean
 - `B` = Byte (unsigned, 0-255)
-- `W` = Word (signed 16-bit, -32768 to 32767)
-- `DW` = Double Word (signed 32-bit)
-- `R` = Real (IEEE 754 floating point)
-- `S` = String (format: `S<offset>.<length>`)
+- `C` = Char (single ASCII character)
+- `W` = Word (unsigned 16-bit, 0-65535)
+- `DW` = Double Word (unsigned 32-bit, 0-4294967295)
+- `R` = Real (IEEE 754 32-bit floating point)
+- `LR` = LReal (IEEE 754 64-bit floating point, double precision)
+- `S` = String (format: `S<offset>.<length>`, ASCII text)
+- `WS` = WString (format: `WS<offset>.<length>`, Unicode UTF-16 text)
+
+**Note**: While the S7 PLC internally distinguishes between signed (INT/DINT) and unsigned (WORD/DWORD) integers, the integration uses `W` for 16-bit and `DW` for 32-bit addresses. The actual interpretation (signed vs unsigned) depends on how the PLC stores the value. For signed values, use the same address format and the integration will handle the conversion correctly.
 
 ### Offset Alignment
 
 Choose the correct **offset** and **type** based on your PLC data block layout:
 
-- **Bit addresses** can start at any byte
-- **Word** addresses should be even-aligned (0, 2, 4, ...)
-- **DWord** and **Real** addresses should be 4-byte aligned (0, 4, 8, ...)
+- **Bit addresses** (`X`) can start at any byte
+- **Byte** (`B`) and **Char** (`C`) can start at any byte
+- **Word** (`W`) addresses should be even-aligned (0, 2, 4, 6, ...)
+- **DWord** (`DW`), **Real** (`R`) addresses should be 4-byte aligned (0, 4, 8, 12, ...)
+- **LReal** (`LR`) addresses should be 8-byte aligned (0, 8, 16, 24, ...)
+- **String** (`S`) and **WString** (`WS`) can start at any byte but must have space for header + content
 
-For REAL values, ensure the PLC writes IEEE 754 floating point into that DBD.
+For REAL and LREAL values, ensure the PLC writes IEEE 754 floating point into that address.
+
+### Signed vs Unsigned Integer Types
+
+The S7 PLC supports both signed and unsigned integer types:
+
+**16-bit integers:**
+- **INT** (signed): -32768 to 32767
+- **WORD** (unsigned): 0 to 65535
+
+**32-bit integers:**
+- **DINT** (signed): -2147483648 to 2147483647
+- **DWORD** (unsigned): 0 to 4294967295
+
+**Important**: When using addresses like `DB1,W0` or `DB1,DW0`, the integration will correctly handle both signed and unsigned values based on how the PLC stores them. The raw bytes are read and interpreted according to the PLC's data type. You don't need different address formats for INT vs WORD or DINT vs DWORD - use `W` for all 16-bit integers and `DW` for all 32-bit integers.
 
 ## Important Notes
 
@@ -225,6 +252,13 @@ If validation fails, the configuration form will show a specific error message i
 ✅ DB1,R0  (REAL at byte 0 - properly aligned)
 ```
 
+### Wrong alignment for LReal
+```
+❌ DB1,LR4  (LREAL at byte 4 - not 8-byte aligned)
+✅ DB1,LR0  (LREAL at byte 0 - properly aligned)
+✅ DB1,LR8  (LREAL at byte 8 - properly aligned)
+```
+
 ### Missing bit index
 ```
 ❌ DB1,X0  (incomplete bit address)
@@ -236,6 +270,13 @@ If validation fails, the configuration form will show a specific error message i
 ❌ DB1,I0  (I is not a valid type identifier)
 ✅ DB1,W0  (use W for INT/Word)
 ```
+
+### String vs WString confusion
+```
+❌ DB1,S0.20  (for Unicode text stored as WSTRING in PLC)
+✅ DB1,WS0.20  (use WS for WSTRING, Unicode UTF-16)
+```
+Note: STRING uses ASCII encoding (1 byte per char), WSTRING uses UTF-16 (2 bytes per char)
 
 ### Optimized DB on S7-1200/1500
 ```

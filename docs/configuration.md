@@ -99,8 +99,11 @@ Values outside these ranges are supported, but increasing them further may delay
 
 ### Entity Type Details
 
+**Note**: The **Name** field is optional for all entity types. If omitted, the integration automatically generates a name based on the PLC address (e.g., "DB1 X0 0" for address `DB1,X0.0`). This auto-generated name is then combined with the PLC device name by Home Assistant.
+
 #### Switch and Light
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **State Address**: PLC address to read the actual state
 - **Command Address**: PLC address to write commands (defaults to state address if omitted)
 - **Sync State**: Enable to automatically synchronize external PLC state changes back to the command address (see [Advanced Features](advanced-features.md#state-synchronization))
@@ -109,6 +112,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Cover
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Open Command Address**: Address to command cover open
 - **Close Command Address**: Address to command cover close
 - **Opening State Address**: Address to read opening state (optional, reuses command address if blank)
@@ -117,11 +121,13 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Button
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to pulse
 - **Pulse Time**: Duration of the pulse in seconds (supports decimal values, e.g., `0.1` for 100ms, `1` default, up to 60s)
 
 #### Sensor
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to read
 - **Device Class**: Optional sensor device class for proper display
   - To remove a previously set device class, select **"No device class"** from the dropdown
@@ -130,6 +136,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Number
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to read
 - **Command Address**: PLC address to write (optional, defaults to read address)
 - **Device Class**: Optional number device class
@@ -139,6 +146,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Text
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to read (must be STRING or WSTRING type)
 - **Command Address**: PLC address to write (optional, defaults to read address)
 - **Pattern**: Optional regex pattern for input validation (e.g., `^[A-Z0-9]{1,10}$` for uppercase alphanumeric)
@@ -146,6 +154,7 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Binary Sensor
 
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to read
 - **Device Class**: Optional binary sensor device class
   - To remove a previously set device class, select **"No device class"** from the dropdown

@@ -269,9 +269,10 @@ Access these attributes in automations, scripts, or display them on dashboards t
 Entity Sync items automatically detect the PLC data type from the address and handle conversions:
 
 - **BIT** (`DB#,X#.#`): Writes boolean values. Accepts states like `on`, `off`, `true`, `false`, `1`, `0`, `yes`, `no` (case-insensitive) or any numeric value (non-zero = true, zero = false)
-- **REAL** (`DB#,R#`): Writes floating-point values with full precision
-- **INT/WORD** (`DB#,W#`): Converts to 16-bit signed integer (-32768 to 32767)
-- **DINT/DWORD** (`DB#,DW#`): Converts to 32-bit signed integer
+- **REAL** (`DB#,R#`): Writes 32-bit floating-point values with full precision (IEEE 754 single precision)
+- **LREAL** (`DB#,LR#`): Writes 64-bit floating-point values with double precision (IEEE 754 double precision)
+- **INT/WORD** (`DB#,W#`): Converts to 16-bit integer (signed INT: -32768 to 32767, unsigned WORD: 0 to 65535)
+- **DINT/DWORD** (`DB#,DW#`): Converts to 32-bit integer (signed DINT, unsigned DWORD)
 - **BYTE** (`DB#,B#`): Converts to unsigned byte (0 to 255)
 
 If the source entity provides a non-numeric state (e.g., "unavailable", "unknown") or an invalid boolean state for BIT addresses, the write is skipped and `error_count` increments. The Entity Sync logs a warning to help with troubleshooting.
