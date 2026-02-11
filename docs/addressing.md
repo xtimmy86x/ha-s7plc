@@ -12,9 +12,9 @@ Use standard S7 absolute addressing for all entity configurations:
 | Byte (unsigned)          | `DB1,B0`      | 8 bits     | 0 to 255                                 |
 | Char                     | `DB1,C0`      | 8 bits     | Single ASCII character                   |
 | Word (unsigned)          | `DB1,W2`      | 16 bits    | 0 to 65535 (WORD)                        |
-| Int (signed)             | Not directly supported via `I` prefix | 16 bits | -32768 to 32767 (INT) - use Word address |
+| Int (signed)             | `DB1,I2`      | 16 bits    | -32768 to 32767 (INT)                    |
 | DWord (unsigned)         | `DB1,DW4`     | 32 bits    | 0 to 4294967295 (DWORD)                  |
-| DInt (signed)            | Not directly supported via `DI` prefix | 32 bits | -2147483648 to 2147483647 (DINT) - use DWord address |
+| DInt (signed)            | `DB1,DI4`     | 32 bits    | -2147483648 to 2147483647 (DINT)         |
 | Real (IEEE 754)          | `DB1,R4`      | 32 bits    | 32-bit floating point                    |
 | LReal (IEEE 754)         | `DB1,LR8`     | 64 bits    | 64-bit floating point (double precision) |
 | String (S7)              | `DB1,S0.20`   | 2+N bytes  | Text (S7 STRING, ASCII)                  |
@@ -36,13 +36,15 @@ All addresses must reference a Data Block (DB):
 - `B` = Byte (unsigned, 0-255)
 - `C` = Char (single ASCII character)
 - `W` = Word (unsigned 16-bit, 0-65535)
+- `I` = Int (signed 16-bit, -32768 to 32767)
 - `DW` = Double Word (unsigned 32-bit, 0-4294967295)
+- `DI` = Double Int (signed 32-bit, -2147483648 to 2147483647)
 - `R` = Real (IEEE 754 32-bit floating point)
 - `LR` = LReal (IEEE 754 64-bit floating point, double precision)
 - `S` = String (format: `S<offset>.<length>`, ASCII text)
 - `WS` = WString (format: `WS<offset>.<length>`, Unicode UTF-16 text)
 
-**Note**: While the S7 PLC internally distinguishes between signed (INT/DINT) and unsigned (WORD/DWORD) integers, the integration uses `W` for 16-bit and `DW` for 32-bit addresses. The actual interpretation (signed vs unsigned) depends on how the PLC stores the value. For signed values, use the same address format and the integration will handle the conversion correctly.
+**Note**: Use `W` for unsigned 16-bit (WORD) and `I` for signed 16-bit (INT). Similarly, use `DW` for unsigned 32-bit (DWORD) and `DI` for signed 32-bit (DINT). The integration correctly handles the different representations.
 
 ### Offset Alignment
 
@@ -50,8 +52,8 @@ Choose the correct **offset** and **type** based on your PLC data block layout:
 
 - **Bit addresses** (`X`) can start at any byte
 - **Byte** (`B`) and **Char** (`C`) can start at any byte
-- **Word** (`W`) addresses should be even-aligned (0, 2, 4, 6, ...)
-- **DWord** (`DW`), **Real** (`R`) addresses should be 4-byte aligned (0, 4, 8, 12, ...)
+- **Word** (`W`) and **Int** (`I`) addresses should be even-aligned (0, 2, 4, 6, ...)
+- **DWord** (`DW`), **DInt** (`DI`), **Real** (`R`) addresses should be 4-byte aligned (0, 4, 8, 12, ...)
 - **LReal** (`LR`) addresses should be 8-byte aligned (0, 8, 16, 24, ...)
 - **String** (`S`) and **WString** (`WS`) can start at any byte but must have space for header + content
 
@@ -69,7 +71,13 @@ The S7 PLC supports both signed and unsigned integer types:
 - **DINT** (signed): -2147483648 to 2147483647
 - **DWORD** (unsigned): 0 to 4294967295
 
-**Important**: When using addresses like `DB1,W0` or `DB1,DW0`, the integration will correctly handle both signed and unsigned values based on how the PLC stores them. The raw bytes are read and interpreted according to the PLC's data type. You don't need different address formats for INT vs WORD or DINT vs DWORD - use `W` for all 16-bit integers and `DW` for all 32-bit integers.
+**Important**: Choose the appropriate type based on whether your PLC uses signed or unsigned values:
+- For **signed** 16-bit: use `I` (INT, -32768 to 32767)
+- For **unsigned** 16-bit: use `W` (WORD, 0 to 65535)
+- For **signed** 32-bit: use `DI` (DINT, -2147483648 to 2147483647)
+- For **unsigned** 32-bit: use `DW` (DWORD, 0 to 4294967295)
+
+Using the correct type ensures proper value interpretation and prevents overflow/underflow issues.
 
 ## Important Notes
 
@@ -265,10 +273,16 @@ If validation fails, the configuration form will show a specific error message i
 ✅ DB1,X0.0  (bit 0 of byte 0)
 ```
 
-### Invalid type
+### Wrong type for signed value
 ```
-❌ DB1,I0  (I is not a valid type identifier)
-✅ DB1,W0  (use W for INT/Word)
+❌ DB1,W0  (using WORD for a signed INT value in PLC)
+✅ DB1,I0  (use I for signed INT)
+```
+
+### Wrong type for unsigned value
+```
+❌ DB1,I0  (using INT for an unsigned WORD value in PLC)
+✅ DB1,W0  (use W for unsigned WORD)
 ```
 
 ### String vs WString confusion

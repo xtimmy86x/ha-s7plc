@@ -21,7 +21,7 @@ Practical examples and use cases for the S7 PLC integration.
 
 1. Open the integration and choose **Add items**.
 2. Select **Number** and configure:
-   - **Address**: `DB10,W0` (INT/Word for temperature setpoint)
+   - **Address**: `DB10,I0` (signed INT for temperature setpoint, -32768 to 32767)
    - **Command Address**: Leave blank (uses same address for read/write)
    - **Min**: 15.0
    - **Max**: 30.0
@@ -29,7 +29,7 @@ Practical examples and use cases for the S7 PLC integration.
    - **Name**: "HVAC Temperature Setpoint"
 3. Submit to create the entity.
 
-Note: Any limits that fall outside the PLC data type range are automatically clamped to the closest valid value.
+Note: Use `DB10,I0` for signed INT or `DB10,W0` for unsigned WORD. Any limits that fall outside the PLC data type range are automatically clamped to the closest valid value.
 
 ### Adding a Binary Sensor
 

@@ -139,13 +139,15 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | Byte | `DB1,B0` | Unsigned 8-bit (0-255) |
 | Char | `DB1,C0` | Single ASCII character |
 | Word | `DB1,W2` | Unsigned 16-bit (0-65535) |
+| Int | `DB1,I2` | Signed 16-bit (-32768 to 32767) |
 | DWord | `DB1,DW4` | Unsigned 32-bit (0-4294967295) |
+| DInt | `DB1,DI4` | Signed 32-bit (-2147483648 to 2147483647) |
 | Real | `DB1,R4` | IEEE 754 32-bit float |
 | LReal | `DB1,LR8` | IEEE 754 64-bit double precision float |
 | String | `DB1,S0.20` | S7 STRING type (ASCII) |
 | WString | `DB1,WS0.20` | S7 WSTRING type (Unicode UTF-16) |
 
-**Note**: Word/DWord addresses work with both signed (INT/DINT) and unsigned (WORD/DWORD) PLC values.
+**Note**: Use `I`/`DI` for signed integers, `W`/`DW` for unsigned integers.
 
 See [S7 Addressing](docs/addressing.md) for complete details.
 
