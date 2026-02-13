@@ -302,7 +302,7 @@
       },
       "buttons": {
         "title": "Dodaj przycisk",
-        "description": "Utwórz przycisk, który wysyła impuls o określonej długości na adres zapisu PLC."
+        "description": "Utwórz przycisk, który wysyła impuls o określonej długości na adres zapisu PLC.",
         "data": {
           "address": "Adres zapisu",
           "name": "Nazwa",
