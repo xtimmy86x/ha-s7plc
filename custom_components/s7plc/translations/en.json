@@ -593,8 +593,7 @@
           "max_value": "Maximum value",
           "step": "Step",
           "real_precision": "REAL round precision",
-          "scan_interval": "Scan interval (s)",
-          "add_another": "Add another after saving"
+          "scan_interval": "Scan interval (s)"
         },
         "data_description": {
           "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
@@ -606,8 +605,7 @@
           "max_value": "Optional maximum bound for the value shown in Home Assistant.",
           "step": "Optional increment used when adjusting the value in the UI.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
-          "add_another": "Stay on this step to add more number entities."
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
       "edit_writer": {

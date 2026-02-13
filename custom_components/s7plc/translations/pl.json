@@ -593,8 +593,7 @@
           "max_value": "Wartość maksymalna",
           "step": "Krok",
           "real_precision": "Zaokrąglenie wartości REAL",
-          "scan_interval": "Interwał odczytu (s)",
-          "add_another": "Dodaj kolejny po zapisaniu"
+          "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
           "address": "Adres PLC do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
@@ -606,8 +605,7 @@
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_writer": {

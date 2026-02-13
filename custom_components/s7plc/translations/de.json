@@ -591,8 +591,7 @@
           "max_value": "Maximalwert",
           "step": "Schritt",
           "real_precision": "REAL-Nachkommastellen",
-          "scan_interval": "Scan-Intervall (s)",
-          "add_another": "Nach dem Speichern weitere hinzufügen ?"
+          "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
           "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
@@ -604,8 +603,7 @@
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
-          "add_another": "Weitere Nummerentitäten hinzuzufügen ?"
+          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
       },
       "edit_writer": {

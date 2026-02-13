@@ -593,8 +593,7 @@
           "max_value": "Maximální hodnota",
           "step": "Krok",
           "real_precision": "Zaokrouhlení REAL",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
+          "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
           "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
@@ -606,8 +605,7 @@
           "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
           "step": "Volitelný krok, o který se hodnota mění v UI.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
+          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
       "edit_writer": {
