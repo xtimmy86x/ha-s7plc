@@ -302,9 +302,9 @@
       },
       "buttons": {
         "title": "Dodaj przycisk",
-        "description": "Utwórz przycisk, który wysyła okreslonej długości impuls do PLC po naciśnieciu.",
+        "description": "Utwórz przycisk, który wysyła impuls o określonej długości na adres zapisu PLC."
         "data": {
-          "address": "Adres",
+          "address": "Adres zapisu",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejny po zapisaniu",
@@ -325,19 +325,19 @@
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
           "name": "Nazwa",
-          "sync_state": "Synchronizuj stan z adresem zapisu",
+          "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres PLC do odczytu aktualnego stanu światła.",
+          "state_address": "Adres PLC do odczytu aktualnego odczytu stanu światła.",
           "command_address": "Adres PLC do zapisu nowego stanu światła (opcjonalny).",
           "name": "Opcjonalna przyjazna nazwa światła.",
-          "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
-          "pulse_command": "Wyślij impuls zamiast załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s). Domyślnie: 0.5s.",
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym odczytem stanu.",
+          "pulse_command": "Gdy włączone, na adres zapisu zostanie wysłany impuls załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s), domyślnie: 0.5s.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
@@ -544,18 +544,18 @@
       },
       "edit_button": {
         "title": "Edytuj przycisk",
-        "description": "Zaktualizuj adres, nazwę lub czas długości impulsu dla tego przycisku.",
+        "description": "Zaktualizuj adres zapisu, nazwę lub długość impulsu dla tego przycisku.",
         "data": {
-          "address": "Adres",
+          "address": "Adres zapisu",
           "name": "Nazwa",
-          "button_pulse": "Czas impulsu",
-          "scan_interval": "Interwał odczytu (s)"
+          "button_pulse": "Długość impulsu (s)",
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres zapisu w PLC dla impulsu (np. Q0.0, DB1,X0.1).",
           "name": "Opcjonalna przyjazna nazwa przycisku.",
-          "button_pulse": "Czas trwania impulsu w sekundach, ożesz użyć wartości dziesiętnych dla milisekund (0.1 = 100ms).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "button_pulse": "Czas trwania impulsu w sekundach, ożesz użyć wartości dziesiętnych dla milisekund (0.1 = 100ms)."
         }
       },
       "edit_light": {
@@ -565,18 +565,18 @@
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
           "name": "Nazwa",
-          "sync_state": "Synchronizuj stan z PLC",
+          "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
-          "pulse_duration": "Czas impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)"
+          "pulse_duration": "Czas trwania impulsu (s)",
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres PLC do odczytu aktualnego stanu światła.",
+          "state_address": "Adres PLC do odczytu aktualnego odczytu stanu światła.",
           "command_address": "Adres PLC do zapisu nowego stanu światła (opcjonalny).",
           "name": "Opcjonalna przyjazna nazwa światła.",
-          "sync_state": "Gdy włączone, adres zapisu jest automatycznie aktualizowany bieżącym stanem.",
-          "pulse_command": "Wyślij impuls zamiast załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s). Domyślnie: 0.5s.",
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym odczytem stanu.",
+          "pulse_command": "Gdy włączone, na adres zapisu zostanie wysłany impuls załącz/wyłącz. Przydatne dla przycisków bezstanowych.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s), domyślnie: 0.5s.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
