@@ -45,7 +45,7 @@
       },
       "tsap": {
         "title": "Połącz z PLC S7 (TSAP)",
-        "description": "Wprowadź parametry połączenia z PLC używając adresów TSAP. Test połączenia zostanie wykonany przed zapisaniem.",
+        "description": "Wprowadź parametry połączenia z PLC używając TSAP. Test połączenia zostanie wykonany przed zapisaniem.",
         "data": {
           "name": "Nazwa",
           "host": "Host",
@@ -225,7 +225,7 @@
           "address": "Adres odczytu z PLC (np. I0.0, Q1.3, DB10,X0.1).",
           "name": "Opcjonalna przyjazna nazwa czujnika binarnego.",
           "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. grzwi, okno, zasilanie).",
-          "invert_state": "Odwróć stan: PLC True = Wył., PLC False = Zał.. Przydatne dla kontaktów NC (Normalnie zamknięty).",
+          "invert_state": "Odwróć stan: PLC True = Wył., PLC False = Zał. Przydatne dla kontaktów NC (Normalnie zamknięty).",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Pozostań w tym kroku, aby dodać więcej encji."
         }
@@ -255,8 +255,8 @@
         }
       },
       "covers_traditional": {
-        "title": "Dodaj osłonę/roletę (otwórz/zamknij)",
-        "description": "Utwórz osłonę/roletę z dedykowanymi adresami zapisu otwórz/zamknij i opcjonalnym stanem otwarta/zamknięta.",
+        "title": "Dodaj osłonę/roletę",
+        "description": "Utwórz osłonę/roletę z dedykowanymi adresami zapisu położenia otwórz/zamknij i opcjonalnym odczytem położenia otwarta/zamknięta.",
         "data": {
           "open_command_address": "Adres zapisu (otwórz)",
           "close_command_address": "Adres zapisu (zamknij)",
@@ -271,8 +271,8 @@
         "data_description": {
           "open_command_address": "Adres PLC do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
           "close_command_address": "Adres PLC do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
-          "opening_state_address": "Opcjonalny adres PLC wskazujący pozycję (otwarta).",
-          "closing_state_address": "Opcjonalny adres PLC wskazujący pozycję (zamknięta).",
+          "opening_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (otwarta).",
+          "closing_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (zamknięta).",
           "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z 0 na 100.",
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
@@ -281,19 +281,19 @@
         }
       },
       "covers_position": {
-        "title": "Dodaj osłonę/roletę z pozycją",
-        "description": "Utwórz osłonę/roletę sterowaną wartościami (0-100). Stan 0 - ZAMKNIĘTA, wartości >= 1 - OTWARTA.",
+        "title": "Dodaj osłonę/roletę z położeniem",
+        "description": "Utwórz osłonę/roletę sterowaną położeniem (0-100). Położenie 0 - ZAMKNIĘTA, położenie >= 1 - OTWARTA.",
         "data": {
-          "position_state_address": "Adres odczytu pozycji",
-          "position_command_address": "Adres zapisu pozycji",
+          "position_state_address": "Adres odczytu położenia",
+          "position_command_address": "Adres zapisu położenia",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
-          "invert_position": "Odwróć pozycję (0=otwarta, 100=zamknięta)",
+          "invert_position": "Odwróć położenie (0=otwarta, 100=zamknięta)",
           "add_another": "Dodaj kolejny po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącej pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres PLC do zapisu nowej pozycji osłony/rolety  (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "position_state_address": "Adres PLC do odczytu bieżącego położenia osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres PLC do zapisu nowego położenia osłony/rolety (0-100). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę).",
@@ -516,8 +516,8 @@
         "data_description": {
           "open_command_address": "Adres PLC do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
           "close_command_address": "Adres PLC do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
-          "opening_state_address": "Opcjonalny adres PLC wskazujący pozycję (otwarta).",
-          "closing_state_address": "Opcjonalny adres PLC wskazujący pozycję (zamknięta).",
+          "opening_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (otwarta).",
+          "closing_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (zamknięta).",
           "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z 0 na 100.",
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
@@ -525,18 +525,18 @@
         }
       },
       "edit_cover_position": {
-        "title": "Edytuj Pokrywę z Pozycją",
-        "description": "Zaktualizuj adresy stanu lub polecenia pozycji dla tej pokrywy opartej na pozycji i opcjonalnie zmień jej nazwę.",
+        "title": "Edytuj osłonę/roletę z położeniem",
+        "description": "Zaktualizuj adresy stanu lub położenie dla tej osłony/rolety opartej na położeniu (0-100) i opcjonalnie zmień jej nazwę.",
         "data": {
-          "position_state_address": "Adres odczytu pozycji",
-          "position_command_address": "Adres zapisu pozycji",
+          "position_state_address": "Adres odczytu położenia",
+          "position_command_address": "Adres zapisu położenia",
           "name": "Nazwa",
           "scan_interval": "Interwał skanowania (s)",
-          "invert_position": "Odwróć pozycję (0=otwarta, 100=zamknięta)"
+          "invert_position": "Odwróć położenie (0=otwarta, 100=zamknięta)"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącej pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres PLC do zapisu nowej pozycji osłony/rolety  (0-100). Jeśli pominięty, używany jest adres stanu.",
+          "position_state_address": "Adres PLC do odczytu bieżącego położenia osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres PLC do zapisu nowego położenia osłony/rolety (0-100). Jeśli pominięty, używany jest adres stanu.",
           "name": "Opcjonalna przyjazna nazwa osłony/rolety.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę)."
