@@ -781,9 +781,24 @@ class CoverEntity:  # pragma: no cover - simple stub
     pass
 
 
+class CoverDeviceClass(Enum):  # pragma: no cover - simple stub
+    """Cover device classes."""
+    AWNING = "awning"
+    BLIND = "blind"
+    CURTAIN = "curtain"
+    DAMPER = "damper"
+    DOOR = "door"
+    GARAGE = "garage"
+    GATE = "gate"
+    SHADE = "shade"
+    SHUTTER = "shutter"
+    WINDOW = "window"
+
+
 cover = ModuleType("homeassistant.components.cover")
 cover.CoverEntityFeature = CoverEntityFeature
 cover.CoverEntity = CoverEntity
+cover.CoverDeviceClass = CoverDeviceClass
 sys.modules["homeassistant.components.cover"] = cover
 components.cover = cover
 

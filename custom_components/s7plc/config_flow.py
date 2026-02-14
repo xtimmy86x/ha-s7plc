@@ -13,6 +13,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import network
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.cover import CoverDeviceClass
 from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
@@ -133,6 +134,12 @@ n_device_class_options = [
     for dc in NumberDeviceClass
 ]
 
+c_device_class_options = [
+    selector.SelectOptionDict(value="__none__", label="No device class"),
+] + [
+    selector.SelectOptionDict(value=dc.value, label=dc.value) for dc in CoverDeviceClass
+]
+
 # Reusable device class selectors
 binary_sensor_device_class_selector = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -151,6 +158,13 @@ sensor_device_class_selector = selector.SelectSelector(
 number_device_class_selector = selector.SelectSelector(
     selector.SelectSelectorConfig(
         options=n_device_class_options,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+cover_device_class_selector = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=c_device_class_options,
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
 )
@@ -1281,7 +1295,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME)
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_DEVICE_CLASS)
 
         # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
@@ -1335,7 +1349,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_POSITION_COMMAND_ADDRESS] = position_command
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME)
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_DEVICE_CLASS)
 
         # Add invert_position flag
         if user_input.get(CONF_INVERT_POSITION, False):
@@ -2307,6 +2321,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
                 vol.Optional(
                     CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
                 ): operate_time_selector,
@@ -2349,6 +2364,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional(
                     CONF_INVERT_POSITION, default=False
@@ -2958,15 +2974,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_NAME, default=item.get(CONF_NAME, "")
                 ): selector.TextSelector(),
+            }
+
+            key_dc, val_dc = self._optional_field(
+                CONF_DEVICE_CLASS,
+                item,
+                cover_device_class_selector,
+            )
+            schema_dict[key_dc] = val_dc
+
+            schema_dict[
                 vol.Optional(
                     CONF_OPERATE_TIME,
                     default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
-                ): operate_time_selector,
+                )
+            ] = operate_time_selector
+
+            schema_dict[
                 vol.Optional(
                     CONF_USE_STATE_TOPICS,
                     default=item.get(CONF_USE_STATE_TOPICS, DEFAULT_USE_STATE_TOPICS),
-                ): selector.BooleanSelector(),
-            }
+                )
+            ] = selector.BooleanSelector()
 
             key_scan, val_scan = self._optional_field(
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
@@ -3009,6 +3038,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_NAME, default=item.get(CONF_NAME, "")
                 ): selector.TextSelector(),
             }
+
+            key_dc, val_dc = self._optional_field(
+                CONF_DEVICE_CLASS,
+                item,
+                cover_device_class_selector,
+            )
+            schema_dict[key_dc] = val_dc
 
             key_scan, val_scan = self._optional_field(
                 CONF_SCAN_INTERVAL, item, scan_interval_selector

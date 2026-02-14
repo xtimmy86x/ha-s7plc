@@ -3,7 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from homeassistant.components.cover import CoverEntity, CoverEntityFeature
+from homeassistant.components.cover import (
+    CoverDeviceClass,
+    CoverEntity,
+    CoverEntityFeature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -15,6 +19,7 @@ from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVERS,
+    CONF_DEVICE_CLASS,
     CONF_INVERT_POSITION,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -57,6 +62,7 @@ async def async_setup_entry(
                 device_info.get("name"), position_state
             )
             unique_id = f"{device_id}:{position_topic}"
+            device_class = item.get(CONF_DEVICE_CLASS)
 
             entities.append(
                 S7PositionCover(
@@ -67,6 +73,7 @@ async def async_setup_entry(
                     position_state,
                     position_command,
                     invert_position,
+                    device_class,
                 )
             )
             continue
@@ -105,6 +112,7 @@ async def async_setup_entry(
         )
         unique_topic = opened_topic or closed_topic or f"cover:command:{open_command}"
         unique_id = f"{device_id}:{unique_topic}"
+        device_class = item.get(CONF_DEVICE_CLASS)
 
         raw_operate_time = item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)
         try:
@@ -131,6 +139,7 @@ async def async_setup_entry(
                 closed_topic,
                 operate_time,
                 use_state_topics,
+                device_class,
             )
         )
 
@@ -161,6 +170,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         closed_topic: str | None,
         operate_time: float,
         use_state_topics: bool,
+        device_class: str | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -183,6 +193,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._assumed_closed: bool = (
             False  # Assume open by default when using operate_time
         )
+        if device_class:
+            try:
+                self._attr_device_class = CoverDeviceClass(device_class)
+            except ValueError:
+                _LOGGER.warning("Invalid device class %s", device_class)
 
     def _get_topic_state(self, topic: str | None) -> bool | None:
         if topic is None:
@@ -468,6 +483,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         position_state: str,
         position_command: str | None,
         invert_position: bool = False,
+        device_class: str | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -480,6 +496,11 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         self._position_command_address = position_command or position_state
         self._position_topic = f"cover:position:{position_state}"
         self._invert_position = invert_position
+        if device_class:
+            try:
+                self._attr_device_class = CoverDeviceClass(device_class)
+            except ValueError:
+                _LOGGER.warning("Invalid device class %s", device_class)
 
     def _get_position_value(self) -> int | None:
         """Get the current position value from coordinator data."""
