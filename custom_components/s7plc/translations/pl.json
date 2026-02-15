@@ -207,7 +207,7 @@
           "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Pozostaw puste dla automatycznej.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste dla oryginalnej precyzji (1).",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "binary_sensors": {
@@ -227,7 +227,7 @@
           "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. drzwi, okno, zasilanie).",
           "invert_state": "Odwróć stan: PLC True = Wył., PLC False = Zał. Przydatne dla kontaktów NC (Normalnie zamknięty).",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "switches": {
@@ -251,7 +251,7 @@
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "covers_traditional": {
@@ -277,7 +277,7 @@
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna twoja własna nazwa.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "covers_position": {
@@ -297,7 +297,7 @@
           "name": "Opcjonalna twoja własna nazwa.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę).",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "buttons": {
@@ -314,7 +314,7 @@
           "address": "Adres zapisu w PLC dla impulsu (np. Q0.0, DB1,X0.1).",
           "name": "Opcjonalna twoja własna nazwa.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje.",
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje.",
           "button_pulse": "Czas trwania impulsu w sekundach, ożesz użyć wartości dziesiętnych dla milisekund (0.1 = 100ms)."
         }
       },
@@ -339,7 +339,7 @@
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "numbers": {
@@ -369,7 +369,7 @@
           "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "texts": {
@@ -389,7 +389,7 @@
           "name": "Opcjonalna twoja własna nazwa.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "edit_text": {
@@ -423,7 +423,7 @@
           "address": "Adres zapisu do PLC wartości (np. DB1,D0, DB2,W4).",
           "source_entity": "Encja Home Assistant, której wartość będzie zapisywana do PLC.",
           "name": "Opcjonalna twoja własna nazwa.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną  encje."
+          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
       "edit": {
