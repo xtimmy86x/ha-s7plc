@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from enum import Enum
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, Generic, TypeVar
@@ -659,8 +660,6 @@ class RepairsFlow:  # pragma: no cover - stub
 repairs.RepairsFlow = RepairsFlow
 sys.modules["homeassistant.components.repairs"] = repairs
 components.repairs = repairs
-
-from enum import Enum
 
 
 class BinarySensorDeviceClass(Enum):  # pragma: no cover - simple stub

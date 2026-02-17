@@ -75,7 +75,6 @@ async def test_diagnostics_no_runtime_data():
 @pytest.mark.asyncio
 async def test_diagnostics_with_coordinator():
     """Test diagnostics with full coordinator data."""
-    from custom_components.s7plc.const import DOMAIN
     
     # Setup mock hass
     hass = MagicMock()
@@ -151,7 +150,6 @@ async def test_diagnostics_with_coordinator():
 @pytest.mark.asyncio
 async def test_diagnostics_with_failure_time():
     """Test diagnostics includes failure time when present."""
-    from custom_components.s7plc.const import DOMAIN
     
     hass = MagicMock()
     
@@ -191,7 +189,6 @@ async def test_diagnostics_with_failure_time():
 @pytest.mark.asyncio
 async def test_diagnostics_with_no_update_interval():
     """Test diagnostics when update_interval is not set."""
-    from custom_components.s7plc.const import DOMAIN
     
     hass = MagicMock()
     
@@ -226,7 +223,6 @@ async def test_diagnostics_with_no_update_interval():
 @pytest.mark.asyncio
 async def test_diagnostics_configured_items_sorted():
     """Test that configured items are sorted in diagnostics."""
-    from custom_components.s7plc.const import DOMAIN
     
     hass = MagicMock()
     

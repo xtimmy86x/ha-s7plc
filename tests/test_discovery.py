@@ -7,7 +7,6 @@ import pytest
 from homeassistant.const import CONF_HOST
 
 from custom_components.s7plc import config_flow
-from custom_components.s7plc.const import DOMAIN
 
 
 @pytest.fixture

@@ -1,7 +1,6 @@
 """Tests for helpers module."""
 
 from unittest.mock import MagicMock
-import pytest
 
 from custom_components.s7plc.helpers import (
     get_coordinator_and_device_info,

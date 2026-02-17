@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 from homeassistant.components.light import ColorMode
 from homeassistant.const import CONF_NAME
@@ -16,7 +16,6 @@ from custom_components.s7plc.const import (
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
 )
-from conftest import DummyCoordinator
 
 # Test constants
 TEST_STATE_ADDRESS = "db1,x0.0"

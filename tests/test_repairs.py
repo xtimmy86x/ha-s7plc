@@ -114,7 +114,7 @@ def test_async_step_init_redirects_to_confirm():
     
     flow.async_step_confirm = mock_confirm
     
-    result = asyncio.run(flow.async_step_init())
+    asyncio.run(flow.async_step_init())
     assert confirm_called
 
 
@@ -209,7 +209,6 @@ def test_get_expected_unique_ids_all_entity_types(entry_with_orphans):
 def test_get_expected_unique_ids_traditional_cover_variants():
     """Test traditional cover unique ID generation with different state addresses."""
     from conftest import ConfigEntry, HomeAssistant
-    from homeassistant.helpers import entity_registry as er
     
     hass = HomeAssistant()
     

@@ -3,7 +3,6 @@
 import pytest
 from homeassistant.const import CONF_NAME
 from homeassistant.exceptions import HomeAssistantError
-from pyS7.constants import DataType
 
 from custom_components.s7plc.const import (
     CONF_ADDRESS,
@@ -13,7 +12,7 @@ from custom_components.s7plc.const import (
     CONF_PATTERN,
     CONF_TEXTS,
 )
-from custom_components.s7plc.text import S7Text, async_setup_entry
+from custom_components.s7plc.text import S7Text
 
 
 # ============================================================================
