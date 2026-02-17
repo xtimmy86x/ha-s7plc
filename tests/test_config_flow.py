@@ -35,7 +35,10 @@ def make_config_entry(
 
 def make_options_flow(options=None, *, data=None, **kwargs):
     entry = make_config_entry(options=options, data=data, **kwargs)
-    return config_flow.S7PLCOptionsFlow(entry)
+    flow = config_flow.S7PLCOptionsFlow(entry)
+    # Add mock hass instance (needed for area_selector)
+    flow.hass = HomeAssistant()
+    return flow
 
 
 def run_flow(coro):
@@ -583,7 +586,7 @@ def test_options_connection_handles_connection_failure(monkeypatch):
     hass.config_entries._entries.append(entry)
 
     flow = config_flow.S7PLCOptionsFlow(entry)
-    flow.hass = hass
+    flow.hass = HomeAssistant()
 
     class FailingCoordinator:
         def __init__(self, hass, **kwargs):

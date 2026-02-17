@@ -9,7 +9,7 @@ import asyncio
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import StringPlan, TagPlan
-from conftest import DummyCoordinatorClient, DummyTag
+from conftest import DummyTag
 
 
 # ============================================================================
@@ -767,7 +767,7 @@ def test_write_multi_type_conversion(coord_factory, monkeypatch):
         ('DB1,S0.254', 'test'),     # string
     ]
     
-    result = coord.write_multi(writes)
+    coord.write_multi(writes)
     
     coord._client.write.assert_called_once()
     tags, payloads = coord._client.write.call_args[0]

@@ -1,6 +1,6 @@
 """Tests for sensor.py module."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.components.sensor import (
     SensorDeviceClass,

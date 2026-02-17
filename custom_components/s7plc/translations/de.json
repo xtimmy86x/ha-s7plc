@@ -131,14 +131,16 @@
           "texts": "Text",
           "entity_sync": "Entität zu SPS-Synchronisierung"
         }
-      },      "covers": {
+      },
+      "covers": {
         "title": "Abdeckung hinzufügen",
         "description": "Wählen Sie den Typ der Abdeckung aus.",
         "menu_options": {
           "covers_traditional": "Abdeckung (Öffnen/Schließen)",
           "covers_position": "Abdeckung (Position 0-100)"
         }
-      },      "remove": {
+      },
+      "remove": {
         "title": "Elemente entfernen",
         "description": "Wählen Sie die Elemente aus, die Sie aus dieser SPS-Konfiguration entfernen möchten.",
         "data": {
@@ -188,6 +190,7 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "value_multiplier": "Wertmultiplikator",
           "unit_of_measurement": "Maßeinheit",
@@ -199,6 +202,7 @@
         "data_description": {
           "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
           "name": "Name für den Sensor (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse(z.B. battery, power).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
@@ -214,6 +218,7 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "invert_state": "Zustand invertieren",
           "scan_interval": "Scan-Intervall (s)",
@@ -222,6 +227,7 @@
         "data_description": {
           "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
           "name": "Name für den Binärsensor (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse (z.B. door, window, power).",
           "invert_state": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
@@ -235,6 +241,7 @@
           "state_address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "sync_state": "Zustand mit Befehlsvariable synchronisieren",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?",
@@ -245,6 +252,7 @@
           "state_address": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0).",
           "command_address": "SPS-Adresse zum Schreiben von Befehlen (optional). Wenn es weggelassen wird, wird nur der Zustand gelesen.",
           "name": "Name für den Schalter (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "sync_state": "Wenn aktiviert, wird die Befehlsvariable automatisch mit dem aktuellen Zustand aktualisiert.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Schalter hinzuzufügen ?",
@@ -263,6 +271,7 @@
           "operate_time": "Laufzeit (s)",
           "use_state_topics": "Zustandvariable für Position verwenden",
           "name": "Name",
+          "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
@@ -274,6 +283,7 @@
           "operate_time": "Zeit (s), um den Befehl aktiv zu halten, bevor die Ausgänge zurückgesetzt und der Bewegungszustand gelöscht wird.",
           "use_state_topics": "Aktivieren Sie diese Option, um Adressen zur Bestimmung der Position zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?"
         }
@@ -285,6 +295,7 @@
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
+          "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
@@ -293,6 +304,7 @@
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um).",
           "add_another": "Weitere positionsbasierte Jalousie/Raffstores hinzuzufügen ?"
@@ -304,6 +316,7 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?",
           "button_pulse": "Pulsdauer"
@@ -311,6 +324,7 @@
         "data_description": {
           "address": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1).",
           "name": "Name für die Taste (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Tasten hinzuzufügen ?",
           "button_pulse": "Dauer des Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0.1 für 100ms)."
@@ -323,6 +337,7 @@
           "state_address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "sync_state": "Zustand mit Befehlsvariable synchronisieren",
           "pulse_command": "Impulsbefehls-Modus",
           "pulse_duration": "Impulsdauer (s)",
@@ -333,6 +348,7 @@
           "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
           "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
           "name": "Name für das Licht (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "sync_state": "Wenn aktiviert, wird die Befehlsvariable automatisch mit dem aktuellen Zustand aktualisiert.",
           "pulse_command": "Impuls statt Ein/Aus-Befehle senden. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
@@ -347,6 +363,7 @@
           "address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "unit_of_measurement": "Maßeinheit",
           "min_value": "Mindestwert",
@@ -360,6 +377,7 @@
           "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
           "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Nummerentität (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Geräteklasse für die Nummerentität (z.B. temperature, voltage, power).",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leerlassen, falls nicht benötigt.",
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
@@ -377,6 +395,7 @@
           "address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "pattern": "Muster (Regex)",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
@@ -385,6 +404,7 @@
           "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
           "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Textentität (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "pattern": "Regex-Muster zur Validierung der Texteingabe (optional).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Textentitäten hinzuzufügen ?"
@@ -397,6 +417,7 @@
           "address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "pattern": "Muster (Regex)",
           "scan_interval": "Scan-Intervall (s)"
         },
@@ -404,6 +425,7 @@
           "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
           "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Textentität (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "pattern": "Regex-Muster zur Validierung der Texteingabe (optional).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
@@ -415,12 +437,14 @@
           "address": "SPS-Adresse",
           "source_entity": "Quellentität",
           "name": "Name",
+          "area": "Bereich",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
           "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
           "name": "Name für die Entitätssynchronisierung (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "add_another": "Entitätssynchronisierungen hinzuzufügen ?"
         }
       },
@@ -440,6 +464,7 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "value_multiplier": "Wertmultiplikator",
           "unit_of_measurement": "Maßeinheit",
@@ -450,6 +475,7 @@
         "data_description": {
           "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
           "name": "Name für den Sensor (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse (z.B. battery, power).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
@@ -464,6 +490,7 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "invert_state": "Zustand invertieren",
           "scan_interval": "Scan-Intervall (s)"
@@ -471,6 +498,7 @@
         "data_description": {
           "address": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1).",
           "name": "Name für den Binärsensor (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse (z.B. door, window, power).",
           "invert_state": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
@@ -483,6 +511,7 @@
           "state_address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "sync_state": "Zustand mit SPS synchronisieren",
           "scan_interval": "Scan-Intervall (s)",
           "pulse_command": "Impulsbefehls-Modus",
@@ -492,6 +521,7 @@
           "state_address": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0).",
           "command_address": "SPS-Adresse zum Schreiben von Befehlen (optional).",
           "name": "Name für den Schalter (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "sync_state": "Wenn aktiviert, wird der Entitätszustand automatisch von der SPS synchronisiert.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "pulse_command": "Wenn aktiviert, sendet einen Impuls (EIN dann AUS) anstelle eines kontinuierlichen Zustands. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
@@ -509,6 +539,7 @@
           "operate_time": "Laufzeit (s)",
           "use_state_topics": "Zustandsthemen für Position verwenden",
           "name": "Name",
+          "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
@@ -519,6 +550,7 @@
           "operate_time": "Sekunden, die die Jalousie/Raffstore betrieben werden soll, bevor die Integration die Befehlsausgänge zurücksetzt und die Zustandsflags löscht.",
           "use_state_topics": "Aktivieren Sie diese Option, um Zustandsvariablen zur Bestimmung der Jalousie/Raffstoresposition zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
       },
@@ -529,6 +561,7 @@
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
           "name": "Name",
+          "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
@@ -536,6 +569,7 @@
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um)."
         }
@@ -546,12 +580,14 @@
         "data": {
           "address": "Adresse",
           "name": "Name",
+          "area": "Bereich",
           "button_pulse": "Pulsdauer",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
           "address": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1).",
           "name": "Name für die Taste (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "button_pulse": "Dauer des Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0.1 für 100ms).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
@@ -563,6 +599,7 @@
           "state_address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "sync_state": "Zustand mit SPS synchronisieren",
           "pulse_command": "Impulsbefehls-Modus",
           "pulse_duration": "Impulsdauer (s)",
@@ -572,6 +609,7 @@
           "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
           "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
           "name": "Name für das Licht (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "sync_state": "Wenn aktiviert, wird der Entitätszustand automatisch von der SPS synchronisiert.",
           "pulse_command": "Impuls statt Ein/Aus-Befehle senden. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
@@ -585,6 +623,7 @@
           "address": "Zustandsvariable",
           "command_address": "Befehlsvariable",
           "name": "Name",
+          "area": "Bereich",
           "device_class": "Geräteklasse",
           "unit_of_measurement": "Maßeinheit",
           "min_value": "Mindestwert",
@@ -597,6 +636,7 @@
           "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
           "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Nummerentität (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Geräteklasse für die Nummerentität (z.B. temperature, voltage, power).",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leerlassen, falls nicht benötigt.",
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
@@ -612,12 +652,14 @@
         "data": {
           "address": "SPS-Adresse",
           "source_entity": "Quellentität",
-          "name": "Name"
+          "name": "Name",
+          "area": "Bereich"
         },
         "data_description": {
           "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
-          "name": "Name für die Entitätssynchronisierung (optional)."
+          "name": "Name für die Entitätssynchronisierung (optional).",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll."
         }
       },
       "export": {

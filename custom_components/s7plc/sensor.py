@@ -31,6 +31,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .address import DataType, parse_tag
 from .const import (
     CONF_ADDRESS,
+    CONF_AREA,
     CONF_DEVICE_CLASS,
     CONF_ENTITY_SYNC,
     CONF_REAL_PRECISION,
@@ -149,6 +150,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), address
         )
+        area = item.get(CONF_AREA)
         topic = f"sensor:{address}"
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
@@ -170,6 +172,7 @@ async def async_setup_entry(
                 value_multiplier,
                 unit_of_measurement,
                 state_class,
+                area,
             )
         )
 
@@ -195,6 +198,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), f"Entity Sync {address}"
         )
+        area = item.get(CONF_AREA)
         unique_id = f"{device_id}:entity_sync:{address}"
 
         sync_entities.append(
@@ -205,6 +209,7 @@ async def async_setup_entry(
                 device_info,
                 address,
                 source_entity,
+                area,
             )
         )
 
@@ -225,6 +230,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         value_multiplier: float | None,
         unit_of_measurement: str | None = None,
         state_class: str | None = None,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -233,6 +239,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             device_info=device_info,
             topic=topic,
             address=address,
+            suggested_area_id=suggested_area_id,
         )
 
         # Parse value_multiplier with defensive validation
@@ -350,6 +357,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         device_info: DeviceInfo,
         address: str,
         source_entity: str,
+        suggested_area_id: str | None = None,
     ) -> None:
         """Initialize the entity sync."""
         super().__init__(
@@ -358,6 +366,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             unique_id=unique_id,
             device_info=device_info,
             topic=None,
+            suggested_area_id=suggested_area_id,
         )
         self._address = address
         self._source_entity = source_entity

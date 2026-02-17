@@ -17,7 +17,7 @@ from homeassistant.components.cover import CoverDeviceClass
 from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
@@ -37,6 +37,7 @@ except (ImportError, AttributeError):
 
 from .const import (
     CONF_ADDRESS,
+    CONF_AREA,
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
@@ -139,6 +140,23 @@ c_device_class_options = [
 ] + [
     selector.SelectOptionDict(value=dc.value, label=dc.value) for dc in CoverDeviceClass
 ]
+
+
+# Area options builder (needs to be called at runtime with hass)
+def _get_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    """Get area options for selector including 'No area' option."""
+    from homeassistant.helpers import area_registry as ar
+
+    area_reg = ar.async_get(hass)
+    areas = area_reg.async_list_areas()
+
+    options = [
+        selector.SelectOptionDict(value="__none__", label="No area"),
+    ]
+    for area in sorted(areas, key=lambda a: a.name):
+        options.append(selector.SelectOptionDict(value=area.id, label=area.name))
+    return options
+
 
 # Reusable device class selectors
 binary_sensor_device_class_selector = selector.SelectSelector(
@@ -366,6 +384,16 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._discovered_hosts: list[str] | None = None
         self._connection_data: dict[str, Any] = {}
+
+    def _get_area_selector(self) -> selector.SelectSelector:
+        """Get area selector with dynamic area list."""
+        options = _get_area_options(self.hass)
+        return selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=options,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step - choose connection type."""
@@ -840,6 +868,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
 
+    def _get_area_selector(self) -> selector.SelectSelector:
+        """Get area selector with dynamic area list."""
+        options = _get_area_options(self.hass)
+        return selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=options,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+
     @staticmethod
     def _sanitize_address(address: Any | None) -> str | None:
         """Return a trimmed string representation of an address."""
@@ -1086,10 +1124,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         for field in fields:
             if field in user_input:
                 value = user_input[field]
-                # Treat empty strings and __none__ as removal (don't copy to item)
-                if value is not None and value != "" and value != "__none__":
+                # Treat empty strings and __none__
+                # as removal (explicitly remove from item)
+                if value is None or value == "" or value == "__none__":
+                    item.pop(field, None)  # Remove field if present
+                else:
                     item[field] = value
-                # If value is None, "", or "__none__", field won't be in item (removed)
 
     def _build_base_item(
         self,
@@ -1133,6 +1173,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             address,
             user_input,
             CONF_NAME,
+            CONF_AREA,
             CONF_DEVICE_CLASS,
             CONF_UNIT_OF_MEASUREMENT,
             CONF_STATE_CLASS,
@@ -1165,6 +1206,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             address,
             user_input,
             CONF_NAME,
+            CONF_AREA,
             CONF_DEVICE_CLASS,
             CONF_INVERT_STATE,
         )
@@ -1211,7 +1253,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_COMMAND_ADDRESS] = command_address
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME)
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
         # Add boolean flags
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
@@ -1295,7 +1337,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_DEVICE_CLASS)
+        self._copy_optional_fields(
+            item, user_input, CONF_NAME, CONF_AREA, CONF_DEVICE_CLASS
+        )
 
         # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
@@ -1349,7 +1393,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_POSITION_COMMAND_ADDRESS] = position_command
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_DEVICE_CLASS)
+        self._copy_optional_fields(
+            item, user_input, CONF_NAME, CONF_AREA, CONF_DEVICE_CLASS
+        )
 
         # Add invert_position flag
         if user_input.get(CONF_INVERT_POSITION, False):
@@ -1376,7 +1422,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None, {"base": "duplicate_entry"}
 
         # Build item with optional fields
-        item = self._build_base_item(address, user_input, CONF_NAME)
+        item = self._build_base_item(address, user_input, CONF_NAME, CONF_AREA)
 
         # Add button-specific fields
         button_pulse = self._sanitize_button_pulse(user_input.get(CONF_BUTTON_PULSE))
@@ -1421,7 +1467,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_COMMAND_ADDRESS] = command_address
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME)
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
         # Add boolean flags
         item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
@@ -1514,6 +1560,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             address,
             user_input,
             CONF_NAME,
+            CONF_AREA,
             CONF_DEVICE_CLASS,
             CONF_UNIT_OF_MEASUREMENT,
         )
@@ -1573,7 +1620,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return None, cmd_errors
 
         # Build item with optional fields
-        item = self._build_base_item(address, user_input, CONF_NAME, CONF_PATTERN)
+        item = self._build_base_item(
+            address, user_input, CONF_NAME, CONF_AREA, CONF_PATTERN
+        )
 
         # Add command address if present
         if command_address:
@@ -1612,7 +1661,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         }
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME)
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
         return item, {}
 
@@ -2181,6 +2230,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
                 vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
@@ -2217,6 +2267,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_DEVICE_CLASS): binary_sensor_device_class_selector,
                 vol.Optional(
                     CONF_INVERT_STATE, default=False
@@ -2253,6 +2304,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
@@ -2321,6 +2373,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
                 vol.Optional(
                     CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
@@ -2364,6 +2417,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional(
@@ -2399,6 +2453,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(
                     CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
                 ): pulse_duration_selector,
@@ -2433,6 +2488,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(
                     CONF_SYNC_STATE, default=False
                 ): selector.BooleanSelector(),
@@ -2474,6 +2530,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
                 vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
                 vol.Optional(CONF_MIN_VALUE): number_value_selector,
@@ -2512,6 +2569,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional(CONF_PATTERN): selector.TextSelector(),
                 vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -2545,6 +2603,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_ADDRESS): selector.TextSelector(),
                 vol.Required(CONF_SOURCE_ENTITY): selector.EntitySelector(),
                 vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
                 vol.Optional("add_another", default=False): selector.BooleanSelector(),
             }
         )
@@ -2830,6 +2889,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             schema_dict[key_scan] = val_scan
 
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -2879,6 +2943,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
             schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
 
             return vol.Schema(schema_dict)
 
@@ -2932,6 +3001,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
             schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
 
             return vol.Schema(schema_dict)
 
@@ -3002,6 +3076,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             schema_dict[key_scan] = val_scan
 
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -3057,6 +3136,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
             ] = selector.BooleanSelector()
 
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -3090,6 +3174,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
                 ): pulse_duration_selector,
             }
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -3140,6 +3230,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_SCAN_INTERVAL, item, scan_interval_selector
             )
             schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
 
             return vol.Schema(schema_dict)
 
@@ -3213,6 +3308,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             schema_dict[key_scan] = val_scan
 
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -3257,6 +3357,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             schema_dict[key_scan] = val_scan
 
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
             return vol.Schema(schema_dict)
 
         def process_input(
@@ -3290,6 +3395,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     CONF_NAME, default=item.get(CONF_NAME, "")
                 ): selector.TextSelector(),
             }
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
 
             return vol.Schema(schema_dict)
 

@@ -13,19 +13,34 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_ADDRESS,
+    CONF_AREA,
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
+    CONF_BINARY_SENSORS,
+    CONF_BUTTONS,
+    CONF_CLOSING_STATE_ADDRESS,
     CONF_CONNECTION_TYPE,
+    CONF_COVERS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
+    CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
+    CONF_NUMBERS,
     CONF_OP_TIMEOUT,
+    CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPENING_STATE_ADDRESS,
     CONF_OPTIMIZE_READ,
+    CONF_POSITION_STATE_ADDRESS,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REMOTE_TSAP,
+    CONF_SENSORS,
     CONF_SLOT,
+    CONF_STATE_ADDRESS,
+    CONF_SWITCHES,
+    CONF_TEXTS,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
@@ -376,4 +391,133 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update."""
+    # Update areas in entity registry before reloading
+    await _async_update_entity_areas(hass, entry)
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update entity areas in the registry based on configuration."""
+    # Skip if runtime_data is not available (e.g., during tests or initial setup)
+    if not hasattr(entry, "runtime_data") or entry.runtime_data is None:
+        return
+
+    entity_reg = er.async_get(hass)
+    device_id = entry.runtime_data.device_id
+    options = entry.options
+
+    # Map of unique_id -> area_id for all configured entities
+    entity_areas: dict[str, str | None] = {}
+
+    # Sensors
+    for item in options.get(CONF_SENSORS, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:sensor:{address}"
+            entity_areas[unique_id] = area
+
+    # Binary sensors
+    for item in options.get(CONF_BINARY_SENSORS, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:binary_sensor:{address}"
+            entity_areas[unique_id] = area
+
+    # Switches
+    for item in options.get(CONF_SWITCHES, []):
+        state_addr = item.get(CONF_STATE_ADDRESS)
+        area = item.get(CONF_AREA)
+        if state_addr:
+            unique_id = f"{device_id}:switch:{state_addr}"
+            entity_areas[unique_id] = area
+
+    # Covers
+    for item in options.get(CONF_COVERS, []):
+        area = item.get(CONF_AREA)
+        position_state = item.get(CONF_POSITION_STATE_ADDRESS)
+
+        if position_state:
+            # Position cover
+            unique_id = f"{device_id}:cover:position:{position_state}"
+            entity_areas[unique_id] = area
+        else:
+            # Traditional cover
+            open_command = item.get(CONF_OPEN_COMMAND_ADDRESS, "")
+            opened_state = item.get(CONF_OPENING_STATE_ADDRESS)
+            closed_state = item.get(CONF_CLOSING_STATE_ADDRESS)
+
+            if opened_state:
+                unique_id = f"{device_id}:cover:opened:{opened_state}"
+            elif closed_state:
+                unique_id = f"{device_id}:cover:closed:{closed_state}"
+            elif open_command:
+                unique_id = f"{device_id}:cover:command:{open_command}"
+            else:
+                continue
+            entity_areas[unique_id] = area
+
+    # Buttons
+    for item in options.get(CONF_BUTTONS, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:button:{address}"
+            entity_areas[unique_id] = area
+
+    # Lights
+    for item in options.get(CONF_LIGHTS, []):
+        state_addr = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if state_addr:
+            unique_id = f"{device_id}:light:{state_addr}"
+            entity_areas[unique_id] = area
+
+    # Numbers
+    for item in options.get(CONF_NUMBERS, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:number:{address}"
+            entity_areas[unique_id] = area
+
+    # Texts
+    for item in options.get(CONF_TEXTS, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:text:{address}"
+            entity_areas[unique_id] = area
+
+    # Entity Syncs
+    for item in options.get(CONF_ENTITY_SYNC, []):
+        address = item.get(CONF_ADDRESS)
+        area = item.get(CONF_AREA)
+        if address:
+            unique_id = f"{device_id}:entity_sync:{address}"
+            entity_areas[unique_id] = area
+
+    # Update areas in entity registry
+    for unique_id, area_id in entity_areas.items():
+        entity_entry = entity_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+        if not entity_entry:
+            # Try other platforms
+            for platform in [
+                "binary_sensor",
+                "switch",
+                "cover",
+                "button",
+                "light",
+                "number",
+                "text",
+            ]:
+                entity_entry = entity_reg.async_get_entity_id(
+                    platform, DOMAIN, unique_id
+                )
+                if entity_entry:
+                    break
+
+        if entity_entry:
+            entity_reg.async_update_entity(entity_entry, area_id=area_id)

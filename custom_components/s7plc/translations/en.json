@@ -18,7 +18,7 @@
           "port": "Port",
           "rack": "Rack",
           "slot": "Slot",
-          "pys7_connection_type": "Connection Type",
+          "pys7_connection_type": "Connection type",
           "scan_interval": "Scan interval (s)",
           "operation_timeout": "Operation timeout (s)",
           "max_retries": "Retry attempts",
@@ -33,14 +33,14 @@
           "port": "ISO-on-TCP port, typically 102.",
           "rack": "CPU rack number (usually 0).",
           "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
-          "pys7_connection_type": "Type of S7 connection (PG for programming, OP for operator panel, S7 Basic for basic connection).",
+          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
           "retry_backoff_initial": "Delay before the first retry attempt.",
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
-          "enable_write_batching": "Enable automatic batching of writes. When multiple entities update simultaneously, writes are grouped into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
+          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
         }
       },
       "tsap": {
@@ -52,7 +52,7 @@
           "port": "Port",
           "local_tsap": "Local TSAP",
           "remote_tsap": "Remote TSAP",
-          "pys7_connection_type": "Connection Type",
+          "pys7_connection_type": "Connection type",
           "scan_interval": "Scan interval (s)",
           "operation_timeout": "Operation timeout (s)",
           "max_retries": "Retry attempts",
@@ -67,14 +67,14 @@
           "port": "ISO-on-TCP port, typically 102.",
           "local_tsap": "Local TSAP address (e.g., 01.00 or 03.00).",
           "remote_tsap": "Remote TSAP address (e.g., 01.01 or 03.01).",
-          "pys7_connection_type": "Type of S7 connection (PG for programming, OP for operator panel, S7 Basic for basic connection).",
+          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
           "retry_backoff_initial": "Delay before the first retry attempt.",
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
-          "enable_write_batching": "Enable automatic batching of writes. When multiple entities update simultaneously, writes are grouped into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
+          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
         }
       }
     },
@@ -190,6 +190,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
           "unit_of_measurement": "Unit of measurement",
@@ -201,6 +202,7 @@
         "data_description": {
           "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
           "name": "Optional friendly name for the sensor.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
@@ -216,6 +218,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "invert_state": "Invert state",
           "scan_interval": "Scan interval (s)",
@@ -224,6 +227,7 @@
         "data_description": {
           "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
           "invert_state": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
@@ -237,6 +241,7 @@
           "state_address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "sync_state": "Sync state to command anddress",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
@@ -247,6 +252,7 @@
           "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0).",
           "command_address": "PLC address to write commands (optional). If omitted, only state will be read.",
           "name": "Optional friendly name for the switch.",
+          "area": "Home Assistant area to assign this entity to.",
           "sync_state": "When enabled, the command address is automatically updated with the current state.",
           "pulse_command": "When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s.",
@@ -265,6 +271,7 @@
           "operate_time": "Operate time (s)",
           "use_state_topics": "Use state topics for position",
           "name": "Name",
+          "area": "Area",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -276,6 +283,7 @@
           "operate_time": "Seconds to keep the command active before resetting the outputs and clearing the movement state.",
           "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
+          "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more covers."
         }
@@ -287,6 +295,7 @@
           "position_state_address": "Position state address",
           "position_command_address": "Position command address",
           "name": "Name",
+          "area": "Area",
           "scan_interval": "Scan interval (s)",
           "invert_position": "Invert position (0=open, 100=closed)",
           "add_another": "Add another after saving"
@@ -295,6 +304,7 @@
           "position_state_address": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4).",
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
           "name": "Optional friendly name for the cover.",
+          "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic).",
           "add_another": "Stay on this step to add more position-based covers."
@@ -306,6 +316,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving",
           "button_pulse": "Pulse duration"
@@ -313,9 +324,10 @@
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
+          "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more buttons.",
-          "button_pulse": "Duration of the pulse in seconds (supports decimals, e.g., 0.1 for 100ms)."
+          "button_pulse": "Duration of the pulse in seconds."
         }
       },
       "lights": {
@@ -325,6 +337,7 @@
           "state_address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "sync_state": "Sync state to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
@@ -335,6 +348,7 @@
           "state_address": "PLC address to read the current light state.",
           "command_address": "PLC address to write light commands (optional).",
           "name": "Optional friendly name for the light.",
+          "area": "Home Assistant area to assign this entity to.",
           "sync_state": "When enabled, the command address is automatically updated with the current state.",
           "pulse_command": "Send pulse instead of on/off commands. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
@@ -349,6 +363,7 @@
           "address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "unit_of_measurement": "Unit of measurement",
           "min_value": "Minimum value",
@@ -362,6 +377,7 @@
           "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Device class for the number entity (e.g., temperature, voltage, power).",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed.",
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
@@ -379,6 +395,7 @@
           "address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "pattern": "Pattern (regex)",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
@@ -387,6 +404,7 @@
           "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
           "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the text entity.",
+          "area": "Home Assistant area to assign this entity to.",
           "pattern": "Optional regex pattern to validate the text input.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more text entities."
@@ -399,6 +417,7 @@
           "address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "pattern": "Pattern (regex)",
           "scan_interval": "Scan interval (s)"
         },
@@ -406,6 +425,7 @@
           "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
           "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the text entity.",
+          "area": "Home Assistant area to assign this entity to.",
           "pattern": "Optional regex pattern to validate the text input.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
@@ -417,12 +437,14 @@
           "address": "PLC address",
           "source_entity": "Source entity",
           "name": "Name",
+          "area": "Area",
           "add_another": "Add another after saving"
         },
         "data_description": {
           "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant entity whose value will be written to the PLC.",
           "name": "Optional friendly name for the Entity Sync.",
+          "area": "Home Assistant area to assign this entity to.",
           "add_another": "Stay on this step to add more Entity Syncs."
         }
       },
@@ -442,6 +464,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
           "unit_of_measurement": "Unit of measurement",
@@ -452,6 +475,7 @@
         "data_description": {
           "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
           "name": "Optional friendly name for the sensor.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
@@ -466,6 +490,7 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "invert_state": "Invert state",
           "scan_interval": "Scan interval (s)"
@@ -473,6 +498,7 @@
         "data_description": {
           "address": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1).",
           "name": "Optional friendly name for the binary sensor.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power).",
           "invert_state": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
@@ -485,6 +511,7 @@
           "state_address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "sync_state": "Sync state with PLC",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
@@ -494,6 +521,7 @@
           "state_address": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0).",
           "command_address": "PLC address to write commands (optional).",
           "name": "Optional friendly name for the switch.",
+          "area": "Home Assistant area to assign this entity to.",
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
           "pulse_command": "When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s.",
@@ -511,6 +539,7 @@
           "operate_time": "Operate time (s)",
           "use_state_topics": "Use state topics for position",
           "name": "Name",
+          "area": "Area",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -521,6 +550,7 @@
           "operate_time": "Seconds the cover should operate before the integration resets the command outputs and clears the state flags.",
           "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
+          "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -531,6 +561,7 @@
           "position_state_address": "Position state address",
           "position_command_address": "Position command address",
           "name": "Name",
+          "area": "Area",
           "scan_interval": "Scan interval (s)",
           "invert_position": "Invert position (0=open, 100=closed)"
         },
@@ -538,6 +569,7 @@
           "position_state_address": "PLC address to read the current position value (0-100).",
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
           "name": "Optional friendly name for the cover.",
+          "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic)."
         }
@@ -548,13 +580,15 @@
         "data": {
           "address": "Address",
           "name": "Name",
+          "area": "Area",
           "button_pulse": "Pulse duration",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
-          "button_pulse": "Duration of the pulse in seconds (supports decimals, e.g., 0.1 for 100ms).",
+          "area": "Home Assistant area to assign this entity to.",
+          "button_pulse": "Duration of the pulse in seconds.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -565,6 +599,7 @@
           "state_address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "sync_state": "Sync state with PLC",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
@@ -574,6 +609,7 @@
           "state_address": "PLC address to read the current light state.",
           "command_address": "PLC address to write light commands (optional).",
           "name": "Optional friendly name for the light.",
+          "area": "Home Assistant area to assign this entity to.",
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
           "pulse_command": "Send pulse instead of on/off commands. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
@@ -587,6 +623,7 @@
           "address": "State address",
           "command_address": "Command address",
           "name": "Name",
+          "area": "Area",
           "device_class": "Device class",
           "unit_of_measurement": "Unit of measurement",
           "min_value": "Minimum value",
@@ -599,6 +636,7 @@
           "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
+          "area": "Home Assistant area to assign this entity to.",
           "device_class": "Device class for the number entity (e.g., temperature, voltage, power).",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed.",
           "min_value": "Optional minimum bound for the value shown in Home Assistant.",
@@ -614,12 +652,14 @@
         "data": {
           "address": "PLC address",
           "source_entity": "Source entity",
-          "name": "Name"
+          "name": "Name",
+          "area": "Area"
         },
         "data_description": {
           "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant entity whose value will be written to the PLC.",
-          "name": "Optional friendly name for the Entity Sync."
+          "name": "Optional friendly name for the Entity Sync.",
+          "area": "Home Assistant area to assign this entity to."
         }
       },
       "export": {

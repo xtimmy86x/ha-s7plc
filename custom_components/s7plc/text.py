@@ -12,6 +12,7 @@ from pyS7.constants import DataType
 from .address import parse_tag
 from .const import (
     CONF_ADDRESS,
+    CONF_AREA,
     CONF_COMMAND_ADDRESS,
     CONF_PATTERN,
     CONF_SCAN_INTERVAL,
@@ -41,6 +42,7 @@ async def async_setup_entry(
         command_address = text_config.get(CONF_COMMAND_ADDRESS) or address
         scan_interval = text_config.get(CONF_SCAN_INTERVAL)
         pattern = text_config.get(CONF_PATTERN)
+        area = text_config.get(CONF_AREA)
 
         # Parse tag to get data type and validate
         try:
@@ -86,6 +88,7 @@ async def async_setup_entry(
                 min_length=min_length,
                 max_length=max_length,
                 pattern=pattern,
+                suggested_area_id=area,
             )
         )
 
@@ -107,6 +110,7 @@ class S7Text(S7BaseEntity, TextEntity):
         min_length: int,
         max_length: int,
         pattern: str | None,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -115,6 +119,7 @@ class S7Text(S7BaseEntity, TextEntity):
             device_info=device_info,
             topic=topic,
             address=address,
+            suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
         self._attr_native_min = min_length

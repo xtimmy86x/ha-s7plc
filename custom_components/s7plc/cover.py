@@ -16,6 +16,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_call_later
 
 from .const import (
+    CONF_AREA,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVERS,
@@ -48,6 +49,7 @@ async def async_setup_entry(
     for item in entry.options.get(CONF_COVERS, []):
         # Check if this is a position-based cover
         position_state = item.get(CONF_POSITION_STATE_ADDRESS)
+        area = item.get(CONF_AREA)
 
         if position_state:
             # Position-based cover (0-100)
@@ -74,6 +76,7 @@ async def async_setup_entry(
                     position_command,
                     invert_position,
                     device_class,
+                    area,
                 )
             )
             continue
@@ -140,6 +143,7 @@ async def async_setup_entry(
                 operate_time,
                 use_state_topics,
                 device_class,
+                area,
             )
         )
 
@@ -171,6 +175,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         operate_time: float,
         use_state_topics: bool,
         device_class: str | None = None,
+        suggested_area_id: str | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -178,6 +183,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             unique_id=unique_id,
             device_info=device_info,
             topic=opened_topic or closed_topic,
+            suggested_area_id=suggested_area_id,
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
@@ -484,6 +490,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         position_command: str | None,
         invert_position: bool = False,
         device_class: str | None = None,
+        suggested_area_id: str | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -491,6 +498,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             unique_id=unique_id,
             device_info=device_info,
             topic=f"cover:position:{position_state}",
+            suggested_area_id=suggested_area_id,
         )
         self._position_state_address = position_state
         self._position_command_address = position_command or position_state

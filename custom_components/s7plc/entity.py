@@ -30,6 +30,7 @@ class S7BaseEntity(CoordinatorEntity):
         device_info: DeviceInfo,
         topic: str | None = None,
         address: str | None = None,
+        suggested_area_id: str | None = None,
     ) -> None:
         """Initialize S7 base entity.
 
@@ -40,6 +41,7 @@ class S7BaseEntity(CoordinatorEntity):
             device_info: Device information for entity grouping
             topic: Optional topic name for data lookup
             address: Optional PLC address string
+            suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(coordinator)
         self._coord: S7Coordinator = coordinator
@@ -49,6 +51,8 @@ class S7BaseEntity(CoordinatorEntity):
         self._attr_device_info = device_info
         self._topic = topic
         self._address = address
+        if suggested_area_id:
+            self._attr_suggested_area_id = suggested_area_id
 
     async def _ensure_connected(self) -> None:
         """Ensure PLC connection is active before command execution.
@@ -129,6 +133,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         sync_state: bool,
         pulse_command: bool = False,
         pulse_duration: float = 0.5,
+        suggested_area_id: str | None = None,
     ) -> None:
         """Initialize boolean sync entity.
 
@@ -143,6 +148,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             sync_state: Whether to sync state changes back to PLC
             pulse_command: Whether to send pulse instead of on/off commands
             pulse_duration: Duration of pulse in seconds
+            suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(
             coordinator,
@@ -151,6 +157,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             device_info=device_info,
             topic=topic,
             address=state_address,
+            suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
         self._sync_state = sync_state
