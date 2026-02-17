@@ -210,10 +210,22 @@ Contributions welcome! Please:
 
 ### Development
 
-This project uses [pre-commit](https://pre-commit.com/) for code formatting:
+For local development/testing, install dev dependencies (kept separate from runtime deps):
 
 ```bash
-pip install pre-commit
+pip install -r requirements_dev.txt
+```
+
+Run quality checks:
+
+```bash
+ruff check custom_components tests
+pytest -q
+```
+
+This project also uses [pre-commit](https://pre-commit.com/):
+
+```bash
 pre-commit run --files <file1> [<file2> ...]
 ```
 
