@@ -190,6 +190,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
           "unit_of_measurement": "Unità di misura",
@@ -201,6 +202,7 @@
         "data_description": {
           "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
           "name": "Nome descrittivo opzionale per il sensore.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
@@ -216,6 +218,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "invert_state": "Inverti stato",
           "scan_interval": "Intervallo di scansione (s)",
@@ -224,6 +227,7 @@
         "data_description": {
           "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
           "name": "Nome descrittivo opzionale per il binary sensor.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
           "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
           "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
@@ -237,6 +241,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "sync_state": "Sincronizza stato su indirizzo comando",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio",
@@ -247,6 +252,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato.",
           "name": "Nome descrittivo opzionale per lo switch.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
           "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altri switch.",
@@ -265,6 +271,7 @@
           "operate_time": "Tempo di manovra (s)",
           "use_state_topics": "Usa feedback di stato per posizione",
           "name": "Nome",
+          "area": "Area",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
@@ -276,6 +283,7 @@
           "operate_time": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento.",
           "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
           "name": "Nome descrittivo opzionale per la cover.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre cover."
         }
@@ -287,6 +295,7 @@
           "position_state_address": "Indirizzo stato posizione",
           "position_command_address": "Indirizzo comando posizione",
           "name": "Nome",
+          "area": "Area",
           "scan_interval": "Intervallo di scansione (s)",
           "invert_position": "Inverti posizione (0=aperto, 100=chiuso)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -295,6 +304,7 @@
           "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4).",
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per la cover.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "invert_position": "Abilita se il tuo PLC usa 0 per completamente aperto e 100 per completamente chiuso (inverte la logica normale).",
           "add_another": "Rimani in questo step per aggiungere altre cover con posizione."
@@ -306,6 +316,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "button_pulse": "Durata impulso",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -313,6 +324,7 @@
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "add_another": "Rimani in questo step per aggiungere altri pulsanti.",
           "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms)."
@@ -325,6 +337,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "sync_state": "Sincronizza stato su indirizzo comando",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio",
@@ -335,6 +348,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
           "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre luci.",
@@ -349,6 +363,7 @@
           "address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "unit_of_measurement": "Unità di misura",
           "min_value": "Valore minimo",
@@ -362,6 +377,7 @@
           "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
@@ -379,6 +395,7 @@
           "address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "pattern": "Pattern (regex)",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -387,6 +404,7 @@
           "address": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,W0.128).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità testo.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "pattern": "Pattern regex opzionale per validare l'input del testo.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
@@ -399,12 +417,14 @@
           "address": "Indirizzo PLC",
           "source_entity": "Entità sorgente",
           "name": "Nome",
+          "area": "Area",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
           "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
           "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
           "name": "Nome descrittivo opzionale per l'Entity Sync.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "add_another": "Rimani in questa schermata per aggiungere altri Entity Sync."
         }
       },
@@ -424,6 +444,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
           "unit_of_measurement": "Unità di misura",
@@ -434,6 +455,7 @@
         "data_description": {
           "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
           "name": "Nome descrittivo opzionale per il sensore.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
@@ -448,6 +470,7 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "invert_state": "Inverti stato",
           "scan_interval": "Intervallo di scansione (s)"
@@ -455,6 +478,7 @@
         "data_description": {
           "address": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1).",
           "name": "Nome descrittivo opzionale per il binary sensor.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. door, window, power).",
           "invert_state": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi).",
           "scan_interval": "Frequenza di polling specifica per questo binary sensor in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
@@ -467,6 +491,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "sync_state": "Sincronizza stato con il PLC",
           "scan_interval": "Intervallo di scansione (s)",
           "pulse_command": "Modalità comando ad impulso",
@@ -476,6 +501,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0).",
           "command_address": "Indirizzo PLC su cui scrivere i comandi (opzionale).",
           "name": "Nome descrittivo opzionale per lo switch.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
           "scan_interval": "Frequenza di polling specifica per questo switch in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "pulse_command": "Quando attivato, invia un impulso (ON poi OFF) invece di uno stato continuo. Utile per relè bistabili o circuiti flip-flop.",
@@ -493,6 +519,7 @@
           "operate_time": "Tempo di manovra (s)",
           "use_state_topics": "Usa feedback di stato per posizione",
           "name": "Nome",
+          "area": "Area",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
@@ -503,6 +530,7 @@
           "operate_time": "Secondi di funzionamento prima che l'integrazione ripristini gli output di comando e azzeri le segnalazioni di movimento.",
           "use_state_topics": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra.",
           "name": "Nome descrittivo opzionale per la cover.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
@@ -513,6 +541,7 @@
           "position_state_address": "Indirizzo stato posizione",
           "position_command_address": "Indirizzo comando posizione",
           "name": "Nome",
+          "area": "Area",
           "scan_interval": "Intervallo di scansione (s)",
           "invert_position": "Inverti posizione (0=aperto, 100=chiuso)"
         },
@@ -520,6 +549,7 @@
           "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100).",
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per la cover.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "invert_position": "Abilita se il tuo PLC usa 0 per completamente aperto e 100 per completamente chiuso (inverte la logica normale)."
         }
@@ -530,12 +560,14 @@
         "data": {
           "address": "Indirizzo",
           "name": "Nome",
+          "area": "Area",
           "button_pulse": "Durata impulso",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100ms).",
           "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
@@ -547,6 +579,7 @@
           "state_address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "sync_state": "Sincronizza stato con il PLC",
           "scan_interval": "Intervallo di scansione (s)",
           "pulse_command": "Modalità comando a impulso",
@@ -556,6 +589,7 @@
           "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
           "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
           "name": "Nome descrittivo opzionale per la luce.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
           "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
@@ -569,6 +603,7 @@
           "address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "device_class": "Device class",
           "unit_of_measurement": "Unità di misura",
           "min_value": "Valore minimo",
@@ -581,6 +616,7 @@
           "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria.",
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
@@ -597,6 +633,7 @@
           "address": "Indirizzo stato",
           "command_address": "Indirizzo comando",
           "name": "Nome",
+          "area": "Area",
           "pattern": "Pattern (regex)",
           "scan_interval": "Intervallo di scansione (s)"
         },
@@ -604,6 +641,7 @@
           "address": "Indirizzo PLC STRING o WSTRING da leggere (es. DB1,S0.254, DB2,W0.128).",
           "command_address": "Indirizzo PLC su cui scrivere i valori testuali (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità di testo.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
           "pattern": "Pattern regex opzionale per validare l'input testo.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Lascia vuoto per usare l'intervallo predefinito del PLC."
         }
@@ -614,12 +652,14 @@
         "data": {
           "address": "Indirizzo PLC",
           "source_entity": "Entità sorgente",
-          "name": "Nome"
+          "name": "Nome",
+          "area": "Area"
         },
         "data_description": {
           "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
           "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
-          "name": "Nome descrittivo opzionale per l'Entity Sync."
+          "name": "Nome descrittivo opzionale per l'Entity Sync.",
+          "area": "Area di Home Assistant a cui assegnare questa entità."
         }
       },
       "export": {

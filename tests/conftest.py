@@ -88,6 +88,7 @@ class OptionsFlow:  # pragma: no cover - simple stub
 
     def async_show_menu(self, *args, **kwargs):
         return {"type": "menu", "args": args, "kwargs": kwargs}
+    
     async def async_create_entry(self, *args, **kwargs):
         return {"type": "create_entry", "args": args, "kwargs": kwargs}
 
@@ -440,6 +441,7 @@ class MockEntityRegistryEntry:  # pragma: no cover - stub implementation
         self.entity_id = entity_id
         self.unique_id = unique_id
         self.config_entry_id = config_entry_id
+        self.area_id = None
 
 
 class MockEntityRegistry:  # pragma: no cover - stub implementation
@@ -449,6 +451,17 @@ class MockEntityRegistry:  # pragma: no cover - stub implementation
     def async_remove(self, entity_id: str):
         """Remove entity from registry."""
         self.entities.pop(entity_id, None)
+
+    def async_get_entity_id(self, platform: str, domain: str, unique_id: str):
+        """Get entity_id from platform, domain, and unique_id."""
+        # In the tests, we don't have entities registered
+        # Return None to simulate no matching entity
+        return None
+
+    def async_update_entity(self, entity_id: str, **kwargs):
+        """Update entity in registry."""
+        # Stub implementation - accepts area_id parameter
+        pass
 
 
 _mock_entity_registry = MockEntityRegistry()
@@ -470,6 +483,39 @@ entity_registry.MockEntityRegistry = MockEntityRegistry
 entity_registry.MockEntityRegistryEntry = MockEntityRegistryEntry
 sys.modules["homeassistant.helpers.entity_registry"] = entity_registry
 helpers.entity_registry = entity_registry
+
+# helpers.area_registry module
+area_registry = ModuleType("homeassistant.helpers.area_registry")
+
+
+class MockAreaEntry:  # pragma: no cover - stub implementation
+    def __init__(self, id: str, name: str):
+        self.id = id
+        self.name = name
+
+
+class MockAreaRegistry:  # pragma: no cover - stub implementation
+    def __init__(self):
+        self.areas = []
+
+    def async_list_areas(self):
+        """Return all areas."""
+        return self.areas
+
+
+_mock_area_registry = MockAreaRegistry()
+
+
+def async_get_area_registry(hass):  # pragma: no cover - stub implementation
+    """Get area registry."""
+    return _mock_area_registry
+
+
+area_registry.async_get = async_get_area_registry
+area_registry.MockAreaRegistry = MockAreaRegistry
+area_registry.MockAreaEntry = MockAreaEntry
+sys.modules["homeassistant.helpers.area_registry"] = area_registry
+helpers.area_registry = area_registry
 
 # helpers.issue_registry module
 issue_registry = ModuleType("homeassistant.helpers.issue_registry")
@@ -549,6 +595,16 @@ class NumberSelectorMode:  # pragma: no cover - simple stub
     BOX = "box"
 
 
+class AreaSelectorConfig:  # pragma: no cover - simple stub
+    def __init__(self, **kwargs):
+        pass
+
+
+class AreaSelector:  # pragma: no cover - simple stub
+    def __init__(self, config):
+        self.config = config
+
+
 selector.SelectOptionDict = SelectOptionDict
 selector.SelectSelector = SelectSelector
 selector.SelectSelectorConfig = SelectSelectorConfig
@@ -558,6 +614,8 @@ selector.BooleanSelector = BooleanSelector
 selector.NumberSelector = NumberSelector
 selector.NumberSelectorConfig = NumberSelectorConfig
 selector.NumberSelectorMode = NumberSelectorMode
+selector.AreaSelector = AreaSelector
+selector.AreaSelectorConfig = AreaSelectorConfig
 sys.modules["homeassistant.helpers.selector"] = selector
 helpers.selector = selector
 

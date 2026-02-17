@@ -19,6 +19,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .address import get_numeric_limits, parse_tag
 from .const import (
     CONF_ADDRESS,
+    CONF_AREA,
     CONF_COMMAND_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_MAX_VALUE,
@@ -101,6 +102,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), address
         )
+        area = item.get(CONF_AREA)
         topic = f"number:{address}"
         unique_id = f"{device_id}:{topic}"
         command_address = item.get(CONF_COMMAND_ADDRESS) or address
@@ -127,6 +129,7 @@ async def async_setup_entry(
                 step,
                 device_class,
                 unit_of_measurement,
+                area,
             )
         )
 
@@ -152,6 +155,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         step: float | None,
         device_class: str | None = None,
         unit_of_measurement: str | None = None,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -160,6 +164,7 @@ class S7Number(S7BaseEntity, NumberEntity):
             device_info=device_info,
             topic=topic,
             address=address,
+            suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
 

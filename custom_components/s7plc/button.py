@@ -9,7 +9,13 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_ADDRESS, CONF_BUTTON_PULSE, CONF_BUTTONS, DEFAULT_BUTTON_PULSE
+from .const import (
+    CONF_ADDRESS,
+    CONF_AREA,
+    CONF_BUTTON_PULSE,
+    CONF_BUTTONS,
+    DEFAULT_BUTTON_PULSE,
+)
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
@@ -32,6 +38,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), address
         )
+        area = item.get(CONF_AREA)
         unique_id = f"{device_id}:button:{address}"
         raw_pulse = item.get(CONF_BUTTON_PULSE)
         button_pulse = DEFAULT_BUTTON_PULSE
@@ -44,7 +51,7 @@ async def async_setup_entry(
                 if button_pulse < 0.1 or button_pulse > 60:
                     button_pulse = DEFAULT_BUTTON_PULSE
         entities.append(
-            S7Button(coord, name, unique_id, device_info, address, button_pulse)
+            S7Button(coord, name, unique_id, device_info, address, button_pulse, area)
         )
 
     if entities:
@@ -63,6 +70,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
         device_info: DeviceInfo,
         address: str,
         button_pulse: float,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -70,6 +78,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
             unique_id=unique_id,
             device_info=device_info,
             address=address,
+            suggested_area_id=suggested_area_id,
         )
 
         self._button_pulse = button_pulse

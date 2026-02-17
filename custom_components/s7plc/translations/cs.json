@@ -190,6 +190,7 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "value_multiplier": "Násobitel hodnoty",
           "unit_of_measurement": "Jednotka",
@@ -201,6 +202,7 @@
         "data_description": {
           "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
           "name": "Volitelný srozumitelný název senzoru.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
           "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
@@ -216,6 +218,7 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "invert_state": "Invertovat stav",
           "scan_interval": "Interval čtení (s)",
@@ -224,6 +227,7 @@
         "data_description": {
           "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
           "name": "Volitelný srozumitelný název binárního senzoru.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
           "invert_state": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
@@ -237,6 +241,7 @@
           "state_address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "sync_state": "Synchronizovat stav s příkazovou adresou",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení",
@@ -247,6 +252,7 @@
           "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
           "command_address": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav.",
           "name": "Volitelný srozumitelný název spínače.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další spínače.",
@@ -265,6 +271,7 @@
           "operate_time": "Doba chodu (s)",
           "use_state_topics": "Použít stavové adresy pro polohu",
           "name": "Název",
+          "area": "Oblast",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
         },
@@ -276,6 +283,7 @@
           "operate_time": "Počet sekund, po které má být příkaz aktivní, než se výstupy resetují a stav pohybu se vymaže.",
           "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
           "name": "Volitelný srozumitelný název krytiny.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další krytiny."
         }
@@ -287,6 +295,7 @@
           "position_state_address": "Adresa stavu pozice",
           "position_command_address": "Adresa příkazu pozice",
           "name": "Název",
+          "area": "Oblast",
           "scan_interval": "Interval skenování (s)",
           "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)",
           "add_another": "Přidat další po uložení"
@@ -295,6 +304,7 @@
           "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4).",
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
           "name": "Volitelný popisný název krytu.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepsat interval dotazování pro tyto značky v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
           "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku).",
           "add_another": "Zůstat v tomto kroku pro přidání dalších krytů s pozicí."
@@ -306,6 +316,7 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení",
           "button_pulse": "Délka pulzu"
@@ -313,6 +324,7 @@
         "data_description": {
           "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
           "name": "Volitelný srozumitelný název tlačítka.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další tlačítka.",
           "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms)."
@@ -325,6 +337,7 @@
           "state_address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "sync_state": "Synchronizovat stav s příkazovou adresou",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení",
@@ -335,6 +348,7 @@
           "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
           "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
           "name": "Volitelný srozumitelný název světla.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další světla.",
@@ -349,6 +363,7 @@
           "address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "unit_of_measurement": "Jednotka",
           "min_value": "Minimální hodnota",
@@ -362,6 +377,7 @@
           "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
           "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název číselné entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
           "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
@@ -379,6 +395,7 @@
           "address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "pattern": "Vzor (regex)",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
@@ -387,6 +404,7 @@
           "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
           "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název textové entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další textové entity."
@@ -399,6 +417,7 @@
           "address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "pattern": "Vzor (regex)",
           "scan_interval": "Interval čtení (s)"
         },
@@ -406,6 +425,7 @@
           "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
           "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název textové entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
@@ -417,12 +437,14 @@
           "address": "Adresa PLC",
           "source_entity": "Zdrojová entita",
           "name": "Název",
+          "area": "Oblast",
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
           "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
           "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
           "name": "Volitelný srozumitelný název synchronizace entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "add_another": "Zůstat v tomto kroku a přidat další synchronizace."
         }
       },
@@ -442,6 +464,7 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "value_multiplier": "Násobitel hodnoty",
           "unit_of_measurement": "Jednotka",
@@ -452,6 +475,7 @@
         "data_description": {
           "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2).",
           "name": "Volitelný srozumitelný název senzoru.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
           "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
@@ -466,6 +490,7 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "invert_state": "Invertovat stav",
           "scan_interval": "Interval čtení (s)"
@@ -473,6 +498,7 @@
         "data_description": {
           "address": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1).",
           "name": "Volitelný srozumitelný název binárního senzoru.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power).",
           "invert_state": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
@@ -485,6 +511,7 @@
           "state_address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "sync_state": "Synchronizovat stav s PLC",
           "scan_interval": "Interval čtení (s)",
           "pulse_command": "Režim pulzního příkazu",
@@ -494,6 +521,7 @@
           "state_address": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0).",
           "command_address": "Adresa v PLC pro zápis příkazů (volitelné).",
           "name": "Volitelný srozumitelný název spínače.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "pulse_command": "Když je povoleno, odešle pulz (ZAP pak VYP) namísto trvalého stavu. Užitečné pro bistabilní relé nebo klopné obvody.",
@@ -511,6 +539,7 @@
           "operate_time": "Doba chodu (s)",
           "use_state_topics": "Použít stavové adresy pro polohu",
           "name": "Název",
+          "area": "Oblast",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
@@ -521,6 +550,7 @@
           "operate_time": "Počet sekund, po které má krytina běžet, než integrace resetuje příkazové výstupy a vymaže stavové příznaky.",
           "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
           "name": "Volitelný srozumitelný název krytiny.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
@@ -531,6 +561,7 @@
           "position_state_address": "Adresa stavu pozice",
           "position_command_address": "Adresa příkazu pozice",
           "name": "Název",
+          "area": "Oblast",
           "scan_interval": "Interval skenování (s)",
           "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)"
         },
@@ -538,6 +569,7 @@
           "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100).",
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
           "name": "Volitelný popisný název krytu.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
           "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku)."
         }
@@ -548,12 +580,14 @@
         "data": {
           "address": "Adresa",
           "name": "Název",
+          "area": "Oblast",
           "button_pulse": "Délka pulzu",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
           "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
           "name": "Volitelný srozumitelný název tlačítka.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
@@ -565,6 +599,7 @@
           "state_address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "sync_state": "Synchronizovat stav s PLC",
           "scan_interval": "Interval čtení (s)",
           "pulse_command": "Režim pulsního příkazu",
@@ -574,6 +609,7 @@
           "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
           "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
           "name": "Volitelný srozumitelný název světla.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "pulse_command": "Posílat puls místo příkazů on/off. Užitečné pro bistabilní relé nebo flip-flop obvody.",
@@ -587,6 +623,7 @@
           "address": "Stavová adresa",
           "command_address": "Příkazová adresa",
           "name": "Název",
+          "area": "Oblast",
           "device_class": "Třída zařízení",
           "unit_of_measurement": "Jednotka",
           "min_value": "Minimální hodnota",
@@ -599,6 +636,7 @@
           "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4).",
           "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název číselné entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
           "unit_of_measurement": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba.",
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
@@ -614,12 +652,14 @@
         "data": {
           "address": "Adresa PLC",
           "source_entity": "Zdrojová entita",
-          "name": "Název"
+          "name": "Název",
+          "area": "Oblast"
         },
         "data_description": {
           "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
           "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
-          "name": "Volitelný srozumitelný název synchronizace entity."
+          "name": "Volitelný srozumitelný název synchronizace entity.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena."
         }
       },
       "export": {

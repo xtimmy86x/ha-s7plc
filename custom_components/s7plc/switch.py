@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
+    CONF_AREA,
     CONF_COMMAND_ADDRESS,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
@@ -52,6 +53,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), state_address
         )
+        area = item.get(CONF_AREA)
         topic = f"switch:{state_address}"
         unique_id = f"{device_id}:{topic}"
         scan_interval = item.get(CONF_SCAN_INTERVAL)
@@ -68,6 +70,7 @@ async def async_setup_entry(
                 sync_state,
                 pulse_command,
                 pulse_duration,
+                area,
             )
         )
 
@@ -87,8 +90,9 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
         state_address: str,
         command_address: str,
         sync_state: bool,
-        pulse_command: bool = False,
-        pulse_duration: float = DEFAULT_PULSE_DURATION,
+        pulse_command: bool,
+        pulse_duration: float,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -101,4 +105,5 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             sync_state=sync_state,
             pulse_command=pulse_command,
             pulse_duration=pulse_duration,
+            suggested_area_id=suggested_area_id,
         )

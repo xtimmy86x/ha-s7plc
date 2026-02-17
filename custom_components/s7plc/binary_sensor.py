@@ -13,6 +13,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import (
     CONF_ADDRESS,
+    CONF_AREA,
     CONF_BINARY_SENSORS,
     CONF_DEVICE_CLASS,
     CONF_INVERT_STATE,
@@ -44,6 +45,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(
             device_info.get("name"), address
         )
+        area = item.get(CONF_AREA)
         topic = f"binary_sensor:{address}"
         unique_id = f"{device_id}:{topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
@@ -61,6 +63,7 @@ async def async_setup_entry(
                 address,
                 device_class,
                 invert_state,
+                area,
             )
         )
 
@@ -81,6 +84,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         address: str,
         device_class: str | None,
         invert_state: bool = False,
+        suggested_area_id: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -89,6 +93,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
             device_info=device_info,
             topic=topic,
             address=address,
+            suggested_area_id=suggested_area_id,
         )
         self._invert_state = invert_state
         if device_class:

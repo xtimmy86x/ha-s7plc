@@ -48,6 +48,7 @@ OPTION_KEYS = (
 )
 
 CONF_ADDRESS = "address"
+CONF_AREA = "area"
 CONF_SOURCE_ENTITY = "source_entity"
 CONF_DEVICE_CLASS = "device_class"
 CONF_INVERT_STATE = "invert_state"

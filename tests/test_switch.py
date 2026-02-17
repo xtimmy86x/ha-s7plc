@@ -50,6 +50,8 @@ def switch_factory(mock_coordinator, device_info):
         topic: str = "switch:db1,x0.0",
         unique_id: str = "test_device:switch:db1,x0.0",
         sync_state: bool = False,
+        pulse_command: bool = False,
+        pulse_duration: float = 0.5,
     ):
         if command_address is None:
             command_address = state_address
@@ -63,6 +65,8 @@ def switch_factory(mock_coordinator, device_info):
             state_address=state_address,
             command_address=command_address,
             sync_state=sync_state,
+            pulse_command=pulse_command,
+            pulse_duration=pulse_duration,
         )
     return _create_switch
 
