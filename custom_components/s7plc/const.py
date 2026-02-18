@@ -8,6 +8,7 @@ PLATFORMS = [
     "button",
     "number",
     "text",
+    "climate",
 ]
 
 CONF_RACK = "rack"
@@ -33,6 +34,7 @@ CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
 CONF_BUTTONS = "buttons"
 CONF_TEXTS = "texts"
+CONF_CLIMATES = "climates"
 CONF_ENTITY_SYNC = "entity_sync"
 
 OPTION_KEYS = (
@@ -44,6 +46,7 @@ OPTION_KEYS = (
     CONF_BUTTONS,
     CONF_NUMBERS,
     CONF_TEXTS,
+    CONF_CLIMATES,
     CONF_ENTITY_SYNC,
 )
 
@@ -54,8 +57,6 @@ CONF_DEVICE_CLASS = "device_class"
 CONF_INVERT_STATE = "invert_state"
 CONF_STATE_ADDRESS = "state_address"
 CONF_COMMAND_ADDRESS = "command_address"
-CONF_OPEN_COMMAND_ADDRESS = "open_command_address"
-CONF_CLOSE_COMMAND_ADDRESS = "close_command_address"
 CONF_SYNC_STATE = "sync_state"
 CONF_BUTTON_PULSE = "button_pulse"
 CONF_PULSE_COMMAND = "pulse_command"
@@ -71,6 +72,10 @@ CONF_VALUE_MULTIPLIER = "value_multiplier"
 CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 CONF_STATE_CLASS = "state_class"
 CONF_REAL_PRECISION = "real_precision"
+
+# Cover entity configuration
+CONF_OPEN_COMMAND_ADDRESS = "open_command_address"
+CONF_CLOSE_COMMAND_ADDRESS = "close_command_address"
 CONF_OPENING_STATE_ADDRESS = "opening_state_address"
 CONF_CLOSING_STATE_ADDRESS = "closing_state_address"
 CONF_OPERATE_TIME = "operate_time"
@@ -78,6 +83,23 @@ CONF_USE_STATE_TOPICS = "use_state_topics"
 CONF_POSITION_STATE_ADDRESS = "position_state_address"
 CONF_POSITION_COMMAND_ADDRESS = "position_command_address"
 CONF_INVERT_POSITION = "invert_position"
+
+# Climate entity configuration
+CONF_CLIMATE_CONTROL_MODE = "control_mode"
+CONF_CURRENT_TEMPERATURE_ADDRESS = "current_temperature_address"
+CONF_TARGET_TEMPERATURE_ADDRESS = "target_temperature_address"
+CONF_HEATING_OUTPUT_ADDRESS = "heating_output_address"
+CONF_COOLING_OUTPUT_ADDRESS = "cooling_output_address"
+CONF_HEATING_ACTION_ADDRESS = "heating_action_address"
+CONF_COOLING_ACTION_ADDRESS = "cooling_action_address"
+CONF_PRESET_MODE_ADDRESS = "preset_mode_address"
+CONF_MIN_TEMP = "min_temp"
+CONF_MAX_TEMP = "max_temp"
+CONF_TEMP_STEP = "temp_step"
+
+# Climate control modes
+CONTROL_MODE_DIRECT = "direct"
+CONTROL_MODE_SETPOINT = "setpoint"
 
 DEFAULT_PORT = 102
 DEFAULT_RACK = 0
@@ -89,6 +111,9 @@ DEFAULT_PULSE_DURATION = 0.5  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds
 DEFAULT_USE_STATE_TOPICS = False  # use operate_time by default
 DEFAULT_REAL_PRECISION = 1
+DEFAULT_MIN_TEMP = 7.0  # °C
+DEFAULT_MAX_TEMP = 35.0  # °C
+DEFAULT_TEMP_STEP = 0.5  # °C
 
 CONF_OP_TIMEOUT = "operation_timeout"
 CONF_MAX_RETRIES = "max_retries"

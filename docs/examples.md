@@ -350,6 +350,55 @@ Source Entity: switch.fill_valve
 Name: Fill Valve Command Writer
 ```
 
+### Adding a Climate Entity (Direct Control)
+
+Direct control mode allows Home Assistant to manage heating and cooling outputs while reading the current temperature from the PLC.
+
+1. Open the integration and choose **Add items**.
+2. Select **Climate**, then choose **Climate (Direct Control)** and configure:
+   - **Current Temperature Address**: `DB20,REAL0` (current room temperature)
+   - **Heating Output Address**: `Q0.0` (relay for heating)
+   - **Cooling Output Address**: `Q0.1` (relay for cooling)
+   - **Heating Action Address**: Leave blank (optional feedback from PLC)
+   - **Cooling Action Address**: Leave blank (optional feedback from PLC)
+   - **Min Temperature**: 15.0
+   - **Max Temperature**: 30.0
+   - **Temperature Step**: 0.5
+   - **Name**: "Living Room Climate"
+3. Save the configuration.
+
+In this mode:
+- Home Assistant reads the current temperature from the PLC
+- Home Assistant calculates when to activate heating or cooling based on the target temperature you set
+- Home Assistant writes boolean values to the heating/cooling outputs
+- The PLC only needs to provide the temperature sensor reading and control the physical relays
+
+This mode is ideal when you want Home Assistant to handle the thermostat logic.
+
+### Adding a Climate Entity (Setpoint Control)
+
+Setpoint control mode allows the PLC to manage heating and cooling autonomously, while Home Assistant only sets the target temperature.
+
+1. Open the integration and choose **Add items**.
+2. Select **Climate**, then choose **Climate (Setpoint Control)** and configure:
+   - **Current Temperature Address**: `DB20,REAL0` (current room temperature)
+   - **Target Temperature Address**: `DB20,REAL4` (setpoint for PLC)
+   - **Preset Mode Address**: Leave blank (optional on/off control)
+   - **Min Temperature**: 15.0
+   - **Max Temperature**: 30.0
+   - **Temperature Step**: 0.5
+   - **Name**: "Bedroom Climate"
+3. Save the configuration.
+
+In this mode:
+- Home Assistant reads the current temperature from the PLC
+- Home Assistant reads the current setpoint from the PLC
+- When you change the temperature in Home Assistant, it writes the new setpoint to the PLC
+- The PLC manages all heating/cooling logic autonomously
+- Optionally, you can use the Preset Mode Address to enable/disable the climate control on the PLC
+
+This mode is ideal when the PLC already has climate control logic implemented and you just want to monitor and adjust the setpoint from Home Assistant.
+
 ## Tips and Best Practices
 
 1. **Use meaningful names**: Include location and function (e.g., "Workshop North Door" not "Door 1")

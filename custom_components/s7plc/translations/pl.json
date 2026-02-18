@@ -129,6 +129,7 @@
           "lights": "Światło",
           "numbers": "Liczba",
           "texts": "Tekst",
+          "climates": "Klimat",
           "entity_sync": "Synchronizacja encji z PLC"
         }
       },
@@ -138,6 +139,14 @@
         "menu_options": {
           "covers_traditional": "Otwórz/Zamknij",
           "covers_position": "Z pozycjonowaniem 0-100"
+        }
+      },
+      "climates": {
+        "title": "Add Climate",
+        "description": "Select the type of climate control to add.",
+        "menu_options": {
+          "climates_direct": "Klimat (Sterowanie bezpośrednie)",
+          "climates_setpoint": "Klimat (Sterowanie wartością zadaną)"
         }
       },
       "remove": {
@@ -410,6 +419,66 @@
           "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
         }
       },
+      "climates_direct": {
+        "title": "Dodaj klimat (Sterowanie bezpośrednie)",
+        "description": "Utwórz encję klimatu, w której Home Assistant bezpośrednio steruje wyjściami ogrzewania/chłodzenia. PLC dostarcza tylko odczyty temperatury.",
+        "data": {
+          "current_temperature_address": "Adres bieżącej temperatury",
+          "heating_output_address": "Adres wyjścia ogrzewania",
+          "cooling_output_address": "Adres wyjścia chłodzenia",
+          "heating_action_address": "Adres akcji ogrzewania",
+          "cooling_action_address": "Adres akcji chłodzenia",
+          "min_temp": "Temperatura minimalna",
+          "max_temp": "Temperatura maksymalna",
+          "temp_step": "Krok temperatury",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "scan_interval": "Interwał odczytu (s)",
+          "add_another": "Dodaj kolejny po zapisaniu"
+        },
+        "data_description": {
+          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adres PLC do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
+          "cooling_output_address": "Adres PLC do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
+          "heating_action_address": "Opcjonalny adres PLC do odczytu stanu akcji ogrzewania. Jeśli nie określono, akcja jest wnioskowana z trybu.",
+          "cooling_action_address": "Opcjonalny adres PLC do odczytu stanu akcji chłodzenia. Jeśli nie określono, akcja jest wnioskowana z trybu.",
+          "min_temp": "Minimalna ustawialna temperatura (°C).",
+          "max_temp": "Maksymalna ustawialna temperatura (°C).",
+          "temp_step": "Krok regulacji temperatury (°C).",
+          "name": "Opcjonalna nazwa dla encji klimatu.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
+          "add_another": "Pozostań na tym kroku, aby dodać więcej encji klimatu."
+        }
+      },
+      "climates_setpoint": {
+        "title": "Dodaj klimat (Sterowanie wartością zadaną)",
+        "description": "Utwórz encję klimatu, w której PLC autonomicznie zarządza ogrzewaniem/chłodzeniem. Home Assistant zapisuje temperaturę zadaną i odczytuje temperaturę bieżącą.",
+        "data": {
+          "current_temperature_address": "Adres bieżącej temperatury",
+          "target_temperature_address": "Adres temperatury zadanej",
+          "preset_mode_address": "Adres trybu preset",
+          "min_temp": "Temperatura minimalna",
+          "max_temp": "Temperatura maksymalna",
+          "temp_step": "Krok temperatury",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "scan_interval": "Interwał odczytu (s)",
+          "add_another": "Dodaj kolejny po zapisaniu"
+        },
+        "data_description": {
+          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adres PLC do zapisu i odczytu zadanej temperatury docelowej (np. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC (0=WYŁ, 1=AUTO). Przydatny, jeśli PLC musi włączyć/wyłączyć sterowanie klimatem.",
+          "min_temp": "Minimalna ustawialna temperatura (°C).",
+          "max_temp": "Maksymalna ustawialna temperatura (°C).",
+          "temp_step": "Krok regulacji temperatury (°C).",
+          "name": "Opcjonalna nazwa dla encji klimatu.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
+          "add_another": "Pozostań na tym kroku, aby dodać więcej encji klimatu."
+        }
+      },
       "edit_text": {
         "title": "Edytuj tekst",
         "description": "Zaktualizuj adres PLC, adres zapisu, nazwę lub wzorzec dla tej encji tekstowej.",
@@ -428,6 +497,62 @@
           "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
           "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+        }
+      },
+      "edit_climate_direct": {
+        "title": "Edytuj klimat (Sterowanie bezpośrednie)",
+        "description": "Zaktualizuj adresy, limity temperatury lub nazwę dla tej encji klimatu z bezpośrednim sterowaniem.",
+        "data": {
+          "current_temperature_address": "Adres bieżącej temperatury",
+          "heating_output_address": "Adres wyjścia ogrzewania",
+          "cooling_output_address": "Adres wyjścia chłodzenia",
+          "heating_action_address": "Adres akcji ogrzewania",
+          "cooling_action_address": "Adres akcji chłodzenia",
+          "min_temp": "Temperatura minimalna",
+          "max_temp": "Temperatura maksymalna",
+          "temp_step": "Krok temperatury",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "scan_interval": "Interwał skanowania (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adres PLC do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalne, jeśli używane jest tylko chłodzenie.",
+          "cooling_output_address": "Adres PLC do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalne, jeśli używane jest tylko ogrzewanie.",
+          "heating_action_address": "Opcjonalny adres PLC do odczytu stanu akcji ogrzewania.",
+          "cooling_action_address": "Opcjonalny adres PLC do odczytu stanu akcji chłodzenia.",
+          "min_temp": "Minimalna ustawialna temperatura (°C).",
+          "max_temp": "Maksymalna ustawialna temperatura (°C).",
+          "temp_step": "Krok regulacji temperatury (°C).",
+          "name": "Opcjonalna przyjazna nazwa dla encji klimatu.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC."
+        }
+      },
+      "edit_climate_setpoint": {
+        "title": "Edytuj klimat (Sterowanie wartością zadaną)",
+        "description": "Zaktualizuj adresy, limity temperatury lub nazwę dla tej encji klimatu ze sterowaniem wartością zadaną.",
+        "data": {
+          "current_temperature_address": "Adres bieżącej temperatury",
+          "target_temperature_address": "Adres temperatury docelowej",
+          "preset_mode_address": "Adres trybu ustawionego",
+          "min_temp": "Temperatura minimalna",
+          "max_temp": "Temperatura maksymalna",
+          "temp_step": "Krok temperatury",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "scan_interval": "Interwał skanowania (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adres PLC do zapisu i odczytu wartości zadanej temperatury docelowej (np. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC (0=WYŁ, 1=AUTO).",
+          "min_temp": "Minimalna ustawialna temperatura (°C).",
+          "max_temp": "Maksymalna ustawialna temperatura (°C).",
+          "temp_step": "Krok regulacji temperatury (°C).",
+          "name": "Opcjonalna przyjazna nazwa dla encji klimatu.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC."
         }
       },
       "entity_sync": {

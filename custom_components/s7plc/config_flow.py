@@ -43,20 +43,29 @@ from .const import (
     CONF_BINARY_SENSORS,
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
+    CONF_CLIMATE_CONTROL_MODE,
+    CONF_CLIMATES,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_CONNECTION_TYPE,
+    CONF_COOLING_ACTION_ADDRESS,
+    CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVERS,
+    CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
+    CONF_HEATING_ACTION_ADDRESS,
+    CONF_HEATING_OUTPUT_ADDRESS,
     CONF_INVERT_POSITION,
     CONF_INVERT_STATE,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
+    CONF_MAX_TEMP,
     CONF_MAX_VALUE,
+    CONF_MIN_TEMP,
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OP_TIMEOUT,
@@ -67,6 +76,7 @@ from .const import (
     CONF_PATTERN,
     CONF_POSITION_COMMAND_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
+    CONF_PRESET_MODE_ADDRESS,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_PYS7_CONNECTION_TYPE,
@@ -82,17 +92,23 @@ from .const import (
     CONF_STEP,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_TARGET_TEMPERATURE_ADDRESS,
+    CONF_TEMP_STEP,
     CONF_TEXTS,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
     CONNECTION_TYPE_RACK_SLOT,
     CONNECTION_TYPE_TSAP,
+    CONTROL_MODE_DIRECT,
+    CONTROL_MODE_SETPOINT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BUTTON_PULSE,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPERATE_TIME,
     DEFAULT_OPTIMIZE_READ,
@@ -102,6 +118,7 @@ from .const import (
     DEFAULT_RACK,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
+    DEFAULT_TEMP_STEP,
     DEFAULT_USE_STATE_TOPICS,
     DOMAIN,
     OPTION_KEYS,
@@ -270,6 +287,7 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "lights",
     "numbers",
     "texts",
+    "climates",
     "entity_sync",
 )
 
@@ -863,6 +881,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BUTTONS: list(config_entry.options.get(CONF_BUTTONS, [])),
             CONF_NUMBERS: list(config_entry.options.get(CONF_NUMBERS, [])),
             CONF_TEXTS: list(config_entry.options.get(CONF_TEXTS, [])),
+            CONF_CLIMATES: list(config_entry.options.get(CONF_CLIMATES, [])),
             CONF_ENTITY_SYNC: list(config_entry.options.get(CONF_ENTITY_SYNC, [])),
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
@@ -1665,6 +1684,145 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return item, {}
 
+    def _build_climate_direct_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'climate_direct' item from user input."""
+        # Validate current temperature address
+        current_temp_addr, errors = self._validate_address_field(
+            user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        )
+        if errors:
+            return None, errors
+
+        # At least one output address is required
+        heating_output = user_input.get(CONF_HEATING_OUTPUT_ADDRESS)
+        cooling_output = user_input.get(CONF_COOLING_OUTPUT_ADDRESS)
+
+        if not heating_output and not cooling_output:
+            return None, {
+                "base": "At least one of heating or cooling output is required"
+            }
+
+        # Validate heating output if present
+        heating_output_addr = None
+        if heating_output:
+            heating_output_addr, heat_errors = self._validate_address_field(
+                heating_output
+            )
+            if heat_errors:
+                return None, heat_errors
+
+        # Validate cooling output if present
+        cooling_output_addr = None
+        if cooling_output:
+            cooling_output_addr, cool_errors = self._validate_address_field(
+                cooling_output
+            )
+            if cool_errors:
+                return None, cool_errors
+
+        # Validate optional action addresses
+        heating_action_addr = None
+        if user_input.get(CONF_HEATING_ACTION_ADDRESS):
+            heating_action_addr, errors = self._validate_address_field(
+                user_input.get(CONF_HEATING_ACTION_ADDRESS)
+            )
+            if errors:
+                return None, errors
+
+        cooling_action_addr = None
+        if user_input.get(CONF_COOLING_ACTION_ADDRESS):
+            cooling_action_addr, errors = self._validate_address_field(
+                user_input.get(CONF_COOLING_ACTION_ADDRESS)
+            )
+            if errors:
+                return None, errors
+
+        # Build item
+        item = {
+            CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_DIRECT,
+            CONF_CURRENT_TEMPERATURE_ADDRESS: current_temp_addr,
+        }
+
+        if heating_output_addr:
+            item[CONF_HEATING_OUTPUT_ADDRESS] = heating_output_addr
+        if cooling_output_addr:
+            item[CONF_COOLING_OUTPUT_ADDRESS] = cooling_output_addr
+        if heating_action_addr:
+            item[CONF_HEATING_ACTION_ADDRESS] = heating_action_addr
+        if cooling_action_addr:
+            item[CONF_COOLING_ACTION_ADDRESS] = cooling_action_addr
+
+        # Add temperature limits
+        item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        item[CONF_MAX_TEMP] = user_input.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
+        item[CONF_TEMP_STEP] = user_input.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
+
+        # Apply scan interval
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, {}
+
+    def _build_climate_setpoint_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'climate_setpoint' item from user input."""
+        # Validate current temperature address
+        current_temp_addr, errors = self._validate_address_field(
+            user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        )
+        if errors:
+            return None, errors
+
+        # Validate target temperature address
+        target_temp_addr, errors = self._validate_address_field(
+            user_input.get(CONF_TARGET_TEMPERATURE_ADDRESS)
+        )
+        if errors:
+            return None, errors
+
+        # Validate optional preset mode address
+        preset_mode_addr = None
+        if user_input.get(CONF_PRESET_MODE_ADDRESS):
+            preset_mode_addr, errors = self._validate_address_field(
+                user_input.get(CONF_PRESET_MODE_ADDRESS)
+            )
+            if errors:
+                return None, errors
+
+        # Build item
+        item = {
+            CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+            CONF_CURRENT_TEMPERATURE_ADDRESS: current_temp_addr,
+            CONF_TARGET_TEMPERATURE_ADDRESS: target_temp_addr,
+        }
+
+        if preset_mode_addr:
+            item[CONF_PRESET_MODE_ADDRESS] = preset_mode_addr
+
+        # Add temperature limits
+        item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        item[CONF_MAX_TEMP] = user_input.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
+        item[CONF_TEMP_STEP] = user_input.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
+
+        # Apply scan interval
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, {}
+
     @staticmethod
     def _labelize(prefix: str, item: dict[str, Any]) -> str:
         name = item.get(CONF_NAME)
@@ -1679,6 +1837,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "lt": "Light",
             "nm": "Number",
             "tx": "Text",
+            "cl_d": "Climate (Direct)",
+            "cl_s": "Climate (Setpoint)",
             "wr": "Entity Sync",
         }[prefix]
         base = name or address
@@ -1761,6 +1921,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         for orig_idx, it in sorted_texts:
             items[f"tx:{orig_idx}"] = self._labelize("tx", it)
 
+        # Climates - sorted alphabetically
+        climates = self._options.get(CONF_CLIMATES, [])
+        sorted_climates = sorted(enumerate(climates), key=lambda x: get_sort_key(x[1]))
+        for orig_idx, it in sorted_climates:
+            control_mode = it.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
+            prefix = "cl_d" if control_mode == CONTROL_MODE_DIRECT else "cl_s"
+            # Override address for labelize
+            climate_item = dict(it)
+            climate_item.setdefault(
+                CONF_ADDRESS, it.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+            )
+            items[f"{prefix}:{orig_idx}"] = self._labelize(prefix, climate_item)
+
         # Entity Syncs - sorted alphabetically
         entity_syncs = self._options.get(CONF_ENTITY_SYNC, [])
         sorted_entity_syncs = sorted(
@@ -1803,9 +1976,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     return None, "invalid_json"
                 sanitized[key].append(dict(item))
 
+            # Log imported items for each key
+            if sanitized[key]:
+                _LOGGER.info("Import: %s = %d items", key, len(sanitized[key]))
+
         # Validate for duplicate addresses within each entity type
         if not self._validate_import_duplicates(sanitized):
+            _LOGGER.warning("Import failed: duplicate addresses found")
             return None, "duplicate_addresses_in_import"
+
+        _LOGGER.info(
+            "Import validation successful, total climate items: %d",
+            len(sanitized.get(CONF_CLIMATES, [])),
+        )
 
         # Preserve any other option keys currently in use to avoid losing data.
         for key, value in self._options.items():
@@ -1836,6 +2019,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_BUTTONS: (CONF_ADDRESS,),
             CONF_NUMBERS: (CONF_ADDRESS,),
             CONF_TEXTS: (CONF_ADDRESS,),
+            CONF_CLIMATES: (
+                CONF_CURRENT_TEMPERATURE_ADDRESS,
+                CONF_TARGET_TEMPERATURE_ADDRESS,
+                CONF_HEATING_OUTPUT_ADDRESS,
+                CONF_COOLING_OUTPUT_ADDRESS,
+            ),
             CONF_ENTITY_SYNC: (CONF_ADDRESS,),
         }
 
@@ -2594,6 +2783,146 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="texts", data_schema=data_schema)
 
+    # ====== ADD: climates ======
+    async def async_step_climates(self, user_input: dict[str, Any] | None = None):
+        """Show menu to choose between direct or setpoint climate control."""
+        _LOGGER.debug(f"async_step_climates called with user_input={user_input}")
+        if user_input is None:
+            _LOGGER.debug("Showing climates type selection menu")
+            return self.async_show_menu(
+                step_id="climates",
+                menu_options=["climates_direct", "climates_setpoint"],
+            )
+
+        selection = user_input.get("menu_option") or ""
+        _LOGGER.debug(f"User selected climate type: {selection}")
+
+        if selection == "climates_direct":
+            return await self.async_step_climates_direct()
+        elif selection == "climates_setpoint":
+            return await self.async_step_climates_setpoint()
+
+        _LOGGER.warning(f"Invalid climate type selection: {selection}")
+        return await self.async_step_climates()
+
+    # ====== ADD: climates_direct ======
+    async def async_step_climates_direct(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_HEATING_OUTPUT_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_COOLING_OUTPUT_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_HEATING_ACTION_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_COOLING_ACTION_ADDRESS): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_climate_direct_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="climates_direct", data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[CONF_CLIMATES].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_climates_direct()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="climates_direct", data_schema=data_schema)
+
+    # ====== ADD: climates_setpoint ======
+    async def async_step_climates_setpoint(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        errors: dict[str, str] = {}
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_TARGET_TEMPERATURE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_PRESET_MODE_ADDRESS): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_climate_setpoint_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="climates_setpoint", data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[CONF_CLIMATES].append(item)
+
+            if user_input.get("add_another"):
+                return await self.async_step_climates_setpoint()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="climates_setpoint", data_schema=data_schema
+        )
+
     # ====== ADD: entity_sync ======
     async def async_step_entity_sync(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
@@ -2732,8 +3061,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     "bt": CONF_BUTTONS,
                     "lt": CONF_LIGHTS,
                     "nm": CONF_NUMBERS,
-                    "wr": CONF_ENTITY_SYNC,
                     "tx": CONF_TEXTS,
+                    "cl_d": CONF_CLIMATES,  # Direct control climate
+                    "cl_s": CONF_CLIMATES,  # Setpoint control climate
+                    "wr": CONF_ENTITY_SYNC,
                 }
 
                 # Build set of indices to remove for each prefix (safe parsing)
@@ -2823,6 +3154,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_number()
         if prefix == "tx":
             return await self.async_step_edit_text()
+        if prefix == "cl_d":
+            return await self.async_step_edit_climate_direct()
+        if prefix == "cl_s":
+            return await self.async_step_edit_climate_setpoint()
         if prefix == "wr":
             return await self.async_step_edit_writer()
 
@@ -3377,6 +3712,164 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             build_schema=build_schema,
             process_input=process_input,
             step_id="edit_text",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: climate_direct ======
+    async def async_step_edit_climate_direct(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_CURRENT_TEMPERATURE_ADDRESS,
+                    default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_HEATING_OUTPUT_ADDRESS,
+                    default=item.get(CONF_HEATING_OUTPUT_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COOLING_OUTPUT_ADDRESS,
+                    default=item.get(CONF_COOLING_OUTPUT_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_HEATING_ACTION_ADDRESS,
+                    default=item.get(CONF_HEATING_ACTION_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_COOLING_ACTION_ADDRESS,
+                    default=item.get(CONF_COOLING_ACTION_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_TEMP,
+                    default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_MAX_TEMP,
+                    default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_TEMP_STEP,
+                    default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_climate_direct_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_CLIMATES,
+            prefix="cl_d",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_climate_direct",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: climate_setpoint ======
+    async def async_step_edit_climate_setpoint(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_CURRENT_TEMPERATURE_ADDRESS,
+                    default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Required(
+                    CONF_TARGET_TEMPERATURE_ADDRESS,
+                    default=item.get(CONF_TARGET_TEMPERATURE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_PRESET_MODE_ADDRESS,
+                    default=item.get(CONF_PRESET_MODE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_MIN_TEMP,
+                    default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_MAX_TEMP,
+                    default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_TEMP_STEP,
+                    default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+            }
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_climate_setpoint_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_CLIMATES,
+            prefix="cl_s",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_climate_setpoint",
             user_input=user_input,
         )
 

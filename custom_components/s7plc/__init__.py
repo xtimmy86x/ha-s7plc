@@ -19,9 +19,12 @@ from .const import (
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
     CONF_BUTTONS,
+    CONF_CLIMATE_CONTROL_MODE,
+    CONF_CLIMATES,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_CONNECTION_TYPE,
     CONF_COVERS,
+    CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
     CONF_LIGHTS,
@@ -42,6 +45,8 @@ from .const import (
     CONF_SWITCHES,
     CONF_TEXTS,
     CONNECTION_TYPE_TSAP,
+    CONTROL_MODE_DIRECT,
+    CONTROL_MODE_SETPOINT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_ENABLE_WRITE_BATCHING,
@@ -320,6 +325,21 @@ async def _async_check_orphaned_entities(
         if address:
             expected_unique_ids.add(f"{device_id}:text:{address}")
 
+    # Climates - format: device_id:climate_direct:current_temp_address
+    # or device_id:climate_setpoint:current_temp_address
+    for item in options.get("climates", []):
+        current_temp_address = item.get("current_temperature_address", "")
+        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
+        if current_temp_address:
+            if control_mode == CONTROL_MODE_DIRECT:
+                expected_unique_ids.add(
+                    f"{device_id}:climate_direct:{current_temp_address}"
+                )
+            else:
+                expected_unique_ids.add(
+                    f"{device_id}:climate_setpoint:{current_temp_address}"
+                )
+
     # Entity syncs - format: device_id:entity_sync:address
     for item in options.get("entity_sync", []):
         address = item.get("address", "")
@@ -499,6 +519,18 @@ async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) ->
             unique_id = f"{device_id}:entity_sync:{address}"
             entity_areas[unique_id] = area
 
+    # Climates
+    for item in options.get(CONF_CLIMATES, []):
+        current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
+        area = item.get(CONF_AREA)
+        if current_temp_address:
+            if control_mode == CONTROL_MODE_DIRECT:
+                unique_id = f"{device_id}:climate_direct:{current_temp_address}"
+            else:
+                unique_id = f"{device_id}:climate_setpoint:{current_temp_address}"
+            entity_areas[unique_id] = area
+
     # Update areas in entity registry
     for unique_id, area_id in entity_areas.items():
         entity_entry = entity_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
@@ -512,6 +544,7 @@ async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) ->
                 "light",
                 "number",
                 "text",
+                "climate",
             ]:
                 entity_entry = entity_reg.async_get_entity_id(
                     platform, DOMAIN, unique_id

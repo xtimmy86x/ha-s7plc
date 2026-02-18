@@ -129,6 +129,7 @@
           "lights": "Light",
           "numbers": "Number",
           "texts": "Text",
+          "climates": "Climate",
           "entity_sync": "Entity to PLC Sync"
         }
       },
@@ -138,6 +139,14 @@
         "menu_options": {
           "covers_traditional": "Cover (Open/Close)",
           "covers_position": "Cover (Position 0-100)"
+        }
+      },
+      "climates": {
+        "title": "Add Climate",
+        "description": "Select the type of climate control to add.",
+        "menu_options": {
+          "climates_direct": "Climate (Direct Control)",
+          "climates_setpoint": "Climate (Setpoint Control)"
         }
       },
       "remove": {
@@ -428,6 +437,122 @@
           "area": "Home Assistant area to assign this entity to.",
           "pattern": "Optional regex pattern to validate the text input.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "edit_climate_direct": {
+        "title": "Edit Climate (Direct Control)",
+        "description": "Update the addresses, temperature limits, or name for this direct control climate entity.",
+        "data": {
+          "current_temperature_address": "Current temperature address",
+          "heating_output_address": "Heating output address",
+          "cooling_output_address": "Cooling output address",
+          "heating_action_address": "Heating action address",
+          "cooling_action_address": "Cooling action address",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "temp_step": "Temperature step",
+          "name": "Name",
+          "area": "Area",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "PLC address to control heating output (e.g., Q0.0, DB1,X0.0). Optional if only cooling is used.",
+          "cooling_output_address": "PLC address to control cooling output (e.g., Q0.1, DB1,X0.1). Optional if only heating is used.",
+          "heating_action_address": "Optional PLC address to read heating action state.",
+          "cooling_action_address": "Optional PLC address to read cooling action state.",
+          "min_temp": "Minimum settable temperature (°C).",
+          "max_temp": "Maximum settable temperature (°C).",
+          "temp_step": "Temperature adjustment step (°C).",
+          "name": "Optional friendly name for the climate entity.",
+          "area": "Home Assistant area to assign this entity to.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "edit_climate_setpoint": {
+        "title": "Edit Climate (Setpoint Control)",
+        "description": "Update the addresses, temperature limits, or name for this setpoint control climate entity.",
+        "data": {
+          "current_temperature_address": "Current temperature address",
+          "target_temperature_address": "Target temperature address",
+          "preset_mode_address": "Preset mode address",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "temp_step": "Temperature step",
+          "name": "Name",
+          "area": "Area",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Optional PLC address to write HVAC mode (0=OFF, 1=AUTO).",
+          "min_temp": "Minimum settable temperature (°C).",
+          "max_temp": "Maximum settable temperature (°C).",
+          "temp_step": "Temperature adjustment step (°C).",
+          "name": "Optional friendly name for the climate entity.",
+          "area": "Home Assistant area to assign this entity to.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "climates_direct": {
+        "title": "Add Climate (Direct Control)",
+        "description": "Create a climate entity where Home Assistant controls heating/cooling outputs directly. The PLC provides temperature readings only.",
+        "data": {
+          "current_temperature_address": "Current temperature address",
+          "heating_output_address": "Heating output address",
+          "cooling_output_address": "Cooling output address",
+          "heating_action_address": "Heating action address",
+          "cooling_action_address": "Cooling action address",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "temp_step": "Temperature step",
+          "name": "Name",
+          "area": "Area",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "PLC address to control heating output (e.g., Q0.0, DB1,X0.0). Optional if only cooling is used.",
+          "cooling_output_address": "PLC address to control cooling output (e.g., Q0.1, DB1,X0.1). Optional if only heating is used.",
+          "heating_action_address": "Optional PLC address to read heating action state. If not specified, action is inferred from mode.",
+          "cooling_action_address": "Optional PLC address to read cooling action state. If not specified, action is inferred from mode.",
+          "min_temp": "Minimum settable temperature (°C).",
+          "max_temp": "Maximum settable temperature (°C).",
+          "temp_step": "Temperature adjustment step (°C).",
+          "name": "Optional friendly name for the climate entity.",
+          "area": "Home Assistant area to assign this entity to.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more climate entities."
+        }
+      },
+      "climates_setpoint": {
+        "title": "Add Climate (Setpoint Control)",
+        "description": "Create a climate entity where the PLC manages heating/cooling autonomously. Home Assistant writes the target temperature and reads the current temperature.",
+        "data": {
+          "current_temperature_address": "Current temperature address",
+          "target_temperature_address": "Target temperature address",
+          "preset_mode_address": "Preset mode address",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "temp_step": "Temperature step",
+          "name": "Name",
+          "area": "Area",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Optional PLC address to write HVAC mode (0=OFF, 1=AUTO). Useful if the PLC needs to enable/disable climate control.",
+          "min_temp": "Minimum settable temperature (°C).",
+          "max_temp": "Maximum settable temperature (°C).",
+          "temp_step": "Temperature adjustment step (°C).",
+          "name": "Optional friendly name for the climate entity.",
+          "area": "Home Assistant area to assign this entity to.",
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more climate entities."
         }
       },
       "entity_sync": {

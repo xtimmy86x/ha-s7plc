@@ -129,6 +129,7 @@
           "lights": "Luce",
           "numbers": "Numero",
           "texts": "Testo",
+          "climates": "Clima",
           "entity_sync": "Sincronizzazione Entità verso PLC"
         }
       },
@@ -138,6 +139,14 @@
         "menu_options": {
           "covers_traditional": "Copertura (Apri/Chiudi)",
           "covers_position": "Copertura (Posizione 0-100)"
+        }
+      },
+      "climates": {
+        "title": "Aggiungi Clima",
+        "description": "Seleziona il tipo di controllo climatico da aggiungere.",
+        "menu_options": {
+          "climates_direct": "Clima (Controllo Diretto)",
+          "climates_setpoint": "Clima (Controllo Setpoint)"
         }
       },
       "remove": {
@@ -410,6 +419,66 @@
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo testo."
         }
       },
+      "climates_direct": {
+        "title": "Aggiungi Clima (Controllo Diretto)",
+        "description": "Crea un'entità clima in cui Home Assistant controlla direttamente le uscite di riscaldamento/raffreddamento. Il PLC fornisce solo le letture della temperatura.",
+        "data": {
+          "current_temperature_address": "Indirizzo temperatura corrente",
+          "heating_output_address": "Indirizzo uscita riscaldamento",
+          "cooling_output_address": "Indirizzo uscita raffreddamento",
+          "heating_action_address": "Indirizzo azione riscaldamento",
+          "cooling_action_address": "Indirizzo azione raffreddamento",
+          "min_temp": "Temperatura minima",
+          "max_temp": "Temperatura massima",
+          "temp_step": "Passo temperatura",
+          "name": "Nome",
+          "area": "Area",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
+          "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
+          "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento. Se non specificato, l'azione viene dedotta dalla modalità.",
+          "cooling_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di raffreddamento. Se non specificato, l'azione viene dedotta dalla modalità.",
+          "min_temp": "Temperatura minima impostabile (°C).",
+          "max_temp": "Temperatura massima impostabile (°C).",
+          "temp_step": "Passo di regolazione della temperatura (°C).",
+          "name": "Nome descrittivo opzionale per l'entità clima.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità clima."
+        }
+      },
+      "climates_setpoint": {
+        "title": "Aggiungi Clima (Controllo Setpoint)",
+        "description": "Crea un'entità clima in cui il PLC gestisce riscaldamento/raffreddamento autonomamente. Home Assistant scrive la temperatura target e legge la temperatura corrente.",
+        "data": {
+          "current_temperature_address": "Indirizzo temperatura corrente",
+          "target_temperature_address": "Indirizzo temperatura target",
+          "preset_mode_address": "Indirizzo modalità preset",
+          "min_temp": "Temperatura minima",
+          "max_temp": "Temperatura massima",
+          "temp_step": "Passo temperatura",
+          "name": "Nome",
+          "area": "Area",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC (0=OFF, 1=AUTO). Utile se il PLC deve abilitare/disabilitare il controllo climatico.",
+          "min_temp": "Temperatura minima impostabile (°C).",
+          "max_temp": "Temperatura massima impostabile (°C).",
+          "temp_step": "Passo di regolazione della temperatura (°C).",
+          "name": "Nome descrittivo opzionale per l'entità clima.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "add_another": "Rimani in questa schermata per aggiungere altre entità clima."
+        }
+      },
       "entity_sync": {
         "title": "Aggiungi Entity Sync",
         "description": "Crea un Entity Sync che monitora un'entità di Home Assistant e scrive automaticamente il suo valore al PLC.",
@@ -644,6 +713,62 @@
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "pattern": "Pattern regex opzionale per validare l'input testo.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Lascia vuoto per usare l'intervallo predefinito del PLC."
+        }
+      },
+      "edit_climate_direct": {
+        "title": "Modifica Clima (Controllo Diretto)",
+        "description": "Aggiorna gli indirizzi, i limiti di temperatura o il nome per questa entità clima a controllo diretto.",
+        "data": {
+          "current_temperature_address": "Indirizzo temperatura corrente",
+          "heating_output_address": "Indirizzo uscita riscaldamento",
+          "cooling_output_address": "Indirizzo uscita raffreddamento",
+          "heating_action_address": "Indirizzo azione riscaldamento",
+          "cooling_action_address": "Indirizzo azione raffreddamento",
+          "min_temp": "Temperatura minima",
+          "max_temp": "Temperatura massima",
+          "temp_step": "Passo temperatura",
+          "name": "Nome",
+          "area": "Area",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
+          "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
+          "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento.",
+          "cooling_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di raffreddamento.",
+          "min_temp": "Temperatura minima impostabile (°C).",
+          "max_temp": "Temperatura massima impostabile (°C).",
+          "temp_step": "Passo di regolazione della temperatura (°C).",
+          "name": "Nome descrittivo opzionale per l'entità clima.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      },
+      "edit_climate_setpoint": {
+        "title": "Modifica Clima (Controllo Setpoint)",
+        "description": "Aggiorna gli indirizzi, i limiti di temperatura o il nome per questa entità clima a controllo setpoint.",
+        "data": {
+          "current_temperature_address": "Indirizzo temperatura corrente",
+          "target_temperature_address": "Indirizzo temperatura target",
+          "preset_mode_address": "Indirizzo modalità preset",
+          "min_temp": "Temperatura minima",
+          "max_temp": "Temperatura massima",
+          "temp_step": "Passo temperatura",
+          "name": "Nome",
+          "area": "Area",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC (0=OFF, 1=AUTO).",
+          "min_temp": "Temperatura minima impostabile (°C).",
+          "max_temp": "Temperatura massima impostabile (°C).",
+          "temp_step": "Passo di regolazione della temperatura (°C).",
+          "name": "Nome descrittivo opzionale per l'entità clima.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
       },
       "edit_writer": {

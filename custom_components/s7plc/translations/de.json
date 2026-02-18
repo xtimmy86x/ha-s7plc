@@ -129,6 +129,7 @@
           "lights": "Licht",
           "numbers": "Nummer",
           "texts": "Text",
+          "climates": "Klima",
           "entity_sync": "Entität zu SPS-Synchronisierung"
         }
       },
@@ -138,6 +139,14 @@
         "menu_options": {
           "covers_traditional": "Abdeckung (Öffnen/Schließen)",
           "covers_position": "Abdeckung (Position 0-100)"
+        }
+      },
+      "climates": {
+        "title": "Add Climate",
+        "description": "Select the type of climate control to add.",
+        "menu_options": {
+          "climates_direct": "Klima (Direkte Steuerung)",
+          "climates_setpoint": "Klima (Sollwertsteuerung)"
         }
       },
       "remove": {
@@ -410,6 +419,66 @@
           "add_another": "Weitere Textentitäten hinzuzufügen ?"
         }
       },
+      "climates_direct": {
+        "title": "Klima hinzufügen (Direkte Steuerung)",
+        "description": "Erstellen Sie eine Klima-Entität, bei der Home Assistant die Heiz-/Kühlausgänge direkt steuert. Die SPS liefert nur Temperaturwerte.",
+        "data": {
+          "current_temperature_address": "Aktuelle Temperaturadresse",
+          "heating_output_address": "Heizungsausgangsadresse",
+          "cooling_output_address": "Kühlungsausgangsadresse",
+          "heating_action_address": "Heizungsaktionsadresse",
+          "cooling_action_address": "Kühlungsaktionsadresse",
+          "min_temp": "Mindesttemperatur",
+          "max_temp": "Maximaltemperatur",
+          "temp_step": "Temperaturschritt",
+          "name": "Name",
+          "area": "Bereich",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
+          "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
+          "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet.",
+          "cooling_action_address": "Optionale SPS-Adresse zum Lesen des Kühlungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet.",
+          "min_temp": "Minimal einstellbare Temperatur (°C).",
+          "max_temp": "Maximal einstellbare Temperatur (°C).",
+          "temp_step": "Temperaturanpassungsschritt (°C).",
+          "name": "Optionaler Name für die Klima-Entität.",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "scan_interval": "Überschreibt das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Auf dieser Seite bleiben, um weitere Klima-Entitäten hinzuzufügen."
+        }
+      },
+      "climates_setpoint": {
+        "title": "Klima hinzufügen (Sollwertsteuerung)",
+        "description": "Erstellen Sie eine Klima-Entität, bei der die SPS Heizung/Kühlung autonom verwaltet. Home Assistant schreibt die Zieltemperatur und liest die aktuelle Temperatur.",
+        "data": {
+          "current_temperature_address": "Aktuelle Temperaturadresse",
+          "target_temperature_address": "Zieltemperaturadresse",
+          "preset_mode_address": "Voreinstellungsmodusadresse",
+          "min_temp": "Mindesttemperatur",
+          "max_temp": "Maximaltemperatur",
+          "temp_step": "Temperaturschritt",
+          "name": "Name",
+          "area": "Bereich",
+          "scan_interval": "Scan-Intervall (s)",
+          "add_another": "Nach dem Speichern weitere hinzufügen"
+        },
+        "data_description": {
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus (0=AUS, 1=AUTO). Nützlich, wenn die SPS die Klimaregelung aktivieren/deaktivieren muss.",
+          "min_temp": "Minimal einstellbare Temperatur (°C).",
+          "max_temp": "Maximal einstellbare Temperatur (°C).",
+          "temp_step": "Temperaturanpassungsschritt (°C).",
+          "name": "Optionaler Name für die Klima-Entität.",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "scan_interval": "Überschreibt das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Auf dieser Seite bleiben, um weitere Klima-Entitäten hinzuzufügen."
+        }
+      },
       "edit_text": {
         "title": "Text bearbeiten",
         "description": "Aktualisieren Sie die SPS-Adresse, Befehlsvariable, Name oder Muster für diese Textentität.",
@@ -428,6 +497,62 @@
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "pattern": "Regex-Muster zur Validierung der Texteingabe (optional).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_climate_direct": {
+        "title": "Klima bearbeiten (Direkte Steuerung)",
+        "description": "Aktualisieren Sie die Adressen, Temperaturgrenzen oder den Namen für diese direkt gesteuerte Klima-Entität.",
+        "data": {
+          "current_temperature_address": "Aktuelle Temperaturadresse",
+          "heating_output_address": "Heizungsausgangsadresse",
+          "cooling_output_address": "Kühlungsausgangsadresse",
+          "heating_action_address": "Heizungsaktion-Adresse",
+          "cooling_action_address": "Kühlungsaktion-Adresse",
+          "min_temp": "Mindesttemperatur",
+          "max_temp": "Maximaltemperatur",
+          "temp_step": "Temperaturschritt",
+          "name": "Name",
+          "area": "Bereich",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
+          "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
+          "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus.",
+          "cooling_action_address": "Optionale SPS-Adresse zum Lesen des Kühlungsaktionsstatus.",
+          "min_temp": "Minimal einstellbare Temperatur (°C).",
+          "max_temp": "Maximal einstellbare Temperatur (°C).",
+          "temp_step": "Temperatureinstellungsschritt (°C).",
+          "name": "Optionaler Anzeigename für die Klima-Entität.",
+          "area": "Home Assistant-Bereich, dem diese Entität zugewiesen werden soll.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_climate_setpoint": {
+        "title": "Klima bearbeiten (Sollwertsteuerung)",
+        "description": "Aktualisieren Sie die Adressen, Temperaturgrenzen oder den Namen für diese sollwertgesteuerte Klima-Entität.",
+        "data": {
+          "current_temperature_address": "Aktuelle Temperaturadresse",
+          "target_temperature_address": "Zieltemperaturadresse",
+          "preset_mode_address": "Voreinstellungsmodusadresse",
+          "min_temp": "Mindesttemperatur",
+          "max_temp": "Maximaltemperatur",
+          "temp_step": "Temperaturschritt",
+          "name": "Name",
+          "area": "Bereich",
+          "scan_interval": "Scan-Intervall (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus (0=AUS, 1=AUTO).",
+          "min_temp": "Minimal einstellbare Temperatur (°C).",
+          "max_temp": "Maximal einstellbare Temperatur (°C).",
+          "temp_step": "Temperatureinstellungsschritt (°C).",
+          "name": "Optionaler Anzeigename für die Klima-Entität.",
+          "area": "Home Assistant-Bereich, dem diese Entität zugewiesen werden soll.",
+          "scan_interval": "Überschreiben Sie das Abfrageintervall für diese Tags in Sekunden. Leer lassen, um den SPS-Standard zu übernehmen."
         }
       },
       "entity_sync": {

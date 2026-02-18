@@ -129,6 +129,7 @@
           "lights": "Světlo",
           "numbers": "Číslo",
           "texts": "Text",
+          "climates": "Klimatizace",
           "entity_sync": "Synchronizace entity do PLC"
         }
       },
@@ -138,6 +139,14 @@
         "menu_options": {
           "covers_traditional": "Kryt (Otevřít/Zavřít)",
           "covers_position": "Kryt (Pozice 0-100)"
+        }
+      },
+      "climates": {
+        "title": "Add Climate",
+        "description": "Select the type of climate control to add.",
+        "menu_options": {
+          "climates_direct": "Klimatizace (Přímé řízení)",
+          "climates_setpoint": "Klimatizace (Řízení nastavením)"
         }
       },
       "remove": {
@@ -410,6 +419,66 @@
           "add_another": "Zůstat v tomto kroku a přidat další textové entity."
         }
       },
+      "climates_direct": {
+        "title": "Přidat klimatizaci (Přímé řízení)",
+        "description": "Vytvořte entitu klimatizace, kde Home Assistant přímo ovládá výstupy topení/chlazení. PLC poskytuje pouze hodnoty teploty.",
+        "data": {
+          "current_temperature_address": "Adresa aktuální teploty",
+          "heating_output_address": "Adresa výstupu topení",
+          "cooling_output_address": "Adresa výstupu chlazení",
+          "heating_action_address": "Adresa akce topení",
+          "cooling_action_address": "Adresa akce chlazení",
+          "min_temp": "Minimální teplota",
+          "max_temp": "Maximální teplota",
+          "temp_step": "Krok teploty",
+          "name": "Název",
+          "area": "Oblast",
+          "scan_interval": "Interval čtení (s)",
+          "add_another": "Přidat další po uložení"
+        },
+        "data_description": {
+          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adresa PLC pro ovládání výstupu topení (např. Q0.0, DB1,X0.0). Volitelné, pokud se používá pouze chlazení.",
+          "cooling_output_address": "Adresa PLC pro ovládání výstupu chlazení (např. Q0.1, DB1,X0.1). Volitelné, pokud se používá pouze topení.",
+          "heating_action_address": "Volitelná adresa PLC pro čtení stavu akce topení. Pokud není uvedena, akce je odvozena z režimu.",
+          "cooling_action_address": "Volitelná adresa PLC pro čtení stavu akce chlazení. Pokud není uvedena, akce je odvozena z režimu.",
+          "min_temp": "Minimální nastavitelná teplota (°C).",
+          "max_temp": "Maximální nastavitelná teplota (°C).",
+          "temp_step": "Krok nastavení teploty (°C).",
+          "name": "Volitelný název pro entitu klimatizace.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+          "add_another": "Zůstaňte na tomto kroku pro přidání dalších entit klimatizace."
+        }
+      },
+      "climates_setpoint": {
+        "title": "Přidat klimatizaci (Řízení nastavením)",
+        "description": "Vytvořte entitu klimatizace, kde PLC autonomně spravuje topení/chlazení. Home Assistant zapisuje cílovou teplotu a čte aktuální teplotu.",
+        "data": {
+          "current_temperature_address": "Adresa aktuální teploty",
+          "target_temperature_address": "Adresa cílové teploty",
+          "preset_mode_address": "Adresa režimu předvolby",
+          "min_temp": "Minimální teplota",
+          "max_temp": "Maximální teplota",
+          "temp_step": "Krok teploty",
+          "name": "Název",
+          "area": "Oblast",
+          "scan_interval": "Interval čtení (s)",
+          "add_another": "Přidat další po uložení"
+        },
+        "data_description": {
+          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adresa PLC pro zápis a čtení nastavené cílové teploty (např. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Volitelná adresa PLC pro zápis režimu HVAC (0=VYP, 1=AUTO). Užitečné, pokud PLC potřebuje povolit/zakázat řízení klimatizace.",
+          "min_temp": "Minimální nastavitelná teplota (°C).",
+          "max_temp": "Maximální nastavitelná teplota (°C).",
+          "temp_step": "Krok nastavení teploty (°C).",
+          "name": "Volitelný název pro entitu klimatizace.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+          "add_another": "Zůstaňte na tomto kroku pro přidání dalších entit klimatizace."
+        }
+      },
       "edit_text": {
         "title": "Upravit text",
         "description": "Aktualizujte adresu PLC, příkazovou adresu, název nebo vzor pro tuto textovou entitu.",
@@ -428,6 +497,62 @@
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "pattern": "Volitelný regex vzor pro validaci textového vstupu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+        }
+      },
+      "edit_climate_direct": {
+        "title": "Upravit klimatizaci (Přímé řízení)",
+        "description": "Aktualizujte adresy, teplotní limity nebo název pro tuto klimatizační entitu s přímým řízením.",
+        "data": {
+          "current_temperature_address": "Adresa aktuální teploty",
+          "heating_output_address": "Adresa výstupu topeni",
+          "cooling_output_address": "Adresa výstupu chlazeni",
+          "heating_action_address": "Adresa akce topeni",
+          "cooling_action_address": "Adresa akce chlazeni",
+          "min_temp": "Minimální teplota",
+          "max_temp": "Maximální teplota",
+          "temp_step": "Krok teploty",
+          "name": "Název",
+          "area": "Oblast",
+          "scan_interval": "Interval skenování (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adresa v PLC pro ovládání výstupu topeni (např. Q0.0, DB1,X0.0). Volitelné, pokud se používá pouze chlazení.",
+          "cooling_output_address": "Adresa v PLC pro ovládání výstupu chlazení (např. Q0.1, DB1,X0.1). Volitelné, pokud se používá pouze topeni.",
+          "heating_action_address": "Volitelná adresa v PLC pro čtení stavu akce topeni.",
+          "cooling_action_address": "Volitelná adresa v PLC pro čtení stavu akce chlazení.",
+          "min_temp": "Minimální nastavitelná teplota (°C).",
+          "max_temp": "Maximální nastavitelná teplota (°C).",
+          "temp_step": "Krok nastavení teploty (°C).",
+          "name": "Volitelný přívětivý název pro entitu klimatizace.",
+          "area": "Oblast Home Assistant, ke které má být tato entita přiřazena.",
+          "scan_interval": "Přepsat interval dotazování pro tyto tagy v sekundách. Ponechte prázdné pro zdědění výchozího nastavení PLC."
+        }
+      },
+      "edit_climate_setpoint": {
+        "title": "Upravit klimatizaci (Řízení nastavením)",
+        "description": "Aktualizujte adresy, teplotní limity nebo název pro tuto klimatizační entitu s řízením nastavením.",
+        "data": {
+          "current_temperature_address": "Adresa aktuální teploty",
+          "target_temperature_address": "Adresa cílové teploty",
+          "preset_mode_address": "Adresa předvoleného režimu",
+          "min_temp": "Minimální teplota",
+          "max_temp": "Maximální teplota",
+          "temp_step": "Krok teploty",
+          "name": "Název",
+          "area": "Oblast",
+          "scan_interval": "Interval skenování (s)"
+        },
+        "data_description": {
+          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adresa v PLC pro zápis a čtení cílové teploty (např. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Volitelná adresa v PLC pro zápis režimu HVAC (0=VYPNUTO, 1=AUTO).",
+          "min_temp": "Minimální nastavitelná teplota (°C).",
+          "max_temp": "Maximální nastavitelná teplota (°C).",
+          "temp_step": "Krok nastavení teploty (°C).",
+          "name": "Volitelný přívětivý název pro entitu klimatizace.",
+          "area": "Oblast Home Assistant, ke které má být tato entita přiřazena.",
+          "scan_interval": "Přepsat interval dotazování pro tyto tagy v sekundách. Ponechte prázdné pro zdědění výchozího nastavení PLC."
         }
       },
       "entity_sync": {

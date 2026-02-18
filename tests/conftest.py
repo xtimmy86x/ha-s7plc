@@ -386,6 +386,10 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
 
     def async_write_ha_state(self):
         self._ha_state_calls += 1
+    
+    async def async_added_to_hass(self):
+        """Called when entity is added to hass."""
+        pass
 
 
 update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
@@ -517,6 +521,22 @@ area_registry.MockAreaRegistry = MockAreaRegistry
 area_registry.MockAreaEntry = MockAreaEntry
 sys.modules["homeassistant.helpers.area_registry"] = area_registry
 helpers.area_registry = area_registry
+
+# helpers.restore_state module
+restore_state = ModuleType("homeassistant.helpers.restore_state")
+
+
+class RestoreEntity:  # pragma: no cover - stub implementation
+    """Mock RestoreEntity for testing."""
+    
+    async def async_get_last_state(self):
+        """Return None for last state in tests (no restored state)."""
+        return None
+
+
+restore_state.RestoreEntity = RestoreEntity
+sys.modules["homeassistant.helpers.restore_state"] = restore_state
+helpers.restore_state = restore_state
 
 # helpers.issue_registry module
 issue_registry = ModuleType("homeassistant.helpers.issue_registry")
@@ -858,6 +878,54 @@ cover.CoverEntity = CoverEntity
 cover.CoverDeviceClass = CoverDeviceClass
 sys.modules["homeassistant.components.cover"] = cover
 components.cover = cover
+
+
+class ClimateEntityFeature:  # pragma: no cover - simple stub
+    """Minimal ClimateEntityFeature stub."""
+    TARGET_TEMPERATURE = 1
+    TARGET_TEMPERATURE_RANGE = 2
+    TARGET_HUMIDITY = 4
+    FAN_MODE = 8
+    PRESET_MODE = 16
+    SWING_MODE = 32
+    AUX_HEAT = 64
+
+
+class HVACMode(Enum):  # pragma: no cover - simple stub
+    """HVAC modes."""
+    OFF = "off"
+    HEAT = "heat"
+    COOL = "cool"
+    HEAT_COOL = "heat_cool"
+    AUTO = "auto"
+    DRY = "dry"
+    FAN_ONLY = "fan_only"
+
+
+class HVACAction(Enum):  # pragma: no cover - simple stub
+    """HVAC actions."""
+    OFF = "off"
+    HEATING = "heating"
+    COOLING = "cooling"
+    DRYING = "drying"
+    IDLE = "idle"
+    FAN = "fan"
+
+
+class ClimateEntity:  # pragma: no cover - simple stub
+    """Minimal ClimateEntity stub."""
+    pass
+
+
+climate = ModuleType("homeassistant.components.climate")
+climate.ATTR_HVAC_MODE = "hvac_mode"
+climate.ATTR_TEMPERATURE = "temperature"
+climate.ClimateEntity = ClimateEntity
+climate.ClimateEntityFeature = ClimateEntityFeature
+climate.HVACMode = HVACMode
+climate.HVACAction = HVACAction
+sys.modules["homeassistant.components.climate"] = climate
+components.climate = climate
 
 
 class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
