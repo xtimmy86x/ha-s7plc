@@ -503,11 +503,15 @@ class S7ClimateSetpointControl(
         """Return current HVAC action.
 
         In setpoint mode, we can't determine the exact action unless
-        the PLC provides additional status information. Returns IDLE
-        when mode is HEAT_COOL, or OFF when mode is OFF.
+        the PLC provides additional status information. Returns OFF if mode is OFF,
+        otherwise HEATING or COOLING based on target vs current temperature.
         """
         if self._hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
+        if self.target_temperature > self.current_temperature:
+            return HVACAction.HEATING
+        elif self.target_temperature < self.current_temperature:
+            return HVACAction.COOLING
 
         # Could be extended to read action from PLC if available
         # For now, assume idle when enabled
