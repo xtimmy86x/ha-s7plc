@@ -325,6 +325,12 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
 
         return HVACAction.IDLE
 
+    @property
+    def extra_state_attributes(self):
+        attrs = dict(super().extra_state_attributes or {})
+        attrs["climate_type"] = "Direct Control"
+        return attrs
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
@@ -409,7 +415,7 @@ class S7ClimateSetpointControl(
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT_COOL]
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL]
     _enable_turn_on_off_backwards_compatibility = False
 
     def __init__(
@@ -517,6 +523,12 @@ class S7ClimateSetpointControl(
         # For now, assume idle when enabled
         return HVACAction.IDLE
 
+    @property
+    def extra_state_attributes(self):
+        attrs = dict(super().extra_state_attributes or {})
+        attrs["climate_type"] = "Setpoint Control"
+        return attrs
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature on PLC."""
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
@@ -544,7 +556,15 @@ class S7ClimateSetpointControl(
         # Optionally write mode to PLC if preset_mode_address is configured
         # OFF = 0, HEAT_COOL = 1 (or any other mapping you need)
         if self._preset_mode_address:
-            mode_value = 1 if hvac_mode == HVACMode.HEAT_COOL else 0
+            match hvac_mode:
+                case HVACMode.HEAT_COOL:
+                    mode_value = 3
+                case HVACMode.COOL:
+                    mode_value = 2
+                case HVACMode.HEAT:
+                    mode_value = 1
+                case _:
+                    mode_value = 0
             await self._async_write(self._preset_mode_address, mode_value)
 
         self.async_write_ha_state()
