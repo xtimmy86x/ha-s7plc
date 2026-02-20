@@ -58,6 +58,7 @@ from .const import (
     CONF_ENTITY_SYNC,
     CONF_HEATING_ACTION_ADDRESS,
     CONF_HEATING_OUTPUT_ADDRESS,
+    CONF_HVAC_STATUS_ADDRESS,
     CONF_INVERT_POSITION,
     CONF_INVERT_STATE,
     CONF_LIGHTS,
@@ -1801,6 +1802,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if errors:
                 return None, errors
 
+        # Validate optional HVAC status address
+        hvac_status_addr = None
+        if user_input.get(CONF_HVAC_STATUS_ADDRESS):
+            hvac_status_addr, errors = self._validate_address_field(
+                user_input.get(CONF_HVAC_STATUS_ADDRESS)
+            )
+            if errors:
+                return None, errors
+
         # Build item
         item = {
             CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
@@ -1810,6 +1820,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         if preset_mode_addr:
             item[CONF_PRESET_MODE_ADDRESS] = preset_mode_addr
+
+        if hvac_status_addr:
+            item[CONF_HVAC_STATUS_ADDRESS] = hvac_status_addr
 
         # Add temperature limits
         item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
@@ -2956,6 +2969,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
                 vol.Required(CONF_TARGET_TEMPERATURE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_PRESET_MODE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_HVAC_STATUS_ADDRESS): selector.TextSelector(),
                 vol.Optional(
                     CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
                 ): selector.NumberSelector(
@@ -3912,6 +3926,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_PRESET_MODE_ADDRESS,
                     default=item.get(CONF_PRESET_MODE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_HVAC_STATUS_ADDRESS,
+                    default=item.get(CONF_HVAC_STATUS_ADDRESS, ""),
                 ): selector.TextSelector(),
                 vol.Optional(
                     CONF_MIN_TEMP,

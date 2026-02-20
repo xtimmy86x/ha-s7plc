@@ -27,6 +27,7 @@ from .const import (
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_HEATING_ACTION_ADDRESS,
     CONF_HEATING_OUTPUT_ADDRESS,
+    CONF_HVAC_STATUS_ADDRESS,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
     CONF_PRESET_MODE_ADDRESS,
@@ -158,6 +159,13 @@ async def async_setup_entry(
                     f"{topic}:preset_mode", preset_mode_address, scan_interval
                 )
 
+            # Optional: HVAC status address (0=off, 1=heating, 2=cooling)
+            hvac_status_address = item.get(CONF_HVAC_STATUS_ADDRESS)
+            if hvac_status_address:
+                await coord.add_item(
+                    f"{topic}:hvac_status", hvac_status_address, scan_interval
+                )
+
             entities.append(
                 S7ClimateSetpointControl(
                     coord,
@@ -168,6 +176,7 @@ async def async_setup_entry(
                     current_temp_address,
                     target_temp_address,
                     preset_mode_address,
+                    hvac_status_address,
                     min_temp,
                     max_temp,
                     temp_step,
@@ -428,9 +437,10 @@ class S7ClimateSetpointControl(
         current_temp_address: str,
         target_temp_address: str,
         preset_mode_address: str | None,
-        min_temp: float,
-        max_temp: float,
-        temp_step: float,
+        hvac_status_address: str | None = None,
+        min_temp: float = DEFAULT_MIN_TEMP,
+        max_temp: float = DEFAULT_MAX_TEMP,
+        temp_step: float = DEFAULT_TEMP_STEP,
         suggested_area_id: str | None = None,
     ):
         """Initialize setpoint control climate entity."""
@@ -446,6 +456,7 @@ class S7ClimateSetpointControl(
         self._current_temp_address = current_temp_address
         self._target_temp_address = target_temp_address
         self._preset_mode_address = preset_mode_address
+        self._hvac_status_address = hvac_status_address
 
         self._attr_min_temp = float(min_temp)
         self._attr_max_temp = float(max_temp)
@@ -508,19 +519,35 @@ class S7ClimateSetpointControl(
     def hvac_action(self) -> HVACAction | None:
         """Return current HVAC action.
 
-        In setpoint mode, we can't determine the exact action unless
-        the PLC provides additional status information. Returns OFF if mode is OFF,
-        otherwise HEATING or COOLING based on target vs current temperature.
+        If hvac_status_address is configured, read the actual status from PLC
+        (0=OFF, 1=HEATING, 2=COOLING). Otherwise infer from target vs current
+        temperature comparison.
         """
         if self._hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
-        if self.target_temperature > self.current_temperature:
-            return HVACAction.HEATING
-        elif self.target_temperature < self.current_temperature:
-            return HVACAction.COOLING
 
-        # Could be extended to read action from PLC if available
-        # For now, assume idle when enabled
+        # Use PLC status address if configured
+        if self._hvac_status_address:
+            data = self.coordinator.data or {}
+            status_topic = f"{self._topic}:hvac_status"
+            status = data.get(status_topic)
+            if status is not None:
+                status = int(status)
+                if status == 0:
+                    return HVACAction.OFF
+                if status == 1:
+                    return HVACAction.HEATING
+                if status == 2:
+                    return HVACAction.COOLING
+            return HVACAction.IDLE
+
+        # Fallback: infer from temperature comparison
+        if self.target_temperature is not None and self.current_temperature is not None:
+            if self.target_temperature > self.current_temperature:
+                return HVACAction.HEATING
+            elif self.target_temperature < self.current_temperature:
+                return HVACAction.COOLING
+
         return HVACAction.IDLE
 
     @property
