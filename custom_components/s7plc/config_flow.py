@@ -58,6 +58,7 @@ from .const import (
     CONF_ENTITY_SYNC,
     CONF_HEATING_ACTION_ADDRESS,
     CONF_HEATING_OUTPUT_ADDRESS,
+    CONF_HVAC_STATUS_ADDRESS,
     CONF_INVERT_POSITION,
     CONF_INVERT_STATE,
     CONF_LIGHTS,
@@ -886,6 +887,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         }
         self._action: str | None = None  # "add" | "remove" | "edit"
         self._edit_target: tuple[str, int] | None = None
+        self._last_add_input: dict[str, Any] | None = None
 
     def _get_area_selector(self) -> selector.SelectSelector:
         """Get area selector with dynamic area list."""
@@ -1800,6 +1802,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if errors:
                 return None, errors
 
+        # Validate optional HVAC status address
+        hvac_status_addr = None
+        if user_input.get(CONF_HVAC_STATUS_ADDRESS):
+            hvac_status_addr, errors = self._validate_address_field(
+                user_input.get(CONF_HVAC_STATUS_ADDRESS)
+            )
+            if errors:
+                return None, errors
+
         # Build item
         item = {
             CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
@@ -1809,6 +1820,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         if preset_mode_addr:
             item[CONF_PRESET_MODE_ADDRESS] = preset_mode_addr
+
+        if hvac_status_addr:
+            item[CONF_HVAC_STATUS_ADDRESS] = hvac_status_addr
 
         # Add temperature limits
         item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
@@ -2442,10 +2456,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_SENSORS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_sensors()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="sensors", data_schema=data_schema)
 
     # ====== ADD: binary_sensors ======
@@ -2478,10 +2500,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_BINARY_SENSORS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_binary_sensors()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
 
     # ====== ADD: switches ======
@@ -2520,10 +2550,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_SWITCHES].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_switches()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="switches", data_schema=data_schema)
 
     # ====== ADD: covers ======
@@ -2587,10 +2625,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_COVERS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_covers_traditional()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(
             step_id="covers_traditional", data_schema=data_schema
         )
@@ -2628,10 +2674,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_COVERS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_covers_position()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="covers_position", data_schema=data_schema)
 
     # ====== ADD: buttons ======
@@ -2662,10 +2716,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_BUTTONS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_buttons()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
     # ====== ADD: lights ======
@@ -2704,10 +2766,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_LIGHTS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_lights()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="lights", data_schema=data_schema)
 
     # ====== ADD: numbers ======
@@ -2743,10 +2813,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_NUMBERS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_numbers()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="numbers", data_schema=data_schema)
 
     # ====== ADD: texts ======
@@ -2777,10 +2855,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_TEXTS].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_texts()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="texts", data_schema=data_schema)
 
     # ====== ADD: climates ======
@@ -2858,10 +2944,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_CLIMATES].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_climates_direct()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="climates_direct", data_schema=data_schema)
 
     # ====== ADD: climates_setpoint ======
@@ -2875,6 +2969,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
                 vol.Required(CONF_TARGET_TEMPERATURE_ADDRESS): selector.TextSelector(),
                 vol.Optional(CONF_PRESET_MODE_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_HVAC_STATUS_ADDRESS): selector.TextSelector(),
                 vol.Optional(
                     CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
                 ): selector.NumberSelector(
@@ -2915,10 +3010,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_CLIMATES].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_climates_setpoint()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(
             step_id="climates_setpoint", data_schema=data_schema
         )
@@ -2949,10 +3052,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[CONF_ENTITY_SYNC].append(item)
 
             if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
                 return await self.async_step_entity_sync()
 
             return self.async_create_entry(title="", data=self._options)
 
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
         return self.async_show_form(step_id="entity_sync", data_schema=data_schema)
 
     # ====== EXPORT ======
@@ -3815,6 +3926,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_PRESET_MODE_ADDRESS,
                     default=item.get(CONF_PRESET_MODE_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_HVAC_STATUS_ADDRESS,
+                    default=item.get(CONF_HVAC_STATUS_ADDRESS, ""),
                 ): selector.TextSelector(),
                 vol.Optional(
                     CONF_MIN_TEMP,

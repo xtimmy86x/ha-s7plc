@@ -93,6 +93,22 @@ class OptionsFlow:  # pragma: no cover - simple stub
     async def async_create_entry(self, *args, **kwargs):
         return {"type": "create_entry", "args": args, "kwargs": kwargs}
 
+    def add_suggested_values_to_schema(self, data_schema, suggested_values):
+        """Populate schema markers with suggested values (stub)."""
+        import copy
+        import voluptuous as vol
+
+        if suggested_values is None:
+            return data_schema
+        schema = {}
+        for key, val in data_schema.schema.items():
+            new_key = key
+            if key in suggested_values and isinstance(key, vol.Marker):
+                new_key = copy.copy(key)
+                new_key.description = {"suggested_value": suggested_values[key.schema]}
+            schema[new_key] = val
+        return vol.Schema(schema)
+
 
 config_entries.ConfigEntry = ConfigEntry
 config_entries.ConfigFlow = ConfigFlow
@@ -968,14 +984,32 @@ class _Schema:  # pragma: no cover - simple stub
         return value
 
 
+class _Marker(str):  # pragma: no cover - base class matching voluptuous.Marker
+    """Minimal Marker stub for schema key introspection."""
+    def __new__(cls, key, default=None, description=None):
+        obj = str.__new__(cls, key)
+        obj.schema = key  # real voluptuous stores the key name here
+        obj.default = default
+        obj.description = description
+        return obj
+
+    def __hash__(self):
+        return str.__hash__(self)
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return str.__eq__(self, other)
+        return NotImplemented
+
+
 def _optional_factory(base_cls):
-    class _Option(base_cls):  # pragma: no cover - simple stub
-        def __new__(cls, key, default=None):
-            obj = base_cls.__new__(cls, key)
-            obj.default = default
-            return obj
+    class _Option(_Marker):  # pragma: no cover - simple stub
+        pass
 
     return _Option
+
+
+voluptuous.Marker = _Marker
 
 def _all_factory(*validators):
     def _validator(value):  # pragma: no cover - simple stub

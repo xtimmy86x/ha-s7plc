@@ -19,6 +19,7 @@ from custom_components.s7plc.const import (
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_HEATING_OUTPUT_ADDRESS,
+    CONF_HVAC_STATUS_ADDRESS,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
     CONF_TARGET_TEMPERATURE_ADDRESS,
@@ -32,6 +33,7 @@ TEST_CURRENT_TEMP_ADDRESS = "db1,real0"
 TEST_HEATING_OUTPUT = "q0.0"
 TEST_COOLING_OUTPUT = "q0.1"
 TEST_TARGET_TEMP_ADDRESS = "db1,real4"
+TEST_HVAC_STATUS_ADDRESS = "db1,int8"
 
 
 # ============================================================================
@@ -86,6 +88,7 @@ def climate_setpoint_factory(mock_coordinator, device_info):
     def _create_climate(
         current_temp_address: str = TEST_CURRENT_TEMP_ADDRESS,
         target_temp_address: str = TEST_TARGET_TEMP_ADDRESS,
+        hvac_status_address: str | None = None,
         name: str = "Test Climate",
         topic: str = f"climate_setpoint:{TEST_CURRENT_TEMP_ADDRESS}",
         unique_id: str = f"test_device:climate_setpoint:{TEST_CURRENT_TEMP_ADDRESS}",
@@ -99,6 +102,7 @@ def climate_setpoint_factory(mock_coordinator, device_info):
             current_temp_address=current_temp_address,
             target_temp_address=target_temp_address,
             preset_mode_address=None,
+            hvac_status_address=hvac_status_address,
             min_temp=7.0,
             max_temp=35.0,
             temp_step=0.5,
@@ -236,6 +240,74 @@ async def test_climate_setpoint_set_temperature(climate_setpoint_factory, mock_c
     
     # Verify write was called
     mock_coordinator.write_batched.assert_called_once_with(TEST_TARGET_TEMP_ADDRESS, 20.0)
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_from_status_address(
+    climate_setpoint_factory, mock_coordinator
+):
+    """Test hvac_action reads from PLC status address when configured."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(hvac_status_address=TEST_HVAC_STATUS_ADDRESS)
+
+    # Status = 0 → OFF
+    mock_coordinator.data = {
+        f"{climate._topic}:hvac_status": 0,
+        f"{climate._topic}:current_temp": 20.0,
+        f"{climate._topic}:target_temp": 22.0,
+    }
+    assert climate.hvac_action == HVACAction.OFF
+
+    # Status = 1 → HEATING
+    mock_coordinator.data[f"{climate._topic}:hvac_status"] = 1
+    assert climate.hvac_action == HVACAction.HEATING
+
+    # Status = 2 → COOLING
+    mock_coordinator.data[f"{climate._topic}:hvac_status"] = 2
+    assert climate.hvac_action == HVACAction.COOLING
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_fallback_without_status_address(
+    climate_setpoint_factory, mock_coordinator
+):
+    """Test hvac_action infers from temperature when no status address configured."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory()  # No hvac_status_address
+
+    # Target > current → HEATING
+    mock_coordinator.data = {
+        f"{climate._topic}:current_temp": 18.0,
+        f"{climate._topic}:target_temp": 22.0,
+    }
+    assert climate.hvac_action == HVACAction.HEATING
+
+    # Target < current → COOLING
+    mock_coordinator.data[f"{climate._topic}:target_temp"] = 16.0
+    assert climate.hvac_action == HVACAction.COOLING
+
+    # Target == current → IDLE
+    mock_coordinator.data[f"{climate._topic}:target_temp"] = 18.0
+    assert climate.hvac_action == HVACAction.IDLE
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_off_mode(
+    climate_setpoint_factory, mock_coordinator
+):
+    """Test hvac_action returns OFF when mode is OFF, even with status address."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(hvac_status_address=TEST_HVAC_STATUS_ADDRESS)
+    climate._hvac_mode = HVACMode.OFF
+
+    mock_coordinator.data = {
+        f"{climate._topic}:hvac_status": 1,
+        f"{climate._topic}:current_temp": 20.0,
+    }
+    assert climate.hvac_action == HVACAction.OFF
 
 
 # ============================================================================

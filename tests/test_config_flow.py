@@ -718,3 +718,120 @@ def test_number_comma_decimal_normalization():
     assert numbers[0][const.CONF_MIN_VALUE] == 0.5
     assert numbers[0][const.CONF_MAX_VALUE] == 100.75
     assert numbers[0][const.CONF_STEP] == 0.25
+
+
+# ---------------------------------------------------------------------------
+# add_another copies previous values as suggested_values
+# ---------------------------------------------------------------------------
+
+
+def _get_suggested_values(result):
+    """Extract suggested values from the data_schema returned by async_show_form."""
+    schema = result.get("kwargs", {}).get("data_schema") or result.get("data_schema")
+    if schema is None:
+        return {}
+    suggested = {}
+    for key in schema.schema:
+        desc = getattr(key, "description", None)
+        if desc and "suggested_value" in desc:
+            suggested[key.schema] = desc["suggested_value"]
+    return suggested
+
+
+def test_add_another_sensor_copies_values():
+    """When add_another is checked, the next sensor form should pre-fill previous values."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB1,W0",
+                "name": "Temperature",
+                "device_class": "temperature",
+                "unit_of_measurement": "°C",
+                "add_another": True,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    suggested = _get_suggested_values(result)
+    assert suggested[const.CONF_ADDRESS] == "DB1,W0"
+    assert suggested["name"] == "Temperature"
+    assert suggested["device_class"] == "temperature"
+    assert suggested["unit_of_measurement"] == "°C"
+    assert "add_another" not in suggested
+    assert len(flow._options[const.CONF_SENSORS]) == 1
+
+
+def test_add_another_switch_copies_values():
+    """When add_another is checked, the next switch form should pre-fill previous values."""
+    flow = make_options_flow(options={const.CONF_SWITCHES: []})
+
+    result = run_flow(
+        flow.async_step_switches(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.1",
+                "name": "Pump",
+                "sync_state": True,
+                "add_another": True,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    suggested = _get_suggested_values(result)
+    assert suggested[const.CONF_STATE_ADDRESS] == "DB1,X0.0"
+    assert suggested[const.CONF_COMMAND_ADDRESS] == "DB1,X0.1"
+    assert suggested["name"] == "Pump"
+    assert suggested["sync_state"] is True
+    assert "add_another" not in suggested
+    assert len(flow._options[const.CONF_SWITCHES]) == 1
+
+
+def test_add_another_binary_sensor_copies_values():
+    """When add_another is checked, the next binary sensor form should pre-fill previous values."""
+    flow = make_options_flow(options={const.CONF_BINARY_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_binary_sensors(
+            {
+                const.CONF_ADDRESS: "DB1,X1.0",
+                "name": "Door",
+                "device_class": "door",
+                "invert_state": True,
+                "add_another": True,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    suggested = _get_suggested_values(result)
+    assert suggested[const.CONF_ADDRESS] == "DB1,X1.0"
+    assert suggested["name"] == "Door"
+    assert suggested["invert_state"] is True
+    assert "add_another" not in suggested
+    assert len(flow._options[const.CONF_BINARY_SENSORS]) == 1
+
+
+def test_add_another_clears_suggested_after_use():
+    """Suggested values should be cleared after the form is shown once."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    # First: add_another with values — form shown with suggested values
+    result1 = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB1,W0",
+                "name": "Temp",
+                "add_another": True,
+            }
+        )
+    )
+    assert _get_suggested_values(result1) != {}
+    assert flow._last_add_input is None  # cleared after showing form
+
+    # Second call without user_input — no suggested values
+    result2 = run_flow(flow.async_step_sensors())
+    assert _get_suggested_values(result2) == {}
