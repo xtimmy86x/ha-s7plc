@@ -421,7 +421,7 @@
       },
       "climates_direct": {
         "title": "Dodaj termostat (Tryb kontroler)",
-        "description": "Utwórz encję termostatu, w której PLC dostarcza tylko odczyt temperatury. Home Assistant zarządza i steruje całym procesem regulacji.",
+        "description": "Utwórz encję termostatu, w której Home Assistant zarządza i steruje całym procesem regulacji. PLC dostarcza tylko odczyt temperatury.",
         "data": {
           "current_temperature_address": "Adres odczytu temperatury",
           "heating_output_address": "Adres wyjścia ogrzewania",
@@ -453,7 +453,7 @@
       },
       "climates_setpoint": {
         "title": "Dodaj termostat (Tryb klient)",
-        "description": "Utwórz encję termostatu, w której PLC zarządza i steruje ogrzewaniem/chłodzeniem. Home Assistant pełni rolę klienta.",
+        "description": "Utwórz encję termostatu, w której PLC zarządza i całym procesem regulacji. Home Assistant pełni tylko rolę klienta.",
         "data": {
           "current_temperature_address": "Adres odczytu temperatury",
           "target_temperature_address": "Adres zapisu temperatury zadanej",
