@@ -3,13 +3,28 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import (
+    CONF_ADDRESS,
+    CONF_AREA,
+    CONF_BRIGHTNESS_SCALE,
+    CONF_CLIMATE_CONTROL_MODE,
+    CONF_CLOSING_STATE_ADDRESS,
+    CONF_CURRENT_TEMPERATURE_ADDRESS,
+    CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPENING_STATE_ADDRESS,
+    CONF_POSITION_STATE_ADDRESS,
+    CONF_STATE_ADDRESS,
+    CONTROL_MODE_DIRECT,
+    CONTROL_MODE_SETPOINT,
+    DOMAIN,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
@@ -60,3 +75,116 @@ def default_entity_name(plc_name: str | None, address: str | None) -> str | None
         return humanized.upper()
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Centralised unique-id helpers
+# ---------------------------------------------------------------------------
+
+
+def _iter_entity_unique_ids(
+    device_id: str, options: Mapping[str, Any]
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    """Yield ``(unique_id, config_item)`` for every configured entity.
+
+    This is the single source of truth for the mapping
+    *configuration item  →  entity unique_id*.
+    """
+
+    # Sensors — device_id:sensor:address
+    for item in options.get("sensors", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:sensor:{address}", item
+
+    # Binary sensors — device_id:binary_sensor:address
+    for item in options.get("binary_sensors", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:binary_sensor:{address}", item
+
+    # Switches — device_id:switch:state_address
+    for item in options.get("switches", []):
+        state_addr = item.get(CONF_STATE_ADDRESS, "")
+        if state_addr:
+            yield f"{device_id}:switch:{state_addr}", item
+
+    # Covers (position-based and traditional)
+    for item in options.get("covers", []):
+        position_state = item.get(CONF_POSITION_STATE_ADDRESS)
+        if position_state:
+            yield f"{device_id}:cover:position:{position_state}", item
+        else:
+            open_command = item.get(CONF_OPEN_COMMAND_ADDRESS, "")
+            opened_state = item.get(CONF_OPENING_STATE_ADDRESS)
+            closed_state = item.get(CONF_CLOSING_STATE_ADDRESS)
+
+            if opened_state:
+                yield f"{device_id}:cover:opened:{opened_state}", item
+            elif closed_state:
+                yield f"{device_id}:cover:closed:{closed_state}", item
+            elif open_command:
+                yield f"{device_id}:cover:command:{open_command}", item
+
+    # Buttons — device_id:button:address
+    for item in options.get("buttons", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:button:{address}", item
+
+    # Lights — on/off or dimmer
+    for item in options.get("lights", []):
+        state_addr = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS, "")
+        if state_addr:
+            if CONF_BRIGHTNESS_SCALE in item:
+                yield f"{device_id}:dimmer_light:{state_addr}", item
+            else:
+                yield f"{device_id}:light:{state_addr}", item
+
+    # Numbers — device_id:number:address
+    for item in options.get("numbers", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:number:{address}", item
+
+    # Texts — device_id:text:address
+    for item in options.get("texts", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:text:{address}", item
+
+    # Climates — device_id:climate_direct:… or device_id:climate_setpoint:…
+    for item in options.get("climates", []):
+        current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, "")
+        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
+        if current_temp_address:
+            if control_mode == CONTROL_MODE_DIRECT:
+                yield f"{device_id}:climate_direct:{current_temp_address}", item
+            else:
+                yield f"{device_id}:climate_setpoint:{current_temp_address}", item
+
+    # Entity syncs — device_id:entity_sync:address
+    for item in options.get("entity_sync", []):
+        address = item.get(CONF_ADDRESS, "")
+        if address:
+            yield f"{device_id}:entity_sync:{address}", item
+
+
+def build_expected_unique_ids(device_id: str, options: Mapping[str, Any]) -> set[str]:
+    """Return the set of expected unique-ids for a config entry.
+
+    Includes the connection binary sensor automatically.
+    """
+    ids = {uid for uid, _ in _iter_entity_unique_ids(device_id, options)}
+    ids.add(f"{device_id}:connection")
+    return ids
+
+
+def build_entity_area_map(
+    device_id: str, options: Mapping[str, Any]
+) -> dict[str, str | None]:
+    """Return a mapping ``unique_id → area_id`` for all configured entities."""
+    return {
+        uid: item.get(CONF_AREA)
+        for uid, item in _iter_entity_unique_ids(device_id, options)
+    }

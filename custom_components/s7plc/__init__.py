@@ -13,41 +13,20 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_ADDRESS,
-    CONF_AREA,
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
-    CONF_BINARY_SENSORS,
-    CONF_BRIGHTNESS_SCALE,
-    CONF_BUTTONS,
-    CONF_CLIMATE_CONTROL_MODE,
-    CONF_CLIMATES,
-    CONF_CLOSING_STATE_ADDRESS,
     CONF_CONNECTION_TYPE,
-    CONF_COVERS,
-    CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
-    CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
-    CONF_NUMBERS,
     CONF_OP_TIMEOUT,
-    CONF_OPEN_COMMAND_ADDRESS,
-    CONF_OPENING_STATE_ADDRESS,
     CONF_OPTIMIZE_READ,
-    CONF_POSITION_STATE_ADDRESS,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REMOTE_TSAP,
-    CONF_SENSORS,
     CONF_SLOT,
-    CONF_STATE_ADDRESS,
-    CONF_SWITCHES,
-    CONF_TEXTS,
     CONNECTION_TYPE_TSAP,
-    CONTROL_MODE_DIRECT,
-    CONTROL_MODE_SETPOINT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_ENABLE_WRITE_BATCHING,
@@ -63,7 +42,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import S7Coordinator
-from .helpers import RuntimeEntryData
+from .helpers import RuntimeEntryData, build_entity_area_map, build_expected_unique_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -256,103 +235,8 @@ async def _async_check_orphaned_entities(
     if not entities:
         return
 
-    # Build set of expected unique_ids from current configuration
-    expected_unique_ids = set()
     device_id = entry.runtime_data.device_id
-
-    # Add unique_ids for all configured items
-    options = entry.options
-
-    # Sensors - format: device_id:sensor:address
-    for item in options.get("sensors", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:sensor:{address}")
-
-    # Binary sensors - format: device_id:binary_sensor:address
-    for item in options.get("binary_sensors", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:binary_sensor:{address}")
-
-    # Switches - format: device_id:switch:state_address
-    for item in options.get("switches", []):
-        state_addr = item.get("state_address", "")
-        if state_addr:
-            expected_unique_ids.add(f"{device_id}:switch:{state_addr}")
-
-    # Covers (both traditional and position-based)
-    for item in options.get("covers", []):
-        position_state = item.get("position_state_address")
-        if position_state:
-            # Position cover - format: device_id:cover:position:position_state_address
-            expected_unique_ids.add(f"{device_id}:cover:position:{position_state}")
-        else:
-            # Traditional cover -
-            # format: device_id:cover:opened:xxx or cover:closed:xxx
-            # or cover:command:open_addr
-            open_command = item.get("open_command_address", "")
-            opened_state = item.get("opening_state_address")
-            closed_state = item.get("closing_state_address")
-
-            if opened_state:
-                expected_unique_ids.add(f"{device_id}:cover:opened:{opened_state}")
-            elif closed_state:
-                expected_unique_ids.add(f"{device_id}:cover:closed:{closed_state}")
-            elif open_command:
-                expected_unique_ids.add(f"{device_id}:cover:command:{open_command}")
-
-    # Buttons - format: device_id:button:address
-    for item in options.get("buttons", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:button:{address}")
-
-    # Lights - format: device_id:light:state_address or
-    # device_id:dimmer_light:state_address
-    for item in options.get("lights", []):
-        state_addr = item.get("state_address", "")
-        if state_addr:
-            if CONF_BRIGHTNESS_SCALE in item:
-                expected_unique_ids.add(f"{device_id}:dimmer_light:{state_addr}")
-            else:
-                expected_unique_ids.add(f"{device_id}:light:{state_addr}")
-
-    # Numbers - format: device_id:number:address
-    for item in options.get("numbers", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:number:{address}")
-
-    # Texts - format: device_id:text:address
-    for item in options.get("texts", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:text:{address}")
-
-    # Climates - format: device_id:climate_direct:current_temp_address
-    # or device_id:climate_setpoint:current_temp_address
-    for item in options.get("climates", []):
-        current_temp_address = item.get("current_temperature_address", "")
-        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
-        if current_temp_address:
-            if control_mode == CONTROL_MODE_DIRECT:
-                expected_unique_ids.add(
-                    f"{device_id}:climate_direct:{current_temp_address}"
-                )
-            else:
-                expected_unique_ids.add(
-                    f"{device_id}:climate_setpoint:{current_temp_address}"
-                )
-
-    # Entity syncs - format: device_id:entity_sync:address
-    for item in options.get("entity_sync", []):
-        address = item.get("address", "")
-        if address:
-            expected_unique_ids.add(f"{device_id}:entity_sync:{address}")
-
-    # Always keep the connection status binary sensor - format: device_id:connection
-    expected_unique_ids.add(f"{device_id}:connection")
+    expected_unique_ids = build_expected_unique_ids(device_id, entry.options)
 
     # Find orphaned entities
     orphaned_entities = []
@@ -430,114 +314,8 @@ async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) ->
 
     entity_reg = er.async_get(hass)
     device_id = entry.runtime_data.device_id
-    options = entry.options
 
-    # Map of unique_id -> area_id for all configured entities
-    entity_areas: dict[str, str | None] = {}
-
-    # Sensors
-    for item in options.get(CONF_SENSORS, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:sensor:{address}"
-            entity_areas[unique_id] = area
-
-    # Binary sensors
-    for item in options.get(CONF_BINARY_SENSORS, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:binary_sensor:{address}"
-            entity_areas[unique_id] = area
-
-    # Switches
-    for item in options.get(CONF_SWITCHES, []):
-        state_addr = item.get(CONF_STATE_ADDRESS)
-        area = item.get(CONF_AREA)
-        if state_addr:
-            unique_id = f"{device_id}:switch:{state_addr}"
-            entity_areas[unique_id] = area
-
-    # Covers
-    for item in options.get(CONF_COVERS, []):
-        area = item.get(CONF_AREA)
-        position_state = item.get(CONF_POSITION_STATE_ADDRESS)
-
-        if position_state:
-            # Position cover
-            unique_id = f"{device_id}:cover:position:{position_state}"
-            entity_areas[unique_id] = area
-        else:
-            # Traditional cover
-            open_command = item.get(CONF_OPEN_COMMAND_ADDRESS, "")
-            opened_state = item.get(CONF_OPENING_STATE_ADDRESS)
-            closed_state = item.get(CONF_CLOSING_STATE_ADDRESS)
-
-            if opened_state:
-                unique_id = f"{device_id}:cover:opened:{opened_state}"
-            elif closed_state:
-                unique_id = f"{device_id}:cover:closed:{closed_state}"
-            elif open_command:
-                unique_id = f"{device_id}:cover:command:{open_command}"
-            else:
-                continue
-            entity_areas[unique_id] = area
-
-    # Buttons
-    for item in options.get(CONF_BUTTONS, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:button:{address}"
-            entity_areas[unique_id] = area
-
-    # Lights (on/off and dimmer)
-    for item in options.get(CONF_LIGHTS, []):
-        state_addr = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if state_addr:
-            if CONF_BRIGHTNESS_SCALE in item:
-                unique_id = f"{device_id}:dimmer_light:{state_addr}"
-            else:
-                unique_id = f"{device_id}:light:{state_addr}"
-            entity_areas[unique_id] = area
-
-    # Numbers
-    for item in options.get(CONF_NUMBERS, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:number:{address}"
-            entity_areas[unique_id] = area
-
-    # Texts
-    for item in options.get(CONF_TEXTS, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:text:{address}"
-            entity_areas[unique_id] = area
-
-    # Entity Syncs
-    for item in options.get(CONF_ENTITY_SYNC, []):
-        address = item.get(CONF_ADDRESS)
-        area = item.get(CONF_AREA)
-        if address:
-            unique_id = f"{device_id}:entity_sync:{address}"
-            entity_areas[unique_id] = area
-
-    # Climates
-    for item in options.get(CONF_CLIMATES, []):
-        current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
-        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
-        area = item.get(CONF_AREA)
-        if current_temp_address:
-            if control_mode == CONTROL_MODE_DIRECT:
-                unique_id = f"{device_id}:climate_direct:{current_temp_address}"
-            else:
-                unique_id = f"{device_id}:climate_setpoint:{current_temp_address}"
-            entity_areas[unique_id] = area
+    entity_areas = build_entity_area_map(device_id, entry.options)
 
     # Update areas in entity registry
     for unique_id, area_id in entity_areas.items():

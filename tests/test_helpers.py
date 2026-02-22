@@ -3,6 +3,8 @@
 from unittest.mock import MagicMock
 
 from custom_components.s7plc.helpers import (
+    build_entity_area_map,
+    build_expected_unique_ids,
     get_coordinator_and_device_info,
     default_entity_name,
 )
@@ -82,3 +84,111 @@ def test_get_coordinator_and_device_info_different_names():
     
     assert device_info["name"] == "Production Line 1"
     assert device_id == "prod-line-1"
+
+
+# ---------------------------------------------------------------------------
+# build_expected_unique_ids / build_entity_area_map
+# ---------------------------------------------------------------------------
+
+
+def test_build_expected_unique_ids_all_entity_types():
+    """Every entity type is represented plus the connection sensor."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0"}],
+        "binary_sensors": [{"address": "DB1,X0.0"}],
+        "switches": [{"state_address": "DB1,X0.1"}],
+        "covers": [
+            {"position_state_address": "DB1,INT0"},
+            {
+                "open_command_address": "DB1,X1.0",
+                "close_command_address": "DB1,X1.1",
+                "opening_state_address": "DB1,X1.2",
+            },
+        ],
+        "buttons": [{"address": "DB1,X2.0"}],
+        "lights": [
+            {"state_address": "DB1,X2.1"},
+            {"state_address": "DB1,B10", "brightness_scale": 255},
+        ],
+        "numbers": [{"address": "DB1,INT10"}],
+        "texts": [{"address": "DB1,STRING0"}],
+        "climates": [
+            {
+                "current_temperature_address": "DB1,REAL20",
+                "control_mode": "direct",
+            },
+            {
+                "current_temperature_address": "DB1,REAL30",
+                "control_mode": "setpoint",
+            },
+        ],
+        "entity_sync": [{"address": "DB1,REAL100", "source_entity": "sensor.test"}],
+    }
+
+    ids = build_expected_unique_ids("dev", options)
+
+    assert "dev:sensor:DB1,REAL0" in ids
+    assert "dev:binary_sensor:DB1,X0.0" in ids
+    assert "dev:switch:DB1,X0.1" in ids
+    assert "dev:cover:position:DB1,INT0" in ids
+    assert "dev:cover:opened:DB1,X1.2" in ids
+    assert "dev:button:DB1,X2.0" in ids
+    assert "dev:light:DB1,X2.1" in ids
+    assert "dev:dimmer_light:DB1,B10" in ids
+    assert "dev:number:DB1,INT10" in ids
+    assert "dev:text:DB1,STRING0" in ids
+    assert "dev:climate_direct:DB1,REAL20" in ids
+    assert "dev:climate_setpoint:DB1,REAL30" in ids
+    assert "dev:entity_sync:DB1,REAL100" in ids
+    assert "dev:connection" in ids
+
+
+def test_build_expected_unique_ids_empty_options():
+    """Empty options still include the connection sensor."""
+    ids = build_expected_unique_ids("dev", {})
+    assert ids == {"dev:connection"}
+
+
+def test_build_expected_unique_ids_traditional_cover_variants():
+    """Traditional covers pick the right unique id based on available addresses."""
+    # opened_state takes priority
+    ids = build_expected_unique_ids("d", {
+        "covers": [{"opening_state_address": "DB1,X0.2", "open_command_address": "DB1,X0.0"}],
+    })
+    assert "d:cover:opened:DB1,X0.2" in ids
+
+    # closing_state when no opening_state
+    ids = build_expected_unique_ids("d", {
+        "covers": [{"closing_state_address": "DB1,X0.3", "open_command_address": "DB1,X0.0"}],
+    })
+    assert "d:cover:closed:DB1,X0.3" in ids
+
+    # open_command as fallback
+    ids = build_expected_unique_ids("d", {
+        "covers": [{"open_command_address": "DB1,X0.0"}],
+    })
+    assert "d:cover:command:DB1,X0.0" in ids
+
+
+def test_build_expected_unique_ids_skips_items_without_address():
+    """Items missing a key address field are silently skipped."""
+    ids = build_expected_unique_ids("d", {
+        "sensors": [{"name": "no address"}],
+        "switches": [{}],
+        "covers": [{}],
+    })
+    assert ids == {"d:connection"}
+
+
+def test_build_entity_area_map():
+    """Area map returns correct unique_id → area_id mapping."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "area": "kitchen"}],
+        "binary_sensors": [{"address": "DB1,X0.0"}],  # no area
+        "lights": [{"state_address": "DB1,X1.0", "area": "bedroom"}],
+    }
+    area_map = build_entity_area_map("dev", options)
+
+    assert area_map["dev:sensor:DB1,REAL0"] == "kitchen"
+    assert area_map["dev:binary_sensor:DB1,X0.0"] is None
+    assert area_map["dev:light:DB1,X1.0"] == "bedroom"

@@ -237,7 +237,7 @@ class S7Number(S7BaseEntity, NumberEntity):
             self._command_address,
             float(value),
             error_msg=(
-                f"Failed to write {value:.3f} to PLC address {self._command_address}",
+                f"Failed to write {value:.3f} to PLC address {self._command_address}"
             ),
         )
         await self.coordinator.async_request_refresh()
