@@ -348,7 +348,7 @@
         }
       },
       "lights_onoff": {
-        "title": "Dodaj światło standardowe (Zał. / Wyl.)",
+        "title": "Dodaj standardowe światło (Zał. / Wyl.)",
         "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
         "data": {
           "state_address": "Adres odczytu",
@@ -374,7 +374,7 @@
         }
       },
       "lights_dimmer": {
-        "title": "Dodaj światło zaawansowane z regulacą jasności",
+        "title": "Dodaj zaawansowane światło z regulacą jasności",
         "description": "Skonfiguruj światło ściemniane z numerycznym adresem stanu jasności, adresem komendy jasności i opcjonalnym adresem komendy aktuatora.",
         "data": {
           "state_address": "Adres odczytu poziomu jasności",
@@ -389,7 +389,7 @@
         "data_description": {
           "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
           "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres do sterowania regulatirem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
+          "actuator_command_address": "Opcjonalny adres do sterowania regulatorem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
@@ -754,7 +754,7 @@
         }
       },
       "edit_light": {
-        "title": "Edytuj światło standardowe (Zał. / Wył.)",
+        "title": "Edytuj standardowe światło (Zał. / Wył.)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
@@ -767,6 +767,7 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
+          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
           "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
@@ -777,7 +778,7 @@
         }
       },
       "edit_dimmer_light": {
-        "title": "Edytuj światło zaawansowane z regulacją jasności",
+        "title": "Edytuj zaawansowane światło z regulacją jasności",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu poziomu jasności",
@@ -791,7 +792,7 @@
         "data_description": {
           "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
           "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres do sterowania regulatirem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
+          "actuator_command_address": "Opcjonalny adres do sterowania regulatorem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
