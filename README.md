@@ -8,9 +8,7 @@ Direct + lightweight custom component using `pys7`.
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/xtimmy86x/ha-s7plc/main/docs/banner.png"
-     alt="ha-s7plc banner"
-     width="100%"/>
+![ha-s7plc banner](https://raw.githubusercontent.com/xtimmy86x/ha-s7plc/main/docs/banner.png)
 
 <br/>
 
