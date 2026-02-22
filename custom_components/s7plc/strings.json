@@ -341,6 +341,14 @@
       },
       "lights": {
         "title": "Add Light",
+        "description": "Select the type of light to add.",
+        "menu_options": {
+          "lights_onoff": "Light (ON/OFF)",
+          "lights_dimmer": "Dimmer Light"
+        }
+      },
+      "lights_onoff": {
+        "title": "Add Light (ON/OFF)",
         "description": "Configure a light with a state address and an optional command address. You can enable state synchronization.",
         "data": {
           "state_address": "State address",
@@ -363,6 +371,30 @@
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more lights."
+        }
+      },
+      "lights_dimmer": {
+        "title": "Add Dimmer Light",
+        "description": "Configure a dimmable light with a numeric state address for brightness readback, a command address for brightness control, and an optional actuator command address.",
+        "data": {
+          "state_address": "Brightness state address",
+          "command_address": "Brightness command address",
+          "actuator_command_address": "Actuator command address",
+          "name": "Name",
+          "area": "Area",
+          "brightness_scale": "Brightness scale (max value)",
+          "scan_interval": "Scan interval (s)",
+          "add_another": "Add another after saving"
+        },
+        "data_description": {
+          "state_address": "PLC numeric address to read the current brightness level (e.g., DB1,B0 for BYTE 0-255, DB1,W0 for WORD).",
+          "command_address": "PLC numeric address to write the brightness level.",
+          "actuator_command_address": "Optional PLC boolean address for actuator ON/OFF control. Automatically set to ON when brightness >= 1%, OFF when 0.",
+          "name": "Optional friendly name for the dimmer light.",
+          "area": "Home Assistant area to assign this entity to.",
+          "brightness_scale": "Maximum value the PLC uses for full brightness. Default: 255 (BYTE range). Use 100 for percentage-based dimmers.",
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
+          "add_another": "Stay on this step to add more dimmer lights."
         }
       },
       "numbers": {
@@ -742,6 +774,28 @@
           "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
           "pulse_command": "Send pulse instead of on/off commands. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
+          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
+        }
+      },
+      "edit_dimmer_light": {
+        "title": "Edit Dimmer Light",
+        "description": "Update the brightness addresses, actuator address, name, or brightness scale for this dimmer light.",
+        "data": {
+          "state_address": "Brightness state address",
+          "command_address": "Brightness command address",
+          "actuator_command_address": "Actuator command address",
+          "name": "Name",
+          "area": "Area",
+          "brightness_scale": "Brightness scale (max value)",
+          "scan_interval": "Scan interval (s)"
+        },
+        "data_description": {
+          "state_address": "PLC numeric address to read the current brightness level.",
+          "command_address": "PLC numeric address to write the brightness level.",
+          "actuator_command_address": "Optional PLC boolean address for actuator ON/OFF control. Set to ON when brightness >= 1%, OFF when 0.",
+          "name": "Optional friendly name for the dimmer light.",
+          "area": "Home Assistant area to assign this entity to.",
+          "brightness_scale": "Maximum value the PLC uses for full brightness. Default: 255.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },

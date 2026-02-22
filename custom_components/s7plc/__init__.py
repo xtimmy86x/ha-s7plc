@@ -18,6 +18,7 @@ from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
+    CONF_BRIGHTNESS_SCALE,
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
@@ -307,11 +308,15 @@ async def _async_check_orphaned_entities(
         if address:
             expected_unique_ids.add(f"{device_id}:button:{address}")
 
-    # Lights - format: device_id:light:state_address
+    # Lights - format: device_id:light:state_address or
+    # device_id:dimmer_light:state_address
     for item in options.get("lights", []):
         state_addr = item.get("state_address", "")
         if state_addr:
-            expected_unique_ids.add(f"{device_id}:light:{state_addr}")
+            if CONF_BRIGHTNESS_SCALE in item:
+                expected_unique_ids.add(f"{device_id}:dimmer_light:{state_addr}")
+            else:
+                expected_unique_ids.add(f"{device_id}:light:{state_addr}")
 
     # Numbers - format: device_id:number:address
     for item in options.get("numbers", []):
@@ -487,12 +492,15 @@ async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) ->
             unique_id = f"{device_id}:button:{address}"
             entity_areas[unique_id] = area
 
-    # Lights
+    # Lights (on/off and dimmer)
     for item in options.get(CONF_LIGHTS, []):
         state_addr = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS)
         area = item.get(CONF_AREA)
         if state_addr:
-            unique_id = f"{device_id}:light:{state_addr}"
+            if CONF_BRIGHTNESS_SCALE in item:
+                unique_id = f"{device_id}:dimmer_light:{state_addr}"
+            else:
+                unique_id = f"{device_id}:light:{state_addr}"
             entity_areas[unique_id] = area
 
     # Numbers

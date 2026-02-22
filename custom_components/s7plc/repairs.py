@@ -117,7 +117,10 @@ class OrphanedEntitiesRepairFlow(RepairsFlow):
         for item in options.get("lights", []):
             state_addr = item.get("state_address", "")
             if state_addr:
-                expected_unique_ids.add(f"{device_id}:light:{state_addr}")
+                if "brightness_scale" in item:
+                    expected_unique_ids.add(f"{device_id}:dimmer_light:{state_addr}")
+                else:
+                    expected_unique_ids.add(f"{device_id}:light:{state_addr}")
 
         # Numbers
         for item in options.get("numbers", []):

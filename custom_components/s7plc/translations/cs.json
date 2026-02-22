@@ -341,6 +341,14 @@
       },
       "lights": {
         "title": "Přidat světlo",
+        "description": "Vyberte typ světla, které chcete přidat.",
+        "menu_options": {
+          "lights_onoff": "Světlo (ZAP/VYP)",
+          "lights_dimmer": "Stmívatelné světlo"
+        }
+      },
+      "lights_onoff": {
+        "title": "Přidat světlo (ZAP/VYP)",
         "description": "Nakonfigurujte světlo se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
         "data": {
           "state_address": "Stavová adresa",
@@ -363,6 +371,30 @@
           "add_another": "Zůstat v tomto kroku a přidat další světla.",
           "pulse_command": "Posílat puls místo příkazů on/off. Užitečné pro bistabilní relé nebo flip-flop obvody.",
           "pulse_duration": "Délka pulsu v sekundách (0.1-60s, podporuje desetinná čísla). Výchozí: 0.5s."
+        }
+      },
+      "lights_dimmer": {
+        "title": "Přidat stmívatelné světlo",
+        "description": "Konfigurujte stmívatelné světlo s numerickou stavovou adresou pro čtení jasu, příkazovou adresou pro ovládání jasu a volitelnou adresou pro příkaz aktuátoru.",
+        "data": {
+          "state_address": "Stavová adresa jasu",
+          "command_address": "Příkazová adresa jasu",
+          "actuator_command_address": "Adresa příkazu aktuátoru",
+          "name": "Název",
+          "area": "Oblast",
+          "brightness_scale": "Škála jasu (maximální hodnota)",
+          "scan_interval": "Interval čtení (s)",
+          "add_another": "Přidat další po uložení"
+        },
+        "data_description": {
+          "state_address": "Numerická adresa PLC pro čtení aktuální úrovně jasu (např. DB1,B0 pro BYTE 0-255, DB1,W0 pro WORD).",
+          "command_address": "Numerická adresa PLC pro zápis úrovně jasu.",
+          "actuator_command_address": "Volitelná booleovská adresa PLC pro ON/OFF ovládání aktuátoru. Automaticky nastavena na ON při jasu >= 1%, OFF při 0.",
+          "name": "Volitelný srozumitelný název stmívatelného světla.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas. Výchozí: 255 (rozsah BYTE). Použijte 100 pro stmívače založené na procentech.",
+          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+          "add_another": "Zůstat v tomto kroku a přidat další stmívatelná světla."
         }
       },
       "numbers": {
@@ -743,6 +775,28 @@
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "pulse_command": "Posílat puls místo příkazů on/off. Užitečné pro bistabilní relé nebo flip-flop obvody.",
           "pulse_duration": "Délka pulsu v sekundách (0.1-60s, podporuje desetinná čísla). Výchozí: 0.5s."
+        }
+      },
+      "edit_dimmer_light": {
+        "title": "Upravit stmívatelné světlo",
+        "description": "Aktualizujte adresy jasu, adresu aktuátoru, název nebo škálu jasu pro toto stmívatelné světlo.",
+        "data": {
+          "state_address": "Stavová adresa jasu",
+          "command_address": "Příkazová adresa jasu",
+          "actuator_command_address": "Adresa příkazu aktuátoru",
+          "name": "Název",
+          "area": "Oblast",
+          "brightness_scale": "Škála jasu (maximální hodnota)",
+          "scan_interval": "Interval čtení (s)"
+        },
+        "data_description": {
+          "state_address": "Numerická adresa PLC pro čtení aktuální úrovně jasu.",
+          "command_address": "Numerická adresa PLC pro zápis úrovně jasu.",
+          "actuator_command_address": "Volitelná booleovská adresa PLC pro ON/OFF ovládání aktuátoru. Nastavena na ON při jasu >= 1%, OFF při 0.",
+          "name": "Volitelný srozumitelný název stmívatelného světla.",
+          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas. Výchozí: 255.",
+          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
       "edit_number": {

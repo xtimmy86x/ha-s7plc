@@ -341,6 +341,14 @@
       },
       "lights": {
         "title": "Aggiungi Luce",
+        "description": "Seleziona il tipo di luce da aggiungere.",
+        "menu_options": {
+          "lights_onoff": "Luce (ON/OFF)",
+          "lights_dimmer": "Luce dimmerata"
+        }
+      },
+      "lights_onoff": {
+        "title": "Aggiungi Luce (ON/OFF)",
         "description": "Configura una luce con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
         "data": {
           "state_address": "Indirizzo stato",
@@ -363,6 +371,30 @@
           "add_another": "Rimani in questo step per aggiungere altre luci.",
           "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
           "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
+        }
+      },
+      "lights_dimmer": {
+        "title": "Aggiungi Luce Dimmerata",
+        "description": "Configura una luce dimmerabile con un indirizzo numerico per la lettura della luminosità, un indirizzo di comando per il controllo della luminosità e un indirizzo opzionale per il comando attuatore.",
+        "data": {
+          "state_address": "Indirizzo stato luminosità",
+          "command_address": "Indirizzo comando luminosità",
+          "actuator_command_address": "Indirizzo comando attuatore",
+          "name": "Nome",
+          "area": "Area",
+          "brightness_scale": "Scala luminosità (valore massimo)",
+          "scan_interval": "Intervallo di scansione (s)",
+          "add_another": "Aggiungi un altro dopo il salvataggio"
+        },
+        "data_description": {
+          "state_address": "Indirizzo numerico PLC per leggere il livello di luminosità corrente (es. DB1,B0 per BYTE 0-255, DB1,W0 per WORD).",
+          "command_address": "Indirizzo numerico PLC per scrivere il livello di luminosità.",
+          "actuator_command_address": "Indirizzo booleano PLC opzionale per il controllo ON/OFF dell'attuatore. Impostato automaticamente su ON quando la luminosità è >= 1%, OFF a 0.",
+          "name": "Nome descrittivo opzionale per la luce dimmerata.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "brightness_scale": "Valore massimo che il PLC usa per la piena luminosità. Default: 255 (intervallo BYTE). Usa 100 per dimmer basati su percentuale.",
+          "scan_interval": "Frequenza di polling in secondi. Se omesso, viene usato l'intervallo predefinito del PLC.",
+          "add_another": "Rimani in questo step per aggiungere altre luci dimmerabili."
         }
       },
       "numbers": {
@@ -665,6 +697,28 @@
           "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
           "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
+        }
+      },
+      "edit_dimmer_light": {
+        "title": "Modifica Luce dimmerata",
+        "description": "Aggiorna gli indirizzi di luminosità, l'indirizzo attuatore, il nome o la scala di luminosità per questa luce dimmerata.",
+        "data": {
+          "state_address": "Indirizzo stato luminosità",
+          "command_address": "Indirizzo comando luminosità",
+          "actuator_command_address": "Indirizzo comando attuatore",
+          "name": "Nome",
+          "area": "Area",
+          "brightness_scale": "Scala luminosità (valore massimo)",
+          "scan_interval": "Intervallo di scansione (s)"
+        },
+        "data_description": {
+          "state_address": "Indirizzo PLC numerico per leggere il livello di luminosità attuale.",
+          "command_address": "Indirizzo PLC numerico per scrivere il livello di luminosità.",
+          "actuator_command_address": "Indirizzo PLC booleano opzionale per il controllo ON/OFF dell'attuatore. Impostato su ON quando la luminosità è >= 1%, OFF quando è 0.",
+          "name": "Nome descrittivo opzionale per la luce dimmerata.",
+          "area": "Area di Home Assistant a cui assegnare questa entità.",
+          "brightness_scale": "Valore massimo utilizzato dal PLC per la luminosità piena. Default: 255.",
+          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo predefinito del PLC."
         }
       },
       "edit_number": {

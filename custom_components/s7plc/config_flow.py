@@ -36,11 +36,13 @@ except (ImportError, AttributeError):
 
 
 from .const import (
+    CONF_ACTUATOR_COMMAND_ADDRESS,
     CONF_ADDRESS,
     CONF_AREA,
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
+    CONF_BRIGHTNESS_SCALE,
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
@@ -105,6 +107,7 @@ from .const import (
     CONTROL_MODE_SETPOINT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
+    DEFAULT_BRIGHTNESS_SCALE,
     DEFAULT_BUTTON_PULSE,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
@@ -1507,6 +1510,78 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return item, {}
 
+    def _build_dimmer_light_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'dimmer_light' item from user input.
+
+        Returns (item, errors). If there is an error,
+        item is None and errors["base"] is set.
+        """
+        # Validate state address
+        state_address, errors = self._validate_address_field(
+            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        )
+        if errors:
+            return None, errors
+
+        # Check for duplicates
+        if self._has_duplicate(
+            CONF_LIGHTS,
+            state_address,
+            keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
+            skip_idx=skip_idx,
+        ):
+            return None, {"base": "duplicate_entry"}
+
+        # Validate command address (required)
+        command_address, cmd_errors = self._validate_address_field(
+            user_input.get(CONF_COMMAND_ADDRESS)
+        )
+        if cmd_errors:
+            return None, cmd_errors
+
+        # Validate optional actuator command address
+        actuator_address = None
+        if user_input.get(CONF_ACTUATOR_COMMAND_ADDRESS):
+            actuator_address, act_errors = self._validate_address_field(
+                user_input.get(CONF_ACTUATOR_COMMAND_ADDRESS)
+            )
+            if act_errors:
+                return None, act_errors
+
+        # Build item
+        item: dict[str, Any] = {
+            CONF_STATE_ADDRESS: state_address,
+            CONF_COMMAND_ADDRESS: command_address,
+        }
+        if actuator_address:
+            item[CONF_ACTUATOR_COMMAND_ADDRESS] = actuator_address
+
+        # Brightness scale
+        brightness_scale = user_input.get(
+            CONF_BRIGHTNESS_SCALE, DEFAULT_BRIGHTNESS_SCALE
+        )
+        if brightness_scale is not None:
+            try:
+                brightness_scale = int(brightness_scale)
+            except (TypeError, ValueError):
+                brightness_scale = DEFAULT_BRIGHTNESS_SCALE
+            if brightness_scale < 1 or brightness_scale > 65535:
+                brightness_scale = DEFAULT_BRIGHTNESS_SCALE
+            item[CONF_BRIGHTNESS_SCALE] = brightness_scale
+
+        # Copy optional fields
+        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
+
+        # Apply scan interval
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, {}
+
     def _build_number_item(
         self,
         user_input: dict[str, Any],
@@ -1849,6 +1924,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             "cvp": "Cover (Position)",
             "bt": "Button",
             "lt": "Light",
+            "dl": "Dimmer Light",
             "nm": "Number",
             "tx": "Text",
             "cl_d": "Climate (Direct)",
@@ -1915,13 +1991,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         for orig_idx, it in sorted_buttons:
             items[f"bt:{orig_idx}"] = self._labelize("bt", it)
 
-        # Lights - sorted alphabetically
+        # Lights - sorted alphabetically (distinguish dimmer lights)
         lights = self._options.get(CONF_LIGHTS, [])
         sorted_lights = sorted(enumerate(lights), key=lambda x: get_sort_key(x[1]))
         for orig_idx, it in sorted_lights:
             light_item = {**it}
             light_item.setdefault(CONF_ADDRESS, it.get(CONF_STATE_ADDRESS))
-            items[f"lt:{orig_idx}"] = self._labelize("lt", light_item)
+            if CONF_BRIGHTNESS_SCALE in it:
+                items[f"dl:{orig_idx}"] = self._labelize("dl", light_item)
+            else:
+                items[f"lt:{orig_idx}"] = self._labelize("lt", light_item)
 
         # Numbers - sorted alphabetically
         numbers = self._options.get(CONF_NUMBERS, [])
@@ -2730,8 +2809,30 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             self._last_add_input = None
         return self.async_show_form(step_id="buttons", data_schema=data_schema)
 
-    # ====== ADD: lights ======
+    # ====== ADD: lights (menu) ======
     async def async_step_lights(self, user_input: dict[str, Any] | None = None):
+        """Show menu to choose between ON/OFF or dimmer light."""
+        _LOGGER.debug(f"async_step_lights called with user_input={user_input}")
+        if user_input is None:
+            _LOGGER.debug("Showing lights type selection menu")
+            return self.async_show_menu(
+                step_id="lights",
+                menu_options=["lights_onoff", "lights_dimmer"],
+            )
+
+        selection = user_input.get("menu_option") or ""
+        _LOGGER.debug(f"User selected light type: {selection}")
+
+        if selection == "lights_onoff":
+            return await self.async_step_lights_onoff()
+        elif selection == "lights_dimmer":
+            return await self.async_step_lights_dimmer()
+
+        _LOGGER.warning(f"Invalid light type selection: {selection}")
+        return await self.async_step_lights()
+
+    # ====== ADD: lights_onoff ======
+    async def async_step_lights_onoff(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
         data_schema = vol.Schema(
@@ -2759,7 +2860,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
             if errors:
                 return self.async_show_form(
-                    step_id="lights", data_schema=data_schema, errors=errors
+                    step_id="lights_onoff", data_schema=data_schema, errors=errors
                 )
 
             if item is not None:
@@ -2769,7 +2870,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._last_add_input = {
                     k: v for k, v in user_input.items() if k != "add_another"
                 }
-                return await self.async_step_lights()
+                return await self.async_step_lights_onoff()
 
             return self.async_create_entry(title="", data=self._options)
 
@@ -2778,7 +2879,63 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 data_schema, self._last_add_input
             )
             self._last_add_input = None
-        return self.async_show_form(step_id="lights", data_schema=data_schema)
+        return self.async_show_form(step_id="lights_onoff", data_schema=data_schema)
+
+    # ====== ADD: lights_dimmer ======
+    async def async_step_lights_dimmer(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+
+        brightness_scale_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=1,
+                max=65535,
+                step=1,
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
+                vol.Required(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_ACTUATOR_COMMAND_ADDRESS): selector.TextSelector(),
+                vol.Optional(CONF_NAME): selector.TextSelector(),
+                vol.Optional(CONF_AREA): self._get_area_selector(),
+                vol.Optional(
+                    CONF_BRIGHTNESS_SCALE, default=DEFAULT_BRIGHTNESS_SCALE
+                ): brightness_scale_selector,
+                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+                vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        if user_input is not None:
+            item, errors = self._build_dimmer_light_item(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id="lights_dimmer",
+                    data_schema=data_schema,
+                    errors=errors,
+                )
+
+            if item is not None:
+                self._options[CONF_LIGHTS].append(item)
+
+            if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
+                return await self.async_step_lights_dimmer()
+
+            return self.async_create_entry(title="", data=self._options)
+
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
+        return self.async_show_form(step_id="lights_dimmer", data_schema=data_schema)
 
     # ====== ADD: numbers ======
     async def async_step_numbers(self, user_input: dict[str, Any] | None = None):
@@ -3171,6 +3328,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     "cvp": CONF_COVERS,  # Position-based covers
                     "bt": CONF_BUTTONS,
                     "lt": CONF_LIGHTS,
+                    "dl": CONF_LIGHTS,  # Dimmer lights
                     "nm": CONF_NUMBERS,
                     "tx": CONF_TEXTS,
                     "cl_d": CONF_CLIMATES,  # Direct control climate
@@ -3261,6 +3419,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_edit_button()
         if prefix == "lt":
             return await self.async_step_edit_light()
+        if prefix == "dl":
+            return await self.async_step_edit_dimmer_light()
         if prefix == "nm":
             return await self.async_step_edit_number()
         if prefix == "tx":
@@ -3697,6 +3857,69 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             build_schema=build_schema,
             process_input=process_input,
             step_id="edit_light",
+            user_input=user_input,
+        )
+
+    # ====== EDIT: dimmer_light ======
+    async def async_step_edit_dimmer_light(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        brightness_scale_selector = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=1,
+                max=65535,
+                step=1,
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+
+        def build_schema(item: dict[str, Any]) -> vol.Schema:
+            schema_dict: dict[Any, Any] = {
+                vol.Required(
+                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+                ): selector.TextSelector(),
+                vol.Required(
+                    CONF_COMMAND_ADDRESS,
+                    default=item.get(CONF_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_ACTUATOR_COMMAND_ADDRESS,
+                    default=item.get(CONF_ACTUATOR_COMMAND_ADDRESS, ""),
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NAME, default=item.get(CONF_NAME, "")
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_BRIGHTNESS_SCALE,
+                    default=item.get(CONF_BRIGHTNESS_SCALE, DEFAULT_BRIGHTNESS_SCALE),
+                ): brightness_scale_selector,
+            }
+
+            key_scan, val_scan = self._optional_field(
+                CONF_SCAN_INTERVAL, item, scan_interval_selector
+            )
+            schema_dict[key_scan] = val_scan
+
+            key_area, val_area = self._optional_field(
+                CONF_AREA, item, self._get_area_selector()
+            )
+            schema_dict[key_area] = val_area
+
+            return vol.Schema(schema_dict)
+
+        def process_input(
+            old_item: dict[str, Any],
+            idx: int,
+            inp: dict[str, Any],
+        ):
+            return self._build_dimmer_light_item(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=CONF_LIGHTS,
+            prefix="dl",
+            build_schema=build_schema,
+            process_input=process_input,
+            step_id="edit_dimmer_light",
             user_input=user_input,
         )
 

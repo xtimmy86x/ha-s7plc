@@ -341,6 +341,14 @@
       },
       "lights": {
         "title": "Dodaj światło",
+        "description": "Wybierz typ światła do dodania.",
+        "menu_options": {
+          "lights_onoff": "Światło (ZAŁ/WYŁ)",
+          "lights_dimmer": "Światło Ściemniane"
+        }
+      },
+      "lights_onoff": {
+        "title": "Dodaj światło (ZAŁ/WYŁ)",
         "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
         "data": {
           "state_address": "Adres odczytu",
@@ -363,6 +371,30 @@
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
+        }
+      },
+      "lights_dimmer": {
+        "title": "Dodaj światło ściemniane",
+        "description": "Skonfiguruj światło ściemniane z numerycznym adresem stanu jasności, adresem komendy jasności i opcjonalnym adresem komendy aktuatora.",
+        "data": {
+          "state_address": "Adres stanu jasności",
+          "command_address": "Adres komendy jasności",
+          "actuator_command_address": "Adres komendy aktuatora",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "brightness_scale": "Skala jasności (wartość maksymalna)",
+          "scan_interval": "Interwał skanowania (s)",
+          "add_another": "Dodaj kolejne po zapisie"
+        },
+        "data_description": {
+          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0-255, DB1,W0 dla WORD).",
+          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
+          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Automatycznie ustawiany na ON przy jasności >= 1%, OFF przy 0.",
+          "name": "Opcjonalna własna nazwa światła ściemnianego.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255 (zakres BYTE). Użyj 100 dla dimmerów procentowych.",
+          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejne światła ściemniane."
         }
       },
       "numbers": {
@@ -743,6 +775,28 @@
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 - 60s), domyślnie (0.5s).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
+        }
+      },
+      "edit_dimmer_light": {
+        "title": "Edytuj światło ściemniane",
+        "description": "Zaktualizuj adresy jasności, adres aktuatora, nazwę lub skalę jasności dla tego światła ściemnianego.",
+        "data": {
+          "state_address": "Adres stanu jasności",
+          "command_address": "Adres komendy jasności",
+          "actuator_command_address": "Adres komendy aktuatora",
+          "name": "Nazwa",
+          "area": "Obszar",
+          "brightness_scale": "Skala jasności (wartość maksymalna)",
+          "scan_interval": "Interwał skanowania (s)"
+        },
+        "data_description": {
+          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności.",
+          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
+          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Ustawiany na ON przy jasności >= 1%, OFF przy 0.",
+          "name": "Opcjonalna własna nazwa światła ściemnianego.",
+          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
+          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255.",
+          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
       "edit_number": {

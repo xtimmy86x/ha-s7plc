@@ -341,6 +341,14 @@
       },
       "lights": {
         "title": "Licht hinzufügen",
+        "description": "Wählen Sie den Lichttyp aus, den Sie hinzufügen möchten.",
+        "menu_options": {
+          "lights_onoff": "Licht (EIN/AUS)",
+          "lights_dimmer": "Dimmbares Licht"
+        }
+      },
+      "lights_onoff": {
+        "title": "Licht (EIN/AUS) hinzufügen",
         "description": "Konfigurieren Sie ein Licht mit einer Zustandsvariable und einer optionalen Befehlsvariable. Sie können die Zustandssynchronisierung aktivieren.",
         "data": {
           "state_address": "Zustandsvariable",
@@ -363,6 +371,30 @@
           "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Lichter hinzuzufügen ?"
+        }
+      },
+      "lights_dimmer": {
+        "title": "Dimmbares Licht hinzufügen",
+        "description": "Konfigurieren Sie ein dimmbares Licht mit einer numerischen Zustandsadresse für die Helligkeitsrückmeldung, einer Befehlsadresse für die Helligkeitssteuerung und einer optionalen Aktor-Befehlsadresse.",
+        "data": {
+          "state_address": "Helligkeits-Zustandsadresse",
+          "command_address": "Helligkeits-Befehlsadresse",
+          "actuator_command_address": "Aktor-Befehlsadresse",
+          "name": "Name",
+          "area": "Bereich",
+          "brightness_scale": "Helligkeitsskala (Maximalwert)",
+          "scan_interval": "Abfragezyklus (s)",
+          "add_another": "Weitere dimmbare Lichter hinzufügen ?"
+        },
+        "data_description": {
+          "state_address": "Numerische SPS-Adresse zum Lesen des aktuellen Helligkeitswerts (z.B. DB1,B0 für BYTE 0-255, DB1,W0 für WORD).",
+          "command_address": "Numerische SPS-Adresse zum Schreiben des Helligkeitswerts.",
+          "actuator_command_address": "Optionale boolesche SPS-Adresse für Aktor-Ein/Aus-Steuerung. Wird automatisch auf EIN gesetzt bei Helligkeit >= 1%, AUS bei 0.",
+          "name": "Optionaler Name für das dimmbare Licht.",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "brightness_scale": "Maximalwert, den die SPS für volle Helligkeit verwendet. Standard: 255 (BYTE-Bereich). Verwenden Sie 100 für prozentbasierte Dimmer.",
+          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "add_another": "Weitere dimmbare Lichter hinzufügen ?"
         }
       },
       "numbers": {
@@ -742,6 +774,28 @@
           "sync_state": "Wenn aktiviert, wird der Entitätszustand automatisch von der SPS synchronisiert.",
           "pulse_command": "Impuls statt Ein/Aus-Befehle senden. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
+          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+        }
+      },
+      "edit_dimmer_light": {
+        "title": "Dimmbares Licht bearbeiten",
+        "description": "Aktualisieren Sie die Helligkeitsadressen, Aktoradresse, Name oder Helligkeitsskala für dieses dimmbare Licht.",
+        "data": {
+          "state_address": "Helligkeits-Zustandsadresse",
+          "command_address": "Helligkeits-Befehlsadresse",
+          "actuator_command_address": "Aktor-Befehlsadresse",
+          "name": "Name",
+          "area": "Bereich",
+          "brightness_scale": "Helligkeitsskala (Maximalwert)",
+          "scan_interval": "Abfragezyklus (s)"
+        },
+        "data_description": {
+          "state_address": "Numerische SPS-Adresse zum Lesen des aktuellen Helligkeitswerts.",
+          "command_address": "Numerische SPS-Adresse zum Schreiben des Helligkeitswerts.",
+          "actuator_command_address": "Optionale boolesche SPS-Adresse für Aktor-Ein/Aus-Steuerung. Auf EIN bei Helligkeit >= 1%, AUS bei 0.",
+          "name": "Optionaler Name für das dimmbare Licht.",
+          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "brightness_scale": "Maximalwert, den die SPS für volle Helligkeit verwendet. Standard: 255.",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
       },

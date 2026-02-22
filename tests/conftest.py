@@ -843,6 +843,7 @@ components.switch = switch
 class ColorMode:  # pragma: no cover - simple stub
     """Minimal ColorMode stub."""
     ONOFF = "onoff"
+    BRIGHTNESS = "brightness"
 
 
 class LightEntity:  # pragma: no cover - simple stub
