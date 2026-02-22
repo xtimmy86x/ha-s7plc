@@ -4,7 +4,9 @@ This document covers advanced functionality including State Synchronization and 
 
 ## State Synchronization
 
-The **Sync State** feature is available for `switch` and `light` entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
+The **Sync State** feature is available for `switch` and `light` (on/off) entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
+
+> **Note**: Sync State and Pulse Command Mode apply to **on/off** lights only. **Dimmer lights** use a different mechanism based on numeric brightness values and do not support these features.
 
 ### How it Works
 
@@ -336,6 +338,14 @@ Combine a `number` entity (for PLC → HA data flow) with an `entity_sync` (for 
 - Ensure the PLC data block is not write-protected
 - Check that `write_count` is incrementing (confirms writes are succeeding)
 - Monitor PLC program to ensure it's reading the address
+
+---
+
+## Form Pre-Fill on "Add Another"
+
+When adding multiple entities of the same type, checking **"Add another"** in the entity creation form now **pre-fills the next form with the values from the previous entry**. This lets you modify only what's different (e.g., address and name) without re-entering shared fields like device class, area, or scan interval.
+
+This applies to all entity types: sensors, binary sensors, switches, covers (traditional and position), buttons, lights (on/off and dimmer), numbers, texts, climates (direct and setpoint), and entity sync.
 
 ---
 

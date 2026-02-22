@@ -6,16 +6,29 @@ Practical examples and use cases for the S7 PLC integration.
 
 **Note**: All examples include a **Name** field for clarity, but this field is optional. If you omit the name, the integration automatically generates one based on the address (e.g., `DB1,X0.0` becomes "DB1 X0 0").
 
-### Adding a Light Entity
+### Adding a Light Entity (On/Off)
 
 1. After the integration is installed, open it from **Settings → Devices & Services**.
 2. Click **Configure** and choose **Add items**.
-3. Select **Light**, then enter:
+3. Select **Light**, then choose **Light (On/Off)** and enter:
    - **State Address**: `DB1,X0.0` (reads actual lamp status)
    - **Command Address**: `DB1,X0.1` (sends on/off commands)
    - **Name**: "Workshop Main Light"
    - **Sync State**: Enable if physical switches exist
 4. Save to create the entity or enable **Add another** to keep adding more.
+
+### Adding a Dimmer Light Entity
+
+1. Open the integration and choose **Add items**.
+2. Select **Light**, then choose **Dimmer Light** and enter:
+   - **State Address**: `DB5,W10` (reads current brightness from PLC, e.g. 0–100)
+   - **Command Address**: `DB5,W12` (writes brightness value to PLC)
+   - **Actuator Command Address**: `DB5,X0.0` (optional – boolean relay ON when brightness ≥ 1%, OFF at 0)
+   - **Brightness Scale**: `100` (PLC uses 0–100 range; set to `255` if your PLC uses 0–255)
+   - **Name**: "Office Desk Lamp"
+3. Save the configuration.
+
+The dimmer light entity provides a brightness slider in Home Assistant. The integration maps between Home Assistant’s 0–255 brightness range and your PLC’s configured scale automatically.
 
 ### Adding a Number Entity
 
@@ -154,7 +167,7 @@ Light 3: State=DB2,X0.2, Command=DB2,X1.2, Sync=Yes
 ...
 ```
 
-Use **Add another** button to quickly configure all 8 lights in one session.
+Use **Add another** button to quickly configure all 8 lights in one session. The form is pre-filled with the values from the previous entry, so you only need to change the address and name each time.
 
 ### Weather Data to PLC
 
@@ -384,6 +397,7 @@ Setpoint control mode allows the PLC to manage heating and cooling autonomously,
    - **Current Temperature Address**: `DB20,REAL0` (current room temperature)
    - **Target Temperature Address**: `DB20,REAL4` (setpoint for PLC)
    - **Preset Mode Address**: Leave blank (optional on/off control)
+   - **HVAC Status Address**: `DB20,W8` (optional – reads actual HVAC status: 0=OFF, 1=HEATING, 2=COOLING)
    - **Min Temperature**: 15.0
    - **Max Temperature**: 30.0
    - **Temperature Step**: 0.5
@@ -396,8 +410,26 @@ In this mode:
 - When you change the temperature in Home Assistant, it writes the new setpoint to the PLC
 - The PLC manages all heating/cooling logic autonomously
 - Optionally, you can use the Preset Mode Address to enable/disable the climate control on the PLC
+- If **HVAC Status Address** is configured, the displayed HVAC action (heating/cooling/idle) reflects the real PLC status. Otherwise, the action is inferred from the temperature comparison
 
 This mode is ideal when the PLC already has climate control logic implemented and you just want to monitor and adjust the setpoint from Home Assistant.
+
+### Position-Based Roller Shutter
+
+**Scenario**: Motorized blinds with 0–100% position control and stop capability.
+
+**Configuration**:
+- **Entity Type**: Cover (Position-based)
+- **Position State Address**: `DB25,W0` (current position, 0–100)
+- **Position Command Address**: `DB25,W2` (target position)
+- **Invert Position**: No
+- **Device Class**: shutter
+- **Name**: "Living Room Blinds"
+
+Features:
+- Drag the position slider to set any target between 0% (closed) and 100% (open)
+- **Stop** writes the current actual position to the target register, halting movement immediately
+- Open/Close buttons set position to 100% / 0% respectively
 
 ## Tips and Best Practices
 

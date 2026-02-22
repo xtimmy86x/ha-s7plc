@@ -92,16 +92,16 @@ Values outside these ranges are supported, but increasing them further may delay
 ### Adding Entities
 
 1. Open the integration and choose **Configure** → **Add items**.
-2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `Entity Sync`).
+2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `climate`, `Entity Sync`).
 3. Fill in the form fields based on entity type (see below for details).
-4. Use **Add another** to chain the creation of multiple entities.
+4. Use **Add another** to chain the creation of multiple entities. The next form will be pre-filled with the values from the previous entry, so you only need to change what's different (e.g., address and name).
 5. Click **Send** to persist the last entry.
 
 ### Entity Type Details
 
 **Note**: The **Name** field is optional for all entity types. If omitted, the integration automatically generates a name based on the PLC address (e.g., "DB1 X0 0" for address `DB1,X0.0`). This auto-generated name is then combined with the PLC device name by Home Assistant.
 
-#### Switch and Light
+#### Switch and Light (On/Off)
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **State Address**: PLC address to read the actual state
@@ -110,7 +110,17 @@ Values outside these ranges are supported, but increasing them further may delay
 - **Pulse Command Mode**: When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays, flip-flop circuits, or momentary button control
 - **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Only used when Pulse Command Mode is enabled
 
-#### Cover
+#### Dimmer Light
+
+A brightness-controlled light entity using `ColorMode.BRIGHTNESS`.
+
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
+- **State Address**: PLC address to read the current brightness level (numeric)
+- **Command Address**: PLC address to write the brightness level (defaults to state address if omitted)
+- **Actuator Command Address** (optional): Boolean PLC address for the physical actuator relay. When configured, the integration writes `True` when brightness ≥ 1% and `False` when brightness is 0. Useful when the PLC needs a separate ON/OFF signal for the dimmer hardware
+- **Brightness Scale**: Maximum value representing full brightness on the PLC side (default: `255`). Set to `100` if your PLC uses 0–100% range, or any other scale your dimmer hardware expects. The integration automatically maps between this scale and Home Assistant's 0–255 range
+
+#### Cover (Traditional Open/Close)
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Open Command Address**: Address to command cover open
@@ -118,6 +128,18 @@ Values outside these ranges are supported, but increasing them further may delay
 - **Opening State Address**: Address to read opening state (optional, reuses command address if blank)
 - **Closing State Address**: Address to read closing state (optional, reuses command address if blank)
 - **Operate Time**: Time in seconds to automatically reset command outputs (default: 60s)
+
+#### Cover (Position-Based)
+
+Position-based covers use a 0–100% numeric range instead of separate open/close commands.
+
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
+- **Position State Address**: PLC address to read the current position (0–100)
+- **Position Command Address**: PLC address to write the target position (defaults to state address if omitted)
+- **Invert Position**: When enabled, inverts the position scale (PLC 0 = HA 100 and vice versa)
+- **Device Class**: Optional cover device class (e.g., `shutter`, `blind`, `garage`)
+
+**Stop command**: For position-based covers, the **Stop** action writes the current actual position to the target position register, effectively halting the movement at the current point
 
 #### Button
 
@@ -159,6 +181,37 @@ Values outside these ranges are supported, but increasing them further may delay
 - **Device Class**: Optional binary sensor device class
   - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Invert State**: Inverts the sensor state (PLC True → Off, PLC False → On). Useful for NC (Normally Closed) contacts or when PLC logic is inverted
+
+#### Climate (Direct Control)
+
+Direct control mode: Home Assistant manages heating/cooling outputs while reading the current temperature from the PLC.
+
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
+- **Current Temperature Address**: PLC address to read the current temperature (REAL)
+- **Heating Output Address**: PLC boolean address for the heating relay (optional if cooling is set)
+- **Cooling Output Address**: PLC boolean address for the cooling relay (optional if heating is set)
+- **Heating Action Address** (optional): PLC address to read actual heating status feedback
+- **Cooling Action Address** (optional): PLC address to read actual cooling status feedback
+- **Min Temperature**: Minimum allowed target temperature (default: 7.0°C)
+- **Max Temperature**: Maximum allowed target temperature (default: 35.0°C)
+- **Temperature Step**: Step increment for temperature adjustments (default: 0.5°C)
+
+The entity exposes a `climate_type` attribute set to **"Direct Control"**.
+
+#### Climate (Setpoint Control)
+
+Setpoint control mode: the PLC manages heating/cooling autonomously; Home Assistant only reads temperatures and writes the target setpoint.
+
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
+- **Current Temperature Address**: PLC address to read the current temperature (REAL)
+- **Target Temperature Address**: PLC address to read/write the target setpoint (REAL)
+- **Preset Mode Address** (optional): PLC address to write the HVAC mode (0=OFF, 1=HEAT, 2=COOL, 3=HEAT_COOL)
+- **HVAC Status Address** (optional): PLC address to read the actual HVAC status as an integer (0=OFF, 1=HEATING, 2=COOLING). When configured, the `hvac_action` property reflects the real PLC status instead of inferring it from the temperature comparison. If not provided, the action is estimated by comparing current vs. target temperature
+- **Min Temperature**: Minimum allowed target temperature (default: 7.0°C)
+- **Max Temperature**: Maximum allowed target temperature (default: 35.0°C)
+- **Temperature Step**: Step increment for temperature adjustments (default: 0.5°C)
+
+The entity exposes a `climate_type` attribute set to **"Setpoint Control"**.
 
 #### Entity Sync
 

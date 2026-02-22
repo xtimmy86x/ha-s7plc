@@ -39,7 +39,7 @@ Direct + lightweight custom component using `pys7`.
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`
-- 🧩 **Multiple entity types**: `light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, and Entity Sync
+- 🧩 **Multiple entity types**: `light`, `dimmer light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `climate`, and Entity Sync
 - 🔌 **Dual connection modes**: Rack/Slot or TSAP addressing
 - 🧮 **Value multipliers**: Scale raw PLC values before Home Assistant sees them
 - 🪶 **Lightweight**: Minimal overhead, no broker/services required
@@ -48,6 +48,7 @@ Direct + lightweight custom component using `pys7`.
 - 📄 **S7 STRING support** for text sensors
 - 🔄 **State synchronization**: Bidirectional sync for switches and lights with physical controls
 - 📤 **Entity Sync**: Push any Home Assistant entity state to PLC addresses in real-time
+- 🌡️ **Climate control**: Direct control and setpoint modes for HVAC systems
 - 📊 **Import/Export**: Backup and restore your entity configurations
 
 ---
@@ -107,7 +108,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | Topic | Description |
 |-------|-------------|
 | [Connection Types](docs/configuration.md#connection-types) | Rack/Slot vs TSAP addressing |
-| [Entity Types](docs/configuration.md#entity-type-details) | Switch, Light, Cover, Sensor, Number, Entity Sync |
+| [Entity Types](docs/configuration.md#entity-type-details) | Switch, Light, Dimmer Light, Cover, Sensor, Number, Climate, Entity Sync |
 | [State Sync](docs/advanced-features.md#state-synchronization) | Bidirectional synchronization for physical controls |
 | [Entity Sync](docs/advanced-features.md#entity-sync) | Push HA entities to PLC addresses |
 | [Logo! Support](docs/addressing.md#logo-8-addressing) | Specific notes for Logo! controllers |
@@ -122,11 +123,13 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | **Binary Sensor** | ✅ | ❌ | Device classes, bit addressing, state inversion |
 | **Sensor** | ✅ | ❌ | Numeric types, strings, multipliers, precision |
 | **Switch** | ✅ | ✅ | State sync, pulse command mode, separate state/command addresses |
-| **Light** | ✅ | ✅ | State sync, pulse command mode, separate state/command addresses |
-| **Cover** | ✅ | ✅ | Open/close commands, position feedback, timing |
+| **Light (On/Off)** | ✅ | ✅ | State sync, pulse command mode, separate state/command addresses |
+| **Dimmer Light** | ✅ | ✅ | Brightness control, configurable scale, optional actuator relay |
+| **Cover** | ✅ | ✅ | Open/close commands, position control (0–100%), stop, timing |
 | **Button** | ❌ | ✅ | Pulse output with configurable duration (0.1-60s, supports decimals) |
 | **Number** | ✅ | ✅ | Min/max/step, separate read/write addresses |
 | **Text** | ✅ | ✅ | STRING/WSTRING support, pattern validation, auto-sized limits |
+| **Climate** | ✅ | ✅ | Direct control or setpoint mode, HVAC status feedback |
 | **Entity Sync** | ❌ | ✅ | Monitor any HA entity, write to PLC on change |
 
 ---
@@ -155,8 +158,8 @@ See [S7 Addressing](docs/addressing.md) for complete details.
 
 ## Example Use Cases
 
-- **HVAC Control**: Read temperatures, control setpoints
-- **Lighting Systems**: Multi-point control with physical switches
+- **HVAC Control**: Read temperatures, control setpoints, climate entities with direct or setpoint modes
+- **Lighting Systems**: Multi-point control with physical switches, dimmer lights with brightness control
 - **Conveyor Belts**: Monitor status, control motors
 - **Door Access**: Lock control, contact monitoring
 - **Data Logging**: Push weather, energy data to PLC
@@ -175,7 +178,7 @@ A: No. Direct S7 protocol communication to PLC.
 A: Any S7 PLC with ISO-on-TCP (port 102) support: S7-1200, S7-1500, S7-300, S7-400, Logo! 8.
 
 **Q: Can I write values to the PLC?**  
-A: Yes. `switch`, `light`, `cover`, `button`, `number`, `text`, and Entity Sync all support writes.
+A: Yes. `switch`, `light`, `dimmer light`, `cover`, `button`, `number`, `text`, `climate`, and Entity Sync all support writes.
 
 **Q: Do I need to know PLC programming?**  
 A: Basic knowledge helps. You need to know your data block structure and addresses.
@@ -239,6 +242,9 @@ pre-commit run --files <file1> [<file2> ...]
 - [x] Entity sync (write HA entities to PLC)
 - [x] TSAP connection support
 - [x] Import/Export configuration
+- [x] Climate entities (direct and setpoint control)
+- [x] Dimmer light with brightness control
+- [x] Position-based cover with stop
 - [ ] Additional diagnostics entities
 - [ ] Performance optimizations
 
