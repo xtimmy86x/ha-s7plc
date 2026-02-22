@@ -258,8 +258,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres odczytu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres do zapisu (opcjonalny). Jeśli pominięty, odczytywany jest tylko stan.",
+          "state_address": "Adres odczytu stanu (np. Q0.0, DB20,X0.0).",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
@@ -311,7 +311,7 @@
         },
         "data_description": {
           "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli pominięty, używany jest adres stanu.",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
@@ -354,8 +354,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres do odczytu aktualnego stanu światła.",
-          "command_address": "Adres do zapisu nowego stanu światła (opcjonalny).",
+          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
@@ -384,7 +384,7 @@
         },
         "data_description": {
           "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
-          "command_address": "Adres do zapisu wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
+          "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia encji liczbowej (np. temperatura, napięcie, moc).",
@@ -410,8 +410,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres do odczytu (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adres do zapisu tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
+          "address": "Adres do odczytu wartości tekstowej (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
+          "command_address": "Opcjonalny adres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
@@ -483,7 +483,7 @@
       },
       "edit_text": {
         "title": "Edytuj encje tekst",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -493,8 +493,8 @@
           "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
-          "address": "Adres do odczytu (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adres do zapisu tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
+          "address": "Adres do odczytu wartości tekstowej (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
+          "command_address": "Opcjonalny sdres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres stanu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
@@ -503,7 +503,7 @@
       },
       "edit_climate_direct": {
         "title": "Edytuj termostat (Kontroler)",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "current_temperature_address": "Adres temperatury aktualnej",
           "heating_output_address": "Adres wyjścia ogrzewania",
@@ -533,7 +533,7 @@
       },
       "edit_climate_setpoint": {
         "title": "Edytuj termostat (Klient)",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "current_temperature_address": "Adres temperatury aktualnej",
           "target_temperature_address": "Adres temperatury zadanej",
@@ -589,7 +589,7 @@
       },
       "edit_sensor": {
         "title": "Edytuj czujnik",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
@@ -615,7 +615,7 @@
       },
       "edit_binary_sensor": {
         "title": "Edytuj czujnik binarny",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
@@ -635,7 +635,7 @@
       },
       "edit_switch": {
         "title": "Edytuj przełącznik",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -647,8 +647,8 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres do odczytu aktualnego stanu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres do zapisu (opcjonalny).",
+          "state_address": "Adres do odczytu stanu (np. Q0.0, DB20,X0.0).",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
@@ -658,8 +658,8 @@
         }
       },
       "edit_cover": {
-        "title": "Edytuj osłonę/roletę",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "title": "Edytuj standardową osłonę/roletę",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "open_command_address": "Adres zapisu (otwórz)",
           "close_command_address": "Adres zapisu (zamknij)",
@@ -684,8 +684,8 @@
         }
       },
       "edit_cover_position": {
-        "title": "Edytuj osłonę/roletę z położeniem",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "title": "Edytuj zaawansowaną osłonę/roletę",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "position_state_address": "Adres odczytu położenia",
           "position_command_address": "Adres zapisu położenia",
@@ -696,7 +696,7 @@
         },
         "data_description": {
           "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli pominięty, używany jest adres stanu.",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
@@ -705,7 +705,7 @@
       },
       "edit_button": {
         "title": "Edytuj przycisk",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres zapisu",
           "name": "Nazwa",
@@ -723,7 +723,7 @@
       },
       "edit_light": {
         "title": "Edytuj światło",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -735,8 +735,8 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres do odczytu aktualnego stanu.",
-          "command_address": "Adres do zapisu nowego stanu (opcjonalny).",
+          "state_address": "Adres do odczytu stanu.",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
@@ -747,7 +747,7 @@
       },
       "edit_number": {
         "title": "Edytuj encje liczbową",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -763,7 +763,7 @@
         },
         "data_description": {
           "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
-          "command_address": "Adres do zapisu wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
+          "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia (np. temperatura, napięcie, moc).",
@@ -777,7 +777,7 @@
       },
       "edit_writer": {
         "title": "Edytuj synchronizację encji",
-        "description": "Zaktualizuj ustawione parametry dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres zapisu",
           "source_entity": "Encja źródłowa",
@@ -816,7 +816,7 @@
       "invalid_address": "Nieprawidłowy format adresu.",
       "duplicate_entry": "Ta encja już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
-      "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (otwarta/zamknięta).",
+      "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (Otwarta / Zamknięta).",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
@@ -825,8 +825,8 @@
       "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia.",
       "invalid_json": "Nieprawidłowy format JSON.",
       "invalid_selection": "Wybierz prawidłowy typ encji.",
-      "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu REAL i LREAL.",
-      "text_requires_string_type": "Encje tekstowe wymagają adresów (STRING / WSTRING)."
+      "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL / LREAL).",
+      "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING)."
     }
   },
   "issues": {
