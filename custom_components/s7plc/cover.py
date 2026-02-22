@@ -10,7 +10,7 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_call_later
@@ -226,12 +226,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
             # If opening and reached open position, stop
             if self._is_opening and opened_state is True:
                 _LOGGER.debug("Cover %s reached open position, stopping", self.name)
-                self.hass.create_task(self._complete_operation("open"))
+                self.hass.async_create_task(self._complete_operation("open"))
 
             # If closing and reached closed position, stop
             elif self._is_closing and closed_state is True:
                 _LOGGER.debug("Cover %s reached closed position, stopping", self.name)
-                self.hass.create_task(self._complete_operation("close"))
+                self.hass.async_create_task(self._complete_operation("close"))
 
         super()._handle_coordinator_update()
 
@@ -381,12 +381,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
             await self._complete_operation(direction)
 
         if self._operate_time <= 0:
-            self.hass.create_task(_async_reset())
+            self.hass.async_create_task(_async_reset())
             return
 
+        @callback
         def _callback(_now) -> None:
             self._reset_handles.pop(direction, None)
-            self.hass.create_task(_async_reset())
+            self.hass.async_create_task(_async_reset())
 
         self._reset_handles[direction] = async_call_later(
             self.hass, self._operate_time, _callback
