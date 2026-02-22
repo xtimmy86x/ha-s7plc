@@ -37,7 +37,7 @@ rules:
 
   dependency-transparency:
     status: done
-    comment: pys7==2.5.0 specified in manifest.json requirements
+    comment: pys7==2.6.1 specified in manifest.json requirements
 
   docs-actions:
     status: done
@@ -68,8 +68,8 @@ rules:
     comment: _attr_has_entity_name = True in S7BaseEntity
 
   runtime-data:
-    status: todo
-    comment: Currently using hass.data[DOMAIN][entry_id], should migrate to ConfigEntry.runtime_data
+    status: done
+    comment: Uses ConfigEntry.runtime_data with RuntimeEntryData dataclass (__init__.py)
 
   test-before-configure:
     status: done
@@ -125,7 +125,7 @@ rules:
 
   test-coverage:
     status: done
-    comment: 259 tests passing, >95% coverage
+    comment: 348 tests passing, >95% coverage
 
   # ============================================================================
   # GOLD TIER
@@ -180,8 +180,8 @@ rules:
     comment: Entities added via config flow, PLCs don't dynamically add devices
 
   entity-category:
-    status: todo
-    comment: Should add EntityCategory.DIAGNOSTIC for PLC connection sensor
+    status: done
+    comment: EntityCategory.DIAGNOSTIC set on PlcConnectionBinarySensor and S7EntitySync
 
   entity-device-class:
     status: done
@@ -208,8 +208,8 @@ rules:
     comment: Reconfigure flow available via config flow edit_connection
 
   repair-issues:
-    status: todo
-    comment: Could use repair issues for connection/configuration problems
+    status: done
+    comment: Orphaned entities repair flow in repairs.py with async_create_issue in __init__.py
 
   stale-devices:
     status: exempt
