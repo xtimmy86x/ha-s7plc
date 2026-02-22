@@ -118,45 +118,45 @@
         }
       },
       "add": {
-        "title": "Dodaj elementy",
-        "description": "Wybierz typ elementu, który chcesz dodać.",
+        "title": "Dodaj encje",
+        "description": "Wybierz typ encji, który chcesz dodać.",
         "menu_options": {
-          "sensors": "Czujnik",
-          "binary_sensors": "Czujnik binarny",
+          "sensors": "Sensor",
+          "binary_sensors": "Sensor binarny",
           "switches": "Przełącznik",
           "covers": "Roleta/Osłona",
           "buttons": "Przycisk",
           "lights": "Światło",
           "numbers": "Liczba",
           "texts": "Tekst",
-          "climates": "Klimat",
-          "entity_sync": "Synchronizacja encji z PLC"
+          "climates": "Termostat",
+          "entity_sync": "Zapisująca do PLC"
         }
       },
       "covers": {
         "title": "Dodaj roletę/osłonę",
         "description": "Wybierz typ rolety/osłony.",
         "menu_options": {
-          "covers_traditional": "Otwórz/Zamknij",
-          "covers_position": "Z pozycjonowaniem 0-100"
+          "covers_traditional": "Standardowa (Otwórz / Zamknij)",
+          "covers_position": "Zaawansowana (Z pozycją 0 - 100)"
         }
       },
       "climates": {
-        "title": "Add Climate",
-        "description": "Select the type of climate control to add.",
+        "title": "Dodaj termostat",
+        "description": "Wybierz typ termostatu.",
         "menu_options": {
-          "climates_direct": "Klimat (Sterowanie bezpośrednie)",
-          "climates_setpoint": "Klimat (Sterowanie wartością zadaną)"
+          "climates_direct": "Kontroler",
+          "climates_setpoint": "Klient"
         }
       },
       "remove": {
-        "title": "Usuń elementy",
-        "description": "Wybierz elementy, które chcesz usunąć z konfiguracji PLC.",
+        "title": "Usuń encje",
+        "description": "Wybierz encje, które chcesz usunąć z konfiguracji PLC.",
         "data": {
-          "remove_items": "Elementy do usunięcia"
+          "remove_items": "Encje do usunięcia"
         },
         "data_description": {
-          "remove_items": "Zaznaczone elementy zostaną usunięte. Integracja zostanie przeładowana, aby zastosować zmiany."
+          "remove_items": "Zaznaczone encje zostaną usunięte. Integracja zostanie przeładowana, aby zastosować zmiany."
         }
       },
       "connection": {
@@ -169,7 +169,7 @@
           "rack": "CPU rack (zwykle 0).",
           "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał odpytywania (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
@@ -184,7 +184,7 @@
           "rack": "CPU rack (zwykle 0).",
           "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
-          "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
+          "scan_interval": "Jak często skanować PLC, można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
           "operation_timeout": "Maksymalny czas pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
           "max_retries": "Maksymalna liczba prób komunikacji z PLC",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
@@ -205,42 +205,42 @@
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Precyzja zaokrąglania",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
           "address": "Adres odczytu stanu (np. DB1000,D0, MW10, DB1,W2).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. bateria, zasilanie).",
-          "value_multiplier": "Pomnóż wartość przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. bateria, zasilanie).",
+          "value_multiplier": "Mnoży wartość RAW przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
-          "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Pozostaw puste dla automatycznej.",
+          "state_class": "Klasa stanu dla statystyk, 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Jeśli puste wybór będzie automatyczny.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste dla oryginalnej precyzji (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "binary_sensors": {
         "title": "Dodaj czujnik binarny",
-        "description": "Utwórz czujnik binarny załączony/wyłączony. Ustaw adres, nazwę i opcjonalnie device_class.",
+        "description": "Utwórz czujnik binarny załączony/wyłączony. Ustaw adres, nazwę i opcjonalnie klasę urządzenia.",
         "data": {
           "address": "Adres odczytu",
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "invert_state": "Odwróć stan",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
           "address": "Adres odczytu (np. I0.0, Q1.3, DB10,X0.1).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. drzwi, okno, zasilanie).",
-          "invert_state": "Odwróć stan: PLC True = Wył., PLC False = Zał. Przydatne dla kontaktów NC (Normalnie zamknięty).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. drzwi, okno, zasilanie).",
+          "invert_state": "Odwróć stan (True = Wył., False = Zał.). Przydatne dla kontaktów (NC - normalnie zamknięty).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "switches": {
@@ -254,19 +254,19 @@
           "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres odczytu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres zapisu do PLC (opcjonalny). Jeśli pominięty, odczytywany jest tylko stan.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "state_address": "Adres odczytu stanu (np. Q0.0, DB20,X0.0).",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "covers_traditional": {
@@ -281,42 +281,42 @@
           "use_state_topics": "Użyj adresów odczytu położenia dla określenia pozycji",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "open_command_address": "Adres PLC do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
-          "close_command_address": "Adres PLC do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
-          "opening_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (otwarta).",
-          "closing_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (zamknięta).",
-          "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z 0 → 100.",
+          "open_command_address": "Adres do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
+          "close_command_address": "Adres do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
+          "opening_state_address": "Opcjonalny adres do odczytu aktualnego położenia (otwarta).",
+          "closing_state_address": "Opcjonalny adres do odczytu aktualnego położenia (zamknięta).",
+          "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z (0 → 100).",
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "covers_position": {
         "title": "Dodaj osłonę/roletę z położeniem",
-        "description": "Utwórz osłonę/roletę sterowaną położeniem (0-100). Położenie 0 - ZAMKNIĘTA, położenie >= 1 - OTWARTA.",
+        "description": "Utwórz osłonę/roletę z położeniem (0 - 100). Położenie (0 - Zamknięta, położenie >= 1 - Otwarta).",
         "data": {
           "position_state_address": "Adres odczytu położenia",
           "position_command_address": "Adres zapisu położenia",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
-          "invert_position": "Odwróć położenie (0 = Otwarta, 100 = Zamknięta)",
+          "scan_interval": "Interwał skanowania (s)",
+          "invert_position": "Odwróć położenie",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącego położenia osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres zapisu do PLC nowego położenia osłony/rolety (0-100). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę).",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (0 = Otwarta, 100 = Zamknięta).",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "buttons": {
@@ -326,17 +326,17 @@
           "address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu",
           "button_pulse": "Długość impulsu (s)"
         },
         "data_description": {
-          "address": "Adres zapisu w PLC dla impulsu (np. Q0.0, DB1,X0.1).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje.",
-          "button_pulse": "Czas trwania impulsu w sekundach, ożesz użyć wartości dziesiętnych dla milisekund (0.1 = 100ms)."
+          "address": "Adres zapisu dla impulsu (np. Q0.0, DB1,X0.1).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje.",
+          "button_pulse": "Czas trwania impulsu w sekundach, można użyć wartości dziesiętnych dla milisekund (0.1 = 100ms)."
         }
       },
       "lights": {
@@ -350,24 +350,24 @@
           "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres PLC do odczytu aktualnego stanu światła.",
-          "command_address": "Adres zapisu do PLC nowego stanu światła (opcjonalny).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "numbers": {
-        "title": "Dodaj liczbę",
-        "description": "Utwórz encję liczbową, która odczytuje wartość z PLC i opcjonalniym adresem zapisu.",
+        "title": "Dodaj encje liczbową",
+        "description": "Utwórz encję liczbową, która odczytuje wartość z PLC oraz opcjonalnym zapisem.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -379,111 +379,111 @@
           "max_value": "Wartość maksymalna",
           "step": "Krok",
           "real_precision": "Precyzja (liczba miejsc po przecinku)",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
-          "command_address": "Adres zapisu do PLC wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
+          "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia encji liczbowej (np. temperatura, napięcie, moc).",
           "unit_of_measurement": "Własna jednostka miary (np. °C, V, kW). Pozostaw puste, jeśli nie jest potrzebna.",
           "min_value": "Opcjonalna minimalna wartość wyświetlana w Home Assistant.",
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "texts": {
-        "title": "Dodaj tekst",
-        "description": "Utwórz encję tekstową, która odczytuje wartości STRING lub WSTRING z PLC i opcjonalnym adresem zapisu.",
+        "title": "Dodaj encje tekstową",
+        "description": "Utwórz encję tekstową, która odczytuje wartości (STRING / WSTRING) z PLC i opcjonalnym adresem zapisu.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
           "pattern": "Wzorzec (regex)",
-          "scan_interval": "Interwał odczytu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu (STRING/WSTRING, DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adres zapisu do PLC tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "address": "Adres do odczytu wartości tekstowej (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
+          "command_address": "Opcjonalny adres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "climates_direct": {
-        "title": "Dodaj klimat (Sterowanie bezpośrednie)",
-        "description": "Utwórz encję klimatu, w której Home Assistant bezpośrednio steruje wyjściami ogrzewania/chłodzenia. PLC dostarcza tylko odczyty temperatury.",
+        "title": "Dodaj termostat (Kontroler)",
+        "description": "Utwórz encję termostatu, w której Home Assistant zarządza i steruje całym procesem regulacji. PLC dostarcza tylko odczyt temperatury.",
         "data": {
-          "current_temperature_address": "Adres bieżącej temperatury",
+          "current_temperature_address": "Adres odczytu temperatury",
           "heating_output_address": "Adres wyjścia ogrzewania",
           "cooling_output_address": "Adres wyjścia chłodzenia",
           "heating_action_address": "Adres akcji ogrzewania",
           "cooling_action_address": "Adres akcji chłodzenia",
-          "min_temp": "Temperatura minimalna",
-          "max_temp": "Temperatura maksymalna",
-          "temp_step": "Krok temperatury",
+          "min_temp": "Limit dolny",
+          "max_temp": "Limit górny",
+          "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
-          "add_another": "Dodaj kolejny po zapisaniu"
+          "scan_interval": "Interwał skanowania (s)",
+          "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
-          "heating_output_address": "Adres PLC do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
-          "cooling_output_address": "Adres PLC do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
-          "heating_action_address": "Opcjonalny adres PLC do odczytu stanu akcji ogrzewania. Jeśli nie określono, akcja jest wnioskowana z trybu.",
-          "cooling_action_address": "Opcjonalny adres PLC do odczytu stanu akcji chłodzenia. Jeśli nie określono, akcja jest wnioskowana z trybu.",
-          "min_temp": "Minimalna ustawialna temperatura (°C).",
-          "max_temp": "Maksymalna ustawialna temperatura (°C).",
-          "temp_step": "Krok regulacji temperatury (°C).",
-          "name": "Opcjonalna nazwa dla encji klimatu.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
-          "add_another": "Pozostań na tym kroku, aby dodać więcej encji klimatu."
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
+          "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
+          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "min_temp": "Limit dolny temperatury zadanej (°C).",
+          "max_temp": "Limit górny temperatury zadanej (°C).",
+          "temp_step": "Krok regulacji temperatury zadanej (°C).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "climates_setpoint": {
-        "title": "Dodaj klimat (Sterowanie wartością zadaną)",
-        "description": "Utwórz encję klimatu, w której PLC autonomicznie zarządza ogrzewaniem/chłodzeniem. Home Assistant zapisuje temperaturę zadaną i odczytuje temperaturę bieżącą.",
+        "title": "Dodaj termostat (Klient)",
+        "description": "Utwórz encję termostatu, w której PLC zarządza i całym procesem regulacji. Home Assistant pełni tylko rolę klienta.",
         "data": {
-          "current_temperature_address": "Adres bieżącej temperatury",
-          "target_temperature_address": "Adres temperatury zadanej",
-          "preset_mode_address": "Adres trybu preset",
-          "hvac_status_address": "Adres statusu HVAC",
-          "min_temp": "Temperatura minimalna",
-          "max_temp": "Temperatura maksymalna",
-          "temp_step": "Krok temperatury",
+          "current_temperature_address": "Adres odczytu temperatury",
+          "target_temperature_address": "Adres zapisu temperatury zadanej",
+          "preset_mode_address": "Adres zapisu trybu pracy",
+          "hvac_status_address": "Adres odczytu stanu",
+          "min_temp": "Limit dolny",
+          "max_temp": "Limit górny",
+          "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
-          "add_another": "Dodaj kolejny po zapisaniu"
+          "scan_interval": "Interwał skanowania (s)",
+          "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Adres PLC do zapisu i odczytu zadanej temperatury docelowej (np. DB1,REAL4, DB2,INT8).",
-          "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC (0=WYŁ, 1=AUTO). Przydatny, jeśli PLC musi włączyć/wyłączyć sterowanie klimatem.",
-          "hvac_status_address": "Opcjonalny adres PLC do odczytu rzeczywistego stanu HVAC (0=WYŁ, 1=GRZANIE, 2=CHŁODZENIE). Jeśli nie ustawiono, stan jest wnioskowany z porównania temperatur.",
-          "min_temp": "Minimalna ustawialna temperatura (°C).",
-          "max_temp": "Maksymalna ustawialna temperatura (°C).",
-          "temp_step": "Krok regulacji temperatury (°C).",
-          "name": "Opcjonalna nazwa dla encji klimatu.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
-          "add_another": "Pozostań na tym kroku, aby dodać więcej encji klimatu."
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu (0 = Wył., 1 = Grzej, 2 = Schładzaj, 3 = Auto).",
+          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schłasdzanie). Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "min_temp": "Limit dolny temperatury zadanej (°C).",
+          "max_temp": "Limit górny temperatury zadanej (°C).",
+          "temp_step": "Krok regulacji temperatury zadanej(°C).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "edit_text": {
-        "title": "Edytuj tekst",
-        "description": "Zaktualizuj adres PLC, adres zapisu, nazwę lub wzorzec dla tej encji tekstowej.",
+        "title": "Edytuj encje tekst",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -493,75 +493,75 @@
           "scan_interval": "Interwał odczytu (s)"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu (STRING/WSTRING, DB1,S0.254, DB2,W0.128).",
-          "command_address": "Adres zapisu do PLC tekstu (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "address": "Adres do odczytu wartości tekstowej (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
+          "command_address": "Opcjonalny sdres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres stanu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał odpytywania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_climate_direct": {
-        "title": "Edytuj klimat (Sterowanie bezpośrednie)",
-        "description": "Zaktualizuj adresy, limity temperatury lub nazwę dla tej encji klimatu z bezpośrednim sterowaniem.",
+        "title": "Edytuj termostat (Kontroler)",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
-          "current_temperature_address": "Adres bieżącej temperatury",
+          "current_temperature_address": "Adres temperatury aktualnej",
           "heating_output_address": "Adres wyjścia ogrzewania",
           "cooling_output_address": "Adres wyjścia chłodzenia",
           "heating_action_address": "Adres akcji ogrzewania",
           "cooling_action_address": "Adres akcji chłodzenia",
-          "min_temp": "Temperatura minimalna",
-          "max_temp": "Temperatura maksymalna",
-          "temp_step": "Krok temperatury",
+          "min_temp": "Limit dolny",
+          "max_temp": "Limit górny",
+          "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
-          "heating_output_address": "Adres PLC do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalne, jeśli używane jest tylko chłodzenie.",
-          "cooling_output_address": "Adres PLC do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalne, jeśli używane jest tylko ogrzewanie.",
-          "heating_action_address": "Opcjonalny adres PLC do odczytu stanu akcji ogrzewania.",
-          "cooling_action_address": "Opcjonalny adres PLC do odczytu stanu akcji chłodzenia.",
-          "min_temp": "Minimalna ustawialna temperatura (°C).",
-          "max_temp": "Maksymalna ustawialna temperatura (°C).",
-          "temp_step": "Krok regulacji temperatury (°C).",
-          "name": "Opcjonalna przyjazna nazwa dla encji klimatu.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC."
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
+          "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
+          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "min_temp": "Limit dolny temperatury zadanej (°C).",
+          "max_temp": "Limit górny temperatury zadanej (°C).",
+          "temp_step": "Krok regulacji temperatury zadanej (°C).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał odpytywania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_climate_setpoint": {
-        "title": "Edytuj klimat (Sterowanie wartością zadaną)",
-        "description": "Zaktualizuj adresy, limity temperatury lub nazwę dla tej encji klimatu ze sterowaniem wartością zadaną.",
+        "title": "Edytuj termostat (Klient)",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
-          "current_temperature_address": "Adres bieżącej temperatury",
-          "target_temperature_address": "Adres temperatury docelowej",
-          "preset_mode_address": "Adres trybu ustawionego",
-          "hvac_status_address": "Adres statusu HVAC",
-          "min_temp": "Temperatura minimalna",
-          "max_temp": "Temperatura maksymalna",
-          "temp_step": "Krok temperatury",
+          "current_temperature_address": "Adres temperatury aktualnej",
+          "target_temperature_address": "Adres temperatury zadanej",
+          "preset_mode_address": "Adres zapisu trybu pracy",
+          "hvac_status_address": "Adres odczytu stanu",
+          "min_temp": "Limit dolny",
+          "max_temp": "Limit górny",
+          "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adres PLC do odczytu bieżącej temperatury (np. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Adres PLC do zapisu i odczytu wartości zadanej temperatury docelowej (np. DB1,REAL4, DB2,INT8).",
-          "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC (0=WYŁ, 1=AUTO).",
-          "hvac_status_address": "Opcjonalny adres PLC do odczytu rzeczywistego stanu HVAC (0=WYŁ, 1=GRZANIE, 2=CHŁODZENIE). Jeśli nie ustawiono, stan jest wnioskowany z porównania temperatur.",
-          "min_temp": "Minimalna ustawialna temperatura (°C).",
-          "max_temp": "Maksymalna ustawialna temperatura (°C).",
-          "temp_step": "Krok regulacji temperatury (°C).",
-          "name": "Opcjonalna przyjazna nazwa dla encji klimatu.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC."
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
+          "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu (0 = Wył., 1 = Grzej, 2 = Schładzaj, 3 = Auto).",
+          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schładzanie). Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "min_temp": "Limit dolny temperatury zadanej (°C).",
+          "max_temp": "Limit górny temperatury zadanej (°C).",
+          "temp_step": "Krok regulacji temperatury zadanej(°C).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "entity_sync": {
-        "title": "Dodaj synchronizację encji",
-        "description": "Utwórz synchronizację encji, która monitoruje encję Home Assistant i automatycznie zapisuje jej wartość do PLC.",
+        "title": "Dodaj encje zapisującą do PL",
+        "description": "Utwórz encje, która automatycznie zapisuje swoją wartość do PLC.",
         "data": {
           "address": "Adres zapisu",
           "source_entity": "Encja źródłowa",
@@ -570,18 +570,18 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres zapisu do PLC wartości (np. DB1,D0, DB2,W4).",
-          "source_entity": "Encja Home Assistant, której wartość będzie zapisywana do PLC.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "add_another": "Nie zamykaj okna po zapisie, aby dodać kolejną encje."
+          "address": "Adres do zapisu wartości (np. DB1,D0, DB2,W4).",
+          "source_entity": "Encja źródłowa, której wartość będzie zapisywana do PLC.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "edit": {
-        "title": "Edytuj elementy",
-        "description": "Wybierz element, który chcesz zmodyfikować.",
+        "title": "Edytuj encje",
+        "description": "Wybierz encje, któr A chcesz zmodyfikować.",
         "data": {
-          "edit_item": "Element do edycji"
+          "edit_item": "Encja do edycji"
         },
         "data_description": {
           "edit_item": "Wybierz istniejącą encję aby zmienić jej parametry."
@@ -589,7 +589,7 @@
       },
       "edit_sensor": {
         "title": "Edytuj czujnik",
-        "description": "Zaktualizuj adres, nazwę lub klasę urządzenia dla tego czujnika.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
@@ -599,67 +599,67 @@
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Zaokrąglenie",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu (np. DB1000,D0, MW10, DB1,W2).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. bateria, zasilanie).",
-          "value_multiplier": "Pomnóż wartość przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
+          "address": "Adres do odczytu (np. DB1000,D0, MW10, DB1,W2).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. bateria, zasilanie).",
+          "value_multiplier": "Mnoży wartość RAW przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
-          "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Pozostaw puste dla automatycznej.",
+          "state_class": "Klasa stanu dla statystyk: 'measurement' – wartości chwilowe, 'total' – skumulowane, 'total_increasing' – liczniki (np. energia, zużycie wody). Jeśli puste wybór będzie automatyczny.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste dla oryginalnej precyzji (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_binary_sensor": {
         "title": "Edytuj czujnik binarny",
-        "description": "Zaktualizuj adres, nazwę lub klasę urządzenia dla tego czujnika binarnego.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres",
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "invert_state": "Odwróć stan",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres w PLC (np. I0.0, Q1.3, DB10,X0.1).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "device_class": "Klasa urządzenia Home Assistant, aby doprecyzować interfejs/zachowanie (np. grzwi, okno, zasilanie).",
-          "invert_state": "Odwróć stan (PLC True = Wył., PLC False = Zał.). Przydatne dla kontaktów NC (Normalnie zamknięty).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "address": "Adres (np. I0.0, Q1.3, DB10,X0.1).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. drzwi, okno, zasilanie).",
+          "invert_state": "Odwróć stan (True = Wył., False = Zał.). Przydatne dla kontaktów (NC - normalnie zamknięty).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_switch": {
         "title": "Edytuj przełącznik",
-        "description": "Zaktualizuj adres odczytu, adres zapisu, nazwę lub opcję synchronizacji dla tego przełącznika.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Synchronizuj adres zapisu",
+          "sync_state": "Adres zapisu synchronizacji",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres PLC do odczytu aktualnego stanu (np. Q0.0, DB20,X0.0).",
-          "command_address": "Adres zapisu do PLC (opcjonalny).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "state_address": "Adres do odczytu stanu (np. Q0.0, DB20,X0.0).",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 - 60s), domyślnie (0.5s).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_cover": {
-        "title": "Edytuj osłonę/roletę",
-        "description": "Zaktualizuj adresy zapisu lub odczytu tej osłony/rolety i opcjonalnie zmień jej nazwę.",
+        "title": "Edytuj standardową osłonę/roletę",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "open_command_address": "Adres zapisu (otwórz)",
           "close_command_address": "Adres zapisu (zamknij)",
@@ -669,61 +669,61 @@
           "use_state_topics": "Użyj adresów odczytu położenia dla określenia pozycji",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "open_command_address": "Adres PLC do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
-          "close_command_address": "Adres PLC do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
-          "opening_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (otwarta).",
-          "closing_state_address": "Opcjonalny adres PLC wskazujący aktualne położenie (zamknięta).",
-          "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z 0 → 100.",
+          "open_command_address": "Adres do wyzwolenia otwierania (np. Q0.0, DB1,X0.0).",
+          "close_command_address": "Adres do wyzwolenia zamykania (np. Q0.1, DB1,X0.1).",
+          "opening_state_address": "Opcjonalny adres do odczytu aktualnego położenia (otwarta).",
+          "closing_state_address": "Opcjonalny adres do odczytu aktualnego położenia (zamknięta).",
+          "operate_time": "Czas w sekundach, jaki osłona/roleta potrzebuje na zmianę pozycji z (0 → 100).",
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_cover_position": {
-        "title": "Edytuj osłonę/roletę z położeniem",
-        "description": "Zaktualizuj adresy stanu lub położenie dla tej osłony/rolety opartej na położeniu (0-100) i opcjonalnie zmień jej nazwę.",
+        "title": "Edytuj zaawansowaną osłonę/roletę",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "position_state_address": "Adres odczytu położenia",
           "position_command_address": "Adres zapisu położenia",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał odczytu (s)",
-          "invert_position": "Odwróć położenie (0 = Otwarta, 100 = Zamknięta)"
+          "scan_interval": "Interwał skanowania (s)",
+          "invert_position": "Odwróć położenie"
         },
         "data_description": {
-          "position_state_address": "Adres PLC do odczytu bieżącego położenia osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres zapisu do PLC nowego położenia osłony/rolety (0-100). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (odwraca normalną logikę)."
+          "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (0 = Otwarta, 100 = Zamknięta)."
         }
       },
       "edit_button": {
         "title": "Edytuj przycisk",
-        "description": "Zaktualizuj adres zapisu, nazwę lub długość impulsu dla tego przycisku.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
           "button_pulse": "Długość impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres zapisu w PLC dla impulsu (np. Q0.0, DB1,X0.1).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
+          "address": "Adres zapisu dla impulsu (np. Q0.0, DB1,X0.1).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "button_pulse": "Czas trwania impulsu w sekundach, ożesz użyć wartości dziesiętnych dla milisekund (0.1 = 100ms)."
         }
       },
       "edit_light": {
         "title": "Edytuj światło",
-        "description": "Zaktualizuj adres odczytu, adres zapisu, nazwę lub opcję synchronizacji dla tego światła.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -732,22 +732,22 @@
           "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres PLC do odczytu aktualnego stanu.",
-          "command_address": "Adres zapisu do PLC nowego stanu (opcjonalny).",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "state_address": "Adres do odczytu stanu.",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1-60s), domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 - 60s), domyślnie (0.5s).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_number": {
-        "title": "Edytuj liczbę",
-        "description": "Zaktualizuj adres odczytu, adres zapisu, nazwę, minimalną wartość, maksymalną wartość lub przyrost dla tej liczby.",
+        "title": "Edytuj encje liczbową",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres odczytu",
           "command_address": "Adres zapisu",
@@ -759,25 +759,25 @@
           "max_value": "Wartość maksymalna",
           "step": "Krok",
           "real_precision": "Zaokrąglenie wartości REAL",
-          "scan_interval": "Interwał odczytu (s)"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres PLC do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
-          "command_address": "Adres zapisu do PLC wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka.",
+          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
+          "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia (np. temperatura, napięcie, moc).",
           "unit_of_measurement": "Własna jednostka miary (np. °C, V, kW). Pozostaw puste, jeśli nie jest potrzebna.",
           "min_value": "Opcjonalna minimalna wartość wyświetlana w Home Assistant.",
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
-          "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
+          "step": "Opcjonalny krok używany przy regulacji wartości w interfejsie.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
-          "scan_interval": "Nadpisz interwał odpytywania dla tego tagu. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_writer": {
         "title": "Edytuj synchronizację encji",
-        "description": "Zaktualizuj adres zapusu w PLC, encję źródłową, nazwę lub limity wartości dla tej encji.",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "address": "Adres zapisu",
           "source_entity": "Encja źródłowa",
@@ -785,48 +785,48 @@
           "area": "Obszar"
         },
         "data_description": {
-          "address": "Adres zapisu do PLC wartości (np. DB1,D0, DB2,W4).",
+          "address": "Adres do zapisu wartości (np. DB1,D0, DB2,W4).",
           "source_entity": "Encja Home Assistant, której wartość będzie zapisywana do PLC.",
-          "name": "Opcjonalna twoja własna nazwa.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta jednostka."
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja."
         }
       },
       "export": {
         "title": "Eksport konfiguracji",
-        "description": "Skopiuj poniższy JSON, aby wykonać kopię zapasową {item_count} skonfigurowanych elementów. Możesz także {download_link_start}pobrać konfigurację{download_link_end}, aby zapisać {download_filename}. Zamknij okno dialogowe po zakończeniu.",
+        "description": "Skopiuj poniższy JSON, aby wykonać kopię zapasową {item_count} skonfigurowanych encji. Możesz także {download_link_start}pobrać konfigurację{download_link_end}, aby zapisać {download_filename}. Zamknij okno dialogowe po zakończeniu.",
         "data": {
           "export_json": "Konfiguracja JSON"
         },
         "data_description": {
-          "export_json": "Skopiuj i zachowaj ten JSON, aby zachować swoje elementy i ich ustawienia. Możesz też użyć przycisku pobierania powyżej, aby zapisać konfigurację do pliku."
+          "export_json": "Skopiuj i zachowaj ten JSON, aby zachować swoje encje i ich ustawienia. Możesz też użyć przycisku pobierania powyżej, aby zapisać konfigurację do pliku."
         }
       },
       "import": {
         "title": "Import konfiguracji",
-        "description": "Wklej swój JSON, aby zastąpić obecną konfigurację. Obecnie skonfigurowano {item_count} elementów.",
+        "description": "Wklej swój JSON, aby zastąpić obecną konfigurację. Obecnie skonfigurowano {item_count} encji.",
         "data": {
           "import_json": "Konfiguracja JSON"
         },
         "data_description": {
-          "import_json": "Wklej konfigurację JSON wygenerowaną wcześniej. Wszystkie istniejące elementy zostaną zastąpione."
+          "import_json": "Wklej konfigurację JSON wygenerowaną wcześniej. Wszystkie istniejące encje zostaną zastąpione."
         }
       }
     },
     "error": {
       "invalid_address": "Nieprawidłowy format adresu.",
-      "duplicate_entry": "Ten element już istnieje.",
+      "duplicate_entry": "Ta encja już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
-      "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (otwarta/zamknięta).",
+      "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (Otwarta / Zamknięta).",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
-      "no_items": "Brak skonfigurowanych elementów do edycji.",
+      "no_items": "Brak skonfigurowanych encji do edycji.",
       "cannot_connect": "Nie można połączyć się z PLC przy użyciu podanych parametrów.",
       "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia.",
       "invalid_json": "Nieprawidłowy format JSON.",
-      "invalid_selection": "Wybierz prawidłowy typ elementu.",
-      "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu REAL i LREAL.",
-      "text_requires_string_type": "Encje tekstowe wymagają adresów typu STRING/WSTRING."
+      "invalid_selection": "Wybierz prawidłowy typ encji.",
+      "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL / LREAL).",
+      "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING)."
     }
   },
   "issues": {
@@ -836,7 +836,7 @@
         "step": {
           "confirm": {
             "title": "Usuń osierocone encje",
-            "description": "Czy chcesz usunąć {count} osieroconych encji z {entry_name}?\n\n{entity_list}\n\nTa akcja nie może być cofnięta, ale zawsze możesz ponownie utworzyć encje, dodając je z powrotem do konfiguracji."
+            "description": "Czy chcesz usunąć {count} osieroconych encji z {entry_name}?\n\n{entity_list}\n\nTa akcja nie może być cofnięta, ale zawsze możesz ponownie utworzyć encje, dodając je ponownie do konfiguracji."
           }
         }
       }
