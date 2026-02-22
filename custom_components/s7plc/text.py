@@ -139,9 +139,5 @@ class S7Text(S7BaseEntity, TextEntity):
         """Set the text value."""
         await self._ensure_connected()
 
-        await self._async_write(
-            self._command_address,
-            value,
-            error_msg=f"Failed to write text to PLC address {self._command_address}",
-        )
+        await self._coord.write_batched(self._command_address, value)
         await self.coordinator.async_request_refresh()

@@ -92,30 +92,6 @@ class S7BaseEntity(CoordinatorEntity):
                 attrs["invert_state"] = invert_state
         return attrs
 
-    async def _async_write(
-        self,
-        address: str,
-        value: bool | int | float | str,
-        *,
-        error_msg: str | None = None,
-    ) -> None:
-        """Write value to PLC with automatic batching.
-
-        Uses write_batched() which automatically groups writes that occur within
-        a short time window (50ms), dramatically improving performance when
-        multiple entities are updated simultaneously.
-
-        Args:
-            address: PLC address to write to
-            value: Value to write (bool, int, float, or str)
-            error_msg: Custom error message (defaults to generic message)
-
-        Note:
-            Errors are logged but not raised since batched writes are fire-and-forget
-            for performance. Critical write failures will be visible in logs.
-        """
-        await self._coord.write_batched(address, value)
-
 
 class S7BoolSyncEntity(S7BaseEntity):
     """Base class for boolean entities with synchronization logic."""
@@ -205,13 +181,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             await self._ensure_connected()
             self._pending_command = True
             try:
-                await self._async_write(
-                    self._command_address,
-                    True,
-                    error_msg=(
-                        f"Failed to write True to PLC address {self._command_address}"
-                    ),
-                )
+                await self._coord.write_batched(self._command_address, True)
             except HomeAssistantError:
                 self._pending_command = None
                 raise
@@ -231,13 +201,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             await self._ensure_connected()
             self._pending_command = False
             try:
-                await self._async_write(
-                    self._command_address,
-                    False,
-                    error_msg=(
-                        f"Failed to write False to PLC address {self._command_address}"
-                    ),
-                )
+                await self._coord.write_batched(self._command_address, False)
             except HomeAssistantError:
                 self._pending_command = None
                 raise
@@ -250,17 +214,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         await self._ensure_connected()
-        await self._async_write(
-            self._command_address,
-            True,
-            error_msg=f"Failed to pulse at {self._command_address}",
-        )
+        await self._coord.write_batched(self._command_address, True)
         await asyncio.sleep(self._pulse_duration)
-        await self._async_write(
-            self._command_address,
-            False,
-            error_msg=f"Failed to release pulse at {self._command_address}",
-        )
+        await self._coord.write_batched(self._command_address, False)
         await self.coordinator.async_request_refresh()
 
     @callback

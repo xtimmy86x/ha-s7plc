@@ -258,15 +258,17 @@ class S7DimmerLight(S7BaseEntity, LightEntity):
         await self._ensure_connected()
         ha_brightness = kwargs.get("brightness", 255)
         plc_value = self._ha_to_plc_brightness(ha_brightness)
-        await self._async_write(self._command_address, plc_value)
+        await self._coord.write_batched(self._command_address, plc_value)
         if self._actuator_command_address:
-            await self._async_write(self._actuator_command_address, plc_value > 0)
+            await self._coord.write_batched(
+                self._actuator_command_address, plc_value > 0
+            )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off (brightness 0)."""
         await self._ensure_connected()
-        await self._async_write(self._command_address, 0)
+        await self._coord.write_batched(self._command_address, 0)
         if self._actuator_command_address:
-            await self._async_write(self._actuator_command_address, False)
+            await self._coord.write_batched(self._actuator_command_address, False)
         await self.coordinator.async_request_refresh()

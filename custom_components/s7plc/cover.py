@@ -284,13 +284,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_open_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("close")
-        await self._async_write(
-            self._open_command_address,
-            True,
-            error_msg=(
-                f"Failed to write True to PLC address {self._open_command_address}"
-            ),
-        )
+        await self._coord.write_batched(self._open_command_address, True)
         self._is_opening = True
         self._is_closing = False
         if not self._use_state_topics:
@@ -302,13 +296,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_close_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("open")
-        await self._async_write(
-            self._close_command_address,
-            True,
-            error_msg=(
-                f"Failed to write True to PLC address {self._close_command_address}"
-            ),
-        )
+        await self._coord.write_batched(self._close_command_address, True)
         self._is_opening = False
         self._is_closing = True
         if not self._use_state_topics:
@@ -414,14 +402,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         success = True
         if address:
             try:
-                await self._async_write(
-                    address,
-                    False,
-                    error_msg=(
-                        f"Failed to reset PLC address {address} "
-                        f"while stopping {direction} command"
-                    ),
-                )
+                await self._coord.write_batched(address, False)
             except HomeAssistantError:
                 success = False
 
@@ -445,14 +426,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         if address:
             try:
-                await self._async_write(
-                    address,
-                    False,
-                    error_msg=(
-                        f"Failed to reset PLC address {address} "
-                        f"after {direction} operation"
-                    ),
-                )
+                await self._coord.write_batched(address, False)
             except HomeAssistantError:
                 pass  # Non-critical, already logged
         self._is_opening = False
@@ -583,14 +557,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # we need to write the inverted value to the PLC
         plc_value = (100 - position) if self._invert_position else position
 
-        await self._async_write(
-            self._position_command_address,
-            plc_value,
-            error_msg=(
-                f"Failed to write position {plc_value} to PLC address "
-                f"{self._position_command_address}"
-            ),
-        )
+        await self._coord.write_batched(self._position_command_address, plc_value)
 
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
@@ -600,13 +567,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
 
         actual_position = self._get_position_value()
         if actual_position is not None:
-            await self._async_write(
-                self._position_command_address,
-                actual_position,
-                error_msg=(
-                    f"Failed to write stop position {actual_position} to PLC address "
-                    f"{self._position_command_address}"
-                ),
+            await self._coord.write_batched(
+                self._position_command_address, actual_position
             )
             self.async_write_ha_state()
             await self.coordinator.async_request_refresh()
