@@ -10,7 +10,7 @@
         }
       },
       "rack_slot": {
-        "title": "Połącz z PLC S7 (Rack/Slot)",
+        "title": "Połączenie PLC S7 (Rack/Slot)",
         "description": "Wprowadź parametry połączenia z PLC używając Rack/Slot. Test połączenia zostanie wykonany przed zapisaniem.",
         "data": {
           "name": "Nazwa",
@@ -44,7 +44,7 @@
         }
       },
       "tsap": {
-        "title": "Połącz z PLC S7 (TSAP)",
+        "title": "Połączenie PLC S7 (TSAP)",
         "description": "Wprowadź parametry połączenia z PLC używając TSAP. Test połączenia zostanie wykonany przed zapisaniem.",
         "data": {
           "name": "Nazwa",
@@ -98,7 +98,7 @@
       },
       "setup_connection": {
         "title": "Konfiguracja połączenia PLC",
-        "description": "Skonfiguruj lub zmodyfikuj parametry połączenia PLC."
+        "description": "Skonfiguruj lub zmodyfikuj parametry połączenia z PLC."
       },
       "setup_entities": {
         "title": "Konfiguracja encji",
@@ -111,7 +111,7 @@
       },
       "manage_configuration": {
         "title": "Zarządzaj konfiguracją",
-        "description": "Eksportuj lub importuj konfigurację PLC.",
+        "description": "Eksportuj lub importuj konfigurację.",
         "menu_options": {
           "export": "Eksport konfiguracji",
           "import": "Import konfiguracji"
@@ -138,7 +138,7 @@
         "description": "Wybierz typ rolety/osłony.",
         "menu_options": {
           "covers_traditional": "Standardowa (Otwórz / Zamknij)",
-          "covers_position": "Zaawansowana (Z pozycją 0 - 100)"
+          "covers_position": "Zaawansowana z pozycją (0 - 100)"
         }
       },
       "climates": {
@@ -270,7 +270,7 @@
         }
       },
       "covers_traditional": {
-        "title": "Dodaj osłonę/roletę",
+        "title": "Dodaj standardową osłonę/roletę (Otwórz / Zamknij)",
         "description": "Utwórz osłonę/roletę z dedykowanymi adresami zapisu położenia otwórz/zamknij i opcjonalnym odczytem położenia otwarta/zamknięta.",
         "data": {
           "open_command_address": "Adres zapisu (otwórz)",
@@ -298,7 +298,7 @@
         }
       },
       "covers_position": {
-        "title": "Dodaj osłonę/roletę z położeniem",
+        "title": "Dodaj zaawansowaną osłonę/roletę z położeniem (0 - 100)",
         "description": "Utwórz osłonę/roletę z położeniem (0 - 100). Położenie (0 - Zamknięta, położenie >= 1 - Otwarta).",
         "data": {
           "position_state_address": "Adres odczytu położenia",
@@ -341,14 +341,14 @@
       },
       "lights": {
         "title": "Dodaj światło",
-        "description": "Wybierz typ światła do dodania.",
+        "description": "Wybierz typ światła.",
         "menu_options": {
-          "lights_onoff": "Światło (ZAŁ/WYŁ)",
-          "lights_dimmer": "Światło Ściemniane"
+          "lights_onoff": "Standardowe (Zał. / Wyl.)",
+          "lights_dimmer": "Zaawansowane z regulacą jasności"
         }
       },
       "lights_onoff": {
-        "title": "Dodaj światło (ZAŁ/WYŁ)",
+        "title": "Dodaj światło standardowe (Zał. / Wyl.)",
         "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
         "data": {
           "state_address": "Adres odczytu",
@@ -368,33 +368,33 @@
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "lights_dimmer": {
-        "title": "Dodaj światło ściemniane",
+        "title": "Dodaj światło zaawansowane z regulacą jasności",
         "description": "Skonfiguruj światło ściemniane z numerycznym adresem stanu jasności, adresem komendy jasności i opcjonalnym adresem komendy aktuatora.",
         "data": {
-          "state_address": "Adres stanu jasności",
-          "command_address": "Adres komendy jasności",
-          "actuator_command_address": "Adres komendy aktuatora",
+          "state_address": "Adres odczytu poziomu jasności",
+          "command_address": "Adres zapisu poziomu jasności",
+          "actuator_command_address": "Adres zapisu sterowania regulatorem",
           "name": "Nazwa",
           "area": "Obszar",
-          "brightness_scale": "Skala jasności (wartość maksymalna)",
+          "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)",
-          "add_another": "Dodaj kolejne po zapisie"
+          "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0-255, DB1,W0 dla WORD).",
+          "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
           "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Automatycznie ustawiany na ON przy jasności >= 1%, OFF przy 0.",
-          "name": "Opcjonalna własna nazwa światła ściemnianego.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255 (zakres BYTE). Użyj 100 dla dimmerów procentowych.",
-          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejne światła ściemniane."
+          "actuator_command_address": "Opcjonalny adres do sterowania regulatirem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "numbers": {
@@ -690,7 +690,7 @@
         }
       },
       "edit_cover": {
-        "title": "Edytuj standardową osłonę/roletę",
+        "title": "Edytuj standardową osłonę/roletę (Otwórz / Zamknij)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "open_command_address": "Adres zapisu (otwórz)",
@@ -716,7 +716,7 @@
         }
       },
       "edit_cover_position": {
-        "title": "Edytuj zaawansowaną osłonę/roletę",
+        "title": "Edytuj zaawansowaną osłonę/roletę z pozycją (0 - 100)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "position_state_address": "Adres odczytu położenia",
@@ -754,7 +754,7 @@
         }
       },
       "edit_light": {
-        "title": "Edytuj światło",
+        "title": "Edytuj światło standardowe (Zał. / Wył.)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "state_address": "Adres odczytu",
@@ -767,36 +767,35 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres do odczytu stanu.",
           "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 - 60s), domyślnie (0.5s).",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_dimmer_light": {
-        "title": "Edytuj światło ściemniane",
-        "description": "Zaktualizuj adresy jasności, adres aktuatora, nazwę lub skalę jasności dla tego światła ściemnianego.",
+        "title": "Edytuj światło zaawansowane z regulacją jasności",
+        "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
-          "state_address": "Adres stanu jasności",
-          "command_address": "Adres komendy jasności",
-          "actuator_command_address": "Adres komendy aktuatora",
+          "state_address": "Adres odczytu poziomu jasności",
+          "command_address": "Adres zapisu poziomu jasności",
+          "actuator_command_address": "Adres zapisu sterowania regulatorem",
           "name": "Nazwa",
           "area": "Obszar",
-          "brightness_scale": "Skala jasności (wartość maksymalna)",
+          "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności.",
+          "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
           "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Ustawiany na ON przy jasności >= 1%, OFF przy 0.",
-          "name": "Opcjonalna własna nazwa światła ściemnianego.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255.",
-          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "actuator_command_address": "Opcjonalny adres do sterowania regulatirem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
+          "name": "Opcjonalna własna nazwa encji.",
+          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
       "edit_number": {
