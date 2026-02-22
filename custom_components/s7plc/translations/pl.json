@@ -118,45 +118,45 @@
         }
       },
       "add": {
-        "title": "Dodaj elementy",
-        "description": "Wybierz typ elementu, który chcesz dodać.",
+        "title": "Dodaj encje",
+        "description": "Wybierz typ encji, który chcesz dodać.",
         "menu_options": {
-          "sensors": "Czujnik",
-          "binary_sensors": "Czujnik binarny",
+          "sensors": "Sensor",
+          "binary_sensors": "Sensor binarny",
           "switches": "Przełącznik",
           "covers": "Roleta/Osłona",
           "buttons": "Przycisk",
           "lights": "Światło",
           "numbers": "Liczba",
           "texts": "Tekst",
-          "climates": "Klimat",
-          "entity_sync": "Synchronizacja encji z PLC"
+          "climates": "Termostat",
+          "entity_sync": "Zapisująca do PLC"
         }
       },
       "covers": {
         "title": "Dodaj roletę/osłonę",
         "description": "Wybierz typ rolety/osłony.",
         "menu_options": {
-          "covers_traditional": "Otwórz/Zamknij",
-          "covers_position": "Z pozycjonowaniem 0 - 100"
+          "covers_traditional": "Standardowa (Otwórz / Zamknij)",
+          "covers_position": "Zaawansowana (Z pozycją 0 - 100)"
         }
       },
       "climates": {
-        "title": "Add Climate",
-        "description": "Select the type of climate control to add.",
+        "title": "Dodaj termostat",
+        "description": "Wybierz typ termostatu.",
         "menu_options": {
-          "climates_direct": "Klimat (Tryb kontroler)",
-          "climates_setpoint": "Klimat (Tryb klient)"
+          "climates_direct": "Kontroler",
+          "climates_setpoint": "Klient"
         }
       },
       "remove": {
-        "title": "Usuń elementy",
-        "description": "Wybierz elementy, które chcesz usunąć z konfiguracji PLC.",
+        "title": "Usuń encje",
+        "description": "Wybierz encje, które chcesz usunąć z konfiguracji PLC.",
         "data": {
-          "remove_items": "Elementy do usunięcia"
+          "remove_items": "Encje do usunięcia"
         },
         "data_description": {
-          "remove_items": "Zaznaczone elementy zostaną usunięte. Integracja zostanie przeładowana, aby zastosować zmiany."
+          "remove_items": "Zaznaczone encje zostaną usunięte. Integracja zostanie przeładowana, aby zastosować zmiany."
         }
       },
       "connection": {
@@ -420,7 +420,7 @@
         }
       },
       "climates_direct": {
-        "title": "Dodaj termostat (Tryb kontroler)",
+        "title": "Dodaj termostat (Kontroler)",
         "description": "Utwórz encję termostatu, w której Home Assistant zarządza i steruje całym procesem regulacji. PLC dostarcza tylko odczyt temperatury.",
         "data": {
           "current_temperature_address": "Adres odczytu temperatury",
@@ -452,7 +452,7 @@
         }
       },
       "climates_setpoint": {
-        "title": "Dodaj termostat (Tryb klient)",
+        "title": "Dodaj termostat (Klient)",
         "description": "Utwórz encję termostatu, w której PLC zarządza i całym procesem regulacji. Home Assistant pełni tylko rolę klienta.",
         "data": {
           "current_temperature_address": "Adres odczytu temperatury",
@@ -502,7 +502,7 @@
         }
       },
       "edit_climate_direct": {
-        "title": "Edytuj termostat (Tryb kontroler)",
+        "title": "Edytuj termostat (Kontroler)",
         "description": "Zaktualizuj ustawione parametry dla tej encji.",
         "data": {
           "current_temperature_address": "Adres temperatury aktualnej",
@@ -532,7 +532,7 @@
         }
       },
       "edit_climate_setpoint": {
-        "title": "Edytuj termostat (Tryb klient)",
+        "title": "Edytuj termostat (Klient)",
         "description": "Zaktualizuj ustawione parametry dla tej encji.",
         "data": {
           "current_temperature_address": "Adres temperatury aktualnej",
@@ -560,8 +560,8 @@
         }
       },
       "entity_sync": {
-        "title": "Dodaj synchronizację encji",
-        "description": "Utwórz synchronizację encji, która monitoruje encję Home Assistant i automatycznie zapisuje jej wartość do PLC.",
+        "title": "Dodaj encje zapisującą do PL",
+        "description": "Utwórz encje, która automatycznie zapisuje swoją wartość do PLC.",
         "data": {
           "address": "Adres zapisu",
           "source_entity": "Encja źródłowa",
@@ -571,17 +571,17 @@
         },
         "data_description": {
           "address": "Adres do zapisu wartości (np. DB1,D0, DB2,W4).",
-          "source_entity": "Encja Home Assistant, której wartość będzie zapisywana do PLC.",
+          "source_entity": "Encja źródłowa, której wartość będzie zapisywana do PLC.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
       "edit": {
-        "title": "Edytuj elementy",
-        "description": "Wybierz element, który chcesz zmodyfikować.",
+        "title": "Edytuj encje",
+        "description": "Wybierz encje, któr A chcesz zmodyfikować.",
         "data": {
-          "edit_item": "Element do edycji"
+          "edit_item": "Encja do edycji"
         },
         "data_description": {
           "edit_item": "Wybierz istniejącą encję aby zmienić jej parametry."
@@ -793,38 +793,38 @@
       },
       "export": {
         "title": "Eksport konfiguracji",
-        "description": "Skopiuj poniższy JSON, aby wykonać kopię zapasową {item_count} skonfigurowanych elementów. Możesz także {download_link_start}pobrać konfigurację{download_link_end}, aby zapisać {download_filename}. Zamknij okno dialogowe po zakończeniu.",
+        "description": "Skopiuj poniższy JSON, aby wykonać kopię zapasową {item_count} skonfigurowanych encji. Możesz także {download_link_start}pobrać konfigurację{download_link_end}, aby zapisać {download_filename}. Zamknij okno dialogowe po zakończeniu.",
         "data": {
           "export_json": "Konfiguracja JSON"
         },
         "data_description": {
-          "export_json": "Skopiuj i zachowaj ten JSON, aby zachować swoje elementy i ich ustawienia. Możesz też użyć przycisku pobierania powyżej, aby zapisać konfigurację do pliku."
+          "export_json": "Skopiuj i zachowaj ten JSON, aby zachować swoje encje i ich ustawienia. Możesz też użyć przycisku pobierania powyżej, aby zapisać konfigurację do pliku."
         }
       },
       "import": {
         "title": "Import konfiguracji",
-        "description": "Wklej swój JSON, aby zastąpić obecną konfigurację. Obecnie skonfigurowano {item_count} elementów.",
+        "description": "Wklej swój JSON, aby zastąpić obecną konfigurację. Obecnie skonfigurowano {item_count} encji.",
         "data": {
           "import_json": "Konfiguracja JSON"
         },
         "data_description": {
-          "import_json": "Wklej konfigurację JSON wygenerowaną wcześniej. Wszystkie istniejące elementy zostaną zastąpione."
+          "import_json": "Wklej konfigurację JSON wygenerowaną wcześniej. Wszystkie istniejące encje zostaną zastąpione."
         }
       }
     },
     "error": {
       "invalid_address": "Nieprawidłowy format adresu.",
-      "duplicate_entry": "Ten element już istnieje.",
+      "duplicate_entry": "Ta encja już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
       "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (otwarta/zamknięta).",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
-      "no_items": "Brak skonfigurowanych elementów do edycji.",
+      "no_items": "Brak skonfigurowanych encji do edycji.",
       "cannot_connect": "Nie można połączyć się z PLC przy użyciu podanych parametrów.",
       "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia.",
       "invalid_json": "Nieprawidłowy format JSON.",
-      "invalid_selection": "Wybierz prawidłowy typ elementu.",
+      "invalid_selection": "Wybierz prawidłowy typ encji.",
       "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu REAL i LREAL.",
       "text_requires_string_type": "Encje tekstowe wymagają adresów typu STRING/WSTRING."
     }
