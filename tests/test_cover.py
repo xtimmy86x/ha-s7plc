@@ -1011,3 +1011,76 @@ async def test_position_cover_normal_mode_backward_compatibility(fake_hass, mock
     await cover.async_set_cover_position(position=0)
     mock_coordinator.write_batched.assert_called_with("db1,b1", 0)
 
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_writes_current_position(fake_hass, mock_coordinator, device_info):
+    """Test that stopping a position cover writes the current position back to PLC."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+
+    # Simulate cover at position 42
+    mock_coordinator.data = {"cover:position:db1,b0": 42}
+
+    await cover.async_stop_cover()
+
+    # Should write current position (42) to command address
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 42)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_inverted(fake_hass, mock_coordinator, device_info):
+    """Test stopping an inverted position cover writes the inverted position."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover Inverted",
+        "test_id_inv",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        invert_position=True,
+    )
+    cover.hass = fake_hass
+
+    # PLC reports 30, which is displayed as 70 (inverted)
+    mock_coordinator.data = {"cover:position:db1,b0": 30}
+
+    await cover.async_stop_cover()
+
+    # _get_position_value returns inverted value (70), so 70 is written
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 70)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_unknown_position(fake_hass, mock_coordinator, device_info):
+    """Test stopping a position cover when position is unknown does not write."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+
+    # No position data available
+    mock_coordinator.data = {}
+
+    await cover.async_stop_cover()
+
+    # Should NOT write anything since position is unknown
+    mock_coordinator.write_batched.assert_not_called()
+

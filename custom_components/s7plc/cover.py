@@ -597,9 +597,25 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
 
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover (not implemented for position-based covers)."""
-        _LOGGER.warning(
-            "Stop command not supported for position-based cover %s", self.name
-        )
+
+        actual_position = self._get_position_value()
+        if actual_position is not None:
+            await self._async_write(
+                self._position_command_address,
+                actual_position,
+                error_msg=(
+                    f"Failed to write stop position {actual_position} to PLC address "
+                    f"{self._position_command_address}"
+                ),
+            )
+            self.async_write_ha_state()
+            await self.coordinator.async_request_refresh()
+        else:
+            cover_name = self._attr_name or self.unique_id
+            _LOGGER.error(
+                "Cannot stop cover %s because current position is unknown",
+                cover_name,
+            )
 
     @property
     def extra_state_attributes(self):
