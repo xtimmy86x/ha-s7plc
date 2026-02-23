@@ -10,5 +10,5 @@
   "loggers": ["custom_components.s7plc"],
   "quality_scale": "internal",
   "requirements": ["pys7==2.6.1"],
-  "version": "5.2.0"
+  "version": "5.2.1"
 }
