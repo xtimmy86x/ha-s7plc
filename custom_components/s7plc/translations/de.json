@@ -838,7 +838,8 @@
       "invalid_json": "Ungültige JSON-Nutzlast.",
       "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
       "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
-      "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen."
+      "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen.",
+      "sync_pulse_conflict": "Statussynchronisierung und Impulsbefehl können nicht gleichzeitig aktiviert werden."
     }
   },
   "issues": {

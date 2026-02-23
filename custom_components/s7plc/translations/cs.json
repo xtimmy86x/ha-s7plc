@@ -838,7 +838,8 @@
       "invalid_json": "Neplatný JSON.",
       "invalid_selection": "Vyberte platný typ položky.",
       "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
-      "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING."
+      "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING.",
+      "sync_pulse_conflict": "Synchronizaci stavu a pulzní příkaz nelze aktivovat současně."
     }
   },
   "issues": {

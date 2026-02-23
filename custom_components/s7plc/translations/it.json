@@ -838,7 +838,8 @@
       "invalid_json": "Payload JSON non valido.",
       "invalid_selection": "Seleziona un tipo di elemento valido.",
       "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
-      "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
+      "text_requires_string_type": "Le entità testo richiedono indirizzi di tipo STRING o WSTRING.",
+      "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente."
     }
   },
   "issues": {

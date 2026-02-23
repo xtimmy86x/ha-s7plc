@@ -1280,9 +1280,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
-        # Add boolean flags
-        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
-        item[CONF_PULSE_COMMAND] = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        # Add boolean flags — mutually exclusive
+        sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
+        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        if sync_state and pulse_command:
+            return None, {"base": "sync_pulse_conflict"}
+        item[CONF_SYNC_STATE] = sync_state
+        item[CONF_PULSE_COMMAND] = pulse_command
 
         # Add pulse duration only if pulse command is enabled
         if item[CONF_PULSE_COMMAND]:
@@ -1495,11 +1499,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
-        # Add boolean flags
-        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+        # Add boolean flags — mutually exclusive
+        sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
+        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        if sync_state and pulse_command:
+            return None, {"base": "sync_pulse_conflict"}
+        item[CONF_SYNC_STATE] = sync_state
 
         # Add pulse command if enabled
-        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if pulse_command:
             item[CONF_PULSE_COMMAND] = True
             raw_pulse = user_input.get(CONF_PULSE_DURATION)
