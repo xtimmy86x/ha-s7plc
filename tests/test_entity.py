@@ -214,6 +214,27 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     assert ent._ha_state_calls == 3
 
 
+def test_bool_entity_pulse_disables_sync(mock_coordinator):
+    """When both pulse_command and sync_state are True, sync is disabled."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+
+    ent = S7BoolSyncEntity(
+        coord,
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="topic",
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
+        sync_state=True,
+        pulse_command=True,
+        pulse_duration=0.5,
+    )
+
+    assert ent._pulse_command is True
+    assert ent._sync_state is False  # pulse takes priority
+
+
 # ============================================================================
 # S7Button Tests
 # ============================================================================
