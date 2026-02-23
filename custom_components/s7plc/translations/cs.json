@@ -341,60 +341,34 @@
       },
       "lights": {
         "title": "Přidat světlo",
-        "description": "Vyberte typ světla, které chcete přidat.",
-        "menu_options": {
-          "lights_onoff": "Světlo (ZAP/VYP)",
-          "lights_dimmer": "Stmívatelné světlo"
-        }
-      },
-      "lights_onoff": {
-        "title": "Přidat světlo (ZAP/VYP)",
-        "description": "Nakonfigurujte světlo se stavovou adresou a volitelnou příkazovou adresou. Můžete zapnout synchronizaci stavu.",
+        "description": "Nakonfigurujte světlo s booleovskou stavovou/příkazovou adresou. Volitelně přidejte podporu stmívání nastavením adres a stupnice jasu.",
         "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
+          "state_address": "Stavová adresa (zap/vyp)",
+          "command_address": "Příkazová adresa (zap/vyp)",
           "name": "Název",
           "area": "Oblast",
-          "sync_state": "Synchronizovat stav s příkazovou adresou",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení",
+          "sync_state": "Synchronizovat stav na příkazovou adresu",
           "pulse_command": "Režim pulsního příkazu",
-          "pulse_duration": "Délka pulsu (s)"
+          "pulse_duration": "Délka pulsu (s)",
+          "brightness_state_address": "Stavová adresa jasu",
+          "brightness_command_address": "Příkazová adresa jasu",
+          "brightness_scale": "Stupnice jasu (maximální hodnota)",
+          "scan_interval": "Interval skenování (s)",
+          "add_another": "Po uložení přidat další"
         },
         "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
-          "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
-          "name": "Volitelný srozumitelný název světla.",
-          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další světla.",
-          "pulse_command": "Posílat puls místo příkazů on/off. Užitečné pro bistabilní relé nebo flip-flop obvody.",
-          "pulse_duration": "Délka pulsu v sekundách (0.1-60s, podporuje desetinná čísla). Výchozí: 0.5s."
-        }
-      },
-      "lights_dimmer": {
-        "title": "Přidat stmívatelné světlo",
-        "description": "Konfigurujte stmívatelné světlo s numerickou stavovou adresou pro čtení jasu, příkazovou adresou pro ovládání jasu a volitelnou adresou pro příkaz aktuátoru.",
-        "data": {
-          "state_address": "Stavová adresa jasu",
-          "command_address": "Příkazová adresa jasu",
-          "actuator_command_address": "Adresa příkazu aktuátoru",
-          "name": "Název",
-          "area": "Oblast",
-          "brightness_scale": "Škála jasu (maximální hodnota)",
-          "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
-        },
-        "data_description": {
-          "state_address": "Numerická adresa PLC pro čtení aktuální úrovně jasu (např. DB1,B0 pro BYTE 0-255, DB1,W0 pro WORD).",
-          "command_address": "Numerická adresa PLC pro zápis úrovně jasu.",
-          "actuator_command_address": "Volitelná booleovská adresa PLC pro ON/OFF ovládání aktuátoru. Automaticky nastavena na ON při jasu >= 1%, OFF při 0.",
-          "name": "Volitelný srozumitelný název stmívatelného světla.",
-          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas. Výchozí: 255 (rozsah BYTE). Použijte 100 pro stmívače založené na procentech.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další stmívatelná světla."
+          "state_address": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0).",
+          "command_address": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa.",
+          "name": "Volitelný přátelský název světla.",
+          "area": "Oblast Home Assistant, do které se tato entita přiřadí.",
+          "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
+          "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
+          "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
+          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu (např. DB1,B2). Nechte prázdné pro pouze zap/vyp.",
+          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu (volitelné). Pokud je prázdná, použije se stavová adresa jasu.",
+          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas (např. 255 pro BYTE, 100 pro procenta). Povinné, pokud jsou nastaveny adresy jasu.",
+          "scan_interval": "Přepíše interval dotazování pro tento tag v sekundách. Nechte prázdné pro zdědění výchozí hodnoty PLC.",
+          "add_another": "Zůstat na tomto kroku pro přidání dalších světel."
         }
       },
       "numbers": {
@@ -755,48 +729,32 @@
       },
       "edit_light": {
         "title": "Upravit světlo",
-        "description": "Aktualizujte stavovou adresu, příkazovou adresu, název nebo volbu synchronizace pro toto světlo.",
+        "description": "Aktualizujte stavovou adresu, příkazovou adresu, název, možnosti stmívání nebo synchronizaci pro toto světlo.",
         "data": {
-          "state_address": "Stavová adresa",
-          "command_address": "Příkazová adresa",
+          "state_address": "Stavová adresa (zap/vyp)",
+          "command_address": "Příkazová adresa (zap/vyp)",
           "name": "Název",
           "area": "Oblast",
           "sync_state": "Synchronizovat stav s PLC",
-          "scan_interval": "Interval čtení (s)",
           "pulse_command": "Režim pulsního příkazu",
-          "pulse_duration": "Délka pulsu (s)"
+          "pulse_duration": "Délka pulsu (s)",
+          "brightness_state_address": "Stavová adresa jasu",
+          "brightness_command_address": "Příkazová adresa jasu",
+          "brightness_scale": "Stupnice jasu (maximální hodnota)",
+          "scan_interval": "Interval skenování (s)"
         },
         "data_description": {
-          "state_address": "Adresa v PLC pro čtení aktuálního stavu světla.",
-          "command_address": "Adresa v PLC pro zápis příkazů světla (volitelné).",
-          "name": "Volitelný srozumitelný název světla.",
-          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "pulse_command": "Posílat puls místo příkazů on/off. Užitečné pro bistabilní relé nebo flip-flop obvody.",
-          "pulse_duration": "Délka pulsu v sekundách (0.1-60s, podporuje desetinná čísla). Výchozí: 0.5s."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Upravit stmívatelné světlo",
-        "description": "Aktualizujte adresy jasu, adresu aktuátoru, název nebo škálu jasu pro toto stmívatelné světlo.",
-        "data": {
-          "state_address": "Stavová adresa jasu",
-          "command_address": "Příkazová adresa jasu",
-          "actuator_command_address": "Adresa příkazu aktuátoru",
-          "name": "Název",
-          "area": "Oblast",
-          "brightness_scale": "Škála jasu (maximální hodnota)",
-          "scan_interval": "Interval čtení (s)"
-        },
-        "data_description": {
-          "state_address": "Numerická adresa PLC pro čtení aktuální úrovně jasu.",
-          "command_address": "Numerická adresa PLC pro zápis úrovně jasu.",
-          "actuator_command_address": "Volitelná booleovská adresa PLC pro ON/OFF ovládání aktuátoru. Nastavena na ON při jasu >= 1%, OFF při 0.",
-          "name": "Volitelný srozumitelný název stmívatelného světla.",
-          "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas. Výchozí: 255.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+          "state_address": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0).",
+          "command_address": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa.",
+          "name": "Volitelný přátelský název světla.",
+          "area": "Oblast Home Assistant, do které se tato entita přiřadí.",
+          "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
+          "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
+          "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
+          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu. Nechte prázdné pro pouze zap/vyp.",
+          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu. Pokud je prázdná, použije se stavová adresa jasu.",
+          "brightness_scale": "Maximální hodnota, kterou PLC používá pro plný jas. Povinné, pokud jsou nastaveny adresy jasu.",
+          "scan_interval": "Přepíše interval dotazování pro tento tag v sekundách. Nechte prázdné pro zdědění výchozí hodnoty PLC."
         }
       },
       "edit_number": {

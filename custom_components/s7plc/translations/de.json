@@ -341,60 +341,34 @@
       },
       "lights": {
         "title": "Licht hinzufügen",
-        "description": "Wählen Sie den Lichttyp aus, den Sie hinzufügen möchten.",
-        "menu_options": {
-          "lights_onoff": "Licht (EIN/AUS)",
-          "lights_dimmer": "Dimmbares Licht"
-        }
-      },
-      "lights_onoff": {
-        "title": "Licht (EIN/AUS) hinzufügen",
-        "description": "Konfigurieren Sie ein Licht mit einer Zustandsvariable und einer optionalen Befehlsvariable. Sie können die Zustandssynchronisierung aktivieren.",
+        "description": "Konfiguriere ein Licht mit einer booleschen Status-/Befehlsadresse. Optional kann der Dimmer-Modus durch Angabe von Helligkeitsadressen und -skala aktiviert werden.",
         "data": {
-          "state_address": "Zustandsvariable",
-          "command_address": "Befehlsvariable",
+          "state_address": "Statusadresse (ein/aus)",
+          "command_address": "Befehlsadresse (ein/aus)",
           "name": "Name",
           "area": "Bereich",
-          "sync_state": "Zustand mit Befehlsvariable synchronisieren",
-          "pulse_command": "Impulsbefehls-Modus",
+          "sync_state": "Status mit Befehlsadresse synchronisieren",
+          "pulse_command": "Impuls-Befehlsmodus",
           "pulse_duration": "Impulsdauer (s)",
-          "scan_interval": "Scan-Intervall (s)",
-          "add_another": "Nach dem Speichern weitere hinzufügen ?"
-        },
-        "data_description": {
-          "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
-          "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
-          "name": "Name für das Licht (optional).",
-          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
-          "sync_state": "Wenn aktiviert, wird die Befehlsvariable automatisch mit dem aktuellen Zustand aktualisiert.",
-          "pulse_command": "Impuls statt Ein/Aus-Befehle senden. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
-          "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
-          "add_another": "Weitere Lichter hinzuzufügen ?"
-        }
-      },
-      "lights_dimmer": {
-        "title": "Dimmbares Licht hinzufügen",
-        "description": "Konfigurieren Sie ein dimmbares Licht mit einer numerischen Zustandsadresse für die Helligkeitsrückmeldung, einer Befehlsadresse für die Helligkeitssteuerung und einer optionalen Aktor-Befehlsadresse.",
-        "data": {
-          "state_address": "Helligkeits-Zustandsadresse",
-          "command_address": "Helligkeits-Befehlsadresse",
-          "actuator_command_address": "Aktor-Befehlsadresse",
-          "name": "Name",
-          "area": "Bereich",
+          "brightness_state_address": "Helligkeits-Statusadresse",
+          "brightness_command_address": "Helligkeits-Befehlsadresse",
           "brightness_scale": "Helligkeitsskala (Maximalwert)",
-          "scan_interval": "Abfragezyklus (s)",
-          "add_another": "Weitere dimmbare Lichter hinzufügen ?"
+          "scan_interval": "Abfrageintervall (s)",
+          "add_another": "Nach dem Speichern weiteres hinzufügen"
         },
         "data_description": {
-          "state_address": "Numerische SPS-Adresse zum Lesen des aktuellen Helligkeitswerts (z.B. DB1,B0 für BYTE 0-255, DB1,W0 für WORD).",
-          "command_address": "Numerische SPS-Adresse zum Schreiben des Helligkeitswerts.",
-          "actuator_command_address": "Optionale boolesche SPS-Adresse für Aktor-Ein/Aus-Steuerung. Wird automatisch auf EIN gesetzt bei Helligkeit >= 1%, AUS bei 0.",
-          "name": "Optionaler Name für das dimmbare Licht.",
-          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
-          "brightness_scale": "Maximalwert, den die SPS für volle Helligkeit verwendet. Standard: 255 (BYTE-Bereich). Verwenden Sie 100 für prozentbasierte Dimmer.",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
-          "add_another": "Weitere dimmbare Lichter hinzufügen ?"
+          "state_address": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0).",
+          "command_address": "Boolesche PLC-Adresse zum Schreiben von Ein/Aus-Befehlen (optional). Wenn leer, wird die Statusadresse verwendet.",
+          "name": "Optionaler Anzeigename für das Licht.",
+          "area": "Home Assistant Bereich, dem diese Entität zugewiesen wird.",
+          "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
+          "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
+          "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus.",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet.",
+          "brightness_scale": "Maximalwert, den der PLC für volle Helligkeit verwendet (z.B. 255 für BYTE, 100 für Prozent). Erforderlich wenn Helligkeitsadressen gesetzt sind.",
+          "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen.",
+          "add_another": "Auf diesem Schritt bleiben, um weitere Lichter hinzuzufügen."
         }
       },
       "numbers": {
@@ -755,48 +729,32 @@
       },
       "edit_light": {
         "title": "Licht bearbeiten",
-        "description": "Aktualisieren Sie die Zustandsvariable, Befehlsvariable, Name oder Synchronisationsoption für dieses Licht.",
+        "description": "Aktualisiere die Statusadresse, Befehlsadresse, den Namen, die Dimmer-Optionen oder die Synchronisierungsoption für dieses Licht.",
         "data": {
-          "state_address": "Zustandsvariable",
-          "command_address": "Befehlsvariable",
+          "state_address": "Statusadresse (ein/aus)",
+          "command_address": "Befehlsadresse (ein/aus)",
           "name": "Name",
           "area": "Bereich",
-          "sync_state": "Zustand mit SPS synchronisieren",
-          "pulse_command": "Impulsbefehls-Modus",
+          "sync_state": "Status mit PLC synchronisieren",
+          "pulse_command": "Impuls-Befehlsmodus",
           "pulse_duration": "Impulsdauer (s)",
-          "scan_interval": "Scan-Intervall (s)"
-        },
-        "data_description": {
-          "state_address": "SPS-Adresse zum Lesen des aktuellen Lichtzustands.",
-          "command_address": "SPS-Adresse zum Schreiben von Lichtbefehlen (optional).",
-          "name": "Name für das Licht (optional).",
-          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
-          "sync_state": "Wenn aktiviert, wird der Entitätszustand automatisch von der SPS synchronisiert.",
-          "pulse_command": "Impuls statt Ein/Aus-Befehle senden. Nützlich für bistabile Relais oder Flip-Flop-Schaltungen.",
-          "pulse_duration": "Dauer des Impulses in Sekunden (0.1-60s, unterstützt Dezimalzahlen). Standard: 0.5s.",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Dimmbares Licht bearbeiten",
-        "description": "Aktualisieren Sie die Helligkeitsadressen, Aktoradresse, Name oder Helligkeitsskala für dieses dimmbare Licht.",
-        "data": {
-          "state_address": "Helligkeits-Zustandsadresse",
-          "command_address": "Helligkeits-Befehlsadresse",
-          "actuator_command_address": "Aktor-Befehlsadresse",
-          "name": "Name",
-          "area": "Bereich",
+          "brightness_state_address": "Helligkeits-Statusadresse",
+          "brightness_command_address": "Helligkeits-Befehlsadresse",
           "brightness_scale": "Helligkeitsskala (Maximalwert)",
-          "scan_interval": "Abfragezyklus (s)"
+          "scan_interval": "Abfrageintervall (s)"
         },
         "data_description": {
-          "state_address": "Numerische SPS-Adresse zum Lesen des aktuellen Helligkeitswerts.",
-          "command_address": "Numerische SPS-Adresse zum Schreiben des Helligkeitswerts.",
-          "actuator_command_address": "Optionale boolesche SPS-Adresse für Aktor-Ein/Aus-Steuerung. Auf EIN bei Helligkeit >= 1%, AUS bei 0.",
-          "name": "Optionaler Name für das dimmbare Licht.",
-          "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
-          "brightness_scale": "Maximalwert, den die SPS für volle Helligkeit verwendet. Standard: 255.",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+          "state_address": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0).",
+          "command_address": "Boolesche PLC-Adresse zum Schreiben von Ein/Aus-Befehlen (optional). Wenn leer, wird die Statusadresse verwendet.",
+          "name": "Optionaler Anzeigename für das Licht.",
+          "area": "Home Assistant Bereich, dem diese Entität zugewiesen wird.",
+          "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
+          "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
+          "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit. Leer lassen für nur Ein/Aus.",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen. Wenn leer, wird die Helligkeits-Statusadresse verwendet.",
+          "brightness_scale": "Maximalwert, den der PLC für volle Helligkeit verwendet. Erforderlich wenn Helligkeitsadressen gesetzt sind.",
+          "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen."
         }
       },
       "edit_number": {

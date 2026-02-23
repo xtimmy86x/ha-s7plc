@@ -134,7 +134,7 @@ def test_build_expected_unique_ids_all_entity_types():
     assert "dev:cover:opened:DB1,X1.2" in ids
     assert "dev:button:DB1,X2.0" in ids
     assert "dev:light:DB1,X2.1" in ids
-    assert "dev:dimmer_light:DB1,B10" in ids
+    assert "dev:light:DB1,B10" in ids
     assert "dev:number:DB1,INT10" in ids
     assert "dev:text:DB1,STRING0" in ids
     assert "dev:climate_direct:DB1,REAL20" in ids

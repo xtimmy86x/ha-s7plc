@@ -341,60 +341,34 @@
       },
       "lights": {
         "title": "Dodaj światło",
-        "description": "Wybierz typ światła do dodania.",
-        "menu_options": {
-          "lights_onoff": "Światło (ZAŁ/WYŁ)",
-          "lights_dimmer": "Światło Ściemniane"
-        }
-      },
-      "lights_onoff": {
-        "title": "Dodaj światło (ZAŁ/WYŁ)",
-        "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
+        "description": "Skonfiguruj światło z boolowskim adresem stanu/komendy. Opcjonalnie dodaj obsługę ściemniania, ustawiając adresy i skalę jasności.",
         "data": {
-          "state_address": "Adres odczytu",
-          "command_address": "Adres zapisu",
+          "state_address": "Adres stanu (wł/wył)",
+          "command_address": "Adres komendy (wł/wył)",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Synchronizuj adres zapisu",
-          "pulse_command": "Tryb impulsu",
+          "sync_state": "Synchronizuj stan z adresem komendy",
+          "pulse_command": "Tryb komendy impulsowej",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał skanowania (s)",
-          "add_another": "Dodaj kolejną encje po zapisaniu"
-        },
-        "data_description": {
-          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
-          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
-          "name": "Opcjonalna własna nazwa encji.",
-          "area": "Obszar do którego ma zostać przypisana ta encja.",
-          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
-          "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie: 0.5s.",
-          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
-          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
-        }
-      },
-      "lights_dimmer": {
-        "title": "Dodaj światło ściemniane",
-        "description": "Skonfiguruj światło ściemniane z numerycznym adresem stanu jasności, adresem komendy jasności i opcjonalnym adresem komendy aktuatora.",
-        "data": {
-          "state_address": "Adres stanu jasności",
-          "command_address": "Adres komendy jasności",
-          "actuator_command_address": "Adres komendy aktuatora",
-          "name": "Nazwa",
-          "area": "Obszar",
+          "brightness_state_address": "Adres stanu jasności",
+          "brightness_command_address": "Adres komendy jasności",
           "brightness_scale": "Skala jasności (wartość maksymalna)",
           "scan_interval": "Interwał skanowania (s)",
-          "add_another": "Dodaj kolejne po zapisie"
+          "add_another": "Dodaj kolejne po zapisaniu"
         },
         "data_description": {
-          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0-255, DB1,W0 dla WORD).",
-          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Automatycznie ustawiany na ON przy jasności >= 1%, OFF przy 0.",
-          "name": "Opcjonalna własna nazwa światła ściemnianego.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255 (zakres BYTE). Użyj 100 dla dimmerów procentowych.",
-          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
-          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejne światła ściemniane."
+          "state_address": "Boolowski adres PLC do odczytu stanu wł/wył (np. DB1,X0.0).",
+          "command_address": "Boolowski adres PLC do zapisu komend wł/wył (opcjonalnie). Jeśli puste, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa światła.",
+          "area": "Obszar Home Assistant, do którego przypisana zostanie ta encja.",
+          "sync_state": "Po włączeniu adres komendy jest automatycznie aktualizowany bieżącym stanem wł/wył.",
+          "pulse_command": "Wysyłaj impuls zamiast komend wł/wył.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0,1-60s, obsługuje ułamki dziesiętne). Domyślnie: 0,5s.",
+          "brightness_state_address": "Numeryczny adres PLC do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu tylko wł/wył.",
+          "brightness_command_address": "Numeryczny adres PLC do zapisu komend jasności (opcjonalnie). Jeśli puste, używany jest adres stanu jasności.",
+          "brightness_scale": "Maksymalna wartość używana przez PLC dla pełnej jasności (np. 255 dla BYTE, 100 dla procentów). Wymagane gdy ustawiono adresy jasności.",
+          "scan_interval": "Nadpisuje interwał odpytywania dla tego tagu w sekundach. Zostaw puste, aby odziedziczyć domyślną wartość PLC.",
+          "add_another": "Pozostań na tym kroku, aby dodać więcej świateł."
         }
       },
       "numbers": {
@@ -755,48 +729,32 @@
       },
       "edit_light": {
         "title": "Edytuj światło",
-        "description": "Zaktualizuj parametry dla tej encji.",
+        "description": "Zaktualizuj adres stanu, adres komendy, nazwę, opcje ściemniania lub synchronizacji dla tego światła.",
         "data": {
-          "state_address": "Adres odczytu",
-          "command_address": "Adres zapisu",
+          "state_address": "Adres stanu (wł/wył)",
+          "command_address": "Adres komendy (wł/wył)",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Synchronizuj adres zapisu",
-          "pulse_command": "Tryb impulsu",
+          "sync_state": "Synchronizuj stan z PLC",
+          "pulse_command": "Tryb komendy impulsowej",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał skanowania (s)"
-        },
-        "data_description": {
-          "state_address": "Adres do odczytu stanu.",
-          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
-          "name": "Opcjonalna własna nazwa encji.",
-          "area": "Obszar do którego ma zostać przypisana ta encja.",
-          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
-          "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 - 60s), domyślnie (0.5s).",
-          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Edytuj światło ściemniane",
-        "description": "Zaktualizuj adresy jasności, adres aktuatora, nazwę lub skalę jasności dla tego światła ściemnianego.",
-        "data": {
-          "state_address": "Adres stanu jasności",
-          "command_address": "Adres komendy jasności",
-          "actuator_command_address": "Adres komendy aktuatora",
-          "name": "Nazwa",
-          "area": "Obszar",
+          "brightness_state_address": "Adres stanu jasności",
+          "brightness_command_address": "Adres komendy jasności",
           "brightness_scale": "Skala jasności (wartość maksymalna)",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Numeryczny adres PLC do odczytu bieżącego poziomu jasności.",
-          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres boolowski PLC dla sterowania ON/OFF aktuatora. Ustawiany na ON przy jasności >= 1%, OFF przy 0.",
-          "name": "Opcjonalna własna nazwa światła ściemnianego.",
-          "area": "Obszar Home Assistant, do którego ma zostać przypisana ta encja.",
-          "brightness_scale": "Maksymalna wartość, którą PLC używa dla pełnej jasności. Domyślnie: 255.",
-          "scan_interval": "Nadpisz interwał skanowania dla tego tagu w sekundach. Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
+          "state_address": "Boolowski adres PLC do odczytu stanu wł/wył (np. DB1,X0.0).",
+          "command_address": "Boolowski adres PLC do zapisu komend wł/wył (opcjonalnie). Jeśli puste, używany jest adres stanu.",
+          "name": "Opcjonalna przyjazna nazwa światła.",
+          "area": "Obszar Home Assistant, do którego przypisana zostanie ta encja.",
+          "sync_state": "Po włączeniu adres komendy jest automatycznie aktualizowany bieżącym stanem wł/wył.",
+          "pulse_command": "Wysyłaj impuls zamiast komend wł/wył.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0,1-60s, obsługuje ułamki dziesiętne). Domyślnie: 0,5s.",
+          "brightness_state_address": "Numeryczny adres PLC do odczytu poziomu jasności. Zostaw puste dla trybu tylko wł/wył.",
+          "brightness_command_address": "Numeryczny adres PLC do zapisu komend jasności. Jeśli puste, używany jest adres stanu jasności.",
+          "brightness_scale": "Maksymalna wartość używana przez PLC dla pełnej jasności. Wymagane gdy ustawiono adresy jasności.",
+          "scan_interval": "Nadpisuje interwał odpytywania dla tego tagu w sekundach. Zostaw puste, aby odziedziczyć domyślną wartość PLC."
         }
       },
       "edit_number": {

@@ -14,7 +14,6 @@ from .const import (
     CONF_ADDRESS,
     CONF_AREA,
     CONF_BINARY_SENSORS,
-    CONF_BRIGHTNESS_SCALE,
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
@@ -142,14 +141,11 @@ def _iter_entity_unique_ids(
         if address:
             yield f"{device_id}:button:{address}", item
 
-    # Lights — on/off or dimmer
+    # Lights — always "light:" prefix (dimmer is an add-on, not a separate type)
     for item in options.get(CONF_LIGHTS, []):
         state_addr = item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS, "")
         if state_addr:
-            if CONF_BRIGHTNESS_SCALE in item:
-                yield f"{device_id}:dimmer_light:{state_addr}", item
-            else:
-                yield f"{device_id}:light:{state_addr}", item
+            yield f"{device_id}:light:{state_addr}", item
 
     # Numbers — device_id:number:address
     for item in options.get(CONF_NUMBERS, []):
