@@ -100,7 +100,11 @@ def test_light_init_different_addresses(light_factory):
 
 def test_light_init_with_sync_state(light_factory):
     """Test light with sync_state enabled."""
-    light = light_factory(sync_state=True)
+    light = light_factory(
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
+        sync_state=True,
+    )
     
     assert light._sync_state is True
 
@@ -361,6 +365,7 @@ async def test_async_setup_entry_with_sync_state(fake_hass, mock_coordinator, de
         CONF_LIGHTS: [
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Light 1",
                 CONF_SYNC_STATE: True,
             }

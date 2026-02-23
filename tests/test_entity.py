@@ -235,6 +235,24 @@ def test_bool_entity_pulse_disables_sync(mock_coordinator):
     assert ent._sync_state is False  # pulse takes priority
 
 
+def test_bool_entity_same_address_disables_sync(mock_coordinator):
+    """When state and command addresses are the same, sync is disabled."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+
+    ent = S7BoolSyncEntity(
+        coord,
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="topic",
+        state_address="db1,x0.0",
+        command_address="db1,x0.0",
+        sync_state=True,
+    )
+
+    assert ent._sync_state is False  # same address, sync disabled
+
+
 # ============================================================================
 # S7Button Tests
 # ============================================================================

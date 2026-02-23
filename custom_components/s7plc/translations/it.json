@@ -839,7 +839,8 @@
       "invalid_selection": "Seleziona un tipo di elemento valido.",
       "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
       "text_requires_string_type": "Le entità testo richiedono indirizzi di tipo STRING o WSTRING.",
-      "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente."
+      "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente.",
+      "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato."
     }
   },
   "issues": {

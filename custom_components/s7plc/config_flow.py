@@ -1285,6 +1285,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
+        if sync_state and (not command_address or command_address == state_address):
+            return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
         item[CONF_PULSE_COMMAND] = pulse_command
 
@@ -1504,6 +1506,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
+        if sync_state and (not command_address or command_address == state_address):
+            return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
 
         # Add pulse command if enabled

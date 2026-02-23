@@ -862,13 +862,14 @@ def test_switch_sync_pulse_conflict():
 
 
 def test_switch_sync_only_ok():
-    """Switch with sync_state only should succeed."""
+    """Switch with sync_state and different command address should succeed."""
     flow = make_options_flow(options={const.CONF_SWITCHES: []})
 
     result = run_flow(
         flow.async_step_switches(
             {
                 const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.1",
                 "sync_state": True,
                 "pulse_command": False,
             }
@@ -901,6 +902,44 @@ def test_switch_pulse_only_ok():
     assert flow._options[const.CONF_SWITCHES][0]["pulse_command"] is True
 
 
+def test_switch_sync_same_address_conflict():
+    """Sync state with same or missing command address must fail."""
+    flow = make_options_flow(options={const.CONF_SWITCHES: []})
+
+    # No command_address provided (defaults to state_address)
+    result = run_flow(
+        flow.async_step_switches(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                "sync_state": True,
+                "pulse_command": False,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "sync_same_address"
+
+
+def test_switch_sync_explicit_same_address_conflict():
+    """Sync state with explicitly same command address must fail."""
+    flow = make_options_flow(options={const.CONF_SWITCHES: []})
+
+    result = run_flow(
+        flow.async_step_switches(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.0",
+                "sync_state": True,
+                "pulse_command": False,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "sync_same_address"
+
+
 def test_light_sync_pulse_conflict():
     """Enabling both sync_state and pulse_command on a light must fail."""
     flow = make_options_flow(options={const.CONF_LIGHTS: []})
@@ -921,7 +960,27 @@ def test_light_sync_pulse_conflict():
 
 
 def test_light_sync_only_ok():
-    """Light with sync_state only should succeed."""
+    """Light with sync_state and different command address should succeed."""
+    flow = make_options_flow(options={const.CONF_LIGHTS: []})
+
+    result = run_flow(
+        flow.async_step_lights(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_COMMAND_ADDRESS: "DB1,X0.1",
+                "sync_state": True,
+                "pulse_command": False,
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    assert len(flow._options[const.CONF_LIGHTS]) == 1
+    assert flow._options[const.CONF_LIGHTS][0]["sync_state"] is True
+
+
+def test_light_sync_same_address_conflict():
+    """Light sync state without separate command address must fail."""
     flow = make_options_flow(options={const.CONF_LIGHTS: []})
 
     result = run_flow(
@@ -934,6 +993,5 @@ def test_light_sync_only_ok():
         )
     )
 
-    assert result["type"] == "create_entry"
-    assert len(flow._options[const.CONF_LIGHTS]) == 1
-    assert flow._options[const.CONF_LIGHTS][0]["sync_state"] is True
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "sync_same_address"

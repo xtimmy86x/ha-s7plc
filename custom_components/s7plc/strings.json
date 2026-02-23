@@ -839,7 +839,8 @@
       "invalid_selection": "Select a valid item type.",
       "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
       "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses.",
-      "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time."
+      "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time.",
+      "sync_same_address": "Sync state requires a command address different from the state address."
     }
   },
   "issues": {

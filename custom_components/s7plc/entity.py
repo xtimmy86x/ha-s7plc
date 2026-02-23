@@ -139,7 +139,10 @@ class S7BoolSyncEntity(S7BaseEntity):
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
         # Pulse and sync are mutually exclusive; pulse takes priority.
-        self._sync_state = sync_state and not pulse_command
+        # Sync requires different state/command addresses to be useful.
+        self._sync_state = (
+            sync_state and not pulse_command and state_address != command_address
+        )
         self._last_state: bool | None = None
         self._pending_command: bool | None = None
 
@@ -166,6 +169,8 @@ class S7BoolSyncEntity(S7BaseEntity):
                     "pulse_duration": self._pulse_duration,
                 }
             )
+        if self._sync_state:
+            attrs["sync_state"] = True
         return attrs
 
     async def async_turn_on(self, **kwargs: Any) -> None:

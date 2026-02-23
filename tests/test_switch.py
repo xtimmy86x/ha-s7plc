@@ -100,7 +100,11 @@ def test_switch_init_different_addresses(switch_factory):
 
 def test_switch_init_with_sync_state(switch_factory):
     """Test switch with sync_state enabled."""
-    switch = switch_factory(sync_state=True)
+    switch = switch_factory(
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
+        sync_state=True,
+    )
     
     assert switch._sync_state is True
 
@@ -352,6 +356,7 @@ async def test_async_setup_entry_with_sync_state(fake_hass, mock_coordinator, de
         CONF_SWITCHES: [
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Switch 1",
                 CONF_SYNC_STATE: True,
             }

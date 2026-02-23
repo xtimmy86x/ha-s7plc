@@ -839,7 +839,8 @@
       "invalid_selection": "Wybierz prawidłowy typ encji.",
       "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL / LREAL).",
       "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING).",
-      "sync_pulse_conflict": "Synchronizacja stanu i komenda impulsowa nie mogą być aktywne jednocześnie."
+      "sync_pulse_conflict": "Synchronizacja stanu i komenda impulsowa nie mogą być aktywne jednocześnie.",
+      "sync_same_address": "Synchronizacja stanu wymaga adresu komendy różnego od adresu stanu."
     }
   },
   "issues": {
