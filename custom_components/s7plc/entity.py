@@ -176,7 +176,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._pulse_command:
-            await self._async_pulse()
+            # Control current state is off, so send pulse to turn on
+            if not self.is_on:
+                await self._async_pulse()
         else:
             await self._ensure_connected()
             self._pending_command = True
@@ -196,7 +198,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._pulse_command:
-            await self._async_pulse()
+            # Control current state is on, so send pulse to turn off
+            if self.is_on:
+                await self._async_pulse()
         else:
             await self._ensure_connected()
             self._pending_command = False
