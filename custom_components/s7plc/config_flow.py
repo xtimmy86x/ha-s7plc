@@ -296,17 +296,6 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "entity_sync",
 )
 
-ADD_ENTITY_LABELS: dict[str, str] = {
-    "sensors": "Sensor",
-    "binary_sensors": "Binary sensor",
-    "switches": "Switch",
-    "covers": "Cover",
-    "buttons": "Button",
-    "lights": "Light",
-    "numbers": "Number",
-    "entity_sync": "Entity Sync",
-}
-
 
 def _get_connection_description(
     connection_type: str,
