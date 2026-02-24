@@ -400,7 +400,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 return
 
             # Schedule write on next update cycle
-            self.hass.create_task(self._async_write_to_plc(new_state))
+            self.hass.async_create_task(self._async_write_to_plc(new_state))
 
         self.async_on_remove(
             async_track_state_change_event(

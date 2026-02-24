@@ -10,8 +10,9 @@ from homeassistant.const import CONF_NAME
 
 from custom_components.s7plc.light import S7Light, S7DimmerLight, async_setup_entry
 from custom_components.s7plc.const import (
-    CONF_ACTUATOR_COMMAND_ADDRESS,
+    CONF_BRIGHTNESS_COMMAND_ADDRESS,
     CONF_BRIGHTNESS_SCALE,
+    CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
     CONF_SCAN_INTERVAL,
@@ -99,7 +100,11 @@ def test_light_init_different_addresses(light_factory):
 
 def test_light_init_with_sync_state(light_factory):
     """Test light with sync_state enabled."""
-    light = light_factory(sync_state=True)
+    light = light_factory(
+        state_address="db1,x0.0",
+        command_address="db1,x0.1",
+        sync_state=True,
+    )
     
     assert light._sync_state is True
 
@@ -360,6 +365,7 @@ async def test_async_setup_entry_with_sync_state(fake_hass, mock_coordinator, de
         CONF_LIGHTS: [
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Light 1",
                 CONF_SYNC_STATE: True,
             }
@@ -410,10 +416,11 @@ async def test_async_setup_entry_sync_state_default_false(fake_hass, mock_coordi
 # ============================================================================
 
 
-TEST_DIMMER_STATE_ADDRESS = "db1,b0"
-TEST_DIMMER_COMMAND_ADDRESS = "db1,b1"
-TEST_DIMMER_ACTUATOR_ADDRESS = "db1,x1.0"
-TEST_DIMMER_TOPIC = "dimmer_light:db1,b0"
+TEST_DIMMER_STATE_ADDRESS = "db1,x0.0"
+TEST_DIMMER_COMMAND_ADDRESS = "db1,x0.1"
+TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS = "db1,b0"
+TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS = "db1,b1"
+TEST_DIMMER_TOPIC = "light:db1,x0.0"
 
 
 @pytest.fixture
@@ -422,7 +429,8 @@ def dimmer_factory(mock_coordinator, device_info):
     def _create(
         state_address: str = TEST_DIMMER_STATE_ADDRESS,
         command_address: str = TEST_DIMMER_COMMAND_ADDRESS,
-        actuator_command_address: str | None = None,
+        brightness_state_address: str = TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS,
+        brightness_command_address: str = TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS,
         brightness_scale: int = 255,
         name: str = "Test Dimmer",
         topic: str = TEST_DIMMER_TOPIC,
@@ -436,8 +444,9 @@ def dimmer_factory(mock_coordinator, device_info):
             topic=topic,
             state_address=state_address,
             command_address=command_address,
-            actuator_command_address=actuator_command_address,
             brightness_scale=brightness_scale,
+            brightness_state_address=brightness_state_address,
+            brightness_command_address=brightness_command_address,
         )
     return _create
 
@@ -451,15 +460,9 @@ def test_dimmer_light_init(dimmer_factory):
     assert dimmer._topic == TEST_DIMMER_TOPIC
     assert dimmer._address == TEST_DIMMER_STATE_ADDRESS
     assert dimmer._command_address == TEST_DIMMER_COMMAND_ADDRESS
-    assert dimmer._actuator_command_address is None
+    assert dimmer._brightness_state_address == TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS
+    assert dimmer._brightness_command_address == TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS
     assert dimmer._brightness_scale == 255
-
-
-def test_dimmer_light_init_with_actuator(dimmer_factory):
-    """Test dimmer light with actuator address."""
-    dimmer = dimmer_factory(actuator_command_address=TEST_DIMMER_ACTUATOR_ADDRESS)
-
-    assert dimmer._actuator_command_address == TEST_DIMMER_ACTUATOR_ADDRESS
 
 
 def test_dimmer_light_color_mode(dimmer_factory):
@@ -496,23 +499,29 @@ def test_dimmer_light_brightness_none(dimmer_factory, mock_coordinator):
 
 
 def test_dimmer_light_is_on_true(dimmer_factory, mock_coordinator):
-    """Test is_on returns True when brightness > 0."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 100}
+    """Test is_on returns True when boolean state is True."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: True,
+        f"{TEST_DIMMER_TOPIC}:brightness": 100,
+    }
     dimmer = dimmer_factory()
 
     assert dimmer.is_on is True
 
 
 def test_dimmer_light_is_on_false(dimmer_factory, mock_coordinator):
-    """Test is_on returns False when brightness is 0."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 0}
+    """Test is_on returns False when boolean state is False."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: False,
+        f"{TEST_DIMMER_TOPIC}:brightness": 0,
+    }
     dimmer = dimmer_factory()
 
     assert dimmer.is_on is False
 
 
 def test_dimmer_light_is_on_none(dimmer_factory, mock_coordinator):
-    """Test is_on returns None when data not available."""
+    """Test is_on returns None when boolean data not available."""
     mock_coordinator.data = {}
     dimmer = dimmer_factory()
 
@@ -520,8 +529,11 @@ def test_dimmer_light_is_on_none(dimmer_factory, mock_coordinator):
 
 
 def test_dimmer_light_available_with_data(dimmer_factory, mock_coordinator):
-    """Test dimmer is available when brightness data exists in coordinator."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 128}
+    """Test dimmer is available when both boolean and brightness data exist."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: True,
+        f"{TEST_DIMMER_TOPIC}:brightness": 128,
+    }
     mock_coordinator._connected = True
     dimmer = dimmer_factory()
 
@@ -529,8 +541,17 @@ def test_dimmer_light_available_with_data(dimmer_factory, mock_coordinator):
 
 
 def test_dimmer_light_unavailable_no_data(dimmer_factory, mock_coordinator):
-    """Test dimmer is unavailable when brightness key is missing from coordinator data."""
-    mock_coordinator.data = {}
+    """Test dimmer is unavailable when brightness key is missing."""
+    mock_coordinator.data = {TEST_DIMMER_TOPIC: True}
+    mock_coordinator._connected = True
+    dimmer = dimmer_factory()
+
+    assert dimmer.available is False
+
+
+def test_dimmer_light_unavailable_no_boolean(dimmer_factory, mock_coordinator):
+    """Test dimmer is unavailable when boolean topic is missing."""
+    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 128}
     mock_coordinator._connected = True
     dimmer = dimmer_factory()
 
@@ -539,7 +560,10 @@ def test_dimmer_light_unavailable_no_data(dimmer_factory, mock_coordinator):
 
 def test_dimmer_light_unavailable_disconnected(dimmer_factory, mock_coordinator):
     """Test dimmer is unavailable when PLC is disconnected."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 128}
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: True,
+        f"{TEST_DIMMER_TOPIC}:brightness": 128,
+    }
     mock_coordinator._connected = False
     dimmer = dimmer_factory()
 
@@ -592,98 +616,90 @@ def test_dimmer_light_brightness_scale_min_is_1(dimmer_factory):
 
 @pytest.mark.asyncio
 async def test_dimmer_light_turn_on(dimmer_factory, mock_coordinator, fake_hass):
-    """Test turn on with default brightness (255)."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 0}
+    """Test turn on writes True to boolean command address."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: False,
+        f"{TEST_DIMMER_TOPIC}:brightness": 0,
+    }
     dimmer = dimmer_factory()
     dimmer.hass = fake_hass
 
     await dimmer.async_turn_on()
 
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 255) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
 async def test_dimmer_light_turn_on_with_brightness(dimmer_factory, mock_coordinator, fake_hass):
-    """Test turn on with specific brightness."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 0}
+    """Test turn on with brightness writes True + brightness value."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: False,
+        f"{TEST_DIMMER_TOPIC}:brightness": 0,
+    }
     dimmer = dimmer_factory()
     dimmer.hass = fake_hass
 
     await dimmer.async_turn_on(brightness=128)
 
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 128) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_dimmer_light_turn_on_with_actuator(dimmer_factory, mock_coordinator, fake_hass):
-    """Test turn on also writes True to actuator address."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 0}
-    dimmer = dimmer_factory(actuator_command_address=TEST_DIMMER_ACTUATOR_ADDRESS)
-    dimmer.hass = fake_hass
-
-    await dimmer.async_turn_on(brightness=128)
-
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 128) in mock_coordinator.write_calls
-    assert ("write_batched", TEST_DIMMER_ACTUATOR_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS, 128) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
 async def test_dimmer_light_turn_off(dimmer_factory, mock_coordinator, fake_hass):
-    """Test turn off writes 0 to command address."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 128}
+    """Test turn off writes False to boolean command address."""
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: True,
+        f"{TEST_DIMMER_TOPIC}:brightness": 128,
+    }
     dimmer = dimmer_factory()
     dimmer.hass = fake_hass
 
     await dimmer.async_turn_off()
 
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 0) in mock_coordinator.write_calls
-
-
-@pytest.mark.asyncio
-async def test_dimmer_light_turn_off_with_actuator(dimmer_factory, mock_coordinator, fake_hass):
-    """Test turn off also writes False to actuator address."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 128}
-    dimmer = dimmer_factory(actuator_command_address=TEST_DIMMER_ACTUATOR_ADDRESS)
-    dimmer.hass = fake_hass
-
-    await dimmer.async_turn_off()
-
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 0) in mock_coordinator.write_calls
-    assert ("write_batched", TEST_DIMMER_ACTUATOR_ADDRESS, False) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, False) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio
 async def test_dimmer_light_turn_on_with_scale(dimmer_factory, mock_coordinator, fake_hass):
     """Test turn on with brightness scaling."""
-    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": 0}
+    mock_coordinator.data = {
+        TEST_DIMMER_TOPIC: False,
+        f"{TEST_DIMMER_TOPIC}:brightness": 0,
+    }
     dimmer = dimmer_factory(brightness_scale=100)
     dimmer.hass = fake_hass
 
     await dimmer.async_turn_on(brightness=128)
 
+    # Boolean on
+    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
     # 128 * 100 / 255 = 50.2 → 50
-    assert ("write_batched", TEST_DIMMER_COMMAND_ADDRESS, 50) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS, 50) in mock_coordinator.write_calls
 
 
 def test_dimmer_light_extra_state_attributes(dimmer_factory, mock_coordinator):
     """Test extra state attributes include relevant info."""
-    dimmer = dimmer_factory(actuator_command_address=TEST_DIMMER_ACTUATOR_ADDRESS)
-
-    attrs = dimmer.extra_state_attributes
-    assert attrs["s7_state_address"] == TEST_DIMMER_STATE_ADDRESS.upper()
-    assert attrs["s7_command_address"] == TEST_DIMMER_COMMAND_ADDRESS.upper()
-    assert attrs["s7_actuator_command_address"] == TEST_DIMMER_ACTUATOR_ADDRESS.upper()
-    assert attrs["brightness_scale"] == 255
-
-
-def test_dimmer_light_extra_state_attributes_no_actuator(dimmer_factory, mock_coordinator):
-    """Test extra state attributes without actuator address."""
     dimmer = dimmer_factory()
 
     attrs = dimmer.extra_state_attributes
     assert attrs["s7_state_address"] == TEST_DIMMER_STATE_ADDRESS.upper()
     assert attrs["s7_command_address"] == TEST_DIMMER_COMMAND_ADDRESS.upper()
-    assert "s7_actuator_command_address" not in attrs
+    assert attrs["s7_brightness_state_address"] == TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS.upper()
+    assert attrs["s7_brightness_command_address"] == TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS.upper()
+    assert attrs["brightness_scale"] == 255
+
+
+def test_dimmer_light_extra_state_attributes_same_brightness_addr(dimmer_factory, mock_coordinator):
+    """Test extra state attributes when brightness command defaults to state."""
+    dimmer = dimmer_factory(
+        brightness_state_address="db1,b5",
+        brightness_command_address="db1,b5",
+    )
+
+    attrs = dimmer.extra_state_attributes
+    assert attrs["s7_brightness_state_address"] == "DB1,B5"
+    assert attrs["s7_brightness_command_address"] == "DB1,B5"
     assert attrs["brightness_scale"] == 255
 
 
@@ -699,16 +715,19 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
     config_entry.options = {
         CONF_LIGHTS: [
             {
-                CONF_STATE_ADDRESS: "db1,b0",
-                CONF_COMMAND_ADDRESS: "db1,b1",
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Dimmer 1",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
+                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
             },
             {
-                CONF_STATE_ADDRESS: "db1,b2",
-                CONF_COMMAND_ADDRESS: "db1,b3",
+                CONF_STATE_ADDRESS: "db1,x0.2",
+                CONF_COMMAND_ADDRESS: "db1,x0.3",
                 CONF_NAME: "Dimmer 2",
-                CONF_ACTUATOR_COMMAND_ADDRESS: "db1,x1.0",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b2",
+                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b3",
                 CONF_BRIGHTNESS_SCALE: 100,
             },
         ]
@@ -726,12 +745,13 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
     assert isinstance(entities[0], S7DimmerLight)
     assert isinstance(entities[1], S7DimmerLight)
 
-    # Check second dimmer has actuator and scale
-    assert entities[1]._actuator_command_address == "db1,x1.0"
+    # Check second dimmer has scale
     assert entities[1]._brightness_scale == 100
+    assert entities[1]._brightness_state_address == "db1,b2"
+    assert entities[1]._brightness_command_address == "db1,b3"
 
-    # Verify coordinator.add_item was called for each dimmer (brightness topic)
-    assert len(mock_coordinator.add_item_calls) == 2
+    # Verify coordinator.add_item was called for each (boolean + brightness = 4)
+    assert len(mock_coordinator.add_item_calls) == 4
 
     # Verify refresh was called
     assert mock_coordinator.refresh_count == 1
@@ -745,11 +765,17 @@ async def test_async_setup_entry_dimmer_skip_missing_state_address(
     config_entry = MagicMock()
     config_entry.options = {
         CONF_LIGHTS: [
-            {CONF_NAME: "No Address Dimmer", CONF_BRIGHTNESS_SCALE: 255},
             {
-                CONF_STATE_ADDRESS: "db1,b0",
-                CONF_COMMAND_ADDRESS: "db1,b1",
+                CONF_NAME: "No Address Dimmer",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
+                CONF_BRIGHTNESS_SCALE: 255,
+            },
+            {
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Valid Dimmer",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
+                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
             },
         ]
@@ -780,9 +806,11 @@ async def test_async_setup_entry_mixed_lights_and_dimmers(
                 CONF_NAME: "Regular Light",
             },
             {
-                CONF_STATE_ADDRESS: "db1,b0",
-                CONF_COMMAND_ADDRESS: "db1,b1",
+                CONF_STATE_ADDRESS: "db1,x0.2",
+                CONF_COMMAND_ADDRESS: "db1,x0.3",
                 CONF_NAME: "Dimmer Light",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
+                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
             },
         ],
@@ -810,8 +838,9 @@ async def test_async_setup_entry_dimmer_default_command_address(
     config_entry.options = {
         CONF_LIGHTS: [
             {
-                CONF_STATE_ADDRESS: "db1,b0",
+                CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Dimmer",
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_SCALE: 255,
             }
         ]
@@ -827,4 +856,6 @@ async def test_async_setup_entry_dimmer_default_command_address(
     entities = async_add_entities.call_args[0][0]
     dimmer = entities[0]
     # Command address should default to state address
-    assert dimmer._command_address == "db1,b0"
+    assert dimmer._command_address == "db1,x0.0"
+    # Brightness command should default to brightness state
+    assert dimmer._brightness_command_address == "db1,b0"

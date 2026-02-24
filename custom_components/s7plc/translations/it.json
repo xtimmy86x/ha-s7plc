@@ -341,60 +341,34 @@
       },
       "lights": {
         "title": "Aggiungi Luce",
-        "description": "Seleziona il tipo di luce da aggiungere.",
-        "menu_options": {
-          "lights_onoff": "Luce (ON/OFF)",
-          "lights_dimmer": "Luce dimmerata"
-        }
-      },
-      "lights_onoff": {
-        "title": "Aggiungi Luce (ON/OFF)",
-        "description": "Configura una luce con indirizzo di stato e indirizzo di comando (opzionale). Puoi abilitare la sincronizzazione dello stato.",
+        "description": "Configura una luce con un indirizzo di stato e comando booleano. Opzionalmente aggiungi il supporto dimmer impostando gli indirizzi e la scala di luminosità.",
         "data": {
-          "state_address": "Indirizzo stato",
-          "command_address": "Indirizzo comando",
+          "state_address": "Indirizzo stato (on/off)",
+          "command_address": "Indirizzo comando (on/off)",
           "name": "Nome",
           "area": "Area",
           "sync_state": "Sincronizza stato su indirizzo comando",
-          "scan_interval": "Intervallo di scansione (s)",
-          "add_another": "Aggiungi un altro dopo il salvataggio",
           "pulse_command": "Modalità comando a impulso",
-          "pulse_duration": "Durata impulso (s)"
-        },
-        "data_description": {
-          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
-          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
-          "name": "Nome descrittivo opzionale per la luce.",
-          "area": "Area di Home Assistant a cui assegnare questa entità.",
-          "sync_state": "Quando abilitato, l’indirizzo del comando viene aggiornato automaticamente con lo stato attuale",
-          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-          "add_another": "Rimani in questo step per aggiungere altre luci.",
-          "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
-          "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
-        }
-      },
-      "lights_dimmer": {
-        "title": "Aggiungi Luce Dimmerata",
-        "description": "Configura una luce dimmerabile con un indirizzo numerico per la lettura della luminosità, un indirizzo di comando per il controllo della luminosità e un indirizzo opzionale per il comando attuatore.",
-        "data": {
-          "state_address": "Indirizzo stato luminosità",
-          "command_address": "Indirizzo comando luminosità",
-          "actuator_command_address": "Indirizzo comando attuatore",
-          "name": "Nome",
-          "area": "Area",
+          "pulse_duration": "Durata impulso (s)",
+          "brightness_state_address": "Indirizzo stato luminosità",
+          "brightness_command_address": "Indirizzo comando luminosità",
           "brightness_scale": "Scala luminosità (valore massimo)",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "state_address": "Indirizzo numerico PLC per leggere il livello di luminosità corrente (es. DB1,B0 per BYTE 0-255, DB1,W0 per WORD).",
-          "command_address": "Indirizzo numerico PLC per scrivere il livello di luminosità.",
-          "actuator_command_address": "Indirizzo booleano PLC opzionale per il controllo ON/OFF dell'attuatore. Impostato automaticamente su ON quando la luminosità è >= 1%, OFF a 0.",
-          "name": "Nome descrittivo opzionale per la luce dimmerata.",
+          "state_address": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0).",
+          "command_address": "Indirizzo booleano del PLC per scrivere i comandi on/off (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per la luce.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
-          "brightness_scale": "Valore massimo che il PLC usa per la piena luminosità. Default: 255 (intervallo BYTE). Usa 100 per dimmer basati su percentuale.",
-          "scan_interval": "Frequenza di polling in secondi. Se omesso, viene usato l'intervallo predefinito del PLC.",
-          "add_another": "Rimani in questo step per aggiungere altre luci dimmerabili."
+          "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
+          "pulse_command": "Invia un impulso invece dei comandi on/off.",
+          "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off.",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità.",
+          "brightness_scale": "Valore massimo usato dal PLC per la luminosità piena (es. 255 per BYTE, 100 per percentuale). Obbligatorio quando sono impostati gli indirizzi luminosità.",
+          "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC.",
+          "add_another": "Resta su questo passaggio per aggiungere altre luci."
         }
       },
       "numbers": {
@@ -677,48 +651,32 @@
       },
       "edit_light": {
         "title": "Modifica Luce",
-        "description": "Aggiorna indirizzo di stato, indirizzo di comando, nome o opzione di sincronizzazione della luce.",
+        "description": "Aggiorna l'indirizzo di stato, l'indirizzo di comando, il nome, le opzioni dimmer o l'opzione di sincronizzazione per questa luce.",
         "data": {
-          "state_address": "Indirizzo stato",
-          "command_address": "Indirizzo comando",
+          "state_address": "Indirizzo stato (on/off)",
+          "command_address": "Indirizzo comando (on/off)",
           "name": "Nome",
           "area": "Area",
           "sync_state": "Sincronizza stato con il PLC",
-          "scan_interval": "Intervallo di scansione (s)",
           "pulse_command": "Modalità comando a impulso",
-          "pulse_duration": "Durata impulso (s)"
-        },
-        "data_description": {
-          "state_address": "Indirizzo PLC da cui leggere lo stato della luce.",
-          "command_address": "Indirizzo PLC su cui scrivere i comandi della luce (opzionale).",
-          "name": "Nome descrittivo opzionale per la luce.",
-          "area": "Area di Home Assistant a cui assegnare questa entità.",
-          "sync_state": "Se abilitato, lo stato viene periodicamente sincronizzato dal PLC.",
-          "scan_interval": "Frequenza di polling specifica per questa luce in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-          "pulse_command": "Invia un impulso invece di comandi on/off. Utile per relè bistabili o circuiti flip-flop.",
-          "pulse_duration": "Durata dell'impulso in secondi (0.1-60s, supporta decimali). Default: 0.5s."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Modifica Luce dimmerata",
-        "description": "Aggiorna gli indirizzi di luminosità, l'indirizzo attuatore, il nome o la scala di luminosità per questa luce dimmerata.",
-        "data": {
-          "state_address": "Indirizzo stato luminosità",
-          "command_address": "Indirizzo comando luminosità",
-          "actuator_command_address": "Indirizzo comando attuatore",
-          "name": "Nome",
-          "area": "Area",
+          "pulse_duration": "Durata impulso (s)",
+          "brightness_state_address": "Indirizzo stato luminosità",
+          "brightness_command_address": "Indirizzo comando luminosità",
           "brightness_scale": "Scala luminosità (valore massimo)",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "state_address": "Indirizzo PLC numerico per leggere il livello di luminosità attuale.",
-          "command_address": "Indirizzo PLC numerico per scrivere il livello di luminosità.",
-          "actuator_command_address": "Indirizzo PLC booleano opzionale per il controllo ON/OFF dell'attuatore. Impostato su ON quando la luminosità è >= 1%, OFF quando è 0.",
-          "name": "Nome descrittivo opzionale per la luce dimmerata.",
+          "state_address": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0).",
+          "command_address": "Indirizzo booleano del PLC per scrivere i comandi on/off (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "name": "Nome descrittivo opzionale per la luce.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
-          "brightness_scale": "Valore massimo utilizzato dal PLC per la luminosità piena. Default: 255.",
-          "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Se omesso, viene usato l'intervallo predefinito del PLC."
+          "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
+          "pulse_command": "Invia un impulso invece dei comandi on/off.",
+          "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità. Lasciare vuoto per solo on/off.",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità. Se omesso, viene usato l'indirizzo stato luminosità.",
+          "brightness_scale": "Valore massimo usato dal PLC per la luminosità piena. Obbligatorio quando sono impostati gli indirizzi luminosità.",
+          "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC."
         }
       },
       "edit_number": {
@@ -880,7 +838,9 @@
       "invalid_json": "Payload JSON non valido.",
       "invalid_selection": "Seleziona un tipo di elemento valido.",
       "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
-      "text_requires_string_type": "Le entità di testo richiedono indirizzi di tipo STRING o WSTRING."
+      "text_requires_string_type": "Le entità testo richiedono indirizzi di tipo STRING o WSTRING.",
+      "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente.",
+      "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato."
     }
   },
   "issues": {

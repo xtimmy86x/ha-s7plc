@@ -341,60 +341,34 @@
       },
       "lights": {
         "title": "Add Light",
-        "description": "Select the type of light to add.",
-        "menu_options": {
-          "lights_onoff": "Light (ON/OFF)",
-          "lights_dimmer": "Dimmer Light"
-        }
-      },
-      "lights_onoff": {
-        "title": "Add Light (ON/OFF)",
-        "description": "Configure a light with a state address and an optional command address. You can enable state synchronization.",
+        "description": "Configure a light with a boolean state/command address. Optionally add dimmer support by setting brightness addresses and scale.",
         "data": {
-          "state_address": "State address",
-          "command_address": "Command address",
+          "state_address": "State address (on/off)",
+          "command_address": "Command address (on/off)",
           "name": "Name",
           "area": "Area",
           "sync_state": "Sync state to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
-          "scan_interval": "Scan interval (s)",
-          "add_another": "Add another after saving"
-        },
-        "data_description": {
-          "state_address": "PLC address to read the current light state.",
-          "command_address": "PLC address to write light commands (optional).",
-          "name": "Optional friendly name for the light.",
-          "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the command address is automatically updated with the current state.",
-          "pulse_command": "Send pulse instead of on/off commands. Useful for bistable relays or flip-flop circuits.",
-          "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
-          "add_another": "Stay on this step to add more lights."
-        }
-      },
-      "lights_dimmer": {
-        "title": "Add Dimmer Light",
-        "description": "Configure a dimmable light with a numeric state address for brightness readback, a command address for brightness control, and an optional actuator command address.",
-        "data": {
-          "state_address": "Brightness state address",
-          "command_address": "Brightness command address",
-          "actuator_command_address": "Actuator command address",
-          "name": "Name",
-          "area": "Area",
+          "brightness_state_address": "Brightness state address",
+          "brightness_command_address": "Brightness command address",
           "brightness_scale": "Brightness scale (max value)",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "state_address": "PLC numeric address to read the current brightness level (e.g., DB1,B0 for BYTE 0-255, DB1,W0 for WORD).",
-          "command_address": "PLC numeric address to write the brightness level.",
-          "actuator_command_address": "Optional PLC boolean address for actuator ON/OFF control. Automatically set to ON when brightness >= 1%, OFF when 0.",
-          "name": "Optional friendly name for the dimmer light.",
+          "state_address": "PLC boolean address to read the on/off state (e.g., DB1,X0.0).",
+          "command_address": "PLC boolean address to write on/off commands (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the light.",
           "area": "Home Assistant area to assign this entity to.",
-          "brightness_scale": "Maximum value the PLC uses for full brightness. Default: 255 (BYTE range). Use 100 for percentage-based dimmers.",
+          "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
+          "pulse_command": "Send pulse instead of on/off commands.",
+          "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
+          "brightness_state_address": "PLC numeric address to read the brightness level (e.g., DB1,B2). Leave blank for on/off only.",
+          "brightness_command_address": "PLC numeric address to write brightness commands (optional). If omitted, the brightness state address is used.",
+          "brightness_scale": "Maximum value the PLC uses for full brightness (e.g., 255 for BYTE, 100 for percentage). Required when brightness addresses are set.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
-          "add_another": "Stay on this step to add more dimmer lights."
+          "add_another": "Stay on this step to add more lights."
         }
       },
       "numbers": {
@@ -755,47 +729,31 @@
       },
       "edit_light": {
         "title": "Edit Light",
-        "description": "Update the state address, command address, name, or sync option for this light.",
+        "description": "Update the state address, command address, name, dimmer options, or sync option for this light.",
         "data": {
-          "state_address": "State address",
-          "command_address": "Command address",
+          "state_address": "State address (on/off)",
+          "command_address": "Command address (on/off)",
           "name": "Name",
           "area": "Area",
           "sync_state": "Sync state with PLC",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
-          "scan_interval": "Scan interval (s)"
-        },
-        "data_description": {
-          "state_address": "PLC address to read the current light state.",
-          "command_address": "PLC address to write light commands (optional).",
-          "name": "Optional friendly name for the light.",
-          "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
-          "pulse_command": "Send pulse instead of on/off commands. Useful for bistable relays or flip-flop circuits.",
-          "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Edit Dimmer Light",
-        "description": "Update the brightness addresses, actuator address, name, or brightness scale for this dimmer light.",
-        "data": {
-          "state_address": "Brightness state address",
-          "command_address": "Brightness command address",
-          "actuator_command_address": "Actuator command address",
-          "name": "Name",
-          "area": "Area",
+          "brightness_state_address": "Brightness state address",
+          "brightness_command_address": "Brightness command address",
           "brightness_scale": "Brightness scale (max value)",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "state_address": "PLC numeric address to read the current brightness level.",
-          "command_address": "PLC numeric address to write the brightness level.",
-          "actuator_command_address": "Optional PLC boolean address for actuator ON/OFF control. Set to ON when brightness >= 1%, OFF when 0.",
-          "name": "Optional friendly name for the dimmer light.",
+          "state_address": "PLC boolean address to read the on/off state (e.g., DB1,X0.0).",
+          "command_address": "PLC boolean address to write on/off commands (optional). If omitted, the state address is used.",
+          "name": "Optional friendly name for the light.",
           "area": "Home Assistant area to assign this entity to.",
-          "brightness_scale": "Maximum value the PLC uses for full brightness. Default: 255.",
+          "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
+          "pulse_command": "Send pulse instead of on/off commands.",
+          "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
+          "brightness_state_address": "PLC numeric address to read the brightness level. Leave blank for on/off only.",
+          "brightness_command_address": "PLC numeric address to write brightness commands. If omitted, the brightness state address is used.",
+          "brightness_scale": "Maximum value the PLC uses for full brightness. Required when brightness addresses are set.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -880,7 +838,9 @@
       "invalid_json": "Invalid JSON payload.",
       "invalid_selection": "Select a valid item type.",
       "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
-      "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses."
+      "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses.",
+      "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time.",
+      "sync_same_address": "Sync state requires a command address different from the state address."
     }
   },
   "issues": {

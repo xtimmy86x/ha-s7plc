@@ -203,7 +203,7 @@ def test_get_expected_unique_ids_all_entity_types(entry_with_orphans):
     assert "test_device:cover:opened:DB1,X1.2" in expected
     assert "test_device:button:DB1,X2.0" in expected
     assert "test_device:light:DB1,X2.1" in expected
-    assert "test_device:dimmer_light:DB1,B10" in expected
+    assert "test_device:light:DB1,B10" in expected
     assert "test_device:number:DB1,INT10" in expected
     assert "test_device:text:DB1,STRING0" in expected
     assert "test_device:entity_sync:DB1,REAL100" in expected

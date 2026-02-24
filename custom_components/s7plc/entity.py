@@ -136,9 +136,13 @@ class S7BoolSyncEntity(S7BaseEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
-        self._sync_state = sync_state
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
+        # Pulse and sync are mutually exclusive; pulse takes priority.
+        # Sync requires different state/command addresses to be useful.
+        self._sync_state = (
+            sync_state and not pulse_command and state_address != command_address
+        )
         self._last_state: bool | None = None
         self._pending_command: bool | None = None
 
@@ -165,6 +169,8 @@ class S7BoolSyncEntity(S7BaseEntity):
                     "pulse_duration": self._pulse_duration,
                 }
             )
+        if self._sync_state:
+            attrs["sync_state"] = True
         return attrs
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -176,7 +182,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._pulse_command:
-            await self._async_pulse()
+            # Control current state is off, so send pulse to turn on
+            if not self.is_on:
+                await self._async_pulse()
         else:
             await self._ensure_connected()
             self._pending_command = True
@@ -196,7 +204,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._pulse_command:
-            await self._async_pulse()
+            # Control current state is on, so send pulse to turn off
+            if self.is_on:
+                await self._async_pulse()
         else:
             await self._ensure_connected()
             self._pending_command = False

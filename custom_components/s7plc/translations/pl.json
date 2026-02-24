@@ -310,8 +310,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
+          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
@@ -341,14 +341,6 @@
       },
       "lights": {
         "title": "Dodaj światło",
-        "description": "Wybierz typ światła.",
-        "menu_options": {
-          "lights_onoff": "Standardowe (Zał. / Wyl.)",
-          "lights_dimmer": "Zaawansowane z regulacą jasności"
-        }
-      },
-      "lights_onoff": {
-        "title": "Dodaj standardowe światło (Zał. / Wyl.)",
         "description": "Utwórz światło z adresem odczytu stanu i opcjonalnym adresem zapisu. Można włączyć synchronizację stanu.",
         "data": {
           "state_address": "Adres odczytu",
@@ -358,40 +350,22 @@
           "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
-          "scan_interval": "Interwał skanowania (s)",
-          "add_another": "Dodaj kolejną encje po zapisaniu"
-        },
-        "data_description": {
-          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
-          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
-          "name": "Opcjonalna własna nazwa encji.",
-          "area": "Obszar do którego ma zostać przypisana ta encja.",
-          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
-          "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
-          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
-          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
-          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
-        }
-      },
-      "lights_dimmer": {
-        "title": "Dodaj zaawansowane światło z regulacą jasności",
-        "description": "Skonfiguruj światło ściemniane z numerycznym adresem stanu jasności, adresem komendy jasności i opcjonalnym adresem komendy aktuatora.",
-        "data": {
-          "state_address": "Adres odczytu poziomu jasności",
-          "command_address": "Adres zapisu poziomu jasności",
-          "actuator_command_address": "Adres zapisu sterowania regulatorem",
-          "name": "Nazwa",
-          "area": "Obszar",
+          "brightness_state_address": "Adres odczytu jasności",
+          "brightness_command_address": "Adres zapisu jasności",
           "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
-          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres do sterowania regulatorem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
+          "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu stanu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
+          "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
+          "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
+          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.).",
+          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności.",
           "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
@@ -472,8 +446,8 @@
           "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
           "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
-          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
-          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
+          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "min_temp": "Limit dolny temperatury zadanej (°C).",
           "max_temp": "Limit górny temperatury zadanej (°C).",
           "temp_step": "Krok regulacji temperatury zadanej (°C).",
@@ -503,13 +477,13 @@
           "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu (0 = Wył., 1 = Grzej, 2 = Schładzaj, 3 = Auto).",
-          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schłasdzanie). Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schłasdzanie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "min_temp": "Limit dolny temperatury zadanej (°C).",
           "max_temp": "Limit górny temperatury zadanej (°C).",
           "temp_step": "Krok regulacji temperatury zadanej(°C).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
-          "scan_interval": "Nadpisanie interwału odpytywania dla tych tagów w sekundach. Pozostaw puste, aby odziedziczyć domyślny interwał PLC.",
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
       },
@@ -526,7 +500,7 @@
         },
         "data_description": {
           "address": "Adres do odczytu wartości tekstowej (STRING / WSTRING, DB1,S0.254, DB2,W0.128).",
-          "command_address": "Opcjonalny sdres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres stanu.",
+          "command_address": "Opcjonalny sdres do zapisu wartości tekstowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "pattern": "Opcjonalny wzorzec regex do walidacji tekstu.",
@@ -553,8 +527,8 @@
           "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
           "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
-          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
-          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
+          "cooling_action_address": "Opcjonalny adres do odczytu stanu chłodzenia. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "min_temp": "Limit dolny temperatury zadanej (°C).",
           "max_temp": "Limit górny temperatury zadanej (°C).",
           "temp_step": "Krok regulacji temperatury zadanej (°C).",
@@ -582,7 +556,7 @@
           "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu (0 = Wył., 1 = Grzej, 2 = Schładzaj, 3 = Auto).",
-          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schładzanie). Jeśli brak, stan ustalany jest na podstawie temperatury aktualnej i zadanej.",
+          "hvac_status_address": "Opcjonalny adres do odczytu aktualnego stanu termostatu (0 = Wył., 1 = Grzanie, 2 = Schładzanie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "min_temp": "Limit dolny temperatury zadanej (°C).",
           "max_temp": "Limit górny temperatury zadanej (°C).",
           "temp_step": "Krok regulacji temperatury zadanej(°C).",
@@ -727,8 +701,8 @@
           "invert_position": "Odwróć położenie"
         },
         "data_description": {
-          "position_state_address": "Adres do odczytu bieżącego położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres stanu.",
+          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
@@ -764,37 +738,21 @@
           "sync_state": "Synchronizuj adres zapisu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Czas trwania impulsu (s)",
+          "brightness_state_address": "Adres odczytu jasności",
+          "brightness_command_address": "Adres zapisu jasności",
+          "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "state_address": "Adres do odczytu stanu. (np. Q0.0, DB1,X0.1)",
-          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu.",
+          "command_address": "Opcjonalny adres do zapisu stanu. Jeśli brak, użyty zostanie adres odczytu stanu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
-          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
-        }
-      },
-      "edit_dimmer_light": {
-        "title": "Edytuj zaawansowane światło z regulacją jasności",
-        "description": "Zaktualizuj parametry dla tej encji.",
-        "data": {
-          "state_address": "Adres odczytu poziomu jasności",
-          "command_address": "Adres zapisu poziomu jasności",
-          "actuator_command_address": "Adres zapisu sterowania regulatorem",
-          "name": "Nazwa",
-          "area": "Obszar",
-          "brightness_scale": "Maksymalna wartość jasności",
-          "scan_interval": "Interwał skanowania (s)"
-        },
-        "data_description": {
-          "state_address": "Adres do odczytu bieżącego poziomu jasności (np. DB1,B0 dla BYTE 0 - 255, DB1,W0 dla WORD).",
-          "command_address": "Numeryczny adres PLC do zapisu poziomu jasności.",
-          "actuator_command_address": "Opcjonalny adres do sterowania regulatorem (Zał. / Wył.). Jasność zadana >= 1% wysyła (Zał.), 0% wysyła (Wył.).",
-          "name": "Opcjonalna własna nazwa encji.",
-          "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.).",
+          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności.",
           "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
@@ -880,7 +838,9 @@
       "invalid_json": "Nieprawidłowy format JSON.",
       "invalid_selection": "Wybierz prawidłowy typ encji.",
       "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL / LREAL).",
-      "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING)."
+      "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING).",
+      "sync_pulse_conflict": "Synchronizacja stanu i tryb impulsu nie mogą być aktywne jednocześnie.",
+      "sync_same_address": "Synchronizacja stanu wymaga adresu zapisu innego niż adres odczytu."
     }
   },
   "issues": {
