@@ -495,6 +495,7 @@ def test_entity_sync_numeric_initialization(entity_sync_factory):
     assert entity_sync._last_written_value is None
     assert entity_sync._write_count == 0
     assert entity_sync._error_count == 0
+    assert entity_sync._attr_state_class == SensorStateClass.MEASUREMENT
 
 
 def test_entity_sync_binary_initialization(entity_sync_factory):
@@ -505,6 +506,7 @@ def test_entity_sync_binary_initialization(entity_sync_factory):
     assert entity_sync._source_entity == "binary_sensor.test"
     assert entity_sync._data_type == DataType.BIT
     assert entity_sync._is_binary is True
+    assert not hasattr(entity_sync, "_attr_state_class")
 
 
 def test_entity_sync_numeric_native_value(entity_sync_factory):
