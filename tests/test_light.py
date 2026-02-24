@@ -15,6 +15,8 @@ from custom_components.s7plc.const import (
     CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
+    CONF_PULSE_COMMAND,
+    CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
@@ -53,6 +55,8 @@ def light_factory(mock_coordinator, device_info):
         topic: str = "light:db1,x0.0",
         unique_id: str = "test_device:light:db1,x0.0",
         sync_state: bool = False,
+        pulse_command: bool = False,
+        pulse_duration: float = 0.5,
     ):
         if command_address is None:
             command_address = state_address
@@ -66,6 +70,8 @@ def light_factory(mock_coordinator, device_info):
             state_address=state_address,
             command_address=command_address,
             sync_state=sync_state,
+            pulse_command=pulse_command,
+            pulse_duration=pulse_duration,
         )
     return _create_light
 
@@ -859,3 +865,111 @@ async def test_async_setup_entry_dimmer_default_command_address(
     assert dimmer._command_address == "db1,x0.0"
     # Brightness command should default to brightness state
     assert dimmer._brightness_command_address == "db1,b0"
+
+
+# ============================================================================
+# Pulse command tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_light_pulse_turn_on(light_factory, mock_coordinator, fake_hass):
+    """Pulse turn_on: light is off → pulse fires (True, sleep, False)."""
+    mock_coordinator.data = {TEST_TOPIC: False}
+    light = light_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    light.hass = fake_hass
+
+    await light.async_turn_on()
+
+    assert ("write_batched", TEST_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, False) in mock_coordinator.write_calls
+    idx_true = mock_coordinator.write_calls.index(("write_batched", TEST_COMMAND_ADDRESS, True))
+    idx_false = mock_coordinator.write_calls.index(("write_batched", TEST_COMMAND_ADDRESS, False))
+    assert idx_true < idx_false
+
+
+@pytest.mark.asyncio
+async def test_light_pulse_turn_off(light_factory, mock_coordinator, fake_hass):
+    """Pulse turn_off: light is on → pulse fires (True, sleep, False)."""
+    mock_coordinator.data = {TEST_TOPIC: True}
+    light = light_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    light.hass = fake_hass
+
+    await light.async_turn_off()
+
+    assert ("write_batched", TEST_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, False) in mock_coordinator.write_calls
+
+
+@pytest.mark.asyncio
+async def test_light_pulse_turn_on_already_on_noop(light_factory, mock_coordinator, fake_hass):
+    """Pulse turn_on when already on → no pulse sent."""
+    mock_coordinator.data = {TEST_TOPIC: True}
+    light = light_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    light.hass = fake_hass
+
+    await light.async_turn_on()
+
+    assert len(mock_coordinator.write_calls) == 0
+
+
+@pytest.mark.asyncio
+async def test_light_pulse_turn_off_already_off_noop(light_factory, mock_coordinator, fake_hass):
+    """Pulse turn_off when already off → no pulse sent."""
+    mock_coordinator.data = {TEST_TOPIC: False}
+    light = light_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    light.hass = fake_hass
+
+    await light.async_turn_off()
+
+    assert len(mock_coordinator.write_calls) == 0
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_with_pulse(fake_hass, mock_coordinator, device_info):
+    """Test setup entry passes pulse_command and pulse_duration to light entity."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_LIGHTS: [
+            {
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_NAME: "Pulse Light",
+                CONF_PULSE_COMMAND: True,
+                CONF_PULSE_DURATION: 1.5,
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.light.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    light = entities[0]
+
+    assert light._pulse_command is True
+    assert light._pulse_duration == 1.5

@@ -1280,12 +1280,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         item[CONF_PULSE_COMMAND] = pulse_command
 
         # Add pulse duration only if pulse command is enabled
-        if item[CONF_PULSE_COMMAND]:
-            pulse_dur = self._sanitize_pulse_duration(
+        if pulse_command:
+            pulse_duration = self._sanitize_pulse_duration(
                 user_input.get(CONF_PULSE_DURATION)
             )
-            if pulse_dur is not None:
-                item[CONF_PULSE_DURATION] = pulse_dur
+
+            if pulse_duration is not None:
+                item[CONF_PULSE_DURATION] = pulse_duration
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -1498,13 +1499,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if sync_state and (not command_address or command_address == state_address):
             return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
+        item[CONF_PULSE_COMMAND] = pulse_command
 
-        # Add pulse command if enabled
+        # Add pulse duration only if pulse command is enabled
         if pulse_command:
-            item[CONF_PULSE_COMMAND] = True
-            raw_pulse = user_input.get(CONF_PULSE_DURATION)
-            if raw_pulse is not None:
-                pulse_duration = self._sanitize_pulse_duration(raw_pulse)
+            pulse_duration = self._sanitize_pulse_duration(
+                user_input.get(CONF_PULSE_DURATION)
+            )
+
+            if pulse_duration is not None:
                 item[CONF_PULSE_DURATION] = pulse_duration
 
         # Brightness / dimmer fields (optional)

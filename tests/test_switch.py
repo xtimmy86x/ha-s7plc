@@ -10,6 +10,8 @@ from homeassistant.const import CONF_NAME
 from custom_components.s7plc.switch import S7Switch, async_setup_entry
 from custom_components.s7plc.const import (
     CONF_COMMAND_ADDRESS,
+    CONF_PULSE_COMMAND,
+    CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
@@ -400,3 +402,113 @@ async def test_async_setup_entry_sync_state_default_false(fake_hass, mock_coordi
     switch = entities[0]
     
     assert switch._sync_state is False
+
+
+# ============================================================================
+# Pulse command tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_switch_pulse_turn_on(switch_factory, mock_coordinator, fake_hass):
+    """Pulse turn_on: entity is off → pulse fires (True, sleep, False)."""
+    mock_coordinator.data = {TEST_TOPIC: False}
+    switch = switch_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    switch.hass = fake_hass
+
+    await switch.async_turn_on()
+
+    # Pulse writes True then False to the command address
+    assert ("write_batched", TEST_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, False) in mock_coordinator.write_calls
+    # True must come before False
+    idx_true = mock_coordinator.write_calls.index(("write_batched", TEST_COMMAND_ADDRESS, True))
+    idx_false = mock_coordinator.write_calls.index(("write_batched", TEST_COMMAND_ADDRESS, False))
+    assert idx_true < idx_false
+
+
+@pytest.mark.asyncio
+async def test_switch_pulse_turn_off(switch_factory, mock_coordinator, fake_hass):
+    """Pulse turn_off: entity is on → pulse fires (True, sleep, False)."""
+    mock_coordinator.data = {TEST_TOPIC: True}
+    switch = switch_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    switch.hass = fake_hass
+
+    await switch.async_turn_off()
+
+    assert ("write_batched", TEST_COMMAND_ADDRESS, True) in mock_coordinator.write_calls
+    assert ("write_batched", TEST_COMMAND_ADDRESS, False) in mock_coordinator.write_calls
+
+
+@pytest.mark.asyncio
+async def test_switch_pulse_turn_on_already_on_noop(switch_factory, mock_coordinator, fake_hass):
+    """Pulse turn_on when already on → no pulse sent."""
+    mock_coordinator.data = {TEST_TOPIC: True}
+    switch = switch_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    switch.hass = fake_hass
+
+    await switch.async_turn_on()
+
+    assert len(mock_coordinator.write_calls) == 0
+
+
+@pytest.mark.asyncio
+async def test_switch_pulse_turn_off_already_off_noop(switch_factory, mock_coordinator, fake_hass):
+    """Pulse turn_off when already off → no pulse sent."""
+    mock_coordinator.data = {TEST_TOPIC: False}
+    switch = switch_factory(
+        state_address=TEST_STATE_ADDRESS,
+        command_address=TEST_COMMAND_ADDRESS,
+        pulse_command=True,
+        pulse_duration=0.3,
+    )
+    switch.hass = fake_hass
+
+    await switch.async_turn_off()
+
+    assert len(mock_coordinator.write_calls) == 0
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_with_pulse(fake_hass, mock_coordinator, device_info):
+    """Test setup entry passes pulse_command and pulse_duration to entity."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_SWITCHES: [
+            {
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_NAME: "Pulse Switch",
+                CONF_PULSE_COMMAND: True,
+                CONF_PULSE_DURATION: 1.5,
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.switch.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    switch = entities[0]
+
+    assert switch._pulse_command is True
+    assert switch._pulse_duration == 1.5
