@@ -2073,7 +2073,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_NUMBERS: (CONF_ADDRESS,),
             CONF_TEXTS: (CONF_ADDRESS,),
             CONF_CLIMATES: (
-                CONF_CURRENT_TEMPERATURE_ADDRESS,
                 CONF_TARGET_TEMPERATURE_ADDRESS,
                 CONF_HEATING_OUTPUT_ADDRESS,
                 CONF_COOLING_OUTPUT_ADDRESS,
