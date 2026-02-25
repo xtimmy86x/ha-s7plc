@@ -1223,6 +1223,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 )
             payload = float(value)
 
+        elif tag.data_type == DataType.LREAL:
+            if not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"LREAL address requires numeric value, "
+                    f"got {type(value).__name__}"
+                )
+            payload = float(value)
+
         elif tag.data_type in (
             DataType.BYTE,
             DataType.WORD,
@@ -1303,6 +1311,14 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     if not isinstance(value, (int, float)):
                         raise ValueError(
                             f"REAL address {address} requires numeric value, "
+                            f"got {type(value).__name__}"
+                        )
+                    payload = float(value)
+
+                elif tag.data_type == DataType.LREAL:
+                    if not isinstance(value, (int, float)):
+                        raise ValueError(
+                            f"LREAL address {address} requires numeric value, "
                             f"got {type(value).__name__}"
                         )
                     payload = float(value)
