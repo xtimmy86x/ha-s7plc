@@ -147,9 +147,7 @@ async def async_setup_entry(
         address = item.get(CONF_ADDRESS)
         if not address:
             continue
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), address
-        )
+        name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"sensor:{address}"
         unique_id = f"{device_id}:{topic}"
@@ -195,9 +193,7 @@ async def async_setup_entry(
             )
             continue
 
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), f"Entity Sync {address}"
-        )
+        name = item.get(CONF_NAME) or default_entity_name(f"Entity Sync {address}")
         area = item.get(CONF_AREA)
         unique_id = f"{device_id}:entity_sync:{address}"
 

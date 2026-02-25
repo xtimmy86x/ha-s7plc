@@ -74,7 +74,7 @@ async def async_setup_entry(
         unique_id = f"{device_id}:{topic}"
         await coordinator.add_item(topic, address, scan_interval, None)
 
-        entity_name = default_entity_name(name, address)
+        entity_name = default_entity_name(address)
 
         entities.append(
             S7Text(

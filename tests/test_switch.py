@@ -293,7 +293,7 @@ async def test_async_setup_entry_default_name(fake_hass, mock_coordinator, devic
             
             await async_setup_entry(fake_hass, config_entry, async_add_entities)
             
-            mock_default_name.assert_called_once_with("Test PLC", "db1,x0.0")
+            mock_default_name.assert_called_once_with("db1,x0.0")
 
 
 @pytest.mark.asyncio

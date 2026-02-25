@@ -45,19 +45,12 @@ def dummy_entry():
 
 
 def test_default_entity_name_humanizes_address():
-    # The first parameter (plc_name) is kept for backward compatibility but ignored
-    # The function only returns the humanized address (uppercase)
-    assert default_entity_name("PLC", "db1,w0") == "DB1 W0"
-    assert default_entity_name("PLC", "db1,x0.0") == "DB1 X0.0"
-    assert default_entity_name("PLC", "db1, x0.0") == "DB1 X0.0"
-    
-    # Verify that plc_name parameter is actually ignored
-    assert default_entity_name(None, "db1,w0") == "DB1 W0"
-    assert default_entity_name("Different Name", "db1,w0") == "DB1 W0"
-    
-    # Without address, returns None regardless of plc_name
-    assert default_entity_name("PLC", None) is None
-    assert default_entity_name(None, None) is None
+    assert default_entity_name("db1,w0") == "DB1 W0"
+    assert default_entity_name("db1,x0.0") == "DB1 X0.0"
+    assert default_entity_name("db1, x0.0") == "DB1 X0.0"
+
+    # Without address, returns None
+    assert default_entity_name(None) is None
 
 
 # ============================================================================

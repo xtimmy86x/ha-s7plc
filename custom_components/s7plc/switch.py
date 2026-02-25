@@ -50,9 +50,7 @@ async def async_setup_entry(
             else:
                 if pulse_duration < 0.1 or pulse_duration > 60:
                     pulse_duration = DEFAULT_PULSE_DURATION
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), state_address
-        )
+        name = item.get(CONF_NAME) or default_entity_name(state_address)
         area = item.get(CONF_AREA)
         topic = f"switch:{state_address}"
         unique_id = f"{device_id}:{topic}"

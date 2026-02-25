@@ -69,13 +69,12 @@ def get_coordinator_and_device_info(
     return coordinator, device_info, device_id
 
 
-def default_entity_name(plc_name: str | None, address: str | None) -> str | None:
+def default_entity_name(address: str | None) -> str | None:
     """Return a default entity name using a humanized address.
 
-    Note: With has_entity_name=True, Home Assistant automatically prepends
+    With has_entity_name=True, Home Assistant automatically prepends
     the device name to entity names. To avoid duplication (e.g., "My PLC My PLC DB1"),
-    we only return the humanized address part. The plc_name parameter is kept for
-    backward compatibility but is no longer used.
+    we only return the humanized address part.
     """
 
     if address:

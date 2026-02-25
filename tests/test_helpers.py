@@ -12,26 +12,22 @@ from custom_components.s7plc.const import DOMAIN
 
 
 def test_default_entity_name_basic():
-    """Test default_entity_name returns humanized uppercase address (plc_name is ignored)."""
-    # First parameter is ignored (kept for backward compatibility)
-    assert default_entity_name("MyPLC", "DB1,REAL0") == "DB1 REAL0"
-    assert default_entity_name(None, "DB1,REAL0") == "DB1 REAL0"
-    assert default_entity_name("Different", "DB1,REAL0") == "DB1 REAL0"
+    """Test default_entity_name returns humanized uppercase address."""
+    assert default_entity_name("DB1,REAL0") == "DB1 REAL0"
 
 
 def test_default_entity_name_normalization():
     """Test default_entity_name normalizes address: uppercase, multiple spaces, special chars."""
-    assert default_entity_name("PLC", "db1,real0") == "DB1 REAL0"
-    assert default_entity_name("PLC", "DB1,,REAL0") == "DB1 REAL0"
-    assert default_entity_name("PLC", "  DB1,REAL0  ") == "DB1 REAL0"
-    assert default_entity_name("PLC", "DB1,REAL0.5") == "DB1 REAL0.5"
+    assert default_entity_name("db1,real0") == "DB1 REAL0"
+    assert default_entity_name("DB1,,REAL0") == "DB1 REAL0"
+    assert default_entity_name("  DB1,REAL0  ") == "DB1 REAL0"
+    assert default_entity_name("DB1,REAL0.5") == "DB1 REAL0.5"
 
 
 def test_default_entity_name_none_cases():
     """Test default_entity_name returns None when address is missing/empty."""
-    assert default_entity_name("MyPLC", None) is None
-    assert default_entity_name(None, None) is None
-    assert default_entity_name("", "") is None
+    assert default_entity_name(None) is None
+    assert default_entity_name("") is None
 
 
 def test_get_coordinator_and_device_info():

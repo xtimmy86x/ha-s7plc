@@ -35,9 +35,7 @@ async def async_setup_entry(
         address = item.get(CONF_ADDRESS)
         if not address:
             continue
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), address
-        )
+        name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         unique_id = f"{device_id}:button:{address}"
         raw_pulse = item.get(CONF_BUTTON_PULSE)

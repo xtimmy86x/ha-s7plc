@@ -62,9 +62,7 @@ async def async_setup_entry(
             CONF_BRIGHTNESS_COMMAND_ADDRESS, brightness_state_address
         )
 
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), state_address
-        )
+        name = item.get(CONF_NAME) or default_entity_name(state_address)
         area = item.get(CONF_AREA)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 

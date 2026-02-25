@@ -66,9 +66,7 @@ async def async_setup_entry(
             continue
 
         control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), current_temp_address
-        )
+        name = item.get(CONF_NAME) or default_entity_name(current_temp_address)
         area = item.get(CONF_AREA)
 
         # Common configuration

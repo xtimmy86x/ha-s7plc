@@ -60,9 +60,7 @@ async def async_setup_entry(
             position_topic = f"cover:position:{position_state}"
             await coord.add_item(position_topic, position_state, scan_interval)
 
-            name = item.get(CONF_NAME) or default_entity_name(
-                device_info.get("name"), position_state
-            )
+            name = item.get(CONF_NAME) or default_entity_name(position_state)
             unique_id = f"{device_id}:{position_topic}"
             device_class = item.get(CONF_DEVICE_CLASS)
 
@@ -110,9 +108,7 @@ async def async_setup_entry(
             closed_topic = f"cover:closed:{closed_state}"
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
-        name = item.get(CONF_NAME) or default_entity_name(
-            device_info.get("name"), open_command
-        )
+        name = item.get(CONF_NAME) or default_entity_name(open_command)
         unique_topic = opened_topic or closed_topic or f"cover:command:{open_command}"
         unique_id = f"{device_id}:{unique_topic}"
         device_class = item.get(CONF_DEVICE_CLASS)
