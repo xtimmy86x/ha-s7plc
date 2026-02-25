@@ -1198,40 +1198,53 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             ValueError: If value type doesn't match address data type
         """
         tag = self._get_or_parse_tag(address)
+        payload = self._prepare_payload(tag, value, address)
+        return self._write_with_retry(address, tag, payload)
 
-        # Determine payload based on data type
+    def _prepare_payload(
+        self,
+        tag: S7Tag,
+        value: bool | int | float | str,
+        address: str = "",
+    ) -> bool | int | float | str:
+        """Validate and convert a Python value to the appropriate PLC payload.
+
+        Args:
+            tag: Parsed S7Tag describing the target data type.
+            value: Value to convert.
+            address: PLC address (used only in error messages).
+
+        Returns:
+            Converted payload ready for the pyS7 write call.
+
+        Raises:
+            ValueError: If value type doesn't match the tag data type.
+        """
         if tag.data_type == DataType.BIT:
             if not isinstance(value, bool):
                 raise ValueError(
-                    f"BIT address requires bool value, got {type(value).__name__}"
+                    f"BIT address {address} requires bool value, "
+                    f"got {type(value).__name__}"
                 )
-            payload = bool(value)
+            return bool(value)
 
-        elif tag.data_type in (DataType.STRING, DataType.WSTRING):
+        if tag.data_type in (DataType.STRING, DataType.WSTRING):
             if not isinstance(value, str):
                 raise ValueError(
-                    f"STRING/WSTRING address requires str value, "
+                    f"STRING/WSTRING address {address} requires str value, "
                     f"got {type(value).__name__}"
                 )
-            payload = str(value)
+            return str(value)
 
-        elif tag.data_type == DataType.REAL:
+        if tag.data_type in (DataType.REAL, DataType.LREAL):
             if not isinstance(value, (int, float)):
                 raise ValueError(
-                    f"REAL address requires numeric value, "
+                    f"{tag.data_type.name} address {address} requires numeric value, "
                     f"got {type(value).__name__}"
                 )
-            payload = float(value)
+            return float(value)
 
-        elif tag.data_type == DataType.LREAL:
-            if not isinstance(value, (int, float)):
-                raise ValueError(
-                    f"LREAL address requires numeric value, "
-                    f"got {type(value).__name__}"
-                )
-            payload = float(value)
-
-        elif tag.data_type in (
+        if tag.data_type in (
             DataType.BYTE,
             DataType.WORD,
             DataType.DWORD,
@@ -1240,18 +1253,20 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         ):
             if not isinstance(value, (int, float)):
                 raise ValueError(
-                    f"{tag.data_type.name} address requires numeric value, "
-                    f"got {type(value).__name__}"
+                    f"{tag.data_type.name} address {address} requires "
+                    f"numeric value, got {type(value).__name__}"
                 )
-            payload = int(round(float(value)))
+            return int(round(float(value)))
 
-        elif tag.data_type == DataType.CHAR:
-            raise ValueError("CHAR arrays not supported for write, use STRING instead")
+        if tag.data_type == DataType.CHAR:
+            raise ValueError(
+                f"CHAR arrays not supported for write at {address}, "
+                "use STRING instead"
+            )
 
-        else:
-            raise ValueError(f"Unsupported data type for write: {tag.data_type}")
-
-        return self._write_with_retry(address, tag, payload)
+        raise ValueError(
+            f"Unsupported data type for write at {address}: {tag.data_type}"
+        )
 
     def write_multi(
         self, writes: list[tuple[str, bool | int | float | str]]
@@ -1289,66 +1304,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             try:
                 tag = self._get_or_parse_tag(address)
                 addresses.append(address)
-
-                # Determine payload based on data type (same logic as write())
-                if tag.data_type == DataType.BIT:
-                    if not isinstance(value, bool):
-                        raise ValueError(
-                            f"BIT address {address} requires bool value, "
-                            f"got {type(value).__name__}"
-                        )
-                    payload = bool(value)
-
-                elif tag.data_type in (DataType.STRING, DataType.WSTRING):
-                    if not isinstance(value, str):
-                        raise ValueError(
-                            f"STRING/WSTRING address {address} requires str value, "
-                            f"got {type(value).__name__}"
-                        )
-                    payload = str(value)
-
-                elif tag.data_type == DataType.REAL:
-                    if not isinstance(value, (int, float)):
-                        raise ValueError(
-                            f"REAL address {address} requires numeric value, "
-                            f"got {type(value).__name__}"
-                        )
-                    payload = float(value)
-
-                elif tag.data_type == DataType.LREAL:
-                    if not isinstance(value, (int, float)):
-                        raise ValueError(
-                            f"LREAL address {address} requires numeric value, "
-                            f"got {type(value).__name__}"
-                        )
-                    payload = float(value)
-
-                elif tag.data_type in (
-                    DataType.BYTE,
-                    DataType.WORD,
-                    DataType.DWORD,
-                    DataType.INT,
-                    DataType.DINT,
-                ):
-                    if not isinstance(value, (int, float)):
-                        raise ValueError(
-                            f"{tag.data_type.name} address {address} requires "
-                            f"numeric value, got {type(value).__name__}"
-                        )
-                    payload = int(round(float(value)))
-
-                elif tag.data_type == DataType.CHAR:
-                    raise ValueError(
-                        f"CHAR arrays not supported for write at {address}, "
-                        "use STRING instead"
-                    )
-
-                else:
-                    raise ValueError(
-                        f"Unsupported data type for write at {address}: "
-                        f"{tag.data_type}"
-                    )
-
+                payload = self._prepare_payload(tag, value, address)
                 tags.append(tag)
                 payloads.append(payload)
 

@@ -414,7 +414,7 @@ def test_write_validates_type_match(coord_factory, dummy_tag, monkeypatch):
         lambda address: dummy_tag(data_type=coordinator.DataType.BIT),
     )
 
-    with pytest.raises(ValueError, match="BIT address requires bool"):
+    with pytest.raises(ValueError, match="BIT address .* requires bool"):
         coord.write("Q0.0", 1)
 
     # Test STRING/WSTRING require str
@@ -424,7 +424,7 @@ def test_write_validates_type_match(coord_factory, dummy_tag, monkeypatch):
         lambda address: dummy_tag(data_type=coordinator.DataType.STRING, length=10),
     )
 
-    with pytest.raises(ValueError, match="STRING/WSTRING address requires str"):
+    with pytest.raises(ValueError, match="STRING/WSTRING address .* requires str"):
         coord.write("DB1,S0.10", 42)
 
 
@@ -458,7 +458,7 @@ def test_write_rejects_type_mismatch(coord_factory, dummy_tag, monkeypatch):
         lambda address: dummy_tag(data_type=coordinator.DataType.BIT),
     )
 
-    with pytest.raises(ValueError, match="BIT address requires bool"):
+    with pytest.raises(ValueError, match="BIT address .* requires bool"):
         coord.write("Q0.0", "test")
 
     # Test WORD rejection of string
@@ -468,7 +468,7 @@ def test_write_rejects_type_mismatch(coord_factory, dummy_tag, monkeypatch):
         lambda address: dummy_tag(data_type=coordinator.DataType.WORD),
     )
 
-    with pytest.raises(ValueError, match="WORD address requires numeric"):
+    with pytest.raises(ValueError, match="WORD address .* requires numeric"):
         coord.write("DB1,W0", "test")
 
 
