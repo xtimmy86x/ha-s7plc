@@ -130,32 +130,32 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self._coord.is_connected()
+        return self.coordinator.is_connected()
 
     @property
     def extra_state_attributes(self):
         attrs = {}
-        attrs["s7_ip"] = self._coord.host
-        attrs["pys7_connection_type"] = self._coord._pys7_connection_type_str
-        if self._coord.connection_type == "rack_slot":
+        attrs["s7_ip"] = self.coordinator.host
+        attrs["pys7_connection_type"] = self.coordinator._pys7_connection_type_str
+        if self.coordinator.connection_type == "rack_slot":
             attrs["connection_type"] = "Rack/Slot"
-            attrs["rack"] = self._coord.rack
-            attrs["slot"] = self._coord.slot
+            attrs["rack"] = self.coordinator.rack
+            attrs["slot"] = self.coordinator.slot
         else:
             attrs["connection_type"] = "TSAP"
-            attrs["local_tsap"] = self._coord.local_tsap
-            attrs["remote_tsap"] = self._coord.remote_tsap
+            attrs["local_tsap"] = self.coordinator.local_tsap
+            attrs["remote_tsap"] = self.coordinator.remote_tsap
 
         # Health probe results
-        attrs["last_health_ok"] = self._coord.last_health_ok
-        attrs["last_health_latency_s"] = self._coord.last_health_latency
+        attrs["last_health_ok"] = self.coordinator.last_health_ok
+        attrs["last_health_latency_s"] = self.coordinator.last_health_latency
 
         # Error diagnostics
-        if self._coord.last_error_category:
-            attrs["last_error_category"] = self._coord.last_error_category
-            attrs["last_error_message"] = self._coord.last_error_message
+        if self.coordinator.last_error_category:
+            attrs["last_error_category"] = self.coordinator.last_error_category
+            attrs["last_error_message"] = self.coordinator.last_error_message
 
-        error_counts = self._coord.error_count_by_category
+        error_counts = self.coordinator.error_count_by_category
         if error_counts:
             attrs["error_counts"] = error_counts
             attrs["total_errors"] = sum(error_counts.values())

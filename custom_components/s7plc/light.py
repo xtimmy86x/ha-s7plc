@@ -251,7 +251,9 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         if self._is_dimmer and "brightness" in kwargs:
             await self._ensure_connected()
             plc_value = self._ha_to_plc_brightness(kwargs["brightness"])
-            await self._coord.write_batched(self._brightness_command_address, plc_value)
+            await self.coordinator.write_batched(
+                self._brightness_command_address, plc_value
+            )
         # Delegate boolean on/off + sync/pulse + refresh to parent
         await super().async_turn_on(**kwargs)
 

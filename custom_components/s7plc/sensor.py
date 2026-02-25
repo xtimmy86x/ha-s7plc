@@ -458,7 +458,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                     return
 
             # Check if coordinator is connected
-            if not self._coord.is_connected():
+            if not self.coordinator.is_connected():
                 _LOGGER.debug(
                     "EntitySync %s: Cannot write, coordinator not connected", self.name
                 )
@@ -468,7 +468,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
             # Write boolean to PLC
             try:
-                await self._coord.write_batched(self._address, bool_value)
+                await self.coordinator.write_batched(self._address, bool_value)
                 success = True
             except HomeAssistantError:
                 success = False
@@ -514,7 +514,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 return
 
             # Check if coordinator is connected
-            if not self._coord.is_connected():
+            if not self.coordinator.is_connected():
                 _LOGGER.debug(
                     "EntitySync %s: Cannot write, coordinator not connected", self.name
                 )
@@ -524,7 +524,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
             # Write to PLC
             try:
-                await self._coord.write_batched(self._address, value)
+                await self.coordinator.write_batched(self._address, value)
                 success = True
             except HomeAssistantError:
                 success = False
@@ -601,4 +601,4 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self._coord.is_connected()
+        return self.coordinator.is_connected()

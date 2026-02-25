@@ -237,7 +237,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     @property
     def available(self) -> bool:
-        if not self._coord.is_connected():
+        if not self.coordinator.is_connected():
             return False
         topics = [t for t in (self._opened_topic, self._closed_topic) if t]
         if not topics:
@@ -284,7 +284,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_open_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("close")
-        await self._coord.write_batched(self._open_command_address, True)
+        await self.coordinator.write_batched(self._open_command_address, True)
         self._is_opening = True
         self._is_closing = False
         if not self._use_state_topics:
@@ -296,7 +296,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_close_cover(self, **kwargs) -> None:
         await self._ensure_connected()
         await self._stop_operation("open")
-        await self._coord.write_batched(self._close_command_address, True)
+        await self.coordinator.write_batched(self._close_command_address, True)
         self._is_opening = False
         self._is_closing = True
         if not self._use_state_topics:
@@ -355,13 +355,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
         else:
             attrs["state_topics_used"] = False
         if self._opened_topic:
-            interval = self._coord._item_scan_intervals.get(
-                self._opened_topic, self._coord._default_scan_interval
+            interval = self.coordinator._item_scan_intervals.get(
+                self._opened_topic, self.coordinator._default_scan_interval
             )
             attrs["opened_scan_interval"] = f"{interval} s"
         if self._closed_topic:
-            interval = self._coord._item_scan_intervals.get(
-                self._closed_topic, self._coord._default_scan_interval
+            interval = self.coordinator._item_scan_intervals.get(
+                self._closed_topic, self.coordinator._default_scan_interval
             )
             attrs["closed_scan_interval"] = f"{interval} s"
         attrs["operate_time"] = f"{self._operate_time:.1f} s"
@@ -403,7 +403,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         success = True
         if address:
             try:
-                await self._coord.write_batched(address, False)
+                await self.coordinator.write_batched(address, False)
             except HomeAssistantError:
                 success = False
 
@@ -427,7 +427,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         if address:
             try:
-                await self._coord.write_batched(address, False)
+                await self.coordinator.write_batched(address, False)
             except HomeAssistantError:
                 pass  # Non-critical, already logged
         self._is_opening = False
@@ -506,7 +506,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
 
     @property
     def available(self) -> bool:
-        if not self._coord.is_connected():
+        if not self.coordinator.is_connected():
             return False
         data = self.coordinator.data or {}
         return self._position_topic in data and data[self._position_topic] is not None
@@ -558,7 +558,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # we need to write the inverted value to the PLC
         plc_value = (100 - position) if self._invert_position else position
 
-        await self._coord.write_batched(self._position_command_address, plc_value)
+        await self.coordinator.write_batched(self._position_command_address, plc_value)
 
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
@@ -568,7 +568,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
 
         actual_position = self._get_position_value()
         if actual_position is not None:
-            await self._coord.write_batched(
+            await self.coordinator.write_batched(
                 self._position_command_address, actual_position
             )
             self.async_write_ha_state()
@@ -589,8 +589,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             attrs["s7_position_command_address"] = (
                 self._position_command_address.upper()
             )
-        interval = self._coord._item_scan_intervals.get(
-            self._position_topic, self._coord._default_scan_interval
+        interval = self.coordinator._item_scan_intervals.get(
+            self._position_topic, self.coordinator._default_scan_interval
         )
         attrs["closed_scan_interval"] = f"{interval} s"
         attrs["cover_type"] = "position"

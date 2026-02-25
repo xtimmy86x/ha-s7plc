@@ -234,7 +234,7 @@ def test_is_closing(cover_factory):
 async def test_async_open_cover(cover_factory, mock_coordinator):
     """Test opening cover."""
     cover = cover_factory()
-    cover._coord.data = {}  # Make available
+    cover.coordinator.data = {}  # Make available
     
     await cover.async_open_cover()
     
@@ -249,7 +249,7 @@ async def test_async_open_cover_write_failure(cover_factory, mock_coordinator):
     """Test opening cover when write fails - batched writes don't raise exceptions."""
     mock_coordinator.write_batched.return_value = None  # Batched writes are fire-and-forget
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     
     # Batched writes don't raise exceptions, they just log errors
     await cover.async_open_cover()
@@ -267,7 +267,7 @@ async def test_async_open_cover_write_failure(cover_factory, mock_coordinator):
 async def test_async_close_cover(cover_factory, mock_coordinator):
     """Test closing cover."""
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     
     await cover.async_close_cover()
     
@@ -282,7 +282,7 @@ async def test_async_close_cover_write_failure(cover_factory, mock_coordinator):
     """Test closing cover when write fails - batched writes don't raise exceptions."""
     mock_coordinator.write_batched.return_value = None
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     
     # Batched writes don't raise exceptions
     await cover.async_close_cover()
@@ -300,7 +300,7 @@ async def test_async_close_cover_write_failure(cover_factory, mock_coordinator):
 async def test_async_stop_cover_while_opening(cover_factory, mock_coordinator):
     """Test stopping cover while opening."""
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     cover._is_opening = True
     
     await cover.async_stop_cover()
@@ -314,7 +314,7 @@ async def test_async_stop_cover_while_opening(cover_factory, mock_coordinator):
 async def test_async_stop_cover_while_closing(cover_factory, mock_coordinator):
     """Test stopping cover while closing."""
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     cover._is_closing = True
     
     await cover.async_stop_cover()
@@ -328,7 +328,7 @@ async def test_async_stop_cover_while_closing(cover_factory, mock_coordinator):
 async def test_async_stop_cover_idle(cover_factory, mock_coordinator):
     """Test stopping cover when idle."""
     cover = cover_factory()
-    cover._coord.data = {}
+    cover.coordinator.data = {}
     
     await cover.async_stop_cover()
     

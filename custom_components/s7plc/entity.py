@@ -44,7 +44,6 @@ class S7BaseEntity(CoordinatorEntity):
             suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(coordinator)
-        self._coord: S7Coordinator = coordinator
         if name is not None:
             self._attr_name = name
         self._attr_unique_id = unique_id
@@ -60,12 +59,12 @@ class S7BaseEntity(CoordinatorEntity):
         Raises:
             HomeAssistantError: If PLC is not connected
         """
-        if not self._coord.is_connected():
+        if not self.coordinator.is_connected():
             raise HomeAssistantError("PLC not connected: cannot execute command.")
 
     @property
     def available(self) -> bool:
-        if not self._coord.is_connected():
+        if not self.coordinator.is_connected():
             return False
         if self._topic is None:
             return True
@@ -79,11 +78,13 @@ class S7BaseEntity(CoordinatorEntity):
         if self._address:
             attrs["s7_address"] = self._address.upper()
         if self._topic:
-            interval = self._coord._item_scan_intervals.get(
-                self._topic, self._coord._default_scan_interval
+            interval = self.coordinator._item_scan_intervals.get(
+                self._topic, self.coordinator._default_scan_interval
             )
             attrs["scan_interval"] = f"{interval} s"
-            item_real_precisions = getattr(self._coord, "_item_real_precisions", {})
+            item_real_precisions = getattr(
+                self.coordinator, "_item_real_precisions", {}
+            )
             precision = item_real_precisions.get(self._topic)
             if precision is not None:
                 attrs["real_precision"] = precision
@@ -158,8 +159,8 @@ class S7BoolSyncEntity(S7BaseEntity):
         if self._address:
             attrs["s7_state_address"] = self._address.upper()
             attrs["s7_command_address"] = self._command_address.upper()
-        interval = self._coord._item_scan_intervals.get(
-            self._topic, self._coord._default_scan_interval
+        interval = self.coordinator._item_scan_intervals.get(
+            self._topic, self.coordinator._default_scan_interval
         )
         attrs["scan_interval"] = f"{interval} s"
         if self._pulse_command:
@@ -189,7 +190,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             await self._ensure_connected()
             self._pending_command = True
             try:
-                await self._coord.write_batched(self._command_address, True)
+                await self.coordinator.write_batched(self._command_address, True)
             except HomeAssistantError:
                 self._pending_command = None
                 raise
@@ -211,7 +212,7 @@ class S7BoolSyncEntity(S7BaseEntity):
             await self._ensure_connected()
             self._pending_command = False
             try:
-                await self._coord.write_batched(self._command_address, False)
+                await self.coordinator.write_batched(self._command_address, False)
             except HomeAssistantError:
                 self._pending_command = None
                 raise
@@ -224,9 +225,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         await self._ensure_connected()
-        await self._coord.write_batched(self._command_address, True)
+        await self.coordinator.write_batched(self._command_address, True)
         await asyncio.sleep(self._pulse_duration)
-        await self._coord.write_batched(self._command_address, False)
+        await self.coordinator.write_batched(self._command_address, False)
         await self.coordinator.async_request_refresh()
 
     @callback
@@ -253,7 +254,11 @@ class S7BoolSyncEntity(S7BaseEntity):
             return
 
         # Scenario 2 & 3: Handle sync logic if enabled and connected
-        if self._sync_state and new_state is not None and self._coord.is_connected():
+        if (
+            self._sync_state
+            and new_state is not None
+            and self.coordinator.is_connected()
+        ):
             # Check for pending command echo from PLC
             if self._pending_command is not None:
                 if new_state == self._pending_command:
@@ -289,7 +294,7 @@ class S7BoolSyncEntity(S7BaseEntity):
                 # Fire-and-forget batched write to command address
                 # Note: Intentionally not awaited to avoid blocking state updates
                 self.hass.async_create_background_task(
-                    self._coord.write_batched(self._command_address, new_state),
+                    self.coordinator.write_batched(self._command_address, new_state),
                     name=f"s7plc_sync_write_{self._attr_unique_id}",
                 )
 

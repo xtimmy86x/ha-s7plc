@@ -139,5 +139,5 @@ class S7Text(S7BaseEntity, TextEntity):
         """Set the text value."""
         await self._ensure_connected()
 
-        await self._coord.write_batched(self._command_address, value)
+        await self.coordinator.write_batched(self._command_address, value)
         await self.coordinator.async_request_refresh()

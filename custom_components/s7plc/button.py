@@ -86,9 +86,9 @@ class S7Button(S7BaseEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Press button by toggling the PLC address."""
         await self._ensure_connected()
-        await self._coord.write_batched(self._address, True)
+        await self.coordinator.write_batched(self._address, True)
         await asyncio.sleep(self._button_pulse)
-        await self._coord.write_batched(self._address, False)
+        await self.coordinator.write_batched(self._address, False)
 
     @property
     def extra_state_attributes(self):

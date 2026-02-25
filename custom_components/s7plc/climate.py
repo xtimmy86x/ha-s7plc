@@ -372,9 +372,13 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         if self._hvac_mode == HVACMode.OFF:
             # Turn off all outputs
             if self._heating_output_address:
-                await self._coord.write_batched(self._heating_output_address, False)
+                await self.coordinator.write_batched(
+                    self._heating_output_address, False
+                )
             if self._cooling_output_address:
-                await self._coord.write_batched(self._cooling_output_address, False)
+                await self.coordinator.write_batched(
+                    self._cooling_output_address, False
+                )
             return
 
         if self._target_temperature is None:
@@ -392,20 +396,24 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         # Control heating output
         if self._heating_output_address:
             if self._hvac_mode in (HVACMode.HEAT, HVACMode.HEAT_COOL):
-                await self._coord.write_batched(
+                await self.coordinator.write_batched(
                     self._heating_output_address, heating_needed
                 )
             else:
-                await self._coord.write_batched(self._heating_output_address, False)
+                await self.coordinator.write_batched(
+                    self._heating_output_address, False
+                )
 
         # Control cooling output
         if self._cooling_output_address:
             if self._hvac_mode in (HVACMode.COOL, HVACMode.HEAT_COOL):
-                await self._coord.write_batched(
+                await self.coordinator.write_batched(
                     self._cooling_output_address, cooling_needed
                 )
             else:
-                await self._coord.write_batched(self._cooling_output_address, False)
+                await self.coordinator.write_batched(
+                    self._cooling_output_address, False
+                )
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -569,7 +577,9 @@ class S7ClimateSetpointControl(
         temperature = max(self._attr_min_temp, min(self._attr_max_temp, temperature))
 
         # Write target temperature to PLC
-        await self._coord.write_batched(self._target_temp_address, float(temperature))
+        await self.coordinator.write_batched(
+            self._target_temp_address, float(temperature)
+        )
 
         # If a mode is specified, set it first
         if (hvac_mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
@@ -596,6 +606,6 @@ class S7ClimateSetpointControl(
                     mode_value = 1
                 case _:
                     mode_value = 0
-            await self._coord.write_batched(self._preset_mode_address, mode_value)
+            await self.coordinator.write_batched(self._preset_mode_address, mode_value)
 
         self.async_write_ha_state()
