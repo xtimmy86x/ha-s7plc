@@ -180,37 +180,19 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # Connection handling
     # -------------------------
     def _drop_connection(self) -> None:
-        """Safely close PLC connection, ensuring socket cleanup even on errors.
+        """Safely close PLC connection, tolerant of concurrent disconnects.
 
-        Uses multi-level cleanup strategy:
-        1. Call disconnect() on client
-        2. On failure, attempt direct socket.close()
-        3. Clear socket reference to enable reconnection
+        The pyS7 library may concurrently set socket=None when the peer closes
+        the connection (race condition in _recv_exact / __send), so we catch
+        AttributeError alongside OSError/RuntimeError.  We skip the
+        is_connected guard because pyS7.disconnect() already returns early
+        when the state is DISCONNECTED.
         """
-        if self._client and self._client.is_connected:
+        if self._client:
             try:
                 self._client.disconnect()
-            except (OSError, RuntimeError) as err:  # pragma: no cover
-                _LOGGER.debug("Error during disconnect call: %s", err)
-                # Fallback: try to close socket directly if disconnect() failed
-                try:
-                    socket = getattr(self._client, "socket", None)
-                    if socket:
-                        socket.close()
-                        _LOGGER.debug("Socket closed directly after disconnect failure")
-                except Exception as socket_err:  # pragma: no cover
-                    # Socket may already be closed or invalid - catch any exception
-                    # to prevent cleanup errors from propagating
-                    _LOGGER.debug("Failed to close socket directly: %s", socket_err)
-            finally:
-                # Clear socket reference to ensure reconnection
-                try:
-                    if hasattr(self._client, "socket"):
-                        self._client.socket = None
-                except Exception:  # pragma: no cover
-                    # Silently ignore errors when clearing socket reference
-                    # (e.g., AttributeError if socket property is read-only)
-                    pass
+            except (OSError, RuntimeError, AttributeError) as err:
+                _LOGGER.debug("Error during PLC disconnect: %s", err)
 
     def _ensure_connected(self) -> None:
         """Ensure PLC connection is established, with proper cleanup on failure.

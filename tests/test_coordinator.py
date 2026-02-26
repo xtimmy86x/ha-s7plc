@@ -533,6 +533,75 @@ def test_disconnect_calls_drop_connection(monkeypatch):
     assert len(disconnected) == 1
 
 
+# -- _drop_connection unit tests ------------------------------------------
+
+def test_drop_connection_no_client():
+    """_drop_connection does nothing when _client is None."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    coord._client = None
+    coord._drop_connection()          # should not raise
+
+
+def test_drop_connection_calls_disconnect(monkeypatch):
+    """_drop_connection calls client.disconnect() when client exists."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    calls = []
+    mock_client = type("MC", (), {"disconnect": lambda self: calls.append(True)})()
+    coord._client = mock_client
+    coord._drop_connection()
+    assert len(calls) == 1
+
+
+def test_drop_connection_already_disconnected():
+    """_drop_connection tolerates client whose disconnect() is a no-op."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+    mock_client = type("MC", (), {"disconnect": lambda self: None})()
+    coord._client = mock_client
+    coord._drop_connection()          # should not raise
+
+
+def test_drop_connection_attribute_error():
+    """_drop_connection handles AttributeError from pyS7 race condition."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+
+    def bad_disconnect():
+        raise AttributeError("'NoneType' object has no attribute 'close'")
+
+    mock_client = type("MC", (), {"disconnect": lambda self: bad_disconnect()})()
+    coord._client = mock_client
+    coord._drop_connection()          # should not raise
+
+
+def test_drop_connection_os_error():
+    """_drop_connection handles OSError from socket issues."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+
+    def bad_disconnect():
+        raise OSError("socket closed")
+
+    mock_client = type("MC", (), {"disconnect": lambda self: bad_disconnect()})()
+    coord._client = mock_client
+    coord._drop_connection()          # should not raise
+
+
+def test_drop_connection_runtime_error():
+    """_drop_connection handles RuntimeError."""
+    hass = coordinator.HomeAssistant()
+    coord = S7Coordinator(hass, host="plc.local")
+
+    def bad_disconnect():
+        raise RuntimeError("something went wrong")
+
+    mock_client = type("MC", (), {"disconnect": lambda self: bad_disconnect()})()
+    coord._client = mock_client
+    coord._drop_connection()          # should not raise
+
+
 def test_host_property():
     """Test host property returns correct host."""
     hass = coordinator.HomeAssistant()
