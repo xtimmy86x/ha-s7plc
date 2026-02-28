@@ -78,14 +78,9 @@ class S7BaseEntity(CoordinatorEntity):
         if self._address:
             attrs["s7_address"] = self._address.upper()
         if self._topic:
-            interval = self.coordinator._item_scan_intervals.get(
-                self._topic, self.coordinator._default_scan_interval
-            )
+            interval = self.coordinator.get_scan_interval(self._topic)
             attrs["scan_interval"] = f"{interval} s"
-            item_real_precisions = getattr(
-                self.coordinator, "_item_real_precisions", {}
-            )
-            precision = item_real_precisions.get(self._topic)
+            precision = self.coordinator.get_real_precision(self._topic)
             if precision is not None:
                 attrs["real_precision"] = precision
             invert_state = getattr(self, "_invert_state", None)
@@ -159,9 +154,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         if self._address:
             attrs["s7_state_address"] = self._address.upper()
             attrs["s7_command_address"] = self._command_address.upper()
-        interval = self.coordinator._item_scan_intervals.get(
-            self._topic, self.coordinator._default_scan_interval
-        )
+        interval = self.coordinator.get_scan_interval(self._topic)
         attrs["scan_interval"] = f"{interval} s"
         if self._pulse_command:
             attrs.update(

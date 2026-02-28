@@ -1124,6 +1124,18 @@ class DummyCoordinator:
         self._plans_str = kwargs.pop("_plans_str", {})
         self._plans_batch = kwargs.pop("_plans_batch", {})
 
+    def get_scan_interval(self, topic: str) -> float:
+        return self._item_scan_intervals.get(topic, self._default_scan_interval)
+
+    def get_real_precision(self, topic: str):
+        return self._item_real_precisions.get(topic)
+
+    def is_string_plan(self, topic: str) -> bool:
+        return topic in self._plans_str
+
+    def get_batch_plan(self, topic: str):
+        return self._plans_batch.get(topic)
+
     def is_connected(self):
         return self._connected
 

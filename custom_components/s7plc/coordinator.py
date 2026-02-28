@@ -348,6 +348,22 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """Return error counts grouped by category."""
         return dict(self._error_count_by_category)
 
+    def get_scan_interval(self, topic: str) -> float:
+        """Return the effective scan interval for *topic*."""
+        return self._item_scan_intervals.get(topic, self._default_scan_interval)
+
+    def get_real_precision(self, topic: str) -> int | None:
+        """Return the REAL precision configured for *topic*, or ``None``."""
+        return self._item_real_precisions.get(topic)
+
+    def is_string_plan(self, topic: str) -> bool:
+        """Return ``True`` if *topic* is read as a string."""
+        return topic in self._plans_str
+
+    def get_batch_plan(self, topic: str):
+        """Return the ``TagPlan`` for *topic*, or ``None``."""
+        return self._plans_batch.get(topic)
+
     def connect(self) -> None:
         """Establish the connection if needed (thread-safe).
 

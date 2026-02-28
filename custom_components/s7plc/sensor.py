@@ -300,15 +300,12 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 
     def _is_string_or_char_sensor(self) -> bool:
         """Check if this sensor is a string or char data type."""
-        # Check if it's a string plan (multi-char)
-        if self._topic in self.coordinator._plans_str:
+        if self.coordinator.is_string_plan(self._topic):
             return True
 
-        # Check if it's a char plan (single char)
-        if self._topic in self.coordinator._plans_batch:
-            plan = self.coordinator._plans_batch[self._topic]
-            if plan.tag.data_type == DataType.CHAR:
-                return True
+        plan = self.coordinator.get_batch_plan(self._topic)
+        if plan is not None and plan.tag.data_type == DataType.CHAR:
+            return True
 
         return False
 
