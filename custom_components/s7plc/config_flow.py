@@ -1207,6 +1207,90 @@ def _sanitize_connection_params(
     return scan_s, op_timeout, max_retries, backoff_initial, backoff_max
 
 
+@dataclass(frozen=True, slots=True)
+class ParsedConnectionParams:
+    """Parsed and sanitized connection-related parameters."""
+
+    port: int
+    pys7_connection_type: str
+    scan_interval: float
+    op_timeout: float
+    max_retries: int
+    backoff_initial: float
+    backoff_max: float
+    optimize_read: bool
+    enable_write_batching: bool
+    rack: int | None
+    slot: int | None
+    local_tsap: str | None
+    remote_tsap: str | None
+
+
+def _parse_connection_params(
+    user_input: dict[str, Any],
+    *,
+    connection_type: str,
+    defaults: dict[str, Any],
+) -> ParsedConnectionParams:
+    """Parse and sanitize shared connection parameters from user input."""
+    port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
+    pys7_connection_type = user_input.get(
+        CONF_PYS7_CONNECTION_TYPE, defaults[CONF_PYS7_CONNECTION_TYPE]
+    )
+    scan_interval = float(
+        user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
+    )
+    op_timeout = float(user_input.get(CONF_OP_TIMEOUT, defaults[CONF_OP_TIMEOUT]))
+    max_retries = int(user_input.get(CONF_MAX_RETRIES, defaults[CONF_MAX_RETRIES]))
+    backoff_initial = float(
+        user_input.get(CONF_BACKOFF_INITIAL, defaults[CONF_BACKOFF_INITIAL])
+    )
+    backoff_max = float(user_input.get(CONF_BACKOFF_MAX, defaults[CONF_BACKOFF_MAX]))
+    optimize_read = bool(
+        user_input.get(CONF_OPTIMIZE_READ, defaults[CONF_OPTIMIZE_READ])
+    )
+    enable_write_batching = bool(
+        user_input.get(CONF_ENABLE_WRITE_BATCHING, defaults[CONF_ENABLE_WRITE_BATCHING])
+    )
+
+    if connection_type == CONNECTION_TYPE_TSAP:
+        local_tsap = user_input.get(CONF_LOCAL_TSAP, defaults[CONF_LOCAL_TSAP])
+        remote_tsap = user_input.get(CONF_REMOTE_TSAP, defaults[CONF_REMOTE_TSAP])
+        rack = None
+        slot = None
+    else:
+        rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
+        slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
+        local_tsap = None
+        remote_tsap = None
+
+    scan_interval, op_timeout, max_retries, backoff_initial, backoff_max = (
+        _sanitize_connection_params(
+            scan_interval,
+            op_timeout,
+            max_retries,
+            backoff_initial,
+            backoff_max,
+        )
+    )
+
+    return ParsedConnectionParams(
+        port=port,
+        pys7_connection_type=pys7_connection_type,
+        scan_interval=scan_interval,
+        op_timeout=op_timeout,
+        max_retries=max_retries,
+        backoff_initial=backoff_initial,
+        backoff_max=backoff_max,
+        optimize_read=optimize_read,
+        enable_write_batching=enable_write_batching,
+        rack=rack,
+        slot=slot,
+        local_tsap=local_tsap,
+        remote_tsap=remote_tsap,
+    )
+
+
 def _generate_connection_unique_id(
     host: str,
     connection_type: str,
@@ -1535,44 +1619,36 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         """Validate connection and create entry."""
 
+        connection_type = self._connection_data.get(
+            CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT
+        )
+
+        parse_defaults: dict[str, Any] = {
+            CONF_PORT: DEFAULT_PORT,
+            CONF_PYS7_CONNECTION_TYPE: DEFAULT_PYS7_CONNECTION_TYPE,
+            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+            CONF_OP_TIMEOUT: DEFAULT_OP_TIMEOUT,
+            CONF_MAX_RETRIES: DEFAULT_MAX_RETRIES,
+            CONF_BACKOFF_INITIAL: DEFAULT_BACKOFF_INITIAL,
+            CONF_BACKOFF_MAX: DEFAULT_BACKOFF_MAX,
+            CONF_OPTIMIZE_READ: DEFAULT_OPTIMIZE_READ,
+            CONF_ENABLE_WRITE_BATCHING: DEFAULT_ENABLE_WRITE_BATCHING,
+        }
+        if connection_type == CONNECTION_TYPE_TSAP:
+            parse_defaults[CONF_LOCAL_TSAP] = "01.00"
+            parse_defaults[CONF_REMOTE_TSAP] = "01.01"
+        else:
+            parse_defaults[CONF_RACK] = DEFAULT_RACK
+            parse_defaults[CONF_SLOT] = DEFAULT_SLOT
+
         try:
             host = user_input[CONF_HOST]
-            port = int(user_input.get(CONF_PORT, DEFAULT_PORT))
-            scan_s = float(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
-            op_timeout = float(user_input.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT))
-            max_retries = int(user_input.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES))
-            backoff_initial = float(
-                user_input.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
-            )
-            backoff_max = float(user_input.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX))
-            optimize_read = bool(
-                user_input.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
-            )
-            enable_write_batching = bool(
-                user_input.get(
-                    CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING
-                )
+            params = _parse_connection_params(
+                user_input,
+                connection_type=connection_type,
+                defaults=parse_defaults,
             )
             name = user_input.get(CONF_NAME, "S7 PLC")
-            pys7_connection_type = user_input.get(
-                CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
-            )
-
-            # Get connection parameters based on type
-            connection_type = self._connection_data.get(
-                CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT
-            )
-
-            if connection_type == CONNECTION_TYPE_TSAP:
-                local_tsap = user_input.get(CONF_LOCAL_TSAP, "01.00")
-                remote_tsap = user_input.get(CONF_REMOTE_TSAP, "01.01")
-                rack = None
-                slot = None
-            else:
-                rack = int(user_input.get(CONF_RACK, DEFAULT_RACK))
-                slot = int(user_input.get(CONF_SLOT, DEFAULT_SLOT))
-                local_tsap = None
-                remote_tsap = None
 
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
@@ -1586,14 +1662,13 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id=step_id, data_schema=data_schema, errors=errors
             )
 
-        scan_s, op_timeout, max_retries, backoff_initial, backoff_max = (
-            _sanitize_connection_params(
-                scan_s, op_timeout, max_retries, backoff_initial, backoff_max
-            )
-        )
-
         unique_id = _generate_connection_unique_id(
-            host, connection_type, local_tsap, remote_tsap, rack, slot
+            host,
+            connection_type,
+            params.local_tsap,
+            params.remote_tsap,
+            params.rack,
+            params.slot,
         )
         await self.async_set_unique_id(unique_id, raise_on_progress=False)
         self._abort_if_unique_id_configured()
@@ -1603,18 +1678,18 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.hass,
                 host=host,
                 connection_type=connection_type,
-                rack=rack,
-                slot=slot,
-                local_tsap=local_tsap,
-                remote_tsap=remote_tsap,
-                pys7_connection_type=pys7_connection_type,
-                port=port,
-                scan_interval=scan_s,
-                op_timeout=op_timeout,
-                max_retries=max_retries,
-                backoff_initial=backoff_initial,
-                backoff_max=backoff_max,
-                optimize_read=optimize_read,
+                rack=params.rack,
+                slot=params.slot,
+                local_tsap=params.local_tsap,
+                remote_tsap=params.remote_tsap,
+                pys7_connection_type=params.pys7_connection_type,
+                port=params.port,
+                scan_interval=params.scan_interval,
+                op_timeout=params.op_timeout,
+                max_retries=params.max_retries,
+                backoff_initial=params.backoff_initial,
+                backoff_max=params.backoff_max,
+                optimize_read=params.optimize_read,
             )
         except Exception as err:
             # Catch all connection errors (OSError, S7 errors, RuntimeError, etc.)
@@ -1624,12 +1699,12 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self,
                 err,
                 host,
-                port,
+                params.port,
                 connection_type,
-                local_tsap,
-                remote_tsap,
-                rack,
-                slot,
+                params.local_tsap,
+                params.remote_tsap,
+                params.rack,
+                params.slot,
                 step_id,
                 data_schema,
                 errors,
@@ -1638,20 +1713,20 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         entry_data = _build_connection_entry_data(
             name=name,
             host=host,
-            port=port,
+            port=params.port,
             connection_type=connection_type,
-            pys7_connection_type=pys7_connection_type,
-            scan_interval=scan_s,
-            op_timeout=op_timeout,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_max=backoff_max,
-            optimize_read=optimize_read,
-            enable_write_batching=enable_write_batching,
-            local_tsap=local_tsap,
-            remote_tsap=remote_tsap,
-            rack=rack,
-            slot=slot,
+            pys7_connection_type=params.pys7_connection_type,
+            scan_interval=params.scan_interval,
+            op_timeout=params.op_timeout,
+            max_retries=params.max_retries,
+            backoff_initial=params.backoff_initial,
+            backoff_max=params.backoff_max,
+            optimize_read=params.optimize_read,
+            enable_write_batching=params.enable_write_batching,
+            local_tsap=params.local_tsap,
+            remote_tsap=params.remote_tsap,
+            rack=params.rack,
+            slot=params.slot,
         )
 
         return self.async_create_entry(title=name, data=entry_data)
@@ -3187,52 +3262,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
 
+        parse_defaults = dict(defaults)
+
         try:
             host = str(user_input[CONF_HOST]).strip()
-            port = int(user_input.get(CONF_PORT, defaults[CONF_PORT]))
-            pys7_connection_type = user_input.get(
-                CONF_PYS7_CONNECTION_TYPE, defaults[CONF_PYS7_CONNECTION_TYPE]
-            )
-            scan_s = float(
-                user_input.get(CONF_SCAN_INTERVAL, defaults[CONF_SCAN_INTERVAL])
-            )
-            op_timeout = float(
-                user_input.get(CONF_OP_TIMEOUT, defaults[CONF_OP_TIMEOUT])
-            )
-            max_retries = int(
-                user_input.get(CONF_MAX_RETRIES, defaults[CONF_MAX_RETRIES])
-            )
-            backoff_initial = float(
-                user_input.get(CONF_BACKOFF_INITIAL, defaults[CONF_BACKOFF_INITIAL])
-            )
-            backoff_max = float(
-                user_input.get(CONF_BACKOFF_MAX, defaults[CONF_BACKOFF_MAX])
-            )
-            optimize_read = bool(
-                user_input.get(CONF_OPTIMIZE_READ, defaults[CONF_OPTIMIZE_READ])
-            )
-            enable_write_batching = bool(
-                user_input.get(
-                    CONF_ENABLE_WRITE_BATCHING, defaults[CONF_ENABLE_WRITE_BATCHING]
-                )
+            params = _parse_connection_params(
+                user_input,
+                connection_type=(
+                    CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
+                ),
+                defaults=parse_defaults,
             )
             name = (
                 user_input.get(CONF_NAME) or defaults[CONF_NAME]
             ).strip() or "S7 PLC"
-
-            # Get connection-specific parameters
-            if is_tsap:
-                local_tsap = user_input.get(CONF_LOCAL_TSAP, defaults[CONF_LOCAL_TSAP])
-                remote_tsap = user_input.get(
-                    CONF_REMOTE_TSAP, defaults[CONF_REMOTE_TSAP]
-                )
-                rack = None
-                slot = None
-            else:
-                rack = int(user_input.get(CONF_RACK, defaults[CONF_RACK]))
-                slot = int(user_input.get(CONF_SLOT, defaults[CONF_SLOT]))
-                local_tsap = None
-                remote_tsap = None
 
         except (KeyError, ValueError):
             errors["base"] = "cannot_connect"
@@ -3243,15 +3286,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
 
-        scan_s, op_timeout, max_retries, backoff_initial, backoff_max = (
-            _sanitize_connection_params(
-                scan_s, op_timeout, max_retries, backoff_initial, backoff_max
-            )
-        )
-
         connection_type = CONNECTION_TYPE_TSAP if is_tsap else CONNECTION_TYPE_RACK_SLOT
         new_unique_id = _generate_connection_unique_id(
-            host, connection_type, local_tsap, remote_tsap, rack, slot
+            host,
+            connection_type,
+            params.local_tsap,
+            params.remote_tsap,
+            params.rack,
+            params.slot,
         )
 
         for entry in self.hass.config_entries.async_entries(DOMAIN):
@@ -3274,18 +3316,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self.hass,
                 host=host,
                 connection_type=connection_type,
-                rack=rack,
-                slot=slot,
-                local_tsap=local_tsap,
-                remote_tsap=remote_tsap,
-                pys7_connection_type=pys7_connection_type,
-                port=port,
-                scan_interval=scan_s,
-                op_timeout=op_timeout,
-                max_retries=max_retries,
-                backoff_initial=backoff_initial,
-                backoff_max=backoff_max,
-                optimize_read=optimize_read,
+                rack=params.rack,
+                slot=params.slot,
+                local_tsap=params.local_tsap,
+                remote_tsap=params.remote_tsap,
+                pys7_connection_type=params.pys7_connection_type,
+                port=params.port,
+                scan_interval=params.scan_interval,
+                op_timeout=params.op_timeout,
+                max_retries=params.max_retries,
+                backoff_initial=params.backoff_initial,
+                backoff_max=params.backoff_max,
+                optimize_read=params.optimize_read,
             )
         except Exception as err:
             # Catch all connection errors during options flow connection test
@@ -3294,12 +3336,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self,
                 err,
                 host,
-                port,
+                params.port,
                 connection_type,
-                local_tsap,
-                remote_tsap,
-                rack,
-                slot,
+                params.local_tsap,
+                params.remote_tsap,
+                params.rack,
+                params.slot,
                 "connection",
                 data_schema,
                 errors,
@@ -3309,20 +3351,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         new_data = _build_connection_entry_data(
             name=name,
             host=host,
-            port=port,
+            port=params.port,
             connection_type=connection_type,
-            pys7_connection_type=pys7_connection_type,
-            scan_interval=scan_s,
-            op_timeout=op_timeout,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_max=backoff_max,
-            optimize_read=optimize_read,
-            enable_write_batching=enable_write_batching,
-            local_tsap=local_tsap,
-            remote_tsap=remote_tsap,
-            rack=rack,
-            slot=slot,
+            pys7_connection_type=params.pys7_connection_type,
+            scan_interval=params.scan_interval,
+            op_timeout=params.op_timeout,
+            max_retries=params.max_retries,
+            backoff_initial=params.backoff_initial,
+            backoff_max=params.backoff_max,
+            optimize_read=params.optimize_read,
+            enable_write_batching=params.enable_write_batching,
+            local_tsap=params.local_tsap,
+            remote_tsap=params.remote_tsap,
+            rack=params.rack,
+            slot=params.slot,
         )
 
         update_result = self.hass.config_entries.async_update_entry(
