@@ -6,8 +6,9 @@ import inspect
 import json
 import logging
 import math
+from dataclasses import dataclass
 from ipaddress import ip_interface, ip_network
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -295,6 +296,805 @@ ADD_ENTITY_STEP_IDS: tuple[str, ...] = (
     "climates",
     "entity_sync",
 )
+
+
+# ---------------------------------------------------------------------------
+# Entity-type registry: unifies add / edit flows
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class EntityTypeInfo:
+    """Descriptor for one entity type used by the generic add / edit flows."""
+
+    option_key: str  # e.g. CONF_SENSORS
+    prefix: str  # e.g. "s"
+    add_step_id: str  # e.g. "sensors"
+    edit_step_id: str  # e.g. "edit_sensor"
+    build_add_schema: Callable  # (flow) -> vol.Schema
+    build_edit_schema: Callable  # (flow, item) -> vol.Schema
+    item_builder_name: str  # e.g. "_build_sensor_item"
+
+
+# --- schema builders (add) ------------------------------------------------
+
+
+def _add_schema_sensor(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
+            vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
+            vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
+            vol.Optional(CONF_STATE_CLASS): state_class_selector,
+            vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_binary_sensor(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_DEVICE_CLASS): binary_sensor_device_class_selector,
+            vol.Optional(CONF_INVERT_STATE, default=False): selector.BooleanSelector(),
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_switch(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_SYNC_STATE, default=False): selector.BooleanSelector(),
+            vol.Optional(CONF_PULSE_COMMAND, default=False): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+            ): pulse_duration_selector,
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_cover(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
+            vol.Optional(
+                CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
+            ): operate_time_selector,
+            vol.Optional(
+                CONF_USE_STATE_TOPICS, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_cover_position(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional(
+                CONF_INVERT_POSITION, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_button(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(
+                CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
+            ): pulse_duration_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_light(flow) -> vol.Schema:
+    _brightness_scale_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1, max=65535, step=1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    return vol.Schema(
+        {
+            vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_SYNC_STATE, default=False): selector.BooleanSelector(),
+            vol.Optional(CONF_PULSE_COMMAND, default=False): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+            ): pulse_duration_selector,
+            vol.Optional(CONF_BRIGHTNESS_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_BRIGHTNESS_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_BRIGHTNESS_SCALE): _brightness_scale_sel,
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_number(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
+            vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
+            vol.Optional(CONF_MIN_VALUE): number_value_selector,
+            vol.Optional(CONF_MAX_VALUE): number_value_selector,
+            vol.Optional(CONF_STEP): positive_number_selector,
+            vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_text(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_PATTERN): selector.TextSelector(),
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_climate_direct(flow) -> vol.Schema:
+    _temp_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    _step_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    return vol.Schema(
+        {
+            vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_HEATING_OUTPUT_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COOLING_OUTPUT_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_HEATING_ACTION_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COOLING_ACTION_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP): _temp_sel,
+            vol.Optional(CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP): _temp_sel,
+            vol.Optional(CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP): _step_sel,
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_climate_setpoint(flow) -> vol.Schema:
+    _temp_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    _step_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    return vol.Schema(
+        {
+            vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
+            vol.Required(CONF_TARGET_TEMPERATURE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_PRESET_MODE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_HVAC_STATUS_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP): _temp_sel,
+            vol.Optional(CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP): _temp_sel,
+            vol.Optional(CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP): _step_sel,
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+def _add_schema_writer(flow) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ADDRESS): selector.TextSelector(),
+            vol.Required(CONF_SOURCE_ENTITY): selector.EntitySelector(),
+            vol.Optional(CONF_NAME): selector.TextSelector(),
+            vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional("add_another", default=False): selector.BooleanSelector(),
+        }
+    )
+
+
+# --- schema builders (edit) -----------------------------------------------
+
+
+def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    for key, sel in [
+        (CONF_DEVICE_CLASS, sensor_device_class_selector),
+        (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
+        (CONF_UNIT_OF_MEASUREMENT, selector.TextSelector()),
+        (CONF_STATE_CLASS, state_class_selector),
+        (CONF_REAL_PRECISION, real_precision_selector),
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_binary_sensor(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    k, v = flow._optional_field(
+        CONF_DEVICE_CLASS, item, binary_sensor_device_class_selector
+    )
+    d[k] = v
+    d[vol.Optional(CONF_INVERT_STATE, default=item.get(CONF_INVERT_STATE, False))] = (
+        selector.BooleanSelector()
+    )
+    for key, sel in [
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_switch(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COMMAND_ADDRESS, default=item.get(CONF_COMMAND_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_SYNC_STATE, default=bool(item.get(CONF_SYNC_STATE, False))
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_PULSE_COMMAND, default=bool(item.get(CONF_PULSE_COMMAND, False))
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_PULSE_DURATION,
+            default=float(item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)),
+        ): pulse_duration_selector,
+    }
+    for key, sel in [
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_OPEN_COMMAND_ADDRESS,
+            default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Required(
+            CONF_CLOSE_COMMAND_ADDRESS,
+            default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_OPENING_STATE_ADDRESS,
+            default=item.get(CONF_OPENING_STATE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_CLOSING_STATE_ADDRESS,
+            default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, cover_device_class_selector)
+    d[k] = v
+    d[
+        vol.Optional(
+            CONF_OPERATE_TIME,
+            default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
+        )
+    ] = operate_time_selector
+    d[
+        vol.Optional(
+            CONF_USE_STATE_TOPICS,
+            default=item.get(CONF_USE_STATE_TOPICS, DEFAULT_USE_STATE_TOPICS),
+        )
+    ] = selector.BooleanSelector()
+    for key, sel in [
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_cover_position(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_POSITION_STATE_ADDRESS,
+            default=item.get(CONF_POSITION_STATE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_POSITION_COMMAND_ADDRESS,
+            default=item.get(CONF_POSITION_COMMAND_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, cover_device_class_selector)
+    d[k] = v
+    k, v = flow._optional_field(CONF_SCAN_INTERVAL, item, scan_interval_selector)
+    d[k] = v
+    d[
+        vol.Optional(
+            CONF_INVERT_POSITION, default=item.get(CONF_INVERT_POSITION, False)
+        )
+    ] = selector.BooleanSelector()
+    k, v = flow._optional_field(CONF_AREA, item, flow._get_area_selector())
+    d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_button(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_BUTTON_PULSE,
+            default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
+        ): pulse_duration_selector,
+    }
+    k, v = flow._optional_field(CONF_AREA, item, flow._get_area_selector())
+    d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_light(flow, item: dict[str, Any]) -> vol.Schema:
+    _brightness_scale_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1, max=65535, step=1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COMMAND_ADDRESS, default=item.get(CONF_COMMAND_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_SYNC_STATE, default=bool(item.get(CONF_SYNC_STATE, False))
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_PULSE_COMMAND, default=bool(item.get(CONF_PULSE_COMMAND, False))
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_PULSE_DURATION,
+            default=item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION),
+        ): pulse_duration_selector,
+    }
+    for key, sel in [
+        (CONF_BRIGHTNESS_STATE_ADDRESS, selector.TextSelector()),
+        (CONF_BRIGHTNESS_COMMAND_ADDRESS, selector.TextSelector()),
+        (CONF_BRIGHTNESS_SCALE, _brightness_scale_sel),
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COMMAND_ADDRESS, default=item.get(CONF_COMMAND_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, number_device_class_selector)
+    d[k] = v
+    k, v = flow._optional_field(CONF_UNIT_OF_MEASUREMENT, item, selector.TextSelector())
+    d[k] = v
+    d.update(
+        {
+            vol.Optional(
+                CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
+            ): number_value_selector,
+            vol.Optional(
+                CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
+            ): number_value_selector,
+        }
+    )
+    for key, sel in [
+        (CONF_STEP, positive_number_selector),
+        (CONF_REAL_PRECISION, real_precision_selector),
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_text(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COMMAND_ADDRESS, default=item.get(CONF_COMMAND_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    for key, sel in [
+        (CONF_PATTERN, selector.TextSelector()),
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_climate_direct(flow, item: dict[str, Any]) -> vol.Schema:
+    _temp_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    _step_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_CURRENT_TEMPERATURE_ADDRESS,
+            default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_HEATING_OUTPUT_ADDRESS,
+            default=item.get(CONF_HEATING_OUTPUT_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COOLING_OUTPUT_ADDRESS,
+            default=item.get(CONF_COOLING_OUTPUT_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_HEATING_ACTION_ADDRESS,
+            default=item.get(CONF_HEATING_ACTION_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COOLING_ACTION_ADDRESS,
+            default=item.get(CONF_COOLING_ACTION_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_MIN_TEMP,
+            default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
+        ): _temp_sel,
+        vol.Optional(
+            CONF_MAX_TEMP,
+            default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
+        ): _temp_sel,
+        vol.Optional(
+            CONF_TEMP_STEP,
+            default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
+        ): _step_sel,
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    for key, sel in [
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_climate_setpoint(flow, item: dict[str, Any]) -> vol.Schema:
+    _temp_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    _step_sel = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_CURRENT_TEMPERATURE_ADDRESS,
+            default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Required(
+            CONF_TARGET_TEMPERATURE_ADDRESS,
+            default=item.get(CONF_TARGET_TEMPERATURE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_PRESET_MODE_ADDRESS,
+            default=item.get(CONF_PRESET_MODE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_HVAC_STATUS_ADDRESS,
+            default=item.get(CONF_HVAC_STATUS_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_MIN_TEMP,
+            default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
+        ): _temp_sel,
+        vol.Optional(
+            CONF_MAX_TEMP,
+            default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
+        ): _temp_sel,
+        vol.Optional(
+            CONF_TEMP_STEP,
+            default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
+        ): _step_sel,
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    for key, sel in [
+        (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AREA, flow._get_area_selector()),
+    ]:
+        k, v = flow._optional_field(key, item, sel)
+        d[k] = v
+    return vol.Schema(d)
+
+
+def _edit_schema_writer(flow, item: dict[str, Any]) -> vol.Schema:
+    d: dict[Any, Any] = {
+        vol.Required(
+            CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
+        ): selector.TextSelector(),
+        vol.Required(
+            CONF_SOURCE_ENTITY, default=item.get(CONF_SOURCE_ENTITY, "")
+        ): selector.EntitySelector(),
+        vol.Optional(
+            CONF_NAME, default=item.get(CONF_NAME, "")
+        ): selector.TextSelector(),
+    }
+    k, v = flow._optional_field(CONF_AREA, item, flow._get_area_selector())
+    d[k] = v
+    return vol.Schema(d)
+
+
+# --- registry --------------------------------------------------------------
+
+ENTITY_TYPE_REGISTRY: dict[str, EntityTypeInfo] = {}
+
+
+def _reg(info: EntityTypeInfo) -> None:
+    ENTITY_TYPE_REGISTRY[info.prefix] = info
+
+
+_reg(
+    EntityTypeInfo(
+        CONF_SENSORS,
+        "s",
+        "sensors",
+        "edit_sensor",
+        _add_schema_sensor,
+        _edit_schema_sensor,
+        "_build_sensor_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_BINARY_SENSORS,
+        "bs",
+        "binary_sensors",
+        "edit_binary_sensor",
+        _add_schema_binary_sensor,
+        _edit_schema_binary_sensor,
+        "_build_binary_sensor_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_SWITCHES,
+        "sw",
+        "switches",
+        "edit_switch",
+        _add_schema_switch,
+        _edit_schema_switch,
+        "_build_switch_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_COVERS,
+        "cv",
+        "covers_traditional",
+        "edit_cover",
+        _add_schema_cover,
+        _edit_schema_cover,
+        "_build_cover_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_COVERS,
+        "cvp",
+        "covers_position",
+        "edit_cover_position",
+        _add_schema_cover_position,
+        _edit_schema_cover_position,
+        "_build_cover_position_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_BUTTONS,
+        "bt",
+        "buttons",
+        "edit_button",
+        _add_schema_button,
+        _edit_schema_button,
+        "_build_button_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_LIGHTS,
+        "lt",
+        "lights",
+        "edit_light",
+        _add_schema_light,
+        _edit_schema_light,
+        "_build_light_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_NUMBERS,
+        "nm",
+        "numbers",
+        "edit_number",
+        _add_schema_number,
+        _edit_schema_number,
+        "_build_number_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_TEXTS,
+        "tx",
+        "texts",
+        "edit_text",
+        _add_schema_text,
+        _edit_schema_text,
+        "_build_text_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_CLIMATES,
+        "cl_d",
+        "climates_direct",
+        "edit_climate_direct",
+        _add_schema_climate_direct,
+        _edit_schema_climate_direct,
+        "_build_climate_direct_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_CLIMATES,
+        "cl_s",
+        "climates_setpoint",
+        "edit_climate_setpoint",
+        _add_schema_climate_setpoint,
+        _edit_schema_climate_setpoint,
+        "_build_climate_setpoint_item",
+    )
+)
+_reg(
+    EntityTypeInfo(
+        CONF_ENTITY_SYNC,
+        "wr",
+        "entity_sync",
+        "edit_writer",
+        _add_schema_writer,
+        _edit_schema_writer,
+        "_build_writer_item",
+    )
+)
+
+# Derived: add_step_id -> prefix
+_ADD_STEP_TO_PREFIX: dict[str, str] = {
+    info.add_step_id: prefix for prefix, info in ENTITY_TYPE_REGISTRY.items()
+}
+
+del _reg  # cleanup namespace
 
 
 def _get_connection_description(
@@ -1197,6 +1997,61 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id=step_id, data_schema=data_schema, errors=errors
+        )
+
+    # ====== GENERIC ADD / EDIT via ENTITY_TYPE_REGISTRY ======
+
+    async def _add_entity(self, step_id: str, user_input: dict[str, Any] | None = None):
+        """Generic handler for *all* entity-add steps."""
+        info = ENTITY_TYPE_REGISTRY[_ADD_STEP_TO_PREFIX[step_id]]
+        data_schema = info.build_add_schema(self)
+
+        if user_input is not None:
+            builder = getattr(self, info.item_builder_name)
+            item, errors = builder(user_input, skip_idx=None)
+
+            if errors:
+                return self.async_show_form(
+                    step_id=step_id, data_schema=data_schema, errors=errors
+                )
+
+            if item is not None:
+                self._options[info.option_key].append(item)
+
+            if user_input.get("add_another"):
+                self._last_add_input = {
+                    k: v for k, v in user_input.items() if k != "add_another"
+                }
+                return await self._add_entity(step_id)
+
+            return self.async_create_entry(title="", data=self._options)
+
+        if self._last_add_input is not None:
+            data_schema = self.add_suggested_values_to_schema(
+                data_schema, self._last_add_input
+            )
+            self._last_add_input = None
+        return self.async_show_form(step_id=step_id, data_schema=data_schema)
+
+    async def _edit_entity_by_prefix(
+        self, prefix: str, user_input: dict[str, Any] | None = None
+    ):
+        """Generic handler for *all* entity-edit steps."""
+        info = ENTITY_TYPE_REGISTRY[prefix]
+
+        def _build(item: dict[str, Any]) -> vol.Schema:
+            return info.build_edit_schema(self, item)
+
+        def _process(old_item: dict[str, Any], idx: int, inp: dict[str, Any]):
+            return getattr(self, info.item_builder_name)(inp, skip_idx=idx)
+
+        return await self._edit_entity(
+            option_key=info.option_key,
+            prefix=prefix,
+            build_schema=_build,
+            process_input=_process,
+            step_id=info.edit_step_id,
+            user_input=user_input,
         )
 
     # ====== COMMON VALIDATION HELPERS ======
@@ -2547,144 +3402,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
     # ====== ADD: sensors ======
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
-                vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
-                vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
-                vol.Optional(CONF_STATE_CLASS): state_class_selector,
-                vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_sensor_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="sensors", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_SENSORS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_sensors()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="sensors", data_schema=data_schema)
+        return await self._add_entity("sensors", user_input)
 
     # ====== ADD: binary_sensors ======
     async def async_step_binary_sensors(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_DEVICE_CLASS): binary_sensor_device_class_selector,
-                vol.Optional(
-                    CONF_INVERT_STATE, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_binary_sensor_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="binary_sensors", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_BINARY_SENSORS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_binary_sensors()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="binary_sensors", data_schema=data_schema)
+        return await self._add_entity("binary_sensors", user_input)
 
     # ====== ADD: switches ======
     async def async_step_switches(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
+        return await self._add_entity("switches", user_input)
 
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(
-                    CONF_SYNC_STATE, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_COMMAND, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): pulse_duration_selector,
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_switch_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="switches", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_SWITCHES].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_switches()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="switches", data_schema=data_schema)
-
-    # ====== ADD: covers ======
     # ====== ADD: covers (menu to choose type) ======
     async def async_step_covers(self, user_input: dict[str, Any] | None = None):
         """Show menu to choose between traditional or position cover."""
@@ -2711,295 +3438,29 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_covers_traditional(
         self, user_input: dict[str, Any] | None = None
     ):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
-                vol.Optional(
-                    CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
-                ): operate_time_selector,
-                vol.Optional(
-                    CONF_USE_STATE_TOPICS, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_cover_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="covers_traditional", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_COVERS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_covers_traditional()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(
-            step_id="covers_traditional", data_schema=data_schema
-        )
+        return await self._add_entity("covers_traditional", user_input)
 
     # ====== ADD: covers_position ======
     async def async_step_covers_position(
         self, user_input: dict[str, Any] | None = None
     ):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional(
-                    CONF_INVERT_POSITION, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_cover_position_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="covers_position", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_COVERS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_covers_position()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="covers_position", data_schema=data_schema)
+        return await self._add_entity("covers_position", user_input)
 
     # ====== ADD: buttons ======
     async def async_step_buttons(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(
-                    CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
-                ): pulse_duration_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_button_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="buttons", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_BUTTONS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_buttons()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="buttons", data_schema=data_schema)
+        return await self._add_entity("buttons", user_input)
 
     # ====== ADD: lights ======
     async def async_step_lights(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        brightness_scale_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=1,
-                max=65535,
-                step=1,
-                mode=selector.NumberSelectorMode.BOX,
-            )
-        )
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(
-                    CONF_SYNC_STATE, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_COMMAND, default=False
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): pulse_duration_selector,
-                vol.Optional(CONF_BRIGHTNESS_STATE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_BRIGHTNESS_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_BRIGHTNESS_SCALE): brightness_scale_selector,
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_light_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="lights", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_LIGHTS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_lights()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="lights", data_schema=data_schema)
+        return await self._add_entity("lights", user_input)
 
     # ====== ADD: numbers ======
     async def async_step_numbers(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
-                vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
-                vol.Optional(CONF_MIN_VALUE): number_value_selector,
-                vol.Optional(CONF_MAX_VALUE): number_value_selector,
-                vol.Optional(CONF_STEP): positive_number_selector,
-                vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_number_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="numbers", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_NUMBERS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_numbers()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="numbers", data_schema=data_schema)
+        return await self._add_entity("numbers", user_input)
 
     # ====== ADD: texts ======
     async def async_step_texts(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_PATTERN): selector.TextSelector(),
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_text_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="texts", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_TEXTS].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_texts()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="texts", data_schema=data_schema)
+        return await self._add_entity("texts", user_input)
 
     # ====== ADD: climates ======
     async def async_step_climates(self, user_input: dict[str, Any] | None = None):
@@ -3027,176 +3488,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
     async def async_step_climates_direct(
         self, user_input: dict[str, Any] | None = None
     ):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_HEATING_OUTPUT_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COOLING_OUTPUT_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_HEATING_ACTION_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_COOLING_ACTION_ADDRESS): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_climate_direct_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="climates_direct", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_CLIMATES].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_climates_direct()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="climates_direct", data_schema=data_schema)
+        return await self._add_entity("climates_direct", user_input)
 
     # ====== ADD: climates_setpoint ======
     async def async_step_climates_setpoint(
         self, user_input: dict[str, Any] | None = None
     ):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_CURRENT_TEMPERATURE_ADDRESS): selector.TextSelector(),
-                vol.Required(CONF_TARGET_TEMPERATURE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_PRESET_MODE_ADDRESS): selector.TextSelector(),
-                vol.Optional(CONF_HVAC_STATUS_ADDRESS): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_climate_setpoint_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="climates_setpoint", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_CLIMATES].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_climates_setpoint()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(
-            step_id="climates_setpoint", data_schema=data_schema
-        )
+        return await self._add_entity("climates_setpoint", user_input)
 
     # ====== ADD: entity_sync ======
     async def async_step_entity_sync(self, user_input: dict[str, Any] | None = None):
-        errors: dict[str, str] = {}
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): selector.TextSelector(),
-                vol.Required(CONF_SOURCE_ENTITY): selector.EntitySelector(),
-                vol.Optional(CONF_NAME): selector.TextSelector(),
-                vol.Optional(CONF_AREA): self._get_area_selector(),
-                vol.Optional("add_another", default=False): selector.BooleanSelector(),
-            }
-        )
-
-        if user_input is not None:
-            item, errors = self._build_writer_item(user_input, skip_idx=None)
-
-            if errors:
-                return self.async_show_form(
-                    step_id="entity_sync", data_schema=data_schema, errors=errors
-                )
-
-            if item is not None:
-                self._options[CONF_ENTITY_SYNC].append(item)
-
-            if user_input.get("add_another"):
-                self._last_add_input = {
-                    k: v for k, v in user_input.items() if k != "add_another"
-                }
-                return await self.async_step_entity_sync()
-
-            return self.async_create_entry(title="", data=self._options)
-
-        if self._last_add_input is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, self._last_add_input
-            )
-            self._last_add_input = None
-        return self.async_show_form(step_id="entity_sync", data_schema=data_schema)
+        return await self._add_entity("entity_sync", user_input)
 
     # ====== EXPORT ======
     async def async_step_export(self, user_input: dict[str, Any] | None = None):
@@ -3379,30 +3681,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         self._action = "edit"
         self._edit_target = (prefix, idx)
 
-        if prefix == "s":
-            return await self.async_step_edit_sensor()
-        if prefix == "bs":
-            return await self.async_step_edit_binary_sensor()
-        if prefix == "sw":
-            return await self.async_step_edit_switch()
-        if prefix == "cv":
-            return await self.async_step_edit_cover()
-        if prefix == "cvp":
-            return await self.async_step_edit_cover_position()
-        if prefix == "bt":
-            return await self.async_step_edit_button()
-        if prefix == "lt":
-            return await self.async_step_edit_light()
-        if prefix == "nm":
-            return await self.async_step_edit_number()
-        if prefix == "tx":
-            return await self.async_step_edit_text()
-        if prefix == "cl_d":
-            return await self.async_step_edit_climate_direct()
-        if prefix == "cl_s":
-            return await self.async_step_edit_climate_setpoint()
-        if prefix == "wr":
-            return await self.async_step_edit_writer()
+        if prefix in ENTITY_TYPE_REGISTRY:
+            return await self._edit_entity_by_prefix(prefix)
 
         return await self.async_step_edit()
 
@@ -3419,766 +3699,47 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None
         return index, items[index]
 
-    # ====== EDIT: sensor ======
+    # ====== EDIT: entity steps (all delegated via registry) ======
     async def async_step_edit_sensor(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("s", user_input)
 
-            key_dc, val_dc = self._optional_field(
-                CONF_DEVICE_CLASS,
-                item,
-                sensor_device_class_selector,
-            )
-            schema_dict[key_dc] = val_dc
-
-            key_mul, val_mul = self._optional_field(
-                CONF_VALUE_MULTIPLIER, item, value_multiplier_selector
-            )
-            schema_dict[key_mul] = val_mul
-
-            key_unit, val_unit = self._optional_field(
-                CONF_UNIT_OF_MEASUREMENT,
-                item,
-                selector.TextSelector(),
-            )
-            schema_dict[key_unit] = val_unit
-
-            key_state, val_state = self._optional_field(
-                CONF_STATE_CLASS,
-                item,
-                state_class_selector,
-            )
-            schema_dict[key_state] = val_state
-
-            key_precision, val_precision = self._optional_field(
-                CONF_REAL_PRECISION, item, real_precision_selector
-            )
-            schema_dict[key_precision] = val_precision
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_sensor_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_SENSORS,
-            prefix="s",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_sensor",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: binary_sensor ======
     async def async_step_edit_binary_sensor(
         self, user_input: dict[str, Any] | None = None
     ):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("bs", user_input)
 
-            key_dc, val_dc = self._optional_field(
-                CONF_DEVICE_CLASS,
-                item,
-                binary_sensor_device_class_selector,
-            )
-            schema_dict[key_dc] = val_dc
-
-            schema_dict[
-                vol.Optional(
-                    CONF_INVERT_STATE, default=item.get(CONF_INVERT_STATE, False)
-                )
-            ] = selector.BooleanSelector()
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_binary_sensor_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_BINARY_SENSORS,
-            prefix="bs",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_binary_sensor",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: switch ======
     async def async_step_edit_switch(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_SYNC_STATE,
-                    default=bool(item.get(CONF_SYNC_STATE, False)),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_COMMAND,
-                    default=bool(item.get(CONF_PULSE_COMMAND, False)),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_DURATION,
-                    default=float(
-                        item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
-                    ),
-                ): pulse_duration_selector,
-            }
+        return await self._edit_entity_by_prefix("sw", user_input)
 
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_switch_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_SWITCHES,
-            prefix="sw",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_switch",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: cover ======
     async def async_step_edit_cover(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_OPEN_COMMAND_ADDRESS,
-                    default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Required(
-                    CONF_CLOSE_COMMAND_ADDRESS,
-                    default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_OPENING_STATE_ADDRESS,
-                    default=item.get(CONF_OPENING_STATE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_CLOSING_STATE_ADDRESS,
-                    default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("cv", user_input)
 
-            key_dc, val_dc = self._optional_field(
-                CONF_DEVICE_CLASS,
-                item,
-                cover_device_class_selector,
-            )
-            schema_dict[key_dc] = val_dc
-
-            schema_dict[
-                vol.Optional(
-                    CONF_OPERATE_TIME,
-                    default=float(item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)),
-                )
-            ] = operate_time_selector
-
-            schema_dict[
-                vol.Optional(
-                    CONF_USE_STATE_TOPICS,
-                    default=item.get(CONF_USE_STATE_TOPICS, DEFAULT_USE_STATE_TOPICS),
-                )
-            ] = selector.BooleanSelector()
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_cover_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_COVERS,
-            prefix="cv",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_cover",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: cover_position ======
     async def async_step_edit_cover_position(
         self, user_input: dict[str, Any] | None = None
     ):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_POSITION_STATE_ADDRESS,
-                    default=item.get(CONF_POSITION_STATE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_POSITION_COMMAND_ADDRESS,
-                    default=item.get(CONF_POSITION_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("cvp", user_input)
 
-            key_dc, val_dc = self._optional_field(
-                CONF_DEVICE_CLASS,
-                item,
-                cover_device_class_selector,
-            )
-            schema_dict[key_dc] = val_dc
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            schema_dict[
-                vol.Optional(
-                    CONF_INVERT_POSITION, default=item.get(CONF_INVERT_POSITION, False)
-                )
-            ] = selector.BooleanSelector()
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_cover_position_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_COVERS,
-            prefix="cvp",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_cover_position",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: button ======
     async def async_step_edit_button(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_BUTTON_PULSE,
-                    default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
-                ): pulse_duration_selector,
-            }
+        return await self._edit_entity_by_prefix("bt", user_input)
 
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_button_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_BUTTONS,
-            prefix="bt",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_button",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: light ======
     async def async_step_edit_light(self, user_input: dict[str, Any] | None = None):
-        brightness_scale_selector = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=1,
-                max=65535,
-                step=1,
-                mode=selector.NumberSelectorMode.BOX,
-            )
-        )
+        return await self._edit_entity_by_prefix("lt", user_input)
 
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_SYNC_STATE,
-                    default=bool(item.get(CONF_SYNC_STATE, False)),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_COMMAND,
-                    default=bool(item.get(CONF_PULSE_COMMAND, False)),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_PULSE_DURATION,
-                    default=item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION),
-                ): pulse_duration_selector,
-            }
-
-            key_bri_state, val_bri_state = self._optional_field(
-                CONF_BRIGHTNESS_STATE_ADDRESS, item, selector.TextSelector()
-            )
-            schema_dict[key_bri_state] = val_bri_state
-
-            key_bri_cmd, val_bri_cmd = self._optional_field(
-                CONF_BRIGHTNESS_COMMAND_ADDRESS, item, selector.TextSelector()
-            )
-            schema_dict[key_bri_cmd] = val_bri_cmd
-
-            key_brightness, val_brightness = self._optional_field(
-                CONF_BRIGHTNESS_SCALE, item, brightness_scale_selector
-            )
-            schema_dict[key_brightness] = val_brightness
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_light_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_LIGHTS,
-            prefix="lt",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_light",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: number ======
     async def async_step_edit_number(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("nm", user_input)
 
-            key_dc, val_dc = self._optional_field(
-                CONF_DEVICE_CLASS,
-                item,
-                number_device_class_selector,
-            )
-            schema_dict[key_dc] = val_dc
-
-            key_unit, val_unit = self._optional_field(
-                CONF_UNIT_OF_MEASUREMENT, item, selector.TextSelector()
-            )
-            schema_dict[key_unit] = val_unit
-
-            schema_dict.update(
-                {
-                    vol.Optional(
-                        CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-                    ): number_value_selector,
-                    vol.Optional(
-                        CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-                    ): number_value_selector,
-                }
-            )
-
-            key_step, val_step = self._optional_field(
-                CONF_STEP, item, positive_number_selector
-            )
-            schema_dict[key_step] = val_step
-
-            key_precision, val_precision = self._optional_field(
-                CONF_REAL_PRECISION, item, real_precision_selector
-            )
-            schema_dict[key_precision] = val_precision
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_number_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_NUMBERS,
-            prefix="nm",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_number",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: text ======
     async def async_step_edit_text(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COMMAND_ADDRESS,
-                    default=item.get(CONF_COMMAND_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("tx", user_input)
 
-            key_pattern, val_pattern = self._optional_field(
-                CONF_PATTERN, item, selector.TextSelector()
-            )
-            schema_dict[key_pattern] = val_pattern
-
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_text_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_TEXTS,
-            prefix="tx",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_text",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: climate_direct ======
     async def async_step_edit_climate_direct(
         self, user_input: dict[str, Any] | None = None
     ):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_CURRENT_TEMPERATURE_ADDRESS,
-                    default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_HEATING_OUTPUT_ADDRESS,
-                    default=item.get(CONF_HEATING_OUTPUT_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COOLING_OUTPUT_ADDRESS,
-                    default=item.get(CONF_COOLING_OUTPUT_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_HEATING_ACTION_ADDRESS,
-                    default=item.get(CONF_HEATING_ACTION_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_COOLING_ACTION_ADDRESS,
-                    default=item.get(CONF_COOLING_ACTION_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_TEMP,
-                    default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_MAX_TEMP,
-                    default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_TEMP_STEP,
-                    default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("cl_d", user_input)
 
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_climate_direct_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_CLIMATES,
-            prefix="cl_d",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_climate_direct",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: climate_setpoint ======
     async def async_step_edit_climate_setpoint(
         self, user_input: dict[str, Any] | None = None
     ):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_CURRENT_TEMPERATURE_ADDRESS,
-                    default=item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Required(
-                    CONF_TARGET_TEMPERATURE_ADDRESS,
-                    default=item.get(CONF_TARGET_TEMPERATURE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_PRESET_MODE_ADDRESS,
-                    default=item.get(CONF_PRESET_MODE_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_HVAC_STATUS_ADDRESS,
-                    default=item.get(CONF_HVAC_STATUS_ADDRESS, ""),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_MIN_TEMP,
-                    default=float(item.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_MAX_TEMP,
-                    default=float(item.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=-50, max=100, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_TEMP_STEP,
-                    default=float(item.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0.1, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
+        return await self._edit_entity_by_prefix("cl_s", user_input)
 
-            key_scan, val_scan = self._optional_field(
-                CONF_SCAN_INTERVAL, item, scan_interval_selector
-            )
-            schema_dict[key_scan] = val_scan
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_climate_setpoint_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_CLIMATES,
-            prefix="cl_s",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_climate_setpoint",
-            user_input=user_input,
-        )
-
-    # ====== EDIT: entity_sync ======
     async def async_step_edit_writer(self, user_input: dict[str, Any] | None = None):
-        def build_schema(item: dict[str, Any]) -> vol.Schema:
-
-            schema_dict: dict[Any, Any] = {
-                vol.Required(
-                    CONF_ADDRESS, default=item.get(CONF_ADDRESS, "")
-                ): selector.TextSelector(),
-                vol.Required(
-                    CONF_SOURCE_ENTITY, default=item.get(CONF_SOURCE_ENTITY, "")
-                ): selector.EntitySelector(),
-                vol.Optional(
-                    CONF_NAME, default=item.get(CONF_NAME, "")
-                ): selector.TextSelector(),
-            }
-
-            key_area, val_area = self._optional_field(
-                CONF_AREA, item, self._get_area_selector()
-            )
-            schema_dict[key_area] = val_area
-
-            return vol.Schema(schema_dict)
-
-        def process_input(
-            old_item: dict[str, Any],
-            idx: int,
-            inp: dict[str, Any],
-        ):
-            return self._build_writer_item(inp, skip_idx=idx)
-
-        return await self._edit_entity(
-            option_key=CONF_ENTITY_SYNC,
-            prefix="wr",
-            build_schema=build_schema,
-            process_input=process_input,
-            step_id="edit_writer",
-            user_input=user_input,
-        )
+        return await self._edit_entity_by_prefix("wr", user_input)
