@@ -314,7 +314,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # Record state
             self._last_health_ok = ok
-            self._last_health_latency = latency
+            self._last_health_latency = round(latency, 2)
             self._last_health_time = datetime.now()
 
             return {
@@ -677,7 +677,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 self._read_all, plans_batch, plans_str
             )
             # Update health: read succeeded
-            latency = time.monotonic() - start_time
+            latency = round(time.monotonic() - start_time, 2)
             self._last_health_ok = True
             self._last_health_latency = latency
             # Clear error info on success
@@ -685,7 +685,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             self._last_error_message = None
         except UpdateFailed:
             # Update health: read failed
-            latency = time.monotonic() - start_time
+            latency = round(time.monotonic() - start_time, 2)
             self._last_health_ok = False
             self._last_health_latency = latency
             raise

@@ -342,9 +342,6 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    # State class is set to MEASUREMENT for numeric syncs,
-    # but left as None for binary syncs to allow on/off states.
-
     def __init__(
         self,
         coordinator,
@@ -381,6 +378,8 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         # Detect if this is a binary entity sync (BIT address)
         self._is_binary = self._data_type == DataType.BIT
 
+        # State class is set to MEASUREMENT for numeric syncs,
+        # but left as None for binary syncs to allow on/off states.
         if not self._is_binary:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
