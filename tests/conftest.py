@@ -402,7 +402,11 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
 
     def async_write_ha_state(self):
         self._ha_state_calls += 1
-    
+
+    def _handle_coordinator_update(self):
+        """Handle updated data from the coordinator."""
+        self.async_write_ha_state()
+
     async def async_added_to_hass(self):
         """Called when entity is added to hass."""
         pass

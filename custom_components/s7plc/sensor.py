@@ -410,10 +410,22 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             )
         )
 
-        # Write initial value
-        source_state = self.hass.states.get(self._source_entity)
-        if source_state is not None:
-            await self._async_write_to_plc(source_state)
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """React to coordinator data updates.
+
+        On each coordinator poll, if we never managed to write the initial
+        source-entity value (e.g. PLC was not connected at startup), retry.
+        Once _last_written_value is set this check becomes a no-op.
+        """
+        if self._last_written_value is None and self.coordinator.is_connected():
+            source_state = self.hass.states.get(self._source_entity)
+            if source_state is not None and source_state.state not in (
+                "unknown",
+                "unavailable",
+            ):
+                self.hass.async_create_task(self._async_write_to_plc(source_state))
+        super()._handle_coordinator_update()
 
     async def _async_write_to_plc(self, source_state: State) -> None:
         """Write value to PLC."""

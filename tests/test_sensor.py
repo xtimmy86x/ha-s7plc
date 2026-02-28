@@ -732,3 +732,102 @@ def test_entity_sync_available(entity_sync_factory):
 
     coord.set_connected(False)
     assert entity_sync.available is False
+
+
+# ============================================================================
+# S7EntitySync – initial sync & coordinator-update retry
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_coordinator_update_writes_initial_value(entity_sync_factory):
+    """Coordinator update writes initial value when PLC becomes connected."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=True)
+    es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
+
+    mock_state = State("sensor.test", "10.0")
+    es.hass.states.get = MagicMock(return_value=mock_state)
+
+    # Collect tasks created by _handle_coordinator_update
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+
+    es._handle_coordinator_update()
+
+    # Should have scheduled a write task
+    assert len(created_tasks) == 1
+
+    # Execute the scheduled coroutine
+    await created_tasks[0]
+
+    assert len(coord.write_calls) == 1
+    assert coord.write_calls[0] == ("write_batched", "db1,r0", 10.0)
+    assert es._last_written_value == 10.0
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_coordinator_update_no_retry_when_already_written(entity_sync_factory):
+    """Coordinator update does NOT retry when value was already written."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=True)
+    es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
+
+    # Simulate a previous successful write
+    es._last_written_value = 10.0
+
+    mock_state = State("sensor.test", "10.0")
+    es.hass.states.get = MagicMock(return_value=mock_state)
+
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+
+    es._handle_coordinator_update()
+
+    # No retry should be scheduled
+    assert len(created_tasks) == 0
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_coordinator_update_no_retry_when_disconnected(entity_sync_factory):
+    """Coordinator update does NOT retry when still disconnected."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=False)
+    es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
+
+    mock_state = State("sensor.test", "10.0")
+    es.hass.states.get = MagicMock(return_value=mock_state)
+
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+
+    es._handle_coordinator_update()
+
+    assert len(created_tasks) == 0
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_coordinator_update_skips_unavailable(entity_sync_factory):
+    """Coordinator update skips retry when source entity is unavailable."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=True)
+    es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
+
+    mock_state = State("sensor.test", "unavailable")
+    es.hass.states.get = MagicMock(return_value=mock_state)
+
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+
+    es._handle_coordinator_update()
+
+    assert len(created_tasks) == 0
+    assert es._error_count == 0
