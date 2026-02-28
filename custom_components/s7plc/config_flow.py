@@ -1207,6 +1207,43 @@ def _sanitize_connection_params(
     return scan_s, op_timeout, max_retries, backoff_initial, backoff_max
 
 
+def _build_connection_parse_defaults(
+    connection_type: str,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build parsing defaults for connection parameters."""
+    source = data or {}
+
+    defaults: dict[str, Any] = {
+        CONF_PORT: int(source.get(CONF_PORT, DEFAULT_PORT)),
+        CONF_PYS7_CONNECTION_TYPE: source.get(
+            CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
+        ),
+        CONF_SCAN_INTERVAL: float(
+            source.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        ),
+        CONF_OP_TIMEOUT: float(source.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT)),
+        CONF_MAX_RETRIES: int(source.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES)),
+        CONF_BACKOFF_INITIAL: float(
+            source.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
+        ),
+        CONF_BACKOFF_MAX: float(source.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX)),
+        CONF_OPTIMIZE_READ: bool(source.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)),
+        CONF_ENABLE_WRITE_BATCHING: bool(
+            source.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
+        ),
+    }
+
+    if connection_type == CONNECTION_TYPE_TSAP:
+        defaults[CONF_LOCAL_TSAP] = source.get(CONF_LOCAL_TSAP, "01.00")
+        defaults[CONF_REMOTE_TSAP] = source.get(CONF_REMOTE_TSAP, "01.01")
+    else:
+        defaults[CONF_RACK] = int(source.get(CONF_RACK, DEFAULT_RACK))
+        defaults[CONF_SLOT] = int(source.get(CONF_SLOT, DEFAULT_SLOT))
+
+    return defaults
+
+
 @dataclass(frozen=True, slots=True)
 class ParsedConnectionParams:
     """Parsed and sanitized connection-related parameters."""
@@ -1622,24 +1659,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         connection_type = self._connection_data.get(
             CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT
         )
-
-        parse_defaults: dict[str, Any] = {
-            CONF_PORT: DEFAULT_PORT,
-            CONF_PYS7_CONNECTION_TYPE: DEFAULT_PYS7_CONNECTION_TYPE,
-            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-            CONF_OP_TIMEOUT: DEFAULT_OP_TIMEOUT,
-            CONF_MAX_RETRIES: DEFAULT_MAX_RETRIES,
-            CONF_BACKOFF_INITIAL: DEFAULT_BACKOFF_INITIAL,
-            CONF_BACKOFF_MAX: DEFAULT_BACKOFF_MAX,
-            CONF_OPTIMIZE_READ: DEFAULT_OPTIMIZE_READ,
-            CONF_ENABLE_WRITE_BATCHING: DEFAULT_ENABLE_WRITE_BATCHING,
-        }
-        if connection_type == CONNECTION_TYPE_TSAP:
-            parse_defaults[CONF_LOCAL_TSAP] = "01.00"
-            parse_defaults[CONF_REMOTE_TSAP] = "01.01"
-        else:
-            parse_defaults[CONF_RACK] = DEFAULT_RACK
-            parse_defaults[CONF_SLOT] = DEFAULT_SLOT
+        parse_defaults = _build_connection_parse_defaults(connection_type)
 
         try:
             host = user_input[CONF_HOST]
@@ -3140,38 +3160,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Determine connection type from existing data
         connection_type = data.get(CONF_CONNECTION_TYPE, CONNECTION_TYPE_RACK_SLOT)
         is_tsap = connection_type == CONNECTION_TYPE_TSAP
+        parse_defaults = _build_connection_parse_defaults(connection_type, data)
 
         defaults = {
             CONF_NAME: data.get(CONF_NAME) or self._config_entry.title or "S7 PLC",
             CONF_HOST: data.get(CONF_HOST, ""),
-            CONF_PORT: int(data.get(CONF_PORT, DEFAULT_PORT)),
-            CONF_SCAN_INTERVAL: float(
-                data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-            ),
-            CONF_OP_TIMEOUT: float(data.get(CONF_OP_TIMEOUT, DEFAULT_OP_TIMEOUT)),
-            CONF_MAX_RETRIES: int(data.get(CONF_MAX_RETRIES, DEFAULT_MAX_RETRIES)),
-            CONF_BACKOFF_INITIAL: float(
-                data.get(CONF_BACKOFF_INITIAL, DEFAULT_BACKOFF_INITIAL)
-            ),
-            CONF_BACKOFF_MAX: float(data.get(CONF_BACKOFF_MAX, DEFAULT_BACKOFF_MAX)),
-            CONF_ENABLE_WRITE_BATCHING: bool(
-                data.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
-            ),
-            CONF_OPTIMIZE_READ: bool(
-                data.get(CONF_OPTIMIZE_READ, DEFAULT_OPTIMIZE_READ)
-            ),
-            CONF_PYS7_CONNECTION_TYPE: data.get(
-                CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
-            ),
+            **parse_defaults,
         }
-
-        # Add connection-specific defaults
-        if is_tsap:
-            defaults[CONF_LOCAL_TSAP] = data.get(CONF_LOCAL_TSAP, "01.00")
-            defaults[CONF_REMOTE_TSAP] = data.get(CONF_REMOTE_TSAP, "01.01")
-        else:
-            defaults[CONF_RACK] = int(data.get(CONF_RACK, DEFAULT_RACK))
-            defaults[CONF_SLOT] = int(data.get(CONF_SLOT, DEFAULT_SLOT))
 
         # Build schema based on connection type
         schema_fields = {
@@ -3261,8 +3256,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 data_schema=data_schema,
                 description_placeholders=description_placeholders,
             )
-
-        parse_defaults = dict(defaults)
 
         try:
             host = str(user_input[CONF_HOST]).strip()
