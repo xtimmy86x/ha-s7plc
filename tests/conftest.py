@@ -1081,7 +1081,7 @@ class DummyCoordinator:
         self._connected = kwargs.pop("connected", True)
         self.connection_type = kwargs.pop("connection_type", "rack_slot")
         self.pys7_connection_type = kwargs.pop("pys7_connection_type", "pg")
-        self._pys7_connection_type_str = self.pys7_connection_type
+        self.pys7_connection_type_str = self.pys7_connection_type
         
         # Store or pop all other coordinator parameters
         self.hass = kwargs.pop("hass", None) or (args[0] if args else None)

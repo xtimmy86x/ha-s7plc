@@ -209,7 +209,7 @@ def test_plc_connection_sensor_extra_attributes_tsap(device_info):
     coord.remote_tsap = "01.01"
     coord.rack = None
     coord.slot = None
-    coord._pys7_connection_type_str = "pg"
+    coord.pys7_connection_type_str = "pg"
     coord.last_health_ok = False
     coord.last_health_latency = 1.5
     coord.last_error_category = None
@@ -238,7 +238,7 @@ def test_plc_connection_sensor_error_attributes(device_info):
     coord.connection_type = "rack_slot"
     coord.rack = 0
     coord.slot = 1
-    coord._pys7_connection_type_str = "pg"
+    coord.pys7_connection_type_str = "pg"
     coord.last_health_ok = False
     coord.last_health_latency = 2.5
     coord.last_error_category = "s7_communication"

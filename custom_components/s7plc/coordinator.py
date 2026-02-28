@@ -132,6 +132,11 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """IP/hostname of the associated PLC."""
         return self._host
 
+    @property
+    def pys7_connection_type_str(self) -> str:
+        """Return the pyS7 connection type string (e.g. 'pg', 'op', 's7basic')."""
+        return self._pys7_connection_type_str
+
     def _get_connection_type_enum(self, connection_type_str: str) -> Any | None:
         """Convert string connection type to pyS7 ConnectionType enum.
 
