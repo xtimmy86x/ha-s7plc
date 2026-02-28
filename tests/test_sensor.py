@@ -634,12 +634,56 @@ async def test_entity_sync_numeric_invalid_state(entity_sync_factory):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("state_str,expected_bool,expected_value", [
+    # Basic boolean
     ("on", True, 1.0),
     ("off", False, 0.0),
     ("true", True, 1.0),
     ("false", False, 0.0),
     ("1", True, 1.0),
     ("0", False, 0.0),
+    ("yes", True, 1.0),
+    ("no", False, 0.0),
+    # Cover states
+    ("open", True, 1.0),
+    ("opening", True, 1.0),
+    ("closed", False, 0.0),
+    ("closing", False, 0.0),
+    # Lock states
+    ("unlocked", True, 1.0),
+    ("unlocking", True, 1.0),
+    ("locked", False, 0.0),
+    ("locking", False, 0.0),
+    ("jammed", False, 0.0),
+    # Alarm control panel states
+    ("armed_home", True, 1.0),
+    ("armed_away", True, 1.0),
+    ("armed_night", True, 1.0),
+    ("armed_vacation", True, 1.0),
+    ("armed_custom_bypass", True, 1.0),
+    ("arming", True, 1.0),
+    ("triggered", True, 1.0),
+    ("pending", True, 1.0),
+    ("disarmed", False, 0.0),
+    # Person / device_tracker states
+    ("home", True, 1.0),
+    ("not_home", False, 0.0),
+    # Vacuum states
+    ("cleaning", True, 1.0),
+    ("returning", True, 1.0),
+    ("docked", False, 0.0),
+    ("idle", False, 0.0),
+    ("paused", False, 0.0),
+    ("error", False, 0.0),
+    # Media player states
+    ("playing", True, 1.0),
+    ("buffering", True, 1.0),
+    ("standby", False, 0.0),
+    # Sun states
+    ("above_horizon", True, 1.0),
+    ("below_horizon", False, 0.0),
+    # Generic states
+    ("active", True, 1.0),
+    ("inactive", False, 0.0),
 ])
 async def test_entity_sync_binary_write_states(
     entity_sync_factory, state_str, expected_bool, expected_value
