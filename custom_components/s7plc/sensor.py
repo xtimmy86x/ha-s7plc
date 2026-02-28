@@ -382,8 +382,6 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             self._data_type = None
 
         # Detect if this is a binary entity sync (BIT address)
-        from .address import DataType
-
         self._is_binary = self._data_type == DataType.BIT
 
         if not self._is_binary:
@@ -435,12 +433,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             else str(source_state.state)
         )
 
-        # Check if this is a BIT address
-        from .address import DataType
-
-        is_bit_address = self._data_type == DataType.BIT
-
-        if is_bit_address:
+        if self._is_binary:
             # Handle boolean/binary states for BIT addresses
             bool_value = None
 
