@@ -319,24 +319,11 @@ async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) ->
 
     # Update areas in entity registry
     for unique_id, area_id in entity_areas.items():
-        entity_entry = entity_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
-        if not entity_entry:
-            # Try other platforms
-            for platform in [
-                "binary_sensor",
-                "switch",
-                "cover",
-                "button",
-                "light",
-                "number",
-                "text",
-                "climate",
-            ]:
-                entity_entry = entity_reg.async_get_entity_id(
-                    platform, DOMAIN, unique_id
-                )
-                if entity_entry:
-                    break
+        entity_entry = None
+        for platform in PLATFORMS:
+            entity_entry = entity_reg.async_get_entity_id(platform, DOMAIN, unique_id)
+            if entity_entry:
+                break
 
         if entity_entry:
             entity_reg.async_update_entity(entity_entry, area_id=area_id)
