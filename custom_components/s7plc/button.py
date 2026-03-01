@@ -9,13 +9,15 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_ADDRESS, CONF_AREA, CONF_BUTTON_PULSE, CONF_BUTTONS
-from .entity import S7BaseEntity
-from .helpers import (
-    default_entity_name,
-    get_coordinator_and_device_info,
-    parse_pulse_duration,
+from .const import (
+    CONF_ADDRESS,
+    CONF_AREA,
+    CONF_BUTTON_PULSE,
+    CONF_BUTTONS,
+    DEFAULT_PULSE_DURATION,
 )
+from .entity import S7BaseEntity
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 PARALLEL_UPDATES = 1
 
@@ -36,7 +38,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         unique_id = f"{device_id}:button:{address}"
-        button_pulse = parse_pulse_duration(item.get(CONF_BUTTON_PULSE))
+        button_pulse = item.get(CONF_BUTTON_PULSE, DEFAULT_PULSE_DURATION)
         entities.append(
             S7Button(coord, name, unique_id, device_info, address, button_pulse, area)
         )

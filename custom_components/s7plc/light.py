@@ -24,11 +24,7 @@ from .const import (
     DEFAULT_PULSE_DURATION,
 )
 from .entity import S7BoolSyncEntity
-from .helpers import (
-    default_entity_name,
-    get_coordinator_and_device_info,
-    parse_pulse_duration,
-)
+from .helpers import default_entity_name, get_coordinator_and_device_info
 
 PARALLEL_UPDATES = 1
 
@@ -49,7 +45,7 @@ async def async_setup_entry(
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
         pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
-        pulse_duration = parse_pulse_duration(item.get(CONF_PULSE_DURATION))
+        pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
 
         brightness_scale = item.get(CONF_BRIGHTNESS_SCALE)
         brightness_state_address = item.get(CONF_BRIGHTNESS_STATE_ADDRESS)

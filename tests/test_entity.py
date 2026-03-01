@@ -401,7 +401,7 @@ async def test_number_setup_entry_generates_name_from_address(mock_coordinator, 
 
 @pytest.mark.asyncio
 async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dummy_entry, monkeypatch):
-    """Test button setup entry parses pulse configuration."""
+    """Test button setup entry uses pulse configuration from config flow."""
     coord = mock_coordinator
 
     def fake_get_coordinator_and_device_info(entry_in):
@@ -412,13 +412,13 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
         fake_get_coordinator_and_device_info,
     )
 
+    # Config flow already validates values; entities receive clean data
     entry = dummy_entry(
         options={
             CONF_BUTTONS: [
-                {CONF_ADDRESS: "db1,x0.0", CONF_BUTTON_PULSE: "2"},
-                {CONF_ADDRESS: "db1,x0.1", CONF_BUTTON_PULSE: -1},     # invalid -> default
-                {CONF_ADDRESS: "db1,x0.2", CONF_BUTTON_PULSE: "bad"},  # invalid -> default
-                {CONF_ADDRESS: "db1,x0.3"},                             # missing -> default
+                {CONF_ADDRESS: "db1,x0.0", CONF_BUTTON_PULSE: 2.0},
+                {CONF_ADDRESS: "db1,x0.1", CONF_BUTTON_PULSE: 0.3},
+                {CONF_ADDRESS: "db1,x0.2"},  # missing -> default
             ]
         }
     )
@@ -430,9 +430,8 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
 
     await button_setup_entry(fake_hass, entry, fake_async_add_entities)
 
-    assert len(added) == 4
+    assert len(added) == 3
     pulses = [e._button_pulse for e in added]
-    assert pulses[0] == 2
-    assert pulses[1] == DEFAULT_PULSE_DURATION
+    assert pulses[0] == 2.0
+    assert pulses[1] == 0.3
     assert pulses[2] == DEFAULT_PULSE_DURATION
-    assert pulses[3] == DEFAULT_PULSE_DURATION
