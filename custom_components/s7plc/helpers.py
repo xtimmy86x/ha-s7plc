@@ -32,6 +32,7 @@ from .const import (
     CONF_TEXTS,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
+    DEFAULT_PULSE_DURATION,
     DOMAIN,
 )
 
@@ -83,6 +84,23 @@ def default_entity_name(address: str | None) -> str | None:
         return humanized.upper()
 
     return None
+
+
+def parse_pulse_duration(value: Any | None) -> float:
+    """Parse and validate a pulse duration value.
+
+    Returns *DEFAULT_PULSE_DURATION* when the value is ``None``, empty,
+    non-numeric or outside the valid range (0.1 – 60 s).
+    """
+    if value in (None, ""):
+        return DEFAULT_PULSE_DURATION
+    try:
+        pulse = float(value)
+    except (TypeError, ValueError):
+        return DEFAULT_PULSE_DURATION
+    if pulse < 0.1 or pulse > 60:
+        return DEFAULT_PULSE_DURATION
+    return round(pulse, 1)
 
 
 # ---------------------------------------------------------------------------

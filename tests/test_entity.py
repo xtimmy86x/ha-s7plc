@@ -16,7 +16,7 @@ from custom_components.s7plc.const import (
     CONF_BUTTONS,
     CONF_BUTTON_PULSE,
     CONF_NUMBERS,
-    DEFAULT_BUTTON_PULSE,
+    DEFAULT_PULSE_DURATION,
 )
 
 
@@ -433,6 +433,6 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
     assert len(added) == 4
     pulses = [e._button_pulse for e in added]
     assert pulses[0] == 2
-    assert pulses[1] == DEFAULT_BUTTON_PULSE
-    assert pulses[2] == DEFAULT_BUTTON_PULSE
-    assert pulses[3] == DEFAULT_BUTTON_PULSE
+    assert pulses[1] == DEFAULT_PULSE_DURATION
+    assert pulses[2] == DEFAULT_PULSE_DURATION
+    assert pulses[3] == DEFAULT_PULSE_DURATION

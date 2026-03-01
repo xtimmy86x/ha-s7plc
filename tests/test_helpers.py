@@ -7,8 +7,9 @@ from custom_components.s7plc.helpers import (
     build_expected_unique_ids,
     get_coordinator_and_device_info,
     default_entity_name,
+    parse_pulse_duration,
 )
-from custom_components.s7plc.const import DOMAIN
+from custom_components.s7plc.const import DEFAULT_PULSE_DURATION, DOMAIN
 
 
 def test_default_entity_name_basic():
@@ -188,3 +189,44 @@ def test_build_entity_area_map():
     assert area_map["dev:sensor:DB1,REAL0"] == "kitchen"
     assert area_map["dev:binary_sensor:DB1,X0.0"] is None
     assert area_map["dev:light:DB1,X1.0"] == "bedroom"
+
+
+# ---------------------------------------------------------------------------
+# parse_pulse_duration
+# ---------------------------------------------------------------------------
+
+
+def test_parse_pulse_duration_none_returns_default():
+    assert parse_pulse_duration(None) == DEFAULT_PULSE_DURATION
+
+
+def test_parse_pulse_duration_empty_string_returns_default():
+    assert parse_pulse_duration("") == DEFAULT_PULSE_DURATION
+
+
+def test_parse_pulse_duration_valid_float():
+    assert parse_pulse_duration(1.5) == 1.5
+    assert parse_pulse_duration("2.3") == 2.3
+
+
+def test_parse_pulse_duration_rounds_to_one_decimal():
+    assert parse_pulse_duration(1.55) == 1.6
+    assert parse_pulse_duration("0.123") == 0.1
+
+
+def test_parse_pulse_duration_below_min_returns_default():
+    assert parse_pulse_duration(0.05) == DEFAULT_PULSE_DURATION
+
+
+def test_parse_pulse_duration_above_max_returns_default():
+    assert parse_pulse_duration(61) == DEFAULT_PULSE_DURATION
+
+
+def test_parse_pulse_duration_boundaries():
+    assert parse_pulse_duration(0.1) == 0.1
+    assert parse_pulse_duration(60) == 60
+
+
+def test_parse_pulse_duration_non_numeric_returns_default():
+    assert parse_pulse_duration("abc") == DEFAULT_PULSE_DURATION
+    assert parse_pulse_duration(object()) == DEFAULT_PULSE_DURATION

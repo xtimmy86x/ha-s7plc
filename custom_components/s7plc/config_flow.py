@@ -110,7 +110,6 @@ from .const import (
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BRIGHTNESS_SCALE,
-    DEFAULT_BUTTON_PULSE,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
     DEFAULT_MAX_TEMP,
@@ -134,6 +133,7 @@ from .const import (
 )
 from .coordinator import S7Coordinator
 from .export import build_export_json, build_export_payload, register_export_download
+from .helpers import parse_pulse_duration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -414,7 +414,7 @@ def _add_schema_button(flow) -> vol.Schema:
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional(
-                CONF_BUTTON_PULSE, default=DEFAULT_BUTTON_PULSE
+                CONF_BUTTON_PULSE, default=DEFAULT_PULSE_DURATION
             ): pulse_duration_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
         }
@@ -714,7 +714,7 @@ def _edit_schema_button(flow, item: dict[str, Any]) -> vol.Schema:
         ): selector.TextSelector(),
         vol.Optional(
             CONF_BUTTON_PULSE,
-            default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_BUTTON_PULSE)),
+            default=float(item.get(CONF_BUTTON_PULSE, DEFAULT_PULSE_DURATION)),
         ): pulse_duration_selector,
     }
     k, v = flow._optional_field(CONF_AREA, item, flow._get_area_selector())
@@ -1959,30 +1959,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         return precision
 
     @staticmethod
-    def _sanitize_button_pulse(value: Any | None) -> float:
-        if value in (None, ""):
-            return DEFAULT_BUTTON_PULSE
-        try:
-            pulse = float(value)
-        except (TypeError, ValueError):
-            return DEFAULT_BUTTON_PULSE
-        if pulse < 0 or pulse > 60:
-            return DEFAULT_BUTTON_PULSE
-        return round(pulse, 1)
-
-    @staticmethod
-    def _sanitize_pulse_duration(value: Any | None) -> float:
-        if value in (None, ""):
-            return DEFAULT_PULSE_DURATION
-        try:
-            pulse = float(value)
-        except (TypeError, ValueError):
-            return DEFAULT_PULSE_DURATION
-        if pulse < 0.1 or pulse > 60:
-            return DEFAULT_PULSE_DURATION
-        return round(pulse, 1)
-
-    @staticmethod
     def _apply_real_precision(item: dict[str, Any], value: Any | None) -> None:
         normalized = S7PLCOptionsFlow._normalize_real_precision(value)
         if normalized is None:
@@ -2331,9 +2307,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         # Add pulse duration only if pulse command is enabled
         if pulse_command:
-            pulse_duration = self._sanitize_pulse_duration(
-                user_input.get(CONF_PULSE_DURATION)
-            )
+            pulse_duration = parse_pulse_duration(user_input.get(CONF_PULSE_DURATION))
 
             if pulse_duration is not None:
                 item[CONF_PULSE_DURATION] = pulse_duration
@@ -2496,7 +2470,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         item = self._build_base_item(address, user_input, CONF_NAME, CONF_AREA)
 
         # Add button-specific fields
-        button_pulse = self._sanitize_button_pulse(user_input.get(CONF_BUTTON_PULSE))
+        button_pulse = parse_pulse_duration(user_input.get(CONF_BUTTON_PULSE))
         item[CONF_BUTTON_PULSE] = button_pulse
 
         return item, {}
@@ -2553,9 +2527,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         # Add pulse duration only if pulse command is enabled
         if pulse_command:
-            pulse_duration = self._sanitize_pulse_duration(
-                user_input.get(CONF_PULSE_DURATION)
-            )
+            pulse_duration = parse_pulse_duration(user_input.get(CONF_PULSE_DURATION))
 
             if pulse_duration is not None:
                 item[CONF_PULSE_DURATION] = pulse_duration
