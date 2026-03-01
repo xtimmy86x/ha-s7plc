@@ -4,17 +4,30 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_BINARY_SENSORS,
     CONF_BUTTONS,
     CONF_LIGHTS,
+    CONF_LOCAL_TSAP,
     CONF_RACK,
+    CONF_REMOTE_TSAP,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_SWITCHES,
+)
+
+TO_REDACT: frozenset[str] = frozenset(
+    {
+        CONF_HOST,
+        CONF_PORT,
+        CONF_LOCAL_TSAP,
+        CONF_REMOTE_TSAP,
+    }
 )
 
 
@@ -39,8 +52,8 @@ async def async_get_config_entry_diagnostics(
     entry_data = {
         "entry_id": entry.entry_id,
         "title": entry.title,
-        "data": dict(entry.data),
-        "options": dict(entry.options),
+        "data": async_redact_data(entry.data, TO_REDACT),
+        "options": async_redact_data(entry.options, TO_REDACT),
     }
 
     diagnostics: dict[str, Any] = {
@@ -55,11 +68,14 @@ async def async_get_config_entry_diagnostics(
     coordinator = runtime_data.coordinator
 
     runtime_info: dict[str, Any] = {
-        "device": {
-            "name": runtime_data.name,
-            "device_id": runtime_data.device_id,
-            "host": runtime_data.host,
-        },
+        "device": async_redact_data(
+            {
+                "name": runtime_data.name,
+                "device_id": runtime_data.device_id,
+                CONF_HOST: runtime_data.host,
+            },
+            TO_REDACT,
+        ),
     }
 
     if coordinator is not None:

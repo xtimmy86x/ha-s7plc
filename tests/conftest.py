@@ -701,6 +701,25 @@ repairs.RepairsFlow = RepairsFlow
 sys.modules["homeassistant.components.repairs"] = repairs
 components.repairs = repairs
 
+# diagnostics component
+diagnostics = ModuleType("homeassistant.components.diagnostics")
+
+
+def async_redact_data(data: Any, to_redact: set) -> Any:
+    """Stub for async_redact_data that redacts keys matching to_redact."""
+    if isinstance(data, dict):
+        return {
+            k: "**REDACTED**" if k in to_redact else async_redact_data(v, to_redact)
+            for k, v in data.items()
+        }
+    if isinstance(data, list):
+        return [async_redact_data(v, to_redact) for v in data]
+    return data
+
+
+diagnostics.async_redact_data = async_redact_data
+sys.modules["homeassistant.components.diagnostics"] = diagnostics
+components.diagnostics = diagnostics
 
 class BinarySensorDeviceClass(Enum):  # pragma: no cover - simple stub
     DOOR = "door"

@@ -124,12 +124,14 @@ async def test_diagnostics_with_coordinator():
     # Verify config entry data
     assert result["config_entry"]["entry_id"] == "test-entry"
     assert result["config_entry"]["title"] == "Test PLC"
+    assert result["config_entry"]["data"]["host"] == "**REDACTED**"
+    assert result["config_entry"]["data"]["rack"] == 0
     
     # Verify runtime data
     assert "runtime" in result
     assert result["runtime"]["device"]["name"] == "Test PLC"
     assert result["runtime"]["device"]["device_id"] == "test-device"
-    assert result["runtime"]["device"]["host"] == "192.168.1.1"
+    assert result["runtime"]["device"]["host"] == "**REDACTED**"
     
     # Verify coordinator data
     coordinator_info = result["runtime"]["coordinator"]
