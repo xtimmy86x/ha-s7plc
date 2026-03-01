@@ -414,136 +414,104 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
     async def _async_write_to_plc(self, source_state: State) -> None:
         """Write value to PLC."""
+        # --- value conversion (only part that differs) ---
+        if self._is_binary:
+            value = self._parse_binary_value(source_state)
+        else:
+            value = self._parse_numeric_value(source_state)
+
+        if value is None:
+            self._error_count += 1
+            self.async_write_ha_state()
+            return
+
+        # --- common write path ---
+        if not self.coordinator.is_connected():
+            _LOGGER.debug(
+                "EntitySync %s: Cannot write, coordinator not connected", self.name
+            )
+            self._error_count += 1
+            self.async_write_ha_state()
+            return
+
+        try:
+            await self.coordinator.write_batched(self._address, value)
+            success = True
+        except HomeAssistantError:
+            success = False
+
+        _LOGGER.debug(
+            "EntitySync %s: Write attempt of %s to %s returned %s",
+            self.name,
+            value,
+            self._address,
+            success,
+        )
+
+        if success:
+            self._last_written_value = (
+                (1.0 if value else 0.0) if self._is_binary else value
+            )
+            self._write_count += 1
+            _LOGGER.debug(
+                "EntitySync %s: Successfully wrote %s to %s",
+                self.name,
+                value,
+                self._address,
+            )
+        else:
+            self._error_count += 1
+            _LOGGER.error(
+                "EntitySync %s: Failed to write %s to %s",
+                self.name,
+                value,
+                self._address,
+            )
+
+        self.async_write_ha_state()
+
+    def _parse_binary_value(self, source_state: State) -> bool | None:
+        """Parse a HA state to boolean for BIT addresses.
+
+        Returns None when the state cannot be converted.
+        """
         state_str = (
             source_state.state.lower()
             if isinstance(source_state.state, str)
             else str(source_state.state)
         )
 
-        if self._is_binary:
-            # Handle boolean/binary states for BIT addresses
-            bool_value = None
+        if state_str in _TRUE_STATES:
+            return True
+        if state_str in _FALSE_STATES:
+            return False
 
-            # Try to parse as boolean — covers many HA entity domains
-            if state_str in _TRUE_STATES:
-                bool_value = True
-            elif state_str in _FALSE_STATES:
-                bool_value = False
-            else:
-                # Try numeric conversion for BIT (0 or 1)
-                try:
-                    num_value = float(source_state.state)
-                    bool_value = bool(num_value)
-                except (ValueError, TypeError):
-                    _LOGGER.warning(
-                        "Cannot convert source entity %s state '%s' to "
-                        "boolean value for BIT address",
-                        self._source_entity,
-                        source_state.state,
-                    )
-                    self._error_count += 1
-                    self.async_write_ha_state()
-                    return
-
-            # Check if coordinator is connected
-            if not self.coordinator.is_connected():
-                _LOGGER.debug(
-                    "EntitySync %s: Cannot write, coordinator not connected", self.name
-                )
-                self._error_count += 1
-                self.async_write_ha_state()
-                return
-
-            # Write boolean to PLC
-            try:
-                await self.coordinator.write_batched(self._address, bool_value)
-                success = True
-            except HomeAssistantError:
-                success = False
-
-            _LOGGER.debug(
-                "EntitySync %s: Write attempt of boolean value %s to %s returned %s",
-                self.name,
-                bool_value,
-                self._address,
-                success,
+        # Try numeric conversion for BIT (0 or 1)
+        try:
+            return bool(float(source_state.state))
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "Cannot convert source entity %s state '%s' to "
+                "boolean value for BIT address",
+                self._source_entity,
+                source_state.state,
             )
+            return None
 
-            if success:
-                self._last_written_value = 1.0 if bool_value else 0.0
-                self._write_count += 1
-                _LOGGER.debug(
-                    "EntitySync %s: Successfully wrote boolean value %s to %s",
-                    self.name,
-                    bool_value,
-                    self._address,
-                )
-            else:
-                self._error_count += 1
-                _LOGGER.error(
-                    "EntitySync %s: Failed to write boolean value %s to %s",
-                    self.name,
-                    bool_value,
-                    self._address,
-                )
-        else:
-            # Handle numeric values for non-BIT addresses
-            try:
-                # Get numeric value from state
-                value = float(source_state.state)
-            except (ValueError, TypeError):
-                _LOGGER.warning(
-                    "Cannot convert source entity %s state '%s' to numeric value",
-                    self._source_entity,
-                    source_state.state,
-                )
-                self._error_count += 1
-                self.async_write_ha_state()
-                return
+    def _parse_numeric_value(self, source_state: State) -> float | None:
+        """Parse a HA state to float for non-BIT addresses.
 
-            # Check if coordinator is connected
-            if not self.coordinator.is_connected():
-                _LOGGER.debug(
-                    "EntitySync %s: Cannot write, coordinator not connected", self.name
-                )
-                self._error_count += 1
-                self.async_write_ha_state()
-                return
-
-            # Write to PLC
-            try:
-                await self.coordinator.write_batched(self._address, value)
-                success = True
-            except HomeAssistantError:
-                success = False
-
-            _LOGGER.debug(
-                "EntitySync %s: Write attempt of value %.2f to %s returned %s",
-                self.name,
-                value,
-                self._address,
-                success,
+        Returns None when the state cannot be converted.
+        """
+        try:
+            return float(source_state.state)
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "Cannot convert source entity %s state '%s' to numeric value",
+                self._source_entity,
+                source_state.state,
             )
-
-            if success:
-                self._last_written_value = value
-                self._write_count += 1
-                _LOGGER.debug(
-                    "EntitySync %s: Successfully wrote value %.2f to %s",
-                    self.name,
-                    value,
-                    self._address,
-                )
-            else:
-                self._error_count += 1
-                _LOGGER.error(
-                    "EntitySync %s: Failed to write value %.2f to %s",
-                    self.name,
-                    value,
-                    self._address,
-                )
-
-        self.async_write_ha_state()
+            return None
 
     @property
     def native_value(self) -> str | float | None:
