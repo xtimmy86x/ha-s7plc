@@ -37,8 +37,8 @@ async def async_setup_entry(
 
     entities = []
     for text_config in texts:
-        name = text_config.get(CONF_NAME)
         address = text_config[CONF_ADDRESS]
+        name = text_config.get(CONF_NAME) or default_entity_name(address)
         command_address = text_config.get(CONF_COMMAND_ADDRESS) or address
         scan_interval = text_config.get(CONF_SCAN_INTERVAL)
         pattern = text_config.get(CONF_PATTERN)
@@ -74,21 +74,19 @@ async def async_setup_entry(
         unique_id = f"{device_id}:{topic}"
         await coordinator.add_item(topic, address, scan_interval, None)
 
-        entity_name = default_entity_name(address)
-
         entities.append(
             S7Text(
-                coordinator=coordinator,
-                name=entity_name,
-                unique_id=unique_id,
-                device_info=device_info,
-                topic=topic,
-                address=address,
-                command_address=command_address,
-                min_length=min_length,
-                max_length=max_length,
-                pattern=pattern,
-                suggested_area_id=area,
+                coordinator,
+                name,
+                unique_id,
+                device_info,
+                topic,
+                address,
+                command_address,
+                min_length,
+                max_length,
+                pattern,
+                area,
             )
         )
 
