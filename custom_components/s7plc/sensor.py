@@ -9,20 +9,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_BILLION,
-    CONCENTRATION_PARTS_PER_MILLION,
-    CONF_NAME,
-    PERCENTAGE,
-    UnitOfElectricCurrent,
-    UnitOfElectricPotential,
-    UnitOfEnergy,
-    UnitOfFrequency,
-    UnitOfPower,
-    UnitOfPressure,
-    UnitOfSpeed,
-    UnitOfTemperature,
-)
+from homeassistant.const import CONF_NAME
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
@@ -43,7 +30,11 @@ from .const import (
     CONF_VALUE_MULTIPLIER,
 )
 from .entity import S7BaseEntity
-from .helpers import default_entity_name, get_coordinator_and_device_info
+from .helpers import (
+    DEVICE_CLASS_DEFAULT_UNITS,
+    default_entity_name,
+    get_coordinator_and_device_info,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,63 +42,8 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-_CANDIDATE_UNITS: dict[str, str | None] = {
-    # Environmental
-    "TEMPERATURE": UnitOfTemperature.CELSIUS,
-    "TEMPERATURE_DELTA": UnitOfTemperature.CELSIUS,
-    "HUMIDITY": PERCENTAGE,
-    "MOISTURE": PERCENTAGE,
-    "ILLUMINANCE": "lx",
-    "IRRADIANCE": "W/m²",
-    "ATMOSPHERIC_PRESSURE": UnitOfPressure.HPA,
-    "PRESSURE": UnitOfPressure.HPA,
-    "PRECIPITATION": "mm",
-    "PRECIPITATION_INTENSITY": "mm/h",
-    "WIND_SPEED": UnitOfSpeed.METERS_PER_SECOND,
-    "SPEED": UnitOfSpeed.METERS_PER_SECOND,
-    "WIND_DIRECTION": "°",
-    # Electrical / energy
-    "POWER": UnitOfPower.WATT,
-    "APPARENT_POWER": "VA",
-    "REACTIVE_POWER": "var",
-    "POWER_FACTOR": None,  # unitless by default
-    "ENERGY": UnitOfEnergy.KILO_WATT_HOUR,
-    "ENERGY_STORAGE": UnitOfEnergy.KILO_WATT_HOUR,
-    "REACTIVE_ENERGY": "varh",
-    "VOLTAGE": UnitOfElectricPotential.VOLT,
-    "CURRENT": UnitOfElectricCurrent.AMPERE,
-    "FREQUENCY": UnitOfFrequency.HERTZ,
-    # Air quality
-    "AQI": None,
-    "CO2": CONCENTRATION_PARTS_PER_MILLION,
-    "CO": CONCENTRATION_PARTS_PER_MILLION,
-    "OZONE": CONCENTRATION_PARTS_PER_BILLION,
-    "NITROGEN_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
-    "PM1": "µg/m³",
-    "PM25": "µg/m³",
-    "PM4": "µg/m³",
-    "PM10": "µg/m³",
-    # Misc
-    "BATTERY": PERCENTAGE,
-    "SIGNAL_STRENGTH": "dBm",
-    "SOUND_PRESSURE": "dB",
-    "PH": None,
-    "DURATION": "s",
-    "DISTANCE": "m",
-    "VOLUME": "m³",
-    "VOLUME_STORAGE": "m³",
-    "VOLUME_FLOW_RATE": "L/min",
-    "WEIGHT": "kg",
-    "WATER": "m³",
-    "GAS": "m³",
-    "DATA_RATE": "B/s",
-    "DATA_SIZE": "B",
-    # Non-numeric / special
-    "DATE": None,
-    "TIMESTAMP": None,
-    "ENUM": None,
-    "MONETARY": None,
-}
+# Sensor-only candidate names not already in DEVICE_CLASS_DEFAULT_UNITS
+# (currently all covered by the shared map)
 
 TOTAL_INCREASING_CLASSES = {
     SensorDeviceClass.ENERGY,
@@ -132,7 +68,7 @@ NO_MEASUREMENT_CLASSES = {
 # Build a mapping using only device classes that exist
 DEVICE_CLASS_UNITS: dict[SensorDeviceClass, str | None] = {
     getattr(SensorDeviceClass, name): unit
-    for name, unit in _CANDIDATE_UNITS.items()
+    for name, unit in DEVICE_CLASS_DEFAULT_UNITS.items()
     if hasattr(SensorDeviceClass, name)
 }
 

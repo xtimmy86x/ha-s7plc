@@ -4,14 +4,7 @@ import logging
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_NAME,
-    PERCENTAGE,
-    UnitOfElectricCurrent,
-    UnitOfElectricPotential,
-    UnitOfPower,
-    UnitOfTemperature,
-)
+from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -31,62 +24,17 @@ from .const import (
     CONF_UNIT_OF_MEASUREMENT,
 )
 from .entity import S7BaseEntity
-from .helpers import default_entity_name, get_coordinator_and_device_info
+from .helpers import (
+    DEVICE_CLASS_DEFAULT_UNITS,
+    default_entity_name,
+    get_coordinator_and_device_info,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
 
-# Map NumberDeviceClass to default units
-NUMBER_DEVICE_CLASS_UNITS: dict[str, str | None] = {
-    "APPARENT_POWER": "VA",
-    "AQI": None,
-    "ATMOSPHERIC_PRESSURE": "hPa",
-    "BATTERY": PERCENTAGE,
-    "CO": "ppm",
-    "CO2": "ppm",
-    "CURRENT": UnitOfElectricCurrent.AMPERE,
-    "DATA_RATE": "B/s",
-    "DATA_SIZE": "B",
-    "DISTANCE": "m",
-    "DURATION": "s",
-    "ENERGY": "kWh",
-    "ENERGY_STORAGE": "kWh",
-    "FREQUENCY": "Hz",
-    "GAS": "m³",
-    "HUMIDITY": PERCENTAGE,
-    "ILLUMINANCE": "lx",
-    "IRRADIANCE": "W/m²",
-    "MOISTURE": PERCENTAGE,
-    "MONETARY": None,
-    "NITROGEN_DIOXIDE": "ppb",
-    "NITROUS_OXIDE": "ppb",
-    "OZONE": "ppb",
-    "PH": None,
-    "PM1": "µg/m³",
-    "PM10": "µg/m³",
-    "PM25": "µg/m³",
-    "POWER": UnitOfPower.WATT,
-    "POWER_FACTOR": None,
-    "PRECIPITATION": "mm",
-    "PRECIPITATION_INTENSITY": "mm/h",
-    "PRESSURE": "hPa",
-    "REACTIVE_POWER": "var",
-    "SIGNAL_STRENGTH": "dBm",
-    "SOUND_PRESSURE": "dB",
-    "SPEED": "m/s",
-    "SULPHUR_DIOXIDE": "ppb",
-    "TEMPERATURE": UnitOfTemperature.CELSIUS,
-    "VOLATILE_ORGANIC_COMPOUNDS": "ppb",
-    "VOLATILE_ORGANIC_COMPOUNDS_PARTS": "ppm",
-    "VOLTAGE": UnitOfElectricPotential.VOLT,
-    "VOLUME": "m³",
-    "VOLUME_FLOW_RATE": "L/min",
-    "VOLUME_STORAGE": "m³",
-    "WATER": "m³",
-    "WEIGHT": "kg",
-    "WIND_SPEED": "m/s",
-}
+# Device class → default unit mapping (shared from helpers)
 
 
 async def async_setup_entry(
@@ -173,8 +121,8 @@ class S7Number(S7BaseEntity, NumberEntity):
             # Derive unit from device_class if not explicitly provided
             if not unit_of_measurement:
                 dc_upper = device_class.upper()
-                if dc_upper in NUMBER_DEVICE_CLASS_UNITS:
-                    unit = NUMBER_DEVICE_CLASS_UNITS[dc_upper]
+                if dc_upper in DEVICE_CLASS_DEFAULT_UNITS:
+                    unit = DEVICE_CLASS_DEFAULT_UNITS[dc_upper]
                     if unit is not None:
                         self._attr_native_unit_of_measurement = unit
 

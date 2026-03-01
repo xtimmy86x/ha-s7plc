@@ -87,7 +87,7 @@ def test_sensor_with_device_class_temperature(sensor_factory):
     assert sensor._attr_device_class == SensorDeviceClass.TEMPERATURE
     assert sensor._attr_state_class == SensorStateClass.MEASUREMENT
     # Check that unit is set from DEVICE_CLASS_UNITS
-    assert sensor._attr_native_unit_of_measurement is not None
+    assert sensor._attr_native_unit_of_measurement == "°C"
 
 
 def test_sensor_with_device_class_energy(sensor_factory):

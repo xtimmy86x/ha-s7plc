@@ -8,6 +8,19 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    CONCENTRATION_PARTS_PER_BILLION,
+    CONCENTRATION_PARTS_PER_MILLION,
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
+    UnitOfPressure,
+    UnitOfSpeed,
+    UnitOfTemperature,
+)
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
@@ -38,6 +51,73 @@ from .const import (
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
+
+
+# ---------------------------------------------------------------------------
+# Centralised device-class → default-unit mapping
+# ---------------------------------------------------------------------------
+
+DEVICE_CLASS_DEFAULT_UNITS: dict[str, str | None] = {
+    # Environmental
+    "TEMPERATURE": UnitOfTemperature.CELSIUS,
+    "TEMPERATURE_DELTA": UnitOfTemperature.CELSIUS,
+    "HUMIDITY": PERCENTAGE,
+    "MOISTURE": PERCENTAGE,
+    "ILLUMINANCE": "lx",
+    "IRRADIANCE": "W/m²",
+    "ATMOSPHERIC_PRESSURE": UnitOfPressure.HPA,
+    "PRESSURE": UnitOfPressure.HPA,
+    "PRECIPITATION": "mm",
+    "PRECIPITATION_INTENSITY": "mm/h",
+    "WIND_SPEED": UnitOfSpeed.METERS_PER_SECOND,
+    "SPEED": UnitOfSpeed.METERS_PER_SECOND,
+    "WIND_DIRECTION": "°",
+    # Electrical / energy
+    "POWER": UnitOfPower.WATT,
+    "APPARENT_POWER": "VA",
+    "REACTIVE_POWER": "var",
+    "POWER_FACTOR": None,
+    "ENERGY": UnitOfEnergy.KILO_WATT_HOUR,
+    "ENERGY_STORAGE": UnitOfEnergy.KILO_WATT_HOUR,
+    "REACTIVE_ENERGY": "varh",
+    "VOLTAGE": UnitOfElectricPotential.VOLT,
+    "CURRENT": UnitOfElectricCurrent.AMPERE,
+    "FREQUENCY": UnitOfFrequency.HERTZ,
+    # Air quality
+    "AQI": None,
+    "CO2": CONCENTRATION_PARTS_PER_MILLION,
+    "CO": CONCENTRATION_PARTS_PER_MILLION,
+    "OZONE": CONCENTRATION_PARTS_PER_BILLION,
+    "NITROGEN_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
+    "NITROUS_OXIDE": CONCENTRATION_PARTS_PER_BILLION,
+    "SULPHUR_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
+    "VOLATILE_ORGANIC_COMPOUNDS": CONCENTRATION_PARTS_PER_BILLION,
+    "VOLATILE_ORGANIC_COMPOUNDS_PARTS": CONCENTRATION_PARTS_PER_MILLION,
+    "PM1": "µg/m³",
+    "PM25": "µg/m³",
+    "PM4": "µg/m³",
+    "PM10": "µg/m³",
+    # Misc
+    "BATTERY": PERCENTAGE,
+    "SIGNAL_STRENGTH": "dBm",
+    "SOUND_PRESSURE": "dB",
+    "PH": None,
+    "DURATION": "s",
+    "DISTANCE": "m",
+    "VOLUME": "m³",
+    "VOLUME_STORAGE": "m³",
+    "VOLUME_FLOW_RATE": "L/min",
+    "WEIGHT": "kg",
+    "WATER": "m³",
+    "GAS": "m³",
+    "DATA_RATE": "B/s",
+    "DATA_SIZE": "B",
+    # Non-numeric / special
+    "DATE": None,
+    "TIMESTAMP": None,
+    "ENUM": None,
+    "MONETARY": None,
+}
 
 
 @dataclass
