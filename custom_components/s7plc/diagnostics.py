@@ -12,13 +12,18 @@ from homeassistant.core import HomeAssistant
 from .const import (
     CONF_BINARY_SENSORS,
     CONF_BUTTONS,
+    CONF_CLIMATES,
+    CONF_COVERS,
+    CONF_ENTITY_SYNC,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
+    CONF_NUMBERS,
     CONF_RACK,
     CONF_REMOTE_TSAP,
     CONF_SENSORS,
     CONF_SLOT,
     CONF_SWITCHES,
+    CONF_TEXTS,
 )
 
 TO_REDACT: frozenset[str] = frozenset(
@@ -108,8 +113,13 @@ async def async_get_config_entry_diagnostics(
                 CONF_SENSORS: len(entry.options.get(CONF_SENSORS, [])),
                 CONF_BINARY_SENSORS: len(entry.options.get(CONF_BINARY_SENSORS, [])),
                 CONF_SWITCHES: len(entry.options.get(CONF_SWITCHES, [])),
+                CONF_COVERS: len(entry.options.get(CONF_COVERS, [])),
                 CONF_LIGHTS: len(entry.options.get(CONF_LIGHTS, [])),
+                CONF_NUMBERS: len(entry.options.get(CONF_NUMBERS, [])),
                 CONF_BUTTONS: len(entry.options.get(CONF_BUTTONS, [])),
+                CONF_TEXTS: len(entry.options.get(CONF_TEXTS, [])),
+                CONF_CLIMATES: len(entry.options.get(CONF_CLIMATES, [])),
+                CONF_ENTITY_SYNC: len(entry.options.get(CONF_ENTITY_SYNC, [])),
             },
             "rack": entry.data.get(CONF_RACK),
             "slot": entry.data.get(CONF_SLOT),
