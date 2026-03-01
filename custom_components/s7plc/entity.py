@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
@@ -73,9 +73,9 @@ class S7BaseEntity(CoordinatorEntity):
         return (self._topic in data) and (data[self._topic] is not None)
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes including S7-specific info."""
-        attrs: Dict[str, Any] = {}
+        attrs: dict[str, Any] = {}
         if self._address:
             attrs[self._address_attr_name] = self._address.upper()
         if self._topic:
@@ -151,7 +151,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         return None if val is None else bool(val)
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes with command/state address info."""
         attrs = super().extra_state_attributes
         if self._address:

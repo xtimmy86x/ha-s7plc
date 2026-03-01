@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable
 
 from .address import DataType, S7Tag, parse_tag
 from .const import DEFAULT_REAL_PRECISION
@@ -45,11 +45,11 @@ def apply_postprocess(
 
 
 def build_plans(
-    items: Dict[str, str],
+    items: dict[str, str],
     *,
-    precisions: Dict[str, int | None] | None = None,
-    tag_cache: Dict[str, S7Tag] | None = None,
-) -> Tuple[list[TagPlan], list[StringPlan]]:
+    precisions: dict[str, int | None] | None = None,
+    tag_cache: dict[str, S7Tag] | None = None,
+) -> tuple[list[TagPlan], list[StringPlan]]:
     """Build read plans from a topic to address mapping.
 
     Args:

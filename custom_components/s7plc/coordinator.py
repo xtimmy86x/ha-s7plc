@@ -6,7 +6,7 @@ import struct
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, TypeVar, Union
+from typing import Any, Callable, TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -26,7 +26,7 @@ S7ClientT = TypeVar("S7ClientT")
 # -----------------------------
 # Coordinator
 # -----------------------------
-class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
+class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator handling pys7 connection, polling and writes."""
 
     _MIN_SCAN_INTERVAL = 0.05  # seconds
@@ -90,25 +90,25 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._client: Any | None = None  # pyS7.S7Client when available
 
         # Address configuration: topic -> address string
-        self._items: Dict[str, str] = {}
+        self._items: dict[str, str] = {}
 
         # Read plan cache
-        self._plans_batch: Dict[str, TagPlan] = {}
-        self._plans_str: Dict[str, StringPlan] = {}
+        self._plans_batch: dict[str, TagPlan] = {}
+        self._plans_str: dict[str, StringPlan] = {}
 
         # Cache for parsed tags (shared by reads and writes)
-        self._tag_cache: Dict[str, S7Tag] = {}
+        self._tag_cache: dict[str, S7Tag] = {}
 
         # Scan interval bookkeeping
-        self._item_scan_intervals: Dict[str, float] = {}
-        self._item_next_read: Dict[str, float] = {}
+        self._item_scan_intervals: dict[str, float] = {}
+        self._item_next_read: dict[str, float] = {}
 
         # Precision for REAL items (topic -> decimals or None for full precision)
-        self._item_real_precisions: Dict[str, int | None] = {}
+        self._item_real_precisions: dict[str, int | None] = {}
 
         # Store the latest values so entities keep their last state when a tag
         # is not due for polling in the current cycle.
-        self._data_cache: Dict[str, Any] = {}
+        self._data_cache: dict[str, Any] = {}
 
         # Health check bookkeeping (updated by normal read cycle)
         self._last_health_ok: bool | None = None
@@ -118,10 +118,10 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Error tracking
         self._last_error_category: str | None = None
         self._last_error_message: str | None = None
-        self._error_count_by_category: Dict[str, int] = {}
+        self._error_count_by_category: dict[str, int] = {}
 
         # Write batching for automatic optimization
-        self._write_batch_buffer: Dict[str, bool | int | float | str] = {}
+        self._write_batch_buffer: dict[str, bool | int | float | str] = {}
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
         self._last_write_error_notification: float = 0.0  # Rate limit notifications
@@ -344,7 +344,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return self._last_error_message
 
     @property
-    def error_count_by_category(self) -> Dict[str, int]:
+    def error_count_by_category(self) -> dict[str, int]:
         """Return error counts grouped by category."""
         return dict(self._error_count_by_category)
 
@@ -392,7 +392,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self,
         topic: str,
         address: str,
-        scan_interval: Union[float, int, None] = None,
+        scan_interval: float | int | None = None,
         real_precision: int | None = None,
     ) -> None:
         """Map a topic to a PLC address and invalidate caches.
@@ -439,7 +439,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._plans_batch = {plan.topic: plan for plan in plans_batch}
         self._plans_str = {plan.topic: plan for plan in plans_str}
 
-    def _normalize_scan_interval(self, scan_interval: Union[float, int, None]) -> float:
+    def _normalize_scan_interval(self, scan_interval: float | int | None) -> float:
         """Return a sanitized scan interval for an item.
 
         Args:
@@ -627,7 +627,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
     # -------------------------
     # Update loop
     # -------------------------
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from PLC (called by DataUpdateCoordinator).
 
         Determines which tags are due for reading based on their individual
@@ -759,7 +759,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tag.length,
         )
 
-    def _read_batch(self, plans_batch: List[TagPlan]) -> Dict[str, Any]:
+    def _read_batch(self, plans_batch: list[TagPlan]) -> dict[str, Any]:
         """Read scalar tags in batch handling deduplication and post-processing.
 
         Args:
@@ -771,7 +771,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Raises:
             OSError, RuntimeError, S7 errors: On communication failures
         """
-        results: Dict[str, Any] = {}
+        results: dict[str, Any] = {}
         if not plans_batch:
             return results
 
@@ -813,8 +813,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return results
 
     def _read_strings(
-        self, plans_str: List[StringPlan], deadline: float
-    ) -> Dict[str, Any]:
+        self, plans_str: list[StringPlan], deadline: float
+    ) -> dict[str, Any]:
         """Read strings respecting an absolute deadline.
 
         Args:
@@ -827,7 +827,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         Raises:
             UpdateFailed: On timeout or communication failures
         """
-        results: Dict[str, Any] = {}
+        results: dict[str, Any] = {}
         for plan in plans_str:
             if time.monotonic() > deadline:
                 _LOGGER.warning("String read timeout reached (%.2fs)", self._op_timeout)
@@ -866,8 +866,8 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return results
 
     def _read_all(
-        self, plans_batch: List[TagPlan], plans_str: List[StringPlan]
-    ) -> Dict[str, Any]:
+        self, plans_batch: list[TagPlan], plans_str: list[StringPlan]
+    ) -> dict[str, Any]:
         """Read all planned tags with proper resource cleanup.
 
         Executed in executor thread pool to avoid blocking async event loop.
@@ -892,7 +892,7 @@ class S7Coordinator(DataUpdateCoordinator[Dict[str, Any]]):
         start_ts = time.monotonic()
         deadline = start_ts + self._op_timeout
 
-        results: Dict[str, Any] = {}
+        results: dict[str, Any] = {}
 
         try:
             # ===== 1) Scalar batch with dedup & optimize =====
