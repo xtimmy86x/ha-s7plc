@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from homeassistant.components.light import ColorMode
 from homeassistant.const import CONF_NAME
 
-from custom_components.s7plc.light import S7Light, S7DimmerLight, async_setup_entry
+from custom_components.s7plc.light import S7Light, async_setup_entry
 from custom_components.s7plc.const import (
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
     CONF_BRIGHTNESS_SCALE,
@@ -418,7 +418,7 @@ async def test_async_setup_entry_sync_state_default_false(fake_hass, mock_coordi
 
 
 # ============================================================================
-# S7DimmerLight Tests
+# S7Light (Dimmer) Tests
 # ============================================================================
 
 
@@ -431,7 +431,7 @@ TEST_DIMMER_TOPIC = "light:db1,x0.0"
 
 @pytest.fixture
 def dimmer_factory(mock_coordinator, device_info):
-    """Factory fixture to create S7DimmerLight instances easily."""
+    """Factory fixture to create S7Light (dimmer) instances easily."""
     def _create(
         state_address: str = TEST_DIMMER_STATE_ADDRESS,
         command_address: str = TEST_DIMMER_COMMAND_ADDRESS,
@@ -442,7 +442,7 @@ def dimmer_factory(mock_coordinator, device_info):
         topic: str = TEST_DIMMER_TOPIC,
         unique_id: str = f"test_device:{TEST_DIMMER_TOPIC}",
     ):
-        return S7DimmerLight(
+        return S7Light(
             mock_coordinator,
             name=name,
             unique_id=unique_id,
@@ -748,8 +748,8 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
 
     entities = async_add_entities.call_args[0][0]
     assert len(entities) == 2
-    assert isinstance(entities[0], S7DimmerLight)
-    assert isinstance(entities[1], S7DimmerLight)
+    assert isinstance(entities[0], S7Light)
+    assert isinstance(entities[1], S7Light)
 
     # Check second dimmer has scale
     assert entities[1]._brightness_scale == 100
@@ -796,7 +796,7 @@ async def test_async_setup_entry_dimmer_skip_missing_state_address(
 
     entities = async_add_entities.call_args[0][0]
     assert len(entities) == 1
-    assert isinstance(entities[0], S7DimmerLight)
+    assert isinstance(entities[0], S7Light)
 
 
 @pytest.mark.asyncio
@@ -832,7 +832,7 @@ async def test_async_setup_entry_mixed_lights_and_dimmers(
     entities = async_add_entities.call_args[0][0]
     assert len(entities) == 2
     assert isinstance(entities[0], S7Light)
-    assert isinstance(entities[1], S7DimmerLight)
+    assert isinstance(entities[1], S7Light)
 
 
 @pytest.mark.asyncio

@@ -249,7 +249,3 @@ class S7Light(S7BoolSyncEntity, LightEntity):
     # async_turn_off — inherited from S7BoolSyncEntity
     # is_on — inherited from S7BoolSyncEntity
     # async_write_ha_state — inherited from S7BoolSyncEntity
-
-
-# Backward-compatible alias for existing imports
-S7DimmerLight = S7Light
