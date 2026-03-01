@@ -38,6 +38,58 @@ from .helpers import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Boolean-like states used by EntitySync to map HA entity states to BIT values.
+# Covers many HA domains: switch, light, cover, lock, alarm, person, vacuum, etc.
+_TRUE_STATES = frozenset(
+    {
+        "on",
+        "true",
+        "1",
+        "yes",
+        "open",
+        "opening",  # cover
+        "unlocked",
+        "unlocking",  # lock
+        "home",  # person / device_tracker
+        "armed_home",
+        "armed_away",  # alarm_control_panel
+        "armed_night",
+        "armed_vacation",
+        "armed_custom_bypass",
+        "arming",
+        "triggered",
+        "pending",
+        "cleaning",
+        "returning",  # vacuum
+        "playing",
+        "buffering",  # media_player
+        "above_horizon",  # sun
+        "active",  # generic active state
+    }
+)
+_FALSE_STATES = frozenset(
+    {
+        "off",
+        "false",
+        "0",
+        "no",
+        "closed",
+        "closing",  # cover
+        "locked",
+        "locking",
+        "jammed",  # lock
+        "not_home",  # person / device_tracker
+        "disarmed",  # alarm_control_panel
+        "docked",
+        "idle",
+        "paused",  # vacuum
+        "error",  # vacuum / generic error
+        "standby",  # media_player
+        "below_horizon",  # sun
+        "inactive",  # generic inactive state
+    }
+)
+
 # Coordinator is used to centralize data updates
 PARALLEL_UPDATES = 0
 
@@ -372,59 +424,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             # Handle boolean/binary states for BIT addresses
             bool_value = None
 
-            # Try to parse as boolean — covers many HA entity domains:
-            #   switch/light/input_boolean: on / off
-            #   cover:       open, opening  / closed, closing
-            #   lock:        unlocked, unlocking / locked, locking, jammed
-            #   alarm:       armed_*, triggered, arming, pending / disarmed
-            #   person:      home / not_home
-            #   vacuum:      cleaning, returning / docked, idle, paused, error
-            _TRUE_STATES = {
-                "on",
-                "true",
-                "1",
-                "yes",
-                "open",
-                "opening",  # cover
-                "unlocked",
-                "unlocking",  # lock
-                "home",  # person / device_tracker
-                "armed_home",
-                "armed_away",  # alarm_control_panel
-                "armed_night",
-                "armed_vacation",
-                "armed_custom_bypass",
-                "arming",
-                "triggered",
-                "pending",
-                "cleaning",
-                "returning",  # vacuum
-                "playing",
-                "buffering",  # media_player
-                "above_horizon",  # sun
-                "active",  # generic active state
-            }
-            _FALSE_STATES = {
-                "off",
-                "false",
-                "0",
-                "no",
-                "closed",
-                "closing",  # cover
-                "locked",
-                "locking",
-                "jammed",  # lock
-                "not_home",  # person / device_tracker
-                "disarmed",  # alarm_control_panel
-                "docked",
-                "idle",
-                "paused",  # vacuum
-                "error",  # vacuum / generic error
-                "standby",  # media_player
-                "below_horizon",  # sun
-                "inactive",  # generic inactive state
-            }
-
+            # Try to parse as boolean — covers many HA entity domains
             if state_str in _TRUE_STATES:
                 bool_value = True
             elif state_str in _FALSE_STATES:
