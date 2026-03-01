@@ -355,6 +355,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         self._address = address
         self._source_entity = source_entity
         self._last_written_value: float | None = None
+        self._initial_write_pending: bool = False
         self._write_count = 0
         self._error_count = 0
 
@@ -402,13 +403,21 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         On each coordinator poll, if we never managed to write the initial
         source-entity value (e.g. PLC was not connected at startup), retry.
         Once _last_written_value is set this check becomes a no-op.
+
+        _initial_write_pending prevents creating multiple concurrent tasks
+        when the coordinator polls faster than the write coroutine completes.
         """
-        if self._last_written_value is None and self.coordinator.is_connected():
+        if (
+            self._last_written_value is None
+            and not self._initial_write_pending
+            and self.coordinator.is_connected()
+        ):
             source_state = self.hass.states.get(self._source_entity)
             if source_state is not None and source_state.state not in (
                 "unknown",
                 "unavailable",
             ):
+                self._initial_write_pending = True
                 self.hass.async_create_task(self._async_write_to_plc(source_state))
         super()._handle_coordinator_update()
 
@@ -468,6 +477,8 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 self._address,
             )
 
+        # Allow the next coordinator poll to schedule a fresh retry if needed.
+        self._initial_write_pending = False
         self.async_write_ha_state()
 
     def _parse_binary_value(self, source_state: State) -> bool | None:

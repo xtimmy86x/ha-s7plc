@@ -493,6 +493,7 @@ def test_entity_sync_numeric_initialization(entity_sync_factory):
     assert entity_sync._data_type == DataType.REAL
     assert entity_sync._is_binary is False
     assert entity_sync._last_written_value is None
+    assert entity_sync._initial_write_pending is False
     assert entity_sync._write_count == 0
     assert entity_sync._error_count == 0
     assert entity_sync._attr_state_class == SensorStateClass.MEASUREMENT
@@ -801,8 +802,9 @@ async def test_entity_sync_coordinator_update_writes_initial_value(entity_sync_f
 
     es._handle_coordinator_update()
 
-    # Should have scheduled a write task
+    # Should have scheduled exactly one write task and marked the flag
     assert len(created_tasks) == 1
+    assert es._initial_write_pending is True
 
     # Execute the scheduled coroutine
     await created_tasks[0]
@@ -810,6 +812,8 @@ async def test_entity_sync_coordinator_update_writes_initial_value(entity_sync_f
     assert len(coord.write_calls) == 1
     assert coord.write_calls[0] == ("write_batched", "db1,r0", 10.0)
     assert es._last_written_value == 10.0
+    # Flag must be cleared after the write
+    assert es._initial_write_pending is False
 
 
 @pytest.mark.asyncio
@@ -875,3 +879,34 @@ async def test_entity_sync_coordinator_update_skips_unavailable(entity_sync_fact
 
     assert len(created_tasks) == 0
     assert es._error_count == 0
+    # Pending flag must NOT be set when no task was created
+    assert es._initial_write_pending is False
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_coordinator_update_no_duplicate_tasks(entity_sync_factory):
+    """Multiple coordinator updates while a write is in-flight create only one task."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=True)
+    es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
+
+    mock_state = State("sensor.test", "10.0")
+    es.hass.states.get = MagicMock(return_value=mock_state)
+
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+
+    # Simulate three rapid coordinator polls before the first task completes
+    es._handle_coordinator_update()
+    es._handle_coordinator_update()
+    es._handle_coordinator_update()
+
+    # Only one task should have been created despite three polls
+    assert len(created_tasks) == 1
+    assert es._initial_write_pending is True
+
+    # After the task completes the flag is cleared; a new poll may retry
+    await created_tasks[0]
+    assert es._initial_write_pending is False
