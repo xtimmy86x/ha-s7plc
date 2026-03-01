@@ -20,6 +20,7 @@ class S7BaseEntity(CoordinatorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
+    _address_attr_name: str = "s7_address"
 
     def __init__(
         self,
@@ -76,7 +77,7 @@ class S7BaseEntity(CoordinatorEntity):
         """Return entity state attributes including S7-specific info."""
         attrs: Dict[str, Any] = {}
         if self._address:
-            attrs["s7_address"] = self._address.upper()
+            attrs[self._address_attr_name] = self._address.upper()
         if self._topic:
             interval = self.coordinator.get_scan_interval(self._topic)
             attrs["scan_interval"] = f"{interval} s"
@@ -91,6 +92,8 @@ class S7BaseEntity(CoordinatorEntity):
 
 class S7BoolSyncEntity(S7BaseEntity):
     """Base class for boolean entities with synchronization logic."""
+
+    _address_attr_name = "s7_state_address"
 
     def __init__(
         self,
@@ -150,12 +153,9 @@ class S7BoolSyncEntity(S7BaseEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return entity state attributes with command/state address info."""
-        attrs: Dict[str, Any] = {}
+        attrs = super().extra_state_attributes
         if self._address:
-            attrs["s7_state_address"] = self._address.upper()
             attrs["s7_command_address"] = self._command_address.upper()
-        interval = self.coordinator.get_scan_interval(self._topic)
-        attrs["scan_interval"] = f"{interval} s"
         if self._pulse_command:
             attrs.update(
                 {

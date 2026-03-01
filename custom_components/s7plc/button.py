@@ -51,6 +51,8 @@ async def async_setup_entry(
 class S7Button(S7BaseEntity, ButtonEntity):
     """Stateless button that pulses a PLC boolean address."""
 
+    _address_attr_name = "s7_command_address"
+
     def __init__(
         self,
         coordinator,
@@ -81,7 +83,7 @@ class S7Button(S7BaseEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self):
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
         if self._button_pulse is not None:
             attrs["button_pulse"] = f"{self._button_pulse} s"
         return attrs

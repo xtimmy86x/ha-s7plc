@@ -193,8 +193,8 @@ def test_sensor_extra_attributes_no_multiplier(sensor_factory):
     """Test extra_state_attributes without multiplier."""
     sensor = sensor_factory()
     attrs = sensor.extra_state_attributes
-    assert "s7_address" in attrs
-    assert attrs["s7_address"] == "DB1,REAL0"
+    assert "s7_state_address" in attrs
+    assert attrs["s7_state_address"] == "DB1,REAL0"
     assert "value_multiplier" not in attrs
 
 
@@ -574,7 +574,7 @@ def test_entity_sync_extra_attributes(entity_sync_factory):
 
     attrs = entity_sync.extra_state_attributes
 
-    assert attrs["s7_address"] == "DB1,R0"
+    assert attrs["s7_write_address"] == "DB1,R0"
     assert attrs["source_entity"] == "sensor.test"
     assert attrs["write_count"] == 5
     assert attrs["error_count"] == 2

@@ -72,6 +72,8 @@ async def async_setup_entry(
 class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
     """Binary sensor reading a boolean value from the PLC."""
 
+    _address_attr_name = "s7_state_address"
+
     def __init__(
         self,
         coordinator,

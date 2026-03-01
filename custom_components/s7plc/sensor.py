@@ -150,6 +150,9 @@ async def async_setup_entry(
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
+
+    _address_attr_name = "s7_state_address"
+
     def __init__(
         self,
         coordinator,
@@ -568,7 +571,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return extra attributes."""
         attrs = {
-            "s7_address": self._address.upper(),
+            "s7_write_address": self._address.upper(),
             "source_entity": self._source_entity,
             "write_count": self._write_count,
             "error_count": self._error_count,

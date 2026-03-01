@@ -195,6 +195,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
     HA manages the control logic based on the target temperature.
     """
 
+    _address_attr_name = "s7_current_temp_address"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _enable_turn_on_off_backwards_compatibility = False
@@ -334,8 +335,16 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
 
     @property
     def extra_state_attributes(self):
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
         attrs["climate_type"] = "Direct Control"
+        if self._heating_output_address:
+            attrs["s7_heating_output_address"] = self._heating_output_address.upper()
+        if self._cooling_output_address:
+            attrs["s7_cooling_output_address"] = self._cooling_output_address.upper()
+        if self._heating_action_address:
+            attrs["s7_heating_action_address"] = self._heating_action_address.upper()
+        if self._cooling_action_address:
+            attrs["s7_cooling_action_address"] = self._cooling_action_address.upper()
         return attrs
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -432,6 +441,7 @@ class S7ClimateSetpointControl(
     the current temperature. The PLC handles all control logic.
     """
 
+    _address_attr_name = "s7_current_temp_address"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL]
@@ -562,8 +572,13 @@ class S7ClimateSetpointControl(
 
     @property
     def extra_state_attributes(self):
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
         attrs["climate_type"] = "Setpoint Control"
+        attrs["s7_target_temp_address"] = self._target_temp_address.upper()
+        if self._preset_mode_address:
+            attrs["s7_preset_mode_address"] = self._preset_mode_address.upper()
+        if self._hvac_status_address:
+            attrs["s7_hvac_status_address"] = self._hvac_status_address.upper()
         return attrs
 
     async def async_set_temperature(self, **kwargs: Any) -> None:

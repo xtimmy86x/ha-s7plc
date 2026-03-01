@@ -87,6 +87,8 @@ async def async_setup_entry(
 class S7Number(S7BaseEntity, NumberEntity):
     """Number entity representing a numeric PLC address."""
 
+    _address_attr_name = "s7_state_address"
+
     def __init__(
         self,
         coordinator,
@@ -184,7 +186,9 @@ class S7Number(S7BaseEntity, NumberEntity):
 
     @property
     def extra_state_attributes(self):
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
+        if self._command_address:
+            attrs["s7_command_address"] = self._command_address.upper()
         attrs["min_value"] = self.min_value
         attrs["max_value"] = self.max_value
         attrs["step"] = self.step

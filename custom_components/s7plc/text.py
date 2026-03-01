@@ -98,6 +98,8 @@ async def async_setup_entry(
 class S7Text(S7BaseEntity, TextEntity):
     """Representation of a S7 PLC text entity."""
 
+    _address_attr_name = "s7_state_address"
+
     def __init__(
         self,
         coordinator,
@@ -134,6 +136,13 @@ class S7Text(S7BaseEntity, TextEntity):
         if value is None:
             return None
         return str(value)
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes
+        if self._command_address:
+            attrs["s7_command_address"] = self._command_address.upper()
+        return attrs
 
     async def async_set_value(self, value: str) -> None:
         """Set the text value."""
