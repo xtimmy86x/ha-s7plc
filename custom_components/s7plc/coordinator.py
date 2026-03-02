@@ -1253,6 +1253,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             DataType.DWORD,
             DataType.INT,
             DataType.DINT,
+            DataType.USINT,
+            DataType.SINT,
         ):
             if not isinstance(value, (int, float)):
                 raise ValueError(

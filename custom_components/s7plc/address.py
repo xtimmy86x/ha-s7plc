@@ -47,6 +47,8 @@ def get_numeric_limits(data_type) -> tuple[float, float] | None:
     bit = getattr(DataType, "BIT", None)
     real = getattr(DataType, "REAL", None)
     lreal = getattr(DataType, "LREAL", None)
+    usint = getattr(DataType, "USINT", None)
+    sint = getattr(DataType, "SINT", None)
 
     if data_type == byte:
         return (0.0, 255.0)
@@ -60,6 +62,12 @@ def get_numeric_limits(data_type) -> tuple[float, float] | None:
         return (-2147483648.0, 2147483647.0)
     if data_type == bit:
         return (0.0, 1.0)
+    if data_type == usint:
+        # ``USINT`` is an unsigned 8-bit integer: 0 … 255.
+        return (0.0, 255.0)
+    if data_type == sint:
+        # ``SINT`` is a signed 8-bit integer: -128 … 127.
+        return (-128.0, 127.0)
     if data_type == real:
         # ``REAL`` values are stored as 32-bit floating point numbers; we do not
         # impose an explicit limit so Home Assistant can expose any configured

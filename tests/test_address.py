@@ -40,7 +40,11 @@ def test_get_numeric_limits():
     int_type = address.DataType.INT
     dint_type = address.DataType.DINT
     real_type = address.DataType.REAL
+    usint_type = address.DataType.USINT
+    sint_type = address.DataType.SINT
 
     assert address.get_numeric_limits(int_type) == (-32768, 32767)
     assert address.get_numeric_limits(dint_type) == (-2147483648, 2147483647)
     assert address.get_numeric_limits(real_type) is None
+    assert address.get_numeric_limits(usint_type) == (0, 255)
+    assert address.get_numeric_limits(sint_type) == (-128, 127)

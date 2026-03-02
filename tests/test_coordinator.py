@@ -402,6 +402,24 @@ def test_write_handles_numeric_types(coord_factory, dummy_tag, monkeypatch):
     assert writes[0][0] == [real_tag]
     assert writes[0][1][0] == pytest.approx(7.25)
 
+    # Test USINT (unsigned 8-bit): value should be rounded to int
+    writes.clear()
+    usint_tag = dummy_tag(data_type=coordinator.DataType.USINT)
+    coord._tag_cache.clear()
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: usint_tag)
+
+    assert coord.write("DB1,USI0", 200.9)
+    assert writes == [([usint_tag], [201])]
+
+    # Test SINT (signed 8-bit): value should be rounded to int
+    writes.clear()
+    sint_tag = dummy_tag(data_type=coordinator.DataType.SINT)
+    coord._tag_cache.clear()
+    monkeypatch.setattr(coordinator, "parse_tag", lambda address: sint_tag)
+
+    assert coord.write("DB1,SI0", -50.4)
+    assert writes == [([sint_tag], [-50])]
+
 
 def test_write_validates_type_match(coord_factory, dummy_tag, monkeypatch):
     """Test write() validates that value type matches address data type."""
@@ -470,6 +488,26 @@ def test_write_rejects_type_mismatch(coord_factory, dummy_tag, monkeypatch):
 
     with pytest.raises(ValueError, match="WORD address .* requires numeric"):
         coord.write("DB1,W0", "test")
+
+    # Test USINT rejection of string
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: dummy_tag(data_type=coordinator.DataType.USINT),
+    )
+
+    with pytest.raises(ValueError, match="USINT address .* requires numeric"):
+        coord.write("DB1,USI0", "test")
+
+    # Test SINT rejection of string
+    monkeypatch.setattr(
+        coordinator,
+        "parse_tag",
+        lambda address: dummy_tag(data_type=coordinator.DataType.SINT),
+    )
+
+    with pytest.raises(ValueError, match="SINT address .* requires numeric"):
+        coord.write("DB1,SI0", "test")
 
 
 # ============================================================================
