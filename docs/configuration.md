@@ -165,6 +165,7 @@ Position-based covers use a 0–100% numeric range instead of separate open/clos
   - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Min/Max/Step**: Value constraints for Home Assistant (automatically clamped to PLC data type limits)
 - **REAL Precision**: Number of decimal places for REAL values
+- **Value Multiplier**: Scale factor applied to the raw PLC value before displaying it in Home Assistant (e.g., `0.1` to convert tenths to units, `0.001` for millivolts to volts). When set, the multiplier is automatically applied in reverse when writing: the Home Assistant value is divided by the multiplier before being sent to the PLC. Min/Max/Step are also scaled accordingly so the UI always works in display units
 
 #### Text
 

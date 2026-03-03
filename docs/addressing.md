@@ -6,19 +6,21 @@ This guide covers all supported addressing formats for Siemens S7 PLCs.
 
 Use standard S7 absolute addressing for all entity configurations:
 
-| Type                     | Example       | Size       | Range / Description                      |
-|--------------------------|---------------|------------|------------------------------------------|
-| Bit (boolean)            | `DB1,X0.0`    | 1 bit      | Boolean (0/1, false/true)                |
-| Byte (unsigned)          | `DB1,B0`      | 8 bits     | 0 to 255                                 |
-| Char                     | `DB1,C0`      | 8 bits     | Single ASCII character                   |
-| Word (unsigned)          | `DB1,W2`      | 16 bits    | 0 to 65535 (WORD)                        |
-| Int (signed)             | `DB1,I2`      | 16 bits    | -32768 to 32767 (INT)                    |
-| DWord (unsigned)         | `DB1,DW4`     | 32 bits    | 0 to 4294967295 (DWORD)                  |
-| DInt (signed)            | `DB1,DI4`     | 32 bits    | -2147483648 to 2147483647 (DINT)         |
-| Real (IEEE 754)          | `DB1,R4`      | 32 bits    | 32-bit floating point                    |
-| LReal (IEEE 754)         | `DB1,LR8`     | 64 bits    | 64-bit floating point (double precision) |
-| String (S7)              | `DB1,S0.20`   | 2+N bytes  | Text (S7 STRING, ASCII)                  |
-| WString (S7 Wide String) | `DB1,WS0.20`  | 4+2N bytes | Text (S7 WSTRING, Unicode UTF-16)        |
+| Type                     | Example          | Size       | Range / Description                      |
+|--------------------------|------------------|------------|------------------------------------------|
+| Bit (boolean)            | `DB1,X0.0`       | 1 bit      | Boolean (0/1, false/true)                |
+| Byte (unsigned)          | `DB1,B0`         | 8 bits     | 0 to 255                                 |
+| USInt (unsigned)         | `DB1,USINT0`     | 8 bits     | 0 to 255 (USINT)                         |
+| SInt (signed)            | `DB1,SINT0`      | 8 bits     | -128 to 127 (SINT)                       |
+| Char                     | `DB1,C0`         | 8 bits     | Single ASCII character                   |
+| Word (unsigned)          | `DB1,W2`         | 16 bits    | 0 to 65535 (WORD)                        |
+| Int (signed)             | `DB1,I2`         | 16 bits    | -32768 to 32767 (INT)                    |
+| DWord (unsigned)         | `DB1,DW4`        | 32 bits    | 0 to 4294967295 (DWORD)                  |
+| DInt (signed)            | `DB1,DI4`        | 32 bits    | -2147483648 to 2147483647 (DINT)         |
+| Real (IEEE 754)          | `DB1,R4`         | 32 bits    | 32-bit floating point                    |
+| LReal (IEEE 754)         | `DB1,LR8`        | 64 bits    | 64-bit floating point (double precision) |
+| String (S7)              | `DB1,S0.20`      | 2+N bytes  | Text (S7 STRING, ASCII)                  |
+| WString (S7 Wide String) | `DB1,WS0.20`     | 4+2N bytes | Text (S7 WSTRING, Unicode UTF-16)        |
 
 ## Addressing Rules
 
@@ -34,6 +36,8 @@ All addresses must reference a Data Block (DB):
 
 - `X` = Bit/Boolean
 - `B` = Byte (unsigned, 0-255)
+- `USINT` (or `USI`) = USInt (unsigned 8-bit, 0-255)
+- `SINT` (or `SI`) = SInt (signed 8-bit, -128-127)
 - `C` = Char (single ASCII character)
 - `W` = Word (unsigned 16-bit, 0-65535)
 - `I` = Int (signed 16-bit, -32768 to 32767)
@@ -51,7 +55,7 @@ All addresses must reference a Data Block (DB):
 Choose the correct **offset** and **type** based on your PLC data block layout:
 
 - **Bit addresses** (`X`) can start at any byte
-- **Byte** (`B`) and **Char** (`C`) can start at any byte
+- **Byte** (`B`), **USInt** (`USINT`), **SInt** (`SINT`), and **Char** (`C`) can start at any byte
 - **Word** (`W`) and **Int** (`I`) addresses should be even-aligned (0, 2, 4, 6, ...)
 - **DWord** (`DW`), **DInt** (`DI`), **Real** (`R`) addresses should be 4-byte aligned (0, 4, 8, 12, ...)
 - **LReal** (`LR`) addresses should be 8-byte aligned (0, 8, 16, 24, ...)
@@ -63,6 +67,12 @@ For REAL and LREAL values, ensure the PLC writes IEEE 754 floating point into th
 
 The S7 PLC supports both signed and unsigned integer types:
 
+**8-bit integers:**
+- **USINT** (unsigned): 0 to 255 — use `USINT` (or short form `USI`)
+- **SINT** (signed): -128 to 127 — use `SINT` (or short form `SI`)
+
+> **Note**: `BYTE` (`B`) and `USINT` (`USINT`) map to the same 0-255 range. Use `USINT` when your PLC data type is explicitly `USINT` and `BYTE` when the PLC type is `BYTE`. For signed 8-bit values, always use `SINT`.
+
 **16-bit integers:**
 - **INT** (signed): -32768 to 32767
 - **WORD** (unsigned): 0 to 65535
@@ -72,6 +82,8 @@ The S7 PLC supports both signed and unsigned integer types:
 - **DWORD** (unsigned): 0 to 4294967295
 
 **Important**: Choose the appropriate type based on whether your PLC uses signed or unsigned values:
+- For **signed** 8-bit: use `SINT` (-128 to 127)
+- For **unsigned** 8-bit: use `USINT` or `B` (0 to 255)
 - For **signed** 16-bit: use `I` (INT, -32768 to 32767)
 - For **unsigned** 16-bit: use `W` (WORD, 0 to 65535)
 - For **signed** 32-bit: use `DI` (DINT, -2147483648 to 2147483647)

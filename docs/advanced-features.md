@@ -54,9 +54,11 @@ To enable sync state for a switch or light:
 2. Click **Configure** and choose **Add items** (for new entities) or **Edit** (for existing ones)
 3. Select `switch` or `light` as the entity type
 4. Enter the `state_address` (the PLC address to read the actual state)
-5. Enter the `command_address` (the PLC address to write commands) - if omitted, defaults to state_address
+5. Enter the `command_address` (the PLC address to write commands) — **must be a different address from `state_address`**. If the two addresses are the same (or `command_address` is omitted), the configuration form will reject `sync_state` with a `sync_same_address` error.
 6. **Enable the `Sync State` checkbox**
 7. Save the configuration
+
+> **Important**: `sync_state` requires two *distinct* addresses. The whole point of the feature is to detect when the PLC state (`state_address`) has been changed by an external source and then write that new state back to a separate command register (`command_address`). Using the same address for both would create a pointless read-and-write loop.
 
 ### Technical Details
 
@@ -270,7 +272,22 @@ Access these attributes in automations, scripts, or display them on dashboards t
 
 Entity Sync items automatically detect the PLC data type from the address and handle conversions:
 
-- **BIT** (`DB#,X#.#`): Writes boolean values. Accepts states like `on`, `off`, `true`, `false`, `1`, `0`, `yes`, `no` (case-insensitive) or any numeric value (non-zero = true, zero = false)
+- **BIT** (`DB#,X#.#`): Writes boolean values. The state string is mapped to `true`/`false` using an extended table that covers many Home Assistant entity domains:
+
+  | True (→ PLC bit = 1) | False (→ PLC bit = 0) |
+  |---|---|
+  | `on`, `true`, `1`, `yes` | `off`, `false`, `0`, `no` |
+  | `open`, `opening` (cover) | `closed`, `closing` (cover) |
+  | `unlocked`, `unlocking` (lock) | `locked`, `locking`, `jammed` (lock) |
+  | `armed_home`, `armed_away`, `armed_night`, `armed_vacation`, `armed_custom_bypass`, `arming`, `triggered`, `pending` (alarm) | `disarmed` (alarm) |
+  | `home` (person / device_tracker) | `not_home` (person / device_tracker) |
+  | `cleaning`, `returning` (vacuum) | `docked`, `idle`, `paused`, `error` (vacuum) |
+  | `playing`, `buffering` (media_player) | `standby` (media_player) |
+  | `above_horizon` (sun) | `below_horizon` (sun) |
+  | `active` | `inactive` |
+
+  Any state not in this table is converted numerically (non-zero = true, zero = false). Unrecognised non-numeric states skip the write and increment `error_count`.
+
 - **REAL** (`DB#,R#`): Writes 32-bit floating-point values with full precision (IEEE 754 single precision)
 - **LREAL** (`DB#,LR#`): Writes 64-bit floating-point values with double precision (IEEE 754 double precision)
 - **INT/WORD** (`DB#,W#`): Converts to 16-bit integer (signed INT: -32768 to 32767, unsigned WORD: 0 to 65535)
