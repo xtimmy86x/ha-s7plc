@@ -2,7 +2,7 @@
 
 # ha-s7plc
 
-**Home Assistant integration for Siemens S7 PLCs**  
+**Home Assistant integration for Siemens S7 PLCs and Logo! controllers**  
 Direct + lightweight custom component using `pys7`.  
 **No MQTT • No REST • No middleware**
 
@@ -58,10 +58,11 @@ Direct + lightweight custom component using `pys7`.
 ### Requirements
 
 - **Home Assistant** installation
-- **Siemens S7 PLC** (S7-1200/1500/300/400) reachable over ISO-on-TCP (port 102)
+- **Siemens S7 PLC** (S7-1200/1500/300/400) or **Logo! controller** (Logo! 8 / 0BA8 and newer; Logo! 0BA7 and older via TSAP) reachable over ISO-on-TCP (port 102)
 - Network connectivity between Home Assistant and PLC
 
 > ℹ️ For S7-1200/1500: Ensure data blocks have **Optimized block access disabled** if using absolute addressing.
+> ℹ️ For Logo! 8 (0BA8+): use Rack/Slot connection (`rack: 0`, `slot: 2`). For Logo! 0BA7 and older: use TSAP connection (see [addressing docs](docs/addressing.md#logo-0ba7-and-older)).
 
 ### Installation
 
@@ -82,12 +83,12 @@ Direct + lightweight custom component using `pys7`.
 1. Go to **Settings → Devices & Services** → **Add Integration**
 2. Search for **"S7 PLC"**
 3. Choose connection type:
-   - **Rack/Slot** (default): Standard connection for most PLCs
-   - **TSAP**: For specific configurations or legacy systems
+   - **Rack/Slot** (default): Standard connection for most PLCs and Logo! 8
+   - **TSAP**: For specific configurations, Logo! 0BA7 and older, or legacy systems
 4. Enter PLC connection details:
    - Host, Port
-   - Rack/Slot (typically `0/1` for S7-1200/1500, `0/2` for S7-300/400)
-   - or Local/Remote TSAP for TSAP mode
+   - Rack/Slot (typically `0/1` for S7-1200/1500, `0/2` for S7-300/400 and Logo! 8)
+   - or Local/Remote TSAP for TSAP mode (e.g. `10.00` / `10.01` for Logo! 0BA7)
 5. Configure timeout and retry settings for your network
 6. Add entities through **Configure** → **Add items**
 
@@ -140,6 +141,8 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 |---------|---------|-------------|
 | Bit | `DB1,X0.0` | Boolean values |
 | Byte | `DB1,B0` | Unsigned 8-bit (0-255) |
+| USInt | `DB1,USINT0` | Unsigned 8-bit (0-255, explicit USINT) |
+| SInt | `DB1,SINT0` | Signed 8-bit (-128 to 127) |
 | Char | `DB1,C0` | Single ASCII character |
 | Word | `DB1,W2` | Unsigned 16-bit (0-65535) |
 | Int | `DB1,I2` | Signed 16-bit (-32768 to 32767) |
@@ -150,7 +153,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | String | `DB1,S0.20` | S7 STRING type (ASCII) |
 | WString | `DB1,WS0.20` | S7 WSTRING type (Unicode UTF-16) |
 
-**Note**: Use `I`/`DI` for signed integers, `W`/`DW` for unsigned integers.
+**Note**: Use `I`/`DI` for signed integers, `W`/`DW` for unsigned integers. Use `SINT` for signed 8-bit values.
 
 See [S7 Addressing](docs/addressing.md) for complete details.
 
@@ -175,7 +178,7 @@ See [Examples](docs/examples.md) for detailed configurations.
 A: No. Direct S7 protocol communication to PLC.
 
 **Q: Which PLCs are supported?**  
-A: Any S7 PLC with ISO-on-TCP (port 102) support: S7-1200, S7-1500, S7-300, S7-400, Logo! 8.
+A: Any Siemens device with ISO-on-TCP (port 102) support: S7-1200, S7-1500, S7-300, S7-400, Logo! 8 (0BA8+) via Rack/Slot, and Logo! 0BA7/0BA6/0BA5 via TSAP.
 
 **Q: Can I write values to the PLC?**  
 A: Yes. `switch`, `light`, `dimmer light`, `cover`, `button`, `number`, `text`, `climate`, and Entity Sync all support writes.
