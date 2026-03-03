@@ -384,6 +384,7 @@
           "min_value": "Wartość minimalna",
           "max_value": "Wartość maksymalna",
           "step": "Krok",
+          "value_multiplier": "Mnożnik wartości",
           "real_precision": "Precyzja (liczba miejsc po przecinku)",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
@@ -398,6 +399,7 @@
           "min_value": "Opcjonalna minimalna wartość wyświetlana w Home Assistant.",
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
+          "value_multiplier": "Mnoży wartość RAW przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
@@ -770,6 +772,7 @@
           "min_value": "Wartość minimalna",
           "max_value": "Wartość maksymalna",
           "step": "Krok",
+          "value_multiplier": "Mnożnik wartości",
           "real_precision": "Zaokrąglenie wartości REAL",
           "scan_interval": "Interwał skanowania (s)"
         },
@@ -783,6 +786,7 @@
           "min_value": "Opcjonalna minimalna wartość wyświetlana w Home Assistant.",
           "max_value": "Opcjonalna maksymalna wartość wyświetlana w Home Assistant.",
           "step": "Opcjonalny krok używany przy regulacji wartości w interfejsie.",
+          "value_multiplier": "Mnoży wartość RAW przed zastosowanie. Pozostaw puste, aby zachować oryginalną wartość.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }

@@ -384,6 +384,7 @@
           "min_value": "Valore minimo",
           "max_value": "Valore massimo",
           "step": "Passo",
+          "value_multiplier": "Moltiplicatore di valore",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
@@ -398,6 +399,7 @@
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
@@ -692,6 +694,7 @@
           "min_value": "Valore minimo",
           "max_value": "Valore massimo",
           "step": "Passo",
+          "value_multiplier": "Moltiplicatore di valore",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)"
         },
@@ -705,6 +708,7 @@
           "min_value": "Limite minimo opzionale per il valore mostrato in Home Assistant.",
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
+          "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }

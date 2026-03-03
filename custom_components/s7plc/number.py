@@ -22,6 +22,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_STEP,
     CONF_UNIT_OF_MEASUREMENT,
+    CONF_VALUE_MULTIPLIER,
 )
 from .entity import S7BaseEntity
 from .helpers import (
@@ -58,6 +59,7 @@ async def async_setup_entry(
         device_class = item.get(CONF_DEVICE_CLASS)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
         real_precision = item.get(CONF_REAL_PRECISION)
+        value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
 
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await coord.add_item(topic, address, scan_interval, real_precision)
@@ -76,6 +78,7 @@ async def async_setup_entry(
                 device_class,
                 unit_of_measurement,
                 area,
+                value_multiplier=value_multiplier,
             )
         )
 
@@ -104,6 +107,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         device_class: str | None = None,
         unit_of_measurement: str | None = None,
         suggested_area_id: str | None = None,
+        value_multiplier: float | None = None,
     ):
         super().__init__(
             coordinator,
@@ -115,6 +119,19 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+
+        # Parse value_multiplier with defensive validation
+        self._value_multiplier: float | None = None
+        if value_multiplier not in (None, ""):
+            try:
+                self._value_multiplier = float(value_multiplier)
+            except (TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Invalid value_multiplier '%s' for number %s: %s. Ignoring.",
+                    value_multiplier,
+                    name,
+                    err,
+                )
 
         # Set device_class if provided
         if device_class:
@@ -172,16 +189,41 @@ class S7Number(S7BaseEntity, NumberEntity):
         if step is not None:
             self._attr_native_step = float(step)
 
+        # Scale min/max/step by multiplier so the UI works in display units.
+        # The PLC raw value is always divided back when writing.
+        if self._value_multiplier is not None:
+            if self._attr_native_min_value is not None:
+                self._attr_native_min_value = (
+                    self._attr_native_min_value * self._value_multiplier
+                )
+            if self._attr_native_max_value is not None:
+                self._attr_native_max_value = (
+                    self._attr_native_max_value * self._value_multiplier
+                )
+            self._attr_native_step = self._attr_native_step * self._value_multiplier
+
     @property
     def native_value(self):
-        return (self.coordinator.data or {}).get(self._topic)
+        value = (self.coordinator.data or {}).get(self._topic)
+        if self._value_multiplier is None or value is None:
+            return value
+        try:
+            return float(value) * self._value_multiplier
+        except (TypeError, ValueError):
+            return value
 
     async def async_set_native_value(self, value: float) -> None:
         await self._ensure_connected()
         if not self._command_address:
             raise HomeAssistantError("No command address configured for this entity.")
 
-        await self.coordinator.write_batched(self._command_address, float(value))
+        # Convert display-unit value back to PLC raw value
+        if self._value_multiplier is not None and self._value_multiplier != 0:
+            plc_value = float(value) / self._value_multiplier
+        else:
+            plc_value = float(value)
+
+        await self.coordinator.write_batched(self._command_address, plc_value)
         await self.coordinator.async_request_refresh()
 
     @property
@@ -189,8 +231,10 @@ class S7Number(S7BaseEntity, NumberEntity):
         attrs = super().extra_state_attributes
         if self._command_address:
             attrs["s7_command_address"] = self._command_address.upper()
-        attrs["min_value"] = self.min_value
-        attrs["max_value"] = self.max_value
-        attrs["step"] = self.step
+        attrs["min_value"] = self._attr_native_min_value
+        attrs["max_value"] = self._attr_native_max_value
+        attrs["step"] = self._attr_native_step
+        if self._value_multiplier is not None:
+            attrs["value_multiplier"] = self._value_multiplier
 
         return attrs

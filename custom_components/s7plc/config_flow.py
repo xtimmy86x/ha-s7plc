@@ -459,6 +459,7 @@ def _add_schema_number(flow) -> vol.Schema:
             vol.Optional(CONF_MIN_VALUE): number_value_selector,
             vol.Optional(CONF_MAX_VALUE): number_value_selector,
             vol.Optional(CONF_STEP): positive_number_selector,
+            vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -777,18 +778,13 @@ def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
     d[k] = v
     k, v = flow._optional_field(CONF_UNIT_OF_MEASUREMENT, item, selector.TextSelector())
     d[k] = v
-    d.update(
-        {
-            vol.Optional(
-                CONF_MIN_VALUE, default=item.get(CONF_MIN_VALUE)
-            ): number_value_selector,
-            vol.Optional(
-                CONF_MAX_VALUE, default=item.get(CONF_MAX_VALUE)
-            ): number_value_selector,
-        }
-    )
+    k, v = flow._optional_field(CONF_MIN_VALUE, item, number_value_selector)
+    d[k] = v
+    k, v = flow._optional_field(CONF_MAX_VALUE, item, number_value_selector)
+    d[k] = v
     for key, sel in [
         (CONF_STEP, positive_number_selector),
+        (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
         (CONF_AREA, flow._get_area_selector()),
@@ -2660,6 +2656,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_STEP] = step_value
 
         # Apply transformations
+        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 

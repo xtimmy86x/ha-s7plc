@@ -384,6 +384,7 @@
           "min_value": "Minimální hodnota",
           "max_value": "Maximální hodnota",
           "step": "Krok",
+          "value_multiplier": "Násobitel hodnoty",
           "real_precision": "Zaokrouhlení REAL",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
@@ -398,6 +399,7 @@
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
           "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
           "step": "Volitelný krok, o který se hodnota mění v UI.",
+          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
@@ -770,6 +772,7 @@
           "min_value": "Minimální hodnota",
           "max_value": "Maximální hodnota",
           "step": "Krok",
+          "value_multiplier": "Násobitel hodnoty",
           "real_precision": "Zaokrouhlení REAL",
           "scan_interval": "Interval čtení (s)"
         },
@@ -783,6 +786,7 @@
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
           "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
           "step": "Volitelný krok, o který se hodnota mění v UI.",
+          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }

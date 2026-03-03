@@ -384,6 +384,7 @@
           "min_value": "Mindestwert",
           "max_value": "Maximalwert",
           "step": "Schritt",
+          "value_multiplier": "Wertmultiplikator",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
@@ -398,6 +399,7 @@
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
+          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Nummerentitäten hinzuzufügen ?"
@@ -770,6 +772,7 @@
           "min_value": "Mindestwert",
           "max_value": "Maximalwert",
           "step": "Schritt",
+          "value_multiplier": "Wertmultiplikator",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)"
         },
@@ -783,6 +786,7 @@
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
+          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
