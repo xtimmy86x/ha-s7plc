@@ -41,6 +41,10 @@ def sensor_factory(mock_coordinator, device_info):
         address="DB1,REAL0",
         device_class=None,
         value_multiplier=None,
+        scale_raw_min=None,
+        scale_raw_max=None,
+        min_value=None,
+        max_value=None,
     ):
         return S7Sensor(
             mock_coordinator,
@@ -51,6 +55,10 @@ def sensor_factory(mock_coordinator, device_info):
             address,
             device_class,
             value_multiplier,
+            scale_raw_min=scale_raw_min,
+            scale_raw_max=scale_raw_max,
+            min_value=min_value,
+            max_value=max_value,
         )
     return _create_sensor
 
@@ -204,6 +212,71 @@ def test_sensor_extra_attributes_with_multiplier(sensor_factory):
     attrs = sensor.extra_state_attributes
     assert "value_multiplier" in attrs
     assert attrs["value_multiplier"] == 3.5
+
+
+# ============================================================================
+# Sensor linear-scale tests
+# ============================================================================
+
+
+def test_sensor_scale_params_stored(sensor_factory):
+    """Scale parameters are parsed and stored correctly."""
+    sensor = sensor_factory(
+        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=10
+    )
+    assert sensor._scale_params == (0.0, 100.0, 0.0, 10.0)
+
+
+def test_sensor_scale_params_partial_ignored(sensor_factory):
+    """Partial scale params (only raw range, no display range) are ignored."""
+    sensor = sensor_factory(scale_raw_min=0, scale_raw_max=100)
+    assert sensor._scale_params is None
+
+
+def test_sensor_native_value_with_scale(sensor_factory, mock_coordinator):
+    """Scale maps PLC 4000 → 0 % and 20000 → 100 %."""
+    mock_coordinator.data = {"sensor:DB1,REAL0": 12000.0}
+    sensor = sensor_factory(
+        scale_raw_min=4000, scale_raw_max=20000, min_value=0, max_value=100
+    )
+    assert sensor.native_value == pytest.approx(50.0)
+
+
+def test_sensor_scale_takes_precedence_over_multiplier(
+    sensor_factory, mock_coordinator
+):
+    """When both are set, scale wins over value_multiplier."""
+    mock_coordinator.data = {"sensor:DB1,REAL0": 50.0}
+    sensor = sensor_factory(
+        value_multiplier=10,
+        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=1,
+    )
+    # scale: 50 / 100 = 0.5, NOT 50 * 10 = 500
+    assert sensor.native_value == pytest.approx(0.5)
+
+
+def test_sensor_extra_attributes_scale_params(sensor_factory):
+    """Scale parameters are exposed in extra_state_attributes."""
+    sensor = sensor_factory(
+        scale_raw_min=4000, scale_raw_max=20000, min_value=0, max_value=100
+    )
+    attrs = sensor.extra_state_attributes
+    assert attrs["scale_raw_min"] == 4000.0
+    assert attrs["scale_raw_max"] == 20000.0
+    assert attrs["min_value"] == 0.0
+    assert attrs["max_value"] == 100.0
+    assert "value_multiplier" not in attrs
+
+
+def test_sensor_extra_attributes_scale_hides_multiplier(sensor_factory):
+    """When scale is active, value_multiplier is not in attributes."""
+    sensor = sensor_factory(
+        value_multiplier=5,
+        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=10,
+    )
+    attrs = sensor.extra_state_attributes
+    assert "scale_raw_min" in attrs
+    assert "value_multiplier" not in attrs
 
 
 def test_sensor_device_class_units_mapping():

@@ -88,6 +88,8 @@ from .const import (
     CONF_RACK,
     CONF_REAL_PRECISION,
     CONF_REMOTE_TSAP,
+    CONF_SCALE_RAW_MAX,
+    CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SLOT,
@@ -244,6 +246,13 @@ value_multiplier_selector = selector.NumberSelector(
     )
 )
 
+scale_value_selector = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        mode=selector.NumberSelectorMode.BOX,
+        step="any",
+    )
+)
+
 # State class options (reused in sensors)
 state_class_selector = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -327,6 +336,10 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
             vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
+            vol.Optional(CONF_SCALE_RAW_MIN): scale_value_selector,
+            vol.Optional(CONF_SCALE_RAW_MAX): scale_value_selector,
+            vol.Optional(CONF_MIN_VALUE): number_value_selector,
+            vol.Optional(CONF_MAX_VALUE): number_value_selector,
             vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
             vol.Optional(CONF_STATE_CLASS): state_class_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
@@ -460,6 +473,8 @@ def _add_schema_number(flow) -> vol.Schema:
             vol.Optional(CONF_MAX_VALUE): number_value_selector,
             vol.Optional(CONF_STEP): positive_number_selector,
             vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
+            vol.Optional(CONF_SCALE_RAW_MIN): scale_value_selector,
+            vol.Optional(CONF_SCALE_RAW_MAX): scale_value_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -565,6 +580,10 @@ def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
     for key, sel in [
         (CONF_DEVICE_CLASS, sensor_device_class_selector),
         (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
+        (CONF_SCALE_RAW_MIN, scale_value_selector),
+        (CONF_SCALE_RAW_MAX, scale_value_selector),
+        (CONF_MIN_VALUE, number_value_selector),
+        (CONF_MAX_VALUE, number_value_selector),
         (CONF_UNIT_OF_MEASUREMENT, selector.TextSelector()),
         (CONF_STATE_CLASS, state_class_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
@@ -785,6 +804,8 @@ def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
     for key, sel in [
         (CONF_STEP, positive_number_selector),
         (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
+        (CONF_SCALE_RAW_MIN, scale_value_selector),
+        (CONF_SCALE_RAW_MAX, scale_value_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
         (CONF_AREA, flow._get_area_selector()),
@@ -2001,6 +2022,28 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         else:
             item[CONF_VALUE_MULTIPLIER] = normalized
 
+    @staticmethod
+    def _apply_value_scale(
+        item: dict[str, Any],
+        raw_min: Any | None,
+        raw_max: Any | None,
+    ) -> None:
+        """Store or remove the raw-range scale parameters from *item*.
+
+        Both values must be valid numbers for the scale to be saved.
+        If either is missing/invalid the raw-range keys are cleared from the item.
+        """
+        _normalize = S7PLCOptionsFlow._normalize_numeric_value
+        rn = _normalize(raw_min)
+        rx = _normalize(raw_max)
+
+        if rn is not None and rx is not None:
+            item[CONF_SCALE_RAW_MIN] = rn
+            item[CONF_SCALE_RAW_MAX] = rx
+        else:
+            for key in (CONF_SCALE_RAW_MIN, CONF_SCALE_RAW_MAX):
+                item.pop(key, None)
+
     def _has_duplicate(
         self,
         option_key: str,
@@ -2214,6 +2257,33 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_UNIT_OF_MEASUREMENT,
             CONF_STATE_CLASS,
         )
+
+        # Store display range + scale only when all 4 params are provided
+        min_v = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
+        max_v = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
+        raw_min_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
+        raw_max_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
+
+        scale_values = (min_v, max_v, raw_min_v, raw_max_v)
+        any_scale_set = any(v is not None for v in scale_values)
+        all_scale_set = all(v is not None for v in scale_values)
+
+        if any_scale_set and not all_scale_set:
+            return None, {"base": "scale_requires_all_four"}
+
+        if all_scale_set:
+            item[CONF_MIN_VALUE] = min_v
+            item[CONF_MAX_VALUE] = max_v
+            item[CONF_SCALE_RAW_MIN] = raw_min_v
+            item[CONF_SCALE_RAW_MAX] = raw_max_v
+        else:
+            for key in (
+                CONF_MIN_VALUE,
+                CONF_MAX_VALUE,
+                CONF_SCALE_RAW_MIN,
+                CONF_SCALE_RAW_MAX,
+            ):
+                item.pop(key, None)
 
         # Apply specific transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
@@ -2610,6 +2680,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         except ValueError:
             return None, {"base": "invalid_number"}
 
+        # If either raw-range scale param is set, both min and max are required
+        raw_min_set = (
+            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
+            is not None
+        )
+        raw_max_set = (
+            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
+            is not None
+        )
+        if (raw_min_set or raw_max_set) and (min_value is None or max_value is None):
+            return None, {"base": "scale_raw_requires_min_max"}
+
         # Check if REAL or LREAL type requires min/max
         from .address import DataType
 
@@ -2657,6 +2739,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         # Apply transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
+        self._apply_value_scale(
+            item,
+            user_input.get(CONF_SCALE_RAW_MIN),
+            user_input.get(CONF_SCALE_RAW_MAX),
+        )
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 

@@ -459,8 +459,183 @@ def test_number_no_multiplier_unchanged(mock_coordinator):
 
 
 # ============================================================================
-# Setup Entry Tests
+# S7Number linear-scale tests
 # ============================================================================
+
+
+def test_number_scale_params_stored(mock_coordinator):
+    """Scale parameters are parsed and stored when all four are provided."""
+    coord = mock_coordinator
+    coord.data = {}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+    )
+
+    assert ent._scale_params == (0.0, 1000.0, 0.0, 100.0)
+
+
+def test_number_scale_partial_params_ignored(mock_coordinator):
+    """Only raw range set, no display range → _scale_params stays None."""
+    coord = mock_coordinator
+    coord.data = {}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=None,
+        max_value=None,
+        step=None,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+        # min_value and max_value missing → scale does not activate
+    )
+
+    assert ent._scale_params is None
+
+
+def test_number_native_value_with_scale(mock_coordinator):
+    """native_value applies linear scaling: raw 500 in [0,1000] → 50 in [0,100]."""
+    coord = mock_coordinator
+    coord.data = {"number:db1,w0": 500.0}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+    )
+
+    assert ent.native_value == pytest.approx(50.0)
+
+
+@pytest.mark.asyncio
+async def test_number_scale_inverse_on_write(mock_coordinator, fake_hass):
+    """async_set_native_value applies inverse scaling before writing to PLC."""
+    coord = mock_coordinator
+    coord.data = {"number:db1,w0": 500.0}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+    )
+    ent.hass = fake_hass
+
+    # User writes 75 % → PLC should receive 750
+    await ent.async_set_native_value(75.0)
+    assert coord.write_calls[-1] == ("write_batched", "db1,w0", pytest.approx(750.0))
+
+
+def test_number_scale_takes_precedence_over_multiplier(mock_coordinator):
+    """When both scale and multiplier are set, scale wins."""
+    coord = mock_coordinator
+    coord.data = {"number:db1,w0": 500.0}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        value_multiplier=10.0,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+    )
+
+    # scale: 500/1000*100 = 50, NOT 500*10 = 5000
+    assert ent.native_value == pytest.approx(50.0)
+
+
+def test_number_scale_attributes_exposed(mock_coordinator):
+    """Scale parameters appear in extra_state_attributes."""
+    coord = mock_coordinator
+    coord.data = {}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        scale_raw_min=4000.0,
+        scale_raw_max=20000.0,
+    )
+
+    attrs = ent.extra_state_attributes
+    assert attrs["scale_raw_min"] == 4000.0
+    assert attrs["scale_raw_max"] == 20000.0
+    assert "value_multiplier" not in attrs
+
+
+def test_number_scale_ui_min_max_mapped(mock_coordinator):
+    """When scale is active, native_min/max_value equal min_value/max_value (the display range)."""
+    coord = mock_coordinator
+    coord.data = {}
+
+    ent = S7Number(
+        coord,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,w0",
+        min_value=0.0,
+        max_value=100.0,
+        step=None,
+        scale_raw_min=0.0,
+        scale_raw_max=1000.0,
+    )
+
+    assert ent.native_min_value == pytest.approx(0.0)
+    assert ent.native_max_value == pytest.approx(100.0)
+
+
+
 
 
 @pytest.mark.asyncio

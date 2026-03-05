@@ -166,6 +166,47 @@ def default_entity_name(address: str | None) -> str | None:
     return None
 
 
+def scale_value(
+    raw: float,
+    raw_min: float,
+    raw_max: float,
+    scale_min: float,
+    scale_max: float,
+) -> float:
+    """Map *raw* (in [raw_min, raw_max]) to [scale_min, scale_max] linearly.
+
+    Formula: ``scaled = scale_min + (raw - raw_min) *
+    (scale_max - scale_min) / (raw_max - raw_min)``
+
+    If *raw_min == raw_max* the function returns *scale_min* to avoid division by zero.
+    """
+    if raw_max == raw_min:
+        return scale_min
+    return scale_min + (raw - raw_min) * (scale_max - scale_min) / (raw_max - raw_min)
+
+
+def inverse_scale_value(
+    scaled: float,
+    raw_min: float,
+    raw_max: float,
+    scale_min: float,
+    scale_max: float,
+) -> float:
+    """Inverse of :func:`scale_value`: map *scaled* back to the raw PLC range.
+
+    Formula: ``raw = raw_min + (scaled - scale_min) *
+    (raw_max - raw_min) / (scale_max - scale_min)``
+
+    If *scale_min == scale_max* the function
+    returns *raw_min* to avoid division by zero.
+    """
+    if scale_max == scale_min:
+        return raw_min
+    return raw_min + (scaled - scale_min) * (raw_max - raw_min) / (
+        scale_max - scale_min
+    )
+
+
 def parse_pulse_duration(value: Any | None) -> float:
     """Parse and validate a pulse duration value.
 
