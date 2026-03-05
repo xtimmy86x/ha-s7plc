@@ -139,32 +139,45 @@ from .helpers import parse_pulse_duration
 
 _LOGGER = logging.getLogger(__name__)
 
-bs_device_class_options = [
-    selector.SelectOptionDict(value="__none__", label="No device class"),
-] + [
-    selector.SelectOptionDict(value=dc.value, label=dc.value)
-    for dc in BinarySensorDeviceClass
-]
+NONE_OPTION = selector.SelectOptionDict(value="__none__", label="No device class")
 
-s_device_class_options = [
-    selector.SelectOptionDict(value="__none__", label="No device class"),
-] + [
-    selector.SelectOptionDict(value=dc.value, label=dc.value)
-    for dc in SensorDeviceClass
-]
 
-n_device_class_options = [
-    selector.SelectOptionDict(value="__none__", label="No device class"),
-] + [
-    selector.SelectOptionDict(value=dc.value, label=dc.value)
-    for dc in NumberDeviceClass
-]
+def _device_class_options(enum_cls):
+    """Build SelectSelector options from a DeviceClass Enum."""
+    return [NONE_OPTION] + [
+        selector.SelectOptionDict(
+            value=dc.value, label=dc.value.replace("_", " ").title()
+        )
+        for dc in enum_cls
+    ]
 
-c_device_class_options = [
-    selector.SelectOptionDict(value="__none__", label="No device class"),
-] + [
-    selector.SelectOptionDict(value=dc.value, label=dc.value) for dc in CoverDeviceClass
-]
+
+# Build options from enums
+DEVICE_CLASS_OPTIONS = {
+    CONF_BINARY_SENSORS: _device_class_options(BinarySensorDeviceClass),
+    CONF_SENSORS: _device_class_options(SensorDeviceClass),
+    CONF_NUMBERS: _device_class_options(NumberDeviceClass),
+    CONF_COVERS: _device_class_options(CoverDeviceClass),
+}
+
+# Build selectors automatically
+DEVICE_CLASS_SELECTORS = {
+    entity_type: selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+    for entity_type, options in DEVICE_CLASS_OPTIONS.items()
+}
+
+
+def _device_selector_by_type(entity_type: str) -> selector.SelectSelector:
+    """Return the appropriate device class selector for the given entity type."""
+    try:
+        return DEVICE_CLASS_SELECTORS[entity_type]
+    except KeyError as err:
+        raise ValueError(f"Unknown entity type: {entity_type}") from err
 
 
 # Area options builder (needs to be called at runtime with hass)
@@ -182,35 +195,6 @@ def _get_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
         options.append(selector.SelectOptionDict(value=area.id, label=area.name))
     return options
 
-
-# Reusable device class selectors
-binary_sensor_device_class_selector = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=bs_device_class_options,
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
-
-sensor_device_class_selector = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=s_device_class_options,
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
-
-number_device_class_selector = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=n_device_class_options,
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
-
-cover_device_class_selector = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=c_device_class_options,
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
 
 scan_interval_selector = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -334,7 +318,7 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Required(CONF_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
-            vol.Optional(CONF_DEVICE_CLASS): sensor_device_class_selector,
+            vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_SENSORS),
             vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
             vol.Optional(CONF_SCALE_RAW_MIN): scale_value_selector,
             vol.Optional(CONF_SCALE_RAW_MAX): scale_value_selector,
@@ -355,7 +339,9 @@ def _add_schema_binary_sensor(flow) -> vol.Schema:
             vol.Required(CONF_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
-            vol.Optional(CONF_DEVICE_CLASS): binary_sensor_device_class_selector,
+            vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(
+                CONF_BINARY_SENSORS
+            ),
             vol.Optional(CONF_INVERT_STATE, default=False): selector.BooleanSelector(),
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -390,7 +376,7 @@ def _add_schema_cover(flow) -> vol.Schema:
             vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
-            vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
+            vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_COVERS),
             vol.Optional(
                 CONF_OPERATE_TIME, default=DEFAULT_OPERATE_TIME
             ): operate_time_selector,
@@ -410,7 +396,7 @@ def _add_schema_cover_position(flow) -> vol.Schema:
             vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
-            vol.Optional(CONF_DEVICE_CLASS): cover_device_class_selector,
+            vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_COVERS),
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional(
                 CONF_INVERT_POSITION, default=False
@@ -467,7 +453,7 @@ def _add_schema_number(flow) -> vol.Schema:
             vol.Optional(CONF_COMMAND_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
-            vol.Optional(CONF_DEVICE_CLASS): number_device_class_selector,
+            vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_NUMBERS),
             vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
             vol.Optional(CONF_MIN_VALUE): number_value_selector,
             vol.Optional(CONF_MAX_VALUE): number_value_selector,
@@ -578,7 +564,7 @@ def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
         ): selector.TextSelector(),
     }
     for key, sel in [
-        (CONF_DEVICE_CLASS, sensor_device_class_selector),
+        (CONF_DEVICE_CLASS, _device_selector_by_type(CONF_SENSORS)),
         (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
         (CONF_SCALE_RAW_MIN, scale_value_selector),
         (CONF_SCALE_RAW_MAX, scale_value_selector),
@@ -605,7 +591,7 @@ def _edit_schema_binary_sensor(flow, item: dict[str, Any]) -> vol.Schema:
         ): selector.TextSelector(),
     }
     k, v = flow._optional_field(
-        CONF_DEVICE_CLASS, item, binary_sensor_device_class_selector
+        CONF_DEVICE_CLASS, item, _device_selector_by_type(CONF_BINARY_SENSORS)
     )
     d[k] = v
     d[vol.Optional(CONF_INVERT_STATE, default=item.get(CONF_INVERT_STATE, False))] = (
@@ -673,7 +659,9 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),
     }
-    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, cover_device_class_selector)
+    k, v = flow._optional_field(
+        CONF_DEVICE_CLASS, item, _device_selector_by_type(CONF_COVERS)
+    )
     d[k] = v
     d[
         vol.Optional(
@@ -710,7 +698,9 @@ def _edit_schema_cover_position(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),
     }
-    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, cover_device_class_selector)
+    k, v = flow._optional_field(
+        CONF_DEVICE_CLASS, item, _device_selector_by_type(CONF_COVERS)
+    )
     d[k] = v
     k, v = flow._optional_field(CONF_SCAN_INTERVAL, item, scan_interval_selector)
     d[k] = v
@@ -793,7 +783,9 @@ def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),
     }
-    k, v = flow._optional_field(CONF_DEVICE_CLASS, item, number_device_class_selector)
+    k, v = flow._optional_field(
+        CONF_DEVICE_CLASS, item, _device_selector_by_type(CONF_NUMBERS)
+    )
     d[k] = v
     k, v = flow._optional_field(CONF_UNIT_OF_MEASUREMENT, item, selector.TextSelector())
     d[k] = v
