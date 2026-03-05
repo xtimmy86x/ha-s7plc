@@ -142,42 +142,35 @@ _LOGGER = logging.getLogger(__name__)
 NONE_OPTION = selector.SelectOptionDict(value="__none__", label="No device class")
 
 
-def _device_class_options(enum_cls):
-    """Build SelectSelector options from a DeviceClass Enum."""
-    return [NONE_OPTION] + [
+def _device_selector_by_type(entity_type: str) -> selector.SelectSelector:
+    """Return the appropriate device class selector for the given entity type."""
+
+    enum_map = {
+        CONF_BINARY_SENSORS: BinarySensorDeviceClass,
+        CONF_SENSORS: SensorDeviceClass,
+        CONF_NUMBERS: NumberDeviceClass,
+        CONF_COVERS: CoverDeviceClass,
+    }
+
+    try:
+        enum_cls = enum_map[entity_type]
+    except KeyError as err:
+        raise ValueError(f"Unknown entity type: {entity_type}") from err
+
+    options = [NONE_OPTION] + [
         selector.SelectOptionDict(
-            value=dc.value, label=dc.value.replace("_", " ").title()
+            value=dc.value,
+            label=dc.value.replace("_", " ").title(),
         )
         for dc in enum_cls
     ]
 
-
-# Build options from enums
-DEVICE_CLASS_OPTIONS = {
-    CONF_BINARY_SENSORS: _device_class_options(BinarySensorDeviceClass),
-    CONF_SENSORS: _device_class_options(SensorDeviceClass),
-    CONF_NUMBERS: _device_class_options(NumberDeviceClass),
-    CONF_COVERS: _device_class_options(CoverDeviceClass),
-}
-
-# Build selectors automatically
-DEVICE_CLASS_SELECTORS = {
-    entity_type: selector.SelectSelector(
+    return selector.SelectSelector(
         selector.SelectSelectorConfig(
             options=options,
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
     )
-    for entity_type, options in DEVICE_CLASS_OPTIONS.items()
-}
-
-
-def _device_selector_by_type(entity_type: str) -> selector.SelectSelector:
-    """Return the appropriate device class selector for the given entity type."""
-    try:
-        return DEVICE_CLASS_SELECTORS[entity_type]
-    except KeyError as err:
-        raise ValueError(f"Unknown entity type: {entity_type}") from err
 
 
 # Area options builder (needs to be called at runtime with hass)
