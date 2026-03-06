@@ -173,6 +173,38 @@ def _device_selector_by_type(entity_type: str) -> selector.SelectSelector:
     )
 
 
+def num_sel(
+    *,
+    min: float | None = None,
+    max: float | None = None,
+    step: float | str | None = None,
+    mode: selector.NumberSelectorMode = selector.NumberSelectorMode.BOX,
+):
+    # Crea solo i campi valorizzati (così non ripeti sempre tutto)
+    cfg = {"mode": mode}
+    if min is not None:
+        cfg["min"] = min
+    if max is not None:
+        cfg["max"] = max
+    if step is not None:
+        cfg["step"] = step
+
+    return selector.NumberSelector(selector.NumberSelectorConfig(**cfg))
+
+
+scan_interval_selector = num_sel(min=0.05, max=3600, step=0.05)
+real_precision_selector = num_sel(min=0, max=6, step=1)
+operate_time_selector = num_sel(min=0, max=3600, step=1)
+
+value_multiplier_selector = num_sel(step=0.05)
+scale_value_selector = num_sel(step="any")
+
+pulse_duration_selector = num_sel(min=0.1, max=60, step=0.1)
+
+number_value_selector = num_sel(step=0.01)
+positive_number_selector = num_sel(min=0, step=0.01)
+
+
 # Area options builder (needs to be called at runtime with hass)
 def _get_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
     """Get area options for selector including 'No area' option."""
@@ -189,47 +221,6 @@ def _get_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
     return options
 
 
-scan_interval_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=0.05,
-        max=3600,
-        step=0.05,
-        mode=selector.NumberSelectorMode.BOX,
-    )
-)
-
-real_precision_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=0,
-        max=6,
-        step=1,
-        mode=selector.NumberSelectorMode.BOX,
-    )
-)
-
-operate_time_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=0,
-        max=3600,
-        step=1,
-        mode=selector.NumberSelectorMode.BOX,
-    )
-)
-
-value_multiplier_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        mode=selector.NumberSelectorMode.BOX,
-        step=0.05,
-    )
-)
-
-scale_value_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        mode=selector.NumberSelectorMode.BOX,
-        step="any",
-    )
-)
-
 # State class options (reused in sensors)
 state_class_selector = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -242,31 +233,6 @@ state_class_selector = selector.SelectSelector(
             ),
         ],
         mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
-
-pulse_duration_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=0.1,
-        max=60,
-        step=0.1,
-        mode=selector.NumberSelectorMode.BOX,
-    )
-)
-
-# Number entity selectors (for min/max/step configuration)
-number_value_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        mode=selector.NumberSelectorMode.BOX,
-        step=0.01,
-    )
-)
-
-positive_number_selector = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        mode=selector.NumberSelectorMode.BOX,
-        min=0,
-        step=0.01,
     )
 )
 
