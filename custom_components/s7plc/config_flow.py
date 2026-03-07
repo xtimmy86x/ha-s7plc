@@ -192,12 +192,12 @@ def num_sel(
     return selector.NumberSelector(selector.NumberSelectorConfig(**cfg))
 
 
-scan_interval_selector = num_sel(min=0.05, max=3600, step=0.05)
+scan_interval_selector = num_sel(min=0.1, max=3600, step=0.1)
 real_precision_selector = num_sel(min=0, max=6, step=1)
 operate_time_selector = num_sel(min=0, max=3600, step=1)
 
-value_multiplier_selector = num_sel(step=0.05)
-scale_value_selector = num_sel(step="any")
+value_multiplier_selector = num_sel(min=-1000, max=1000, step=0.05)
+scale_value_selector = num_sel(step=0.001)
 
 pulse_duration_selector = num_sel(min=0.1, max=60, step=0.1)
 
