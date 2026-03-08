@@ -311,6 +311,8 @@
         "data": {
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
+          "stop_command_address": "Stopp-Befehlsadresse",
+          "stop_pulse_duration": "Stopp-Pulsdauer (s)",
           "name": "Name",
           "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
@@ -320,6 +322,8 @@
         "data_description": {
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
+          "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
@@ -717,6 +721,8 @@
         "data": {
           "position_state_address": "Positionszustandsadresse",
           "position_command_address": "Positionsbefehlsadresse",
+          "stop_command_address": "Stopp-Befehlsadresse",
+          "stop_pulse_duration": "Stopp-Pulsdauer (s)",
           "name": "Name",
           "area": "Bereich",
           "scan_interval": "Scan-Intervall (s)",
@@ -725,6 +731,8 @@
         "data_description": {
           "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
           "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
+          "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",

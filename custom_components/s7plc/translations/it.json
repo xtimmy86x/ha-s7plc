@@ -311,6 +311,8 @@
         "data": {
           "position_state_address": "Indirizzo stato posizione",
           "position_command_address": "Indirizzo comando posizione",
+          "stop_command_address": "Indirizzo comando stop",
+          "stop_pulse_duration": "Durata impulso stop (s)",
           "name": "Nome",
           "area": "Area",
           "scan_interval": "Intervallo di scansione (s)",
@@ -320,6 +322,8 @@
         "data_description": {
           "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4).",
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
+          "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
@@ -639,6 +643,8 @@
         "data": {
           "position_state_address": "Indirizzo stato posizione",
           "position_command_address": "Indirizzo comando posizione",
+          "stop_command_address": "Indirizzo comando stop",
+          "stop_pulse_duration": "Durata impulso stop (s)",
           "name": "Nome",
           "area": "Area",
           "scan_interval": "Intervallo di scansione (s)",
@@ -647,6 +653,8 @@
         "data_description": {
           "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100).",
           "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
+          "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "scan_interval": "Frequenza di polling specifica per questo tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",

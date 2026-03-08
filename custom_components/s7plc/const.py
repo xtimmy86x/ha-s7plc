@@ -88,6 +88,8 @@ CONF_USE_STATE_TOPICS = "use_state_topics"
 CONF_POSITION_STATE_ADDRESS = "position_state_address"
 CONF_POSITION_COMMAND_ADDRESS = "position_command_address"
 CONF_INVERT_POSITION = "invert_position"
+CONF_STOP_COMMAND_ADDRESS = "stop_command_address"
+CONF_STOP_PULSE_DURATION = "stop_pulse_duration"
 
 # Climate entity configuration
 CONF_CLIMATE_CONTROL_MODE = "control_mode"

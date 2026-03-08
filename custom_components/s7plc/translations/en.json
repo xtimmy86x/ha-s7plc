@@ -311,6 +311,8 @@
         "data": {
           "position_state_address": "Position state address",
           "position_command_address": "Position command address",
+          "stop_command_address": "Stop command address",
+          "stop_pulse_duration": "Stop pulse duration (s)",
           "name": "Name",
           "area": "Area",
           "scan_interval": "Scan interval (s)",
@@ -320,6 +322,8 @@
         "data_description": {
           "position_state_address": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4).",
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "stop_command_address": "PLC boolean address to pulse when stop is pressed. If omitted, stop writes the current position back.",
+          "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
@@ -717,6 +721,8 @@
         "data": {
           "position_state_address": "Position state address",
           "position_command_address": "Position command address",
+          "stop_command_address": "Stop command address",
+          "stop_pulse_duration": "Stop pulse duration (s)",
           "name": "Name",
           "area": "Area",
           "scan_interval": "Scan interval (s)",
@@ -725,6 +731,8 @@
         "data_description": {
           "position_state_address": "PLC address to read the current position value (0-100).",
           "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "stop_command_address": "PLC boolean address to pulse when stop is pressed. If omitted, stop writes the current position back.",
+          "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",

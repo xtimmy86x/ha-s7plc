@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Callable
 
@@ -28,8 +29,11 @@ from .const import (
     CONF_POSITION_COMMAND_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
     CONF_SCAN_INTERVAL,
+    CONF_STOP_COMMAND_ADDRESS,
+    CONF_STOP_PULSE_DURATION,
     CONF_USE_STATE_TOPICS,
     DEFAULT_OPERATE_TIME,
+    DEFAULT_PULSE_DURATION,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -56,6 +60,8 @@ async def async_setup_entry(
             position_command = item.get(CONF_POSITION_COMMAND_ADDRESS)
             scan_interval = item.get(CONF_SCAN_INTERVAL)
             invert_position = item.get(CONF_INVERT_POSITION, False)
+            stop_command = item.get(CONF_STOP_COMMAND_ADDRESS)
+            stop_pulse = item.get(CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION)
 
             position_topic = f"cover:position:{position_state}"
             await coord.add_item(position_topic, position_state, scan_interval)
@@ -75,6 +81,8 @@ async def async_setup_entry(
                     invert_position,
                     device_class,
                     area,
+                    stop_command,
+                    stop_pulse,
                 )
             )
             continue
@@ -458,6 +466,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         invert_position: bool = False,
         device_class: str | None = None,
         suggested_area_id: str | None = None,
+        stop_command: str | None = None,
+        stop_pulse_duration: float = DEFAULT_PULSE_DURATION,
     ) -> None:
         super().__init__(
             coordinator,
@@ -471,6 +481,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         self._position_command_address = position_command or position_state
         self._position_topic = f"cover:position:{position_state}"
         self._invert_position = invert_position
+        self._stop_command_address = stop_command
+        self._stop_pulse_duration = float(stop_pulse_duration)
         if device_class:
             try:
                 self._attr_device_class = CoverDeviceClass(device_class)
@@ -556,21 +568,35 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_stop_cover(self, **kwargs) -> None:
-        """Stop the cover (not implemented for position-based covers)."""
+        """Stop the cover.
 
-        actual_position = self._get_position_value()
-        if actual_position is not None:
-            await self.coordinator.write_batched(
-                self._position_command_address, actual_position
-            )
+        If a stop command address is configured, pulse it for the configured
+        duration.  Otherwise fall back to writing the current position back
+        to the command address.
+        """
+        await self._ensure_connected()
+
+        if self._stop_command_address:
+            # Pulse the stop address: set True, wait, set False
+            await self.coordinator.write_batched(self._stop_command_address, True)
+            await asyncio.sleep(self._stop_pulse_duration)
+            await self.coordinator.write_batched(self._stop_command_address, False)
             self.async_write_ha_state()
             await self.coordinator.async_request_refresh()
         else:
-            cover_name = self._attr_name or self.unique_id
-            _LOGGER.error(
-                "Cannot stop cover %s because current position is unknown",
-                cover_name,
-            )
+            actual_position = self._get_position_value()
+            if actual_position is not None:
+                await self.coordinator.write_batched(
+                    self._position_command_address, actual_position
+                )
+                self.async_write_ha_state()
+                await self.coordinator.async_request_refresh()
+            else:
+                cover_name = self._attr_name or self.unique_id
+                _LOGGER.error(
+                    "Cannot stop cover %s because current position is unknown",
+                    cover_name,
+                )
 
     @property
     def extra_state_attributes(self):
@@ -581,6 +607,9 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             attrs["s7_position_command_address"] = (
                 self._position_command_address.upper()
             )
+        if self._stop_command_address:
+            attrs["s7_stop_command_address"] = self._stop_command_address.upper()
+            attrs["stop_pulse_duration"] = f"{self._stop_pulse_duration} s"
         interval = self.coordinator.get_scan_interval(self._position_topic)
         attrs["closed_scan_interval"] = f"{interval} s"
         attrs["cover_type"] = "position"

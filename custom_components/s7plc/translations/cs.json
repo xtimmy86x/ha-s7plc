@@ -311,6 +311,8 @@
         "data": {
           "position_state_address": "Adresa stavu pozice",
           "position_command_address": "Adresa příkazu pozice",
+          "stop_command_address": "Adresa příkazu zastavení",
+          "stop_pulse_duration": "Délka pulzu zastavení (s)",
           "name": "Název",
           "area": "Oblast",
           "scan_interval": "Interval skenování (s)",
@@ -320,6 +322,8 @@
         "data_description": {
           "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4).",
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
+          "stop_command_address": "Booleovská adresa PLC, která se pulzuje při stisknutí stop. Pokud je vynecháno, stop zapíše aktuální pozici zpět.",
+          "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepsat interval dotazování pro tyto značky v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
@@ -717,6 +721,8 @@
         "data": {
           "position_state_address": "Adresa stavu pozice",
           "position_command_address": "Adresa příkazu pozice",
+          "stop_command_address": "Adresa příkazu zastavení",
+          "stop_pulse_duration": "Délka pulzu zastavení (s)",
           "name": "Název",
           "area": "Oblast",
           "scan_interval": "Interval skenování (s)",
@@ -725,6 +731,8 @@
         "data_description": {
           "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100).",
           "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu.",
+          "stop_command_address": "Booleovská adresa PLC, která se pulzuje při stisknutí stop. Pokud je vynecháno, stop zapíše aktuální pozici zpět.",
+          "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",

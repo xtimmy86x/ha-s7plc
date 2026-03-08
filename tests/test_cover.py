@@ -1084,3 +1084,163 @@ async def test_position_cover_stop_unknown_position(fake_hass, mock_coordinator,
     # Should NOT write anything since position is unknown
     mock_coordinator.write_batched.assert_not_called()
 
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_with_stop_address(fake_hass, mock_coordinator, device_info):
+    """Test that stop with a stop_command_address pulses the stop address."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        stop_command="db1,x1.0",
+        stop_pulse_duration=0.1,
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {"cover:position:db1,b0": 42}
+
+    await cover.async_stop_cover()
+
+    # Should pulse stop address: True then False
+    calls = mock_coordinator.write_batched.call_args_list
+    assert len(calls) == 2
+    assert calls[0].args == ("db1,x1.0", True)
+    assert calls[1].args == ("db1,x1.0", False)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_with_stop_address_does_not_write_position(
+    fake_hass, mock_coordinator, device_info
+):
+    """Test that stop with stop_command_address does NOT write position back."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        stop_command="db1,x1.0",
+        stop_pulse_duration=0.1,
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {"cover:position:db1,b0": 42}
+
+    await cover.async_stop_cover()
+
+    # Should NOT have written position (42) to command address
+    for call in mock_coordinator.write_batched.call_args_list:
+        assert call.args[0] != "db1,b1", "Should not write to position command address"
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_without_stop_address_fallback(
+    fake_hass, mock_coordinator, device_info
+):
+    """Test that stop without stop_command_address falls back to writing current position."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {"cover:position:db1,b0": 55}
+
+    await cover.async_stop_cover()
+
+    # Should write current position (55) to command address
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 55)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_extra_state_attributes_with_stop(
+    fake_hass, mock_coordinator, device_info
+):
+    """Test extra state attributes include stop address info when configured."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        stop_command="db1,x1.0",
+        stop_pulse_duration=1.5,
+    )
+
+    attrs = cover.extra_state_attributes
+    assert attrs["s7_stop_command_address"] == "DB1,X1.0"
+    assert attrs["stop_pulse_duration"] == "1.5 s"
+    assert attrs["cover_type"] == "position"
+
+
+@pytest.mark.asyncio
+async def test_position_cover_extra_state_attributes_without_stop(
+    fake_hass, mock_coordinator, device_info
+):
+    """Test extra state attributes do not include stop info when not configured."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+    )
+
+    attrs = cover.extra_state_attributes
+    assert "s7_stop_command_address" not in attrs
+    assert "stop_pulse_duration" not in attrs
+
+
+@pytest.mark.asyncio
+async def test_position_cover_setup_with_stop_address(fake_hass, mock_coordinator, device_info):
+    """Test position-based cover setup with stop command address."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_STOP_COMMAND_ADDRESS,
+        CONF_STOP_PULSE_DURATION,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,b0",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
+                CONF_STOP_COMMAND_ADDRESS: "db1,x1.0",
+                CONF_STOP_PULSE_DURATION: 2.0,
+                CONF_NAME: "Test Position Cover",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 1
+
+    cover = entities[0]
+    assert cover._stop_command_address == "db1,x1.0"
+    assert cover._stop_pulse_duration == 2.0

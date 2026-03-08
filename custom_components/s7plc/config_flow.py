@@ -97,6 +97,8 @@ from .const import (
     CONF_STATE_ADDRESS,
     CONF_STATE_CLASS,
     CONF_STEP,
+    CONF_STOP_COMMAND_ADDRESS,
+    CONF_STOP_PULSE_DURATION,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
     CONF_TARGET_TEMPERATURE_ADDRESS,
@@ -353,6 +355,10 @@ def _add_schema_cover_position(flow) -> vol.Schema:
         {
             vol.Required(CONF_POSITION_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_POSITION_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_STOP_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_STOP_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+            ): pulse_duration_selector,
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_COVERS),
@@ -653,6 +659,14 @@ def _edit_schema_cover_position(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_POSITION_COMMAND_ADDRESS,
             default=item.get(CONF_POSITION_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
+        vol.Optional(
+            CONF_STOP_COMMAND_ADDRESS,
+            default=item.get(CONF_STOP_COMMAND_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_STOP_PULSE_DURATION,
+            default=float(item.get(CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION)),
+        ): pulse_duration_selector,
         vol.Optional(
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),
@@ -2453,6 +2467,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Add optional command address
         if position_command:
             item[CONF_POSITION_COMMAND_ADDRESS] = position_command
+
+        # Add optional stop command address and pulse duration
+        stop_command = self._sanitize_address(user_input.get(CONF_STOP_COMMAND_ADDRESS))
+        if stop_command:
+            _, stop_errors = self._validate_address_field(stop_command)
+            if stop_errors:
+                return None, stop_errors
+            item[CONF_STOP_COMMAND_ADDRESS] = stop_command
+            stop_pulse = user_input.get(
+                CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION
+            )
+            item[CONF_STOP_PULSE_DURATION] = float(stop_pulse)
 
         # Copy optional fields
         self._copy_optional_fields(

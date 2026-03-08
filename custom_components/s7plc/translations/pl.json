@@ -311,6 +311,8 @@
         "data": {
           "position_state_address": "Adres odczytu położenia",
           "position_command_address": "Adres zapisu położenia",
+          "stop_command_address": "Adres komendy zatrzymania",
+          "stop_pulse_duration": "Długość impulsu zatrzymania (s)",
           "name": "Nazwa",
           "area": "Obszar",
           "scan_interval": "Interwał skanowania (s)",
@@ -320,6 +322,8 @@
         "data_description": {
           "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
           "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
+          "stop_command_address": "Adres booleowski PLC, który jest impulsowany po naciśnięciu stop. Jeśli brak, stop zapisuje bieżącą pozycję z powrotem.",
+          "stop_pulse_duration": "Długość impulsu zatrzymania w sekundach (obsługuje wartości dziesiętne, np. 0,5 dla 500ms).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
@@ -717,6 +721,8 @@
         "data": {
           "position_state_address": "Adres odczytu położenia",
           "position_command_address": "Adres zapisu położenia",
+          "stop_command_address": "Adres komendy zatrzymania",
+          "stop_pulse_duration": "Długość impulsu zatrzymania (s)",
           "name": "Nazwa",
           "area": "Obszar",
           "scan_interval": "Interwał skanowania (s)",
@@ -725,6 +731,8 @@
         "data_description": {
           "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
           "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
+          "stop_command_address": "Adres booleowski PLC, który jest impulsowany po naciśnięciu stop. Jeśli brak, stop zapisuje bieżącą pozycję z powrotem.",
+          "stop_pulse_duration": "Długość impulsu zatrzymania w sekundach (obsługuje wartości dziesiętne, np. 0,5 dla 500ms).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
