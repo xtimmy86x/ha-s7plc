@@ -289,6 +289,7 @@
           "use_state_topics": "Použít stavové adresy pro polohu",
           "name": "Název",
           "area": "Oblast",
+          "device_class": "Třída zařízení",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
         },
@@ -301,6 +302,7 @@
           "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
           "name": "Volitelný srozumitelný název krytiny.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další krytiny."
         }
@@ -315,6 +317,7 @@
           "stop_pulse_duration": "Délka pulzu zastavení (s)",
           "name": "Název",
           "area": "Oblast",
+          "device_class": "Třída zařízení",
           "scan_interval": "Interval skenování (s)",
           "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)",
           "add_another": "Přidat další po uložení"
@@ -326,6 +329,7 @@
           "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
           "scan_interval": "Přepsat interval dotazování pro tyto značky v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
           "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku).",
           "add_another": "Zůstat v tomto kroku pro přidání dalších krytů s pozicí."
@@ -701,6 +705,7 @@
           "use_state_topics": "Použít stavové adresy pro polohu",
           "name": "Název",
           "area": "Oblast",
+          "device_class": "Třída zařízení",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
@@ -712,6 +717,7 @@
           "use_state_topics": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu.",
           "name": "Volitelný srozumitelný název krytiny.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
@@ -725,6 +731,7 @@
           "stop_pulse_duration": "Délka pulzu zastavení (s)",
           "name": "Název",
           "area": "Oblast",
+          "device_class": "Třída zařízení",
           "scan_interval": "Interval skenování (s)",
           "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)"
         },
@@ -735,6 +742,7 @@
           "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
+          "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
           "scan_interval": "Přepsat interval dotazování pro tuto značku v sekundách. Nechte prázdné pro převzetí výchozího nastavení PLC.",
           "invert_position": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku)."
         }

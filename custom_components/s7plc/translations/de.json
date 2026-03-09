@@ -289,6 +289,7 @@
           "use_state_topics": "Zustandvariable für Position verwenden",
           "name": "Name",
           "area": "Bereich",
+          "device_class": "Geräteklasse",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
@@ -301,6 +302,7 @@
           "use_state_topics": "Aktivieren Sie diese Option, um Adressen zur Bestimmung der Position zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?"
         }
@@ -315,6 +317,7 @@
           "stop_pulse_duration": "Stopp-Pulsdauer (s)",
           "name": "Name",
           "area": "Bereich",
+          "device_class": "Geräteklasse",
           "scan_interval": "Scan-Intervall (s)",
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
@@ -326,6 +329,7 @@
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um).",
           "add_another": "Weitere positionsbasierte Jalousie/Raffstores hinzuzufügen ?"
@@ -701,6 +705,7 @@
           "use_state_topics": "Zustandsthemen für Position verwenden",
           "name": "Name",
           "area": "Bereich",
+          "device_class": "Geräteklasse",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
@@ -712,6 +717,7 @@
           "use_state_topics": "Aktivieren Sie diese Option, um Zustandsvariablen zur Bestimmung der Jalousie/Raffstoresposition zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet.",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
       },
@@ -725,6 +731,7 @@
           "stop_pulse_duration": "Stopp-Pulsdauer (s)",
           "name": "Name",
           "area": "Bereich",
+          "device_class": "Geräteklasse",
           "scan_interval": "Scan-Intervall (s)",
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
@@ -735,6 +742,7 @@
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
+          "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "invert_position": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um)."
         }

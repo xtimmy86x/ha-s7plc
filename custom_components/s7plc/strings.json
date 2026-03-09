@@ -289,6 +289,7 @@
           "use_state_topics": "Use state topics for position",
           "name": "Name",
           "area": "Area",
+          "device_class": "Device class",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -301,6 +302,7 @@
           "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more covers."
         }
@@ -315,6 +317,7 @@
           "stop_pulse_duration": "Stop pulse duration (s)",
           "name": "Name",
           "area": "Area",
+          "device_class": "Device class",
           "scan_interval": "Scan interval (s)",
           "invert_position": "Invert position (0=open, 100=closed)",
           "add_another": "Add another after saving"
@@ -326,6 +329,7 @@
           "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
           "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic).",
           "add_another": "Stay on this step to add more position-based covers."
@@ -701,6 +705,7 @@
           "use_state_topics": "Use state topics for position",
           "name": "Name",
           "area": "Area",
+          "device_class": "Device class",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -712,6 +717,7 @@
           "use_state_topics": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time.",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -725,6 +731,7 @@
           "stop_pulse_duration": "Stop pulse duration (s)",
           "name": "Name",
           "area": "Area",
+          "device_class": "Device class",
           "scan_interval": "Scan interval (s)",
           "invert_position": "Invert position (0=open, 100=closed)"
         },
@@ -735,6 +742,7 @@
           "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
+          "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "invert_position": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic)."
         }

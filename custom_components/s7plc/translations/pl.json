@@ -289,6 +289,7 @@
           "use_state_topics": "Użyj adresów odczytu położenia dla określenia pozycji",
           "name": "Nazwa",
           "area": "Obszar",
+          "device_class": "Klasa urządzenia",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
@@ -301,6 +302,7 @@
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia Home Assistant do doprecyzowania UI/zachowania (np. shutter, blind, garage).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -315,6 +317,7 @@
           "stop_pulse_duration": "Długość impulsu zatrzymania (s)",
           "name": "Nazwa",
           "area": "Obszar",
+          "device_class": "Klasa urządzenia",
           "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć położenie",
           "add_another": "Dodaj kolejną encje po zapisaniu"
@@ -326,6 +329,7 @@
           "stop_pulse_duration": "Długość impulsu zatrzymania w sekundach (obsługuje wartości dziesiętne, np. 0,5 dla 500ms).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia Home Assistant do doprecyzowania UI/zachowania (np. shutter, blind, garage).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (0 = Otwarta, 100 = Zamknięta).",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
@@ -701,6 +705,7 @@
           "use_state_topics": "Użyj adresów odczytu położenia dla określenia pozycji",
           "name": "Nazwa",
           "area": "Obszar",
+          "device_class": "Klasa urządzenia",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
@@ -712,6 +717,7 @@
           "use_state_topics": "Włącz, aby używać adresów położenia dla określenia pozycji osłony/rolety. Gdy wyłączone, pozycja wynika z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia Home Assistant do doprecyzowania UI/zachowania (np. shutter, blind, garage).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
@@ -725,6 +731,7 @@
           "stop_pulse_duration": "Długość impulsu zatrzymania (s)",
           "name": "Nazwa",
           "area": "Obszar",
+          "device_class": "Klasa urządzenia",
           "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć położenie"
         },
@@ -735,6 +742,7 @@
           "stop_pulse_duration": "Długość impulsu zatrzymania w sekundach (obsługuje wartości dziesiętne, np. 0,5 dla 500ms).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
+          "device_class": "Klasa urządzenia Home Assistant do doprecyzowania UI/zachowania (np. shutter, blind, garage).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "invert_position": "Włącz, jeśli twój PLC używa 0 dla całkowitego otwarcia i 100 dla całkowitego zamknięcia (0 = Otwarta, 100 = Zamknięta)."
         }
