@@ -144,9 +144,22 @@ def test_build_expected_unique_ids_all_entity_types():
 
 
 def test_build_expected_unique_ids_empty_options():
-    """Empty options still include the connection sensor."""
+    """Empty options without enable_metrics only include the connection sensor."""
     ids = build_expected_unique_ids("dev", {})
-    assert ids == {"dev:connection"}
+    assert "dev:connection" in ids
+    # Only connection, no metrics (enable_metrics defaults to False)
+    assert len(ids) == 1
+
+
+def test_build_expected_unique_ids_empty_options_with_metrics():
+    """Empty options with enable_metrics include connection + metrics sensors."""
+    from custom_components.s7plc.sensor import METRICS_DEFINITIONS
+
+    ids = build_expected_unique_ids("dev", {}, data={"enable_metrics": True})
+    assert "dev:connection" in ids
+    for defn in METRICS_DEFINITIONS:
+        assert f"dev:metrics:{defn.key}" in ids
+    assert len(ids) == 1 + len(METRICS_DEFINITIONS)
 
 
 def test_build_expected_unique_ids_traditional_cover_variants():
@@ -177,7 +190,9 @@ def test_build_expected_unique_ids_skips_items_without_address():
         "switches": [{}],
         "covers": [{}],
     })
-    assert ids == {"d:connection"}
+    assert "d:connection" in ids
+    # Only connection, no entity IDs because addresses are missing
+    assert len(ids) == 1
 
 
 def test_build_entity_area_map():

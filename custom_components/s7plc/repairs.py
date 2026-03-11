@@ -70,7 +70,9 @@ class OrphanedEntitiesRepairFlow(RepairsFlow):
 
     async def _get_expected_unique_ids(self, entry) -> set[str]:
         """Get the set of expected unique IDs from configuration."""
-        return build_expected_unique_ids(entry.runtime_data.device_id, entry.options)
+        return build_expected_unique_ids(
+            entry.runtime_data.device_id, entry.options, data=entry.data
+        )
 
 
 async def async_create_fix_flow(

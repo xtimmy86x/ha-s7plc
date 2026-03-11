@@ -25,7 +25,8 @@
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
           "optimize_read": "Lesevorgänge optimieren",
-          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren",
+          "enable_metrics": "Leistungsmetriken aktivieren"
         },
         "data_description": {
           "name": "Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -40,7 +41,8 @@
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
           "optimize_read": "Aktivieren Sie optimierte Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
-          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen.",
+          "enable_metrics": "Leistungsmetriken aktivieren. Sammelt und meldet Leistungsdaten für Überwachung und Optimierung."
         }
       },
       "tsap": {
@@ -59,7 +61,8 @@
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
           "optimize_read": "Lesevorgänge optimieren",
-          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren",
+          "enable_metrics": "Leistungsmetriken aktivieren"
         },
         "data_description": {
           "name": "Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -74,7 +77,8 @@
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
           "optimize_read": "Aktivieren Sie optimierte Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
-          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen.",
+          "enable_metrics": "Leistungsmetriken aktivieren. Sammelt und meldet Leistungsdaten für Überwachung und Optimierung."
         }
       }
     },
@@ -175,7 +179,8 @@
           "retry_backoff_initial": "Wiederholungs-Backoff Start (s)",
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
           "optimize_read": "Lesevorgänge optimieren",
-          "enable_write_batching": "Schreibvorgänge bündeln aktivieren"
+          "enable_write_batching": "Schreibvorgänge bündeln aktivieren",
+          "enable_metrics": "Leistungsmetriken aktivieren"
         },
         "data_description": {
           "name": "Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -190,7 +195,8 @@
           "retry_backoff_initial": "Verzögerung vor dem ersten Wiederholungsversuch.",
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
           "optimize_read": "Aktivieren Sie optimierte Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
-          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen."
+          "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen.",
+          "enable_metrics": "Leistungsmetriken aktivieren. Sammelt und meldet Leistungsdaten für Überwachung und Optimierung."
         }
       },
       "sensors": {
@@ -906,6 +912,50 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "{plc_name} Verbindung"
+      }
+    },
+    "sensor": {
+      "metrics_connection_uptime": {
+        "name": "Verbindungsdauer"
+      },
+      "metrics_connection_count": {
+        "name": "Verbindungsanzahl"
+      },
+      "metrics_disconnection_count": {
+        "name": "Trennungsanzahl"
+      },
+      "metrics_total_operations": {
+        "name": "Gesamtoperationen"
+      },
+      "metrics_read_count": {
+        "name": "Leseanzahl"
+      },
+      "metrics_write_count": {
+        "name": "Schreibanzahl"
+      },
+      "metrics_total_errors": {
+        "name": "Gesamtfehler"
+      },
+      "metrics_success_rate": {
+        "name": "Erfolgsrate"
+      },
+      "metrics_error_rate": {
+        "name": "Fehlerrate"
+      },
+      "metrics_avg_read_duration": {
+        "name": "Durchschn. Lesedauer"
+      },
+      "metrics_avg_write_duration": {
+        "name": "Durchschn. Schreibdauer"
+      },
+      "metrics_operations_per_minute": {
+        "name": "Operationen pro Minute"
+      },
+      "metrics_total_bytes_read": {
+        "name": "Gelesene Bytes gesamt"
+      },
+      "metrics_total_bytes_written": {
+        "name": "Geschriebene Bytes gesamt"
       }
     }
   }

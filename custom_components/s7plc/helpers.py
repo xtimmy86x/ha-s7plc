@@ -33,6 +33,7 @@ from .const import (
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
+    CONF_ENABLE_METRICS,
     CONF_ENTITY_SYNC,
     CONF_LIGHTS,
     CONF_NUMBERS,
@@ -45,6 +46,7 @@ from .const import (
     CONF_TEXTS,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
+    DEFAULT_ENABLE_METRICS,
     DEFAULT_PULSE_DURATION,
     DOMAIN,
 )
@@ -314,13 +316,25 @@ def _iter_entity_unique_ids(
             yield f"{device_id}:entity_sync:{address}", item
 
 
-def build_expected_unique_ids(device_id: str, options: Mapping[str, Any]) -> set[str]:
+def build_expected_unique_ids(
+    device_id: str,
+    options: Mapping[str, Any],
+    data: Mapping[str, Any] | None = None,
+) -> set[str]:
     """Return the set of expected unique-ids for a config entry.
 
-    Includes the connection binary sensor automatically.
+    Includes the connection binary sensor and metrics sensors automatically.
+    *data* is the ``entry.data`` dict where ``enable_metrics`` is stored.
     """
+    from .sensor import METRICS_DEFINITIONS
+
     ids = {uid for uid, _ in _iter_entity_unique_ids(device_id, options)}
     ids.add(f"{device_id}:connection")
+    # enable_metrics lives in entry.data, not in entry.options
+    source = data if data is not None else options
+    if source.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS):
+        for defn in METRICS_DEFINITIONS:
+            ids.add(f"{device_id}:metrics:{defn.key}")
     return ids
 
 

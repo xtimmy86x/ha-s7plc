@@ -50,6 +50,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         backoff_max: float = 2.0,  # max backoff between retries
         optimize_read: bool = True,  # enable optimized batch reads
         enable_write_batching: bool = True,  # enable automatic write batching
+        enable_metrics: bool = False,  # disable pyS7 performance metrics
     ):
         super().__init__(
             hass,
@@ -82,7 +83,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._backoff_max = float(backoff_max)
         self._optimize_read = bool(optimize_read)
         self._enable_write_batching = bool(enable_write_batching)
-
+        self._enable_metrics = bool(enable_metrics)
         # Lock for async operations (state management)
         self._async_lock = asyncio.Lock()
         # Lock for sync operations in executor (PLC communication)
@@ -136,6 +137,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
     def pys7_connection_type_str(self) -> str:
         """Return the pyS7 connection type string (e.g. 'pg', 'op', 's7basic')."""
         return self._pys7_connection_type_str
+
+    @property
+    def enable_metrics(self) -> bool:
+        """Return whether performance metrics are enabled."""
+        return self._enable_metrics
 
     def _get_connection_type_enum(self, connection_type_str: str) -> Any | None:
         """Convert string connection type to pyS7 ConnectionType enum.
@@ -217,6 +223,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     remote_tsap=self._remote_tsap,
                     port=self._port,
                     connection_type=self._pys7_connection_type,
+                    enable_metrics=self._enable_metrics,
                 )
             else:
                 self._client = pyS7.S7Client(
@@ -225,6 +232,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._slot,
                     port=self._port,
                     connection_type=self._pys7_connection_type,
+                    enable_metrics=self._enable_metrics,
                 )
 
         if not self._client.is_connected:
@@ -324,6 +332,29 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
         return await self.hass.async_add_executor_job(_probe)
+
+    @property
+    def pys7_metrics(self) -> Any | None:
+        """Return the pyS7 client metrics object, or None if unavailable.
+
+        The metrics object exposes connection/operation/performance counters
+        collected by the pyS7 library (requires pyS7 >= 2.7.0 with
+        ``enable_metrics=True``, which is the default).
+        """
+        if self._client is None:
+            return None
+        return getattr(self._client, "metrics", None)
+
+    @property
+    def pys7_metrics_dict(self) -> dict[str, Any]:
+        """Return pyS7 metrics as a plain dict (empty if unavailable)."""
+        metrics = self.pys7_metrics
+        if metrics is None:
+            return {}
+        try:
+            return metrics.as_dict()
+        except Exception:  # pragma: no cover - defensive
+            return {}
 
     @property
     def last_health_ok(self) -> bool | None:

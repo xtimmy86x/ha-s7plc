@@ -159,6 +159,12 @@ async def async_get_config_entry_diagnostics(
             )
         coordinator_info["errors"] = error_info
 
+        # pyS7 library metrics (connection, operations, performance, data transfer)
+        if coordinator.enable_metrics:
+            pys7_metrics = coordinator.pys7_metrics_dict
+            if pys7_metrics:
+                coordinator_info["pys7_metrics"] = pys7_metrics
+
         runtime_info["coordinator"] = coordinator_info
 
     diagnostics["runtime"] = runtime_info

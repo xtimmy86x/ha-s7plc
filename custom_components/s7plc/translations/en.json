@@ -25,7 +25,8 @@
           "retry_backoff_initial": "Retry backoff start (s)",
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
-          "enable_write_batching": "Enable write batching"
+          "enable_write_batching": "Enable write batching",
+          "enable_metrics": "Enable performance metrics"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -40,7 +41,8 @@
           "retry_backoff_initial": "Delay before the first retry attempt.",
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
-          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
+          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
         }
       },
       "tsap": {
@@ -59,7 +61,8 @@
           "retry_backoff_initial": "Retry backoff start (s)",
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
-          "enable_write_batching": "Enable write batching"
+          "enable_write_batching": "Enable write batching",
+          "enable_metrics": "Enable performance metrics"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -74,7 +77,8 @@
           "retry_backoff_initial": "Delay before the first retry attempt.",
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
-          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
+          "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
         }
       }
     },
@@ -175,7 +179,8 @@
           "retry_backoff_initial": "Retry backoff start (s)",
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
-          "enable_write_batching": "Enable write batching"
+          "enable_write_batching": "Enable write batching",
+          "enable_metrics": "Enable performance metrics"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -190,7 +195,8 @@
           "retry_backoff_initial": "Delay before the first retry attempt.",
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
-          "enable_write_batching": "Enable automatic batching of writes. When multiple entities update simultaneously, writes are grouped into a single PLC request (50ms window). Improves performance for scenes and bulk operations."
+          "enable_write_batching": "Enable automatic batching of writes. When multiple entities update simultaneously, writes are grouped into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
         }
       },
       "sensors": {
@@ -906,6 +912,50 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "{plc_name} connection"
+      }
+    },
+    "sensor": {
+      "metrics_connection_uptime": {
+        "name": "Connection uptime"
+      },
+      "metrics_connection_count": {
+        "name": "Connection count"
+      },
+      "metrics_disconnection_count": {
+        "name": "Disconnection count"
+      },
+      "metrics_total_operations": {
+        "name": "Total operations"
+      },
+      "metrics_read_count": {
+        "name": "Read count"
+      },
+      "metrics_write_count": {
+        "name": "Write count"
+      },
+      "metrics_total_errors": {
+        "name": "Total errors"
+      },
+      "metrics_success_rate": {
+        "name": "Success rate"
+      },
+      "metrics_error_rate": {
+        "name": "Error rate"
+      },
+      "metrics_avg_read_duration": {
+        "name": "Avg read duration"
+      },
+      "metrics_avg_write_duration": {
+        "name": "Avg write duration"
+      },
+      "metrics_operations_per_minute": {
+        "name": "Operations per minute"
+      },
+      "metrics_total_bytes_read": {
+        "name": "Total bytes read"
+      },
+      "metrics_total_bytes_written": {
+        "name": "Total bytes written"
       }
     }
   }

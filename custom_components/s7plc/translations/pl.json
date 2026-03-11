@@ -25,7 +25,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów"
+          "enable_write_batching": "Włącz grupowanie zapisów",
+          "enable_metrics": "Włącz metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC (używana w nazwach encji).",
@@ -40,7 +41,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
-          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
+          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych.",
+          "enable_metrics": "Włącz metryki wydajności. Zbiera i raportuje dane wydajnościowe do monitorowania i optymalizacji."
         }
       },
       "tsap": {
@@ -59,7 +61,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów"
+          "enable_write_batching": "Włącz grupowanie zapisów",
+          "enable_metrics": "Włącz metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC (używana w nazwach encji).",
@@ -74,7 +77,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
           "retry_backoff_max": "Maksymalne opóźnienie między kolejnymi próbami komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
-          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
+          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych.",
+          "enable_metrics": "Włącz metryki wydajności. Zbiera i raportuje dane wydajnościowe do monitorowania i optymalizacji."
         }
       }
     },
@@ -175,7 +179,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów"
+          "enable_write_batching": "Włącz grupowanie zapisów",
+          "enable_metrics": "Włącz metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC (używana w nazwach encji).",
@@ -190,7 +195,8 @@
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie komunikacji z PLC.",
           "retry_backoff_max": "Maksymalne opóźnienie między kolejnymi próbami komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
-          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych."
+          "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych.",
+          "enable_metrics": "Włącz metryki wydajności. Zbiera i raportuje dane wydajnościowe do monitorowania i optymalizacji."
         }
       },
       "sensors": {
@@ -906,6 +912,50 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "Połączenie {plc_name}"
+      }
+    },
+    "sensor": {
+      "metrics_connection_uptime": {
+        "name": "Czas połączenia"
+      },
+      "metrics_connection_count": {
+        "name": "Liczba połączeń"
+      },
+      "metrics_disconnection_count": {
+        "name": "Liczba rozłączeń"
+      },
+      "metrics_total_operations": {
+        "name": "Łączna liczba operacji"
+      },
+      "metrics_read_count": {
+        "name": "Liczba odczytów"
+      },
+      "metrics_write_count": {
+        "name": "Liczba zapisów"
+      },
+      "metrics_total_errors": {
+        "name": "Łączna liczba błędów"
+      },
+      "metrics_success_rate": {
+        "name": "Wskaźnik sukcesu"
+      },
+      "metrics_error_rate": {
+        "name": "Wskaźnik błędów"
+      },
+      "metrics_avg_read_duration": {
+        "name": "Średni czas odczytu"
+      },
+      "metrics_avg_write_duration": {
+        "name": "Średni czas zapisu"
+      },
+      "metrics_operations_per_minute": {
+        "name": "Operacji na minutę"
+      },
+      "metrics_total_bytes_read": {
+        "name": "Łącznie odczytanych bajtów"
+      },
+      "metrics_total_bytes_written": {
+        "name": "Łącznie zapisanych bajtów"
       }
     }
   }

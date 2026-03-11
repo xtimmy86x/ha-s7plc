@@ -8,6 +8,7 @@ from homeassistant.components.sensor import (
 )
 
 from custom_components.s7plc.sensor import (
+    S7MetricsSensor,
     S7Sensor,
     async_setup_entry,
     DEVICE_CLASS_UNITS,
@@ -317,7 +318,8 @@ async def test_async_setup_entry_no_sensors():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.async_request_refresh = MagicMock(return_value=None)
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -326,8 +328,11 @@ async def test_async_setup_entry_no_sensors():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should not add any entities
-        async_add_entities.assert_not_called()
+        # Should add only metrics sensors (14)
+        assert async_add_entities.called
+        entities = async_add_entities.call_args[0][0]
+        assert len(entities) == 14
+        assert all(isinstance(e, S7MetricsSensor) for e in entities)
 
 
 @pytest.mark.asyncio
@@ -356,6 +361,7 @@ async def test_async_setup_entry_with_sensors():
         mock_coord = MagicMock()
         mock_coord.add_item = AsyncMock()
         mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -364,10 +370,10 @@ async def test_async_setup_entry_with_sensors():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should add entities
+        # Should add 1 user sensor + 14 metrics sensors
         assert async_add_entities.called
         entities = async_add_entities.call_args[0][0]
-        assert len(entities) == 1
+        assert len(entities) == 1 + 14
         assert isinstance(entities[0], S7Sensor)
         
         # Should request refresh
@@ -393,7 +399,8 @@ async def test_async_setup_entry_skip_empty_address():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.async_request_refresh = MagicMock(return_value=None)
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -402,8 +409,11 @@ async def test_async_setup_entry_skip_empty_address():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should not add any entities
-        async_add_entities.assert_not_called()
+        # Should add only metrics sensors (14), no user sensor
+        assert async_add_entities.called
+        entities = async_add_entities.call_args[0][0]
+        assert len(entities) == 14
+        assert all(isinstance(e, S7MetricsSensor) for e in entities)
 
 
 @pytest.mark.asyncio
@@ -427,7 +437,8 @@ async def test_async_setup_entry_with_entity_syncs():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.async_request_refresh = MagicMock(return_value=None)
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -436,10 +447,14 @@ async def test_async_setup_entry_with_entity_syncs():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should add entity sync
-        assert async_add_entities.called
-        entities = async_add_entities.call_args[0][0]
-        assert len(entities) == 1
+        # async_add_entities called twice: first for sensors+metrics, then for syncs
+        assert async_add_entities.call_count == 2
+        # First call: 14 metrics sensors
+        metrics_entities = async_add_entities.call_args_list[0][0][0]
+        assert len(metrics_entities) == 14
+        # Second call: 1 entity sync
+        sync_entities = async_add_entities.call_args_list[1][0][0]
+        assert len(sync_entities) == 1
 
 
 @pytest.mark.asyncio
@@ -466,7 +481,8 @@ async def test_async_setup_entry_skip_invalid_entity_syncs():
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
         mock_coord = MagicMock()
-        mock_coord.async_request_refresh = MagicMock(return_value=None)
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -475,8 +491,11 @@ async def test_async_setup_entry_skip_invalid_entity_syncs():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should not add any entities
-        async_add_entities.assert_not_called()
+        # Should add only metrics sensors (14), no sync entities
+        assert async_add_entities.call_count == 1
+        entities = async_add_entities.call_args[0][0]
+        assert len(entities) == 14
+        assert all(isinstance(e, S7MetricsSensor) for e in entities)
 
 
 @pytest.mark.asyncio
@@ -501,6 +520,7 @@ async def test_async_setup_entry_default_names():
         mock_coord = MagicMock()
         mock_coord.add_item = AsyncMock()
         mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
         mock_get_coord.return_value = (
             mock_coord,
             {"name": "Test Device"},
@@ -509,10 +529,10 @@ async def test_async_setup_entry_default_names():
         
         await async_setup_entry(hass, entry, async_add_entities)
         
-        # Should create sensor with default name
+        # Should create 1 user sensor + 14 metrics sensors
         assert async_add_entities.called
         entities = async_add_entities.call_args[0][0]
-        assert len(entities) == 1
+        assert len(entities) == 1 + 14
         # Name should be generated - just check unique_id exists
         assert entities[0]._attr_unique_id is not None
 

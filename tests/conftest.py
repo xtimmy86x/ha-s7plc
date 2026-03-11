@@ -975,6 +975,8 @@ class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
     GAS = "gas"
     WATER = "water"
     VOLUME = "volume"
+    DURATION = "duration"
+    DATA_SIZE = "data_size"
 
 
 class SensorEntity:  # pragma: no cover - simple stub
@@ -1142,6 +1144,23 @@ class DummyCoordinator:
         # Plan tracking (for sensor tests)
         self._plans_str = kwargs.pop("_plans_str", {})
         self._plans_batch = kwargs.pop("_plans_batch", {})
+
+        # pyS7 metrics support (for metrics sensor tests)
+        self._pys7_metrics = kwargs.pop("pys7_metrics", None)
+
+    @property
+    def pys7_metrics(self):
+        """Return mock pyS7 metrics object, or None."""
+        return self._pys7_metrics
+
+    @property
+    def pys7_metrics_dict(self):
+        """Return mock pyS7 metrics as dict."""
+        if self._pys7_metrics is None:
+            return {}
+        if hasattr(self._pys7_metrics, "as_dict"):
+            return self._pys7_metrics.as_dict()
+        return {}
 
     def get_scan_interval(self, topic: str) -> float:
         return self._item_scan_intervals.get(topic, self._default_scan_interval)

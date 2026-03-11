@@ -58,6 +58,7 @@ from .const import (
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_DEVICE_CLASS,
+    CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
     CONF_HEATING_ACTION_ADDRESS,
@@ -114,6 +115,7 @@ from .const import (
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BRIGHTNESS_SCALE,
+    DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
     DEFAULT_MAX_TEMP,
@@ -1214,6 +1216,9 @@ def _build_connection_parse_defaults(
         CONF_ENABLE_WRITE_BATCHING: bool(
             source.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
         ),
+        CONF_ENABLE_METRICS: bool(
+            source.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS)
+        ),
     }
 
     if connection_type == CONNECTION_TYPE_TSAP:
@@ -1239,6 +1244,7 @@ class ParsedConnectionParams:
     backoff_max: float
     optimize_read: bool
     enable_write_batching: bool
+    enable_metrics: bool
     rack: int | None
     slot: int | None
     local_tsap: str | None
@@ -1270,6 +1276,9 @@ def _parse_connection_params(
     )
     enable_write_batching = bool(
         user_input.get(CONF_ENABLE_WRITE_BATCHING, defaults[CONF_ENABLE_WRITE_BATCHING])
+    )
+    enable_metrics = bool(
+        user_input.get(CONF_ENABLE_METRICS, defaults[CONF_ENABLE_METRICS])
     )
 
     if connection_type == CONNECTION_TYPE_TSAP:
@@ -1307,6 +1316,7 @@ def _parse_connection_params(
         slot=slot,
         local_tsap=local_tsap,
         remote_tsap=remote_tsap,
+        enable_metrics=enable_metrics,
     )
 
 
@@ -1341,6 +1351,8 @@ async def _test_plc_connection(
     backoff_initial: float,
     backoff_max: float,
     optimize_read: bool,
+    enable_write_batching: bool,
+    enable_metrics: bool,
 ) -> None:
     """Test PLC connection. Raises on failure."""
     coordinator = S7Coordinator(
@@ -1359,6 +1371,8 @@ async def _test_plc_connection(
         backoff_initial=backoff_initial,
         backoff_max=backoff_max,
         optimize_read=optimize_read,
+        enable_write_batching=enable_write_batching,
+        enable_metrics=enable_metrics,
     )
     await hass.async_add_executor_job(coordinator.connect)
     await hass.async_add_executor_job(coordinator.disconnect)
@@ -1378,6 +1392,7 @@ def _build_connection_entry_data(
     backoff_max: float,
     optimize_read: bool,
     enable_write_batching: bool,
+    enable_metrics: bool,
     local_tsap: str | None,
     remote_tsap: str | None,
     rack: int | None,
@@ -1397,6 +1412,7 @@ def _build_connection_entry_data(
         CONF_BACKOFF_MAX: backoff_max,
         CONF_OPTIMIZE_READ: optimize_read,
         CONF_ENABLE_WRITE_BATCHING: enable_write_batching,
+        CONF_ENABLE_METRICS: enable_metrics,
     }
     if connection_type == CONNECTION_TYPE_TSAP:
         data[CONF_LOCAL_TSAP] = local_tsap
@@ -1527,6 +1543,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_ENABLE_WRITE_BATCHING, default=DEFAULT_ENABLE_WRITE_BATCHING
                 ): bool,
+                vol.Optional(CONF_ENABLE_METRICS, default=DEFAULT_ENABLE_METRICS): bool,
             }
         )
 
@@ -1613,6 +1630,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_ENABLE_WRITE_BATCHING, default=DEFAULT_ENABLE_WRITE_BATCHING
                 ): bool,
                 vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
+                vol.Optional(CONF_ENABLE_METRICS, default=DEFAULT_ENABLE_METRICS): bool,
             }
         )
 
@@ -1692,6 +1710,8 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 backoff_initial=params.backoff_initial,
                 backoff_max=params.backoff_max,
                 optimize_read=params.optimize_read,
+                enable_write_batching=params.enable_write_batching,
+                enable_metrics=params.enable_metrics,
             )
         except Exception as err:
             # Catch all connection errors (OSError, S7 errors, RuntimeError, etc.)
@@ -1729,6 +1749,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             remote_tsap=params.remote_tsap,
             rack=params.rack,
             slot=params.slot,
+            enable_metrics=params.enable_metrics,
         )
 
         return self.async_create_entry(title=name, data=entry_data)
@@ -3244,6 +3265,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     default=defaults[CONF_ENABLE_WRITE_BATCHING],
                 ): bool,
                 vol.Optional(
+                    CONF_ENABLE_METRICS, default=defaults[CONF_ENABLE_METRICS]
+                ): bool,
+                vol.Optional(
                     CONF_PYS7_CONNECTION_TYPE,
                     default=defaults[CONF_PYS7_CONNECTION_TYPE],
                 ): selector.SelectSelector(
@@ -3354,6 +3378,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 backoff_initial=params.backoff_initial,
                 backoff_max=params.backoff_max,
                 optimize_read=params.optimize_read,
+                enable_write_batching=params.enable_write_batching,
+                enable_metrics=params.enable_metrics,
             )
         except Exception as err:
             # Catch all connection errors during options flow connection test
@@ -3387,6 +3413,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             backoff_max=params.backoff_max,
             optimize_read=params.optimize_read,
             enable_write_batching=params.enable_write_batching,
+            enable_metrics=params.enable_metrics,
             local_tsap=params.local_tsap,
             remote_tsap=params.remote_tsap,
             rack=params.rack,

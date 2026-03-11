@@ -25,7 +25,8 @@
           "retry_backoff_initial": "Backoff iniziale retry (s)",
           "retry_backoff_max": "Backoff massimo retry (s)",
           "optimize_read": "Ottimizza letture batch",
-          "enable_write_batching": "Abilita batching scritture"
+          "enable_write_batching": "Abilita batching scritture",
+          "enable_metrics": "Abilita metriche di performance"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -40,7 +41,8 @@
           "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
           "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
           "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive.",
+          "enable_metrics": "Abilita le metriche di performance. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
         }
       },
       "tsap": {
@@ -59,7 +61,8 @@
           "retry_backoff_initial": "Backoff iniziale retry (s)",
           "retry_backoff_max": "Backoff massimo retry (s)",
           "optimize_read": "Ottimizza letture batch",
-          "enable_write_batching": "Abilita batching scritture"
+          "enable_write_batching": "Abilita batching scritture",
+          "enable_metrics": "Abilita metriche di performance"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -74,7 +77,8 @@
           "retry_backoff_initial": "Attesa prima del primo tentativo di retry.",
           "retry_backoff_max": "Attesa massima tra i tentativi di retry.",
           "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive.",
+          "enable_metrics": "Abilita le metriche di performance. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
         }
       }
     },
@@ -175,7 +179,8 @@
           "retry_backoff_initial": "Retry backoff iniziale (s)",
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Ottimizza letture batch",
-          "enable_write_batching": "Abilita batching scritture"
+          "enable_write_batching": "Abilita batching scritture",
+          "enable_metrics": "Abilita metriche di performance"
         },
         "data_description": {
           "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
@@ -190,7 +195,8 @@
           "retry_backoff_initial": "Ritardo prima del primo tentativo di retry.",
           "retry_backoff_max": "Ritardo massimo tra i tentativi di retry.",
           "optimize_read": "Abilita letture batch ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
-          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive."
+          "enable_write_batching": "Abilita il batching automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra 50ms). Migliora le prestazioni per scene e operazioni massive.",
+          "enable_metrics": "Abilita le metriche di performance. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
         }
       },
       "sensors": {
@@ -906,6 +912,50 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "Connessione {plc_name}"
+      }
+    },
+    "sensor": {
+      "metrics_connection_uptime": {
+        "name": "Tempo di connessione"
+      },
+      "metrics_connection_count": {
+        "name": "Conteggio connessioni"
+      },
+      "metrics_disconnection_count": {
+        "name": "Conteggio disconnessioni"
+      },
+      "metrics_total_operations": {
+        "name": "Operazioni totali"
+      },
+      "metrics_read_count": {
+        "name": "Conteggio letture"
+      },
+      "metrics_write_count": {
+        "name": "Conteggio scritture"
+      },
+      "metrics_total_errors": {
+        "name": "Errori totali"
+      },
+      "metrics_success_rate": {
+        "name": "Tasso di successo"
+      },
+      "metrics_error_rate": {
+        "name": "Tasso di errore"
+      },
+      "metrics_avg_read_duration": {
+        "name": "Durata media lettura"
+      },
+      "metrics_avg_write_duration": {
+        "name": "Durata media scrittura"
+      },
+      "metrics_operations_per_minute": {
+        "name": "Operazioni al minuto"
+      },
+      "metrics_total_bytes_read": {
+        "name": "Byte totali letti"
+      },
+      "metrics_total_bytes_written": {
+        "name": "Byte totali scritti"
       }
     }
   }

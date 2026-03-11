@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import numbers
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -14,6 +16,7 @@ from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .address import DataType, parse_tag
 from .const import (
@@ -41,7 +44,152 @@ from .helpers import (
     scale_value,
 )
 
+if TYPE_CHECKING:
+    from .coordinator import S7Coordinator
+
 _LOGGER = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# pyS7 Metrics definitions & sensor
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class MetricDefinition:
+    """Describes a single pyS7 metric exposed as a HA sensor."""
+
+    key: str
+    name: str
+    icon: str
+    unit: str | None = None
+    device_class: SensorDeviceClass | None = None
+    state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
+    precision: int | None = None
+    factor: float = 1.0  # multiply the raw value by this factor
+
+
+METRICS_DEFINITIONS: tuple[MetricDefinition, ...] = (
+    # --- Connection ---
+    MetricDefinition(
+        key="connection_uptime",
+        name="Connection Uptime",
+        icon="mdi:timer-outline",
+        unit="s",
+        device_class=SensorDeviceClass.DURATION,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="connection_count",
+        name="Connection Count",
+        icon="mdi:connection",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="disconnection_count",
+        name="Disconnection Count",
+        icon="mdi:lan-disconnect",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    # --- Operations ---
+    MetricDefinition(
+        key="total_operations",
+        name="Total Operations",
+        icon="mdi:swap-vertical",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="read_count",
+        name="Read Count",
+        icon="mdi:database-arrow-down",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="write_count",
+        name="Write Count",
+        icon="mdi:database-arrow-up",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="total_errors",
+        name="Total Errors",
+        icon="mdi:alert-circle-outline",
+        unit=None,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    # --- Quality ---
+    MetricDefinition(
+        key="success_rate",
+        name="Success Rate",
+        icon="mdi:check-circle-outline",
+        unit="%",
+        precision=1,
+    ),
+    MetricDefinition(
+        key="error_rate",
+        name="Error Rate",
+        icon="mdi:alert-outline",
+        unit="%",
+        precision=1,
+    ),
+    # --- Performance ---
+    MetricDefinition(
+        key="avg_read_duration",
+        name="Avg Read Duration",
+        icon="mdi:clock-fast",
+        unit="ms",
+        device_class=SensorDeviceClass.DURATION,
+        precision=1,
+        factor=1000.0,  # seconds -> ms
+    ),
+    MetricDefinition(
+        key="avg_write_duration",
+        name="Avg Write Duration",
+        icon="mdi:clock-fast",
+        unit="ms",
+        device_class=SensorDeviceClass.DURATION,
+        precision=1,
+        factor=1000.0,  # seconds -> ms
+    ),
+    MetricDefinition(
+        key="operations_per_minute",
+        name="Operations Per Minute",
+        icon="mdi:speedometer",
+        unit="ops/min",
+        precision=1,
+    ),
+    # --- Data transfer ---
+    MetricDefinition(
+        key="total_bytes_read",
+        name="Total Bytes Read",
+        icon="mdi:download",
+        unit="B",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+    MetricDefinition(
+        key="total_bytes_written",
+        name="Total Bytes Written",
+        icon="mdi:upload",
+        unit="B",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        precision=0,
+    ),
+)
+
 
 # Boolean-like states used by EntitySync to map HA entity states to BIT values.
 # Covers many HA domains: switch, light, cover, lock, alarm, person, vacuum, etc.
@@ -174,6 +322,21 @@ async def async_setup_entry(
                 max_value=max_value,
             )
         )
+
+    # Auto-create metrics sensors (diagnostic, no user config required).
+    # Always created; S7MetricsSensor reports unavailable until the PLC
+    # connection is established and pyS7 exposes metrics.
+    if coord.enable_metrics:
+        for defn in METRICS_DEFINITIONS:
+            unique_id = f"{device_id}:metrics:{defn.key}"
+            entities.append(
+                S7MetricsSensor(
+                    coordinator=coord,
+                    unique_id=unique_id,
+                    device_info=device_info,
+                    definition=defn,
+                )
+            )
 
     if entities:
         async_add_entities(entities)
@@ -614,3 +777,60 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.is_connected()
+
+
+class S7MetricsSensor(CoordinatorEntity, SensorEntity):
+    """Diagnostic sensor exposing a single pyS7 metric."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: S7Coordinator,
+        *,
+        unique_id: str,
+        device_info: DeviceInfo,
+        definition: MetricDefinition,
+    ) -> None:
+        super().__init__(coordinator)
+        self._definition = definition
+        self._attr_unique_id = unique_id
+        self._attr_device_info = device_info
+        self._attr_translation_key = f"metrics_{definition.key}"
+        self._attr_icon = definition.icon
+        if definition.unit is not None:
+            self._attr_native_unit_of_measurement = definition.unit
+        if definition.device_class is not None:
+            self._attr_device_class = definition.device_class
+        if definition.state_class is not None:
+            self._attr_state_class = definition.state_class
+        if definition.precision is not None:
+            self._attr_suggested_display_precision = definition.precision
+
+    @property
+    def available(self) -> bool:
+        """Sensor is available when the coordinator has a metrics object."""
+        return self.coordinator.pys7_metrics is not None
+
+    @property
+    def native_value(self) -> float | int | None:
+        """Read the metric value from the pyS7 client."""
+        metrics = self.coordinator.pys7_metrics
+        if metrics is None:
+            return None
+        try:
+            raw = getattr(metrics, self._definition.key, None)
+        except Exception:  # pragma: no cover - defensive
+            return None
+        if raw is None:
+            return None
+        value = float(raw) * self._definition.factor
+        if self._definition.precision is not None and self._definition.precision == 0:
+            return int(round(value))
+        return round(value, self._definition.precision or 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the metric key for debugging."""
+        return {"pys7_metric": self._definition.key}

@@ -16,6 +16,7 @@ from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_CONNECTION_TYPE,
+    CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_ENTITY_SYNC,
     CONF_LOCAL_TSAP,
@@ -29,6 +30,7 @@ from .const import (
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
+    DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
@@ -84,6 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     enable_write_batching = bool(
         data.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
     )
+    enable_metrics = bool(data.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS))
     pys7_connection_type = data.get(
         CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
     )
@@ -121,6 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         backoff_max=backoff_max,
         optimize_read=optimize_read,
         enable_write_batching=enable_write_batching,
+        enable_metrics=enable_metrics,
     )
 
     # Store runtime data directly in the config entry
@@ -236,7 +240,9 @@ async def _async_check_orphaned_entities(
         return
 
     device_id = entry.runtime_data.device_id
-    expected_unique_ids = build_expected_unique_ids(device_id, entry.options)
+    expected_unique_ids = build_expected_unique_ids(
+        device_id, entry.options, data=entry.data
+    )
 
     # Find orphaned entities
     orphaned_entities = []

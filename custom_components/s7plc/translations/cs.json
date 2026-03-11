@@ -25,7 +25,8 @@
           "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
           "retry_backoff_max": "Maximální prodleva při opakování (s)",
           "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
+          "enable_write_batching": "Povolit dávkové zápisy",
+          "enable_metrics": "Povolit metriky výkonu"
         },
         "data_description": {
           "name": "Srozumitelný název PLC (používá se v názvech entit).",
@@ -40,7 +41,8 @@
           "retry_backoff_initial": "Prodleva před prvním opakováním.",
           "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
           "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací.",
+          "enable_metrics": "Povolit metriky výkonu. Shromažďuje a hlásí data o výkonu pro monitorování a optimalizaci."
         }
       },
       "tsap": {
@@ -59,7 +61,8 @@
           "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
           "retry_backoff_max": "Maximální prodleva při opakování (s)",
           "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
+          "enable_write_batching": "Povolit dávkové zápisy",
+          "enable_metrics": "Povolit metriky výkonu"
         },
         "data_description": {
           "name": "Srozumitelný název PLC (používá se v názvech entit).",
@@ -74,7 +77,8 @@
           "retry_backoff_initial": "Prodleva před prvním opakováním.",
           "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
           "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací.",
+          "enable_metrics": "Povolit metriky výkonu. Shromažďuje a hlásí data o výkonu pro monitorování a optimalizaci."
         }
       }
     },
@@ -175,7 +179,8 @@
           "retry_backoff_initial": "Počáteční prodleva při opakování (s)",
           "retry_backoff_max": "Maximální prodleva při opakování (s)",
           "optimize_read": "Optimalizovat dávkové čtení",
-          "enable_write_batching": "Povolit dávkové zápisy"
+          "enable_write_batching": "Povolit dávkové zápisy",
+          "enable_metrics": "Povolit metriky výkonu"
         },
         "data_description": {
           "name": "Srozumitelný název PLC (používá se v názvech entit).",
@@ -190,7 +195,8 @@
           "retry_backoff_initial": "Prodleva před prvním opakováním.",
           "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
           "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
-          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací."
+          "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací.",
+          "enable_metrics": "Povolit metriky výkonu. Shromažďuje a hlásí data o výkonu pro monitorování a optimalizaci."
         }
       },
       "sensors": {
@@ -906,6 +912,50 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "Připojení {plc_name}"
+      }
+    },
+    "sensor": {
+      "metrics_connection_uptime": {
+        "name": "Doba připojení"
+      },
+      "metrics_connection_count": {
+        "name": "Počet připojení"
+      },
+      "metrics_disconnection_count": {
+        "name": "Počet odpojení"
+      },
+      "metrics_total_operations": {
+        "name": "Celkový počet operací"
+      },
+      "metrics_read_count": {
+        "name": "Počet čtení"
+      },
+      "metrics_write_count": {
+        "name": "Počet zápisů"
+      },
+      "metrics_total_errors": {
+        "name": "Celkový počet chyb"
+      },
+      "metrics_success_rate": {
+        "name": "Úspěšnost"
+      },
+      "metrics_error_rate": {
+        "name": "Chybovost"
+      },
+      "metrics_avg_read_duration": {
+        "name": "Průměrná doba čtení"
+      },
+      "metrics_avg_write_duration": {
+        "name": "Průměrná doba zápisu"
+      },
+      "metrics_operations_per_minute": {
+        "name": "Operací za minutu"
+      },
+      "metrics_total_bytes_read": {
+        "name": "Celkem přečtených bajtů"
+      },
+      "metrics_total_bytes_written": {
+        "name": "Celkem zapsaných bajtů"
       }
     }
   }
