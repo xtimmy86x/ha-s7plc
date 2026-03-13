@@ -50,6 +50,7 @@ Direct + lightweight custom component using `pys7`.
 - 📤 **Entity Sync**: Push any Home Assistant entity state to PLC addresses in real-time
 - 🌡️ **Climate control**: Direct control and setpoint modes for HVAC systems
 - 📊 **Import/Export**: Backup and restore your entity configurations
+- 📈 **Performance metrics**: Optional diagnostic sensors for connection health and PLC communication stats
 
 ---
 
@@ -100,7 +101,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
 - **[Configuration Guide](docs/configuration.md)** - Complete setup instructions, connection types, entity management
 - **[S7 Addressing](docs/addressing.md)** - Address formats, data types, PLC-specific notes
-- **[Advanced Features](docs/advanced-features.md)** - State Synchronization and Entity Sync
+- **[Advanced Features](docs/advanced-features.md)** - State Synchronization, Entity Sync, and Performance Metrics
 - **[Examples](docs/examples.md)** - Practical use cases and configuration examples
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
@@ -112,6 +113,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | [Entity Types](docs/configuration.md#entity-type-details) | Switch, Light, Dimmer Light, Cover, Sensor, Number, Climate, Entity Sync |
 | [State Sync](docs/advanced-features.md#state-synchronization) | Bidirectional synchronization for physical controls |
 | [Entity Sync](docs/advanced-features.md#entity-sync) | Push HA entities to PLC addresses |
+| [Performance Metrics](docs/advanced-features.md#performance-metrics) | Diagnostic sensors for connection and communication stats |
 | [Logo! Support](docs/addressing.md#logo-8-addressing) | Specific notes for Logo! controllers |
 | [Export/Import](docs/configuration.md#export-and-import) | Backup and restore configurations |
 
@@ -248,7 +250,7 @@ pre-commit run --files <file1> [<file2> ...]
 - [x] Climate entities (direct and setpoint control)
 - [x] Dimmer light with brightness control
 - [x] Position-based cover with stop
-- [ ] Additional diagnostics entities
+- [x] Performance metrics (diagnostic sensors)
 - [ ] Performance optimizations
 
 > Have ideas? Open an **issue** or **PR**!

@@ -1,6 +1,6 @@
 # Advanced Features
 
-This document covers advanced functionality including State Synchronization and Entity Sync.
+This document covers advanced functionality including State Synchronization, Entity Sync, and Performance Metrics.
 
 ## State Synchronization
 
@@ -363,6 +363,72 @@ Combine a `number` entity (for PLC → HA data flow) with an `entity_sync` (for 
 When adding multiple entities of the same type, checking **"Add another"** in the entity creation form now **pre-fills the next form with the values from the previous entry**. This lets you modify only what's different (e.g., address and name) without re-entering shared fields like device class, area, or scan interval.
 
 This applies to all entity types: sensors, binary sensors, switches, covers (traditional and position), buttons, lights (on/off and dimmer), numbers, texts, climates (direct and setpoint), and entity sync.
+
+---
+
+## Performance Metrics
+
+The integration can optionally expose **14 diagnostic sensors** that report real-time connection health and communication statistics from the underlying `pyS7` library. These sensors appear under the **Diagnostic** section of the device page and require no manual entity configuration.
+
+### Enabling Metrics
+
+Metrics are **disabled by default**. To enable them:
+
+1. During initial setup, check **"Enable performance metrics"** on the connection configuration step.
+2. For an existing integration, go to **Settings → Devices & Services → S7 PLC → Configure → Edit Connection** and enable the option.
+3. The integration reloads and creates the 14 diagnostic sensors automatically.
+
+### Available Sensors
+
+#### Connection
+
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Connection Uptime** | s | Time since the current connection was established |
+| **Connection Count** | — | Total number of successful connections |
+| **Disconnection Count** | — | Total number of disconnections |
+
+#### Operations
+
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Total Operations** | — | Total read + write operations performed |
+| **Read Count** | — | Total read operations |
+| **Write Count** | — | Total write operations |
+| **Total Errors** | — | Total failed operations (reads + writes + timeouts) |
+
+#### Quality
+
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Success Rate** | % | Percentage of operations that succeeded |
+| **Error Rate** | % | Percentage of operations that failed |
+
+#### Performance
+
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Avg Read Duration** | ms | Average time for a read operation |
+| **Avg Write Duration** | ms | Average time for a write operation |
+| **Operations Per Minute** | ops/min | Current throughput |
+
+#### Data Transfer
+
+| Sensor | Unit | Description |
+|--------|------|-------------|
+| **Total Bytes Read** | B | Cumulative bytes read from the PLC |
+| **Total Bytes Written** | B | Cumulative bytes written to the PLC |
+
+### Diagnostics Download
+
+When metrics are enabled, the full metrics dictionary is also included in the Home Assistant diagnostics download (**Settings → Devices & Services → S7 PLC → Download diagnostics**). This exposes additional internal counters (e.g., `last_read_duration`, `read_errors`, `write_errors`, `timeout_errors`) that are not surfaced as individual sensors but can be useful for advanced troubleshooting.
+
+### Notes
+
+- Metrics sensors become **available** only when the PLC connection is active. They show as unavailable during disconnections.
+- Counter sensors (`Connection Count`, `Read Count`, `Total Errors`, etc.) use the `total_increasing` state class, so Home Assistant tracks long-term statistics correctly even after restarts.
+- Duration sensors are converted from seconds to milliseconds for readability.
+- Enabling metrics has negligible impact on performance — the data is already collected internally by `pyS7`.
 
 ---
 

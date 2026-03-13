@@ -290,6 +290,37 @@ Common issues and solutions for the S7 PLC integration.
 
 ## Configuration Issues
 
+### Metrics Sensors Not Appearing
+
+**Symptoms**: You enabled metrics but don't see the diagnostic sensors.
+
+**Solutions**:
+
+1. **Verify metrics are enabled**:
+   - Go to **Settings → Devices & Services → S7 PLC → Configure → Edit Connection**
+   - Confirm the **"Enable performance metrics"** checkbox is checked
+   - Save and let the integration reload
+
+2. **Check the device page**:
+   - Metrics sensors are in the **Diagnostic** entity category
+   - They may be hidden by default in the Home Assistant UI — click **"Show disabled entities"** or filter by category
+
+3. **Confirm PLC connection is active**:
+   - Metrics sensors are unavailable until the PLC is connected
+   - Check that other entities from the same device are working
+
+### Metrics Sensors Show Unavailable
+
+**Symptoms**: Metrics sensors exist but show "Unavailable".
+
+**Causes**:
+- The PLC is disconnected — metrics require an active connection
+- The pyS7 client hasn't established a metrics object yet
+
+**Solutions**:
+1. Verify PLC connectivity (see [Connection Issues](#connection-issues))
+2. Wait for the first successful connection — sensors will become available automatically
+
 ### Import Fails with Error
 
 **Symptoms**: JSON import shows validation error.

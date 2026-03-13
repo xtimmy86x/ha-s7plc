@@ -70,6 +70,7 @@ During the initial setup you can tune the PLC communication resilience directly 
 | **Retry backoff start (s)** | Delay before the first retry after an error. | 0.5 |
 | **Retry backoff max (s)** | Maximum delay used between subsequent retries. | 2.0 |
 | **Optimize batch reads** | Enable optimized batch read operations for potentially better performance. | `true` |
+| **Enable performance metrics** | Enable diagnostic sensors that report connection health and communication statistics from pyS7. See [Performance Metrics](advanced-features.md#performance-metrics). | `false` |
 
 ### About Optimized Batch Reads
 
@@ -280,5 +281,5 @@ You can edit the connection settings at any time:
 ## Next Steps
 
 - Learn about [S7 Addressing](addressing.md)
-- Explore [Advanced Features](advanced-features.md) like State Synchronization and Entity Sync
+- Explore [Advanced Features](advanced-features.md) like State Synchronization, Entity Sync, and Performance Metrics
 - Check [Examples](examples.md) for common use cases
