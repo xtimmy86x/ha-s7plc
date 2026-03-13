@@ -89,10 +89,22 @@ class ExportManager:
         self._downloads: dict[str, _QueuedDownload] = {}
         self._view_registered = False
 
+    def _purge_expired_downloads(self, now: float | None = None) -> None:
+        """Remove expired download tokens from memory."""
+        current_time = time.time() if now is None else now
+        expired_tokens = [
+            token
+            for token, download in self._downloads.items()
+            if current_time - download.created > DOWNLOAD_TTL
+        ]
+        for token in expired_tokens:
+            self._downloads.pop(token, None)
+
     def create_download(
         self, entry_title: str | None, entry_name: str | None, data: str
     ) -> ExportDownloadLink:
         self._ensure_view()
+        self._purge_expired_downloads()
         filename_slug = slugify(entry_title or entry_name or DOMAIN)
         if not filename_slug:
             filename_slug = DOMAIN
@@ -106,6 +118,7 @@ class ExportManager:
         return ExportDownloadLink(url=f"/api/s7plc/export/{token}", filename=filename)
 
     def consume(self, token: str) -> _QueuedDownload | None:
+        self._purge_expired_downloads()
         download = self._downloads.pop(token, None)
         if download is None:
             return None
