@@ -135,12 +135,12 @@ async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
     )
     ent.hass = fake_hass
 
-    # Batched writes are fire-and-forget, so they don't raise exceptions
-    await ent.async_turn_on()
+    with pytest.raises(HomeAssistantError):
+        await ent.async_turn_on()
 
     assert coord.write_calls[-1] == ("write_batched", "db1,x0.1", True)
-    assert ent._pending_command is True  # Still set even if write fails
-    assert coord.refresh_called  # Refresh is still called
+    assert ent._pending_command is None
+    assert not coord.refresh_called
 
 
 @pytest.mark.asyncio
@@ -274,14 +274,13 @@ async def test_button_press_write_failures(mock_coordinator, fake_hass, monkeypa
     button.hass = fake_hass
 
     coord.set_default_write_result(False)
-    
-    # Batched writes don't raise exceptions
-    # Button always writes True then False (pulse behavior)
-    await button.async_press()
-    
-    assert len(coord.write_calls) == 2
+
+    with pytest.raises(HomeAssistantError):
+        await button.async_press()
+
+    # First write fails and raises, so pulse-off write is not executed.
+    assert len(coord.write_calls) == 1
     assert coord.write_calls[0] == ("write_batched", "db1,x0.0", True)
-    assert coord.write_calls[1] == ("write_batched", "db1,x0.0", False)
 
 
 # ============================================================================
@@ -355,11 +354,11 @@ async def test_number_async_set_native_value_failure(mock_coordinator_failing, f
     )
     ent.hass = fake_hass
 
-    # Batched writes don't raise exceptions
-    await ent.async_set_native_value(42)
+    with pytest.raises(HomeAssistantError):
+        await ent.async_set_native_value(42)
 
     assert coord.write_calls[-1] == ("write_batched", "db1,w0", 42.0)
-    assert coord.refresh_called  # Refresh is still called
+    assert not coord.refresh_called
 
 
 def test_number_value_multiplier_scales_native_value(mock_coordinator):

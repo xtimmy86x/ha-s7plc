@@ -284,10 +284,22 @@ class S7BoolSyncEntity(S7BaseEntity):
                     new_state,
                 )
                 self._last_state = new_state
-                # Fire-and-forget batched write to command address
-                # Note: Intentionally not awaited to avoid blocking state updates
+
+                async def _async_sync_command_write() -> None:
+                    try:
+                        await self.coordinator.write_batched(
+                            self._command_address, new_state
+                        )
+                    except HomeAssistantError as err:
+                        _LOGGER.warning(
+                            "%s: Failed to sync command address "
+                            "after external change: %s",
+                            entity_name,
+                            err,
+                        )
+
                 self.hass.async_create_background_task(
-                    self.coordinator.write_batched(self._command_address, new_state),
+                    _async_sync_command_write(),
                     name=f"s7plc_sync_write_{self._attr_unique_id}",
                 )
 

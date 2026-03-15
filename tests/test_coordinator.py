@@ -6,6 +6,8 @@ import struct
 import pytest
 import asyncio
 
+from homeassistant.exceptions import HomeAssistantError
+
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import StringPlan, TagPlan
@@ -959,12 +961,13 @@ async def test_write_batched_creates_notification_on_error(coord_factory, monkey
     # Mock services.async_call
     coord.hass.services.async_call = AsyncMock()
     
-    # Add some writes to batch
-    await coord.write_batched('DB1,X0.0', True)
-    await coord.write_batched('DB1,W10', 42)
-    
-    # Wait for batch to flush (needs a bit more time for async task to complete)
-    await asyncio.sleep(0.05)
+    results = await asyncio.gather(
+        coord.write_batched('DB1,X0.0', True),
+        coord.write_batched('DB1,W10', 42),
+        return_exceptions=True,
+    )
+    assert len(results) == 2
+    assert all(isinstance(result, HomeAssistantError) for result in results)
     
     # Verify notification service was called
     coord.hass.services.async_call.assert_called_once()
@@ -992,12 +995,10 @@ async def test_write_batched_no_notification_on_success(coord_factory, monkeypat
     # Mock services.async_call
     coord.hass.services.async_call = AsyncMock()
     
-    # Add some writes to batch
-    await coord.write_batched('DB1,X0.0', True)
-    await coord.write_batched('DB1,W10', 42)
-    
-    # Wait for batch to flush
-    await asyncio.sleep(0.01)
+    await asyncio.gather(
+        coord.write_batched('DB1,X0.0', True),
+        coord.write_batched('DB1,W10', 42),
+    )
     
     # Verify no notification was created
     coord.hass.services.async_call.assert_not_called()

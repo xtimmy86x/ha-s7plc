@@ -1192,9 +1192,14 @@ class DummyCoordinator:
         return self._default_write_result
 
     async def write_batched(self, address: str, value: bool | int | float | str) -> None:
-        """Mock batched write - behaves like regular write for testing."""
+        """Mock batched write with failure propagation for testing."""
         self.write_calls.append(("write_batched", address, value))
-        # Batched writes are fire-and-forget, so no return value
+        if self._write_queue:
+            result = self._write_queue.pop(0)
+        else:
+            result = self._default_write_result
+        if not result:
+            raise HomeAssistantError(f"Write failed for {address}")
 
     def set_write_queue(self, *results: bool) -> None:
         self._write_queue = list(results)

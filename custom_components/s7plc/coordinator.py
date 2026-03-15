@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, TypeVar
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from pyS7.constants import ConnectionType
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
@@ -123,6 +124,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Write batching for automatic optimization
         self._write_batch_buffer: dict[str, bool | int | float | str] = {}
+        self._write_batch_waiters: dict[str, list[asyncio.Future[bool]]] = {}
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
         self._last_write_error_notification: float = 0.0  # Rate limit notifications
@@ -412,6 +414,18 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._write_batch_timer is not None:
             self._write_batch_timer.cancel()
             self._write_batch_timer = None
+        if self._write_batch_waiters:
+            loop = getattr(self.hass, "loop", None)
+            for waiters in self._write_batch_waiters.values():
+                for waiter in waiters:
+                    if waiter.done():
+                        continue
+                    if loop is not None and hasattr(loop, "call_soon_threadsafe"):
+                        loop.call_soon_threadsafe(waiter.set_result, False)
+                    else:  # pragma: no cover - defensive fallback
+                        waiter.set_result(False)
+            self._write_batch_waiters.clear()
+            self._write_batch_buffer.clear()
 
         with self._sync_lock:
             self._drop_connection()
@@ -987,7 +1001,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         If batching is disabled, writes are executed immediately without delay.
 
-        The write is fire-and-forget; errors are logged but not returned.
+        Raises:
+            HomeAssistantError: If the write fails.
 
         Args:
             address: PLC address (e.g., 'DB1.DBX0.0', 'DB1.DBW10')
@@ -1006,15 +1021,22 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self.write, address, value
                 )
                 if not result:
-                    _LOGGER.warning("Write failed for %s", address)
+                    raise HomeAssistantError(f"S7 PLC write failed for {address}")
+            except HomeAssistantError:
+                raise
             except Exception as e:  # pragma: no cover
                 _LOGGER.error("Write error for %s: %s", address, e)
+                raise HomeAssistantError(
+                    f"S7 PLC write failed for {address}: {e}"
+                ) from e
             return
 
         # Batching enabled: accumulate writes
+        waiter: asyncio.Future[bool] = asyncio.get_running_loop().create_future()
         async with self._async_lock:
             # Add to buffer
             self._write_batch_buffer[address] = value
+            self._write_batch_waiters.setdefault(address, []).append(waiter)
 
             # Cancel existing timer if any
             if self._write_batch_timer is not None:
@@ -1037,6 +1059,15 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     name=f"s7plc_flush_batch_{self._host}",
                 )
 
+        try:
+            success = await asyncio.wait_for(
+                waiter, timeout=self._op_timeout + self._write_batch_delay + 1.0
+            )
+        except asyncio.TimeoutError as err:
+            raise HomeAssistantError(f"S7 PLC write timed out for {address}") from err
+        if not success:
+            raise HomeAssistantError(f"S7 PLC write failed for {address}")
+
     async def _flush_write_batch(self) -> None:
         """Flush accumulated writes to PLC using write_multi."""
         async with self._async_lock:
@@ -1045,9 +1076,12 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Get buffered writes
             writes = list(self._write_batch_buffer.items())
+            waiters = self._write_batch_waiters
             self._write_batch_buffer.clear()
+            self._write_batch_waiters = {}
             self._write_batch_timer = None
 
+        results: dict[str, bool] = {}
         # Execute batch write in executor
         try:
             results = await self.hass.async_add_executor_job(self.write_multi, writes)
@@ -1120,6 +1154,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception:  # pragma: no cover
                 # Don't fail if notification fails
                 pass
+            results = {address: False for address, _ in writes}
+
+        for address, address_waiters in waiters.items():
+            success = bool(results.get(address, False))
+            for waiter in address_waiters:
+                if not waiter.done():
+                    waiter.set_result(success)
 
     def _write_with_retry(self, address: str, tag: S7Tag, payload: Any) -> bool:
         """Execute write with retry and error handling.

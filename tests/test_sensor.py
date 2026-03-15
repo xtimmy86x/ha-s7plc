@@ -854,9 +854,9 @@ async def test_entity_sync_write_failure(entity_sync_factory):
     # Batched write was attempted
     assert len(coord.write_calls) >= 1
     assert coord.write_calls[0][0] == "write_batched"
-    # Batched writes don't update error count synchronously
-    assert entity_sync._write_count == 1  # Write is counted as attempted
-    assert entity_sync._last_written_value == 42.5
+    assert entity_sync._write_count == 0
+    assert entity_sync._error_count == 1
+    assert entity_sync._last_written_value is None
 
 
 def test_entity_sync_available(entity_sync_factory):
