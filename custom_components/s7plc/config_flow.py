@@ -3746,7 +3746,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
 
         select_options = [
-            selector.SelectOptionDict(value=key, label=label)
+            selector.SelectOptionDict(value=f"{key} | {label}", label=label)
             for key, label in items.items()
         ]
         data_schema = vol.Schema(
@@ -3755,6 +3755,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=select_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
                     )
                 )
             }
@@ -3763,7 +3764,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input is None:
             return self.async_show_form(step_id="edit", data_schema=data_schema)
 
-        selection = user_input.get("edit_item")
+        raw_selection = user_input.get("edit_item", "")
+        # Extract the key (e.g. "s:0") from "s:0 | Label text"
+        selection = raw_selection.split(" | ", 1)[0]
         if selection not in items:
             return await self.async_step_edit()
 
