@@ -167,10 +167,10 @@ def test_options_connection_updates_entry(monkeypatch):
             captured_kwargs.update(kwargs)
             self.hass = hass
 
-        def connect(self):
+        async def connect(self):
             return None
 
-        def disconnect(self):
+        async def disconnect(self):
             return None
 
     monkeypatch.setattr(config_flow, "S7Coordinator", FakeCoordinator)
@@ -592,10 +592,10 @@ def test_options_connection_handles_connection_failure(monkeypatch):
         def __init__(self, hass, **kwargs):
             self.hass = hass
 
-        def connect(self):
+        async def connect(self):
             raise OSError("boom")
 
-        def disconnect(self):
+        async def disconnect(self):
             return None
 
     monkeypatch.setattr(config_flow, "S7Coordinator", FailingCoordinator)
@@ -664,10 +664,10 @@ def test_options_connection_detects_duplicate_unique_id(monkeypatch):
         def __init__(self, hass, **kwargs):
             self.hass = hass
 
-        def connect(self):
+        async def connect(self):
             return None
 
-        def disconnect(self):
+        async def disconnect(self):
             return None
 
     monkeypatch.setattr(config_flow, "S7Coordinator", FakeCoordinator)

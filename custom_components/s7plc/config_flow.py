@@ -1374,8 +1374,8 @@ async def _test_plc_connection(
         enable_write_batching=enable_write_batching,
         enable_metrics=enable_metrics,
     )
-    await hass.async_add_executor_job(coordinator.connect)
-    await hass.async_add_executor_job(coordinator.disconnect)
+    await coordinator.connect()
+    await coordinator.disconnect()
 
 
 def _build_connection_entry_data(

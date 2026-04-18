@@ -1185,7 +1185,7 @@ class DummyCoordinator:
         self.add_item_calls.append((args, kwargs))
         return None
 
-    def write(self, address: str, value: bool | int | float | str) -> bool:
+    async def write(self, address: str, value: bool | int | float | str) -> bool:
         self.write_calls.append(("write", address, value))
         if self._write_queue:
             return self._write_queue.pop(0)
@@ -1217,12 +1217,12 @@ class DummyCoordinator:
         self.refresh_called = True
         self.refresh_count += 1
 
-    def connect(self):
+    async def connect(self):
         """Mock connect method."""
         self.connected = True
         self._connected = True
 
-    def disconnect(self):
+    async def disconnect(self):
         """Mock disconnect method."""
         self.disconnected = True
         self._connected = False

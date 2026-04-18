@@ -178,7 +178,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             write_list = [(w["address"], w["value"]) for w in writes]
 
             # Execute batch write
-            results = await hass.async_add_executor_job(coord.write_multi, write_list)
+            results = await coord.write_multi(write_list)
 
             # Log results
             success_count = sum(1 for v in results.values() if v)
@@ -285,7 +285,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         # Disconnect coordinator (runtime_data is automatically cleaned up by HA)
-        await hass.async_add_executor_job(entry.runtime_data.coordinator.disconnect)
+        await entry.runtime_data.coordinator.disconnect()
 
         # Unregister services if this is the last config entry
         remaining_entries = [
