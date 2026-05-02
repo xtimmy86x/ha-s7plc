@@ -46,6 +46,9 @@ class S7BaseEntity(CoordinatorEntity):
             topic: Optional topic name for data lookup
             address: Optional PLC address string
             suggested_area_id: Optional area ID suggestion for the entity
+            availability_topic: Optional topic for availability status
+            availability_address: Optional PLC address for availability
+            availability_invert: Whether to invert availability logic
         """
         super().__init__(coordinator)
         if name is not None:
@@ -69,56 +72,96 @@ class S7BaseEntity(CoordinatorEntity):
         if not self.coordinator.is_connected():
             raise HomeAssistantError("PLC not connected: cannot execute command.")
 
+    @staticmethod
+    def _availability_value_to_bool(value: object) -> bool:
+        """Convert a PLC availability value to bool safely."""
+        if value is None:
+            return False
+
+        if isinstance(value, bool):
+            return value
+
+        if isinstance(value, (int, float)):
+            return value != 0
+
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+
+            if normalized in {"1", "true", "on", "yes", "y"}:
+                return True
+
+            if normalized in {
+                "0",
+                "false",
+                "off",
+                "no",
+                "n",
+                "",
+                "none",
+                "unknown",
+                "unavailable",
+            }:
+                return False
+
+            return False
+
+        return bool(value)
+
     @property
     def available(self) -> bool:
         if not self.coordinator.is_connected():
             return False
-    
+
         data = self.coordinator.data or {}
-    
+
+        if self._topic is not None:
+            if self._topic not in data or data[self._topic] is None:
+                return False
+
         availability_topic = getattr(self, "_availability_topic", None)
         availability_invert = getattr(self, "_availability_invert", False)
-        
+
         if availability_topic:
             availability_value = data.get(availability_topic)
-        
-            if availability_value is None:
-                return False
-        
-            available = bool(availability_value)
-        
+            available = self._availability_value_to_bool(availability_value)
             if availability_invert:
                 available = not available
-        
             if not available:
                 return False
-    
+
         return True
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes including S7-specific info."""
         attrs: dict[str, Any] = {}
-    
+
         if self._address:
             attrs[self._address_attr_name] = self._address.upper()
-    
+
         if self._topic:
             interval = self.coordinator.get_scan_interval(self._topic)
             attrs["scan_interval"] = f"{interval} s"
-    
+
             precision = self.coordinator.get_real_precision(self._topic)
             if precision is not None:
                 attrs["real_precision"] = precision
-    
+
         invert_state = getattr(self, "_invert_state", None)
         if invert_state is not None:
             attrs["invert_state"] = invert_state
+
         availability_address = getattr(self, "_availability_address", None)
-        
+        availability_topic = getattr(self, "_availability_topic", None)
+
         if availability_address:
             attrs["s7_availability_address"] = availability_address.upper()
             attrs["availability_invert"] = getattr(self, "_availability_invert", False)
+
+            data = self.coordinator.data or {}
+            attrs["s7_availability_topic"] = availability_topic
+            attrs["s7_availability_value"] = data.get(availability_topic)
+
         return attrs
 
 
@@ -159,6 +202,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             pulse_command: Whether to send pulse instead of on/off commands
             pulse_duration: Duration of pulse in seconds
             suggested_area_id: Optional area ID suggestion for the entity
+            availability_topic: Optional topic for availability status
+            availability_address: Optional PLC address for availability
+            availability_invert: Whether to invert availability logic
         """
         super().__init__(
             coordinator,
@@ -168,6 +214,9 @@ class S7BoolSyncEntity(S7BaseEntity):
             topic=topic,
             address=state_address,
             suggested_area_id=suggested_area_id,
+            availability_topic=availability_topic,
+            availability_address=availability_address,
+            availability_invert=availability_invert,
         )
         self._command_address = command_address
         self._pulse_command = pulse_command
@@ -179,9 +228,7 @@ class S7BoolSyncEntity(S7BaseEntity):
         )
         self._last_state: bool | None = None
         self._pending_command: bool | None = None
-        self._availability_topic = availability_topic
-        self._availability_address = availability_address
-        self._availability_invert = availability_invert
+
     @property
     def is_on(self) -> bool | None:
         val = (self.coordinator.data or {}).get(self._topic)
