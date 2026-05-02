@@ -138,3 +138,5 @@ DEFAULT_BACKOFF_MAX = 2.0  # seconds
 DEFAULT_OPTIMIZE_READ = True  # enabled by default for better performance
 DEFAULT_ENABLE_WRITE_BATCHING = True  # enabled by default for better performance
 DEFAULT_ENABLE_METRICS = False  # disabled by default to avoid overhead
+CONF_AVAILABILITY_ADDRESS = "availability_address"
+CONF_AVAILABILITY_INVERT = "availability_invert"
