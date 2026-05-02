@@ -159,7 +159,28 @@ To enable pulse command mode for a switch or light:
 Both features use the same underlying pulse mechanism, but differ in how they present themselves in the UI and whether they read state feedback.
 
 ---
+## Per-entity availability address
 
+Each entity may optionally define an `availability_address`.
+
+When configured, the entity is available only when:
+- the PLC connection is active,
+- the primary PLC value can be read,
+- the value at `availability_address` evaluates to true.
+
+This is useful when the PLC proxies values from another device, such as a Modbus slave. The PLC can remain reachable while the downstream device is offline.
+
+Example:
+
+Sensor address:
+
+`DB100,R4`
+
+Availability address:
+
+`DB100,X0.0`
+
+If `DB100,X0.0` is false, the entity is marked unavailable.
 ## Entity Sync
 
 Entity Sync provides a powerful way to send data from Home Assistant to your PLC by monitoring any entity and automatically writing its state to a configured PLC address whenever it changes.
