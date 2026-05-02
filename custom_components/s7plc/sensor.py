@@ -35,6 +35,8 @@ from .const import (
     CONF_STATE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_INVERT,
 )
 from .entity import S7BaseEntity
 from .helpers import (
@@ -279,19 +281,25 @@ DEVICE_CLASS_UNITS: dict[SensorDeviceClass, str | None] = {
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities,
 ):
     coord, device_info, device_id = get_coordinator_and_device_info(entry)
 
     entities = []
+
     for item in entry.options.get(CONF_SENSORS, []):
         address = item.get(CONF_ADDRESS)
         if not address:
             continue
+
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
+
         topic = f"sensor:{address}"
         unique_id = f"{device_id}:{topic}"
+
         device_class = item.get(CONF_DEVICE_CLASS)
         value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
@@ -302,7 +310,25 @@ async def async_setup_entry(
         scale_raw_max = item.get(CONF_SCALE_RAW_MAX)
         min_value = item.get(CONF_MIN_VALUE)
         max_value = item.get(CONF_MAX_VALUE)
+
+        # Optional per-entity availability address.
+        # Example:
+        #   address: DB100,R4
+        #   availability_address: DB100,X0.0
+        availability_address = item.get(CONF_AVAILABILITY_ADDRESS)
+        availability_invert = item.get(CONF_AVAILABILITY_INVERT, False)
+
+        availability_topic = None
+        if availability_address:
+            availability_topic = f"availability:{availability_address.upper()}"
+            await coord.add_item(
+                availability_topic,
+                availability_address,
+                scan_interval,
+            )
+
         await coord.add_item(topic, address, scan_interval, real_precision)
+
         entities.append(
             S7Sensor(
                 coord,
@@ -320,6 +346,9 @@ async def async_setup_entry(
                 scale_raw_max=scale_raw_max,
                 min_value=min_value,
                 max_value=max_value,
+                availability_topic=availability_topic,
+                availability_address=availability_address,
+                availability_invert=availability_invert,
             )
         )
 
@@ -340,10 +369,12 @@ async def async_setup_entry(
 
     if entities:
         async_add_entities(entities)
-        await coord.async_request_refresh()
+
+    await coord.async_request_refresh()
 
     # Setup Entity Syncs
     sync_entities = []
+
     for item in entry.options.get(CONF_ENTITY_SYNC, []):
         address = item.get(CONF_ADDRESS)
         source_entity = item.get(CONF_SOURCE_ENTITY)
@@ -376,7 +407,6 @@ async def async_setup_entry(
     if sync_entities:
         async_add_entities(sync_entities)
 
-
 class S7Sensor(S7BaseEntity, SensorEntity):
 
     _address_attr_name = "s7_state_address"
@@ -398,6 +428,9 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         scale_raw_max: float | None = None,
         min_value: float | None = None,
         max_value: float | None = None,
+        availability_topic: str | None = None,
+        availability_address: str | None = None,
+        availability_invert: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -407,6 +440,9 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             topic=topic,
             address=address,
             suggested_area_id=suggested_area_id,
+            availability_topic=availability_topic,
+            availability_address=availability_address,
+            availability_invert=availability_invert,
         )
 
         # Parse value_multiplier with defensive validation

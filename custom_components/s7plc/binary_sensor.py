@@ -18,6 +18,8 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_INVERT_STATE,
     CONF_SCAN_INTERVAL,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_INVERT,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -49,6 +51,17 @@ async def async_setup_entry(
         device_class = item.get(CONF_DEVICE_CLASS)
         invert_state = item.get(CONF_INVERT_STATE, False)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
+        availability_address = item.get(CONF_AVAILABILITY_ADDRESS)
+        availability_invert = item.get(CONF_AVAILABILITY_INVERT, False)
+        
+        availability_topic = None
+        if availability_address:
+            availability_topic = f"availability:{availability_address.upper()}"
+            await coord.add_item(
+                availability_topic,
+                availability_address,
+                scan_interval,
+            )
         await coord.add_item(topic, address, scan_interval)
 
         entities.append(
@@ -85,6 +98,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         device_class: str | None,
         invert_state: bool = False,
         suggested_area_id: str | None = None,
+        availability_topic: str | None = None,
+        availability_address: str | None = None,
+        availability_invert: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -94,6 +110,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
             topic=topic,
             address=address,
             suggested_area_id=suggested_area_id,
+            availability_topic=availability_topic,
+            availability_address=availability_address,
+            availability_invert=availability_invert,
         )
         self._invert_state = invert_state
         if device_class:
