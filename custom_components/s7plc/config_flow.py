@@ -136,6 +136,8 @@ from .const import (
     PYS7_CONNECTION_TYPE_OP,
     PYS7_CONNECTION_TYPE_PG,
     PYS7_CONNECTION_TYPE_S7BASIC,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_INVERT,
 )
 from .coordinator import S7Coordinator
 from .export import build_export_json, build_export_payload, register_export_download
@@ -292,6 +294,8 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            vol.Optional(CONF_AVAILABILITY_ADDRESS, default=""): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)),
+            vol.Optional(CONF_AVAILABILITY_INVERT, default=False): bool,
         }
     )
 
@@ -308,6 +312,8 @@ def _add_schema_binary_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_INVERT_STATE, default=False): selector.BooleanSelector(),
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
+            vol.Optional(CONF_AVAILABILITY_ADDRESS, default=""): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)),
+            vol.Optional(CONF_AVAILABILITY_INVERT, default=False): bool,
         }
     )
 
