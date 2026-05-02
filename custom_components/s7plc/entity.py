@@ -32,6 +32,9 @@ class S7BaseEntity(CoordinatorEntity):
         topic: str | None = None,
         address: str | None = None,
         suggested_area_id: str | None = None,
+        availability_topic: str | None = None,
+        availability_address: str | None = None,
+        availability_invert: bool = False,
     ) -> None:
         """Initialize S7 base entity.
 
@@ -51,6 +54,9 @@ class S7BaseEntity(CoordinatorEntity):
         self._attr_device_info = device_info
         self._topic = topic
         self._address = address
+        self._availability_topic = availability_topic
+        self._availability_address = availability_address
+        self._availability_invert = availability_invert
         if suggested_area_id:
             self._attr_suggested_area_id = suggested_area_id
 
