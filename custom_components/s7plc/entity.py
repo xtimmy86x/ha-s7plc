@@ -70,21 +70,20 @@ class S7BaseEntity(CoordinatorEntity):
     
         data = self.coordinator.data or {}
     
-        if self._topic is not None:
-            if self._topic not in data or data[self._topic] is None:
-                return False
-    
-        if self._availability_topic:
-            availability_value = data.get(self._availability_topic)
-    
+        availability_topic = getattr(self, "_availability_topic", None)
+        availability_invert = getattr(self, "_availability_invert", False)
+        
+        if availability_topic:
+            availability_value = data.get(availability_topic)
+        
             if availability_value is None:
                 return False
-    
+        
             available = bool(availability_value)
-    
-            if self._availability_invert:
+        
+            if availability_invert:
                 available = not available
-    
+        
             if not available:
                 return False
     
@@ -109,9 +108,11 @@ class S7BaseEntity(CoordinatorEntity):
         invert_state = getattr(self, "_invert_state", None)
         if invert_state is not None:
             attrs["invert_state"] = invert_state
-        if self._availability_address:
-            attrs["s7_availability_address"] = self._availability_address.upper()
-            attrs["availability_invert"] = self._availability_invert
+        availability_address = getattr(self, "_availability_address", None)
+        
+        if availability_address:
+            attrs["s7_availability_address"] = availability_address.upper()
+            attrs["availability_invert"] = getattr(self, "_availability_invert", False)
         return attrs
 
 
