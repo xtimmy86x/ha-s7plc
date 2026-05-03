@@ -75,6 +75,9 @@ async def async_setup_entry(
                 device_class,
                 invert_state,
                 area,
+                availability_topic=availability_topic,
+                availability_address=availability_address,
+                availability_invert=availability_invert,
             )
         )
 
