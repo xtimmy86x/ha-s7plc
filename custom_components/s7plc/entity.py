@@ -74,7 +74,11 @@ class S7BaseEntity(CoordinatorEntity):
 
     @staticmethod
     def _availability_value_to_bool(value: object) -> bool:
-        """Convert a PLC availability value to bool safely."""
+        """Convert a PLC availability value to bool safely.
+
+        pyS7/HA values may arrive as native bools, numbers, or strings.
+        Never use bool(value) directly here: bool(\"False\") is True.
+        """
         if value is None:
             return False
 
@@ -86,10 +90,8 @@ class S7BaseEntity(CoordinatorEntity):
 
         if isinstance(value, str):
             normalized = value.strip().lower()
-
             if normalized in {"1", "true", "on", "yes", "y"}:
                 return True
-
             if normalized in {
                 "0",
                 "false",
@@ -102,30 +104,32 @@ class S7BaseEntity(CoordinatorEntity):
                 "unavailable",
             }:
                 return False
-
             return False
 
         return bool(value)
 
     @property
     def available(self) -> bool:
+        """Return whether the entity is available."""
         if not self.coordinator.is_connected():
             return False
 
         data = self.coordinator.data or {}
 
-        if self._topic is not None:
-            if self._topic not in data or data[self._topic] is None:
+        topic = getattr(self, "_topic", None)
+        if topic is not None:
+            if topic not in data or data[topic] is None:
                 return False
 
         availability_topic = getattr(self, "_availability_topic", None)
         availability_invert = getattr(self, "_availability_invert", False)
 
         if availability_topic:
-            availability_value = data.get(availability_topic)
-            available = self._availability_value_to_bool(availability_value)
+            available = self._availability_value_to_bool(data.get(availability_topic))
+
             if availability_invert:
                 available = not available
+
             if not available:
                 return False
 
@@ -157,9 +161,9 @@ class S7BaseEntity(CoordinatorEntity):
         if availability_address:
             attrs["s7_availability_address"] = availability_address.upper()
             attrs["availability_invert"] = getattr(self, "_availability_invert", False)
+            attrs["s7_availability_topic"] = availability_topic
 
             data = self.coordinator.data or {}
-            attrs["s7_availability_topic"] = availability_topic
             attrs["s7_availability_value"] = data.get(availability_topic)
 
         return attrs
