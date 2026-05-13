@@ -113,13 +113,17 @@ Values outside these ranges are supported, but increasing them further may delay
 
 #### Dimmer Light
 
-A brightness-controlled light entity using `ColorMode.BRIGHTNESS`.
+A brightness-controlled light entity using `ColorMode.BRIGHTNESS`. A dimmer light combines a boolean on/off address with a separate brightness address.
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
-- **State Address**: PLC address to read the current brightness level (numeric)
-- **Command Address**: PLC address to write the brightness level (defaults to state address if omitted)
-- **Actuator Command Address** (optional): Boolean PLC address for the physical actuator relay. When configured, the integration writes `True` when brightness ≥ 1% and `False` when brightness is 0. Useful when the PLC needs a separate ON/OFF signal for the dimmer hardware
-- **Brightness Scale**: Maximum value representing full brightness on the PLC side (default: `255`). Set to `100` if your PLC uses 0–100% range, or any other scale your dimmer hardware expects. The integration automatically maps between this scale and Home Assistant's 0–255 range
+- **State Address**: PLC address to read the boolean on/off state (required)
+- **Command Address**: PLC address to write the boolean on/off command (defaults to state address if omitted)
+- **Brightness State Address**: PLC address to read the current brightness level (numeric, 0 to scale). **Required to enable dimmer mode**
+- **Brightness Command Address**: PLC address to write the brightness level (defaults to brightness state address if omitted)
+- **Brightness Scale**: Maximum value representing full brightness on the PLC side (default: `255`). Set to `100` if your PLC uses 0–100% range, or any other scale your dimmer hardware expects. The integration automatically maps between this scale and Home Assistant's 0–255 range. **Required to enable dimmer mode**
+- **Sync State**: Enable to automatically synchronize external PLC state changes back to the command address (see [Advanced Features](advanced-features.md#state-synchronization)). Applies to the boolean on/off state
+- **Pulse Command Mode**: When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits. Applies to the boolean on/off state
+- **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Only used when Pulse Command Mode is enabled
 
 #### Cover (Traditional Open/Close)
 

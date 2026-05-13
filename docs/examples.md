@@ -21,14 +21,15 @@ Practical examples and use cases for the S7 PLC integration.
 
 1. Open the integration and choose **Add items**.
 2. Select **Light**, then choose **Dimmer Light** and enter:
-   - **State Address**: `DB5,W10` (reads current brightness from PLC, e.g. 0–100)
-   - **Command Address**: `DB5,W12` (writes brightness value to PLC)
-   - **Actuator Command Address**: `DB5,X0.0` (optional – boolean relay ON when brightness ≥ 1%, OFF at 0)
+   - **State Address**: `DB5,X0.0` (reads boolean on/off state from PLC)
+   - **Command Address**: `DB5,X0.1` (writes boolean on/off command to PLC)
+   - **Brightness State Address**: `DB5,W10` (reads current brightness from PLC, e.g. 0–100)
+   - **Brightness Command Address**: `DB5,W12` (writes brightness value to PLC)
    - **Brightness Scale**: `100` (PLC uses 0–100 range; set to `255` if your PLC uses 0–255)
    - **Name**: "Office Desk Lamp"
 3. Save the configuration.
 
-The dimmer light entity provides a brightness slider in Home Assistant. The integration maps between Home Assistant’s 0–255 brightness range and your PLC’s configured scale automatically.
+The dimmer light entity provides a brightness slider in Home Assistant. The integration maps between Home Assistant's 0–255 brightness range and your PLC's configured scale automatically. Both **Brightness State Address** and **Brightness Scale** are required to enable dimmer mode; without them, the light acts as a simple on/off switch.
 
 ### Adding a Number Entity
 

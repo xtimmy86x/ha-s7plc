@@ -6,7 +6,7 @@ This document covers advanced functionality including State Synchronization, Ent
 
 The **Sync State** feature is available for `switch` and `light` (on/off) entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
 
-> **Note**: Sync State and Pulse Command Mode apply to **on/off** lights only. **Dimmer lights** use a different mechanism based on numeric brightness values and do not support these features.
+> **Note**: Sync State and Pulse Command Mode apply to both **on/off** lights and **dimmer lights**. For dimmers, these features control the boolean state (on/off) while brightness is controlled separately through the brightness addresses.
 
 ### How it Works
 
