@@ -18,7 +18,6 @@ from .const import (
     CONF_CONNECTION_TYPE,
     CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
-    CONF_ENTITY_SYNC,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
@@ -60,19 +59,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # Migrate old "writers" key to "entity_sync"
-    # TODO: Remove this migration in version 6.0.0
-    if "writers" in entry.options:
-        new_options = dict(entry.options)
-        new_options[CONF_ENTITY_SYNC] = new_options.pop("writers")
-        hass.config_entries.async_update_entry(entry, options=new_options)
-        _LOGGER.warning(
-            "Migrated deprecated 'writers' configuration to 'entity_sync' for entry %s."
-            "This automatic migration will be removed in version 6.0.0. "
-            "Please reconfigure the integration via the UI to avoid future issues.",
-            entry.entry_id,
-        )
-
     data = entry.data
     host = data[CONF_HOST]
     port = data.get(CONF_PORT, DEFAULT_PORT)
