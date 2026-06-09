@@ -186,6 +186,68 @@ async def test_climate_direct_hvac_modes(climate_direct_factory):
     assert HVACMode.HEAT_COOL not in climate_heat_only._attr_hvac_modes
 
 
+@pytest.mark.asyncio
+async def test_climate_direct_outputs_written_only_on_transition(
+    climate_direct_factory, mock_coordinator
+):
+    """Outputs are written only when the commanded value changes."""
+    climate = climate_direct_factory()
+    mock_coordinator.write_batched = AsyncMock()
+    climate._target_temperature = 22.0
+    climate._hvac_mode = HVACMode.HEAT
+    topic = f"{climate._topic}:current_temp"
+
+    # Cold: heating commanded on, cooling forced off (both first-time writes).
+    mock_coordinator.data = {topic: 20.0}
+    await climate._update_outputs()
+    mock_coordinator.write_batched.assert_any_call(TEST_HEATING_OUTPUT, True)
+    mock_coordinator.write_batched.assert_any_call(TEST_COOLING_OUTPUT, False)
+
+    # Still cold and unchanged: no additional write.
+    mock_coordinator.write_batched.reset_mock()
+    await climate._update_outputs()
+    mock_coordinator.write_batched.assert_not_called()
+
+    # Warm enough: heating turns off (single transition write).
+    mock_coordinator.data = {topic: 23.0}
+    await climate._update_outputs()
+    mock_coordinator.write_batched.assert_called_once_with(TEST_HEATING_OUTPUT, False)
+
+
+@pytest.mark.asyncio
+async def test_climate_direct_off_writes_once(climate_direct_factory, mock_coordinator):
+    """Switching to OFF writes False once, repeated updates do not re-write."""
+    climate = climate_direct_factory()
+    mock_coordinator.write_batched = AsyncMock()
+
+    await climate.async_set_hvac_mode(HVACMode.OFF)
+    assert climate._last_heating_cmd is False
+    assert climate._last_cooling_cmd is False
+
+    mock_coordinator.write_batched.reset_mock()
+    await climate._update_outputs()
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_climate_direct_reconnect_reasserts_outputs(
+    climate_direct_factory, mock_coordinator
+):
+    """Cached commands are cleared on disconnect so outputs re-assert on reconnect."""
+    climate = climate_direct_factory()
+    climate.hass = MagicMock()
+    climate._target_temperature = 22.0
+    climate._hvac_mode = HVACMode.HEAT
+    climate._last_heating_cmd = True
+    climate._last_cooling_cmd = False
+
+    mock_coordinator.is_connected = MagicMock(return_value=False)
+    climate._handle_coordinator_update()
+
+    assert climate._last_heating_cmd is None
+    assert climate._last_cooling_cmd is None
+
+
 # ============================================================================
 # Tests for Setpoint Control Climate
 # ============================================================================

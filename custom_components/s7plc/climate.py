@@ -242,6 +242,12 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         self._target_temperature: float = default_target
         self._hvac_mode = HVACMode.OFF
 
+        # Last values commanded to the PLC outputs. Used to write only on
+        # transitions and avoid pointless traffic/wear on every coordinator
+        # update (which fires every scan_interval regardless of changes).
+        self._last_heating_cmd: bool | None = None
+        self._last_cooling_cmd: bool | None = None
+
         # Available HVAC modes based on configured outputs
         self._attr_hvac_modes = [HVACMode.OFF]
         if heating_output_address:
@@ -374,18 +380,28 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         await self._update_outputs()
         self.async_write_ha_state()
 
+    async def _write_heating(self, value: bool) -> None:
+        """Write the heating output only when the commanded value changes."""
+        if self._heating_output_address and value != self._last_heating_cmd:
+            await self.coordinator.write_batched(self._heating_output_address, value)
+            self._last_heating_cmd = value
+
+    async def _write_cooling(self, value: bool) -> None:
+        """Write the cooling output only when the commanded value changes."""
+        if self._cooling_output_address and value != self._last_cooling_cmd:
+            await self.coordinator.write_batched(self._cooling_output_address, value)
+            self._last_cooling_cmd = value
+
     async def _update_outputs(self) -> None:
-        """Update PLC heating/cooling outputs based on mode and target temperature."""
+        """Update PLC heating/cooling outputs based on mode and target temperature.
+
+        Outputs are written only on transitions (see _write_heating/_write_cooling),
+        so a coordinator update without a relevant change produces no PLC traffic.
+        """
         if self._hvac_mode == HVACMode.OFF:
             # Turn off all outputs
-            if self._heating_output_address:
-                await self.coordinator.write_batched(
-                    self._heating_output_address, False
-                )
-            if self._cooling_output_address:
-                await self.coordinator.write_batched(
-                    self._cooling_output_address, False
-                )
+            await self._write_heating(False)
+            await self._write_cooling(False)
             return
 
         if self._target_temperature is None:
@@ -401,32 +417,28 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         cooling_needed = current_temp > (self._target_temperature + hysteresis)
 
         # Control heating output
-        if self._heating_output_address:
-            if self._hvac_mode in (HVACMode.HEAT, HVACMode.HEAT_COOL):
-                await self.coordinator.write_batched(
-                    self._heating_output_address, heating_needed
-                )
-            else:
-                await self.coordinator.write_batched(
-                    self._heating_output_address, False
-                )
+        if self._hvac_mode in (HVACMode.HEAT, HVACMode.HEAT_COOL):
+            await self._write_heating(heating_needed)
+        else:
+            await self._write_heating(False)
 
         # Control cooling output
-        if self._cooling_output_address:
-            if self._hvac_mode in (HVACMode.COOL, HVACMode.HEAT_COOL):
-                await self.coordinator.write_batched(
-                    self._cooling_output_address, cooling_needed
-                )
-            else:
-                await self.coordinator.write_batched(
-                    self._cooling_output_address, False
-                )
+        if self._hvac_mode in (HVACMode.COOL, HVACMode.HEAT_COOL):
+            await self._write_cooling(cooling_needed)
+        else:
+            await self._write_cooling(False)
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        # Re-evaluate outputs when temperature changes
-        if self._hvac_mode != HVACMode.OFF and self._target_temperature is not None:
+        if not self.coordinator.is_connected():
+            # Forget the cached commands so outputs are re-asserted on the
+            # next update once the PLC is reachable again (the PLC state may
+            # have drifted while disconnected).
+            self._last_heating_cmd = None
+            self._last_cooling_cmd = None
+        elif self._hvac_mode != HVACMode.OFF and self._target_temperature is not None:
+            # Re-evaluate outputs when temperature changes
             self.hass.async_create_task(self._update_outputs())
         super()._handle_coordinator_update()
 
