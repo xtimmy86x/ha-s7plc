@@ -39,6 +39,8 @@ except (ImportError, AttributeError):
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_INVERT,
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
@@ -291,6 +293,10 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional(CONF_AREA): flow._get_area_selector(),
+            vol.Optional(CONF_AVAILABILITY_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_AVAILABILITY_INVERT, default=False
+            ): selector.BooleanSelector(),
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
         }
     )
@@ -307,6 +313,10 @@ def _add_schema_binary_sensor(flow) -> vol.Schema:
             ),
             vol.Optional(CONF_INVERT_STATE, default=False): selector.BooleanSelector(),
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
+            vol.Optional(CONF_AVAILABILITY_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_AVAILABILITY_INVERT, default=False
+            ): selector.BooleanSelector(),
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
         }
     )
@@ -541,10 +551,17 @@ def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
         (CONF_STATE_CLASS, state_class_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AVAILABILITY_ADDRESS, selector.TextSelector()),
         (CONF_AREA, flow._get_area_selector()),
     ]:
         k, v = flow._optional_field(key, item, sel)
         d[k] = v
+    d[
+        vol.Optional(
+            CONF_AVAILABILITY_INVERT,
+            default=bool(item.get(CONF_AVAILABILITY_INVERT, False)),
+        )
+    ] = selector.BooleanSelector()
     return vol.Schema(d)
 
 
@@ -566,10 +583,17 @@ def _edit_schema_binary_sensor(flow, item: dict[str, Any]) -> vol.Schema:
     )
     for key, sel in [
         (CONF_SCAN_INTERVAL, scan_interval_selector),
+        (CONF_AVAILABILITY_ADDRESS, selector.TextSelector()),
         (CONF_AREA, flow._get_area_selector()),
     ]:
         k, v = flow._optional_field(key, item, sel)
         d[k] = v
+    d[
+        vol.Optional(
+            CONF_AVAILABILITY_INVERT,
+            default=bool(item.get(CONF_AVAILABILITY_INVERT, False)),
+        )
+    ] = selector.BooleanSelector()
     return vol.Schema(d)
 
 
@@ -2276,6 +2300,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
+        availability_address = user_input.get(CONF_AVAILABILITY_ADDRESS)
+        if availability_address:
+            availability_address, availability_errors = self._validate_address_field(
+                availability_address
+            )
+            if availability_errors:
+                return None, availability_errors
+            item[CONF_AVAILABILITY_ADDRESS] = availability_address
+            item[CONF_AVAILABILITY_INVERT] = bool(
+                user_input.get(CONF_AVAILABILITY_INVERT, False)
+            )
+
         return item, errors
 
     def _build_binary_sensor_item(
@@ -2305,6 +2341,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         # Apply specific transformations
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        availability_address = user_input.get(CONF_AVAILABILITY_ADDRESS)
+        if availability_address:
+            availability_address, availability_errors = self._validate_address_field(
+                availability_address
+            )
+            if availability_errors:
+                return None, availability_errors
+            item[CONF_AVAILABILITY_ADDRESS] = availability_address
+            item[CONF_AVAILABILITY_INVERT] = bool(
+                user_input.get(CONF_AVAILABILITY_INVERT, False)
+            )
 
         return item, {}
 
