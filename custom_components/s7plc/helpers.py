@@ -31,10 +31,12 @@ from .const import (
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
     CONF_CLOSING_STATE_ADDRESS,
+    CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_ENABLE_METRICS,
     CONF_ENTITY_SYNC,
+    CONF_HEATING_OUTPUT_ADDRESS,
     CONF_LIGHTS,
     CONF_NUMBERS,
     CONF_OPEN_COMMAND_ADDRESS,
@@ -43,6 +45,7 @@ from .const import (
     CONF_SENSORS,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
+    CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEXTS,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
@@ -231,6 +234,27 @@ def parse_pulse_duration(value: Any | None) -> float:
 # ---------------------------------------------------------------------------
 
 
+def make_unique_topic(seen_topics: set[str], base_topic: str) -> str:
+    """Return a topic guaranteed not to collide with one already seen.
+
+    Some entities may intentionally share the same source address (e.g.
+    two climates reading the same temperature sensor while controlling
+    different valves). The first entity to use a given base topic keeps
+    it unchanged, so its unique_id/entity_id is unaffected; every further
+    one sharing it gets an incrementing suffix appended instead of
+    colliding. Used identically by the platform setup (to build the real
+    entities) and by ``_iter_entity_unique_ids`` (to know what unique_ids
+    to expect), so both stay in sync by construction.
+    """
+    topic = base_topic
+    suffix = 2
+    while topic in seen_topics:
+        topic = f"{base_topic}:{suffix}"
+        suffix += 1
+    seen_topics.add(topic)
+    return topic
+
+
 def _iter_entity_unique_ids(
     device_id: str, options: Mapping[str, Any]
 ) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -300,14 +324,31 @@ def _iter_entity_unique_ids(
             yield f"{device_id}:text:{address}", item
 
     # Climates — device_id:climate_direct:… or device_id:climate_setpoint:…
+    # Two climates may share the same current_temperature_address (e.g. one
+    # sensor controlling several valves); make_unique_topic() must be applied
+    # in the exact same order, over the exact same skipped/kept items, as in
+    # climate.py's async_setup_entry, so the suffixed unique_ids it produces
+    # match what's actually registered.
+    seen_climate_topics: set[str] = set()
     for item in options.get(CONF_CLIMATES, []):
         current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS, "")
+        if not current_temp_address:
+            continue
         control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
-        if current_temp_address:
-            if control_mode == CONTROL_MODE_DIRECT:
-                yield f"{device_id}:climate_direct:{current_temp_address}", item
-            else:
-                yield f"{device_id}:climate_setpoint:{current_temp_address}", item
+        if control_mode == CONTROL_MODE_DIRECT:
+            if not item.get(CONF_HEATING_OUTPUT_ADDRESS) and not item.get(
+                CONF_COOLING_OUTPUT_ADDRESS
+            ):
+                continue
+            prefix = "climate_direct"
+        else:
+            if not item.get(CONF_TARGET_TEMPERATURE_ADDRESS):
+                continue
+            prefix = "climate_setpoint"
+        topic = make_unique_topic(
+            seen_climate_topics, f"{prefix}:{current_temp_address}"
+        )
+        yield f"{device_id}:{topic}", item
 
     # Entity syncs — device_id:entity_sync:address
     for item in options.get(CONF_ENTITY_SYNC, []):

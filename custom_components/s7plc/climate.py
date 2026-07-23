@@ -71,30 +71,15 @@ from .const import (
     MODE_VALUE_DISABLED,
 )
 from .entity import S7BaseEntity
-from .helpers import default_entity_name, get_coordinator_and_device_info
+from .helpers import (
+    default_entity_name,
+    get_coordinator_and_device_info,
+    make_unique_topic,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
-
-
-def _make_unique_topic(seen_topics: set[str], base_topic: str) -> str:
-    """Return a topic guaranteed not to collide with one already used.
-
-    Two thermostats may intentionally share the same
-    current_temperature_address (e.g. one shared sensor controlling
-    several valves) while otherwise being fully independent. The first
-    climate to use a given address keeps its topic unchanged (so existing
-    entity_ids aren't affected); any further one sharing it gets an
-    incrementing suffix appended so its unique_id never collides.
-    """
-    topic = base_topic
-    suffix = 2
-    while topic in seen_topics:
-        topic = f"{base_topic}:{suffix}"
-        suffix += 1
-    seen_topics.add(topic)
-    return topic
 
 
 async def async_setup_entry(
@@ -142,7 +127,7 @@ async def async_setup_entry(
             heating_action = item.get(CONF_HEATING_ACTION_ADDRESS)
             cooling_action = item.get(CONF_COOLING_ACTION_ADDRESS)
 
-            topic = _make_unique_topic(
+            topic = make_unique_topic(
                 seen_topics, f"climate_direct:{current_temp_address}"
             )
             unique_id = f"{device_id}:{topic}"
@@ -191,7 +176,7 @@ async def async_setup_entry(
                 )
                 continue
 
-            topic = _make_unique_topic(
+            topic = make_unique_topic(
                 seen_topics, f"climate_setpoint:{current_temp_address}"
             )
             unique_id = f"{device_id}:{topic}"
