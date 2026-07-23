@@ -3067,17 +3067,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if errors:
             return None, errors
 
-        # Check for duplicates: two climates sharing the same current
-        # temperature address would collide on unique_id/topic, and only
-        # one of them would ever show up in Home Assistant.
-        if self._has_duplicate(
-            CONF_CLIMATES,
-            current_temp_addr,
-            keys=(CONF_CURRENT_TEMPERATURE_ADDRESS,),
-            skip_idx=skip_idx,
-        ):
-            return None, {"base": "duplicate_entry"}
-
         # At least one output address is required
         heating_output = user_input.get(CONF_HEATING_OUTPUT_ADDRESS)
         cooling_output = user_input.get(CONF_COOLING_OUTPUT_ADDRESS)
@@ -3163,17 +3152,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
         if errors:
             return None, errors
-
-        # Check for duplicates: two climates sharing the same current
-        # temperature address would collide on unique_id/topic, and only
-        # one of them would ever show up in Home Assistant.
-        if self._has_duplicate(
-            CONF_CLIMATES,
-            current_temp_addr,
-            keys=(CONF_CURRENT_TEMPERATURE_ADDRESS,),
-            skip_idx=skip_idx,
-        ):
-            return None, {"base": "duplicate_entry"}
 
         # Validate target temperature address
         target_temp_addr, errors = self._validate_address_field(
@@ -3604,7 +3582,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_NUMBERS: (CONF_ADDRESS,),
             CONF_TEXTS: (CONF_ADDRESS,),
             CONF_CLIMATES: (
-                CONF_CURRENT_TEMPERATURE_ADDRESS,
                 CONF_TARGET_TEMPERATURE_ADDRESS,
                 CONF_HEATING_OUTPUT_ADDRESS,
                 CONF_COOLING_OUTPUT_ADDRESS,
