@@ -2257,6 +2257,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 self._options[option_key][idx] = new_item
                 self._clear_edit_state()
                 return self.async_create_entry(title="", data=self._options)
+            if errors:
+                data_schema = self.add_suggested_values_to_schema(
+                    data_schema, user_input
+                )
 
         return self.async_show_form(
             step_id=step_id, data_schema=data_schema, errors=errors
@@ -2274,6 +2278,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item, errors = builder(user_input, skip_idx=None)
 
             if errors:
+                data_schema = self.add_suggested_values_to_schema(
+                    data_schema, user_input
+                )
                 return self.async_show_form(
                     step_id=step_id, data_schema=data_schema, errors=errors
                 )
