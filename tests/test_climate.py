@@ -23,6 +23,7 @@ from custom_components.s7plc.const import (
     CONF_MIN_TEMP,
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEMP_STEP,
+    CONF_UID,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
 )
@@ -391,6 +392,7 @@ async def test_setup_entry_direct_control(fake_hass, mock_coordinator):
                 CONF_MIN_TEMP: 10.0,
                 CONF_MAX_TEMP: 30.0,
                 CONF_TEMP_STEP: 0.5,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -427,6 +429,7 @@ async def test_setup_entry_setpoint_control(fake_hass, mock_coordinator):
                 CONF_MIN_TEMP: 15.0,
                 CONF_MAX_TEMP: 28.0,
                 CONF_TEMP_STEP: 0.5,
+                CONF_UID: "uid-1",
             }
         ]
     }

@@ -21,6 +21,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
+    CONF_UID,
     DEFAULT_PULSE_DURATION,
 )
 from .entity import S7BoolSyncEntity
@@ -58,7 +59,7 @@ async def async_setup_entry(
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
         topic = f"light:{state_address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = f"{device_id}:{item[CONF_UID]}"
 
         # Always register the boolean on/off topic
         await coord.add_item(topic, state_address, scan_interval)

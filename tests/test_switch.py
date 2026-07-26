@@ -16,6 +16,7 @@ from custom_components.s7plc.const import (
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
+    CONF_UID,
 )
 
 # Test constants
@@ -217,11 +218,13 @@ async def test_async_setup_entry_with_switches(fake_hass, mock_coordinator, devi
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Switch 1",
+                CONF_UID: "uid-1",
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Switch 2",
                 CONF_COMMAND_ADDRESS: "db1,x0.2",
+                CONF_UID: "uid-2",
             }
         ]
     }
@@ -253,7 +256,11 @@ async def test_async_setup_entry_skip_missing_state_address(fake_hass, mock_coor
     config_entry.options = {
         CONF_SWITCHES: [
             {CONF_NAME: "No Address Switch"},
-            {CONF_STATE_ADDRESS: "db1,x0.0", CONF_NAME: "Valid Switch"},
+            {
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_NAME: "Valid Switch",
+                CONF_UID: "uid-1",
+            },
         ]
     }
     
@@ -279,7 +286,7 @@ async def test_async_setup_entry_default_name(fake_hass, mock_coordinator, devic
     config_entry = MagicMock()
     config_entry.options = {
         CONF_SWITCHES: [
-            {CONF_STATE_ADDRESS: "db1,x0.0"}  # No name
+            {CONF_STATE_ADDRESS: "db1,x0.0", CONF_UID: "uid-1"}  # No name
         ]
     }
     
@@ -305,6 +312,7 @@ async def test_async_setup_entry_default_command_address(fake_hass, mock_coordin
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Switch 1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -333,6 +341,7 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Switch 1",
                 CONF_SCAN_INTERVAL: 5,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -361,6 +370,7 @@ async def test_async_setup_entry_with_sync_state(fake_hass, mock_coordinator, de
                 CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Switch 1",
                 CONF_SYNC_STATE: True,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -387,6 +397,7 @@ async def test_async_setup_entry_sync_state_default_false(fake_hass, mock_coordi
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Switch 1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -496,6 +507,7 @@ async def test_async_setup_entry_with_pulse(fake_hass, mock_coordinator, device_
                 CONF_NAME: "Pulse Switch",
                 CONF_PULSE_COMMAND: True,
                 CONF_PULSE_DURATION: 1.5,
+                CONF_UID: "uid-1",
             }
         ]
     }

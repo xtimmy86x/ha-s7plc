@@ -16,6 +16,7 @@ from custom_components.s7plc.const import (
     CONF_BUTTONS,
     CONF_BUTTON_PULSE,
     CONF_NUMBERS,
+    CONF_UID,
     DEFAULT_PULSE_DURATION,
 )
 
@@ -653,7 +654,7 @@ async def test_number_setup_entry_generates_name_from_address(mock_coordinator, 
     entry = dummy_entry(
         options={
             CONF_NUMBERS: [
-                {CONF_ADDRESS: "db1,w0"}  # no name -> default_entity_name()
+                {CONF_ADDRESS: "db1,w0", CONF_UID: "uid-1"}  # no name -> default_entity_name()
             ]
         }
     )
@@ -686,9 +687,9 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
     entry = dummy_entry(
         options={
             CONF_BUTTONS: [
-                {CONF_ADDRESS: "db1,x0.0", CONF_BUTTON_PULSE: 2.0},
-                {CONF_ADDRESS: "db1,x0.1", CONF_BUTTON_PULSE: 0.3},
-                {CONF_ADDRESS: "db1,x0.2"},  # missing -> default
+                {CONF_ADDRESS: "db1,x0.0", CONF_BUTTON_PULSE: 2.0, CONF_UID: "uid-1"},
+                {CONF_ADDRESS: "db1,x0.1", CONF_BUTTON_PULSE: 0.3, CONF_UID: "uid-2"},
+                {CONF_ADDRESS: "db1,x0.2", CONF_UID: "uid-3"},  # missing -> default
             ]
         }
     )
