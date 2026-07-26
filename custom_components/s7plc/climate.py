@@ -28,21 +28,55 @@ from .const import (
     CONF_HEATING_ACTION_ADDRESS,
     CONF_HEATING_OUTPUT_ADDRESS,
     CONF_HVAC_STATUS_ADDRESS,
+    CONF_HVAC_STATUS_COOLING_VALUES,
+    CONF_HVAC_STATUS_DRYING_VALUES,
+    CONF_HVAC_STATUS_FAN_VALUES,
+    CONF_HVAC_STATUS_HEATING_VALUES,
+    CONF_HVAC_STATUS_IDLE_VALUES,
+    CONF_HVAC_STATUS_OFF_VALUES,
+    CONF_HVAC_STATUS_PREHEATING_VALUES,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
+    CONF_ON_OFF_ADDRESS,
     CONF_PRESET_MODE_ADDRESS,
+    CONF_PRESET_MODE_AUTO_VALUE,
+    CONF_PRESET_MODE_COOL_VALUE,
+    CONF_PRESET_MODE_DRY_VALUE,
+    CONF_PRESET_MODE_FAN_ONLY_VALUE,
+    CONF_PRESET_MODE_HEAT_COOL_VALUE,
+    CONF_PRESET_MODE_HEAT_VALUE,
+    CONF_PRESET_MODE_OFF_VALUE,
     CONF_SCAN_INTERVAL,
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEMP_STEP,
     CONF_UID,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
+    DEFAULT_HVAC_STATUS_COOLING_VALUES,
+    DEFAULT_HVAC_STATUS_DRYING_VALUES,
+    DEFAULT_HVAC_STATUS_FAN_VALUES,
+    DEFAULT_HVAC_STATUS_HEATING_VALUES,
+    DEFAULT_HVAC_STATUS_IDLE_VALUES,
+    DEFAULT_HVAC_STATUS_OFF_VALUES,
+    DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
+    DEFAULT_PRESET_MODE_AUTO_VALUE,
+    DEFAULT_PRESET_MODE_COOL_VALUE,
+    DEFAULT_PRESET_MODE_DRY_VALUE,
+    DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
+    DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
+    DEFAULT_PRESET_MODE_HEAT_VALUE,
+    DEFAULT_PRESET_MODE_OFF_VALUE,
     DEFAULT_TEMP_STEP,
+    MODE_VALUE_DISABLED,
 )
 from .entity import S7BaseEntity
-from .helpers import default_entity_name, get_coordinator_and_device_info
+from .helpers import (
+    default_entity_name,
+    get_coordinator_and_device_info,
+    make_unique_topic,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +90,7 @@ async def async_setup_entry(
     coord, device_info, _ = get_coordinator_and_device_info(entry)
 
     entities = []
+    seen_topics: set[str] = set()
     for item in entry.options.get(CONF_CLIMATES, []):
         current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
         if not current_temp_address:
@@ -93,7 +128,9 @@ async def async_setup_entry(
             heating_action = item.get(CONF_HEATING_ACTION_ADDRESS)
             cooling_action = item.get(CONF_COOLING_ACTION_ADDRESS)
 
-            topic = f"climate_direct:{current_temp_address}"
+            topic = make_unique_topic(
+                seen_topics, f"climate_direct:{current_temp_address}"
+            )
             unique_id = item[CONF_UID]
 
             # Register current temperature for reading
@@ -140,7 +177,9 @@ async def async_setup_entry(
                 )
                 continue
 
-            topic = f"climate_setpoint:{current_temp_address}"
+            topic = make_unique_topic(
+                seen_topics, f"climate_setpoint:{current_temp_address}"
+            )
             unique_id = item[CONF_UID]
 
             # Register current and target temperature for reading
@@ -158,12 +197,73 @@ async def async_setup_entry(
                     f"{topic}:preset_mode", preset_mode_address, scan_interval
                 )
 
-            # Optional: HVAC status address (0=off, 1=heating, 2=cooling)
+            # Optional: boolean on/off address, for thermostats without a
+            # native OFF mode. Writes False when target mode is OFF, True
+            # for any other mode.
+            on_off_address = item.get(CONF_ON_OFF_ADDRESS)
+            if on_off_address:
+                await coord.add_item(
+                    f"{topic}:on_off", on_off_address, scan_interval
+                )
+
+            # Optional: HVAC status address (mapping configured below)
             hvac_status_address = item.get(CONF_HVAC_STATUS_ADDRESS)
             if hvac_status_address:
                 await coord.add_item(
                     f"{topic}:hvac_status", hvac_status_address, scan_interval
                 )
+
+            # Current status mapping (hvac_status_address -> HVAC action).
+            # Each field may hold multiple comma-separated PLC values, e.g.
+            # "2,3", so several PLC codes can mean the same status.
+            hvac_status_off_values = item.get(
+                CONF_HVAC_STATUS_OFF_VALUES, DEFAULT_HVAC_STATUS_OFF_VALUES
+            )
+            hvac_status_heating_values = item.get(
+                CONF_HVAC_STATUS_HEATING_VALUES, DEFAULT_HVAC_STATUS_HEATING_VALUES
+            )
+            hvac_status_cooling_values = item.get(
+                CONF_HVAC_STATUS_COOLING_VALUES, DEFAULT_HVAC_STATUS_COOLING_VALUES
+            )
+            hvac_status_idle_values = item.get(
+                CONF_HVAC_STATUS_IDLE_VALUES, DEFAULT_HVAC_STATUS_IDLE_VALUES
+            )
+            hvac_status_drying_values = item.get(
+                CONF_HVAC_STATUS_DRYING_VALUES, DEFAULT_HVAC_STATUS_DRYING_VALUES
+            )
+            hvac_status_fan_values = item.get(
+                CONF_HVAC_STATUS_FAN_VALUES, DEFAULT_HVAC_STATUS_FAN_VALUES
+            )
+            hvac_status_preheating_values = item.get(
+                CONF_HVAC_STATUS_PREHEATING_VALUES,
+                DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
+            )
+
+            # Target mode mapping (HVAC mode -> value written to
+            # preset_mode_address). Independent from the status mapping above
+            # since the PLC may use different codes for command vs. status.
+            preset_mode_off_value = item.get(
+                CONF_PRESET_MODE_OFF_VALUE, DEFAULT_PRESET_MODE_OFF_VALUE
+            )
+            preset_mode_heat_value = item.get(
+                CONF_PRESET_MODE_HEAT_VALUE, DEFAULT_PRESET_MODE_HEAT_VALUE
+            )
+            preset_mode_cool_value = item.get(
+                CONF_PRESET_MODE_COOL_VALUE, DEFAULT_PRESET_MODE_COOL_VALUE
+            )
+            preset_mode_heat_cool_value = item.get(
+                CONF_PRESET_MODE_HEAT_COOL_VALUE,
+                DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
+            )
+            preset_mode_auto_value = item.get(
+                CONF_PRESET_MODE_AUTO_VALUE, DEFAULT_PRESET_MODE_AUTO_VALUE
+            )
+            preset_mode_dry_value = item.get(
+                CONF_PRESET_MODE_DRY_VALUE, DEFAULT_PRESET_MODE_DRY_VALUE
+            )
+            preset_mode_fan_only_value = item.get(
+                CONF_PRESET_MODE_FAN_ONLY_VALUE, DEFAULT_PRESET_MODE_FAN_ONLY_VALUE
+            )
 
             entities.append(
                 S7ClimateSetpointControl(
@@ -180,6 +280,21 @@ async def async_setup_entry(
                     max_temp,
                     temp_step,
                     area,
+                    hvac_status_off_values=hvac_status_off_values,
+                    hvac_status_heating_values=hvac_status_heating_values,
+                    hvac_status_cooling_values=hvac_status_cooling_values,
+                    hvac_status_idle_values=hvac_status_idle_values,
+                    hvac_status_drying_values=hvac_status_drying_values,
+                    hvac_status_fan_values=hvac_status_fan_values,
+                    hvac_status_preheating_values=hvac_status_preheating_values,
+                    preset_mode_off_value=preset_mode_off_value,
+                    preset_mode_heat_value=preset_mode_heat_value,
+                    preset_mode_cool_value=preset_mode_cool_value,
+                    preset_mode_heat_cool_value=preset_mode_heat_cool_value,
+                    preset_mode_auto_value=preset_mode_auto_value,
+                    preset_mode_dry_value=preset_mode_dry_value,
+                    preset_mode_fan_only_value=preset_mode_fan_only_value,
+                    on_off_address=on_off_address,
                 )
             )
 
@@ -475,6 +590,21 @@ class S7ClimateSetpointControl(
         max_temp: float = DEFAULT_MAX_TEMP,
         temp_step: float = DEFAULT_TEMP_STEP,
         suggested_area_id: str | None = None,
+        hvac_status_off_values: str = DEFAULT_HVAC_STATUS_OFF_VALUES,
+        hvac_status_heating_values: str = DEFAULT_HVAC_STATUS_HEATING_VALUES,
+        hvac_status_cooling_values: str = DEFAULT_HVAC_STATUS_COOLING_VALUES,
+        hvac_status_idle_values: str = DEFAULT_HVAC_STATUS_IDLE_VALUES,
+        hvac_status_drying_values: str = DEFAULT_HVAC_STATUS_DRYING_VALUES,
+        hvac_status_fan_values: str = DEFAULT_HVAC_STATUS_FAN_VALUES,
+        hvac_status_preheating_values: str = DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
+        preset_mode_off_value: int = DEFAULT_PRESET_MODE_OFF_VALUE,
+        preset_mode_heat_value: int = DEFAULT_PRESET_MODE_HEAT_VALUE,
+        preset_mode_cool_value: int = DEFAULT_PRESET_MODE_COOL_VALUE,
+        preset_mode_heat_cool_value: int = DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
+        preset_mode_auto_value: int = DEFAULT_PRESET_MODE_AUTO_VALUE,
+        preset_mode_dry_value: int = DEFAULT_PRESET_MODE_DRY_VALUE,
+        preset_mode_fan_only_value: int = DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
+        on_off_address: str | None = None,
     ):
         """Initialize setpoint control climate entity."""
         super().__init__(
@@ -490,13 +620,123 @@ class S7ClimateSetpointControl(
         self._target_temp_address = target_temp_address
         self._preset_mode_address = preset_mode_address
         self._hvac_status_address = hvac_status_address
+        self._on_off_address = on_off_address
 
         self._attr_min_temp = float(min_temp)
         self._attr_max_temp = float(max_temp)
         self._attr_target_temperature_step = float(temp_step)
 
-        # Internal state
-        self._hvac_mode = HVACMode.HEAT_COOL
+        # Current status mapping: PLC value(s) read from hvac_status_address
+        # that are recognized as each HVAC action. Independent from the
+        # target mapping below since the PLC may report status using
+        # different codes than it accepts as a command. Priority order when
+        # matching a status value is the dict's key order below.
+        self._hvac_status_values: dict[HVACAction, list[int]] = {
+            HVACAction.OFF: self._parse_mode_values(hvac_status_off_values),
+            HVACAction.HEATING: self._parse_mode_values(hvac_status_heating_values),
+            HVACAction.COOLING: self._parse_mode_values(hvac_status_cooling_values),
+            HVACAction.DRYING: self._parse_mode_values(hvac_status_drying_values),
+            HVACAction.FAN: self._parse_mode_values(hvac_status_fan_values),
+            HVACAction.PREHEATING: self._parse_mode_values(
+                hvac_status_preheating_values
+            ),
+            HVACAction.IDLE: self._parse_mode_values(hvac_status_idle_values),
+        }
+
+        # Target mode mapping: single PLC value written to
+        # preset_mode_address when a given HVAC mode is selected. A mode
+        # whose value is MODE_VALUE_DISABLED (-1) is removed from the
+        # thermostat's selectable HVAC mode list entirely - except OFF when
+        # on_off_address is configured, since that address is then always
+        # able to turn the device off regardless of preset_mode_off_value.
+        self._preset_mode_values: dict[HVACMode, int] = {
+            HVACMode.OFF: int(preset_mode_off_value),
+            HVACMode.HEAT: int(preset_mode_heat_value),
+            HVACMode.COOL: int(preset_mode_cool_value),
+            HVACMode.HEAT_COOL: int(preset_mode_heat_cool_value),
+            HVACMode.AUTO: int(preset_mode_auto_value),
+            HVACMode.DRY: int(preset_mode_dry_value),
+            HVACMode.FAN_ONLY: int(preset_mode_fan_only_value),
+        }
+
+        self._attr_hvac_modes = [
+            mode
+            for mode in (
+                HVACMode.HEAT,
+                HVACMode.COOL,
+                HVACMode.HEAT_COOL,
+                HVACMode.AUTO,
+                HVACMode.DRY,
+                HVACMode.FAN_ONLY,
+            )
+            if self._preset_mode_values[mode] != MODE_VALUE_DISABLED
+        ]
+        # OFF is only removable when on_off_address isn't configured: if it
+        # is, OFF is always reachable that way regardless of
+        # preset_mode_off_value, so it must stay selectable (otherwise the
+        # thermostat could never be turned off).
+        if on_off_address or self._preset_mode_values[HVACMode.OFF] != MODE_VALUE_DISABLED:
+            self._attr_hvac_modes.insert(0, HVACMode.OFF)
+        if not self._attr_hvac_modes:
+            _LOGGER.warning(
+                "All HVAC modes disabled for %s; falling back to OFF only", name
+            )
+            self._attr_hvac_modes = [HVACMode.OFF]
+
+        # Reverse lookup used to read the mode back from PLC: only modes
+        # with a real (non-disabled) preset value are included, so a stray
+        # MODE_VALUE_DISABLED (-1) shared by several disabled modes -
+        # including OFF when it's actually handled via on_off_address -
+        # can't be mistaken for a real one.
+        self._preset_value_to_mode: dict[int, HVACMode] = {}
+        for mode in self._attr_hvac_modes:
+            value = self._preset_mode_values[mode]
+            if value == MODE_VALUE_DISABLED:
+                continue
+            if value in self._preset_value_to_mode:
+                _LOGGER.warning(
+                    "Duplicate preset mode value %s for %s (modes %s and %s); "
+                    "reading the mode back from PLC may be ambiguous",
+                    value,
+                    name,
+                    self._preset_value_to_mode[value].value,
+                    mode.value,
+                )
+            self._preset_value_to_mode[value] = mode
+
+        # Internal state: used as a fallback when live PLC feedback (via
+        # on_off_address / preset_mode_address) isn't available or doesn't
+        # map to a known mode, and restored on startup by RestoreEntity.
+        self._hvac_mode = (
+            HVACMode.HEAT_COOL
+            if HVACMode.HEAT_COOL in self._attr_hvac_modes
+            else self._attr_hvac_modes[0]
+        )
+
+    @staticmethod
+    def _parse_mode_values(raw: str | None) -> list[int]:
+        """Parse a comma-separated list of PLC integer values for a mode.
+
+        MODE_VALUE_DISABLED (-1) is dropped from the result: it means this
+        status should never be matched, effectively skipping it (e.g. an
+        "off status" field of "-1" means no PLC value is ever read as OFF).
+        """
+        if not raw:
+            return []
+        values: list[int] = []
+        for token in str(raw).split(","):
+            token = token.strip()
+            if not token:
+                continue
+            try:
+                value = int(token)
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid mode value %r", token)
+                continue
+            if value == MODE_VALUE_DISABLED:
+                continue
+            values.append(value)
+        return values
 
     async def async_added_to_hass(self) -> None:
         """Restore last state when entity is added to hass."""
@@ -545,7 +785,47 @@ class S7ClimateSetpointControl(
 
     @property
     def hvac_mode(self) -> HVACMode:
-        """Return current HVAC mode."""
+        """Return current HVAC mode.
+
+        Communication is bidirectional when the corresponding PLC address is
+        configured: on_off_address (if False, the mode is always OFF) takes
+        priority, then preset_mode_address is mapped back to a mode using
+        the same values configured for writing it. Falls back to the last
+        mode commanded from HA (or restored on startup) when neither is
+        configured or the PLC value doesn't match a known mode.
+        """
+        data = self.coordinator.data or {}
+
+        if self._on_off_address:
+            on_off_value = data.get(f"{self._topic}:on_off")
+            if on_off_value is not None and not bool(on_off_value):
+                return HVACMode.OFF
+
+        if self._preset_mode_address:
+            preset_value = data.get(f"{self._topic}:preset_mode")
+            if preset_value is not None:
+                try:
+                    mode = self._preset_value_to_mode.get(int(preset_value))
+                except (TypeError, ValueError):
+                    mode = None
+                if mode is not None:
+                    return mode
+
+        if (
+            self._on_off_address
+            and data.get(f"{self._topic}:on_off")
+            and self._hvac_mode == HVACMode.OFF
+            and len(self._attr_hvac_modes) > 1
+        ):
+            # Device reports "on" but we have no more specific mode source
+            # and our last known mode was OFF: assume some active mode
+            # rather than showing OFF while the device is actually running.
+            return (
+                HVACMode.HEAT_COOL
+                if HVACMode.HEAT_COOL in self._attr_hvac_modes
+                else next(m for m in self._attr_hvac_modes if m != HVACMode.OFF)
+            )
+
         return self._hvac_mode
 
     @property
@@ -553,10 +833,14 @@ class S7ClimateSetpointControl(
         """Return current HVAC action.
 
         If hvac_status_address is configured, read the actual status from PLC
-        (0=OFF, 1=HEATING, 2=COOLING). Otherwise infer from target vs current
+        and match it against the configured status value lists (see
+        hvac_status_off_values/hvac_status_heating_values/
+        hvac_status_cooling_values/hvac_status_drying_values/
+        hvac_status_fan_values/hvac_status_preheating_values/
+        hvac_status_idle_values). Otherwise infer from target vs current
         temperature comparison.
         """
-        if self._hvac_mode == HVACMode.OFF:
+        if self.hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
 
         # Use PLC status address if configured
@@ -566,12 +850,11 @@ class S7ClimateSetpointControl(
             status = data.get(status_topic)
             if status is not None:
                 status = int(status)
-                if status == 0:
-                    return HVACAction.OFF
-                if status == 1:
-                    return HVACAction.HEATING
-                if status == 2:
-                    return HVACAction.COOLING
+                for action, values in self._hvac_status_values.items():
+                    if status in values:
+                        return action
+            # Any other value (including unconfigured/unmatched status)
+            # is treated as IDLE.
             return HVACAction.IDLE
 
         # Fallback: infer from temperature comparison
@@ -590,8 +873,17 @@ class S7ClimateSetpointControl(
         attrs["s7_target_temp_address"] = self._target_temp_address.upper()
         if self._preset_mode_address:
             attrs["s7_preset_mode_address"] = self._preset_mode_address.upper()
+            attrs["s7_preset_mode_values"] = {
+                mode.value: value for mode, value in self._preset_mode_values.items()
+            }
         if self._hvac_status_address:
             attrs["s7_hvac_status_address"] = self._hvac_status_address.upper()
+            attrs["s7_hvac_status_values"] = {
+                action.value: values
+                for action, values in self._hvac_status_values.items()
+            }
+        if self._on_off_address:
+            attrs["s7_on_off_address"] = self._on_off_address.upper()
         return attrs
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -620,18 +912,28 @@ class S7ClimateSetpointControl(
 
         self._hvac_mode = hvac_mode
 
-        # Optionally write mode to PLC if preset_mode_address is configured
-        # OFF = 0, HEAT_COOL = 1 (or any other mapping you need)
+        # Optionally write mode to PLC if preset_mode_address is configured.
+        # Uses the target value configured for this mode (see
+        # preset_mode_off_value/preset_mode_heat_value/
+        # preset_mode_cool_value/preset_mode_heat_cool_value/
+        # preset_mode_auto_value/preset_mode_dry_value/
+        # preset_mode_fan_only_value). Skipped if that mode's value is
+        # MODE_VALUE_DISABLED (-1): this happens for OFF when it's only
+        # selectable thanks to on_off_address, in which case there is no
+        # real PLC value to write here.
         if self._preset_mode_address:
-            match hvac_mode:
-                case HVACMode.HEAT_COOL:
-                    mode_value = 3
-                case HVACMode.COOL:
-                    mode_value = 2
-                case HVACMode.HEAT:
-                    mode_value = 1
-                case _:
-                    mode_value = 0
-            await self.coordinator.write_batched(self._preset_mode_address, mode_value)
+            mode_value = self._preset_mode_values.get(hvac_mode)
+            if mode_value is not None and mode_value != MODE_VALUE_DISABLED:
+                await self.coordinator.write_batched(
+                    self._preset_mode_address, mode_value
+                )
+
+        # Optionally write a simple on/off signal, for thermostats that have
+        # no native OFF mode and are switched on/off by a separate output:
+        # False when OFF is selected, True for any other mode.
+        if self._on_off_address:
+            await self.coordinator.write_batched(
+                self._on_off_address, hvac_mode != HVACMode.OFF
+            )
 
         self.async_write_ha_state()
