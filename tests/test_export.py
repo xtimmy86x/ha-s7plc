@@ -1,6 +1,18 @@
 from __future__ import annotations
 
 from custom_components.s7plc import export
+from custom_components.s7plc.const import CONF_ADDRESS, CONF_SENSORS, CONF_UID
+
+
+def test_build_export_payload_preserves_uid():
+    """The permanent uid must round-trip through export unchanged."""
+    options = {
+        CONF_SENSORS: [{CONF_ADDRESS: "DB1,REAL0", CONF_UID: "abc123"}],
+    }
+
+    payload = export.build_export_payload(options)
+
+    assert payload[CONF_SENSORS][0][CONF_UID] == "abc123"
 
 
 class _FakeHTTP:

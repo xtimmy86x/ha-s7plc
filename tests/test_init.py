@@ -156,3 +156,87 @@ def test_write_multi_service_registration(monkeypatch):
     assert "health_check" in registered_services, f"health_check not in {registered_services}"
     assert "write_multi" in registered_services, f"write_multi not in {registered_services}"
 
+
+def test_migrate_backfills_uid_for_legacy_items(monkeypatch):
+    """Legacy items with no 'uid' get one assigned, matching their current
+    (address-based) unique_id, so the entity's identity doesn't change."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        options={
+            "sensors": [{"address": "DB1,REAL0", "name": "Legacy Sensor"}],
+        },
+        entry_id="test_uid_backfill",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    # A uid was assigned and persisted.
+    assert len(update_calls) == 1
+    new_options = update_calls[0][1]["options"]
+    sensor_item = new_options["sensors"][0]
+    assert sensor_item["uid"] == "sensor:DB1,REAL0"
+    # The item's own address/name are untouched.
+    assert sensor_item["address"] == "DB1,REAL0"
+    assert sensor_item["name"] == "Legacy Sensor"
+
+
+def test_migrate_uid_backfill_is_a_noop_once_uid_present(monkeypatch):
+    """No further migration once every item already has a uid."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        options={
+            "sensors": [
+                {"address": "DB1,REAL0", "name": "Sensor", "uid": "already-set"}
+            ],
+        },
+        entry_id="test_uid_noop",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    assert len(update_calls) == 0
+    assert entry.options["sensors"][0]["uid"] == "already-set"

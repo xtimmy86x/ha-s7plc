@@ -39,10 +39,10 @@ def entry_with_orphans(monkeypatch):
         },
         options={
             "sensors": [
-                {"address": "DB1,REAL0", "name": "Active Sensor"}
+                {"address": "DB1,REAL0", "name": "Active Sensor", "uid": "s1"}
             ],
             "switches": [
-                {"state_address": "DB1,X0.0", "name": "Active Switch"}
+                {"state_address": "DB1,X0.0", "name": "Active Switch", "uid": "sw1"}
             ],
         },
         entry_id="test_entry",
@@ -65,12 +65,12 @@ def entry_with_orphans(monkeypatch):
     # Add active entities (should NOT be removed)
     entity_reg.entities["sensor.active_sensor"] = MockEntityRegistryEntry(
         entity_id="sensor.active_sensor",
-        unique_id="test_device:sensor:DB1,REAL0",
+        unique_id="test_device:s1",
         config_entry_id="test_entry",
     )
     entity_reg.entities["switch.active_switch"] = MockEntityRegistryEntry(
         entity_id="switch.active_switch",
-        unique_id="test_device:switch:DB1,X0.0",
+        unique_id="test_device:sw1",
         config_entry_id="test_entry",
     )
     entity_reg.entities["binary_sensor.connection"] = MockEntityRegistryEntry(
@@ -78,16 +78,16 @@ def entry_with_orphans(monkeypatch):
         unique_id="test_device:connection",
         config_entry_id="test_entry",
     )
-    
-    # Add orphaned entities (should be removed)
+
+    # Add orphaned entities (should be removed) - uids not present in options
     entity_reg.entities["sensor.old_sensor"] = MockEntityRegistryEntry(
         entity_id="sensor.old_sensor",
-        unique_id="test_device:sensor:DB1,REAL100",
+        unique_id="test_device:old-sensor-uid",
         config_entry_id="test_entry",
     )
     entity_reg.entities["switch.old_switch"] = MockEntityRegistryEntry(
         entity_id="switch.old_switch",
-        unique_id="test_device:switch:DB1,X10.0",
+        unique_id="test_device:old-switch-uid",
         config_entry_id="test_entry",
     )
     
@@ -174,39 +174,46 @@ def test_get_expected_unique_ids_all_entity_types(entry_with_orphans):
     
     # Add all entity types to config
     entry.options = {
-        "sensors": [{"address": "DB1,REAL0"}],
-        "binary_sensors": [{"address": "DB1,X0.0"}],
-        "switches": [{"state_address": "DB1,X0.1"}],
+        "sensors": [{"address": "DB1,REAL0", "uid": "uid-sensor"}],
+        "binary_sensors": [{"address": "DB1,X0.0", "uid": "uid-binary"}],
+        "switches": [{"state_address": "DB1,X0.1", "uid": "uid-switch"}],
         "covers": [
-            {"position_state_address": "DB1,INT0"},  # Position cover
-            {"open_command_address": "DB1,X1.0", "close_command_address": "DB1,X1.1", "opening_state_address": "DB1,X1.2"},  # Traditional cover
+            {"position_state_address": "DB1,INT0", "uid": "uid-cover-pos"},  # Position cover
+            {
+                "open_command_address": "DB1,X1.0",
+                "close_command_address": "DB1,X1.1",
+                "opening_state_address": "DB1,X1.2",
+                "uid": "uid-cover-trad",
+            },  # Traditional cover
         ],
-        "buttons": [{"address": "DB1,X2.0"}],
+        "buttons": [{"address": "DB1,X2.0", "uid": "uid-button"}],
         "lights": [
-            {"state_address": "DB1,X2.1"},
-            {"state_address": "DB1,B10", "brightness_scale": 255},
+            {"state_address": "DB1,X2.1", "uid": "uid-light-1"},
+            {"state_address": "DB1,B10", "brightness_scale": 255, "uid": "uid-light-2"},
         ],
-        "numbers": [{"address": "DB1,INT10"}],
-        "texts": [{"address": "DB1,STRING0"}],
-        "entity_sync": [{"address": "DB1,REAL100", "source_entity": "sensor.test"}],
+        "numbers": [{"address": "DB1,INT10", "uid": "uid-number"}],
+        "texts": [{"address": "DB1,STRING0", "uid": "uid-text"}],
+        "entity_sync": [
+            {"address": "DB1,REAL100", "source_entity": "sensor.test", "uid": "uid-sync"}
+        ],
     }
-    
+
     flow = repairs.OrphanedEntitiesRepairFlow(entry.entry_id)
     flow.hass = hass
-    
+
     expected = asyncio.run(flow._get_expected_unique_ids(entry))
-    
-    assert "test_device:sensor:DB1,REAL0" in expected
-    assert "test_device:binary_sensor:DB1,X0.0" in expected
-    assert "test_device:switch:DB1,X0.1" in expected
-    assert "test_device:cover:position:DB1,INT0" in expected
-    assert "test_device:cover:opened:DB1,X1.2" in expected
-    assert "test_device:button:DB1,X2.0" in expected
-    assert "test_device:light:DB1,X2.1" in expected
-    assert "test_device:light:DB1,B10" in expected
-    assert "test_device:number:DB1,INT10" in expected
-    assert "test_device:text:DB1,STRING0" in expected
-    assert "test_device:entity_sync:DB1,REAL100" in expected
+
+    assert "test_device:uid-sensor" in expected
+    assert "test_device:uid-binary" in expected
+    assert "test_device:uid-switch" in expected
+    assert "test_device:uid-cover-pos" in expected
+    assert "test_device:uid-cover-trad" in expected
+    assert "test_device:uid-button" in expected
+    assert "test_device:uid-light-1" in expected
+    assert "test_device:uid-light-2" in expected
+    assert "test_device:uid-number" in expected
+    assert "test_device:uid-text" in expected
+    assert "test_device:uid-sync" in expected
     assert "test_device:connection" in expected
 
 
@@ -224,6 +231,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
                     "open_command_address": "DB1,X0.0",
                     "close_command_address": "DB1,X0.1",
                     "opening_state_address": "DB1,X0.2",
+                    "uid": "uid-opened",
                 }
             ]
         },
@@ -234,12 +242,12 @@ def test_get_expected_unique_ids_traditional_cover_variants():
     )
     hass.data[DOMAIN] = {}
     hass.config_entries._entries.append(entry)
-    
+
     flow = repairs.OrphanedEntitiesRepairFlow("test1")
     flow.hass = hass
     expected = asyncio.run(flow._get_expected_unique_ids(entry))
-    assert "dev1:cover:opened:DB1,X0.2" in expected
-    
+    assert "dev1:uid-opened" in expected
+
     # Test with closed_state only
     entry2 = ConfigEntry(
         options={
@@ -248,6 +256,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
                     "open_command_address": "DB1,X0.0",
                     "close_command_address": "DB1,X0.1",
                     "closing_state_address": "DB1,X0.3",
+                    "uid": "uid-closed",
                 }
             ]
         },
@@ -257,12 +266,12 @@ def test_get_expected_unique_ids_traditional_cover_variants():
         coordinator=None, name="PLC2", host="192.168.1.2", device_id="dev2"
     )
     hass.config_entries._entries.append(entry2)
-    
+
     flow2 = repairs.OrphanedEntitiesRepairFlow("test2")
     flow2.hass = hass
     expected2 = asyncio.run(flow2._get_expected_unique_ids(entry2))
-    assert "dev2:cover:closed:DB1,X0.3" in expected2
-    
+    assert "dev2:uid-closed" in expected2
+
     # Test with command only (no state addresses)
     entry3 = ConfigEntry(
         options={
@@ -270,6 +279,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
                 {
                     "open_command_address": "DB1,X0.0",
                     "close_command_address": "DB1,X0.1",
+                    "uid": "uid-command",
                 }
             ]
         },
@@ -279,11 +289,11 @@ def test_get_expected_unique_ids_traditional_cover_variants():
         coordinator=None, name="PLC3", host="192.168.1.3", device_id="dev3"
     )
     hass.config_entries._entries.append(entry3)
-    
+
     flow3 = repairs.OrphanedEntitiesRepairFlow("test3")
     flow3.hass = hass
     expected3 = asyncio.run(flow3._get_expected_unique_ids(entry3))
-    assert "dev3:cover:command:DB1,X0.0" in expected3
+    assert "dev3:uid-command" in expected3
 
 
 def test_async_create_fix_flow_extracts_entry_id():

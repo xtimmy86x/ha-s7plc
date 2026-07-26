@@ -101,6 +101,7 @@ from .const import (
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEMP_STEP,
     CONF_TEXTS,
+    CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
@@ -135,7 +136,12 @@ from .const import (
 )
 from .coordinator import S7Coordinator
 from .export import build_export_json, build_export_payload, register_export_download
-from .helpers import STATE_CLASS_VALUES, device_class_values, parse_pulse_duration
+from .helpers import (
+    STATE_CLASS_VALUES,
+    device_class_values,
+    generate_uid,
+    parse_pulse_duration,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -2075,6 +2081,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             new_item, errors = process_input(item, idx, user_input)
             if not errors and new_item is not None:
+                # Carry the item's permanent identity forward: the builder
+                # only sees user_input, never the old item, so it can't
+                # preserve this itself. Without this, editing any field
+                # would assign a fresh uid and orphan the existing entity.
+                new_item[CONF_UID] = item.get(CONF_UID) or generate_uid()
                 self._options[option_key][idx] = new_item
                 self._clear_edit_state()
                 return self.async_create_entry(title="", data=self._options)
@@ -2100,6 +2111,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 )
 
             if item is not None:
+                item[CONF_UID] = generate_uid()
                 self._options[info.option_key].append(item)
 
             if user_input.get("add_another"):

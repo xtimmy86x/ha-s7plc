@@ -16,6 +16,7 @@ from custom_components.s7plc.const import (
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
+    CONF_UID,
     CONF_USE_STATE_TOPICS,
     DEFAULT_OPERATE_TIME,
 )
@@ -444,6 +445,7 @@ async def test_async_setup_entry_with_covers(fake_hass, mock_coordinator, device
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Cover 1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -472,6 +474,7 @@ async def test_async_setup_entry_skip_missing_addresses(fake_hass, mock_coordina
             {
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.2",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.3",
+                CONF_UID: "uid-1",
             },  # Valid
         ]
     }
@@ -499,6 +502,7 @@ async def test_async_setup_entry_with_state_addresses(fake_hass, mock_coordinato
                 CONF_OPENING_STATE_ADDRESS: "db1,x1.0",
                 CONF_CLOSING_STATE_ADDRESS: "db1,x1.1",
                 CONF_NAME: "Cover with States",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -526,6 +530,7 @@ async def test_async_setup_entry_default_operate_time(fake_hass, mock_coordinato
             {
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -551,6 +556,7 @@ async def test_async_setup_entry_custom_operate_time(fake_hass, mock_coordinator
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_OPERATE_TIME: 30,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -576,6 +582,7 @@ async def test_async_setup_entry_invalid_operate_time(fake_hass, mock_coordinato
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_OPERATE_TIME: "invalid",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -601,6 +608,7 @@ async def test_async_setup_entry_negative_operate_time(fake_hass, mock_coordinat
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_OPERATE_TIME: -5,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -626,6 +634,7 @@ async def test_async_setup_entry_use_state_topics(fake_hass, mock_coordinator, d
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
                 CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_USE_STATE_TOPICS: True,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -661,6 +670,7 @@ async def test_position_cover_setup(fake_hass, mock_coordinator, device_info):
                 CONF_POSITION_STATE_ADDRESS: "db1,b0",
                 CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
                 CONF_NAME: "Test Position Cover",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -1227,6 +1237,7 @@ async def test_position_cover_setup_with_stop_address(fake_hass, mock_coordinato
                 CONF_STOP_COMMAND_ADDRESS: "db1,x1.0",
                 CONF_STOP_PULSE_DURATION: 2.0,
                 CONF_NAME: "Test Position Cover",
+                CONF_UID: "uid-1",
             }
         ]
     }
