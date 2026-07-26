@@ -20,6 +20,7 @@ from custom_components.s7plc.const import (
     CONF_SCAN_INTERVAL,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
+    CONF_UID,
 )
 
 # Test constants
@@ -230,11 +231,13 @@ async def test_async_setup_entry_with_lights(fake_hass, mock_coordinator, device
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Light 1",
+                CONF_UID: "uid-1",
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Light 2",
                 CONF_COMMAND_ADDRESS: "db1,x0.2",
+                CONF_UID: "uid-2",
             }
         ]
     }
@@ -266,7 +269,11 @@ async def test_async_setup_entry_skip_missing_state_address(fake_hass, mock_coor
     config_entry.options = {
         CONF_LIGHTS: [
             {CONF_NAME: "No Address Light"},
-            {CONF_STATE_ADDRESS: "db1,x0.0", CONF_NAME: "Valid Light"},
+            {
+                CONF_STATE_ADDRESS: "db1,x0.0",
+                CONF_NAME: "Valid Light",
+                CONF_UID: "uid-1",
+            },
         ]
     }
     
@@ -292,7 +299,7 @@ async def test_async_setup_entry_default_name(fake_hass, mock_coordinator, devic
     config_entry = MagicMock()
     config_entry.options = {
         CONF_LIGHTS: [
-            {CONF_STATE_ADDRESS: "db1,x0.0"}  # No name
+            {CONF_STATE_ADDRESS: "db1,x0.0", CONF_UID: "uid-1"}  # No name
         ]
     }
     
@@ -318,6 +325,7 @@ async def test_async_setup_entry_default_command_address(fake_hass, mock_coordin
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Light 1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -346,6 +354,7 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Light 1",
                 CONF_SCAN_INTERVAL: 5,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -374,6 +383,7 @@ async def test_async_setup_entry_with_sync_state(fake_hass, mock_coordinator, de
                 CONF_COMMAND_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Light 1",
                 CONF_SYNC_STATE: True,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -400,6 +410,7 @@ async def test_async_setup_entry_sync_state_default_false(fake_hass, mock_coordi
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Light 1",
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -727,6 +738,7 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
+                CONF_UID: "uid-1",
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.2",
@@ -735,6 +747,7 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b2",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b3",
                 CONF_BRIGHTNESS_SCALE: 100,
+                CONF_UID: "uid-2",
             },
         ]
     }
@@ -783,6 +796,7 @@ async def test_async_setup_entry_dimmer_skip_missing_state_address(
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
+                CONF_UID: "uid-1",
             },
         ]
     }
@@ -810,6 +824,7 @@ async def test_async_setup_entry_mixed_lights_and_dimmers(
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Regular Light",
+                CONF_UID: "uid-1",
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.2",
@@ -818,6 +833,7 @@ async def test_async_setup_entry_mixed_lights_and_dimmers(
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
                 CONF_BRIGHTNESS_SCALE: 255,
+                CONF_UID: "uid-2",
             },
         ],
     }
@@ -848,6 +864,7 @@ async def test_async_setup_entry_dimmer_default_command_address(
                 CONF_NAME: "Dimmer",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_SCALE: 255,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -957,6 +974,7 @@ async def test_async_setup_entry_with_pulse(fake_hass, mock_coordinator, device_
                 CONF_NAME: "Pulse Light",
                 CONF_PULSE_COMMAND: True,
                 CONF_PULSE_DURATION: 1.5,
+                CONF_UID: "uid-1",
             }
         ]
     }

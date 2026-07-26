@@ -350,6 +350,7 @@ async def test_async_setup_entry_with_sensors():
                 "value_multiplier": None,
                 "real_precision": None,
                 "scan_interval": None,
+                "uid": "test-uid",
             }
         ]
     }
@@ -428,11 +429,12 @@ async def test_async_setup_entry_with_entity_syncs():
                 "address": "DB1,REAL0",
                 "source_entity": "sensor.test",
                 "name": "Test Sync",
+                "uid": "test-uid",
             }
         ]
     }
     async_add_entities = MagicMock()
-    
+
     with patch(
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
@@ -444,9 +446,9 @@ async def test_async_setup_entry_with_entity_syncs():
             {"name": "Test Device"},
             "test-device",
         )
-        
+
         await async_setup_entry(hass, entry, async_add_entities)
-        
+
         # async_add_entities called twice: first for sensors+metrics, then for syncs
         assert async_add_entities.call_count == 2
         # First call: 14 metrics sensors
@@ -508,12 +510,13 @@ async def test_async_setup_entry_default_names():
         "sensors": [
             {
                 "address": "DB1,REAL0",
+                "uid": "test-uid",
                 # No name provided
             }
         ]
     }
     async_add_entities = MagicMock()
-    
+
     with patch(
         "custom_components.s7plc.sensor.get_coordinator_and_device_info"
     ) as mock_get_coord:
@@ -526,9 +529,9 @@ async def test_async_setup_entry_default_names():
             {"name": "Test Device"},
             "test-device",
         )
-        
+
         await async_setup_entry(hass, entry, async_add_entities)
-        
+
         # Should create 1 user sensor + 14 metrics sensors
         assert async_add_entities.called
         entities = async_add_entities.call_args[0][0]

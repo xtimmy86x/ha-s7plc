@@ -6,6 +6,8 @@ from unittest.mock import MagicMock
 from custom_components.s7plc.helpers import (
     build_entity_area_map,
     build_expected_unique_ids,
+    ensure_item_uids,
+    generate_uid,
     get_coordinator_and_device_info,
     default_entity_name,
     parse_pulse_duration,
@@ -92,54 +94,73 @@ def test_get_coordinator_and_device_info_different_names():
 
 
 def test_build_expected_unique_ids_all_entity_types():
-    """Every entity type is represented plus the connection sensor."""
+    """Every entity type is represented plus the connection sensor.
+
+    unique_id is now derived from each item's permanent "uid" field, not
+    from its address — so every fixture item needs one.
+    """
     options = {
-        "sensors": [{"address": "DB1,REAL0"}],
-        "binary_sensors": [{"address": "DB1,X0.0"}],
-        "switches": [{"state_address": "DB1,X0.1"}],
+        "sensors": [{"address": "DB1,REAL0", "uid": "uid-sensor"}],
+        "binary_sensors": [{"address": "DB1,X0.0", "uid": "uid-binary"}],
+        "switches": [{"state_address": "DB1,X0.1", "uid": "uid-switch"}],
         "covers": [
-            {"position_state_address": "DB1,INT0"},
+            {"position_state_address": "DB1,INT0", "uid": "uid-cover-pos"},
             {
                 "open_command_address": "DB1,X1.0",
                 "close_command_address": "DB1,X1.1",
                 "opening_state_address": "DB1,X1.2",
+                "uid": "uid-cover-trad",
             },
         ],
-        "buttons": [{"address": "DB1,X2.0"}],
+        "buttons": [{"address": "DB1,X2.0", "uid": "uid-button"}],
         "lights": [
-            {"state_address": "DB1,X2.1"},
-            {"state_address": "DB1,B10", "brightness_scale": 255},
+            {"state_address": "DB1,X2.1", "uid": "uid-light-1"},
+            {
+                "state_address": "DB1,B10",
+                "brightness_scale": 255,
+                "uid": "uid-light-2",
+            },
         ],
-        "numbers": [{"address": "DB1,INT10"}],
-        "texts": [{"address": "DB1,STRING0"}],
+        "numbers": [{"address": "DB1,INT10", "uid": "uid-number"}],
+        "texts": [{"address": "DB1,STRING0", "uid": "uid-text"}],
         "climates": [
             {
                 "current_temperature_address": "DB1,REAL20",
                 "control_mode": "direct",
+                "heating_output_address": "DB1,X3.0",
+                "uid": "uid-climate-direct",
             },
             {
                 "current_temperature_address": "DB1,REAL30",
                 "control_mode": "setpoint",
+                "target_temperature_address": "DB1,REAL31",
+                "uid": "uid-climate-setpoint",
             },
         ],
-        "entity_sync": [{"address": "DB1,REAL100", "source_entity": "sensor.test"}],
+        "entity_sync": [
+            {
+                "address": "DB1,REAL100",
+                "source_entity": "sensor.test",
+                "uid": "uid-entity-sync",
+            }
+        ],
     }
 
     ids = build_expected_unique_ids("dev", options)
 
-    assert "dev:sensor:DB1,REAL0" in ids
-    assert "dev:binary_sensor:DB1,X0.0" in ids
-    assert "dev:switch:DB1,X0.1" in ids
-    assert "dev:cover:position:DB1,INT0" in ids
-    assert "dev:cover:opened:DB1,X1.2" in ids
-    assert "dev:button:DB1,X2.0" in ids
-    assert "dev:light:DB1,X2.1" in ids
-    assert "dev:light:DB1,B10" in ids
-    assert "dev:number:DB1,INT10" in ids
-    assert "dev:text:DB1,STRING0" in ids
-    assert "dev:climate_direct:DB1,REAL20" in ids
-    assert "dev:climate_setpoint:DB1,REAL30" in ids
-    assert "dev:entity_sync:DB1,REAL100" in ids
+    assert "dev:uid-sensor" in ids
+    assert "dev:uid-binary" in ids
+    assert "dev:uid-switch" in ids
+    assert "dev:uid-cover-pos" in ids
+    assert "dev:uid-cover-trad" in ids
+    assert "dev:uid-button" in ids
+    assert "dev:uid-light-1" in ids
+    assert "dev:uid-light-2" in ids
+    assert "dev:uid-number" in ids
+    assert "dev:uid-text" in ids
+    assert "dev:uid-climate-direct" in ids
+    assert "dev:uid-climate-setpoint" in ids
+    assert "dev:uid-entity-sync" in ids
     assert "dev:connection" in ids
 
 
@@ -163,24 +184,44 @@ def test_build_expected_unique_ids_empty_options_with_metrics():
 
 
 def test_build_expected_unique_ids_traditional_cover_variants():
-    """Traditional covers pick the right unique id based on available addresses."""
-    # opened_state takes priority
+    """Traditional covers (open+close command required) get their uid-based id."""
+    # opened_state present
     ids = build_expected_unique_ids("d", {
-        "covers": [{"opening_state_address": "DB1,X0.2", "open_command_address": "DB1,X0.0"}],
+        "covers": [{
+            "opening_state_address": "DB1,X0.2",
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "uid": "uid-opened",
+        }],
     })
-    assert "d:cover:opened:DB1,X0.2" in ids
+    assert "d:uid-opened" in ids
 
     # closing_state when no opening_state
     ids = build_expected_unique_ids("d", {
-        "covers": [{"closing_state_address": "DB1,X0.3", "open_command_address": "DB1,X0.0"}],
+        "covers": [{
+            "closing_state_address": "DB1,X0.3",
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "uid": "uid-closed",
+        }],
     })
-    assert "d:cover:closed:DB1,X0.3" in ids
+    assert "d:uid-closed" in ids
 
-    # open_command as fallback
+    # only open/close command, no end-stop sensors
     ids = build_expected_unique_ids("d", {
-        "covers": [{"open_command_address": "DB1,X0.0"}],
+        "covers": [{
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "uid": "uid-command",
+        }],
     })
-    assert "d:cover:command:DB1,X0.0" in ids
+    assert "d:uid-command" in ids
+
+    # missing close_command_address: no entity would actually be created
+    ids = build_expected_unique_ids("d", {
+        "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-incomplete"}],
+    })
+    assert "d:uid-incomplete" not in ids
 
 
 def test_build_expected_unique_ids_skips_items_without_address():
@@ -198,15 +239,92 @@ def test_build_expected_unique_ids_skips_items_without_address():
 def test_build_entity_area_map():
     """Area map returns correct unique_id → area_id mapping."""
     options = {
-        "sensors": [{"address": "DB1,REAL0", "area": "kitchen"}],
-        "binary_sensors": [{"address": "DB1,X0.0"}],  # no area
-        "lights": [{"state_address": "DB1,X1.0", "area": "bedroom"}],
+        "sensors": [{"address": "DB1,REAL0", "area": "kitchen", "uid": "uid-s"}],
+        "binary_sensors": [{"address": "DB1,X0.0", "uid": "uid-bs"}],  # no area
+        "lights": [
+            {"state_address": "DB1,X1.0", "area": "bedroom", "uid": "uid-l"}
+        ],
     }
     area_map = build_entity_area_map("dev", options)
 
-    assert area_map["dev:sensor:DB1,REAL0"] == "kitchen"
-    assert area_map["dev:binary_sensor:DB1,X0.0"] is None
-    assert area_map["dev:light:DB1,X1.0"] == "bedroom"
+    assert area_map["dev:uid-s"] == "kitchen"
+    assert area_map["dev:uid-bs"] is None
+    assert area_map["dev:uid-l"] == "bedroom"
+
+
+# ---------------------------------------------------------------------------
+# generate_uid / ensure_item_uids
+# ---------------------------------------------------------------------------
+
+
+def test_generate_uid_format_and_uniqueness():
+    """generate_uid returns short, unique hex strings."""
+    uid1 = generate_uid()
+    uid2 = generate_uid()
+    assert uid1 != uid2
+    assert len(uid1) == 12
+    int(uid1, 16)  # must be valid hex
+
+
+def test_ensure_item_uids_freezes_legacy_id_for_existing_entity():
+    """An item with no uid but a legacy address gets that exact id frozen."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0"}],
+    }
+    changed = ensure_item_uids("dev", options)
+    assert changed is True
+    # The legacy unique_id was "dev:sensor:DB1,REAL0" -> uid is the suffix.
+    assert options["sensors"][0]["uid"] == "sensor:DB1,REAL0"
+
+
+def test_ensure_item_uids_assigns_fresh_uid_when_no_legacy_match():
+    """An item that never produced a real entity gets a random uid instead."""
+    options = {
+        "sensors": [{"name": "no address, never had an entity"}],
+    }
+    changed = ensure_item_uids("dev", options)
+    assert changed is True
+    uid = options["sensors"][0]["uid"]
+    assert uid
+    assert uid != "sensor:"
+
+
+def test_ensure_item_uids_noop_when_uid_already_present():
+    """Items that already have a uid are left untouched."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "uid": "existing-uid"}],
+    }
+    changed = ensure_item_uids("dev", options)
+    assert changed is False
+    assert options["sensors"][0]["uid"] == "existing-uid"
+
+
+def test_ensure_item_uids_idempotent():
+    """Calling ensure_item_uids twice doesn't change anything the second time."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0"}],
+        "switches": [{"state_address": "DB1,X0.0"}],
+    }
+    assert ensure_item_uids("dev", options) is True
+    first_uids = {
+        key: [dict(i) for i in items] for key, items in options.items()
+    }
+    assert ensure_item_uids("dev", options) is False
+    assert options == first_uids
+
+
+def test_ensure_item_uids_editing_address_does_not_change_uid():
+    """Regression test: editing an item's address must not change its uid."""
+    options = {"sensors": [{"address": "DB1,REAL0"}]}
+    ensure_item_uids("dev", options)
+    uid = options["sensors"][0]["uid"]
+
+    # Simulate the user editing the address via the options flow.
+    options["sensors"][0]["address"] = "DB1,REAL99"
+    changed = ensure_item_uids("dev", options)
+
+    assert changed is False
+    assert options["sensors"][0]["uid"] == uid
 
 
 # ---------------------------------------------------------------------------

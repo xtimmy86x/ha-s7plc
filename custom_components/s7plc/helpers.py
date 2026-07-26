@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Mapping
+import uuid
+from collections.abc import Iterator, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -34,25 +35,32 @@ from .const import (
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
+    CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
+    CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_ENABLE_METRICS,
     CONF_ENTITY_SYNC,
+    CONF_HEATING_OUTPUT_ADDRESS,
     CONF_LIGHTS,
     CONF_NUMBERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
     CONF_SENSORS,
+    CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
+    CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEXTS,
+    CONF_UID,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_PULSE_DURATION,
     DOMAIN,
+    OPTION_KEYS,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
@@ -258,13 +266,17 @@ def parse_pulse_duration(value: Any | None) -> float:
 # ---------------------------------------------------------------------------
 
 
-def _iter_entity_unique_ids(
+def _iter_legacy_unique_ids(
     device_id: str, options: Mapping[str, Any]
 ) -> Iterator[tuple[str, dict[str, Any]]]:
-    """Yield ``(unique_id, config_item)`` for every configured entity.
+    """Yield ``(unique_id, config_item)`` using the old, address-based formula.
 
-    This is the single source of truth for the mapping
-    *configuration item  →  entity unique_id*.
+    Frozen on purpose: this is no longer the live source of truth (see
+    :func:`_iter_entity_unique_ids` below), but :func:`ensure_item_uids`
+    needs it to know what unique_id an item *currently* has in the entity
+    registry, so it can carry that exact value forward as the item's
+    permanent ``uid`` instead of generating a new one and orphaning the
+    existing entity.
     """
 
     # Sensors — device_id:sensor:address
@@ -341,6 +353,103 @@ def _iter_entity_unique_ids(
         address = item.get(CONF_ADDRESS, "")
         if address:
             yield f"{device_id}:entity_sync:{address}", item
+
+
+def generate_uid() -> str:
+    """Return a short random identifier for a newly created config item."""
+    return uuid.uuid4().hex[:12]
+
+
+def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
+    """Return whether *item* has enough configured to produce a real entity.
+
+    Mirrors the per-type conditions each platform's ``async_setup_entry``
+    already checks before creating an entity, so the "expected" set below
+    doesn't oversell items that won't actually be created.
+    """
+    if option_key in (
+        CONF_SENSORS,
+        CONF_BINARY_SENSORS,
+        CONF_BUTTONS,
+        CONF_NUMBERS,
+        CONF_TEXTS,
+    ):
+        return bool(item.get(CONF_ADDRESS))
+    if option_key == CONF_ENTITY_SYNC:
+        return bool(item.get(CONF_ADDRESS) and item.get(CONF_SOURCE_ENTITY))
+    if option_key == CONF_SWITCHES:
+        return bool(item.get(CONF_STATE_ADDRESS))
+    if option_key == CONF_LIGHTS:
+        return bool(item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS))
+    if option_key == CONF_COVERS:
+        if item.get(CONF_POSITION_STATE_ADDRESS):
+            return True
+        return bool(
+            item.get(CONF_OPEN_COMMAND_ADDRESS) and item.get(CONF_CLOSE_COMMAND_ADDRESS)
+        )
+    if option_key == CONF_CLIMATES:
+        if not item.get(CONF_CURRENT_TEMPERATURE_ADDRESS):
+            return False
+        control_mode = item.get(CONF_CLIMATE_CONTROL_MODE, CONTROL_MODE_SETPOINT)
+        if control_mode == CONTROL_MODE_DIRECT:
+            return bool(
+                item.get(CONF_HEATING_OUTPUT_ADDRESS)
+                or item.get(CONF_COOLING_OUTPUT_ADDRESS)
+            )
+        return bool(item.get(CONF_TARGET_TEMPERATURE_ADDRESS))
+    return True
+
+
+def ensure_item_uids(device_id: str, options: MutableMapping[str, Any]) -> bool:
+    """Assign a permanent ``uid`` to every config item that doesn't have one.
+
+    For an item that already corresponds to a registered entity (matched via
+    the frozen, address-based :func:`_iter_legacy_unique_ids`), the *exact*
+    string it already resolves to is reused as its ``uid`` — so the entity's
+    unique_id/entity_id doesn't change at all, only becomes independent of
+    the address going forward. Items with no legacy match (e.g. missing a
+    required field, so they never produced an entity) get a fresh random uid.
+
+    Returns whether anything changed, so the caller knows whether to persist
+    *options* back onto the config entry.
+    """
+    prefix = f"{device_id}:"
+    legacy_by_item_id = {
+        id(item): legacy_id
+        for legacy_id, item in _iter_legacy_unique_ids(device_id, options)
+    }
+
+    changed = False
+    for option_key in OPTION_KEYS:
+        for item in options.get(option_key, []):
+            if CONF_UID in item:
+                continue
+            legacy_id = legacy_by_item_id.get(id(item))
+            if legacy_id and legacy_id.startswith(prefix):
+                item[CONF_UID] = legacy_id[len(prefix) :]
+            else:
+                item[CONF_UID] = generate_uid()
+            changed = True
+    return changed
+
+
+def _iter_entity_unique_ids(
+    device_id: str, options: Mapping[str, Any]
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    """Yield ``(unique_id, config_item)`` for every configured entity.
+
+    This is the single source of truth for the mapping
+    *configuration item → entity unique_id*, built from each item's
+    permanent :data:`CONF_UID` rather than any editable address field. Items
+    are expected to already have a ``uid`` (assigned by
+    :func:`ensure_item_uids` at setup time); one lacking it is skipped, not
+    an error, since it would mean setup hasn't run the backfill yet.
+    """
+    for option_key in OPTION_KEYS:
+        for item in options.get(option_key, []):
+            uid = item.get(CONF_UID)
+            if uid and _item_has_required_fields(option_key, item):
+                yield f"{device_id}:{uid}", item
 
 
 def build_expected_unique_ids(

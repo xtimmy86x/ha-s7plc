@@ -19,6 +19,7 @@ from custom_components.s7plc.const import (
     CONF_BINARY_SENSORS,
     CONF_DEVICE_CLASS,
     CONF_SCAN_INTERVAL,
+    CONF_UID,
 )
 from conftest import DummyCoordinator
 
@@ -324,10 +325,12 @@ async def test_async_setup_entry_with_sensors(fake_hass, mock_coordinator, devic
                 CONF_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Sensor 1",
                 CONF_DEVICE_CLASS: "door",
+                CONF_UID: "uid-1",
             },
             {
                 CONF_ADDRESS: "db1,x0.1",
                 CONF_NAME: "Sensor 2",
+                CONF_UID: "uid-2",
             }
         ]
     }
@@ -360,7 +363,7 @@ async def test_async_setup_entry_skip_missing_address(fake_hass, mock_coordinato
     config_entry.options = {
         CONF_BINARY_SENSORS: [
             {CONF_NAME: "No Address Sensor"},
-            {CONF_ADDRESS: "db1,x0.0", CONF_NAME: "Valid Sensor"},
+            {CONF_ADDRESS: "db1,x0.0", CONF_NAME: "Valid Sensor", CONF_UID: "uid-1"},
         ]
     }
     
@@ -387,7 +390,7 @@ async def test_async_setup_entry_default_name(fake_hass, mock_coordinator, devic
     config_entry = MagicMock()
     config_entry.options = {
         CONF_BINARY_SENSORS: [
-            {CONF_ADDRESS: "db1,x0.0"}  # No name
+            {CONF_ADDRESS: "db1,x0.0", CONF_UID: "uid-1"}  # No name
         ]
     }
     
@@ -414,6 +417,7 @@ async def test_async_setup_entry_with_scan_interval(fake_hass, mock_coordinator,
                 CONF_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Sensor 1",
                 CONF_SCAN_INTERVAL: 5,
+                CONF_UID: "uid-1",
             }
         ]
     }
@@ -441,6 +445,7 @@ async def test_async_setup_entry_with_invert_state(fake_hass, mock_coordinator, 
                 CONF_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Inverted Sensor",
                 "invert_state": True,
+                CONF_UID: "uid-1",
             }
         ]
     }

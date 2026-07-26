@@ -23,6 +23,7 @@ from .const import (
     CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
     CONF_STEP,
+    CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
 )
@@ -55,7 +56,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"number:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = f"{device_id}:{item[CONF_UID]}"
         command_address = item.get(CONF_COMMAND_ADDRESS) or address
         min_value = item.get(CONF_MIN_VALUE)
         max_value = item.get(CONF_MAX_VALUE)
