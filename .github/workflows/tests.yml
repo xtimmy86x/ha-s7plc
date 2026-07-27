@@ -43,7 +43,7 @@ jobs:
             pytest-asyncio \
             pytest-cov \
             voluptuous \
-            "pys7==2.8.1"
+            "pys7==2.8.2"
             
       - name: Run tests
         run: |
