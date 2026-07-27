@@ -40,13 +40,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install \
             pytest \
+            pytest-asyncio \
             pytest-cov \
             voluptuous \
             "pys7==2.8.1"
-
-      - name: Run test suite
+            
+      - name: Run tests
         run: |
-          python -m pytest tests \
+          python -m pytest tests -v \
             --verbose \
             --cov=custom_components/s7plc \
             --cov-report=term-missing \
