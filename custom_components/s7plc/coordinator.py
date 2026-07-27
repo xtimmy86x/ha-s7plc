@@ -124,7 +124,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._write_batch_waiters: dict[str, list[asyncio.Future[bool]]] = {}
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
-        self._last_write_error_notification: float = 0.0  # Rate limit notifications
+        self._last_write_error_notification: float | None = (
+            None  # Rate limit notifications
+        )
         self._write_error_notification_interval: float = 300.0  # 5 minutes
 
     @property
@@ -1076,8 +1078,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.error(error_msg)
 
                 current_time = time.monotonic()
+
                 if (
-                    current_time - self._last_write_error_notification
+                    self._last_write_error_notification is None
+                    or current_time - self._last_write_error_notification
                     >= self._write_error_notification_interval
                 ):
                     self._last_write_error_notification = current_time
