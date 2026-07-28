@@ -913,7 +913,7 @@
       "state_addresses_required": "Wenn 'Zustandsthemen verwenden' aktiviert ist, sind sowohl geöffnete als auch geschlossene Zustandsvariablen erforderlich.",
       "invalid_source_entity": "Quellentität ist erforderlich.",
       "invalid_number": "Ungültiger numerischer Wert.",
-      "invalid_scale_syntax": "Ungültige Scale(...)-Syntax. Verwenden Sie: <Adresse> Scale(raw_min,raw_max,scale_min,scale_max), z.B. DB6,B23 Scale(0,1,0,10).",
+      "invalid_scale_syntax": "Ungültige Scale(...)-Syntax. Verwenden Sie: 'Adresse' Scale(raw_min,raw_max,scale_min,scale_max), z.B. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Geben Sie eine oder mehrere ganze Zahlen durch Kommas getrennt ein (z.B. 2,3).",
       "invalid_range": "Der Mindestwert darf nicht größer als der Maximalwert sein.",
       "no_items": "Es sind keine konfigurierten Elemente zum Bearbeiten vorhanden.",
