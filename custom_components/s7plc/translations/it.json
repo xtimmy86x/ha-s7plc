@@ -912,7 +912,7 @@
       "duplicate_addresses_in_import": "L'importazione contiene indirizzi duplicati nello stesso tipo di entità.",
       "invalid_source_entity": "L'entità sorgente è obbligatoria.",
       "invalid_number": "Valore numerico non valido.",
-      "invalid_scale_syntax": "Sintassi Scale(...) non valida. Usa: <indirizzo> Scale(raw_min,raw_max,scale_min,scale_max), es. DB6,B23 Scale(0,1,0,10).",
+      "invalid_scale_syntax": "Sintassi Scale(...) non valida. Usa: 'indirizzo' Scale(raw_min,raw_max,scale_min,scale_max), es. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Inserisci uno o più numeri interi separati da virgole (es. 2,3).",
       "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
       "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",

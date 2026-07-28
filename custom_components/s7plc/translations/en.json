@@ -913,7 +913,7 @@
       "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
       "invalid_source_entity": "Source entity is required.",
       "invalid_number": "Invalid numeric value.",
-      "invalid_scale_syntax": "Invalid Scale(...) syntax. Use: <address> Scale(raw_min,raw_max,scale_min,scale_max), e.g. DB6,B23 Scale(0,1,0,10).",
+      "invalid_scale_syntax": "Invalid Scale(...) syntax. Use: 'address' Scale(raw_min,raw_max,scale_min,scale_max), e.g. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Enter one or more whole numbers separated by commas (e.g. 2,3).",
       "invalid_range": "Minimum value cannot be greater than maximum value.",
       "no_items": "There are no configured items to edit.",

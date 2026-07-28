@@ -913,7 +913,7 @@
       "state_addresses_required": "Pokud je zapnuto „Použít stavové adresy“, jsou vyžadovány adresy pro otevřeno i zavřeno.",
       "invalid_source_entity": "Je vyžadována zdrojová entita.",
       "invalid_number": "Neplatná číselná hodnota.",
-      "invalid_scale_syntax": "Neplatná syntaxe Scale(...). Použijte: <adresa> Scale(raw_min,raw_max,scale_min,scale_max), např. DB6,B23 Scale(0,1,0,10).",
+      "invalid_scale_syntax": "Neplatná syntaxe Scale(...). Použijte: 'adresa' Scale(raw_min,raw_max,scale_min,scale_max), např. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Zadejte jedno nebo více celých čísel oddělených čárkami (např. 2,3).",
       "invalid_range": "Minimální hodnota nesmí být větší než maximální.",
       "no_items": "Nejsou nakonfigurovány žádné položky k úpravě.",

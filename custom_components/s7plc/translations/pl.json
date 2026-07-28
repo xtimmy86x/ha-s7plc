@@ -913,7 +913,7 @@
       "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (Otwarta / Zamknięta).",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
-      "invalid_scale_syntax": "Nieprawidłowa składnia Scale(...). Użyj: <adres> Scale(raw_min,raw_max,scale_min,scale_max), np. DB6,B23 Scale(0,1,0,10).",
+      "invalid_scale_syntax": "Nieprawidłowa składnia Scale(...). Użyj: 'adres' Scale(raw_min,raw_max,scale_min,scale_max), np. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Podaj jedną lub więcej liczb całkowitych oddzielonych przecinkami (np. 2,3).",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
       "no_items": "Brak skonfigurowanych encji do edycji.",
