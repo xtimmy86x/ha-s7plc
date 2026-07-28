@@ -646,6 +646,16 @@ class AreaSelector:  # pragma: no cover - simple stub
         self.config = config
 
 
+class EntitySelectorConfig:  # pragma: no cover - simple stub
+    def __init__(self, **kwargs):
+        pass
+
+
+class EntitySelector:  # pragma: no cover - simple stub
+    def __init__(self, config=None):
+        self.config = config
+
+
 selector.SelectOptionDict = SelectOptionDict
 selector.SelectSelector = SelectSelector
 selector.SelectSelectorConfig = SelectSelectorConfig
@@ -657,6 +667,8 @@ selector.NumberSelectorConfig = NumberSelectorConfig
 selector.NumberSelectorMode = NumberSelectorMode
 selector.AreaSelector = AreaSelector
 selector.AreaSelectorConfig = AreaSelectorConfig
+selector.EntitySelector = EntitySelector
+selector.EntitySelectorConfig = EntitySelectorConfig
 sys.modules["homeassistant.helpers.selector"] = selector
 helpers.selector = selector
 

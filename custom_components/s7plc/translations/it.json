@@ -215,7 +215,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
@@ -321,8 +321,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
           "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
@@ -377,8 +377,8 @@
           "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
           "pulse_command": "Invia un impulso invece dei comandi on/off.",
           "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
-          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC.",
           "add_another": "Resta su questo passaggio per aggiungere altre luci."
         }
@@ -402,8 +402,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
@@ -457,7 +457,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
           "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
           "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento. Se non specificato, l'azione viene dedotta dalla modalità.",
@@ -503,9 +503,9 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Utile se il PLC deve abilitare/disabilitare il controllo climatico. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Utile se il PLC deve abilitare/disabilitare il controllo climatico. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "on_off_address": "Indirizzo PLC booleano opzionale per accendere/spegnere questo termostato, per dispositivi privi di una propria modalità OFF (es. un riscaldatore/raffreddatore acceso/spento tramite un'uscita separata). Scrive Falso/0 quando la modalità target è impostata su OFF, e Vero/1 per qualsiasi altra modalità. Lascia vuoto per usare invece il comportamento OFF standard. Viene anche riletto dal PLC per riflettere lo stato on/off effettivo (bidirezionale).",
           "preset_mode_off_value": "Valore PLC scritto quando la modalità è impostata su OFF (es. 0). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato. Se on_off_address è configurato, questo viene ignorato per OFF: la modalità rimane disponibile e viene commutata tramite tale indirizzo.",
           "preset_mode_heat_value": "Valore PLC scritto quando la modalità è impostata su Riscaldamento (es. 1). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato.",
@@ -514,7 +514,7 @@
           "preset_mode_auto_value": "Valore PLC scritto quando la modalità è impostata su AUTO (alias legacy per il passaggio automatico riscaldamento/raffreddamento, simile a Riscaldamento/Raffreddamento). Disabilitato (-1) per impostazione predefinita.",
           "preset_mode_dry_value": "Valore PLC scritto quando la modalità è impostata su DEUMIDIFICAZIONE (solo deumidificazione, nessun controllo della temperatura). Disabilitato (-1) per impostazione predefinita.",
           "preset_mode_fan_only_value": "Valore PLC scritto quando la modalità è impostata su SOLO VENTOLA (solo circolazione dell'aria, nessun riscaldamento/raffreddamento). Disabilitato (-1) per impostazione predefinita.",
-          "hvac_status_address": "Indirizzo PLC opzionale per leggere lo stato effettivo HVAC, confrontato con i valori configurati di seguito per ciascuna modalità. Se non impostato, lo stato viene dedotto dal confronto delle temperature.",
+          "hvac_status_address": "Indirizzo PLC opzionale per leggere lo stato effettivo HVAC, confrontato con i valori configurati di seguito per ciascuna modalità. Se non impostato, lo stato viene dedotto dal confronto delle temperature. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "hvac_status_off_values": "Valore/i PLC che indicano OFF, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 0 oppure 0,10). Imposta -1 per saltare questo stato (non verrà mai associato).",
           "hvac_status_heating_values": "Valore/i PLC che indicano RISCALDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 1 oppure 2,3). Imposta -1 per saltare questo stato (non verrà mai associato).",
           "hvac_status_cooling_values": "Valore/i PLC che indicano RAFFREDDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 2 oppure 4,5). Imposta -1 per saltare questo stato (non verrà mai associato).",
@@ -542,7 +542,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
           "name": "Nome descrittivo opzionale per l'Entity Sync.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
@@ -574,7 +574,7 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "name": "Nome descrittivo opzionale per il sensore.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
@@ -672,8 +672,8 @@
           "invert_position": "Inverti posizione (0=aperto, 100=chiuso)"
         },
         "data_description": {
-          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
           "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
@@ -724,8 +724,8 @@
           "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
           "pulse_command": "Invia un impulso invece dei comandi on/off.",
           "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
-          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità. Lasciare vuoto per solo on/off. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità. Se omesso, viene usato l'indirizzo stato luminosità. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità. Lasciare vuoto per solo on/off. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità. Se omesso, viene usato l'indirizzo stato luminosità. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC."
         }
       },
@@ -747,8 +747,8 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class per l'entità number (es. temperature, voltage, power).",
@@ -798,7 +798,7 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
           "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
           "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento.",
@@ -842,9 +842,9 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
-          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
+          "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "on_off_address": "Indirizzo PLC booleano opzionale per accendere/spegnere questo termostato, per dispositivi privi di una propria modalità OFF (es. un riscaldatore/raffreddatore acceso/spento tramite un'uscita separata). Scrive Falso/0 quando la modalità target è impostata su OFF, e Vero/1 per qualsiasi altra modalità. Lascia vuoto per usare invece il comportamento OFF standard. Viene anche riletto dal PLC per riflettere lo stato on/off effettivo (bidirezionale).",
           "preset_mode_off_value": "Valore PLC scritto quando la modalità è impostata su OFF (es. 0). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato. Se on_off_address è configurato, questo viene ignorato per OFF: la modalità rimane disponibile e viene commutata tramite tale indirizzo.",
           "preset_mode_heat_value": "Valore PLC scritto quando la modalità è impostata su Riscaldamento (es. 1). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato.",
@@ -853,7 +853,7 @@
           "preset_mode_auto_value": "Valore PLC scritto quando la modalità è impostata su AUTO (alias legacy per il passaggio automatico riscaldamento/raffreddamento, simile a Riscaldamento/Raffreddamento). Disabilitato (-1) per impostazione predefinita.",
           "preset_mode_dry_value": "Valore PLC scritto quando la modalità è impostata su DEUMIDIFICAZIONE (solo deumidificazione, nessun controllo della temperatura). Disabilitato (-1) per impostazione predefinita.",
           "preset_mode_fan_only_value": "Valore PLC scritto quando la modalità è impostata su SOLO VENTOLA (solo circolazione dell'aria, nessun riscaldamento/raffreddamento). Disabilitato (-1) per impostazione predefinita.",
-          "hvac_status_address": "Indirizzo PLC opzionale per leggere lo stato effettivo HVAC, confrontato con i valori configurati di seguito per ciascuna modalità. Se non impostato, lo stato viene dedotto dal confronto delle temperature.",
+          "hvac_status_address": "Indirizzo PLC opzionale per leggere lo stato effettivo HVAC, confrontato con i valori configurati di seguito per ciascuna modalità. Se non impostato, lo stato viene dedotto dal confronto delle temperature. Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "hvac_status_off_values": "Valore/i PLC che indicano OFF, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 0 oppure 0,10). Imposta -1 per saltare questo stato (non verrà mai associato).",
           "hvac_status_heating_values": "Valore/i PLC che indicano RISCALDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 1 oppure 2,3). Imposta -1 per saltare questo stato (non verrà mai associato).",
           "hvac_status_cooling_values": "Valore/i PLC che indicano RAFFREDDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 2 oppure 4,5). Imposta -1 per saltare questo stato (non verrà mai associato).",
@@ -879,7 +879,7 @@
           "area": "Area"
         },
         "data_description": {
-          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4).",
+          "address": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4). Scalatura opzionale: 'Scale(raw_min,raw_max,scale_min,scale_max)', es. 'DB6,B23 Scale(0,1,0,10)', separatore decimale (.).",
           "source_entity": "Entità di Home Assistant il cui valore verrà scritto sul PLC.",
           "name": "Nome descrittivo opzionale per l'Entity Sync.",
           "area": "Area di Home Assistant a cui assegnare questa entità."

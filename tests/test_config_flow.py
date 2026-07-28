@@ -454,6 +454,47 @@ def test_add_climate_setpoint_with_inline_scale_on_both_temps():
     )
 
 
+def test_add_climate_setpoint_with_inline_scale_on_preset_mode_and_hvac_status():
+    """preset_mode_address and hvac_status_address may also carry an inline
+    Scale(...), even though they hold discrete mode/status codes rather
+    than a continuous analog value — the codes are just interpreted on the
+    engineering side of the scale."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,W0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,W2",
+                const.CONF_PRESET_MODE_ADDRESS: "DB1,INT0 Scale(0,2000,0,10)",
+                const.CONF_HVAC_STATUS_ADDRESS: "DB1,INT2 Scale(0,2000,0,10)",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_CLIMATES][0]
+    assert stored[const.CONF_PRESET_MODE_ADDRESS] == "DB1,INT0 Scale(0,2000,0,10)"
+    assert stored[const.CONF_HVAC_STATUS_ADDRESS] == "DB1,INT2 Scale(0,2000,0,10)"
+
+
+def test_add_climate_setpoint_rejects_malformed_inline_scale_on_preset_mode():
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,W0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,W2",
+                const.CONF_PRESET_MODE_ADDRESS: "DB1,INT0 Scale(0,2000,0)",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+
+
 def test_add_cover_position_with_inline_scale():
     flow = make_options_flow(options={const.CONF_COVERS: []})
 
@@ -544,6 +585,77 @@ def test_add_light_rejects_malformed_inline_scale_on_brightness():
             {
                 const.CONF_STATE_ADDRESS: "DB1,X0.0",
                 const.CONF_BRIGHTNESS_STATE_ADDRESS: "DB1,B0 Scale(0,100,0)",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+
+
+def test_add_entity_sync_with_inline_scale():
+    """entity_sync's write address may carry an inline Scale(...), applied
+    to numeric (non-BIT) source entities."""
+    flow = make_options_flow(options={const.CONF_ENTITY_SYNC: []})
+
+    result = run_flow(
+        flow.async_step_entity_sync(
+            {
+                const.CONF_ADDRESS: "DB1,REAL0 Scale(0,1000,0,100)",
+                const.CONF_SOURCE_ENTITY: "sensor.test",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_ENTITY_SYNC][0]
+    assert stored[const.CONF_ADDRESS] == "DB1,REAL0 Scale(0,1000,0,100)"
+
+
+def test_add_entity_sync_rejects_malformed_inline_scale():
+    flow = make_options_flow(options={const.CONF_ENTITY_SYNC: []})
+
+    result = run_flow(
+        flow.async_step_entity_sync(
+            {
+                const.CONF_ADDRESS: "DB1,REAL0 Scale(0,1000,0)",
+                const.CONF_SOURCE_ENTITY: "sensor.test",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+
+
+def test_add_number_command_address_independent_inline_scale():
+    """A number's command_address may carry its own Scale(...), distinct
+    from the state address's, when the raw PLC ranges differ."""
+    flow = make_options_flow(options={const.CONF_NUMBERS: []})
+
+    result = run_flow(
+        flow.async_step_numbers(
+            {
+                const.CONF_ADDRESS: "DB1,REAL0 Scale(0,1000,0,100)",
+                const.CONF_COMMAND_ADDRESS: "DB1,REAL4 Scale(0,2000,0,100)",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_NUMBERS][0]
+    assert stored[const.CONF_ADDRESS] == "DB1,REAL0 Scale(0,1000,0,100)"
+    assert stored[const.CONF_COMMAND_ADDRESS] == "DB1,REAL4 Scale(0,2000,0,100)"
+
+
+def test_add_number_rejects_malformed_inline_scale_on_command_address():
+    flow = make_options_flow(options={const.CONF_NUMBERS: []})
+
+    result = run_flow(
+        flow.async_step_numbers(
+            {
+                const.CONF_ADDRESS: "DB1,REAL0",
+                const.CONF_COMMAND_ADDRESS: "DB1,REAL4 Scale(0,2000,0)",
             }
         )
     )

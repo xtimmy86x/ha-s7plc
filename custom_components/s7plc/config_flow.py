@@ -2882,11 +2882,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if self._has_duplicate(CONF_NUMBERS, address, skip_idx=skip_idx):
             return None, {"base": "duplicate_entry"}
 
-        # Validate optional command address
+        # Validate optional command address (may carry its own, independent
+        # Scale(...) if its raw PLC range differs from the state address)
         command_address = None
         if user_input.get(CONF_COMMAND_ADDRESS):
-            command_address, cmd_errors = self._validate_address_field(
-                user_input.get(CONF_COMMAND_ADDRESS)
+            command_address, _command_scale, cmd_errors = (
+                self._validate_scaled_address_field(
+                    user_input.get(CONF_COMMAND_ADDRESS)
+                )
             )
             if cmd_errors:
                 return None, cmd_errors
@@ -3034,8 +3037,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if not source_entity:
             return None, {"base": "invalid_source_entity"}
 
-        # Validate address
-        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        # Validate address (may carry an inline Scale(...), applied when
+        # writing a numeric source entity's value; ignored for binary/BIT
+        # addresses)
+        address, _scale, errors = self._validate_scaled_address_field(
+            user_input.get(CONF_ADDRESS)
+        )
         if errors:
             return None, errors
 
@@ -3167,11 +3174,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if errors:
             return None, errors
 
-        # Validate optional preset mode address
+        # Validate optional preset mode address (may carry an inline
+        # Scale(...); the configured mode values below are then interpreted
+        # as the engineering-side codes, inverse-scaled/scaled at the
+        # raw PLC boundary)
         preset_mode_addr = None
         if user_input.get(CONF_PRESET_MODE_ADDRESS):
-            preset_mode_addr, errors = self._validate_address_field(
-                user_input.get(CONF_PRESET_MODE_ADDRESS)
+            preset_mode_addr, _preset_mode_scale, errors = (
+                self._validate_scaled_address_field(
+                    user_input.get(CONF_PRESET_MODE_ADDRESS)
+                )
             )
             if errors:
                 return None, errors
@@ -3185,11 +3197,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if errors:
                 return None, errors
 
-        # Validate optional HVAC status address
+        # Validate optional HVAC status address (may carry an inline Scale(...))
         hvac_status_addr = None
         if user_input.get(CONF_HVAC_STATUS_ADDRESS):
-            hvac_status_addr, errors = self._validate_address_field(
-                user_input.get(CONF_HVAC_STATUS_ADDRESS)
+            hvac_status_addr, _hvac_status_scale, errors = (
+                self._validate_scaled_address_field(
+                    user_input.get(CONF_HVAC_STATUS_ADDRESS)
+                )
             )
             if errors:
                 return None, errors

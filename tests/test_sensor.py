@@ -505,6 +505,47 @@ async def test_async_setup_entry_with_entity_syncs():
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_entity_sync_with_inline_scale():
+    """entity_sync's address may carry an inline Scale(...); the coordinator
+    is unaffected (write-only, no polling) but the entity itself is set up
+    with a clean address and the parsed scale."""
+    hass = MagicMock()
+    entry = MagicMock()
+    entry.options = {
+        "sensors": [],
+        "entity_sync": [
+            {
+                "address": "DB1,REAL0 Scale(0,1000,0,100)",
+                "source_entity": "sensor.test",
+                "name": "Scaled Sync",
+                "uid": "test-uid",
+            }
+        ],
+    }
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.sensor.get_coordinator_and_device_info"
+    ) as mock_get_coord:
+        mock_coord = MagicMock()
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
+        mock_get_coord.return_value = (
+            mock_coord,
+            {"name": "Test Device"},
+            "test-device",
+        )
+
+        await async_setup_entry(hass, entry, async_add_entities)
+
+        sync_entities = async_add_entities.call_args_list[1][0][0]
+        assert len(sync_entities) == 1
+        entity_sync = sync_entities[0]
+        assert entity_sync._address == "DB1,REAL0"
+        assert entity_sync._scale == (0.0, 1000.0, 0.0, 100.0)
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_skip_invalid_entity_syncs():
     """Test setup skips entity syncs with missing data."""
     hass = MagicMock()
@@ -602,9 +643,10 @@ def entity_sync_factory(fake_hass):
         source_entity: str = "sensor.test",
         name: str = "Test Entity Sync",
         coordinator = None,
+        scale = None,
     ):
         coord = coordinator if coordinator is not None else DummyCoordinator()
-        
+
         with patch("custom_components.s7plc.sensor.parse_tag") as mock_parse:
             mock_tag = MagicMock()
             mock_tag.data_type = data_type
@@ -617,11 +659,12 @@ def entity_sync_factory(fake_hass):
                 device_info={"identifiers": {"domain"}},
                 address=address,
                 source_entity=source_entity,
+                scale=scale,
             )
             entity_sync.hass = fake_hass
             entity_sync.name = name
             return entity_sync
-    
+
     return _create_entity_sync
 
 
@@ -753,6 +796,48 @@ async def test_entity_sync_numeric_write(entity_sync_factory):
     assert entity_sync._last_written_value == 42.5
     assert entity_sync._write_count == 1
     assert entity_sync._error_count == 0
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_numeric_write_with_scale(entity_sync_factory):
+    """When the entity_sync address carries an inline Scale(...), the
+    source entity's own (engineering) value is inverse-scaled to the raw
+    PLC value before writing."""
+    from conftest import DummyCoordinator
+
+    coord = DummyCoordinator()
+    entity_sync = entity_sync_factory(
+        "db1,r0", DataType.REAL, coordinator=coord, scale=(0.0, 1000.0, 0.0, 100.0)
+    )
+
+    from homeassistant.core import State
+    mock_state = State("sensor.test", "50")
+    await entity_sync._async_write_to_plc(mock_state)
+
+    # engineering 50 in [0,100] -> raw in [0,1000]: 50 * 1000 / 100 = 500
+    assert coord.write_calls[0] == ("write_batched", "db1,r0", 500.0)
+    assert entity_sync._last_written_value == 500.0
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_binary_write_ignores_scale(entity_sync_factory):
+    """Scale(...) never applies to a BIT (binary) entity sync."""
+    from conftest import DummyCoordinator
+
+    coord = DummyCoordinator()
+    entity_sync = entity_sync_factory(
+        "db1,x0.0",
+        DataType.BIT,
+        "binary_sensor.test",
+        coordinator=coord,
+        scale=(0.0, 1000.0, 0.0, 100.0),
+    )
+
+    from homeassistant.core import State
+    mock_state = State("binary_sensor.test", "on")
+    await entity_sync._async_write_to_plc(mock_state)
+
+    assert coord.write_calls[0] == ("write_batched", "db1,x0.0", True)
 
 
 @pytest.mark.asyncio

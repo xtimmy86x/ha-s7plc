@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.components.climate import HVACMode
+from homeassistant.components.climate import HVACAction, HVACMode
 from homeassistant.const import CONF_NAME
 
 from custom_components.s7plc.climate import (
@@ -563,6 +563,61 @@ async def test_setup_entry_setpoint_control_scaled_temperatures(
         "write_batched",
         TEST_TARGET_TEMP_ADDRESS,
         1500.0,
+    ) in mock_coordinator.write_calls
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_setpoint_scaled_preset_mode_and_hvac_status(
+    fake_hass, mock_coordinator
+):
+    """preset_mode_address and hvac_status_address may carry an inline
+    Scale(...); the configured mode/status values are then engineering-side
+    codes, converted at the raw PLC boundary on read and write."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_CLIMATES: [
+            {
+                CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+                CONF_CURRENT_TEMPERATURE_ADDRESS: TEST_CURRENT_TEMP_ADDRESS,
+                CONF_TARGET_TEMPERATURE_ADDRESS: TEST_TARGET_TEMP_ADDRESS,
+                "preset_mode_address": "db1,int0 Scale(0,2000,0,10)",
+                "hvac_status_address": "db1,int2 Scale(0,2000,0,10)",
+                "hvac_status_heating_values": "1",
+                "preset_mode_heat_value": 1,
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.climate.get_coordinator_and_device_info",
+        return_value=(mock_coordinator, {"name": "Test PLC"}, "test_device"),
+    ):
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entity = async_add_entities.call_args[0][0][0]
+    entity.hass = fake_hass
+
+    # Read: raw preset_mode 200 in [0,2000] -> engineering 1 in [0,10] -> HEAT
+    mock_coordinator.data = {
+        f"{entity._topic}:current_temp": 20,
+        f"{entity._topic}:target_temp": 20,
+        f"{entity._topic}:preset_mode": 200,
+    }
+    assert entity.hvac_mode == HVACMode.HEAT
+
+    # Read: raw hvac_status 200 in [0,2000] -> engineering 1 in [0,10] -> HEATING
+    mock_coordinator.data[f"{entity._topic}:hvac_status"] = 200
+    assert entity.hvac_action == HVACAction.HEATING
+
+    # Write: setting HEAT writes engineering code 1 inverse-scaled to raw
+    # 1 in [0,10] -> [0,2000]: 1 * 2000 / 10 = 200
+    await entity.async_set_hvac_mode(HVACMode.HEAT)
+    assert (
+        "write_batched",
+        "db1,int0",
+        200.0,
     ) in mock_coordinator.write_calls
 
 

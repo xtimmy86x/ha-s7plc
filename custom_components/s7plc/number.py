@@ -65,7 +65,24 @@ async def async_setup_entry(
         area = item.get(CONF_AREA)
         topic = f"number:{address}"
         unique_id = item[CONF_UID]
-        command_address = item.get(CONF_COMMAND_ADDRESS) or address
+
+        raw_command_address = item.get(CONF_COMMAND_ADDRESS)
+        if raw_command_address:
+            try:
+                command_address, command_scale = parse_address_and_scale(
+                    raw_command_address
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Invalid Scale(...) syntax for number command_address"
+                    " '%s', skipping",
+                    raw_command_address,
+                )
+                continue
+        else:
+            command_address = address
+            command_scale = inline_scale
+
         if inline_scale is not None:
             scale_raw_min, scale_raw_max, min_value, max_value = inline_scale
         else:
@@ -99,6 +116,7 @@ async def async_setup_entry(
                 value_multiplier=value_multiplier,
                 scale_raw_min=scale_raw_min,
                 scale_raw_max=scale_raw_max,
+                command_scale=command_scale,
             )
         )
 
@@ -130,6 +148,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         value_multiplier: float | None = None,
         scale_raw_min: float | None = None,
         scale_raw_max: float | None = None,
+        command_scale: tuple[float, float, float, float] | None = None,
     ):
         super().__init__(
             coordinator,
@@ -169,6 +188,13 @@ class S7Number(S7BaseEntity, NumberEntity):
                     name,
                     err,
                 )
+
+        # The command address may carry its own, independent Scale(...) when
+        # its raw PLC range differs from the state address; otherwise writes
+        # use the same scale as reads.
+        self._write_scale_params = (
+            command_scale if command_scale is not None else self._scale_params
+        )
 
         # Set device_class if provided
         if device_class:
@@ -269,8 +295,8 @@ class S7Number(S7BaseEntity, NumberEntity):
             raise HomeAssistantError("No command address configured for this entity.")
 
         # Convert display-unit value back to PLC raw value
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
+        if self._write_scale_params is not None:
+            rn, rx, sn, sx = self._write_scale_params
             plc_value = inverse_scale_value(float(value), rn, rx, sn, sx)
         elif self._value_multiplier is not None and self._value_multiplier != 0:
             plc_value = float(value) / self._value_multiplier

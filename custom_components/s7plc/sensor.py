@@ -42,6 +42,7 @@ from .helpers import (
     DEVICE_CLASS_DEFAULT_UNITS,
     default_entity_name,
     get_coordinator_and_device_info,
+    inverse_scale_value,
     scale_value,
 )
 
@@ -357,15 +358,24 @@ async def async_setup_entry(
     # Setup Entity Syncs
     sync_entities = []
     for item in entry.options.get(CONF_ENTITY_SYNC, []):
-        address = item.get(CONF_ADDRESS)
+        raw_address = item.get(CONF_ADDRESS)
         source_entity = item.get(CONF_SOURCE_ENTITY)
 
-        if not address or not source_entity:
+        if not raw_address or not source_entity:
             _LOGGER.debug(
                 "Skipping entity sync with missing address or source entity: "
                 "address=%s, source=%s",
-                address,
+                raw_address,
                 source_entity,
+            )
+            continue
+
+        try:
+            address, scale = parse_address_and_scale(raw_address)
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid Scale(...) syntax for entity sync address '%s', skipping",
+                raw_address,
             )
             continue
 
@@ -382,6 +392,7 @@ async def async_setup_entry(
                 address,
                 source_entity,
                 area,
+                scale=scale,
             )
         )
 
@@ -562,6 +573,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         address: str,
         source_entity: str,
         suggested_area_id: str | None = None,
+        scale: tuple[float, float, float, float] | None = None,
     ) -> None:
         """Initialize the entity sync."""
         super().__init__(
@@ -574,6 +586,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         )
         self._address = address
         self._source_entity = source_entity
+        self._scale = scale
         self._last_written_value: float | None = None
         self._initial_write_pending: bool = False
         self._write_count = 0
@@ -732,10 +745,12 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
     def _parse_numeric_value(self, source_state: State) -> float | None:
         """Parse a HA state to float for non-BIT addresses.
 
-        Returns None when the state cannot be converted.
+        Returns None when the state cannot be converted. When the address
+        carries an inline Scale(...), the source entity's own (engineering)
+        value is inverse-scaled to the raw PLC value before writing.
         """
         try:
-            return float(source_state.state)
+            value = float(source_state.state)
         except (ValueError, TypeError):
             _LOGGER.warning(
                 "Cannot convert source entity %s state '%s' to numeric value",
@@ -743,6 +758,11 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 source_state.state,
             )
             return None
+
+        if self._scale is not None:
+            rn, rx, sn, sx = self._scale
+            return inverse_scale_value(value, rn, rx, sn, sx)
+        return value
 
     @property
     def native_value(self) -> str | float | None:
