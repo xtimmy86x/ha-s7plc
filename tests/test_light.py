@@ -11,7 +11,6 @@ from homeassistant.const import CONF_NAME
 from custom_components.s7plc.light import S7Light, async_setup_entry
 from custom_components.s7plc.const import (
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
-    CONF_BRIGHTNESS_SCALE,
     CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
@@ -448,11 +447,18 @@ def dimmer_factory(mock_coordinator, device_info):
         command_address: str = TEST_DIMMER_COMMAND_ADDRESS,
         brightness_state_address: str = TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS,
         brightness_command_address: str = TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS,
-        brightness_scale: int = 255,
+        brightness_scale: int | None = None,
         name: str = "Test Dimmer",
         topic: str = TEST_DIMMER_TOPIC,
         unique_id: str = f"test_device:{TEST_DIMMER_TOPIC}",
     ):
+        # brightness_scale mirrors the old single-parameter "raw 0..N maps
+        # to HA 0..255" mechanism, now expressed as a full scale tuple.
+        scale = (
+            (0.0, float(brightness_scale), 0.0, 255.0)
+            if brightness_scale is not None
+            else None
+        )
         return S7Light(
             mock_coordinator,
             name=name,
@@ -461,9 +467,10 @@ def dimmer_factory(mock_coordinator, device_info):
             topic=topic,
             state_address=state_address,
             command_address=command_address,
-            brightness_scale=brightness_scale,
             brightness_state_address=brightness_state_address,
             brightness_command_address=brightness_command_address,
+            brightness_state_scale=scale,
+            brightness_command_scale=scale,
         )
     return _create
 
@@ -479,7 +486,6 @@ def test_dimmer_light_init(dimmer_factory):
     assert dimmer._command_address == TEST_DIMMER_COMMAND_ADDRESS
     assert dimmer._brightness_state_address == TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS
     assert dimmer._brightness_command_address == TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS
-    assert dimmer._brightness_scale == 255
 
 
 def test_dimmer_light_color_mode(dimmer_factory):
@@ -604,33 +610,6 @@ def test_dimmer_light_brightness_scale_100_full(dimmer_factory, mock_coordinator
     assert dimmer.brightness == 255
 
 
-def test_dimmer_light_ha_to_plc_brightness(dimmer_factory):
-    """Test HA brightness to PLC brightness conversion."""
-    dimmer = dimmer_factory(brightness_scale=100)
-
-    # 255 * 100 / 255 = 100
-    assert dimmer._ha_to_plc_brightness(255) == 100
-    # 128 * 100 / 255 = 50.2 → 50
-    assert dimmer._ha_to_plc_brightness(128) == 50
-    # 0 stays 0
-    assert dimmer._ha_to_plc_brightness(0) == 0
-
-
-def test_dimmer_light_ha_to_plc_brightness_255_scale(dimmer_factory):
-    """Test HA brightness to PLC brightness with default 255 scale."""
-    dimmer = dimmer_factory(brightness_scale=255)
-
-    assert dimmer._ha_to_plc_brightness(255) == 255
-    assert dimmer._ha_to_plc_brightness(128) == 128
-    assert dimmer._ha_to_plc_brightness(0) == 0
-
-
-def test_dimmer_light_brightness_scale_min_is_1(dimmer_factory):
-    """Test brightness scale cannot be less than 1."""
-    dimmer = dimmer_factory(brightness_scale=0)
-    assert dimmer._brightness_scale == 1
-
-
 @pytest.mark.asyncio
 async def test_dimmer_light_turn_on(dimmer_factory, mock_coordinator, fake_hass):
     """Test turn on writes True to boolean command address."""
@@ -704,7 +683,6 @@ def test_dimmer_light_extra_state_attributes(dimmer_factory, mock_coordinator):
     assert attrs["s7_command_address"] == TEST_DIMMER_COMMAND_ADDRESS.upper()
     assert attrs["s7_brightness_state_address"] == TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS.upper()
     assert attrs["s7_brightness_command_address"] == TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS.upper()
-    assert attrs["brightness_scale"] == 255
 
 
 def test_dimmer_light_extra_state_attributes_same_brightness_addr(dimmer_factory, mock_coordinator):
@@ -717,7 +695,6 @@ def test_dimmer_light_extra_state_attributes_same_brightness_addr(dimmer_factory
     attrs = dimmer.extra_state_attributes
     assert attrs["s7_brightness_state_address"] == "DB1,B5"
     assert attrs["s7_brightness_command_address"] == "DB1,B5"
-    assert attrs["brightness_scale"] == 255
 
 
 # ============================================================================
@@ -737,16 +714,14 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
                 CONF_NAME: "Dimmer 1",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
-                CONF_BRIGHTNESS_SCALE: 255,
                 CONF_UID: "uid-1",
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.2",
                 CONF_COMMAND_ADDRESS: "db1,x0.3",
                 CONF_NAME: "Dimmer 2",
-                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b2",
-                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b3",
-                CONF_BRIGHTNESS_SCALE: 100,
+                CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b2 Scale(0,100,0,255)",
+                CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b3 Scale(0,100,0,255)",
                 CONF_UID: "uid-2",
             },
         ]
@@ -764,8 +739,8 @@ async def test_async_setup_entry_dimmer_lights(fake_hass, mock_coordinator, devi
     assert isinstance(entities[0], S7Light)
     assert isinstance(entities[1], S7Light)
 
-    # Check second dimmer has scale
-    assert entities[1]._brightness_scale == 100
+    # Check second dimmer has the inline scale parsed out of its address
+    assert entities[1]._brightness_state_scale == (0.0, 100.0, 0.0, 255.0)
     assert entities[1]._brightness_state_address == "db1,b2"
     assert entities[1]._brightness_command_address == "db1,b3"
 
@@ -787,7 +762,6 @@ async def test_async_setup_entry_dimmer_skip_missing_state_address(
             {
                 CONF_NAME: "No Address Dimmer",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
-                CONF_BRIGHTNESS_SCALE: 255,
             },
             {
                 CONF_STATE_ADDRESS: "db1,x0.0",
@@ -795,7 +769,6 @@ async def test_async_setup_entry_dimmer_skip_missing_state_address(
                 CONF_NAME: "Valid Dimmer",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
-                CONF_BRIGHTNESS_SCALE: 255,
                 CONF_UID: "uid-1",
             },
         ]
@@ -832,7 +805,6 @@ async def test_async_setup_entry_mixed_lights_and_dimmers(
                 CONF_NAME: "Dimmer Light",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
                 CONF_BRIGHTNESS_COMMAND_ADDRESS: "db1,b1",
-                CONF_BRIGHTNESS_SCALE: 255,
                 CONF_UID: "uid-2",
             },
         ],
@@ -863,7 +835,6 @@ async def test_async_setup_entry_dimmer_default_command_address(
                 CONF_STATE_ADDRESS: "db1,x0.0",
                 CONF_NAME: "Dimmer",
                 CONF_BRIGHTNESS_STATE_ADDRESS: "db1,b0",
-                CONF_BRIGHTNESS_SCALE: 255,
                 CONF_UID: "uid-1",
             }
         ]

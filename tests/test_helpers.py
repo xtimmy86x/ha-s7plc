@@ -10,6 +10,8 @@ from custom_components.s7plc.helpers import (
     generate_uid,
     get_coordinator_and_device_info,
     default_entity_name,
+    migrate_legacy_brightness_scale,
+    migrate_legacy_scale_fields,
     parse_pulse_duration,
     scale_value,
     inverse_scale_value,
@@ -325,6 +327,174 @@ def test_ensure_item_uids_editing_address_does_not_change_uid():
 
     assert changed is False
     assert options["sensors"][0]["uid"] == uid
+
+
+# ---------------------------------------------------------------------------
+# migrate_legacy_scale_fields
+# ---------------------------------------------------------------------------
+
+
+def test_migrate_legacy_scale_fields_folds_sensor_scale_into_address():
+    options = {
+        "sensors": [
+            {
+                "address": "DB6,B23",
+                "scale_raw_min": 0.0,
+                "scale_raw_max": 1.0,
+                "min_value": 0.0,
+                "max_value": 10.0,
+            }
+        ],
+    }
+    changed = migrate_legacy_scale_fields(options)
+    assert changed is True
+    item = options["sensors"][0]
+    assert item["address"] == "DB6,B23 Scale(0,1,0,10)"
+    assert "scale_raw_min" not in item
+    assert "scale_raw_max" not in item
+    assert "min_value" not in item
+    assert "max_value" not in item
+
+
+def test_migrate_legacy_scale_fields_folds_number_scale_into_address():
+    options = {
+        "numbers": [
+            {
+                "address": "DB1,REAL0",
+                "scale_raw_min": -10.5,
+                "scale_raw_max": 20.0,
+                "min_value": 0.0,
+                "max_value": 100.0,
+            }
+        ],
+    }
+    changed = migrate_legacy_scale_fields(options)
+    assert changed is True
+    item = options["numbers"][0]
+    assert item["address"] == "DB1,REAL0 Scale(-10.5,20,0,100)"
+    assert "scale_raw_min" not in item
+    assert "min_value" not in item
+
+
+def test_migrate_legacy_scale_fields_leaves_plain_number_bounds_untouched():
+    """min_value/max_value without raw-scale keys are plain bounds, unrelated
+    to scaling, and must not be migrated."""
+    options = {
+        "numbers": [{"address": "DB1,W0", "min_value": 0.0, "max_value": 100.0}],
+    }
+    changed = migrate_legacy_scale_fields(options)
+    assert changed is False
+    item = options["numbers"][0]
+    assert item["address"] == "DB1,W0"
+    assert item["min_value"] == 0.0
+    assert item["max_value"] == 100.0
+
+
+def test_migrate_legacy_scale_fields_noop_when_nothing_to_migrate():
+    options = {"sensors": [{"address": "DB1,REAL0"}], "numbers": []}
+    changed = migrate_legacy_scale_fields(options)
+    assert changed is False
+
+
+def test_migrate_legacy_scale_fields_idempotent():
+    options = {
+        "sensors": [
+            {
+                "address": "DB6,B23",
+                "scale_raw_min": 0.0,
+                "scale_raw_max": 1.0,
+                "min_value": 0.0,
+                "max_value": 10.0,
+            }
+        ],
+    }
+    assert migrate_legacy_scale_fields(options) is True
+    first = dict(options["sensors"][0])
+    assert migrate_legacy_scale_fields(options) is False
+    assert options["sensors"][0] == first
+
+
+# ---------------------------------------------------------------------------
+# migrate_legacy_brightness_scale
+# ---------------------------------------------------------------------------
+
+
+def test_migrate_legacy_brightness_scale_folds_into_address():
+    options = {
+        "lights": [
+            {
+                "state_address": "DB1,X0.0",
+                "brightness_state_address": "DB1,B0",
+                "brightness_command_address": "DB1,B1",
+                "brightness_scale": 100,
+            }
+        ],
+    }
+    changed = migrate_legacy_brightness_scale(options)
+    assert changed is True
+    item = options["lights"][0]
+    assert item["brightness_state_address"] == "DB1,B0 Scale(0,100,0,255)"
+    assert item["brightness_command_address"] == "DB1,B1 Scale(0,100,0,255)"
+    assert "brightness_scale" not in item
+
+
+def test_migrate_legacy_brightness_scale_default_255_still_removes_field():
+    """Even the default (identity) scale value gets the key retired."""
+    options = {
+        "lights": [
+            {
+                "state_address": "DB1,X0.0",
+                "brightness_state_address": "DB1,B0",
+                "brightness_scale": 255,
+            }
+        ],
+    }
+    changed = migrate_legacy_brightness_scale(options)
+    assert changed is True
+    item = options["lights"][0]
+    assert item["brightness_state_address"] == "DB1,B0 Scale(0,255,0,255)"
+    assert "brightness_scale" not in item
+
+
+def test_migrate_legacy_brightness_scale_shared_command_address_not_double_scaled():
+    """When command defaults to the same address as state (not separately
+    configured), only the state address gets the scale embedded."""
+    options = {
+        "lights": [
+            {
+                "state_address": "DB1,X0.0",
+                "brightness_state_address": "DB1,B0",
+                "brightness_scale": 100,
+            }
+        ],
+    }
+    migrate_legacy_brightness_scale(options)
+    item = options["lights"][0]
+    assert item["brightness_state_address"] == "DB1,B0 Scale(0,100,0,255)"
+    assert "brightness_command_address" not in item
+
+
+def test_migrate_legacy_brightness_scale_noop_when_nothing_to_migrate():
+    options = {
+        "lights": [{"state_address": "DB1,X0.0", "name": "Plain Light"}],
+    }
+    assert migrate_legacy_brightness_scale(options) is False
+
+
+def test_migrate_legacy_brightness_scale_idempotent():
+    options = {
+        "lights": [
+            {
+                "state_address": "DB1,X0.0",
+                "brightness_state_address": "DB1,B0",
+                "brightness_scale": 100,
+            }
+        ],
+    }
+    assert migrate_legacy_brightness_scale(options) is True
+    first = dict(options["lights"][0])
+    assert migrate_legacy_brightness_scale(options) is False
+    assert options["lights"][0] == first
 
 
 # ---------------------------------------------------------------------------

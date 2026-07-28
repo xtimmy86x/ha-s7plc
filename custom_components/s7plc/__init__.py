@@ -48,6 +48,8 @@ from .helpers import (
     build_entity_area_map,
     build_expected_unique_ids,
     ensure_item_uids,
+    migrate_legacy_brightness_scale,
+    migrate_legacy_scale_fields,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,6 +106,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # same unique_id (see ensure_item_uids docstring); only brand-new items
     # get a fresh one. Must run before platforms are set up.
     if ensure_item_uids(device_id, entry.options):
+        hass.config_entries.async_update_entry(entry, options=entry.options)
+
+    # Fold legacy separate scale/min/max fields into the address field's
+    # inline Scale(...) syntax. Must run after ensure_item_uids: uid
+    # migration freezes each item's unique_id from its address text as it
+    # stands *today*, so the address must still be in its original clean
+    # form when that runs.
+    if migrate_legacy_scale_fields(entry.options):
+        hass.config_entries.async_update_entry(entry, options=entry.options)
+
+    # Same idea for light's old single-parameter brightness_scale field,
+    # folded into an inline Scale(...) on the brightness address.
+    if migrate_legacy_brightness_scale(entry.options):
         hass.config_entries.async_update_entry(entry, options=entry.options)
 
     coordinator = S7Coordinator(

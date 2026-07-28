@@ -18,7 +18,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .address import DataType, parse_tag
+from .address import DataType, parse_address_and_scale, parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -286,8 +286,16 @@ async def async_setup_entry(
 
     entities = []
     for item in entry.options.get(CONF_SENSORS, []):
-        address = item.get(CONF_ADDRESS)
-        if not address:
+        raw_address = item.get(CONF_ADDRESS)
+        if not raw_address:
+            continue
+        try:
+            address, inline_scale = parse_address_and_scale(raw_address)
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid Scale(...) syntax for sensor address '%s', skipping",
+                raw_address,
+            )
             continue
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
@@ -299,10 +307,13 @@ async def async_setup_entry(
         state_class = item.get(CONF_STATE_CLASS)
         real_precision = item.get(CONF_REAL_PRECISION)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        scale_raw_min = item.get(CONF_SCALE_RAW_MIN)
-        scale_raw_max = item.get(CONF_SCALE_RAW_MAX)
-        min_value = item.get(CONF_MIN_VALUE)
-        max_value = item.get(CONF_MAX_VALUE)
+        if inline_scale is not None:
+            scale_raw_min, scale_raw_max, min_value, max_value = inline_scale
+        else:
+            scale_raw_min = item.get(CONF_SCALE_RAW_MIN)
+            scale_raw_max = item.get(CONF_SCALE_RAW_MAX)
+            min_value = item.get(CONF_MIN_VALUE)
+            max_value = item.get(CONF_MAX_VALUE)
         await coord.add_item(topic, address, scan_interval, real_precision)
         entities.append(
             S7Sensor(

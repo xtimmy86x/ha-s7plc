@@ -24,10 +24,14 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import DeviceInfo
 
+from .address import format_address_with_scale
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
     CONF_BINARY_SENSORS,
+    CONF_BRIGHTNESS_COMMAND_ADDRESS,
+    CONF_BRIGHTNESS_SCALE,
+    CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
@@ -40,10 +44,14 @@ from .const import (
     CONF_ENTITY_SYNC,
     CONF_HEATING_OUTPUT_ADDRESS,
     CONF_LIGHTS,
+    CONF_MAX_VALUE,
+    CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
+    CONF_SCALE_RAW_MAX,
+    CONF_SCALE_RAW_MIN,
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
@@ -427,6 +435,93 @@ def ensure_item_uids(device_id: str, options: MutableMapping[str, Any]) -> bool:
             else:
                 item[CONF_UID] = generate_uid()
             changed = True
+    return changed
+
+
+def migrate_legacy_scale_fields(options: MutableMapping[str, Any]) -> bool:
+    """Fold legacy separate scale/min/max fields into the address field.
+
+    Sensor and number items used to store linear-scaling parameters as four
+    separate keys (raw PLC min/max + engineering min/max). Scaling is now
+    expressed inline in the address string via ``Scale(...)`` syntax (see
+    :func:`address.parse_address_and_scale`), so this rewrites any item with
+    scaling active under the old four-key format to embed it in the address
+    instead, and removes the four legacy keys. A ``number`` item with only
+    ``CONF_MIN_VALUE``/``CONF_MAX_VALUE`` set (plain bounds, no raw-scale
+    keys — an unrelated feature) is left untouched.
+
+    Returns whether anything changed, so the caller knows whether to persist
+    *options* back onto the config entry.
+    """
+    changed = False
+    for option_key in (CONF_SENSORS, CONF_NUMBERS):
+        for item in options.get(option_key, []):
+            address = item.get(CONF_ADDRESS)
+            if not address:
+                continue
+            values = (
+                item.get(CONF_SCALE_RAW_MIN),
+                item.get(CONF_SCALE_RAW_MAX),
+                item.get(CONF_MIN_VALUE),
+                item.get(CONF_MAX_VALUE),
+            )
+            if any(v in (None, "") for v in values):
+                continue
+            try:
+                scale = tuple(float(v) for v in values)
+            except (TypeError, ValueError):
+                continue
+            item[CONF_ADDRESS] = format_address_with_scale(address, scale)
+            del item[CONF_SCALE_RAW_MIN]
+            del item[CONF_SCALE_RAW_MAX]
+            del item[CONF_MIN_VALUE]
+            del item[CONF_MAX_VALUE]
+            changed = True
+    return changed
+
+
+def migrate_legacy_brightness_scale(options: MutableMapping[str, Any]) -> bool:
+    """Fold the legacy ``brightness_scale`` field into inline address Scale(...).
+
+    Lights used to store a single ``brightness_scale`` value (raw PLC
+    ``0..N`` mapped to HA's ``0..255``) as a separate config key. Scaling is
+    now expressed inline via ``Scale(...)`` on the brightness address itself
+    (see :func:`address.parse_address_and_scale`), consistently with every
+    other entity type. For every light with both
+    ``CONF_BRIGHTNESS_STATE_ADDRESS`` and ``CONF_BRIGHTNESS_SCALE`` set, this
+    embeds ``Scale(0, brightness_scale, 0, 255)`` into
+    ``brightness_state_address`` and, if a distinct
+    ``brightness_command_address`` is configured, into that too (the old
+    mechanism applied one scale uniformly to both). ``CONF_BRIGHTNESS_SCALE``
+    is always removed, even when its value was the default 255, since the
+    field is retired either way.
+
+    Returns whether anything changed, so the caller knows whether to persist
+    *options* back onto the config entry.
+    """
+    changed = False
+    for item in options.get(CONF_LIGHTS, []):
+        if CONF_BRIGHTNESS_SCALE not in item:
+            continue
+        state_address = item.get(CONF_BRIGHTNESS_STATE_ADDRESS)
+        brightness_scale = item.get(CONF_BRIGHTNESS_SCALE)
+        if state_address and brightness_scale is not None:
+            try:
+                scale = (0.0, float(brightness_scale), 0.0, 255.0)
+            except (TypeError, ValueError):
+                # Can't safely embed a non-numeric legacy value; leave the
+                # item untouched rather than silently dropping its scale.
+                continue
+            item[CONF_BRIGHTNESS_STATE_ADDRESS] = format_address_with_scale(
+                state_address, scale
+            )
+            command_address = item.get(CONF_BRIGHTNESS_COMMAND_ADDRESS)
+            if command_address and command_address != state_address:
+                item[CONF_BRIGHTNESS_COMMAND_ADDRESS] = format_address_with_scale(
+                    command_address, scale
+                )
+        del item[CONF_BRIGHTNESS_SCALE]
+        changed = True
     return changed
 
 

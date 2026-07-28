@@ -382,6 +382,51 @@ async def test_async_setup_entry_with_sensors():
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_with_inline_scale_address():
+    """A sensor whose stored address embeds Scale(...) (the current storage
+    format for scaling) is set up with a clean address/topic and the scale
+    parsed out into _scale_params."""
+    hass = MagicMock()
+    hass.async_add_executor_job = AsyncMock(return_value=None)
+    entry = MagicMock()
+    entry.options = {
+        "sensors": [
+            {
+                "address": "DB1,REAL0 Scale(0,1,0,10)",
+                "name": "Scaled",
+                "uid": "test-uid",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.sensor.get_coordinator_and_device_info"
+    ) as mock_get_coord:
+        mock_coord = MagicMock()
+        mock_coord.add_item = AsyncMock()
+        mock_coord.async_request_refresh = AsyncMock(return_value=None)
+        mock_coord.pys7_metrics = None
+        mock_get_coord.return_value = (
+            mock_coord,
+            {"name": "Test Device"},
+            "test-device",
+        )
+
+        await async_setup_entry(hass, entry, async_add_entities)
+
+        entities = async_add_entities.call_args[0][0]
+        sensor = entities[0]
+        assert isinstance(sensor, S7Sensor)
+        assert sensor._scale_params == (0.0, 1.0, 0.0, 10.0)
+
+        # The coordinator polls the clean address, not the raw stored text.
+        topic, address = mock_coord.add_item.call_args[0][:2]
+        assert topic == "sensor:DB1,REAL0"
+        assert address == "DB1,REAL0"
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_skip_empty_address():
     """Test setup skips sensors without address."""
     hass = MagicMock()

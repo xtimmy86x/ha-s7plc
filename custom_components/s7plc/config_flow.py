@@ -22,7 +22,12 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
-from .address import get_numeric_limits, parse_tag
+from .address import (
+    format_address_with_scale,
+    get_numeric_limits,
+    parse_address_and_scale,
+    parse_tag,
+)
 
 # Import S7-specific exceptions if available
 try:
@@ -43,7 +48,6 @@ from .const import (
     CONF_BACKOFF_MAX,
     CONF_BINARY_SENSORS,
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
-    CONF_BRIGHTNESS_SCALE,
     CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
@@ -130,7 +134,6 @@ from .const import (
     CONTROL_MODE_SETPOINT,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
-    DEFAULT_BRIGHTNESS_SCALE,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_HVAC_STATUS_COOLING_VALUES,
@@ -313,10 +316,6 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_SENSORS),
             vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
             vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
-            vol.Optional(CONF_MIN_VALUE): number_value_selector,
-            vol.Optional(CONF_MAX_VALUE): number_value_selector,
-            vol.Optional(CONF_SCALE_RAW_MIN): scale_value_selector,
-            vol.Optional(CONF_SCALE_RAW_MAX): scale_value_selector,
             vol.Optional(CONF_STATE_CLASS): state_class_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
@@ -418,11 +417,6 @@ def _add_schema_button(flow) -> vol.Schema:
 
 
 def _add_schema_light(flow) -> vol.Schema:
-    _brightness_scale_sel = selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=1, max=65535, step=1, mode=selector.NumberSelectorMode.BOX
-        )
-    )
     return vol.Schema(
         {
             vol.Required(CONF_STATE_ADDRESS): selector.TextSelector(),
@@ -436,7 +430,6 @@ def _add_schema_light(flow) -> vol.Schema:
             ): pulse_duration_selector,
             vol.Optional(CONF_BRIGHTNESS_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_BRIGHTNESS_COMMAND_ADDRESS): selector.TextSelector(),
-            vol.Optional(CONF_BRIGHTNESS_SCALE): _brightness_scale_sel,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
         }
@@ -455,8 +448,6 @@ def _add_schema_number(flow) -> vol.Schema:
             vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
             vol.Optional(CONF_MIN_VALUE): number_value_selector,
             vol.Optional(CONF_MAX_VALUE): number_value_selector,
-            vol.Optional(CONF_SCALE_RAW_MIN): scale_value_selector,
-            vol.Optional(CONF_SCALE_RAW_MAX): scale_value_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional(CONF_AREA): flow._get_area_selector(),
@@ -611,10 +602,6 @@ def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
         (CONF_DEVICE_CLASS, _device_selector_by_type(CONF_SENSORS)),
         (CONF_UNIT_OF_MEASUREMENT, selector.TextSelector()),
         (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
-        (CONF_MIN_VALUE, number_value_selector),
-        (CONF_MAX_VALUE, number_value_selector),
-        (CONF_SCALE_RAW_MIN, scale_value_selector),
-        (CONF_SCALE_RAW_MAX, scale_value_selector),
         (CONF_STATE_CLASS, state_class_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
@@ -785,11 +772,6 @@ def _edit_schema_button(flow, item: dict[str, Any]) -> vol.Schema:
 
 
 def _edit_schema_light(flow, item: dict[str, Any]) -> vol.Schema:
-    _brightness_scale_sel = selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=1, max=65535, step=1, mode=selector.NumberSelectorMode.BOX
-        )
-    )
     d: dict[Any, Any] = {
         vol.Required(
             CONF_STATE_ADDRESS, default=item.get(CONF_STATE_ADDRESS, "")
@@ -814,7 +796,6 @@ def _edit_schema_light(flow, item: dict[str, Any]) -> vol.Schema:
     for key, sel in [
         (CONF_BRIGHTNESS_STATE_ADDRESS, selector.TextSelector()),
         (CONF_BRIGHTNESS_COMMAND_ADDRESS, selector.TextSelector()),
-        (CONF_BRIGHTNESS_SCALE, _brightness_scale_sel),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
         (CONF_AREA, flow._get_area_selector()),
     ]:
@@ -848,8 +829,6 @@ def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
     for key, sel in [
         (CONF_STEP, positive_number_selector),
         (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
-        (CONF_SCALE_RAW_MIN, scale_value_selector),
-        (CONF_SCALE_RAW_MAX, scale_value_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
         (CONF_AREA, flow._get_area_selector()),
@@ -2176,28 +2155,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         else:
             item[CONF_VALUE_MULTIPLIER] = normalized
 
-    @staticmethod
-    def _apply_value_scale(
-        item: dict[str, Any],
-        raw_min: Any | None,
-        raw_max: Any | None,
-    ) -> None:
-        """Store or remove the raw-range scale parameters from *item*.
-
-        Both values must be valid numbers for the scale to be saved.
-        If either is missing/invalid the raw-range keys are cleared from the item.
-        """
-        _normalize = S7PLCOptionsFlow._normalize_numeric_value
-        rn = _normalize(raw_min)
-        rx = _normalize(raw_max)
-
-        if rn is not None and rx is not None:
-            item[CONF_SCALE_RAW_MIN] = rn
-            item[CONF_SCALE_RAW_MAX] = rx
-        else:
-            for key in (CONF_SCALE_RAW_MIN, CONF_SCALE_RAW_MAX):
-                item.pop(key, None)
-
     def _has_duplicate(
         self,
         option_key: str,
@@ -2206,8 +2163,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         keys: tuple[str, ...] = (CONF_ADDRESS,),
         skip_idx: int | None = None,
     ) -> bool:
-        """Return ``True`` if ``address`` already exists in the options."""
+        """Return ``True`` if ``address`` already exists in the options.
 
+        ``address`` and each stored value are compared ignoring any inline
+        ``Scale(...)`` suffix, so two entries on the same underlying PLC
+        address are still flagged as duplicates regardless of scaling.
+        """
+
+        try:
+            address, _ = parse_address_and_scale(address)
+        except ValueError:
+            pass
         normalized = self._normalized_address(address)
         if normalized is None:
             return False
@@ -2216,7 +2182,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if skip_idx is not None and idx == skip_idx:
                 continue
             for key in keys:
-                if self._normalized_address(item.get(key)) == normalized:
+                stored = item.get(key)
+                try:
+                    stored, _ = parse_address_and_scale(stored)
+                except ValueError:
+                    pass
+                if self._normalized_address(stored) == normalized:
                     return True
 
         return False
@@ -2356,6 +2327,30 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return sanitized, errors
 
+    def _validate_scaled_address_field(
+        self, raw: str | None
+    ) -> tuple[str | None, tuple[float, float, float, float] | None, dict[str, str]]:
+        """Validate an address field that may carry an inline Scale(...) suffix.
+
+        Returns ``(address_for_storage, scale_or_none, errors)``.
+        ``address_for_storage`` already has ``Scale(...)`` re-embedded in
+        canonical form when present, ready to store as-is. On error, address
+        and scale are both ``None``.
+        """
+        try:
+            stripped, scale = parse_address_and_scale(raw)
+        except ValueError:
+            return None, None, {"base": "invalid_scale_syntax"}
+
+        address, errors = self._validate_address_field(stripped)
+        if errors:
+            return None, None, errors
+
+        stored = (
+            format_address_with_scale(address, scale) if scale is not None else address
+        )
+        return stored, scale, {}
+
     def _validate_mode_values_field(
         self, raw: str | None
     ) -> tuple[str | None, dict[str, str]]:
@@ -2455,8 +2450,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        # Split off an optional inline "Scale(raw_min,raw_max,scale_min,
+        # scale_max)" suffix from the address field before validating it.
+        try:
+            stripped_address, inline_scale = parse_address_and_scale(
+                user_input.get(CONF_ADDRESS)
+            )
+        except ValueError:
+            return None, {"base": "invalid_scale_syntax"}
+
         # Validate address
-        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        address, errors = self._validate_address_field(stripped_address)
         if errors:
             return None, errors
 
@@ -2464,9 +2468,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if self._has_duplicate(CONF_SENSORS, address, skip_idx=skip_idx):
             return None, {"base": "duplicate_entry"}
 
+        # Scaling is expressed inline in the stored address itself (e.g.
+        # "DB6,B23 Scale(0,1,0,10)") rather than as separate item keys.
+        stored_address = (
+            format_address_with_scale(address, inline_scale)
+            if inline_scale is not None
+            else address
+        )
+
         # Build item with optional fields
         item = self._build_base_item(
-            address,
+            stored_address,
             user_input,
             CONF_NAME,
             CONF_AREA,
@@ -2474,33 +2486,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_UNIT_OF_MEASUREMENT,
             CONF_STATE_CLASS,
         )
-
-        # Store display range + scale only when all 4 params are provided
-        min_v = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
-        max_v = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
-        raw_min_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
-        raw_max_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
-
-        scale_values = (min_v, max_v, raw_min_v, raw_max_v)
-        any_scale_set = any(v is not None for v in scale_values)
-        all_scale_set = all(v is not None for v in scale_values)
-
-        if any_scale_set and not all_scale_set:
-            return None, {"base": "scale_requires_all_four"}
-
-        if all_scale_set:
-            item[CONF_MIN_VALUE] = min_v
-            item[CONF_MAX_VALUE] = max_v
-            item[CONF_SCALE_RAW_MIN] = raw_min_v
-            item[CONF_SCALE_RAW_MAX] = raw_max_v
-        else:
-            for key in (
-                CONF_MIN_VALUE,
-                CONF_MAX_VALUE,
-                CONF_SCALE_RAW_MIN,
-                CONF_SCALE_RAW_MAX,
-            ):
-                item.pop(key, None)
 
         # Apply specific transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
@@ -2684,21 +2669,25 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        # Validate required position state address
-        position_state, state_errors = self._validate_address_field(
-            user_input.get(CONF_POSITION_STATE_ADDRESS)
+        # Validate required position state address (may carry an inline
+        # Scale(...))
+        position_state, _position_state_scale, state_errors = (
+            self._validate_scaled_address_field(
+                user_input.get(CONF_POSITION_STATE_ADDRESS)
+            )
         )
         if state_errors:
             return None, state_errors
 
-        # Get optional position command address
-        position_command = self._sanitize_address(
-            user_input.get(CONF_POSITION_COMMAND_ADDRESS)
-        )
-
-        # Validate optional command address if present
-        if position_command:
-            _, cmd_errors = self._validate_address_field(position_command)
+        # Get optional position command address (may carry its own,
+        # independent Scale(...))
+        position_command = None
+        if self._sanitize_address(user_input.get(CONF_POSITION_COMMAND_ADDRESS)):
+            position_command, _position_command_scale, cmd_errors = (
+                self._validate_scaled_address_field(
+                    user_input.get(CONF_POSITION_COMMAND_ADDRESS)
+                )
+            )
             if cmd_errors:
                 return None, cmd_errors
 
@@ -2827,11 +2816,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if pulse_duration is not None:
                 item[CONF_PULSE_DURATION] = pulse_duration
 
-        # Brightness / dimmer fields (optional)
+        # Brightness / dimmer fields (optional). Scaling (raw PLC range ->
+        # HA's 0-255) is expressed inline via Scale(...) on either address;
+        # absent means the raw value is already 0-255.
         bri_state_addr = user_input.get(CONF_BRIGHTNESS_STATE_ADDRESS)
         if bri_state_addr:
-            bri_state_addr_val, bri_errors = self._validate_address_field(
-                bri_state_addr
+            bri_state_addr_val, _bri_state_scale, bri_errors = (
+                self._validate_scaled_address_field(bri_state_addr)
             )
             if bri_errors:
                 return None, bri_errors
@@ -2840,23 +2831,12 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             # Brightness command address (defaults to state address)
             bri_cmd_addr = user_input.get(CONF_BRIGHTNESS_COMMAND_ADDRESS)
             if bri_cmd_addr:
-                bri_cmd_val, bri_cmd_errors = self._validate_address_field(bri_cmd_addr)
+                bri_cmd_val, _bri_cmd_scale, bri_cmd_errors = (
+                    self._validate_scaled_address_field(bri_cmd_addr)
+                )
                 if bri_cmd_errors:
                     return None, bri_cmd_errors
                 item[CONF_BRIGHTNESS_COMMAND_ADDRESS] = bri_cmd_val
-
-            # Brightness scale
-            raw_brightness = user_input.get(CONF_BRIGHTNESS_SCALE)
-            if raw_brightness is not None:
-                try:
-                    brightness_scale = int(raw_brightness)
-                except (TypeError, ValueError):
-                    brightness_scale = DEFAULT_BRIGHTNESS_SCALE
-                if brightness_scale < 1 or brightness_scale > 65535:
-                    brightness_scale = DEFAULT_BRIGHTNESS_SCALE
-                item[CONF_BRIGHTNESS_SCALE] = brightness_scale
-            else:
-                item[CONF_BRIGHTNESS_SCALE] = DEFAULT_BRIGHTNESS_SCALE
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -2874,6 +2854,29 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         Returns (item, errors). If there is an error,
         item is None and errors["base"] is set.
         """
+        # Split off an optional inline "Scale(raw_min,raw_max,scale_min,
+        # scale_max)" suffix from the address field. When present, it takes
+        # priority over the separate min/max fields, since it already fully
+        # specifies the scaling — inject its engineering range into
+        # user_input as if it had been typed into those fields, so the rest
+        # of this function (dtype clamping, validation) is unaffected. The
+        # scale itself is embedded back into the stored address at the end.
+        try:
+            stripped_address, inline_scale = parse_address_and_scale(
+                user_input.get(CONF_ADDRESS)
+            )
+        except ValueError:
+            return None, {"base": "invalid_scale_syntax"}
+
+        if inline_scale is not None:
+            raw_min_v, raw_max_v, min_v, max_v = inline_scale
+            user_input = {
+                **user_input,
+                CONF_ADDRESS: stripped_address,
+                CONF_MIN_VALUE: min_v,
+                CONF_MAX_VALUE: max_v,
+            }
+
         # Validate address
         address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
         if errors:
@@ -2909,18 +2912,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         except ValueError:
             return None, {"base": "invalid_number"}
 
-        # If either raw-range scale param is set, both min and max are required
-        raw_min_set = (
-            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
-            is not None
-        )
-        raw_max_set = (
-            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
-            is not None
-        )
-        if (raw_min_set or raw_max_set) and (min_value is None or max_value is None):
-            return None, {"base": "scale_raw_requires_min_max"}
-
         # Check if REAL or LREAL type requires min/max
         from .address import DataType
 
@@ -2944,9 +2935,22 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if min_value is not None and max_value is not None and min_value > max_value:
             return None, {"base": "invalid_range"}
 
+        # Scaling is expressed inline in the stored address itself (e.g.
+        # "DB1,REAL0 Scale(0,1,0,10)") rather than as separate item keys.
+        # The engineering range embedded is the (possibly dtype-clamped)
+        # min_value/max_value computed above; the raw PLC range is
+        # unclamped, exactly as parsed from the inline syntax.
+        stored_address = (
+            format_address_with_scale(
+                address, (raw_min_v, raw_max_v, min_value, max_value)
+            )
+            if inline_scale is not None
+            else address
+        )
+
         # Build item
         item = self._build_base_item(
-            address,
+            stored_address,
             user_input,
             CONF_NAME,
             CONF_AREA,
@@ -2958,21 +2962,18 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
 
-        # Add numeric constraints
-        if min_value is not None:
-            item[CONF_MIN_VALUE] = min_value
-        if max_value is not None:
-            item[CONF_MAX_VALUE] = max_value
+        # Add numeric constraints (plain bounds; not written when scaling is
+        # active, since the engineering range is already embedded above)
+        if inline_scale is None:
+            if min_value is not None:
+                item[CONF_MIN_VALUE] = min_value
+            if max_value is not None:
+                item[CONF_MAX_VALUE] = max_value
         if step_value is not None:
             item[CONF_STEP] = step_value
 
         # Apply transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
-        self._apply_value_scale(
-            item,
-            user_input.get(CONF_SCALE_RAW_MIN),
-            user_input.get(CONF_SCALE_RAW_MAX),
-        )
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -3067,9 +3068,11 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build a 'climate_direct' item from user input."""
-        # Validate current temperature address
-        current_temp_addr, errors = self._validate_address_field(
-            user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        # Validate current temperature address (may carry an inline Scale(...))
+        current_temp_addr, _current_temp_scale, errors = (
+            self._validate_scaled_address_field(
+                user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+            )
         )
         if errors:
             return None, errors
@@ -3153,16 +3156,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build a 'climate_setpoint' item from user input."""
-        # Validate current temperature address
-        current_temp_addr, errors = self._validate_address_field(
-            user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        # Validate current temperature address (may carry an inline Scale(...))
+        current_temp_addr, _current_temp_scale, errors = (
+            self._validate_scaled_address_field(
+                user_input.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+            )
         )
         if errors:
             return None, errors
 
-        # Validate target temperature address
-        target_temp_addr, errors = self._validate_address_field(
-            user_input.get(CONF_TARGET_TEMPERATURE_ADDRESS)
+        # Validate target temperature address (may carry an inline Scale(...))
+        target_temp_addr, _target_temp_scale, errors = (
+            self._validate_scaled_address_field(
+                user_input.get(CONF_TARGET_TEMPERATURE_ADDRESS)
+            )
         )
         if errors:
             return None, errors
@@ -3605,6 +3612,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 for key in address_keys:
                     address = item.get(key)
                     if address:
+                        try:
+                            address, _ = parse_address_and_scale(address)
+                        except ValueError:
+                            pass
                         normalized = self._normalized_address(address)
                         if normalized:
                             if normalized in seen_addresses:

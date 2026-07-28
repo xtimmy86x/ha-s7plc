@@ -208,10 +208,6 @@
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "value_multiplier": "Mnożnik wartości",
-          "scale_raw_min": "Wartość wejściowa min.",
-          "scale_raw_max": "Wartość wejściowa maks.",
-          "min_value": "Wartość wyjściowa min.",
-          "max_value": "Wartość wyjściowa maks.",
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Precyzja zaokrąglania",
@@ -219,15 +215,11 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres odczytu stanu (np. DB1000,D0, MW10, DB1,W2).",
+          "address": "Adres odczytu stanu (np. DB1000,D0, MW10, DB1,W2). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. bateria, zasilanie).",
           "value_multiplier": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste.",
-          "scale_raw_min": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania.",
-          "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
-          "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
-          "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
           "state_class": "Klasa stanu dla statystyk: 'measurement' – pomiar, 'total' – całkowity, 'total_increasing' – całkowity kumulowany (np. energia, zużycie wody). Jeśli puste wybór będzie automatyczny.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste dla oryginalnej precyzji (1).",
@@ -329,8 +321,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
+          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu. Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "stop_command_address": "Adres do zapisu komendy zatrzymania. Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę.",
           "stop_pulse_duration": "Czas trwania impulsu zatrzymania w sekundach (0.1 → 60s), domyślnie (0.5s).",
           "name": "Opcjonalna własna nazwa encji.",
@@ -374,7 +366,6 @@
           "pulse_duration": "Czas trwania impulsu (s)",
           "brightness_state_address": "Adres odczytu jasności",
           "brightness_command_address": "Adres zapisu jasności",
-          "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
@@ -386,9 +377,8 @@
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
-          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.).",
-          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności.",
-          "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
+          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności. Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -405,8 +395,6 @@
           "unit_of_measurement": "Jednostka miary",
           "step": "Krok",
           "value_multiplier": "Mnożnik wartości",
-          "scale_raw_min": "Wartość wejściowa min.",
-          "scale_raw_max": "Wartość wejściowa maks.",
           "min_value": "Wartość wyjściowa min.",
           "max_value": "Wartość wyjściowa maks.",
           "real_precision": "Precyzja (liczba miejsc po przecinku)",
@@ -414,7 +402,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
+          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
@@ -422,8 +410,6 @@
           "unit_of_measurement": "Własna jednostka miary (np. °C, V, kW). Pozostaw puste, jeśli nie jest potrzebna.",
           "step": "Opcjonalny przyrost używany przy regulacji wartości w interfejsie.",
           "value_multiplier": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste.",
-          "scale_raw_min": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania.",
-          "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
@@ -471,7 +457,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
           "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
           "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
@@ -517,8 +503,8 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Odczytywany również z powrotem z PLC, aby odzwierciedlić rzeczywisty tryb (komunikacja dwukierunkowa).",
           "on_off_address": "Opcjonalny binarny adres PLC do włączania/wyłączania tego termostatu, dla urządzeń bez własnego trybu Wył. (np. nagrzewnica/chłodnica włączana osobnym wyjściem). Zapisuje Fałsz/0, gdy tryb docelowy zostanie ustawiony na Wył., oraz Prawda/1 dla każdego innego trybu. Pozostaw puste, aby korzystać ze standardowego zachowania Wył. Odczytywany również z powrotem z PLC, aby odzwierciedlić rzeczywisty stan wł./wył. (komunikacja dwukierunkowa).",
           "preset_mode_off_value": "Wartość PLC zapisywana, gdy tryb zostanie ustawiony na Wył. (np. 0). Ustaw -1, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano on_off_address, ta wartość jest ignorowana dla trybu Wył.: tryb pozostaje dostępny i jest przełączany przez ten adres.",
@@ -582,7 +568,7 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "heating_output_address": "Adres do sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie.",
           "cooling_output_address": "Adres do sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko ogrzewanie.",
           "heating_action_address": "Opcjonalny adres do odczytu stanu ogrzewania. Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
@@ -626,8 +612,8 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "Adres do odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "target_temperature_address": "Adres do zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "preset_mode_address": "Opcjonalny adres do zapisu trybu pracy termostatu, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Odczytywany również z powrotem z PLC, aby odzwierciedlić rzeczywisty tryb (komunikacja dwukierunkowa).",
           "on_off_address": "Opcjonalny binarny adres PLC do włączania/wyłączania tego termostatu, dla urządzeń bez własnego trybu Wył. (np. nagrzewnica/chłodnica włączana osobnym wyjściem). Zapisuje Fałsz/0, gdy tryb docelowy zostanie ustawiony na Wył., oraz Prawda/1 dla każdego innego trybu. Pozostaw puste, aby korzystać ze standardowego zachowania Wył. Odczytywany również z powrotem z PLC, aby odzwierciedlić rzeczywisty stan wł./wył. (komunikacja dwukierunkowa).",
           "preset_mode_off_value": "Wartość PLC zapisywana, gdy tryb zostanie ustawiony na Wył. (np. 0). Ustaw -1, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano on_off_address, ta wartość jest ignorowana dla trybu Wył.: tryb pozostaje dostępny i jest przełączany przez ten adres.",
@@ -690,25 +676,17 @@
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "value_multiplier": "Mnożnik wartości",
-          "scale_raw_min": "Wartość wejściowa min.",
-          "scale_raw_max": "Wartość wejściowa maks.",
-          "min_value": "Wartość wyjściowa min.",
-          "max_value": "Wartość wyjściowa maks.",
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Zaokrąglenie",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres do odczytu (np. DB1000,D0, MW10, DB1,W2).",
+          "address": "Adres do odczytu (np. DB1000,D0, MW10, DB1,W2). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia dla lepszego doprecyzowania interfejsu/zachowania (np. bateria, zasilanie).",
           "value_multiplier": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste.",
-          "scale_raw_min": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania.",
-          "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
-          "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
-          "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Własna jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg klasy urządzenia.",
           "state_class": "Klasa stanu dla statystyk: 'measurement' – pomiar, 'total' – całkowity, 'total_increasing' – całkowity kumulowany (np. energia, zużycie wody). Jeśli puste wybór będzie automatyczny.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste dla oryginalnej precyzji (1).",
@@ -802,8 +780,8 @@
           "invert_position": "Odwróć położenie"
         },
         "data_description": {
-          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu.",
+          "position_state_address": "Adres do odczytu położenia osłony/rolety (0 - 100, np. DB1,B0, DB2,W4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "position_command_address": "Adres do zapisu nowego położenia osłony/rolety (0 - 100). Jeśli brak, użyty zostanie adres odczytu. Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "stop_command_address": "Adres do zapisu komendy zatrzymania. Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę.",
           "stop_pulse_duration": "Czas trwania impulsu zatrzymania w sekundach (0.1 → 60s), domyślnie (0.5s).",
           "name": "Opcjonalna własna nazwa encji.",
@@ -844,7 +822,6 @@
           "pulse_duration": "Czas trwania impulsu (s)",
           "brightness_state_address": "Adres odczytu jasności",
           "brightness_command_address": "Adres zapisu jasności",
-          "brightness_scale": "Maksymalna wartość jasności",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
@@ -855,9 +832,8 @@
           "sync_state": "Gdy włączone, adres zapisu jest automatycznie synchronizowany z bieżącym stanem.",
           "pulse_command": "Gdy włączone, wysyła impuls (Zał. → Wył.) zamiast zmiany stanu.",
           "pulse_duration": "Czas trwania impulsu w sekundach (0.1 → 60s), domyślnie (0.5s).",
-          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.).",
-          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności.",
-          "brightness_scale": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100).",
+          "brightness_state_address": "Opcjonalny adres do odczytu poziomu jasności (np. DB1,B2). Zostaw puste dla trybu (Zał. / Wył.). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
+          "brightness_command_address": "Opcjonalny adres do zapisu poziomu jasności. Jeśli brak, użyty zostanie adres odczytu jasności. Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
         }
       },
@@ -873,15 +849,13 @@
           "unit_of_measurement": "Jednostka miary",
           "step": "Krok",
           "value_multiplier": "Mnożnik wartości",
-          "scale_raw_min": "Wartość wejściowa min.",
-          "scale_raw_max": "Wartość wejściowa maks.",
           "min_value": "Wartość wyjściowa min.",
           "max_value": "Wartość wyjściowa maks.",
           "real_precision": "Zaokrąglenie wartości REAL",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4).",
+          "address": "Adres do odczytu wartości liczbowej (np. DB1,D0, DB2,W4). Opcjonalnie dodaj: 'Scale(raw_min,raw_max,scale_min,scale_max)', aby przeskalować surową wartość, np. 'DB6,B23 Scale(0,1,0,10)', jako separator dziesiętny użyj (.).",
           "command_address": "Opcjonalny adres do zapisu wartości liczbowej. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
@@ -889,8 +863,6 @@
           "unit_of_measurement": "Własna jednostka miary (np. °C, V, kW). Pozostaw puste, jeśli nie jest potrzebna.",
           "step": "Opcjonalny krok używany przy regulacji wartości w interfejsie.",
           "value_multiplier": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste.",
-          "scale_raw_min": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania.",
-          "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "real_precision": "Liczba miejsc dziesiętnych przy zaokrąglaniu wartości. Pozostaw puste, aby zachować oryginalną precyzję (1).",
@@ -941,6 +913,7 @@
       "state_addresses_required": "Gdy 'użyj adresów odczytu położenia' jest włączone, wymagane są adresy odczytu położenia (Otwarta / Zamknięta).",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
+      "invalid_scale_syntax": "Nieprawidłowa składnia Scale(...). Użyj: <adres> Scale(raw_min,raw_max,scale_min,scale_max), np. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Podaj jedną lub więcej liczb całkowitych oddzielonych przecinkami (np. 2,3).",
       "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
       "no_items": "Brak skonfigurowanych encji do edycji.",
@@ -949,8 +922,6 @@
       "invalid_json": "Nieprawidłowy format JSON.",
       "invalid_selection": "Wybierz prawidłowy typ encji.",
       "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL / LREAL).",
-      "scale_raw_requires_min_max": "Skalowanie wymaga podania wartości minimalnej i maksymalnej.",
-      "scale_requires_all_four": "Funkcja skalowanie wymaga wszystkich czterech parametrów: wartość wejściowa min./maks. oraz wartość wyjściowa min./maks.",
       "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING / WSTRING).",
       "sync_pulse_conflict": "Synchronizacja stanu i tryb impulsu nie mogą być aktywne jednocześnie.",
       "sync_same_address": "Synchronizacja stanu wymaga adresu zapisu innego niż adres odczytu."

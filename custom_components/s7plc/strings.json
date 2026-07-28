@@ -208,10 +208,6 @@
           "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
-          "scale_raw_min": "Scale raw min",
-          "scale_raw_max": "Scale raw max",
-          "min_value": "Scale min",
-          "max_value": "Scale max",
           "unit_of_measurement": "Unit of measurement",
           "state_class": "State class",
           "real_precision": "REAL round precision",
@@ -219,15 +215,11 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
+          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "name": "Optional friendly name for the sensor.",
           "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
-          "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
-          "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
-          "min_value": "Minimum displayed value after scaling.",
-          "max_value": "Maximum displayed value after scaling.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "state_class": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
@@ -329,8 +321,8 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "position_state_address": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4).",
-          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "position_state_address": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "stop_command_address": "PLC boolean address to pulse when stop is pressed. If omitted, stop writes the current position back.",
           "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
@@ -374,7 +366,6 @@
           "pulse_duration": "Pulse duration (s)",
           "brightness_state_address": "Brightness state address",
           "brightness_command_address": "Brightness command address",
-          "brightness_scale": "Brightness scale (max value)",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -386,9 +377,8 @@
           "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
           "pulse_command": "Send pulse instead of on/off commands.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
-          "brightness_state_address": "PLC numeric address to read the brightness level (e.g., DB1,B2). Leave blank for on/off only.",
-          "brightness_command_address": "PLC numeric address to write brightness commands (optional). If omitted, the brightness state address is used.",
-          "brightness_scale": "Maximum value the PLC uses for full brightness (e.g., 255 for BYTE, 100 for percentage). Required when brightness addresses are set.",
+          "brightness_state_address": "PLC numeric address to read the brightness level (e.g., DB1,B2). Leave blank for on/off only. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "brightness_command_address": "PLC numeric address to write brightness commands (optional). If omitted, the brightness state address is used. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more lights."
         }
@@ -407,14 +397,12 @@
           "max_value": "Maximum value",
           "step": "Step",
           "value_multiplier": "Value multiplier",
-          "scale_raw_min": "Scale raw min",
-          "scale_raw_max": "Scale raw max",
           "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
+          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
           "area": "Home Assistant area to assign this entity to.",
@@ -424,8 +412,6 @@
           "max_value": "Optional maximum bound for the value shown in Home Assistant.",
           "step": "Optional increment used when adjusting the value in the UI.",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
-          "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
-          "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
@@ -490,7 +476,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "heating_output_address": "PLC address to control heating output (e.g., Q0.0, DB1,X0.0). Optional if only cooling is used.",
           "cooling_output_address": "PLC address to control cooling output (e.g., Q0.1, DB1,X0.1). Optional if only heating is used.",
           "heating_action_address": "Optional PLC address to read heating action state.",
@@ -534,8 +520,8 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Also read back from the PLC to reflect the actual mode (bidirectional).",
           "on_off_address": "Optional boolean PLC address to switch this thermostat on/off, for devices with no native OFF mode of their own (e.g. a heater/cooler turned on/off by a separate output). Writes False/0 when the target mode is set to OFF, and True/1 for any other mode. Leave blank to rely on the standard OFF behavior instead. Also read back from the PLC to reflect the actual on/off state (bidirectional).",
           "preset_mode_off_value": "PLC value written when the mode is set to OFF (e.g. 0). Set to -1 to hide this mode from the thermostat's mode list. If on_off_address is configured, this is ignored for OFF: the mode stays available and is switched via that address instead.",
@@ -579,7 +565,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "heating_output_address": "PLC address to control heating output (e.g., Q0.0, DB1,X0.0). Optional if only cooling is used.",
           "cooling_output_address": "PLC address to control cooling output (e.g., Q0.1, DB1,X0.1). Optional if only heating is used.",
           "heating_action_address": "Optional PLC address to read heating action state. If not specified, action is inferred from mode.",
@@ -625,8 +611,8 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Useful if the PLC needs to enable/disable climate control. Also read back from the PLC to reflect the actual mode (bidirectional).",
           "on_off_address": "Optional boolean PLC address to switch this thermostat on/off, for devices with no native OFF mode of their own (e.g. a heater/cooler turned on/off by a separate output). Writes False/0 when the target mode is set to OFF, and True/1 for any other mode. Leave blank to rely on the standard OFF behavior instead. Also read back from the PLC to reflect the actual on/off state (bidirectional).",
           "preset_mode_off_value": "PLC value written when the mode is set to OFF (e.g. 0). Set to -1 to hide this mode from the thermostat's mode list. If on_off_address is configured, this is ignored for OFF: the mode stays available and is switched via that address instead.",
@@ -690,25 +676,17 @@
           "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Value multiplier",
-          "scale_raw_min": "Scale raw min",
-          "scale_raw_max": "Scale raw max",
-          "min_value": "Scale min",
-          "max_value": "Scale max",
           "unit_of_measurement": "Unit of measurement",
           "state_class": "State class",
           "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2).",
+          "address": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "name": "Optional friendly name for the sensor.",
           "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., battery, power).",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
-          "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
-          "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
-          "min_value": "Minimum displayed value after scaling.",
-          "max_value": "Maximum displayed value after scaling.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "state_class": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
@@ -802,8 +780,8 @@
           "invert_position": "Invert position (0=open, 100=closed)"
         },
         "data_description": {
-          "position_state_address": "PLC address to read the current position value (0-100).",
-          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used.",
+          "position_state_address": "PLC address to read the current position value (0-100). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "position_command_address": "PLC address to write position commands (0-100). If omitted, the state address is used. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "stop_command_address": "PLC boolean address to pulse when stop is pressed. If omitted, stop writes the current position back.",
           "stop_pulse_duration": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms).",
           "name": "Optional friendly name for the cover.",
@@ -844,7 +822,6 @@
           "pulse_duration": "Pulse duration (s)",
           "brightness_state_address": "Brightness state address",
           "brightness_command_address": "Brightness command address",
-          "brightness_scale": "Brightness scale (max value)",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -855,9 +832,8 @@
           "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
           "pulse_command": "Send pulse instead of on/off commands.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
-          "brightness_state_address": "PLC numeric address to read the brightness level. Leave blank for on/off only.",
-          "brightness_command_address": "PLC numeric address to write brightness commands. If omitted, the brightness state address is used.",
-          "brightness_scale": "Maximum value the PLC uses for full brightness. Required when brightness addresses are set.",
+          "brightness_state_address": "PLC numeric address to read the brightness level. Leave blank for on/off only. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
+          "brightness_command_address": "PLC numeric address to write brightness commands. If omitted, the brightness state address is used. Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -875,13 +851,11 @@
           "max_value": "Maximum value",
           "step": "Step",
           "value_multiplier": "Value multiplier",
-          "scale_raw_min": "Scale raw min",
-          "scale_raw_max": "Scale raw max",
           "real_precision": "REAL round precision",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4).",
+          "address": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4). Optionally add: 'Scale(raw_min,raw_max,scale_min,scale_max)' to scale the raw value, e.g. 'DB6,B23 Scale(0,1,0,10)', use (.) as the decimal separator.",
           "command_address": "PLC address to write values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the number entity.",
           "area": "Home Assistant area to assign this entity to.",
@@ -891,8 +865,6 @@
           "max_value": "Optional maximum bound for the value shown in Home Assistant.",
           "step": "Optional increment used when adjusting the value in the UI.",
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
-          "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
-          "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
           "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
@@ -941,6 +913,7 @@
       "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
       "invalid_source_entity": "Source entity is required.",
       "invalid_number": "Invalid numeric value.",
+      "invalid_scale_syntax": "Invalid Scale(...) syntax. Use: <address> Scale(raw_min,raw_max,scale_min,scale_max), e.g. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Enter one or more whole numbers separated by commas (e.g. 2,3).",
       "invalid_range": "Minimum value cannot be greater than maximum value.",
       "no_items": "There are no configured items to edit.",
@@ -949,8 +922,6 @@
       "invalid_json": "Invalid JSON payload.",
       "invalid_selection": "Select a valid item type.",
       "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
-      "scale_raw_requires_min_max": "Scale raw min/max require both min value and max value to be set.",
-      "scale_requires_all_four": "Scaling requires all four parameters: min value, max value, scale raw min and scale raw max.",
       "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses.",
       "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time.",
       "sync_same_address": "Sync state requires a command address different from the state address."

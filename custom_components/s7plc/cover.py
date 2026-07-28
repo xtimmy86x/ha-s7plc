@@ -36,8 +36,14 @@ from .const import (
     DEFAULT_OPERATE_TIME,
     DEFAULT_PULSE_DURATION,
 )
+from .address import parse_address_and_scale
 from .entity import S7BaseEntity
-from .helpers import default_entity_name, get_coordinator_and_device_info
+from .helpers import (
+    default_entity_name,
+    get_coordinator_and_device_info,
+    inverse_scale_value,
+    scale_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,12 +59,40 @@ async def async_setup_entry(
 
     for item in entry.options.get(CONF_COVERS, []):
         # Check if this is a position-based cover
-        position_state = item.get(CONF_POSITION_STATE_ADDRESS)
+        raw_position_state = item.get(CONF_POSITION_STATE_ADDRESS)
         area = item.get(CONF_AREA)
 
-        if position_state:
+        if raw_position_state:
             # Position-based cover (0-100)
-            position_command = item.get(CONF_POSITION_COMMAND_ADDRESS)
+            try:
+                position_state, position_state_scale = parse_address_and_scale(
+                    raw_position_state
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Invalid Scale(...) syntax for cover position_state_address"
+                    " '%s', skipping",
+                    raw_position_state,
+                )
+                continue
+
+            raw_position_command = item.get(CONF_POSITION_COMMAND_ADDRESS)
+            position_command_scale = position_state_scale
+            if raw_position_command:
+                try:
+                    position_command, position_command_scale = (
+                        parse_address_and_scale(raw_position_command)
+                    )
+                except ValueError:
+                    _LOGGER.warning(
+                        "Invalid Scale(...) syntax for cover"
+                        " position_command_address '%s', skipping",
+                        raw_position_command,
+                    )
+                    continue
+            else:
+                position_command = None
+
             scan_interval = item.get(CONF_SCAN_INTERVAL)
             invert_position = item.get(CONF_INVERT_POSITION, False)
             stop_command = item.get(CONF_STOP_COMMAND_ADDRESS)
@@ -84,6 +118,8 @@ async def async_setup_entry(
                     area,
                     stop_command,
                     stop_pulse,
+                    position_state_scale=position_state_scale,
+                    position_command_scale=position_command_scale,
                 )
             )
             continue
@@ -468,6 +504,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         suggested_area_id: str | None = None,
         stop_command: str | None = None,
         stop_pulse_duration: float = DEFAULT_PULSE_DURATION,
+        position_state_scale: tuple[float, float, float, float] | None = None,
+        position_command_scale: tuple[float, float, float, float] | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -483,6 +521,8 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         self._invert_position = invert_position
         self._stop_command_address = stop_command
         self._stop_pulse_duration = float(stop_pulse_duration)
+        self._position_state_scale = position_state_scale
+        self._position_command_scale = position_command_scale
         if device_class:
             try:
                 self._attr_device_class = CoverDeviceClass(device_class)
@@ -498,7 +538,11 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         if value is None:
             return None
         try:
-            pos = int(value)
+            if self._position_state_scale is not None:
+                rn, rx, sn, sx = self._position_state_scale
+                pos = round(scale_value(float(value), rn, rx, sn, sx))
+            else:
+                pos = int(value)
             # Clamp to 0-100
             pos = max(0, min(100, pos))
             # Invert if needed: 0 becomes 100, 100 becomes 0
@@ -562,6 +606,10 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # we need to write the inverted value to the PLC
         plc_value = (100 - position) if self._invert_position else position
 
+        if self._position_command_scale is not None:
+            rn, rx, sn, sx = self._position_command_scale
+            plc_value = inverse_scale_value(float(plc_value), rn, rx, sn, sx)
+
         await self.coordinator.write_batched(self._position_command_address, plc_value)
 
         self.async_write_ha_state()
@@ -586,11 +634,9 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         else:
             actual_position = self._get_position_value()
             if actual_position is not None:
-                await self.coordinator.write_batched(
-                    self._position_command_address, actual_position
-                )
-                self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
+                # Reuse the same conversion (invert + scale) as a normal
+                # position write, instead of duplicating it here.
+                await self.async_set_cover_position(position=actual_position)
             else:
                 cover_name = self._attr_name or self.unique_id
                 _LOGGER.error(

@@ -229,6 +229,329 @@ def test_number_limits_clamped_on_add():
     assert stored[const.CONF_MAX_VALUE] == 32767.0
 
 
+def test_add_sensor_with_inline_scale_in_address():
+    """Scale(...) in the address field is stored as part of the address
+    itself; the old separate scale/min/max keys are never written."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0,10)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23 Scale(0,1,0,10)"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_MAX_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+    assert const.CONF_SCALE_RAW_MAX not in stored
+
+
+def test_add_number_with_inline_scale_in_address():
+    flow = make_options_flow(options={const.CONF_NUMBERS: []})
+
+    result = run_flow(
+        flow.async_step_numbers(
+            {const.CONF_ADDRESS: "DB1,REAL0 Scale(-10.5,20,0,100)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_NUMBERS][0]
+    assert stored[const.CONF_ADDRESS] == "DB1,REAL0 Scale(-10.5,20,0,100)"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_MAX_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+    assert const.CONF_SCALE_RAW_MAX not in stored
+
+
+def test_add_sensor_inline_scale_ignores_stray_legacy_fields():
+    """The old separate scale fields no longer exist in the form; if a stray
+    value shows up in user_input anyway (e.g. a stale payload), it is simply
+    ignored and only the inline Scale(...) is used."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {
+                const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0,10)",
+                const.CONF_MIN_VALUE: 999,
+                const.CONF_MAX_VALUE: 999,
+                const.CONF_SCALE_RAW_MIN: 999,
+                const.CONF_SCALE_RAW_MAX: 999,
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23 Scale(0,1,0,10)"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+
+
+def test_edit_sensor_with_inline_scale_address_roundtrips_when_unchanged():
+    """An item whose address already embeds Scale(...) (as it would after
+    startup migration) keeps its scaling when the user resubmits the same
+    address text unchanged during edit."""
+    options = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0,10)"},
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow.hass = HomeAssistant()
+    flow._edit_target = ("s", 0)
+
+    result = run_flow(
+        flow.async_step_edit_sensor(
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0,10)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23 Scale(0,1,0,10)"
+
+
+def test_edit_sensor_inline_scale_replaces_previous_scale():
+    """Editing the Scale(...) numbers updates the stored combined address;
+    dropping the suffix entirely turns scaling off."""
+    options = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0,10)"},
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow.hass = HomeAssistant()
+    flow._edit_target = ("s", 0)
+
+    result = run_flow(
+        flow.async_step_edit_sensor(
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,2,0,20)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23 Scale(0,2,0,20)"
+
+    flow._edit_target = ("s", 0)
+    result = run_flow(
+        flow.async_step_edit_sensor({const.CONF_ADDRESS: "DB6,B23"})
+    )
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+
+
+def test_edit_number_with_inline_scale_address_roundtrips_when_unchanged():
+    """Same round-trip guarantee as sensors, for numbers; plain min/max
+    (no Scale(...) suffix) remain directly editable as before."""
+    options = {
+        const.CONF_NUMBERS: [
+            {const.CONF_ADDRESS: "DB1,REAL0 Scale(0,1,0,10)"},
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow.hass = HomeAssistant()
+    flow._edit_target = ("nm", 0)
+
+    result = run_flow(
+        flow.async_step_edit_number(
+            {const.CONF_ADDRESS: "DB1,REAL0 Scale(0,1,0,10)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_NUMBERS][0]
+    assert stored[const.CONF_ADDRESS] == "DB1,REAL0 Scale(0,1,0,10)"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+
+
+def test_add_sensor_rejects_malformed_inline_scale():
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors({const.CONF_ADDRESS: "DB6,B23 Scale(0,1,0)"})
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+    assert flow._options[const.CONF_SENSORS] == []
+
+
+# ============================================================================
+# Inline Scale(...) support on climate/cover/light address fields
+# ============================================================================
+
+
+def test_add_climate_direct_with_inline_scale_on_current_temp():
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_direct(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: (
+                    "DB1,W0 Scale(0,1000,0,100)"
+                ),
+                const.CONF_HEATING_OUTPUT_ADDRESS: "DB1,X0.0",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_CLIMATES][0]
+    assert stored[const.CONF_CURRENT_TEMPERATURE_ADDRESS] == (
+        "DB1,W0 Scale(0,1000,0,100)"
+    )
+
+
+def test_add_climate_direct_rejects_malformed_inline_scale():
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_direct(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,W0 Scale(0,1000,0)",
+                const.CONF_HEATING_OUTPUT_ADDRESS: "DB1,X0.0",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+
+
+def test_add_climate_setpoint_with_inline_scale_on_both_temps():
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: (
+                    "DB1,W0 Scale(0,1000,0,100)"
+                ),
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: (
+                    "DB1,W2 Scale(0,1000,0,100)"
+                ),
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_CLIMATES][0]
+    assert stored[const.CONF_CURRENT_TEMPERATURE_ADDRESS] == (
+        "DB1,W0 Scale(0,1000,0,100)"
+    )
+    assert stored[const.CONF_TARGET_TEMPERATURE_ADDRESS] == (
+        "DB1,W2 Scale(0,1000,0,100)"
+    )
+
+
+def test_add_cover_position_with_inline_scale():
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_position(
+            {const.CONF_POSITION_STATE_ADDRESS: "DB1,W0 Scale(0,1000,0,100)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_POSITION_STATE_ADDRESS] == (
+        "DB1,W0 Scale(0,1000,0,100)"
+    )
+
+
+def test_add_cover_position_command_independent_scale():
+    """The command address may carry its own, independent Scale(...)."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_position(
+            {
+                const.CONF_POSITION_STATE_ADDRESS: "DB1,W0 Scale(0,1000,0,100)",
+                const.CONF_POSITION_COMMAND_ADDRESS: "DB1,W2 Scale(0,2000,0,100)",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_POSITION_STATE_ADDRESS] == (
+        "DB1,W0 Scale(0,1000,0,100)"
+    )
+    assert stored[const.CONF_POSITION_COMMAND_ADDRESS] == (
+        "DB1,W2 Scale(0,2000,0,100)"
+    )
+
+
+def test_add_cover_position_duplicate_detected_despite_different_scale():
+    """Two position covers on the same base address (different Scale())
+    are still flagged as a duplicate."""
+    flow = make_options_flow(
+        options={
+            const.CONF_COVERS: [
+                {const.CONF_POSITION_STATE_ADDRESS: "DB1,W0 Scale(0,1000,0,100)"}
+            ]
+        }
+    )
+
+    result = run_flow(
+        flow.async_step_covers_position(
+            {const.CONF_POSITION_STATE_ADDRESS: "DB1,W0 Scale(0,2000,0,100)"}
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "duplicate_entry"
+
+
+def test_add_light_with_inline_scale_on_brightness_state():
+    flow = make_options_flow(options={const.CONF_LIGHTS: []})
+
+    result = run_flow(
+        flow.async_step_lights(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_BRIGHTNESS_STATE_ADDRESS: (
+                    "DB1,B0 Scale(0,100,0,255)"
+                ),
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_LIGHTS][0]
+    assert stored[const.CONF_BRIGHTNESS_STATE_ADDRESS] == (
+        "DB1,B0 Scale(0,100,0,255)"
+    )
+    assert const.CONF_BRIGHTNESS_SCALE not in stored
+
+
+def test_add_light_rejects_malformed_inline_scale_on_brightness():
+    flow = make_options_flow(options={const.CONF_LIGHTS: []})
+
+    result = run_flow(
+        flow.async_step_lights(
+            {
+                const.CONF_STATE_ADDRESS: "DB1,X0.0",
+                const.CONF_BRIGHTNESS_STATE_ADDRESS: "DB1,B0 Scale(0,100,0)",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_scale_syntax"
+
+
 def test_edit_sensor_scan_interval_can_be_cleared():
     options = {
         const.CONF_SENSORS: [

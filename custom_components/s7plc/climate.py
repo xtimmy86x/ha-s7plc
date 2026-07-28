@@ -71,11 +71,14 @@ from .const import (
     DEFAULT_TEMP_STEP,
     MODE_VALUE_DISABLED,
 )
+from .address import parse_address_and_scale
 from .entity import S7BaseEntity
 from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
+    inverse_scale_value,
     make_unique_topic,
+    scale_value,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,12 +95,23 @@ async def async_setup_entry(
     entities = []
     seen_topics: set[str] = set()
     for item in entry.options.get(CONF_CLIMATES, []):
-        current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
-        if not current_temp_address:
+        raw_current_temp_address = item.get(CONF_CURRENT_TEMPERATURE_ADDRESS)
+        if not raw_current_temp_address:
             _LOGGER.warning(
                 "Climate entity requires current_temperature_address, "
                 "skipping item: %s",
                 item,
+            )
+            continue
+        try:
+            current_temp_address, current_temp_scale = parse_address_and_scale(
+                raw_current_temp_address
+            )
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid Scale(...) syntax for climate current_temperature_address"
+                " '%s', skipping",
+                raw_current_temp_address,
             )
             continue
 
@@ -164,16 +178,28 @@ async def async_setup_entry(
                     max_temp,
                     temp_step,
                     area,
+                    current_temp_scale=current_temp_scale,
                 )
             )
 
         elif control_mode == CONTROL_MODE_SETPOINT:
             # Mode 2: Setpoint control - PLC manages heating/cooling autonomously
-            target_temp_address = item.get(CONF_TARGET_TEMPERATURE_ADDRESS)
-            if not target_temp_address:
+            raw_target_temp_address = item.get(CONF_TARGET_TEMPERATURE_ADDRESS)
+            if not raw_target_temp_address:
                 _LOGGER.debug(
                     "Skipping setpoint control climate "
                     "without target_temperature_address"
+                )
+                continue
+            try:
+                target_temp_address, target_temp_scale = parse_address_and_scale(
+                    raw_target_temp_address
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Invalid Scale(...) syntax for climate"
+                    " target_temperature_address '%s', skipping",
+                    raw_target_temp_address,
                 )
                 continue
 
@@ -295,6 +321,8 @@ async def async_setup_entry(
                     preset_mode_dry_value=preset_mode_dry_value,
                     preset_mode_fan_only_value=preset_mode_fan_only_value,
                     on_off_address=on_off_address,
+                    current_temp_scale=current_temp_scale,
+                    target_temp_scale=target_temp_scale,
                 )
             )
 
@@ -332,6 +360,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         max_temp: float,
         temp_step: float,
         suggested_area_id: str | None = None,
+        current_temp_scale: tuple[float, float, float, float] | None = None,
     ):
         """Initialize direct control climate entity."""
         super().__init__(
@@ -344,6 +373,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
             suggested_area_id=suggested_area_id,
         )
         self._current_temp_address = current_temp_address
+        self._current_temp_scale = current_temp_scale
         self._heating_output_address = heating_output_address
         self._cooling_output_address = cooling_output_address
         self._heating_action_address = heating_action_address
@@ -412,6 +442,9 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
+            if self._current_temp_scale is not None:
+                rn, rx, sn, sx = self._current_temp_scale
+                return scale_value(float(value), rn, rx, sn, sx)
             return float(value)
         return None
 
@@ -605,6 +638,8 @@ class S7ClimateSetpointControl(
         preset_mode_dry_value: int = DEFAULT_PRESET_MODE_DRY_VALUE,
         preset_mode_fan_only_value: int = DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
         on_off_address: str | None = None,
+        current_temp_scale: tuple[float, float, float, float] | None = None,
+        target_temp_scale: tuple[float, float, float, float] | None = None,
     ):
         """Initialize setpoint control climate entity."""
         super().__init__(
@@ -617,7 +652,9 @@ class S7ClimateSetpointControl(
             suggested_area_id=suggested_area_id,
         )
         self._current_temp_address = current_temp_address
+        self._current_temp_scale = current_temp_scale
         self._target_temp_address = target_temp_address
+        self._target_temp_scale = target_temp_scale
         self._preset_mode_address = preset_mode_address
         self._hvac_status_address = hvac_status_address
         self._on_off_address = on_off_address
@@ -770,6 +807,9 @@ class S7ClimateSetpointControl(
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
+            if self._current_temp_scale is not None:
+                rn, rx, sn, sx = self._current_temp_scale
+                return scale_value(float(value), rn, rx, sn, sx)
             return float(value)
         return None
 
@@ -780,6 +820,9 @@ class S7ClimateSetpointControl(
         temp_topic = f"{self._topic}:target_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
+            if self._target_temp_scale is not None:
+                rn, rx, sn, sx = self._target_temp_scale
+                return scale_value(float(value), rn, rx, sn, sx)
             return float(value)
         return None
 
@@ -891,13 +934,17 @@ class S7ClimateSetpointControl(
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
 
-        # Clamp temperature to valid range
+        # Clamp temperature to valid range (engineering units, unaffected by
+        # any raw-PLC scaling)
         temperature = max(self._attr_min_temp, min(self._attr_max_temp, temperature))
 
         # Write target temperature to PLC
-        await self.coordinator.write_batched(
-            self._target_temp_address, float(temperature)
-        )
+        if self._target_temp_scale is not None:
+            rn, rx, sn, sx = self._target_temp_scale
+            plc_value = inverse_scale_value(float(temperature), rn, rx, sn, sx)
+        else:
+            plc_value = float(temperature)
+        await self.coordinator.write_batched(self._target_temp_address, plc_value)
 
         # If a mode is specified, set it first
         if (hvac_mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
