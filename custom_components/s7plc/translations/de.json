@@ -208,10 +208,6 @@
           "area": "Bereich",
           "device_class": "Geräteklasse",
           "value_multiplier": "Wertmultiplikator",
-          "scale_raw_min": "Roh-Min-Skalierung",
-          "scale_raw_max": "Roh-Max-Skalierung",
-          "min_value": "Skalierung Min",
-          "max_value": "Skalierung Max",
           "unit_of_measurement": "Maßeinheit",
           "state_class": "Zustandsklasse",
           "real_precision": "REAL-Nachkommastellen",
@@ -219,15 +215,11 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "name": "Name für den Sensor (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse(z.B. battery, power).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
-          "scale_raw_min": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren.",
-          "scale_raw_max": "Maximaler Rohwert (SPS) für die lineare Skalierung.",
-          "min_value": "Minimaler angezeigter Wert nach der Skalierung.",
-          "max_value": "Maximaler angezeigter Wert nach der Skalierung.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
           "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
@@ -329,8 +321,8 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4).",
-          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
@@ -374,7 +366,6 @@
           "pulse_duration": "Impulsdauer (s)",
           "brightness_state_address": "Helligkeits-Statusadresse",
           "brightness_command_address": "Helligkeits-Befehlsadresse",
-          "brightness_scale": "Helligkeitsskala (Maximalwert)",
           "scan_interval": "Abfrageintervall (s)",
           "add_another": "Nach dem Speichern weiteres hinzufügen"
         },
@@ -386,9 +377,8 @@
           "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
           "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
-          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus.",
-          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet.",
-          "brightness_scale": "Maximalwert, den der PLC für volle Helligkeit verwendet (z.B. 255 für BYTE, 100 für Prozent). Erforderlich wenn Helligkeitsadressen gesetzt sind.",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen.",
           "add_another": "Auf diesem Schritt bleiben, um weitere Lichter hinzuzufügen."
         }
@@ -407,14 +397,12 @@
           "max_value": "Maximalwert",
           "step": "Schritt",
           "value_multiplier": "Wertmultiplikator",
-          "scale_raw_min": "Roh-Min-Skalierung",
-          "scale_raw_max": "Roh-Max-Skalierung",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Nummernentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
@@ -424,8 +412,6 @@
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
-          "scale_raw_min": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren.",
-          "scale_raw_max": "Maximaler Rohwert (SPS) für die lineare Skalierung.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Nummernentitäten hinzuzufügen ?"
@@ -471,7 +457,7 @@
           "add_another": "Nach dem Speichern weitere hinzufügen"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
           "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
           "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet.",
@@ -517,8 +503,8 @@
           "add_another": "Nach dem Speichern weitere hinzufügen"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Nützlich, wenn die SPS die Klimaregelung aktivieren/deaktivieren muss. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional).",
           "on_off_address": "Optionale boolesche SPS-Adresse zum Ein-/Ausschalten dieses Thermostats, für Geräte ohne eigenen AUS-Modus (z.B. eine Heizung/Kühlung, die über einen separaten Ausgang ein-/ausgeschaltet wird). Schreibt Falsch/0, wenn der Zielmodus auf AUS gesetzt wird, und Wahr/1 für jeden anderen Modus. Leer lassen, um stattdessen das Standard-AUS-Verhalten zu verwenden. Wird auch von der SPS zurückgelesen, um den tatsächlichen Ein-/Aus-Zustand widerzuspiegeln (bidirektional).",
           "preset_mode_off_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUS gesetzt wird (z.B. 0). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden. Wenn on_off_address konfiguriert ist, wird dies für AUS ignoriert: der Modus bleibt verfügbar und wird stattdessen über diese Adresse geschaltet.",
@@ -582,7 +568,7 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
           "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
           "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus.",
@@ -626,8 +612,8 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional).",
           "on_off_address": "Optionale boolesche SPS-Adresse zum Ein-/Ausschalten dieses Thermostats, für Geräte ohne eigenen AUS-Modus (z.B. eine Heizung/Kühlung, die über einen separaten Ausgang ein-/ausgeschaltet wird). Schreibt Falsch/0, wenn der Zielmodus auf AUS gesetzt wird, und Wahr/1 für jeden anderen Modus. Leer lassen, um stattdessen das Standard-AUS-Verhalten zu verwenden. Wird auch von der SPS zurückgelesen, um den tatsächlichen Ein-/Aus-Zustand widerzuspiegeln (bidirektional).",
           "preset_mode_off_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUS gesetzt wird (z.B. 0). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden. Wenn on_off_address konfiguriert ist, wird dies für AUS ignoriert: der Modus bleibt verfügbar und wird stattdessen über diese Adresse geschaltet.",
@@ -690,25 +676,17 @@
           "area": "Bereich",
           "device_class": "Geräteklasse",
           "value_multiplier": "Wertmultiplikator",
-          "scale_raw_min": "Roh-Min-Skalierung",
-          "scale_raw_max": "Roh-Max-Skalierung",
-          "min_value": "Skalierung Min",
-          "max_value": "Skalierung Max",
           "unit_of_measurement": "Maßeinheit",
           "state_class": "Zustandsklasse",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2).",
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "name": "Name für den Sensor (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse (z.B. battery, power).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
-          "scale_raw_min": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren.",
-          "scale_raw_max": "Maximaler Rohwert (SPS) für die lineare Skalierung.",
-          "min_value": "Minimaler angezeigter Wert nach der Skalierung.",
-          "max_value": "Maximaler angezeigter Wert nach der Skalierung.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
           "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
@@ -802,8 +780,8 @@
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
         "data_description": {
-          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100).",
-          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet.",
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
@@ -844,7 +822,6 @@
           "pulse_duration": "Impulsdauer (s)",
           "brightness_state_address": "Helligkeits-Statusadresse",
           "brightness_command_address": "Helligkeits-Befehlsadresse",
-          "brightness_scale": "Helligkeitsskala (Maximalwert)",
           "scan_interval": "Abfrageintervall (s)"
         },
         "data_description": {
@@ -855,9 +832,8 @@
           "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
           "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
-          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit. Leer lassen für nur Ein/Aus.",
-          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen. Wenn leer, wird die Helligkeits-Statusadresse verwendet.",
-          "brightness_scale": "Maximalwert, den der PLC für volle Helligkeit verwendet. Erforderlich wenn Helligkeitsadressen gesetzt sind.",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit. Leer lassen für nur Ein/Aus. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen. Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen."
         }
       },
@@ -875,13 +851,11 @@
           "max_value": "Maximalwert",
           "step": "Schritt",
           "value_multiplier": "Wertmultiplikator",
-          "scale_raw_min": "Roh-Min-Skalierung",
-          "scale_raw_max": "Roh-Max-Skalierung",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4).",
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optional hinzufügen: 'Scale(raw_min,raw_max,scale_min,scale_max)', um den Rohwert zu skalieren, z.B. 'DB6,B23 Scale(0,1,0,10)', als Dezimaltrennzeichen (.) verwenden.",
           "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Nummernentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
@@ -891,8 +865,6 @@
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
           "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
-          "scale_raw_min": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren.",
-          "scale_raw_max": "Maximaler Rohwert (SPS) für die lineare Skalierung.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
@@ -941,6 +913,7 @@
       "state_addresses_required": "Wenn 'Zustandsthemen verwenden' aktiviert ist, sind sowohl geöffnete als auch geschlossene Zustandsvariablen erforderlich.",
       "invalid_source_entity": "Quellentität ist erforderlich.",
       "invalid_number": "Ungültiger numerischer Wert.",
+      "invalid_scale_syntax": "Ungültige Scale(...)-Syntax. Verwenden Sie: <Adresse> Scale(raw_min,raw_max,scale_min,scale_max), z.B. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Geben Sie eine oder mehrere ganze Zahlen durch Kommas getrennt ein (z.B. 2,3).",
       "invalid_range": "Der Mindestwert darf nicht größer als der Maximalwert sein.",
       "no_items": "Es sind keine konfigurierten Elemente zum Bearbeiten vorhanden.",
@@ -949,8 +922,6 @@
       "invalid_json": "Ungültige JSON-Nutzlast.",
       "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
       "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
-      "scale_raw_requires_min_max": "Wenn Skalierungs-Rohmin/-max gesetzt sind, müssen auch Min-Wert und Max-Wert angegeben werden.",
-      "scale_requires_all_four": "Die Skalierung erfordert alle vier Parameter: Minimalwert, Maximalwert, Roh-Min und Roh-Max.",
       "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen.",
       "sync_pulse_conflict": "Statussynchronisierung und Impulsbefehl können nicht gleichzeitig aktiviert werden.",
       "sync_same_address": "Die Statussynchronisierung erfordert eine Befehlsadresse, die sich von der Statusadresse unterscheidet."

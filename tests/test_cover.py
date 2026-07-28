@@ -695,6 +695,87 @@ async def test_position_cover_setup(fake_hass, mock_coordinator, device_info):
 
 
 @pytest.mark.asyncio
+async def test_position_cover_setup_with_inline_scale(
+    fake_hass, mock_coordinator, device_info
+):
+    """position_state/command addresses with inline Scale(...) are parsed
+    into clean addresses (used for polling) plus scale tuples (used for
+    read/write conversion)."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,w0 Scale(0,1000,0,100)",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,w2 Scale(0,2000,0,100)",
+                CONF_NAME: "Scaled Position Cover",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.cover.get_coordinator_and_device_info"
+    ) as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    cover = async_add_entities.call_args[0][0][0]
+    assert cover._position_state_address == "db1,w0"
+    assert cover._position_command_address == "db1,w2"
+    assert cover._position_state_scale == (0.0, 1000.0, 0.0, 100.0)
+    assert cover._position_command_scale == (0.0, 2000.0, 0.0, 100.0)
+
+    # Coordinator polls the clean address, not the raw stored text.
+    _topic, address = mock_coordinator.add_item.call_args[0][:2]
+    assert address == "db1,w0"
+
+    # Read: raw 500 in [0,1000] -> engineering 50 in [0,100]
+    mock_coordinator.data = {cover._position_topic: 500}
+    assert cover.current_cover_position == 50
+
+    # Write: engineering 50 in [0,100] -> raw in [0,2000] -> 1000
+    cover.hass = fake_hass
+    await cover.async_set_cover_position(position=50)
+    mock_coordinator.write_batched.assert_called_with("db1,w2", 1000.0)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_scale_with_invert(fake_hass, mock_coordinator, device_info):
+    """Scale and invert_position compose: scale is applied to the raw
+    value first, then invert flips the resulting 0-100 engineering value."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,w0",
+        "db1,w0",
+        invert_position=True,
+        position_state_scale=(0.0, 1000.0, 0.0, 100.0),
+        position_command_scale=(0.0, 1000.0, 0.0, 100.0),
+    )
+    cover.hass = fake_hass
+
+    # raw 200 in [0,1000] -> engineering 20, inverted -> 80
+    mock_coordinator.data = {"cover:position:db1,w0": 200}
+    assert cover.current_cover_position == 80
+
+    # Setting position=80 inverts to 20, then inverse-scales to raw 200
+    await cover.async_set_cover_position(position=80)
+    mock_coordinator.write_batched.assert_called_with("db1,w0", 200.0)
+
+
+@pytest.mark.asyncio
 async def test_position_cover_current_position(fake_hass, mock_coordinator, device_info):
     """Test position cover current_cover_position property."""
     from custom_components.s7plc.cover import S7PositionCover
@@ -1048,7 +1129,10 @@ async def test_position_cover_stop_writes_current_position(fake_hass, mock_coord
 
 @pytest.mark.asyncio
 async def test_position_cover_stop_inverted(fake_hass, mock_coordinator, device_info):
-    """Test stopping an inverted position cover writes the inverted position."""
+    """Stopping an inverted position cover must write back the raw PLC value
+    that reproduces the current (displayed) position, not the displayed
+    value itself — it re-applies invert via async_set_cover_position rather
+    than writing the already-inverted read-back value directly."""
     from custom_components.s7plc.cover import S7PositionCover
 
     cover = S7PositionCover(
@@ -1067,8 +1151,9 @@ async def test_position_cover_stop_inverted(fake_hass, mock_coordinator, device_
 
     await cover.async_stop_cover()
 
-    # _get_position_value returns inverted value (70), so 70 is written
-    mock_coordinator.write_batched.assert_called_with("db1,b1", 70)
+    # Displayed position (70) is inverted back to the raw PLC value (30)
+    # before writing, holding the cover at its actual current position.
+    mock_coordinator.write_batched.assert_called_with("db1,b1", 30)
 
 
 @pytest.mark.asyncio

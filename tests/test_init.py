@@ -300,3 +300,120 @@ def test_migrate_uid_device_prefix_upgrades_legacy_short_uid(monkeypatch):
     kwargs = update_calls[0][1]
     assert kwargs["data"][s7init.CONF_UID_DEVICE_PREFIX_MIGRATED] is True
     assert kwargs["options"]["sensors"][0]["uid"] == "s7plc-plc.local-0-1:already-set"
+
+
+def test_migrate_folds_legacy_scale_fields_into_address_at_startup(monkeypatch):
+    """A sensor still using the old separate scale/min/max keys gets them
+    folded into an inline Scale(...) address suffix on first startup, and
+    the four legacy keys are removed."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+            # Already migrated to a device_id-prefixed uid, so this test can
+            # focus purely on scale-field folding.
+            s7init.CONF_UID_DEVICE_PREFIX_MIGRATED: True,
+        },
+        options={
+            "sensors": [
+                {
+                    "address": "DB6,B23",
+                    "name": "Legacy Scaled Sensor",
+                    "uid": "already-set",
+                    "scale_raw_min": 0.0,
+                    "scale_raw_max": 1.0,
+                    "min_value": 0.0,
+                    "max_value": 10.0,
+                }
+            ],
+        },
+        entry_id="test_scale_migration",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    # uid migration was a no-op (already migrated); only the scale migration
+    # fired.
+    assert len(update_calls) == 1
+    new_options = update_calls[0][1]["options"]
+    sensor_item = new_options["sensors"][0]
+    assert sensor_item["address"] == "DB6,B23 Scale(0,1,0,10)"
+    assert "scale_raw_min" not in sensor_item
+    assert "scale_raw_max" not in sensor_item
+    assert "min_value" not in sensor_item
+    assert "max_value" not in sensor_item
+
+
+def test_migrate_folds_legacy_brightness_scale_into_address_at_startup(monkeypatch):
+    """A light still using the old brightness_scale key gets it folded into
+    an inline Scale(...) address suffix on first startup, and the legacy
+    key is removed."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+            # Already migrated to a device_id-prefixed uid, so this test can
+            # focus purely on brightness-scale folding.
+            s7init.CONF_UID_DEVICE_PREFIX_MIGRATED: True,
+        },
+        options={
+            "lights": [
+                {
+                    "state_address": "DB1,X0.0",
+                    "name": "Legacy Dimmer",
+                    "uid": "already-set",
+                    "brightness_state_address": "DB1,B0",
+                    "brightness_scale": 100,
+                }
+            ],
+        },
+        entry_id="test_brightness_scale_migration",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    # uid migration was a no-op (already migrated); only the brightness-scale
+    # migration fired.
+    assert len(update_calls) == 1
+    new_options = update_calls[0][1]["options"]
+    light_item = new_options["lights"][0]
+    assert light_item["brightness_state_address"] == "DB1,B0 Scale(0,100,0,255)"
+    assert "brightness_scale" not in light_item

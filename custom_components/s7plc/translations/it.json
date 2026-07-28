@@ -208,10 +208,6 @@
           "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
-          "scale_raw_min": "Scala raw min",
-          "scale_raw_max": "Scala raw max",
-          "min_value": "Scala min",
-          "max_value": "Scala max",
           "unit_of_measurement": "Unità di misura",
           "state_class": "State class",
           "real_precision": "Numero decimali REAL",
@@ -219,15 +215,11 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "name": "Nome descrittivo opzionale per il sensore.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-          "scale_raw_min": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura.",
-          "scale_raw_max": "Valore massimo grezzo (PLC) per la scalatura lineare.",
-          "min_value": "Valore minimo visualizzato dopo la scalatura.",
-          "max_value": "Valore massimo visualizzato dopo la scalatura.",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
           "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
@@ -329,8 +321,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4).",
-          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
           "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
@@ -374,7 +366,6 @@
           "pulse_duration": "Durata impulso (s)",
           "brightness_state_address": "Indirizzo stato luminosità",
           "brightness_command_address": "Indirizzo comando luminosità",
-          "brightness_scale": "Scala luminosità (valore massimo)",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
@@ -386,9 +377,8 @@
           "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
           "pulse_command": "Invia un impulso invece dei comandi on/off.",
           "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
-          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off.",
-          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità.",
-          "brightness_scale": "Valore massimo usato dal PLC per la luminosità piena (es. 255 per BYTE, 100 per percentuale). Obbligatorio quando sono impostati gli indirizzi luminosità.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC.",
           "add_another": "Resta su questo passaggio per aggiungere altre luci."
         }
@@ -407,14 +397,12 @@
           "max_value": "Valore massimo",
           "step": "Passo",
           "value_multiplier": "Moltiplicatore di valore",
-          "scale_raw_min": "Scala raw min",
-          "scale_raw_max": "Scala raw max",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
@@ -424,8 +412,6 @@
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-          "scale_raw_min": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura.",
-          "scale_raw_max": "Valore massimo grezzo (PLC) per la scalatura lineare.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questa schermata per aggiungere altre entità di tipo numero."
@@ -471,7 +457,7 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
           "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
           "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento. Se non specificato, l'azione viene dedotta dalla modalità.",
@@ -517,8 +503,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Utile se il PLC deve abilitare/disabilitare il controllo climatico. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale).",
           "on_off_address": "Indirizzo PLC booleano opzionale per accendere/spegnere questo termostato, per dispositivi privi di una propria modalità OFF (es. un riscaldatore/raffreddatore acceso/spento tramite un'uscita separata). Scrive Falso/0 quando la modalità target è impostata su OFF, e Vero/1 per qualsiasi altra modalità. Lascia vuoto per usare invece il comportamento OFF standard. Viene anche riletto dal PLC per riflettere lo stato on/off effettivo (bidirezionale).",
           "preset_mode_off_value": "Valore PLC scritto quando la modalità è impostata su OFF (es. 0). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato. Se on_off_address è configurato, questo viene ignorato per OFF: la modalità rimane disponibile e viene commutata tramite tale indirizzo.",
@@ -582,25 +568,17 @@
           "area": "Area",
           "device_class": "Device class",
           "value_multiplier": "Moltiplicatore di valore",
-          "scale_raw_min": "Scala raw min",
-          "scale_raw_max": "Scala raw max",
-          "min_value": "Scala min",
-          "max_value": "Scala max",
           "unit_of_measurement": "Unità di misura",
           "state_class": "State class",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2).",
+          "address": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "name": "Nome descrittivo opzionale per il sensore.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Device class di Home Assistant per migliorare UI/comportamento (es. batteria, power).",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-          "scale_raw_min": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura.",
-          "scale_raw_max": "Valore massimo grezzo (PLC) per la scalatura lineare.",
-          "min_value": "Valore minimo visualizzato dopo la scalatura.",
-          "max_value": "Valore massimo visualizzato dopo la scalatura.",
           "unit_of_measurement": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla device class.",
           "state_class": "State class per le statistiche: 'measurement' per valori istantanei, 'total' per valori cumulativi che possono diminuire, 'total_increasing' per contatori (es. energia, consumo acqua). Lascia vuoto per automatico.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
@@ -694,8 +672,8 @@
           "invert_position": "Inverti posizione (0=aperto, 100=chiuso)"
         },
         "data_description": {
-          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100).",
-          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato.",
+          "position_state_address": "Indirizzo PLC per leggere il valore di posizione corrente (0-100). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "position_command_address": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "stop_command_address": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente.",
           "stop_pulse_duration": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500ms).",
           "name": "Nome descrittivo opzionale per la cover.",
@@ -736,7 +714,6 @@
           "pulse_duration": "Durata impulso (s)",
           "brightness_state_address": "Indirizzo stato luminosità",
           "brightness_command_address": "Indirizzo comando luminosità",
-          "brightness_scale": "Scala luminosità (valore massimo)",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
@@ -747,9 +724,8 @@
           "sync_state": "Se abilitato, l'indirizzo di comando viene aggiornato automaticamente con lo stato on/off corrente.",
           "pulse_command": "Invia un impulso invece dei comandi on/off.",
           "pulse_duration": "Durata dell'impulso in secondi (0,1-60s, supporta decimali). Predefinito: 0,5s.",
-          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità. Lasciare vuoto per solo on/off.",
-          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità. Se omesso, viene usato l'indirizzo stato luminosità.",
-          "brightness_scale": "Valore massimo usato dal PLC per la luminosità piena. Obbligatorio quando sono impostati gli indirizzi luminosità.",
+          "brightness_state_address": "Indirizzo numerico del PLC per leggere il livello di luminosità. Lasciare vuoto per solo on/off. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "brightness_command_address": "Indirizzo numerico del PLC per scrivere i comandi di luminosità. Se omesso, viene usato l'indirizzo stato luminosità. Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "scan_interval": "Sovrascrive l'intervallo di polling per questo tag in secondi. Lasciare vuoto per ereditare il valore predefinito del PLC."
         }
       },
@@ -767,13 +743,11 @@
           "max_value": "Valore massimo",
           "step": "Passo",
           "value_multiplier": "Moltiplicatore di valore",
-          "scale_raw_min": "Scala raw min",
-          "scale_raw_max": "Scala raw max",
           "real_precision": "Numero decimali REAL",
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4).",
+          "address": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "command_address": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato.",
           "name": "Nome descrittivo opzionale per l'entità numero.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
@@ -783,8 +757,6 @@
           "max_value": "Limite massimo opzionale per il valore mostrato in Home Assistant.",
           "step": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente.",
           "value_multiplier": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali).",
-          "scale_raw_min": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura.",
-          "scale_raw_max": "Valore massimo grezzo (PLC) per la scalatura lineare.",
           "real_precision": "Numero di cifre decimali da visualizzare per i valori REAL (default = 1).",
           "scan_interval": "Frequenza di polling specifica per questo numero in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
         }
@@ -826,7 +798,7 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "heating_output_address": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento.",
           "cooling_output_address": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento.",
           "heating_action_address": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento.",
@@ -870,8 +842,8 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4).",
-          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8).",
+          "current_temperature_address": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
+          "target_temperature_address": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8). Facoltativamente aggiungi: 'Scale(raw_min,raw_max,scale_min,scale_max)' per scalare il valore grezzo, es. 'DB6,B23 Scale(0,1,0,10)', usa (.) come separatore decimale.",
           "preset_mode_address": "Indirizzo PLC opzionale per scrivere la modalità HVAC, utilizzando il valore configurato di seguito per ciascuna modalità. Viene anche riletto dal PLC per riflettere la modalità effettiva (bidirezionale).",
           "on_off_address": "Indirizzo PLC booleano opzionale per accendere/spegnere questo termostato, per dispositivi privi di una propria modalità OFF (es. un riscaldatore/raffreddatore acceso/spento tramite un'uscita separata). Scrive Falso/0 quando la modalità target è impostata su OFF, e Vero/1 per qualsiasi altra modalità. Lascia vuoto per usare invece il comportamento OFF standard. Viene anche riletto dal PLC per riflettere lo stato on/off effettivo (bidirezionale).",
           "preset_mode_off_value": "Valore PLC scritto quando la modalità è impostata su OFF (es. 0). Imposta -1 per nascondere questa modalità dall'elenco delle modalità del termostato. Se on_off_address è configurato, questo viene ignorato per OFF: la modalità rimane disponibile e viene commutata tramite tale indirizzo.",
@@ -940,6 +912,7 @@
       "duplicate_addresses_in_import": "L'importazione contiene indirizzi duplicati nello stesso tipo di entità.",
       "invalid_source_entity": "L'entità sorgente è obbligatoria.",
       "invalid_number": "Valore numerico non valido.",
+      "invalid_scale_syntax": "Sintassi Scale(...) non valida. Usa: <indirizzo> Scale(raw_min,raw_max,scale_min,scale_max), es. DB6,B23 Scale(0,1,0,10).",
       "invalid_mode_values": "Inserisci uno o più numeri interi separati da virgole (es. 2,3).",
       "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
       "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",
@@ -949,8 +922,6 @@
       "invalid_json": "Payload JSON non valido.",
       "invalid_selection": "Seleziona un tipo di elemento valido.",
       "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
-      "scale_raw_requires_min_max": "Se si impostano scala raw min/max, è obbligatorio specificare anche min value e max value.",
-      "scale_requires_all_four": "La scalatura richiede tutti e quattro i parametri: valore minimo, valore massimo, scala raw min e scala raw max.",
       "text_requires_string_type": "Le entità testo richiedono indirizzi di tipo STRING o WSTRING.",
       "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente.",
       "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato."

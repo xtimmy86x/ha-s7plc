@@ -472,6 +472,100 @@ async def test_setup_entry_no_climates(fake_hass, mock_coordinator):
 
     assert not async_add_entities.called
 
+
+# ============================================================================
+# Tests for inline Scale(...) on temperature addresses
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_direct_control_scaled_current_temperature(
+    fake_hass, mock_coordinator
+):
+    """current_temperature_address with an inline Scale(...) is scaled on
+    read; the coordinator polls the clean (unsuffixed) address."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_CLIMATES: [
+            {
+                CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_DIRECT,
+                CONF_CURRENT_TEMPERATURE_ADDRESS: (
+                    f"{TEST_CURRENT_TEMP_ADDRESS} Scale(0,1000,0,100)"
+                ),
+                CONF_HEATING_OUTPUT_ADDRESS: TEST_HEATING_OUTPUT,
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.climate.get_coordinator_and_device_info",
+        return_value=(mock_coordinator, {"name": "Test PLC"}, "test_device"),
+    ):
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entity = async_add_entities.call_args[0][0][0]
+    topic, address = mock_coordinator.add_item_calls[0][0][:2]
+    assert address == TEST_CURRENT_TEMP_ADDRESS
+
+    mock_coordinator.data = {f"{entity._topic}:current_temp": 500}
+    # raw 500 in [0,1000] -> engineering 50 in [0,100]
+    assert entity.current_temperature == 50.0
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_setpoint_control_scaled_temperatures(
+    fake_hass, mock_coordinator
+):
+    """Both current and target temperature addresses may carry their own,
+    independent Scale(...); async_set_temperature writes the inverse-scaled
+    raw value."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_CLIMATES: [
+            {
+                CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+                CONF_CURRENT_TEMPERATURE_ADDRESS: (
+                    f"{TEST_CURRENT_TEMP_ADDRESS} Scale(0,1000,0,100)"
+                ),
+                CONF_TARGET_TEMPERATURE_ADDRESS: (
+                    f"{TEST_TARGET_TEMP_ADDRESS} Scale(0,2000,0,100)"
+                ),
+                CONF_MIN_TEMP: 0.0,
+                CONF_MAX_TEMP: 100.0,
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.climate.get_coordinator_and_device_info",
+        return_value=(mock_coordinator, {"name": "Test PLC"}, "test_device"),
+    ):
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entity = async_add_entities.call_args[0][0][0]
+
+    mock_coordinator.data = {
+        f"{entity._topic}:current_temp": 500,
+        f"{entity._topic}:target_temp": 1000,
+    }
+    # raw 500 in [0,1000] -> 50; raw 1000 in [0,2000] -> 50
+    assert entity.current_temperature == 50.0
+    assert entity.target_temperature == 50.0
+
+    entity.hass = fake_hass
+    await entity.async_set_temperature(temperature=75.0)
+    # engineering 75 in [0,100] -> raw in [0,2000]: 75 * 2000 / 100 = 1500
+    assert (
+        "write_batched",
+        TEST_TARGET_TEMP_ADDRESS,
+        1500.0,
+    ) in mock_coordinator.write_calls
+
+
 # ============================================================================
 # Tests for State Restoration
 # ============================================================================
