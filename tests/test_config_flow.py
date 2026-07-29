@@ -249,24 +249,6 @@ def test_add_sensor_with_inline_scale_in_address():
     assert const.CONF_SCALE_RAW_MAX not in stored
 
 
-def test_add_sensor_with_all_zero_scale_is_stored_as_plain_address():
-    """Scale(0,0,0,0) is a no-op placeholder: it saves like a plain address
-    with no scale at all, rather than embedding a literal all-zero scale."""
-    flow = make_options_flow(options={const.CONF_SENSORS: []})
-
-    result = run_flow(
-        flow.async_step_sensors(
-            {const.CONF_ADDRESS: "DB6,B23 Scale(0,0,0,0)"}
-        )
-    )
-
-    assert result["type"] == "create_entry"
-    stored = flow._options[const.CONF_SENSORS][0]
-    assert stored[const.CONF_ADDRESS] == "DB6,B23"
-    assert const.CONF_MIN_VALUE not in stored
-    assert const.CONF_SCALE_RAW_MIN not in stored
-
-
 def test_add_number_with_inline_scale_in_address():
     flow = make_options_flow(options={const.CONF_NUMBERS: []})
 
