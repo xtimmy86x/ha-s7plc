@@ -123,7 +123,6 @@ from .const import (
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
-    CONF_VALUE_MULTIPLIER,
     CONNECTION_TYPE_RACK_SLOT,
     CONNECTION_TYPE_TSAP,
     CONTROL_MODE_DIRECT,
@@ -229,9 +228,6 @@ scan_interval_selector = num_sel(min=0.1, max=3600, step=0.1)
 real_precision_selector = num_sel(min=0, max=6, step=1)
 operate_time_selector = num_sel(min=0, max=3600, step=1)
 
-value_multiplier_selector = num_sel(min=-1000, max=1000, step=0.05)
-scale_value_selector = num_sel(step=0.001)
-
 pulse_duration_selector = num_sel(min=0.1, max=60, step=0.1)
 
 number_value_selector = num_sel(step=0.01)
@@ -308,7 +304,6 @@ def _add_schema_sensor(flow) -> vol.Schema:
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_SENSORS),
             vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
-            vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
             vol.Optional(CONF_STATE_CLASS): state_class_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
@@ -438,7 +433,6 @@ def _add_schema_number(flow) -> vol.Schema:
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_NUMBERS),
             vol.Optional(CONF_UNIT_OF_MEASUREMENT): selector.TextSelector(),
             vol.Optional(CONF_STEP): positive_number_selector,
-            vol.Optional(CONF_VALUE_MULTIPLIER): value_multiplier_selector,
             vol.Optional(CONF_MIN_VALUE): number_value_selector,
             vol.Optional(CONF_MAX_VALUE): number_value_selector,
             vol.Optional(CONF_REAL_PRECISION): real_precision_selector,
@@ -594,7 +588,6 @@ def _edit_schema_sensor(flow, item: dict[str, Any]) -> vol.Schema:
     for key, sel in [
         (CONF_DEVICE_CLASS, _device_selector_by_type(CONF_SENSORS)),
         (CONF_UNIT_OF_MEASUREMENT, selector.TextSelector()),
-        (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
         (CONF_STATE_CLASS, state_class_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
@@ -821,7 +814,6 @@ def _edit_schema_number(flow, item: dict[str, Any]) -> vol.Schema:
     d[k] = v
     for key, sel in [
         (CONF_STEP, positive_number_selector),
-        (CONF_VALUE_MULTIPLIER, value_multiplier_selector),
         (CONF_REAL_PRECISION, real_precision_selector),
         (CONF_SCAN_INTERVAL, scan_interval_selector),
         (CONF_AREA, flow._get_area_selector()),
@@ -2140,14 +2132,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return result
 
-    @staticmethod
-    def _apply_value_multiplier(item: dict[str, Any], value: Any | None) -> None:
-        normalized = S7PLCOptionsFlow._normalize_numeric_value(value)
-        if normalized is None:
-            item.pop(CONF_VALUE_MULTIPLIER, None)
-        else:
-            item[CONF_VALUE_MULTIPLIER] = normalized
-
     def _has_duplicate(
         self,
         option_key: str,
@@ -2481,7 +2465,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         )
 
         # Apply specific transformations
-        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -2969,7 +2952,6 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_STEP] = step_value
 
         # Apply transformations
-        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 

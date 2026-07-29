@@ -13,6 +13,7 @@ from custom_components.s7plc.helpers import (
     migrate_legacy_brightness_scale,
     migrate_legacy_scale_fields,
     migrate_legacy_uid_device_prefix,
+    migrate_legacy_value_multiplier,
     parse_pulse_duration,
     scale_value,
     inverse_scale_value,
@@ -547,6 +548,63 @@ def test_migrate_legacy_brightness_scale_idempotent():
     first = dict(options["lights"][0])
     assert migrate_legacy_brightness_scale(options) is False
     assert options["lights"][0] == first
+
+
+# ---------------------------------------------------------------------------
+# migrate_legacy_value_multiplier
+# ---------------------------------------------------------------------------
+
+
+def test_migrate_legacy_value_multiplier_folds_into_address():
+    """value_multiplier=M is mathematically Scale(0,1,0,M): scale_value(raw,
+    0,1,0,M) == raw*M and inverse_scale_value(v,0,1,0,M) == v/M, matching
+    the old read (*M) / write (/M) formulas exactly."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "value_multiplier": 2.5}],
+        "numbers": [{"address": "DB1,REAL4", "value_multiplier": 0.1}],
+    }
+    changed = migrate_legacy_value_multiplier(options)
+    assert changed is True
+    sensor_item = options["sensors"][0]
+    assert sensor_item["address"] == "DB1,REAL0 Scale(0,1,0,2.5)"
+    assert "value_multiplier" not in sensor_item
+    number_item = options["numbers"][0]
+    assert number_item["address"] == "DB1,REAL4 Scale(0,1,0,0.1)"
+    assert "value_multiplier" not in number_item
+
+
+def test_migrate_legacy_value_multiplier_dropped_when_scale_already_active():
+    """If the address already carries its own Scale(...) (which always took
+    precedence over the multiplier, making it inert), the multiplier is
+    just dropped without altering the address."""
+    options = {
+        "sensors": [
+            {
+                "address": "DB1,REAL0 Scale(0,1000,0,100)",
+                "value_multiplier": 2.5,
+            }
+        ],
+    }
+    changed = migrate_legacy_value_multiplier(options)
+    assert changed is True
+    item = options["sensors"][0]
+    assert item["address"] == "DB1,REAL0 Scale(0,1000,0,100)"
+    assert "value_multiplier" not in item
+
+
+def test_migrate_legacy_value_multiplier_noop_when_nothing_to_migrate():
+    options = {"sensors": [{"address": "DB1,REAL0"}], "numbers": []}
+    assert migrate_legacy_value_multiplier(options) is False
+
+
+def test_migrate_legacy_value_multiplier_idempotent():
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "value_multiplier": 2.5}],
+    }
+    assert migrate_legacy_value_multiplier(options) is True
+    first = dict(options["sensors"][0])
+    assert migrate_legacy_value_multiplier(options) is False
+    assert options["sensors"][0] == first
 
 
 # ---------------------------------------------------------------------------

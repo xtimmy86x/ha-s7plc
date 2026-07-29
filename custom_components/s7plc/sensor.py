@@ -35,7 +35,6 @@ from .const import (
     CONF_STATE_CLASS,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
-    CONF_VALUE_MULTIPLIER,
 )
 from .entity import S7BaseEntity
 from .helpers import (
@@ -303,7 +302,6 @@ async def async_setup_entry(
         topic = f"sensor:{address}"
         unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
-        value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
         state_class = item.get(CONF_STATE_CLASS)
         real_precision = item.get(CONF_REAL_PRECISION)
@@ -325,7 +323,6 @@ async def async_setup_entry(
                 topic,
                 address,
                 device_class,
-                value_multiplier,
                 unit_of_measurement,
                 state_class,
                 area,
@@ -413,7 +410,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         topic: str,
         address: str,
         device_class: str | None,
-        value_multiplier: float | None,
         unit_of_measurement: str | None = None,
         state_class: str | None = None,
         suggested_area_id: str | None = None,
@@ -431,19 +427,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             address=address,
             suggested_area_id=suggested_area_id,
         )
-
-        # Parse value_multiplier with defensive validation
-        self._value_multiplier = None
-        if value_multiplier not in (None, ""):
-            try:
-                self._value_multiplier = float(value_multiplier)
-            except (TypeError, ValueError) as err:
-                _LOGGER.warning(
-                    "Invalid value_multiplier '%s' for sensor %s: %s. Ignoring.",
-                    value_multiplier,
-                    name,
-                    err,
-                )
 
         # Parse linear-scale parameters (all four must be present to activate)
         self._scale_params: tuple[float, float, float, float] | None = None
@@ -537,12 +520,9 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                     value,
                 )
                 return value
-        # Linear scaling takes precedence over multiplier
         if self._scale_params is not None:
             rn, rx, sn, sx = self._scale_params
             return scale_value(numeric_value, rn, rx, sn, sx)
-        if self._value_multiplier is not None:
-            return numeric_value * self._value_multiplier
         return value
 
     @property
@@ -554,8 +534,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             attrs["scale_raw_max"] = rx
             attrs["min_value"] = sn
             attrs["max_value"] = sx
-        elif self._value_multiplier is not None:
-            attrs["value_multiplier"] = self._value_multiplier
         return attrs
 
 

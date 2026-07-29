@@ -62,6 +62,12 @@ def parse_address_and_scale(
     ``(address, (raw_min, raw_max, scale_min, scale_max))`` when a valid
     suffix is found. Raises ``ValueError`` if the input contains "scale("
     but doesn't match the expected four-number syntax.
+
+    ``Scale(0,0,0,0)`` is a special no-op placeholder: it passes validation
+    like any other syntactically valid Scale(...), but is treated the same
+    as no suffix at all (returns ``None`` for the scale) rather than being
+    passed through — a literal all-zero scale would otherwise divide by
+    zero on every read/write and always resolve to 0.
     """
     if raw is None:
         return raw, None
@@ -84,6 +90,8 @@ def parse_address_and_scale(
         float(match.group("scale_min")),
         float(match.group("scale_max")),
     )
+    if scale == (0.0, 0.0, 0.0, 0.0):
+        return address, None
     return address, scale
 
 

@@ -207,7 +207,6 @@
           "name": "Name",
           "area": "Bereich",
           "device_class": "Geräteklasse",
-          "value_multiplier": "Wertmultiplikator",
           "unit_of_measurement": "Maßeinheit",
           "state_class": "Zustandsklasse",
           "real_precision": "REAL-Nachkommastellen",
@@ -215,11 +214,10 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "name": "Name für den Sensor (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse(z.B. battery, power).",
-          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
           "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
@@ -321,8 +319,8 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
@@ -377,8 +375,8 @@
           "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
           "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
-          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen.",
           "add_another": "Auf diesem Schritt bleiben, um weitere Lichter hinzuzufügen."
         }
@@ -396,14 +394,13 @@
           "min_value": "Mindestwert",
           "max_value": "Maximalwert",
           "step": "Schritt",
-          "value_multiplier": "Wertmultiplikator",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "name": "Name für die Nummernentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Geräteklasse für die Nummernentität (z.B. temperature, voltage, power).",
@@ -411,7 +408,6 @@
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
-          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Nummernentitäten hinzuzufügen ?"
@@ -457,7 +453,7 @@
           "add_another": "Nach dem Speichern weitere hinzufügen"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
           "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
           "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet.",
@@ -503,9 +499,9 @@
           "add_another": "Nach dem Speichern weitere hinzufügen"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Nützlich, wenn die SPS die Klimaregelung aktivieren/deaktivieren muss. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Nützlich, wenn die SPS die Klimaregelung aktivieren/deaktivieren muss. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "on_off_address": "Optionale boolesche SPS-Adresse zum Ein-/Ausschalten dieses Thermostats, für Geräte ohne eigenen AUS-Modus (z.B. eine Heizung/Kühlung, die über einen separaten Ausgang ein-/ausgeschaltet wird). Schreibt Falsch/0, wenn der Zielmodus auf AUS gesetzt wird, und Wahr/1 für jeden anderen Modus. Leer lassen, um stattdessen das Standard-AUS-Verhalten zu verwenden. Wird auch von der SPS zurückgelesen, um den tatsächlichen Ein-/Aus-Zustand widerzuspiegeln (bidirektional).",
           "preset_mode_off_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUS gesetzt wird (z.B. 0). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden. Wenn on_off_address konfiguriert ist, wird dies für AUS ignoriert: der Modus bleibt verfügbar und wird stattdessen über diese Adresse geschaltet.",
           "preset_mode_heat_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf HEIZEN gesetzt wird (z.B. 1). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden.",
@@ -514,7 +510,7 @@
           "preset_mode_auto_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUTO gesetzt wird (älteres Äquivalent zur automatischen Heiz-/Kühlumschaltung, ähnlich wie Heizen/Kühlen). Standardmäßig deaktiviert (-1).",
           "preset_mode_dry_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf TROCKNEN gesetzt wird (nur Entfeuchtung, keine Temperaturregelung). Standardmäßig deaktiviert (-1).",
           "preset_mode_fan_only_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf NUR LÜFTER gesetzt wird (nur Luftumwälzung, kein Heizen/Kühlen). Standardmäßig deaktiviert (-1).",
-          "hvac_status_address": "Optionale SPS-Adresse zum Lesen des tatsächlichen HVAC-Status, abgeglichen mit den unten für jeden Modus konfigurierten Werten. Wenn nicht gesetzt, wird der Status aus dem Temperaturvergleich abgeleitet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "hvac_status_address": "Optionale SPS-Adresse zum Lesen des tatsächlichen HVAC-Status, abgeglichen mit den unten für jeden Modus konfigurierten Werten. Wenn nicht gesetzt, wird der Status aus dem Temperaturvergleich abgeleitet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "hvac_status_off_values": "SPS-Wert(e) für AUS, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 0 oder 0,10). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
           "hvac_status_heating_values": "SPS-Wert(e) für HEIZEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 1 oder 2,3). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
           "hvac_status_cooling_values": "SPS-Wert(e) für KÜHLEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 2 oder 4,5). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
@@ -568,7 +564,7 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "heating_output_address": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird.",
           "cooling_output_address": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird.",
           "heating_action_address": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus.",
@@ -612,9 +608,9 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "current_temperature_address": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "target_temperature_address": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "preset_mode_address": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, unter Verwendung des unten für jeden Modus konfigurierten Werts. Wird auch von der SPS zurückgelesen, um den tatsächlichen Modus widerzuspiegeln (bidirektional). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "on_off_address": "Optionale boolesche SPS-Adresse zum Ein-/Ausschalten dieses Thermostats, für Geräte ohne eigenen AUS-Modus (z.B. eine Heizung/Kühlung, die über einen separaten Ausgang ein-/ausgeschaltet wird). Schreibt Falsch/0, wenn der Zielmodus auf AUS gesetzt wird, und Wahr/1 für jeden anderen Modus. Leer lassen, um stattdessen das Standard-AUS-Verhalten zu verwenden. Wird auch von der SPS zurückgelesen, um den tatsächlichen Ein-/Aus-Zustand widerzuspiegeln (bidirektional).",
           "preset_mode_off_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUS gesetzt wird (z.B. 0). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden. Wenn on_off_address konfiguriert ist, wird dies für AUS ignoriert: der Modus bleibt verfügbar und wird stattdessen über diese Adresse geschaltet.",
           "preset_mode_heat_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf HEIZEN gesetzt wird (z.B. 1). Auf -1 setzen, um diesen Modus aus der Modusliste des Thermostats auszublenden.",
@@ -623,7 +619,7 @@
           "preset_mode_auto_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUTO gesetzt wird (älteres Äquivalent zur automatischen Heiz-/Kühlumschaltung, ähnlich wie Heizen/Kühlen). Standardmäßig deaktiviert (-1).",
           "preset_mode_dry_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf TROCKNEN gesetzt wird (nur Entfeuchtung, keine Temperaturregelung). Standardmäßig deaktiviert (-1).",
           "preset_mode_fan_only_value": "SPS-Wert, der geschrieben wird, wenn der Modus auf NUR LÜFTER gesetzt wird (nur Luftumwälzung, kein Heizen/Kühlen). Standardmäßig deaktiviert (-1).",
-          "hvac_status_address": "Optionale SPS-Adresse zum Lesen des tatsächlichen HVAC-Status, abgeglichen mit den unten für jeden Modus konfigurierten Werten. Wenn nicht gesetzt, wird der Status aus dem Temperaturvergleich abgeleitet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "hvac_status_address": "Optionale SPS-Adresse zum Lesen des tatsächlichen HVAC-Status, abgeglichen mit den unten für jeden Modus konfigurierten Werten. Wenn nicht gesetzt, wird der Status aus dem Temperaturvergleich abgeleitet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "hvac_status_off_values": "SPS-Wert(e) für AUS, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 0 oder 0,10). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
           "hvac_status_heating_values": "SPS-Wert(e) für HEIZEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 1 oder 2,3). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
           "hvac_status_cooling_values": "SPS-Wert(e) für KÜHLEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 2 oder 4,5). Auf -1 setzen, um diesen Status zu überspringen (er wird nie zugeordnet).",
@@ -650,7 +646,7 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
           "name": "Name für die Entitätssynchronisierung (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
@@ -675,18 +671,16 @@
           "name": "Name",
           "area": "Bereich",
           "device_class": "Geräteklasse",
-          "value_multiplier": "Wertmultiplikator",
           "unit_of_measurement": "Maßeinheit",
           "state_class": "Zustandsklasse",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "name": "Name für den Sensor (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse (z.B. battery, power).",
-          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "unit_of_measurement": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden.",
           "state_class": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
@@ -780,8 +774,8 @@
           "invert_position": "Position umkehren (0=offen, 100=geschlossen)"
         },
         "data_description": {
-          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "position_state_address": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "position_command_address": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "stop_command_address": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben.",
           "stop_pulse_duration": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms).",
           "name": "Name für die Jalousie/Raffstore (optional).",
@@ -832,8 +826,8 @@
           "sync_state": "Wenn aktiviert, wird die Befehlsadresse automatisch mit dem aktuellen Ein/Aus-Status aktualisiert.",
           "pulse_command": "Impulse anstelle von Ein/Aus-Befehlen senden.",
           "pulse_duration": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s.",
-          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit. Leer lassen für nur Ein/Aus. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen. Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "brightness_state_address": "Numerische PLC-Adresse zum Lesen der Helligkeit. Leer lassen für nur Ein/Aus. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "brightness_command_address": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen. Wenn leer, wird die Helligkeits-Statusadresse verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "scan_interval": "Überschreibt das Abfrageintervall für diesen Tag in Sekunden. Leer lassen, um den PLC-Standard zu übernehmen."
         }
       },
@@ -850,13 +844,12 @@
           "min_value": "Mindestwert",
           "max_value": "Maximalwert",
           "step": "Schritt",
-          "value_multiplier": "Wertmultiplikator",
           "real_precision": "REAL-Nachkommastellen",
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
-          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet. Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "command_address": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet. Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "name": "Name für die Nummernentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Geräteklasse für die Nummernentität (z.B. temperature, voltage, power).",
@@ -864,7 +857,6 @@
           "min_value": "Untergrenze für den in Home Assistant angezeigten Wert (optional).",
           "max_value": "Obergrenze für den in Home Assistant angezeigten Wert (optional).",
           "step": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional).",
-          "value_multiplier": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten.",
           "real_precision": "Anzahl der Dezimalstellen zum Runden von REAL-Werten. Leerlassen, um die ursprüngliche Genauigkeit zu behalten (1).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
         }
@@ -879,7 +871,7 @@
           "area": "Bereich"
         },
         "data_description": {
-          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(raw_min,raw_max,scale_min,scale_max)', z.B. 'DB6,B23 Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
+          "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4). Optionale Skalierung: 'Scale(0,1,0,10)', Dezimaltrennzeichen (.).",
           "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
           "name": "Name für die Entitätssynchronisierung (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll."

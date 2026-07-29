@@ -207,7 +207,6 @@
           "name": "Název",
           "area": "Oblast",
           "device_class": "Třída zařízení",
-          "value_multiplier": "Násobitel hodnoty",
           "unit_of_measurement": "Jednotka",
           "state_class": "Třída stavu",
           "real_precision": "Zaokrouhlení REAL",
@@ -215,11 +214,10 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "name": "Volitelný srozumitelný název senzoru.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesíláním. Ponechte prázdné pro původní hodnotu.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
           "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
@@ -321,8 +319,8 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "stop_command_address": "Booleovská adresa PLC, která se pulzuje při stisknutí stop. Pokud je vynecháno, stop zapíše aktuální pozici zpět.",
           "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
@@ -377,8 +375,8 @@
           "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
           "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
           "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
-          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu (např. DB1,B2). Nechte prázdné pro pouze zap/vyp. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu (volitelné). Pokud je prázdná, použije se stavová adresa jasu. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu (např. DB1,B2). Nechte prázdné pro pouze zap/vyp. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu (volitelné). Pokud je prázdná, použije se stavová adresa jasu. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "scan_interval": "Přepíše interval dotazování pro tento tag v sekundách. Nechte prázdné pro zdědění výchozí hodnoty PLC.",
           "add_another": "Zůstat na tomto kroku pro přidání dalších světel."
         }
@@ -396,14 +394,13 @@
           "min_value": "Minimální hodnota",
           "max_value": "Maximální hodnota",
           "step": "Krok",
-          "value_multiplier": "Násobitel hodnoty",
           "real_precision": "Zaokrouhlení REAL",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "name": "Volitelný srozumitelný název číselné entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
@@ -411,7 +408,6 @@
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
           "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
           "step": "Volitelný krok, o který se hodnota mění v UI.",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
@@ -457,7 +453,7 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "heating_output_address": "Adresa PLC pro ovládání výstupu topení (např. Q0.0, DB1,X0.0). Volitelné, pokud se používá pouze chlazení.",
           "cooling_output_address": "Adresa PLC pro ovládání výstupu chlazení (např. Q0.1, DB1,X0.1). Volitelné, pokud se používá pouze topení.",
           "heating_action_address": "Volitelná adresa PLC pro čtení stavu akce topení. Pokud není uvedena, akce je odvozena z režimu.",
@@ -503,9 +499,9 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "target_temperature_address": "Adresa PLC pro zápis a čtení nastavené cílové teploty (např. DB1,REAL4, DB2,INT8). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "preset_mode_address": "Volitelná adresa v PLC pro zápis režimu HVAC, s použitím hodnoty nakonfigurované níže pro každý režim. Užitečné, pokud PLC potřebuje povolit/zakázat řízení klimatizace. Také zpětně čtena z PLC pro zobrazení skutečného režimu (obousměrná komunikace). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "current_temperature_address": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "target_temperature_address": "Adresa PLC pro zápis a čtení nastavené cílové teploty (např. DB1,REAL4, DB2,INT8). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "preset_mode_address": "Volitelná adresa v PLC pro zápis režimu HVAC, s použitím hodnoty nakonfigurované níže pro každý režim. Užitečné, pokud PLC potřebuje povolit/zakázat řízení klimatizace. Také zpětně čtena z PLC pro zobrazení skutečného režimu (obousměrná komunikace). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "on_off_address": "Volitelná booleovská adresa PLC pro zapnutí/vypnutí tohoto termostatu, pro zařízení bez vlastního režimu VYPNUTO (např. topení/chlazení zapínané samostatným výstupem). Zapisuje Nepravda/0, když je cílový režim nastaven na VYPNUTO, a Pravda/1 pro jakýkoli jiný režim. Ponechte prázdné pro použití standardního chování VYPNUTO. Také zpětně čtena z PLC pro zobrazení skutečného stavu zap./vyp. (obousměrná komunikace).",
           "preset_mode_off_value": "Hodnota PLC zapsaná při nastavení režimu na VYPNUTO (např. 0). Nastavte -1 pro skrytí tohoto režimu ze seznamu režimů termostatu. Pokud je nakonfigurována on_off_address, je toto pro VYPNUTO ignorováno: režim zůstává dostupný a je přepínán prostřednictvím této adresy.",
           "preset_mode_heat_value": "Hodnota PLC zapsaná při nastavení režimu na TOPENÍ (např. 1). Nastavte -1 pro skrytí tohoto režimu ze seznamu režimů termostatu.",
@@ -514,7 +510,7 @@
           "preset_mode_auto_value": "Hodnota PLC zapsaná při nastavení režimu na AUTO (starší ekvivalent automatického přepínání topení/chlazení, podobný režimu Auto Topení/Chlazení). Ve výchozím nastavení zakázáno (-1).",
           "preset_mode_dry_value": "Hodnota PLC zapsaná při nastavení režimu na SUŠENÍ (pouze odvlhčování, bez regulace teploty). Ve výchozím nastavení zakázáno (-1).",
           "preset_mode_fan_only_value": "Hodnota PLC zapsaná při nastavení režimu na POUZE VENTILÁTOR (pouze cirkulace vzduchu, bez topení/chlazení). Ve výchozím nastavení zakázáno (-1).",
-          "hvac_status_address": "Volitelná adresa PLC pro čtení skutečného stavu HVAC, porovnávaná s hodnotami nakonfigurovanými níže pro každý režim. Pokud není nastavena, stav se odvodí z porovnání teplot. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "hvac_status_address": "Volitelná adresa PLC pro čtení skutečného stavu HVAC, porovnávaná s hodnotami nakonfigurovanými níže pro každý režim. Pokud není nastavena, stav se odvodí z porovnání teplot. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "hvac_status_off_values": "Hodnota(y) PLC znamenající VYPNUTO, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 0 nebo 0,10). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_heating_values": "Hodnota(y) PLC znamenající TOPENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_cooling_values": "Hodnota(y) PLC znamenající CHLAZENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 2 nebo 4,5). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
@@ -568,7 +564,7 @@
           "scan_interval": "Interval skenování (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "heating_output_address": "Adresa v PLC pro ovládání výstupu topeni (např. Q0.0, DB1,X0.0). Volitelné, pokud se používá pouze chlazení.",
           "cooling_output_address": "Adresa v PLC pro ovládání výstupu chlazení (např. Q0.1, DB1,X0.1). Volitelné, pokud se používá pouze topeni.",
           "heating_action_address": "Volitelná adresa v PLC pro čtení stavu akce topeni.",
@@ -612,9 +608,9 @@
           "scan_interval": "Interval skenování (s)"
         },
         "data_description": {
-          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "target_temperature_address": "Adresa v PLC pro zápis a čtení cílové teploty (např. DB1,REAL4, DB2,INT8). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "preset_mode_address": "Volitelná adresa v PLC pro zápis režimu HVAC, s použitím hodnoty nakonfigurované níže pro každý režim. Také zpětně čtena z PLC pro zobrazení skutečného režimu (obousměrná komunikace). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "current_temperature_address": "Adresa v PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "target_temperature_address": "Adresa v PLC pro zápis a čtení cílové teploty (např. DB1,REAL4, DB2,INT8). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "preset_mode_address": "Volitelná adresa v PLC pro zápis režimu HVAC, s použitím hodnoty nakonfigurované níže pro každý režim. Také zpětně čtena z PLC pro zobrazení skutečného režimu (obousměrná komunikace). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "on_off_address": "Volitelná booleovská adresa PLC pro zapnutí/vypnutí tohoto termostatu, pro zařízení bez vlastního režimu VYPNUTO (např. topení/chlazení zapínané samostatným výstupem). Zapisuje Nepravda/0, když je cílový režim nastaven na VYPNUTO, a Pravda/1 pro jakýkoli jiný režim. Ponechte prázdné pro použití standardního chování VYPNUTO. Také zpětně čtena z PLC pro zobrazení skutečného stavu zap./vyp. (obousměrná komunikace).",
           "preset_mode_off_value": "Hodnota PLC zapsaná při nastavení režimu na VYPNUTO (např. 0). Nastavte -1 pro skrytí tohoto režimu ze seznamu režimů termostatu. Pokud je nakonfigurována on_off_address, je toto pro VYPNUTO ignorováno: režim zůstává dostupný a je přepínán prostřednictvím této adresy.",
           "preset_mode_heat_value": "Hodnota PLC zapsaná při nastavení režimu na TOPENÍ (např. 1). Nastavte -1 pro skrytí tohoto režimu ze seznamu režimů termostatu.",
@@ -623,7 +619,7 @@
           "preset_mode_auto_value": "Hodnota PLC zapsaná při nastavení režimu na AUTO (starší ekvivalent automatického přepínání topení/chlazení, podobný režimu Auto Topení/Chlazení). Ve výchozím nastavení zakázáno (-1).",
           "preset_mode_dry_value": "Hodnota PLC zapsaná při nastavení režimu na SUŠENÍ (pouze odvlhčování, bez regulace teploty). Ve výchozím nastavení zakázáno (-1).",
           "preset_mode_fan_only_value": "Hodnota PLC zapsaná při nastavení režimu na POUZE VENTILÁTOR (pouze cirkulace vzduchu, bez topení/chlazení). Ve výchozím nastavení zakázáno (-1).",
-          "hvac_status_address": "Volitelná adresa PLC pro čtení skutečného stavu HVAC, porovnávaná s hodnotami nakonfigurovanými níže pro každý režim. Pokud není nastavena, stav se odvodí z porovnání teplot. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "hvac_status_address": "Volitelná adresa PLC pro čtení skutečného stavu HVAC, porovnávaná s hodnotami nakonfigurovanými níže pro každý režim. Pokud není nastavena, stav se odvodí z porovnání teplot. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "hvac_status_off_values": "Hodnota(y) PLC znamenající VYPNUTO, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 0 nebo 0,10). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_heating_values": "Hodnota(y) PLC znamenající TOPENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_cooling_values": "Hodnota(y) PLC znamenající CHLAZENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 2 nebo 4,5). Nastavte -1 pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
@@ -650,7 +646,7 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
           "name": "Volitelný srozumitelný název synchronizace entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
@@ -675,18 +671,16 @@
           "name": "Název",
           "area": "Oblast",
           "device_class": "Třída zařízení",
-          "value_multiplier": "Násobitel hodnoty",
           "unit_of_measurement": "Jednotka",
           "state_class": "Třída stavu",
           "real_precision": "Zaokrouhlení REAL",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
-          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "name": "Volitelný srozumitelný název senzoru.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power).",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesíláním. Ponechte prázdné pro původní hodnotu.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
           "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
@@ -780,8 +774,8 @@
           "invert_position": "Invertovat pozici (0=otevřeno, 100=zavřeno)"
         },
         "data_description": {
-          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "position_state_address": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "position_command_address": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "stop_command_address": "Booleovská adresa PLC, která se pulzuje při stisknutí stop. Pokud je vynecháno, stop zapíše aktuální pozici zpět.",
           "stop_pulse_duration": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms).",
           "name": "Volitelný popisný název krytu.",
@@ -832,8 +826,8 @@
           "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
           "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
           "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
-          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu. Nechte prázdné pro pouze zap/vyp. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu. Pokud je prázdná, použije se stavová adresa jasu. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu. Nechte prázdné pro pouze zap/vyp. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "brightness_command_address": "Číselná PLC adresa pro zápis příkazů jasu. Pokud je prázdná, použije se stavová adresa jasu. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "scan_interval": "Přepíše interval dotazování pro tento tag v sekundách. Nechte prázdné pro zdědění výchozí hodnoty PLC."
         }
       },
@@ -850,13 +844,12 @@
           "min_value": "Minimální hodnota",
           "max_value": "Maximální hodnota",
           "step": "Krok",
-          "value_multiplier": "Násobitel hodnoty",
           "real_precision": "Zaokrouhlení REAL",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
-          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
-          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa. Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "command_address": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa. Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "name": "Volitelný srozumitelný název číselné entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power).",
@@ -864,7 +857,6 @@
           "min_value": "Volitelná minimální hodnota pro rozsah v Home Assistant.",
           "max_value": "Volitelná maximální hodnota pro rozsah v Home Assistant.",
           "step": "Volitelný krok, o který se hodnota mění v UI.",
-          "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
@@ -879,7 +871,7 @@
           "area": "Oblast"
         },
         "data_description": {
-          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(raw_min,raw_max,scale_min,scale_max)', např. 'DB6,B23 Scale(0,1,0,10)', desetinný oddělovač (.).",
+          "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4). Volitelné škálování: 'Scale(0,1,0,10)', desetinný oddělovač (.).",
           "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
           "name": "Volitelný srozumitelný název synchronizace entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena."

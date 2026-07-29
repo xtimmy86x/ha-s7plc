@@ -28,7 +28,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import DeviceInfo
 
-from .address import format_address_with_scale
+from .address import format_address_with_scale, parse_address_and_scale
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -63,6 +63,7 @@ from .const import (
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEXTS,
     CONF_UID,
+    CONF_VALUE_MULTIPLIER,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
     DEFAULT_ENABLE_METRICS,
@@ -538,6 +539,53 @@ def migrate_legacy_scale_fields(options: MutableMapping[str, Any]) -> bool:
             del item[CONF_SCALE_RAW_MAX]
             del item[CONF_MIN_VALUE]
             del item[CONF_MAX_VALUE]
+            changed = True
+    return changed
+
+
+def migrate_legacy_value_multiplier(options: MutableMapping[str, Any]) -> bool:
+    """Fold the legacy ``value_multiplier`` field into inline address Scale(...).
+
+    Sensor and number items used to store a single ``value_multiplier``
+    (engineering value = raw * multiplier) as a separate config key.
+    Mathematically this is exactly ``Scale(0, 1, 0, multiplier)`` — for any
+    ``raw`` value, ``scale_value(raw, 0, 1, 0, multiplier) == raw *
+    multiplier`` and ``inverse_scale_value(value, 0, 1, 0, multiplier) ==
+    value / multiplier``, matching the read/write formulas the multiplier
+    used directly. This folds it into the address the same way as the other
+    legacy scale mechanisms, so ``Scale(...)`` remains the single scaling
+    mechanism everywhere.
+
+    If the address already carries its own inline ``Scale(...)`` (which
+    always took precedence over the multiplier, so the multiplier was
+    already inert), the multiplier is simply dropped without altering the
+    address further.
+
+    Returns whether anything changed, so the caller knows whether to persist
+    *options* back onto the config entry.
+    """
+    changed = False
+    for option_key in (CONF_SENSORS, CONF_NUMBERS):
+        for item in options.get(option_key, []):
+            if CONF_VALUE_MULTIPLIER not in item:
+                continue
+            address = item.get(CONF_ADDRESS)
+            multiplier = item.get(CONF_VALUE_MULTIPLIER)
+            if address and multiplier not in (None, ""):
+                try:
+                    _, existing_scale = parse_address_and_scale(address)
+                except ValueError:
+                    existing_scale = None
+                if existing_scale is None:
+                    try:
+                        m = float(multiplier)
+                    except (TypeError, ValueError):
+                        m = None
+                    if m:
+                        item[CONF_ADDRESS] = format_address_with_scale(
+                            address, (0.0, 1.0, 0.0, m)
+                        )
+            del item[CONF_VALUE_MULTIPLIER]
             changed = True
     return changed
 

@@ -52,6 +52,7 @@ from .helpers import (
     migrate_legacy_brightness_scale,
     migrate_legacy_scale_fields,
     migrate_legacy_uid_device_prefix,
+    migrate_legacy_value_multiplier,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -141,6 +142,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # stands *today*, so the address must still be in its original clean
     # form when that runs.
     if migrate_legacy_scale_fields(entry.options):
+        hass.config_entries.async_update_entry(entry, options=entry.options)
+
+    # Same idea for sensor/number's old single-parameter value_multiplier
+    # field, folded into an inline Scale(0,1,0,multiplier) on the address.
+    if migrate_legacy_value_multiplier(entry.options):
         hass.config_entries.async_update_entry(entry, options=entry.options)
 
     # Same idea for light's old single-parameter brightness_scale field,

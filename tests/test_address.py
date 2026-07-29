@@ -67,6 +67,15 @@ def test_parse_address_and_scale_extracts_inline_scale():
     assert result == ("DB6,B23", (0.0, 1.0, 0.0, 10.0))
 
 
+def test_parse_address_and_scale_all_zero_is_a_noop_placeholder():
+    """Scale(0,0,0,0) is a valid no-op placeholder: it passes validation but
+    is treated exactly like no Scale(...) suffix at all (scale is None),
+    not as a literal all-zero scale (which would divide by zero and always
+    resolve to 0)."""
+    result = address.parse_address_and_scale("DB6,B23 Scale(0,0,0,0)")
+    assert result == ("DB6,B23", None)
+
+
 def test_parse_address_and_scale_is_case_insensitive_and_tolerates_spacing():
     result = address.parse_address_and_scale(
         "  DB6,B23   scale( -10.5 , 20 , 0 , 100 )  "

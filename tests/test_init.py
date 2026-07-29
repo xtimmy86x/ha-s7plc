@@ -417,3 +417,58 @@ def test_migrate_folds_legacy_brightness_scale_into_address_at_startup(monkeypat
     light_item = new_options["lights"][0]
     assert light_item["brightness_state_address"] == "DB1,B0 Scale(0,100,0,255)"
     assert "brightness_scale" not in light_item
+
+
+def test_migrate_folds_legacy_value_multiplier_into_address_at_startup(monkeypatch):
+    """A sensor still using the old value_multiplier key gets it folded into
+    an inline Scale(0,1,0,multiplier) address suffix on first startup, and
+    the legacy key is removed."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+            # Already migrated to a device_id-prefixed uid, so this test can
+            # focus purely on value_multiplier folding.
+            s7init.CONF_UID_DEVICE_PREFIX_MIGRATED: True,
+        },
+        options={
+            "sensors": [
+                {
+                    "address": "DB1,REAL0",
+                    "name": "Legacy Multiplier Sensor",
+                    "uid": "already-set",
+                    "value_multiplier": 2.5,
+                }
+            ],
+        },
+        entry_id="test_multiplier_migration",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    # uid migration was a no-op (already migrated); only the multiplier
+    # migration fired.
+    assert len(update_calls) == 1
+    new_options = update_calls[0][1]["options"]
+    sensor_item = new_options["sensors"][0]
+    assert sensor_item["address"] == "DB1,REAL0 Scale(0,1,0,2.5)"
+    assert "value_multiplier" not in sensor_item

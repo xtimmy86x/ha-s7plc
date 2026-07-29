@@ -362,82 +362,10 @@ async def test_number_async_set_native_value_failure(mock_coordinator_failing, f
     assert not coord.refresh_called
 
 
-def test_number_value_multiplier_scales_native_value(mock_coordinator):
-    """native_value is PLC value * multiplier."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 100}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0,
-        max_value=1000,
-        step=1,
-        value_multiplier=0.1,
-    )
-
-    assert ent.native_value == pytest.approx(10.0)  # 100 * 0.1
-    assert ent.native_min_value == pytest.approx(0.0)   # 0 * 0.1
-    assert ent.native_max_value == pytest.approx(100.0)  # 1000 * 0.1
-    assert ent._attr_native_step == pytest.approx(0.1)  # 1 * 0.1
-
-
-@pytest.mark.asyncio
-async def test_number_value_multiplier_divides_on_write(mock_coordinator, fake_hass):
-    """async_set_native_value writes display value / multiplier to PLC."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0,
-        max_value=1000,
-        step=1,
-        value_multiplier=0.1,
-    )
-    ent.hass = fake_hass
-
-    # User sets 25.0 (display units) → PLC should receive 250.0
-    await ent.async_set_native_value(25.0)
-    assert coord.write_calls[-1] == ("write_batched", "db1,w0", pytest.approx(250.0))
-
-
-def test_number_value_multiplier_in_attributes(mock_coordinator):
-    """value_multiplier appears in extra_state_attributes."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=None,
-        max_value=None,
-        step=None,
-        value_multiplier=2.0,
-    )
-
-    attrs = ent.extra_state_attributes
-    assert attrs.get("value_multiplier") == pytest.approx(2.0)
-
-
 def test_number_no_multiplier_unchanged(mock_coordinator):
-    """Without multiplier, native_value is the raw PLC value."""
+    """Without a scale, native_value is the raw PLC value (the old
+    value_multiplier mechanism was retired in favor of Scale(...), which is
+    mathematically equivalent: Scale(0,1,0,M) == raw * M)."""
     coord = mock_coordinator
     coord.data = {"number:db1,w0": 42}
 
@@ -558,31 +486,6 @@ async def test_number_scale_inverse_on_write(mock_coordinator, fake_hass):
     # User writes 75 % → PLC should receive 750
     await ent.async_set_native_value(75.0)
     assert coord.write_calls[-1] == ("write_batched", "db1,w0", pytest.approx(750.0))
-
-
-def test_number_scale_takes_precedence_over_multiplier(mock_coordinator):
-    """When both scale and multiplier are set, scale wins."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500.0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        value_multiplier=10.0,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-
-    # scale: 500/1000*100 = 50, NOT 500*10 = 5000
-    assert ent.native_value == pytest.approx(50.0)
 
 
 def test_number_scale_attributes_exposed(mock_coordinator):

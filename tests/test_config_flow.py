@@ -249,6 +249,24 @@ def test_add_sensor_with_inline_scale_in_address():
     assert const.CONF_SCALE_RAW_MAX not in stored
 
 
+def test_add_sensor_with_all_zero_scale_is_stored_as_plain_address():
+    """Scale(0,0,0,0) is a no-op placeholder: it saves like a plain address
+    with no scale at all, rather than embedding a literal all-zero scale."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors(
+            {const.CONF_ADDRESS: "DB6,B23 Scale(0,0,0,0)"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_SENSORS][0]
+    assert stored[const.CONF_ADDRESS] == "DB6,B23"
+    assert const.CONF_MIN_VALUE not in stored
+    assert const.CONF_SCALE_RAW_MIN not in stored
+
+
 def test_add_number_with_inline_scale_in_address():
     flow = make_options_flow(options={const.CONF_NUMBERS: []})
 
@@ -736,70 +754,6 @@ def test_edit_sensor_preserves_uid_when_address_changes():
     assert sensor[const.CONF_UID] == "original-uid"
 
 
-def test_add_sensor_with_value_multiplier():
-    flow = make_options_flow(options={const.CONF_SENSORS: []})
-
-    result = run_flow(
-        flow.async_step_sensors(
-            {
-                const.CONF_ADDRESS: "DB1,W0",
-                const.CONF_VALUE_MULTIPLIER: "0.25",
-            }
-        )
-    )
-
-    assert result["type"] == "create_entry"
-    sensor = flow._options[const.CONF_SENSORS][0]
-    assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
-
-
-def test_add_sensor_with_value_multiplier_comma_decimal():
-    flow = make_options_flow(options={const.CONF_SENSORS: []})
-
-    result = run_flow(
-        flow.async_step_sensors(
-            {
-                const.CONF_ADDRESS: "DB1,W0",
-                const.CONF_VALUE_MULTIPLIER: "0,25",
-            }
-        )
-    )
-
-    assert result["type"] == "create_entry"
-    sensor = flow._options[const.CONF_SENSORS][0]
-    assert sensor[const.CONF_VALUE_MULTIPLIER] == pytest.approx(0.25)
-
-
-def test_edit_sensor_value_multiplier_can_be_cleared():
-    options = {
-        const.CONF_SENSORS: [
-            {
-                const.CONF_ADDRESS: "DB1,W0",
-                const.CONF_VALUE_MULTIPLIER: 2.0,
-            }
-        ]
-    }
-
-    flow = make_options_flow(options=options)
-    flow._action = "edit"
-    flow._edit_target = ("s", 0)
-
-
-    result = run_flow(
-        flow.async_step_edit_sensor(
-            {
-                const.CONF_ADDRESS: "DB1,W0",
-                CONF_NAME: "",
-                const.CONF_VALUE_MULTIPLIER: "",
-            }
-        )
-    )
-
-    assert result["type"] == "create_entry"
-    sensor = flow._options[const.CONF_SENSORS][0]
-    assert const.CONF_VALUE_MULTIPLIER not in sensor
-
-    
 def test_number_limits_clamped_on_edit():
     options = {
         const.CONF_NUMBERS: [
