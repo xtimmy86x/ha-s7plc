@@ -6,11 +6,31 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
+import yaml
 
 from .const import DOMAIN, OPTION_KEYS
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
+
+
+def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
+    """Return and validate an entity supplied by the visual or YAML editor."""
+    if "entity_yaml" not in msg:
+        entity = msg.get("entity")
+        if not isinstance(entity, dict):
+            raise ValueError("Entity configuration must be an object")
+        return dict(entity)
+
+    try:
+        entity = yaml.safe_load(msg["entity_yaml"])
+    except yaml.YAMLError as err:
+        raise ValueError(f"Invalid YAML: {err}") from err
+    if not isinstance(entity, dict) or not entity:
+        raise ValueError("YAML configuration must be a non-empty mapping")
+    if not all(isinstance(key, str) for key in entity):
+        raise ValueError("YAML configuration keys must be strings")
+    return entity
 
 
 def _entry_payload(entry: Any) -> dict[str, Any]:
@@ -55,7 +75,8 @@ async def async_setup_panel(hass: Any) -> None:
             vol.Required("entry_id"): str,
             vol.Required("entity_type"): vol.In(OPTION_KEYS),
             vol.Optional("index"): vol.Any(None, int),
-            vol.Required("entity"): dict,
+            vol.Optional("entity"): dict,
+            vol.Optional("entity_yaml"): str,
         }
     )
     @websocket_api.require_admin
@@ -70,7 +91,11 @@ async def async_setup_panel(hass: Any) -> None:
         options = dict(entry.options)
         items = list(options.get(msg["entity_type"], []))
         index = msg.get("index")
-        entity = dict(msg["entity"])
+        try:
+            entity = _entity_from_message(msg)
+        except ValueError as err:
+            connection.send_error(msg["id"], "invalid_entity", str(err))
+            return
         if index is None:
             items.append(entity)
         elif index < 0 or index >= len(items):
