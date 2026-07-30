@@ -7,6 +7,10 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.cover import CoverDeviceClass
+from homeassistant.components.number import NumberDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONCENTRATION_PARTS_PER_BILLION,
@@ -53,6 +57,29 @@ from .const import (
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
+
+
+# ---------------------------------------------------------------------------
+# Device/state class choices shared by the options flow and the panel editor
+# ---------------------------------------------------------------------------
+
+DEVICE_CLASS_ENUMS = {
+    CONF_BINARY_SENSORS: BinarySensorDeviceClass,
+    CONF_SENSORS: SensorDeviceClass,
+    CONF_NUMBERS: NumberDeviceClass,
+    CONF_COVERS: CoverDeviceClass,
+}
+STATE_CLASS_VALUES: tuple[str, ...] = ("measurement", "total", "total_increasing")
+
+
+def device_class_values(entity_type: str) -> list[str]:
+    """Return the sorted device class values valid for the given entity type."""
+
+    try:
+        enum_cls = DEVICE_CLASS_ENUMS[entity_type]
+    except KeyError as err:
+        raise ValueError(f"Unknown entity type: {entity_type}") from err
+    return sorted(dc.value for dc in enum_cls)
 
 
 # ---------------------------------------------------------------------------

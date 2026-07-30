@@ -76,20 +76,19 @@ def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
 
 
 def _selector_options() -> dict[str, Any]:
-    """Return device/state class choices used by the panel dropdowns."""
-    from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-    from homeassistant.components.cover import CoverDeviceClass
-    from homeassistant.components.number import NumberDeviceClass
-    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+    """Return device/state class choices used by the panel dropdowns.
+
+    The values are shared with the options flow (see helpers) so both
+    editors always offer the same choices.
+    """
+    from .helpers import DEVICE_CLASS_ENUMS, STATE_CLASS_VALUES, device_class_values
 
     return {
         "device_classes": {
-            "sensors": sorted(dc.value for dc in SensorDeviceClass),
-            "binary_sensors": sorted(dc.value for dc in BinarySensorDeviceClass),
-            "covers": sorted(dc.value for dc in CoverDeviceClass),
-            "numbers": sorted(dc.value for dc in NumberDeviceClass),
+            entity_type: device_class_values(entity_type)
+            for entity_type in DEVICE_CLASS_ENUMS
         },
-        "state_classes": [sc.value for sc in SensorStateClass],
+        "state_classes": list(STATE_CLASS_VALUES),
     }
 
 
