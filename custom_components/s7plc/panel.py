@@ -35,10 +35,13 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
 
 def _entry_payload(entry: Any) -> dict[str, Any]:
     """Return the editable portion of a config entry."""
+    runtime_data = getattr(entry, "runtime_data", None)
+    coordinator = getattr(runtime_data, "coordinator", None)
     return {
         "entry_id": entry.entry_id,
         "title": entry.title,
         "data": dict(entry.data),
+        "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
     }
 

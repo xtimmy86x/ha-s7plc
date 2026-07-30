@@ -1,10 +1,11 @@
 """Tests for the native configuration panel helpers."""
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from custom_components.s7plc.panel import _entity_from_message
+from custom_components.s7plc.panel import _entity_from_message, _entry_payload
 
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
@@ -49,3 +50,18 @@ def test_panel_uses_current_home_assistant_dialog_api() -> None:
     assert "dialog.headerTitle=" in source
     assert "dialog.open=false" in source
     assert "dialog.close()" not in source
+
+
+@pytest.mark.parametrize("connected", [True, False])
+def test_entry_payload_includes_connection_status(connected) -> None:
+    """Expose the coordinator connection state to the panel."""
+    coordinator = SimpleNamespace(is_connected=lambda: connected)
+    entry = SimpleNamespace(
+        entry_id="entry-1",
+        title="PLC test",
+        data={"host": "192.0.2.1"},
+        options={},
+        runtime_data=SimpleNamespace(coordinator=coordinator),
+    )
+
+    assert _entry_payload(entry)["connected"] is connected
