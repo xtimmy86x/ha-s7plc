@@ -33,17 +33,62 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
     return entity
 
 
-def _entry_payload(entry: Any) -> dict[str, Any]:
+# Option key → Home Assistant entity domain (entity_sync entities are sensors).
+_OPTION_DOMAINS = {
+    "sensors": "sensor",
+    "binary_sensors": "binary_sensor",
+    "switches": "switch",
+    "covers": "cover",
+    "lights": "light",
+    "buttons": "button",
+    "numbers": "number",
+    "texts": "text",
+    "climates": "climate",
+    "entity_sync": "sensor",
+}
+
+
+def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
+    """Map every configured item to its Home Assistant entity_id (or None)."""
+    from homeassistant.helpers import entity_registry as er
+
+    from .helpers import _iter_entity_unique_ids
+
+    device_id = getattr(getattr(entry, "runtime_data", None), "device_id", None)
+    if not device_id:
+        return {key: [None] * len(entry.options.get(key, [])) for key in OPTION_KEYS}
+
+    registry = er.async_get(hass)
+    uid_by_item = {
+        id(item): uid for uid, item in _iter_entity_unique_ids(device_id, entry.options)
+    }
+    payload: dict[str, list[str | None]] = {}
+    for key in OPTION_KEYS:
+        domain = _OPTION_DOMAINS.get(key, "sensor")
+        ids: list[str | None] = []
+        for item in entry.options.get(key, []):
+            uid = uid_by_item.get(id(item))
+            ids.append(
+                registry.async_get_entity_id(domain, DOMAIN, uid) if uid else None
+            )
+        payload[key] = ids
+    return payload
+
+
+def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
     """Return the editable portion of a config entry."""
     runtime_data = getattr(entry, "runtime_data", None)
     coordinator = getattr(runtime_data, "coordinator", None)
-    return {
+    payload = {
         "entry_id": entry.entry_id,
         "title": entry.title,
         "data": dict(entry.data),
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
     }
+    if hass is not None:
+        payload["entity_ids"] = _entity_ids_payload(hass, entry)
+    return payload
 
 
 async def async_setup_panel(hass: Any) -> None:
@@ -67,7 +112,7 @@ async def async_setup_panel(hass: Any) -> None:
         connection.send_result(
             msg["id"],
             [
-                _entry_payload(entry)
+                _entry_payload(entry, hass)
                 for entry in hass.config_entries.async_entries(DOMAIN)
             ],
         )

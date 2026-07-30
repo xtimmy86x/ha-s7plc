@@ -65,3 +65,44 @@ def test_entry_payload_includes_connection_status(connected) -> None:
     )
 
     assert _entry_payload(entry)["connected"] is connected
+
+
+def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
+    """Expose the entity_id of each configured item to the panel."""
+    from homeassistant.helpers import entity_registry as er
+
+    registry = SimpleNamespace(
+        async_get_entity_id=lambda domain, platform, uid: f"{domain}.demo"
+        if uid == "dev1:sensor:DB1,REAL0"
+        else None
+    )
+    monkeypatch.setattr(er, "async_get", lambda hass: registry)
+    entry = SimpleNamespace(
+        entry_id="entry-1",
+        title="PLC test",
+        data={"host": "192.0.2.1"},
+        options={
+            "sensors": [
+                {"name": "Temp", "address": "DB1,REAL0"},
+                {"name": "Broken"},
+            ]
+        },
+        runtime_data=SimpleNamespace(
+            coordinator=SimpleNamespace(is_connected=lambda: True),
+            device_id="dev1",
+        ),
+    )
+
+    payload = _entry_payload(entry, hass=object())
+
+    assert payload["entity_ids"]["sensors"] == ["sensor.demo", None]
+    assert payload["entity_ids"]["switches"] == []
+
+
+def test_panel_renders_current_state_badges() -> None:
+    """The panel shows the live state of every configured entity."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "state-badge" in source
+    assert "entry.entity_ids?.[type]?.[i]" in source
+    assert "this.updateStates()" in source
