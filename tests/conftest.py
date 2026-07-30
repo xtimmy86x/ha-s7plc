@@ -984,7 +984,7 @@ class SensorEntity:  # pragma: no cover - simple stub
     pass
 
 
-class SensorStateClass:  # pragma: no cover - simple stub
+class SensorStateClass(Enum):  # pragma: no cover - simple stub
     """Minimal SensorStateClass stub."""
     MEASUREMENT = "measurement"
     TOTAL = "total"

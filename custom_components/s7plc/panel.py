@@ -75,6 +75,24 @@ def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
     return payload
 
 
+def _selector_options() -> dict[str, Any]:
+    """Return device/state class choices used by the panel dropdowns."""
+    from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+    from homeassistant.components.cover import CoverDeviceClass
+    from homeassistant.components.number import NumberDeviceClass
+    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+
+    return {
+        "device_classes": {
+            "sensors": sorted(dc.value for dc in SensorDeviceClass),
+            "binary_sensors": sorted(dc.value for dc in BinarySensorDeviceClass),
+            "covers": sorted(dc.value for dc in CoverDeviceClass),
+            "numbers": sorted(dc.value for dc in NumberDeviceClass),
+        },
+        "state_classes": [sc.value for sc in SensorStateClass],
+    }
+
+
 def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
     """Return the editable portion of a config entry."""
     runtime_data = getattr(entry, "runtime_data", None)
@@ -85,6 +103,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
         "data": dict(entry.data),
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
+        "selector_options": _selector_options(),
     }
     if hass is not None:
         payload["entity_ids"] = _entity_ids_payload(hass, entry)
