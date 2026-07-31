@@ -31,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    coord, device_info, device_id = get_coordinator_and_device_info(entry)
+    coord, device_info, _ = get_coordinator_and_device_info(entry)
 
     entities = []
     for item in entry.options.get(CONF_SWITCHES, []):
@@ -45,7 +45,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(state_address)
         area = item.get(CONF_AREA)
         topic = f"switch:{state_address}"
-        unique_id = f"{device_id}:{item[CONF_UID]}"
+        unique_id = item[CONF_UID]
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await coord.add_item(topic, state_address, scan_interval)
         entities.append(

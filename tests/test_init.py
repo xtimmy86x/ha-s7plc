@@ -196,7 +196,7 @@ def test_migrate_backfills_uid_for_legacy_items(monkeypatch):
     assert len(update_calls) == 1
     new_options = update_calls[0][1]["options"]
     sensor_item = new_options["sensors"][0]
-    assert sensor_item["uid"] == "sensor:DB1,REAL0"
+    assert sensor_item["uid"] == "s7plc-plc.local-0-1:sensor:DB1,REAL0"
     # The item's own address/name are untouched.
     assert sensor_item["address"] == "DB1,REAL0"
     assert sensor_item["name"] == "Legacy Sensor"

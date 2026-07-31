@@ -46,7 +46,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"binary_sensor:{address}"
-        unique_id = f"{device_id}:{item[CONF_UID]}"
+        unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
         invert_state = item.get(CONF_INVERT_STATE, False)
         scan_interval = item.get(CONF_SCAN_INTERVAL)

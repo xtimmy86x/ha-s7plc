@@ -65,12 +65,12 @@ def entry_with_orphans(monkeypatch):
     # Add active entities (should NOT be removed)
     entity_reg.entities["sensor.active_sensor"] = MockEntityRegistryEntry(
         entity_id="sensor.active_sensor",
-        unique_id="test_device:s1",
+        unique_id="s1",
         config_entry_id="test_entry",
     )
     entity_reg.entities["switch.active_switch"] = MockEntityRegistryEntry(
         entity_id="switch.active_switch",
-        unique_id="test_device:sw1",
+        unique_id="sw1",
         config_entry_id="test_entry",
     )
     entity_reg.entities["binary_sensor.connection"] = MockEntityRegistryEntry(
@@ -203,17 +203,17 @@ def test_get_expected_unique_ids_all_entity_types(entry_with_orphans):
 
     expected = asyncio.run(flow._get_expected_unique_ids(entry))
 
-    assert "test_device:uid-sensor" in expected
-    assert "test_device:uid-binary" in expected
-    assert "test_device:uid-switch" in expected
-    assert "test_device:uid-cover-pos" in expected
-    assert "test_device:uid-cover-trad" in expected
-    assert "test_device:uid-button" in expected
-    assert "test_device:uid-light-1" in expected
-    assert "test_device:uid-light-2" in expected
-    assert "test_device:uid-number" in expected
-    assert "test_device:uid-text" in expected
-    assert "test_device:uid-sync" in expected
+    assert "uid-sensor" in expected
+    assert "uid-binary" in expected
+    assert "uid-switch" in expected
+    assert "uid-cover-pos" in expected
+    assert "uid-cover-trad" in expected
+    assert "uid-button" in expected
+    assert "uid-light-1" in expected
+    assert "uid-light-2" in expected
+    assert "uid-number" in expected
+    assert "uid-text" in expected
+    assert "uid-sync" in expected
     assert "test_device:connection" in expected
 
 
@@ -246,7 +246,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
     flow = repairs.OrphanedEntitiesRepairFlow("test1")
     flow.hass = hass
     expected = asyncio.run(flow._get_expected_unique_ids(entry))
-    assert "dev1:uid-opened" in expected
+    assert "uid-opened" in expected
 
     # Test with closed_state only
     entry2 = ConfigEntry(
@@ -270,7 +270,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
     flow2 = repairs.OrphanedEntitiesRepairFlow("test2")
     flow2.hass = hass
     expected2 = asyncio.run(flow2._get_expected_unique_ids(entry2))
-    assert "dev2:uid-closed" in expected2
+    assert "uid-closed" in expected2
 
     # Test with command only (no state addresses)
     entry3 = ConfigEntry(
@@ -293,7 +293,7 @@ def test_get_expected_unique_ids_traditional_cover_variants():
     flow3 = repairs.OrphanedEntitiesRepairFlow("test3")
     flow3.hass = hass
     expected3 = asyncio.run(flow3._get_expected_unique_ids(entry3))
-    assert "dev3:uid-command" in expected3
+    assert "uid-command" in expected3
 
 
 def test_async_create_fix_flow_extracts_entry_id():

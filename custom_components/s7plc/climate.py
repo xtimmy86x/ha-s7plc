@@ -53,7 +53,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
     """Set up S7 climate entities."""
-    coord, device_info, device_id = get_coordinator_and_device_info(entry)
+    coord, device_info, _ = get_coordinator_and_device_info(entry)
 
     entities = []
     for item in entry.options.get(CONF_CLIMATES, []):
@@ -94,7 +94,7 @@ async def async_setup_entry(
             cooling_action = item.get(CONF_COOLING_ACTION_ADDRESS)
 
             topic = f"climate_direct:{current_temp_address}"
-            unique_id = f"{device_id}:{item[CONF_UID]}"
+            unique_id = item[CONF_UID]
 
             # Register current temperature for reading
             await coord.add_item(
@@ -141,7 +141,7 @@ async def async_setup_entry(
                 continue
 
             topic = f"climate_setpoint:{current_temp_address}"
-            unique_id = f"{device_id}:{item[CONF_UID]}"
+            unique_id = item[CONF_UID]
 
             # Register current and target temperature for reading
             await coord.add_item(
