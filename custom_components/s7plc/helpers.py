@@ -356,8 +356,8 @@ def _iter_legacy_unique_ids(
 
 
 def generate_uid() -> str:
-    """Return a short random identifier for a newly created config item."""
-    return uuid.uuid4().hex[:12]
+    """Return a random identifier for a newly created config item."""
+    return uuid.uuid4().hex
 
 
 def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:

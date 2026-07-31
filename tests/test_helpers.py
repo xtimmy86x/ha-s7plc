@@ -258,11 +258,11 @@ def test_build_entity_area_map():
 
 
 def test_generate_uid_format_and_uniqueness():
-    """generate_uid returns short, unique hex strings."""
+    """generate_uid returns unique hex strings from a full UUID4."""
     uid1 = generate_uid()
     uid2 = generate_uid()
     assert uid1 != uid2
-    assert len(uid1) == 12
+    assert len(uid1) == 32
     int(uid1, 16)  # must be valid hex
 
 
