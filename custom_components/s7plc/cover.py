@@ -47,7 +47,7 @@ PARALLEL_UPDATES = 1
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    coord, device_info, device_id = get_coordinator_and_device_info(entry)
+    coord, device_info, _ = get_coordinator_and_device_info(entry)
 
     entities: list[S7Cover | S7PositionCover] = []
 
@@ -68,7 +68,7 @@ async def async_setup_entry(
             await coord.add_item(position_topic, position_state, scan_interval)
 
             name = item.get(CONF_NAME) or default_entity_name(position_state)
-            unique_id = f"{device_id}:{item[CONF_UID]}"
+            unique_id = item[CONF_UID]
             device_class = item.get(CONF_DEVICE_CLASS)
 
             entities.append(
@@ -118,7 +118,7 @@ async def async_setup_entry(
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
         name = item.get(CONF_NAME) or default_entity_name(open_command)
-        unique_id = f"{device_id}:{item[CONF_UID]}"
+        unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
 
         raw_operate_time = item.get(CONF_OPERATE_TIME, DEFAULT_OPERATE_TIME)

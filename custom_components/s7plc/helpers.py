@@ -403,17 +403,19 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
 def ensure_item_uids(device_id: str, options: MutableMapping[str, Any]) -> bool:
     """Assign a permanent ``uid`` to every config item that doesn't have one.
 
-    For an item that already corresponds to a registered entity (matched via
-    the frozen, address-based :func:`_iter_legacy_unique_ids`), the *exact*
-    string it already resolves to is reused as its ``uid`` — so the entity's
-    unique_id/entity_id doesn't change at all, only becomes independent of
-    the address going forward. Items with no legacy match (e.g. missing a
-    required field, so they never produced an entity) get a fresh random uid.
+    ``uid`` holds the item's *complete* unique_id, not a suffix combined with
+    ``device_id`` at read time — so identity survives connection-parameter
+    changes (host/rack/slot/TSAP), not just address edits. For an item that
+    already corresponds to a registered entity (matched via the frozen,
+    address-based :func:`_iter_legacy_unique_ids`), the *exact* string it
+    already resolves to is reused verbatim as its ``uid`` — so the entity's
+    unique_id/entity_id doesn't change at all. Items with no legacy match
+    (e.g. missing a required field, so they never produced an entity) get a
+    fresh random uid.
 
     Returns whether anything changed, so the caller knows whether to persist
     *options* back onto the config entry.
     """
-    prefix = f"{device_id}:"
     legacy_by_item_id = {
         id(item): legacy_id
         for legacy_id, item in _iter_legacy_unique_ids(device_id, options)
@@ -425,31 +427,29 @@ def ensure_item_uids(device_id: str, options: MutableMapping[str, Any]) -> bool:
             if CONF_UID in item:
                 continue
             legacy_id = legacy_by_item_id.get(id(item))
-            if legacy_id and legacy_id.startswith(prefix):
-                item[CONF_UID] = legacy_id[len(prefix) :]
-            else:
-                item[CONF_UID] = generate_uid()
+            item[CONF_UID] = legacy_id if legacy_id else generate_uid()
             changed = True
     return changed
 
 
 def _iter_entity_unique_ids(
-    device_id: str, options: Mapping[str, Any]
+    options: Mapping[str, Any],
 ) -> Iterator[tuple[str, dict[str, Any]]]:
     """Yield ``(unique_id, config_item)`` for every configured entity.
 
     This is the single source of truth for the mapping
-    *configuration item → entity unique_id*, built from each item's
-    permanent :data:`CONF_UID` rather than any editable address field. Items
-    are expected to already have a ``uid`` (assigned by
-    :func:`ensure_item_uids` at setup time); one lacking it is skipped, not
-    an error, since it would mean setup hasn't run the backfill yet.
+    *configuration item → entity unique_id*, built entirely from each item's
+    permanent :data:`CONF_UID` (no ``device_id`` involved, so identity is
+    independent of connection settings too). Items are expected to already
+    have a ``uid`` (assigned by :func:`ensure_item_uids` at setup time); one
+    lacking it is skipped, not an error, since it would mean setup hasn't run
+    the backfill yet.
     """
     for option_key in OPTION_KEYS:
         for item in options.get(option_key, []):
             uid = item.get(CONF_UID)
             if uid and _item_has_required_fields(option_key, item):
-                yield f"{device_id}:{uid}", item
+                yield uid, item
 
 
 def build_expected_unique_ids(
@@ -464,7 +464,7 @@ def build_expected_unique_ids(
     """
     from .sensor import METRICS_DEFINITIONS
 
-    ids = {uid for uid, _ in _iter_entity_unique_ids(device_id, options)}
+    ids = {uid for uid, _ in _iter_entity_unique_ids(options)}
     ids.add(f"{device_id}:connection")
     # enable_metrics lives in entry.data, not in entry.options
     source = data if data is not None else options
@@ -480,5 +480,5 @@ def build_entity_area_map(
     """Return a mapping ``unique_id → area_id`` for all configured entities."""
     return {
         uid: item.get(CONF_AREA)
-        for uid, item in _iter_entity_unique_ids(device_id, options)
+        for uid, item in _iter_entity_unique_ids(options)
     }

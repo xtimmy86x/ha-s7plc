@@ -148,19 +148,19 @@ def test_build_expected_unique_ids_all_entity_types():
 
     ids = build_expected_unique_ids("dev", options)
 
-    assert "dev:uid-sensor" in ids
-    assert "dev:uid-binary" in ids
-    assert "dev:uid-switch" in ids
-    assert "dev:uid-cover-pos" in ids
-    assert "dev:uid-cover-trad" in ids
-    assert "dev:uid-button" in ids
-    assert "dev:uid-light-1" in ids
-    assert "dev:uid-light-2" in ids
-    assert "dev:uid-number" in ids
-    assert "dev:uid-text" in ids
-    assert "dev:uid-climate-direct" in ids
-    assert "dev:uid-climate-setpoint" in ids
-    assert "dev:uid-entity-sync" in ids
+    assert "uid-sensor" in ids
+    assert "uid-binary" in ids
+    assert "uid-switch" in ids
+    assert "uid-cover-pos" in ids
+    assert "uid-cover-trad" in ids
+    assert "uid-button" in ids
+    assert "uid-light-1" in ids
+    assert "uid-light-2" in ids
+    assert "uid-number" in ids
+    assert "uid-text" in ids
+    assert "uid-climate-direct" in ids
+    assert "uid-climate-setpoint" in ids
+    assert "uid-entity-sync" in ids
     assert "dev:connection" in ids
 
 
@@ -194,7 +194,7 @@ def test_build_expected_unique_ids_traditional_cover_variants():
             "uid": "uid-opened",
         }],
     })
-    assert "d:uid-opened" in ids
+    assert "uid-opened" in ids
 
     # closing_state when no opening_state
     ids = build_expected_unique_ids("d", {
@@ -205,7 +205,7 @@ def test_build_expected_unique_ids_traditional_cover_variants():
             "uid": "uid-closed",
         }],
     })
-    assert "d:uid-closed" in ids
+    assert "uid-closed" in ids
 
     # only open/close command, no end-stop sensors
     ids = build_expected_unique_ids("d", {
@@ -215,13 +215,13 @@ def test_build_expected_unique_ids_traditional_cover_variants():
             "uid": "uid-command",
         }],
     })
-    assert "d:uid-command" in ids
+    assert "uid-command" in ids
 
     # missing close_command_address: no entity would actually be created
     ids = build_expected_unique_ids("d", {
         "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-incomplete"}],
     })
-    assert "d:uid-incomplete" not in ids
+    assert "uid-incomplete" not in ids
 
 
 def test_build_expected_unique_ids_skips_items_without_address():
@@ -247,9 +247,9 @@ def test_build_entity_area_map():
     }
     area_map = build_entity_area_map("dev", options)
 
-    assert area_map["dev:uid-s"] == "kitchen"
-    assert area_map["dev:uid-bs"] is None
-    assert area_map["dev:uid-l"] == "bedroom"
+    assert area_map["uid-s"] == "kitchen"
+    assert area_map["uid-bs"] is None
+    assert area_map["uid-l"] == "bedroom"
 
 
 # ---------------------------------------------------------------------------
@@ -273,8 +273,8 @@ def test_ensure_item_uids_freezes_legacy_id_for_existing_entity():
     }
     changed = ensure_item_uids("dev", options)
     assert changed is True
-    # The legacy unique_id was "dev:sensor:DB1,REAL0" -> uid is the suffix.
-    assert options["sensors"][0]["uid"] == "sensor:DB1,REAL0"
+    # uid now stores the complete legacy unique_id verbatim, device_id included.
+    assert options["sensors"][0]["uid"] == "dev:sensor:DB1,REAL0"
 
 
 def test_ensure_item_uids_assigns_fresh_uid_when_no_legacy_match():
