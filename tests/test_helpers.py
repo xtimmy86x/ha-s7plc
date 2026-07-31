@@ -10,6 +10,7 @@ from custom_components.s7plc.helpers import (
     generate_uid,
     get_coordinator_and_device_info,
     default_entity_name,
+    migrate_legacy_uid_device_prefix,
     parse_pulse_duration,
     scale_value,
     inverse_scale_value,
@@ -258,11 +259,11 @@ def test_build_entity_area_map():
 
 
 def test_generate_uid_format_and_uniqueness():
-    """generate_uid returns short, unique hex strings."""
+    """generate_uid returns unique hex strings from a full UUID4."""
     uid1 = generate_uid()
     uid2 = generate_uid()
     assert uid1 != uid2
-    assert len(uid1) == 12
+    assert len(uid1) == 32
     int(uid1, 16)  # must be valid hex
 
 
@@ -325,6 +326,57 @@ def test_ensure_item_uids_editing_address_does_not_change_uid():
 
     assert changed is False
     assert options["sensors"][0]["uid"] == uid
+
+
+# ---------------------------------------------------------------------------
+# migrate_legacy_uid_device_prefix
+# ---------------------------------------------------------------------------
+
+
+def test_migrate_legacy_uid_device_prefix_upgrades_short_uid():
+    """A uid saved by an earlier build (device-relative suffix only) gets
+    the device_id folded in, so the entity keeps its exact existing
+    unique_id instead of silently changing and becoming orphaned."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "uid": "sensor:DB1,REAL0"}],
+    }
+    changed = migrate_legacy_uid_device_prefix("dev", options)
+    assert changed is True
+    assert options["sensors"][0]["uid"] == "dev:sensor:DB1,REAL0"
+
+
+def test_migrate_legacy_uid_device_prefix_is_a_noop_for_already_prefixed_uid():
+    """A uid that already has the device_id prefix is left untouched."""
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "uid": "dev:sensor:DB1,REAL0"}],
+    }
+    changed = migrate_legacy_uid_device_prefix("dev", options)
+    assert changed is False
+    assert options["sensors"][0]["uid"] == "dev:sensor:DB1,REAL0"
+
+
+def test_migrate_legacy_uid_device_prefix_skips_items_without_uid():
+    """An item with no uid at all yet is left for ensure_item_uids to handle."""
+    options = {"sensors": [{"address": "DB1,REAL0"}]}
+    changed = migrate_legacy_uid_device_prefix("dev", options)
+    assert changed is False
+    assert "uid" not in options["sensors"][0]
+
+
+def test_migrate_legacy_uid_device_prefix_handles_mixed_items():
+    """Only items with an un-prefixed uid are touched; others are untouched."""
+    options = {
+        "sensors": [
+            {"address": "DB1,REAL0", "uid": "sensor:DB1,REAL0"},
+            {"address": "DB1,REAL4", "uid": "dev:sensor:DB1,REAL4"},
+            {"address": "DB1,REAL8"},
+        ],
+    }
+    changed = migrate_legacy_uid_device_prefix("dev", options)
+    assert changed is True
+    assert options["sensors"][0]["uid"] == "dev:sensor:DB1,REAL0"
+    assert options["sensors"][1]["uid"] == "dev:sensor:DB1,REAL4"
+    assert "uid" not in options["sensors"][2]
 
 
 # ---------------------------------------------------------------------------

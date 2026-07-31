@@ -356,8 +356,8 @@ def _iter_legacy_unique_ids(
 
 
 def generate_uid() -> str:
-    """Return a short random identifier for a newly created config item."""
-    return uuid.uuid4().hex[:12]
+    """Return a random identifier for a newly created config item."""
+    return uuid.uuid4().hex
 
 
 def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
@@ -398,6 +398,42 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
             )
         return bool(item.get(CONF_TARGET_TEMPERATURE_ADDRESS))
     return True
+
+
+def migrate_legacy_uid_device_prefix(
+    device_id: str, options: MutableMapping[str, Any]
+) -> bool:
+    """Fold ``device_id`` into every pre-existing ``uid`` that lacks it.
+
+    Earlier builds stored only the device-relative suffix in ``uid`` and
+    prepended ``f"{device_id}:"`` at platform-setup time to get the final
+    unique_id. Since that concatenation no longer happens (``uid`` is now
+    expected to *be* the complete unique_id), any ``uid`` saved by that
+    earlier code must be upgraded to include the ``device_id`` prefix
+    directly — otherwise every existing entity's resolved unique_id changes
+    and the orphaned-entity repair flow flags all of them at once.
+
+    The caller (see ``async_setup_entry``) is responsible for only invoking
+    this once per config entry, tracked outside of *options* (in
+    ``entry.data``, since the options flow rewrites ``entry.options``
+    wholesale on every save and would silently drop a marker stored there).
+    A freshly generated ``uid`` from the *current* code (already the
+    complete id) is indistinguishable in shape from an old device-relative
+    one, so this function cannot safely detect on its own whether it has
+    already run.
+
+    Returns whether anything changed, so the caller knows whether to persist
+    *options* back onto the config entry.
+    """
+    prefix = f"{device_id}:"
+    changed = False
+    for option_key in OPTION_KEYS:
+        for item in options.get(option_key, []):
+            uid = item.get(CONF_UID)
+            if uid and not uid.startswith(prefix):
+                item[CONF_UID] = f"{prefix}{uid}"
+                changed = True
+    return changed
 
 
 def ensure_item_uids(device_id: str, options: MutableMapping[str, Any]) -> bool:

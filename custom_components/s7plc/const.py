@@ -56,6 +56,10 @@ CONF_AREA = "area"
 # from any editable field. unique_id is built from this, not from addresses,
 # so editing an item's address only changes its behavior, never its identity.
 CONF_UID = "uid"
+# Internal marker (not user-facing): set once the one-time migration that
+# upgrades pre-existing "uid" values to include the device_id prefix has
+# run for this config entry. See helpers.migrate_legacy_uid_device_prefix.
+CONF_UID_DEVICE_PREFIX_MIGRATED = "_uid_device_prefix_migrated"
 CONF_SOURCE_ENTITY = "source_entity"
 CONF_DEVICE_CLASS = "device_class"
 CONF_INVERT_STATE = "invert_state"

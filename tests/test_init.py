@@ -192,9 +192,13 @@ def test_migrate_backfills_uid_for_legacy_items(monkeypatch):
 
     asyncio.run(s7init.async_setup_entry(hass, entry))
 
-    # A uid was assigned and persisted.
-    assert len(update_calls) == 1
-    new_options = update_calls[0][1]["options"]
+    # A "no uid values need a device_id prefix" marker call fires first
+    # (nothing to prefix, since this item never had a uid at all), then a
+    # uid was assigned and persisted for the legacy address-based item.
+    assert len(update_calls) == 2
+    assert update_calls[0][1]["data"][s7init.CONF_UID_DEVICE_PREFIX_MIGRATED] is True
+    assert "options" not in update_calls[0][1]
+    new_options = update_calls[1][1]["options"]
     sensor_item = new_options["sensors"][0]
     assert sensor_item["uid"] == "s7plc-plc.local-0-1:sensor:DB1,REAL0"
     # The item's own address/name are untouched.
@@ -203,7 +207,8 @@ def test_migrate_backfills_uid_for_legacy_items(monkeypatch):
 
 
 def test_migrate_uid_backfill_is_a_noop_once_uid_present(monkeypatch):
-    """No further migration once every item already has a uid."""
+    """No further migration once every item already has a fully-qualified,
+    device_id-prefixed uid and the entry is marked as already migrated."""
     hass = HomeAssistant()
 
     hass.services = type(
@@ -215,10 +220,15 @@ def test_migrate_uid_backfill_is_a_noop_once_uid_present(monkeypatch):
             s7init.CONF_HOST: "plc.local",
             s7init.CONF_RACK: 0,
             s7init.CONF_SLOT: 1,
+            s7init.CONF_UID_DEVICE_PREFIX_MIGRATED: True,
         },
         options={
             "sensors": [
-                {"address": "DB1,REAL0", "name": "Sensor", "uid": "already-set"}
+                {
+                    "address": "DB1,REAL0",
+                    "name": "Sensor",
+                    "uid": "s7plc-plc.local-0-1:already-set",
+                }
             ],
         },
         entry_id="test_uid_noop",
@@ -239,4 +249,54 @@ def test_migrate_uid_backfill_is_a_noop_once_uid_present(monkeypatch):
     asyncio.run(s7init.async_setup_entry(hass, entry))
 
     assert len(update_calls) == 0
-    assert entry.options["sensors"][0]["uid"] == "already-set"
+    assert entry.options["sensors"][0]["uid"] == "s7plc-plc.local-0-1:already-set"
+
+
+def test_migrate_uid_device_prefix_upgrades_legacy_short_uid(monkeypatch):
+    """Regression test: an entry created by an earlier build, where 'uid'
+    stored only the device-relative suffix, gets that suffix upgraded to the
+    complete unique_id on first startup with the new code — otherwise every
+    existing entity would silently get a new, mismatched unique_id and the
+    orphaned-entity repair flow would flag all of them at once."""
+    hass = HomeAssistant()
+
+    hass.services = type(
+        "obj", (object,), {"async_register": lambda *a, **k: None}
+    )()
+
+    entry = DummyConfigEntry(
+        data={
+            s7init.CONF_HOST: "plc.local",
+            s7init.CONF_RACK: 0,
+            s7init.CONF_SLOT: 1,
+        },
+        options={
+            "sensors": [
+                {"address": "DB1,REAL0", "name": "Sensor", "uid": "already-set"}
+            ],
+        },
+        entry_id="test_uid_legacy_prefix",
+    )
+
+    update_calls = []
+
+    def fake_update_entry(entry, **kwargs):
+        update_calls.append((entry.entry_id, kwargs))
+
+    hass.config_entries.async_update_entry = fake_update_entry
+    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
+
+    monkeypatch.setattr(
+        s7init, "S7Coordinator", lambda *a, **k: DummyCoordinator(*a, **k)
+    )
+
+    asyncio.run(s7init.async_setup_entry(hass, entry))
+
+    # A single combined update: the short uid is upgraded in place (so the
+    # entity keeps its exact existing unique_id) and the migration is
+    # marked done, both in one call since ensure_item_uids has nothing left
+    # to do for an item that already has a uid.
+    assert len(update_calls) == 1
+    kwargs = update_calls[0][1]
+    assert kwargs["data"][s7init.CONF_UID_DEVICE_PREFIX_MIGRATED] is True
+    assert kwargs["options"]["sensors"][0]["uid"] == "s7plc-plc.local-0-1:already-set"

@@ -26,6 +26,7 @@ from .const import (
     CONF_RACK,
     CONF_REMOTE_TSAP,
     CONF_SLOT,
+    CONF_UID_DEVICE_PREFIX_MIGRATED,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
@@ -48,6 +49,7 @@ from .helpers import (
     build_entity_area_map,
     build_expected_unique_ids,
     ensure_item_uids,
+    migrate_legacy_uid_device_prefix,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -102,6 +104,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         local_tsap = None
         remote_tsap = None
         device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
+
+    # One-time upgrade for entries created by an earlier build where "uid"
+    # stored only the device-relative suffix instead of the complete
+    # unique_id. Must run before ensure_item_uids below, since that function
+    # only fills in *missing* uids and would otherwise leave these old,
+    # now-incomplete ones untouched. Tracked via entry.data rather than
+    # entry.options: the options flow rewrites entry.options wholesale on
+    # every save, which would silently drop a marker stored there and cause
+    # this to run again — double-prefixing already-migrated uids and, worse,
+    # wrongly prefixing brand-new uids that never had a device_id to begin
+    # with.
+    if not entry.data.get(CONF_UID_DEVICE_PREFIX_MIGRATED):
+        options_changed = migrate_legacy_uid_device_prefix(device_id, entry.options)
+        new_data = {**entry.data, CONF_UID_DEVICE_PREFIX_MIGRATED: True}
+        if options_changed:
+            hass.config_entries.async_update_entry(
+                entry, data=new_data, options=entry.options
+            )
+        else:
+            hass.config_entries.async_update_entry(entry, data=new_data)
 
     # Assign a permanent identity to every config item that doesn't have one
     # yet, so unique_id no longer depends on any editable address field.
