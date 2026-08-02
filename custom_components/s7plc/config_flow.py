@@ -13,10 +13,6 @@ from typing import Any, Callable, Dict, List
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import network
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.components.cover import CoverDeviceClass
-from homeassistant.components.number import NumberDeviceClass
-from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
@@ -139,7 +135,7 @@ from .const import (
 )
 from .coordinator import S7Coordinator
 from .export import build_export_json, build_export_payload, register_export_download
-from .helpers import parse_pulse_duration
+from .helpers import STATE_CLASS_VALUES, device_class_values, parse_pulse_duration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -149,24 +145,19 @@ NONE_OPTION = selector.SelectOptionDict(value="__none__", label="No device class
 def _device_selector_by_type(entity_type: str) -> selector.SelectSelector:
     """Return the appropriate device class selector for the given entity type."""
 
-    enum_map = {
-        CONF_BINARY_SENSORS: BinarySensorDeviceClass,
-        CONF_SENSORS: SensorDeviceClass,
-        CONF_NUMBERS: NumberDeviceClass,
-        CONF_COVERS: CoverDeviceClass,
-    }
-
-    try:
-        enum_cls = enum_map[entity_type]
-    except KeyError as err:
-        raise ValueError(f"Unknown entity type: {entity_type}") from err
-
     options = [NONE_OPTION] + [
         selector.SelectOptionDict(
-            value=dc.value,
-            label=dc.value.replace("_", " ").title(),
+            value=value,
+            label=value.replace("_", " ").title(),
         )
-        for dc in enum_cls
+        for value in device_class_values(entity_type)
+    ]
+    options = [NONE_OPTION] + [
+        selector.SelectOptionDict(
+            value=value,
+            label=value.replace("_", " ").title(),
+        )
+        for value in device_class_values(entity_type)
     ]
 
     return selector.SelectSelector(
@@ -228,13 +219,10 @@ def _get_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
 # State class options (reused in sensors)
 state_class_selector = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=[
-            selector.SelectOptionDict(value="none", label="none"),
-            selector.SelectOptionDict(value="measurement", label="measurement"),
-            selector.SelectOptionDict(value="total", label="total"),
-            selector.SelectOptionDict(
-                value="total_increasing", label="total_increasing"
-            ),
+        options=[selector.SelectOptionDict(value="none", label="none")]
+        + [
+            selector.SelectOptionDict(value=value, label=value)
+            for value in STATE_CLASS_VALUES
         ],
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
