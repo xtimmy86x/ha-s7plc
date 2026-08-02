@@ -42,6 +42,7 @@ jobs:
             pytest \
             pytest-asyncio \
             pytest-cov \
+            PyYAML \
             voluptuous \
             "pys7==2.8.2"
             
@@ -61,3 +62,4 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
           retention-days: 7
+          
