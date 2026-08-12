@@ -1,6 +1,13 @@
-config.json
-node_modules/
+.venv/
 __pycache__/
 *.pyc
-.ruff_cache/
+
 .pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+.ruff_cache/
+
+config.json
+node_modules/

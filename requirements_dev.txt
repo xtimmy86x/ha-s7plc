@@ -1,6 +1,10 @@
 -r requirements.txt
+
 pytest
 pytest-asyncio
+pytest-cov
+voluptuous
+PyYAML
+
 ruff
 pre-commit
-PyYAML
