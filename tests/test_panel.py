@@ -150,3 +150,17 @@ def test_panel_exposes_climate_mode_and_status_fields() -> None:
     )
     assert "preset_mode_off_value" in mode_hidden_line
     assert "hvac_status_off_values" in mode_hidden_line
+
+
+def test_panel_hints_mode_and_status_field_semantics() -> None:
+    """preset_mode_*_value and hvac_status_*_values fields explain that -1
+    hides/skips, and that status fields accept multiple comma-separated
+    values — otherwise this is only discoverable via the YAML editor or
+    the docs, not from the visual editor itself."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value')" in source
+    assert "statusValues=key.startsWith('hvac_status_')&&key.endsWith('_values')" in source
+    assert 'preset_value_help:"Set to -1 to hide this mode."' in source
+    assert "comma-separated" in source
+    assert "presetValue?" in source and "statusValues?" in source
