@@ -383,7 +383,11 @@ def test_import_step_replaces_configuration():
 
     new_payload = {
         const.CONF_SENSORS: [
-            {const.CONF_ADDRESS: "DB10.DBW0", CONF_NAME: "New"}
+            {
+                const.CONF_ADDRESS: "DB10.DBW0",
+                CONF_NAME: "New",
+                const.CONF_AREA: "kitchen",
+            }
         ],
         const.CONF_LIGHTS: [
             {
@@ -401,7 +405,10 @@ def test_import_step_replaces_configuration():
     assert flow._options[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB10.DBW0"
     assert flow._options[const.CONF_LIGHTS][0][const.CONF_COMMAND_ADDRESS] == "Q1.1"
     assert flow._options[const.CONF_BUTTONS] == []
-
+    assert (
+        flow._options[const.CONF_SENSORS][0][const.CONF_AREA]
+        == "kitchen"
+    )
 
 def test_import_step_handles_invalid_json():
     flow = make_options_flow()

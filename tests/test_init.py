@@ -115,6 +115,72 @@ def test_update_listener_triggers_reload():
     assert reload_called == [entry.entry_id]
 
 
+def test_update_listener_applies_area_to_new_entity_after_reload(monkeypatch):
+    """Test that areas are applied after newly imported entities are created."""
+    hass = HomeAssistant()
+
+    entry = DummyConfigEntry(
+        options={
+            const.CONF_SENSORS: [
+                {
+                    const.CONF_ADDRESS: "DB1,REAL0",
+                    const.CONF_AREA: "kitchen",
+                }
+            ]
+        },
+        entry_id="entry1",
+    )
+
+    entry.runtime_data = s7init.RuntimeEntryData(
+        coordinator=None,
+        name="Test PLC",
+        host="plc.local",
+        device_id="test-device",
+    )
+
+    class FakeEntityRegistry:
+        def __init__(self):
+            self.entity_available = False
+            self.updated = []
+
+        def async_get_entity_id(self, platform, domain, unique_id):
+            if (
+                self.entity_available
+                and domain == const.DOMAIN
+                and unique_id == "test-device:sensor:DB1,REAL0"
+            ):
+                return "sensor.imported_sensor"
+            return None
+
+        def async_update_entity(self, entity_id, **kwargs):
+            self.updated.append((entity_id, kwargs))
+
+    entity_registry = FakeEntityRegistry()
+
+    monkeypatch.setattr(
+        s7init.er,
+        "async_get",
+        lambda hass: entity_registry,
+    )
+
+    async def fake_reload(entry_id):
+        assert entry_id == "entry1"
+
+        # Simulate the entity being created during integration reload.
+        entity_registry.entity_available = True
+
+    hass.config_entries.async_reload = fake_reload
+
+    asyncio.run(s7init._async_update_listener(hass, entry))
+
+    assert entity_registry.updated == [
+        (
+            "sensor.imported_sensor",
+            {"area_id": "kitchen"},
+        )
+    ]
+
+
 def test_write_multi_service_registration(monkeypatch):
     """Test that write_multi service is registered."""
     hass = HomeAssistant()

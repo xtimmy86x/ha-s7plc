@@ -298,9 +298,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
-    # Update areas in entity registry before reloading
-    await _async_update_entity_areas(hass, entry)
     await hass.config_entries.async_reload(entry.entry_id)
+
+    # Apply configured areas after reload, when newly added entities
+    # are available in the entity registry.
+    await _async_update_entity_areas(hass, entry)
 
 
 async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) -> None:
