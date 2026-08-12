@@ -164,3 +164,40 @@ def test_panel_hints_mode_and_status_field_semantics() -> None:
     assert 'preset_value_help:"Set to -1 to hide this mode."' in source
     assert "comma-separated" in source
     assert "presetValue?" in source and "statusValues?" in source
+
+
+def test_panel_drops_retired_scaling_fields() -> None:
+    """Sensors/numbers/lights no longer expose the separate scale fields
+    that were folded into the address field's inline Scale(...) syntax;
+    only numbers' min_value/max_value survive, since those double as the
+    Number entity's plain HA-facing bounds independent of scaling."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    sensors_line = next(
+        line for line in source.splitlines() if line.strip().startswith("sensors:[")
+    )
+    numbers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("numbers:[")
+    )
+    lights_line = next(
+        line for line in source.splitlines() if line.strip().startswith("lights:[")
+    )
+
+    for retired in ("value_multiplier", "scale_raw_min", "scale_raw_max"):
+        assert retired not in sensors_line
+        assert retired not in numbers_line
+    assert "min_value" not in sensors_line
+    assert "max_value" not in sensors_line
+    assert "min_value" in numbers_line
+    assert "max_value" in numbers_line
+    assert "brightness_scale" not in lights_line
+
+
+def test_panel_shows_scale_hint_only_on_scalable_fields() -> None:
+    """The Scale(...) hint appears only next to fields that actually accept
+    it, keyed by (entity type, field), not blindly on every address field."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "const SCALE_FIELDS" in source
+    assert 'scale_help:"Optional scaling' in source
+    assert "scalable?' '+this.t('scale_help')" in source
