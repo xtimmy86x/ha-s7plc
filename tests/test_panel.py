@@ -110,3 +110,109 @@ def test_panel_renders_current_state_badges() -> None:
     assert "state-badge" in source
     assert "entry.entity_ids?.[type]?.[i]" in source
     assert "this.updateStates()" in source
+
+
+def test_panel_exposes_climate_mode_and_status_fields() -> None:
+    """The visual editor lets you configure the HVAC mode <-> PLC value
+    mapping (setpoint control mode), not just the mode/status addresses —
+    these fields didn't exist yet when the panel was first built."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    climates_line = next(
+        line for line in source.splitlines() if line.strip().startswith("climates:[")
+    )
+    for key in (
+        "on_off_address",
+        "preset_mode_off_value",
+        "preset_mode_heat_value",
+        "preset_mode_cool_value",
+        "preset_mode_heat_cool_value",
+        "preset_mode_auto_value",
+        "preset_mode_dry_value",
+        "preset_mode_fan_only_value",
+        "hvac_status_off_values",
+        "hvac_status_heating_values",
+        "hvac_status_cooling_values",
+        "hvac_status_idle_values",
+        "hvac_status_drying_values",
+        "hvac_status_fan_values",
+        "hvac_status_preheating_values",
+    ):
+        assert key in climates_line, f"{key} missing from climates FIELDS"
+        assert key in source, f"{key} missing a translated label"
+
+    # These fields only apply to setpoint control mode, so direct mode must
+    # hide them (matches the existing address/mode-address hiding).
+    mode_hidden_line = next(
+        line
+        for line in source.splitlines()
+        if "direct:" in line and "on_off_address" in line
+    )
+    assert "preset_mode_off_value" in mode_hidden_line
+    assert "hvac_status_off_values" in mode_hidden_line
+
+
+def test_panel_hints_mode_and_status_field_semantics() -> None:
+    """preset_mode_*_value and hvac_status_*_values fields explain that -1
+    hides/skips, and that status fields accept multiple comma-separated
+    values — otherwise this is only discoverable via the YAML editor or
+    the docs, not from the visual editor itself."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value')" in source
+    assert "statusValues=key.startsWith('hvac_status_')&&key.endsWith('_values')" in source
+    assert 'preset_value_help:"Set to -1 to hide this mode."' in source
+    assert "comma-separated" in source
+    assert "presetValue?" in source and "statusValues?" in source
+
+
+def test_panel_hides_climate_preset_values_when_preset_mode_address_unused() -> None:
+    """In Setpoint mode, the per-mode preset_mode_*_value fields are
+    meaningless without preset_mode_address filled in — dynamically
+    hidden (and stripped on save) until it has a value."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "CLIMATE_PRESET_VALUE_FIELDS" in source
+    assert (
+        "const CLIMATE_PRESET_VALUE_FIELDS = "
+        '["preset_mode_off_value","preset_mode_heat_value",'
+        '"preset_mode_cool_value","preset_mode_heat_cool_value",'
+        '"preset_mode_auto_value","preset_mode_dry_value",'
+        '"preset_mode_fan_only_value"]'
+    ) in source
+    assert (
+        "if(!form.elements.preset_mode_address?.value.trim())"
+        "{hidden=[...hidden,...CLIMATE_PRESET_VALUE_FIELDS];}"
+    ) in source
+    # Dynamic hide: the preset-mode-address input triggers a re-sync on input.
+    assert "form.elements.preset_mode_address.oninput=syncMode" in source
+    assert (
+        "if(!entity.preset_mode_address){"
+        "CLIMATE_PRESET_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
+    ) in source
+
+
+def test_panel_hides_climate_status_values_when_hvac_status_address_unused() -> None:
+    """In Setpoint mode, the per-status hvac_status_*_values fields are
+    meaningless without hvac_status_address filled in — dynamically
+    hidden (and stripped on save) until it has a value."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "CLIMATE_STATUS_VALUE_FIELDS" in source
+    assert (
+        "const CLIMATE_STATUS_VALUE_FIELDS = "
+        '["hvac_status_off_values","hvac_status_heating_values",'
+        '"hvac_status_cooling_values","hvac_status_idle_values",'
+        '"hvac_status_drying_values","hvac_status_fan_values",'
+        '"hvac_status_preheating_values"]'
+    ) in source
+    assert (
+        "if(!form.elements.hvac_status_address?.value.trim())"
+        "{hidden=[...hidden,...CLIMATE_STATUS_VALUE_FIELDS];}"
+    ) in source
+    # Dynamic hide: the hvac-status-address input triggers a re-sync on input.
+    assert "form.elements.hvac_status_address.oninput=syncMode" in source
+    assert (
+        "if(!entity.hvac_status_address){"
+        "CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
+    ) in source
