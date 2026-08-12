@@ -110,3 +110,43 @@ def test_panel_renders_current_state_badges() -> None:
     assert "state-badge" in source
     assert "entry.entity_ids?.[type]?.[i]" in source
     assert "this.updateStates()" in source
+
+
+def test_panel_exposes_climate_mode_and_status_fields() -> None:
+    """The visual editor lets you configure the HVAC mode <-> PLC value
+    mapping (setpoint control mode), not just the mode/status addresses —
+    these fields didn't exist yet when the panel was first built."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    climates_line = next(
+        line for line in source.splitlines() if line.strip().startswith("climates:[")
+    )
+    for key in (
+        "on_off_address",
+        "preset_mode_off_value",
+        "preset_mode_heat_value",
+        "preset_mode_cool_value",
+        "preset_mode_heat_cool_value",
+        "preset_mode_auto_value",
+        "preset_mode_dry_value",
+        "preset_mode_fan_only_value",
+        "hvac_status_off_values",
+        "hvac_status_heating_values",
+        "hvac_status_cooling_values",
+        "hvac_status_idle_values",
+        "hvac_status_drying_values",
+        "hvac_status_fan_values",
+        "hvac_status_preheating_values",
+    ):
+        assert key in climates_line, f"{key} missing from climates FIELDS"
+        assert key in source, f"{key} missing a translated label"
+
+    # These fields only apply to setpoint control mode, so direct mode must
+    # hide them (matches the existing address/mode-address hiding).
+    mode_hidden_line = next(
+        line
+        for line in source.splitlines()
+        if "direct:" in line and "on_off_address" in line
+    )
+    assert "preset_mode_off_value" in mode_hidden_line
+    assert "hvac_status_off_values" in mode_hidden_line
