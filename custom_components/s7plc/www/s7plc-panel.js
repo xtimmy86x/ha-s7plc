@@ -195,7 +195,7 @@ article:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divi
 .mode-tabs button.active ha-icon{color:var(--primary-color)}
 .mode-tabs button span,.mode-tabs button small{display:block}
 .mode-tabs button small{font-size:10px;opacity:.72;margin-top:2px}
-.visual-form{display:flex;flex-direction:column;gap:16px}
+.visual-form{display:flex;flex-direction:column;gap:16px}.visual-form[hidden]{display:none}
 .form-section{border:1px solid var(--divider-color);border-radius:16px;padding:20px 22px;background:color-mix(in srgb,var(--secondary-background-color) 40%,transparent)}
 .section-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
 .section-head b{display:block;font-size:14px}
