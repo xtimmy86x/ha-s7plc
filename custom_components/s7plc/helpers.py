@@ -14,9 +14,6 @@ from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_BILLION,
-    CONCENTRATION_PARTS_PER_MILLION,
-    PERCENTAGE,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -26,6 +23,25 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
+
+try:
+    from homeassistant.const import UnitOfRatio
+except ImportError:
+    # Compatibility with Home Assistant < 2026.7
+    from homeassistant.const import (
+        CONCENTRATION_PARTS_PER_BILLION,
+        CONCENTRATION_PARTS_PER_MILLION,
+        PERCENTAGE,
+    )
+
+    UNIT_PERCENTAGE = PERCENTAGE
+    UNIT_PARTS_PER_MILLION = CONCENTRATION_PARTS_PER_MILLION
+    UNIT_PARTS_PER_BILLION = CONCENTRATION_PARTS_PER_BILLION
+else:
+    UNIT_PERCENTAGE = UnitOfRatio.PERCENTAGE
+    UNIT_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+    UNIT_PARTS_PER_BILLION = UnitOfRatio.PARTS_PER_BILLION
+
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
@@ -98,8 +114,8 @@ DEVICE_CLASS_DEFAULT_UNITS: dict[str, str | None] = {
     # Environmental
     "TEMPERATURE": UnitOfTemperature.CELSIUS,
     "TEMPERATURE_DELTA": UnitOfTemperature.CELSIUS,
-    "HUMIDITY": PERCENTAGE,
-    "MOISTURE": PERCENTAGE,
+    "HUMIDITY": UNIT_PERCENTAGE,
+    "MOISTURE": UNIT_PERCENTAGE,
     "ILLUMINANCE": "lx",
     "IRRADIANCE": "W/m²",
     "ATMOSPHERIC_PRESSURE": UnitOfPressure.HPA,
@@ -122,20 +138,20 @@ DEVICE_CLASS_DEFAULT_UNITS: dict[str, str | None] = {
     "FREQUENCY": UnitOfFrequency.HERTZ,
     # Air quality
     "AQI": None,
-    "CO2": CONCENTRATION_PARTS_PER_MILLION,
-    "CO": CONCENTRATION_PARTS_PER_MILLION,
-    "OZONE": CONCENTRATION_PARTS_PER_BILLION,
-    "NITROGEN_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
-    "NITROUS_OXIDE": CONCENTRATION_PARTS_PER_BILLION,
-    "SULPHUR_DIOXIDE": CONCENTRATION_PARTS_PER_BILLION,
-    "VOLATILE_ORGANIC_COMPOUNDS": CONCENTRATION_PARTS_PER_BILLION,
-    "VOLATILE_ORGANIC_COMPOUNDS_PARTS": CONCENTRATION_PARTS_PER_MILLION,
+    "CO2": UNIT_PARTS_PER_MILLION,
+    "CO": UNIT_PARTS_PER_MILLION,
+    "OZONE": UNIT_PARTS_PER_BILLION,
+    "NITROGEN_DIOXIDE": UNIT_PARTS_PER_BILLION,
+    "NITROUS_OXIDE": UNIT_PARTS_PER_BILLION,
+    "SULPHUR_DIOXIDE": UNIT_PARTS_PER_BILLION,
+    "VOLATILE_ORGANIC_COMPOUNDS": UNIT_PARTS_PER_BILLION,
+    "VOLATILE_ORGANIC_COMPOUNDS_PARTS": UNIT_PARTS_PER_MILLION,
     "PM1": "µg/m³",
     "PM25": "µg/m³",
     "PM4": "µg/m³",
     "PM10": "µg/m³",
     # Misc
-    "BATTERY": PERCENTAGE,
+    "BATTERY": UNIT_PERCENTAGE,
     "SIGNAL_STRENGTH": "dBm",
     "SOUND_PRESSURE": "dB",
     "PH": None,
