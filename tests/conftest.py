@@ -156,6 +156,12 @@ class UnitOfPressure(_UnitEnum):
     HPA = "hPa"
 
 
+class UnitOfRatio(_UnitEnum):
+    PERCENTAGE = "%"
+    PARTS_PER_MILLION = "ppm"
+    PARTS_PER_BILLION = "ppb"
+
+
 class UnitOfSpeed(_UnitEnum):
     METERS_PER_SECOND = "m/s"
 
@@ -170,6 +176,7 @@ const.UnitOfEnergy = UnitOfEnergy
 const.UnitOfFrequency = UnitOfFrequency
 const.UnitOfPower = UnitOfPower
 const.UnitOfPressure = UnitOfPressure
+const.UnitOfRatio = UnitOfRatio
 const.UnitOfSpeed = UnitOfSpeed
 const.UnitOfTemperature = UnitOfTemperature
 sys.modules["homeassistant.const"] = const
