@@ -957,6 +957,8 @@ class HVACAction(Enum):  # pragma: no cover - simple stub
     DRYING = "drying"
     IDLE = "idle"
     FAN = "fan"
+    PREHEATING = "preheating"
+    DEFROSTING = "defrosting"
 
 
 class ClimateEntity:  # pragma: no cover - simple stub

@@ -1089,3 +1089,169 @@ def test_light_sync_same_address_conflict():
 
     assert result["type"] == "form"
     assert result["kwargs"]["errors"]["base"] == "sync_same_address"
+
+
+# ============================================================================
+# Climate (setpoint control): review-driven validation
+# ============================================================================
+
+
+def test_add_climate_setpoint_rejects_non_integer_preset_value():
+    """A decimal preset_mode_*_value is rejected, not silently truncated."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_HEAT_VALUE: "2.7",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_integer"
+
+
+def test_add_climate_setpoint_rejects_duplicate_preset_value():
+    """Two HVAC modes can't be mapped to the same PLC value."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_HEAT_VALUE: "5",
+                const.CONF_PRESET_MODE_COOL_VALUE: "5",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "duplicate_preset_value"
+
+
+def test_add_climate_setpoint_rejects_duplicate_status_value():
+    """Two HVAC statuses can't share the same PLC status value."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_HVAC_STATUS_HEATING_VALUES: "2,3",
+                const.CONF_HVAC_STATUS_COOLING_VALUES: "3",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "duplicate_status_value"
+
+
+def test_add_climate_setpoint_stores_defrosting_and_bidirectional():
+    """New fields (DEFROSTING status, opt-in bidirectional readback) are
+    validated and stored like any other climate setpoint field."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_ADDRESS: "DB1,INT0",
+                const.CONF_PRESET_MODE_BIDIRECTIONAL: True,
+                const.CONF_HVAC_STATUS_ADDRESS: "DB1,INT8",
+                const.CONF_HVAC_STATUS_DEFROSTING_VALUES: "9",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    item = flow._options[const.CONF_CLIMATES][0]
+    assert item[const.CONF_PRESET_MODE_BIDIRECTIONAL] is True
+    assert item[const.CONF_HVAC_STATUS_DEFROSTING_VALUES] == "9"
+
+
+def test_add_climate_setpoint_disabled_mode_stored_as_none():
+    """Leaving a disabled-by-default preset value blank stores None, not
+    the retired -1 sentinel."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    item = flow._options[const.CONF_CLIMATES][0]
+    assert item[const.CONF_PRESET_MODE_AUTO_VALUE] is None
+    assert item[const.CONF_PRESET_MODE_DRY_VALUE] is None
+    assert item[const.CONF_PRESET_MODE_FAN_ONLY_VALUE] is None
+
+
+def test_add_climate_setpoint_explicitly_cleared_core_mode_stays_disabled():
+    """Clearing a preset value for a core mode (OFF/HEAT/COOL/HEAT_COOL,
+    which have non-empty defaults unlike AUTO/DRY/FAN_ONLY) must store None,
+    not silently fall back to that mode's default value. Regression test
+    for a bug where clearing e.g. preset_mode_heat_cool_value left the mode
+    enabled anyway because the default (3) was re-applied on top of the
+    user's explicit None."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_HEAT_COOL_VALUE: "",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    item = flow._options[const.CONF_CLIMATES][0]
+    assert item[const.CONF_PRESET_MODE_HEAT_COOL_VALUE] is None
+    # Untouched core modes still get their sensible defaults.
+    assert item[const.CONF_PRESET_MODE_OFF_VALUE] == const.DEFAULT_PRESET_MODE_OFF_VALUE
+    assert item[const.CONF_PRESET_MODE_HEAT_VALUE] == const.DEFAULT_PRESET_MODE_HEAT_VALUE
+    assert item[const.CONF_PRESET_MODE_COOL_VALUE] == const.DEFAULT_PRESET_MODE_COOL_VALUE
+
+
+def test_add_climate_setpoint_explicitly_cleared_core_status_stays_disabled():
+    """Same bug class as above, mirrored on the status-matching side:
+    hvac_status_off/heating/cooling_values also have non-empty historical
+    defaults ("0"/"1"/"2"), unlike idle/drying/fan/preheating/defrosting
+    which default to "". Clearing e.g. hvac_status_cooling_values must
+    store "" (disabled), not silently fall back to "2" - a status address
+    reporting 2 would otherwise keep matching COOLING even though the
+    field looked cleared in the config UI."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_HVAC_STATUS_ADDRESS: "DB1,INT8",
+                const.CONF_HVAC_STATUS_COOLING_VALUES: "",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    item = flow._options[const.CONF_CLIMATES][0]
+    assert item[const.CONF_HVAC_STATUS_COOLING_VALUES] == ""
+    # Untouched core statuses still get their sensible defaults.
+    assert item[const.CONF_HVAC_STATUS_OFF_VALUES] == const.DEFAULT_HVAC_STATUS_OFF_VALUES
+    assert (
+        item[const.CONF_HVAC_STATUS_HEATING_VALUES]
+        == const.DEFAULT_HVAC_STATUS_HEATING_VALUES
+    )
