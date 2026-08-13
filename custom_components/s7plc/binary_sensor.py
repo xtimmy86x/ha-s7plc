@@ -18,6 +18,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_INVERT_STATE,
     CONF_SCAN_INTERVAL,
+    CONF_UID,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -45,7 +46,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"binary_sensor:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
         invert_state = item.get(CONF_INVERT_STATE, False)
         scan_interval = item.get(CONF_SCAN_INTERVAL)

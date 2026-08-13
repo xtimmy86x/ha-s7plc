@@ -83,7 +83,11 @@ def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
         data={"host": "192.0.2.1"},
         options={
             "sensors": [
-                {"name": "Temp", "address": "DB1,REAL0"},
+                {
+                    "name": "Temp",
+                    "address": "DB1,REAL0",
+                    "uid": "dev1:sensor:DB1,REAL0",
+                },
                 {"name": "Broken"},
             ]
         },

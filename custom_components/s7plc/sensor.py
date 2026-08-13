@@ -33,6 +33,7 @@ from .const import (
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
     CONF_STATE_CLASS,
+    CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
 )
@@ -291,7 +292,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"sensor:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
         value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
@@ -359,7 +360,7 @@ async def async_setup_entry(
 
         name = item.get(CONF_NAME) or default_entity_name(f"Entity Sync {address}")
         area = item.get(CONF_AREA)
-        unique_id = f"{device_id}:entity_sync:{address}"
+        unique_id = item[CONF_UID]
 
         sync_entities.append(
             S7EntitySync(
