@@ -52,6 +52,15 @@ def test_panel_uses_current_home_assistant_dialog_api() -> None:
     assert "dialog.close()" not in source
 
 
+def test_panel_hides_inactive_editor_mode() -> None:
+    """Keep the visual and YAML editors mutually exclusive in the dialog layout."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert '<div class="yaml-editor" style="display:none">' in source
+    assert ".visual-form').style.display=mode==='visual'?'flex':'none'" in source
+    assert ".yaml-editor').style.display=mode==='yaml'?'block':'none'" in source
+
+
 @pytest.mark.parametrize("connected", [True, False])
 def test_entry_payload_includes_connection_status(connected) -> None:
     """Expose the coordinator connection state to the panel."""
