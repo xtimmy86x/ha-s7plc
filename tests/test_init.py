@@ -125,6 +125,7 @@ def test_update_listener_applies_area_to_new_entity_after_reload(monkeypatch):
                 {
                     const.CONF_ADDRESS: "DB1,REAL0",
                     const.CONF_AREA: "kitchen",
+                    const.CONF_UID: "sensor-uid-1",
                 }
             ]
         },
@@ -147,7 +148,7 @@ def test_update_listener_applies_area_to_new_entity_after_reload(monkeypatch):
             if (
                 self.entity_available
                 and domain == const.DOMAIN
-                and unique_id == "test-device:sensor:DB1,REAL0"
+                and unique_id == "sensor-uid-1"
             ):
                 return "sensor.imported_sensor"
             return None
