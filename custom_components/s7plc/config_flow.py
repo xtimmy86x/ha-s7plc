@@ -3137,6 +3137,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if sanitized[key]:
                 _LOGGER.info("Import: %s = %d items", key, len(sanitized[key]))
 
+        seen_uids: set[str] = set()
+        for key in OPTION_KEYS:
+            for item in sanitized[key]:
+                uid = item.get(CONF_UID)
+                if not isinstance(uid, str) or not uid:
+                    continue
+                if uid in seen_uids:
+                    replacement_uid = generate_uid()
+                    while replacement_uid in seen_uids:
+                        replacement_uid = generate_uid()
+                    item[CONF_UID] = replacement_uid
+                    uid = replacement_uid
+                seen_uids.add(uid)
+
         # Validate for duplicate addresses within each entity type
         if not self._validate_import_duplicates(sanitized):
             _LOGGER.warning("Import failed: duplicate addresses found")

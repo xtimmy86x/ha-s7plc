@@ -614,6 +614,25 @@ def test_import_step_preserves_existing_uid():
     assert flow._options[const.CONF_SENSORS][0][const.CONF_UID] == "preserved-uid"
 
 
+def test_import_step_replaces_duplicate_uid(monkeypatch):
+    """A duplicate imported uid is replaced without changing the first one."""
+    flow = make_options_flow()
+    monkeypatch.setattr(config_flow, "generate_uid", lambda: "replacement-uid")
+
+    payload = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0", const.CONF_UID: "duplicate-uid"},
+            {const.CONF_ADDRESS: "DB1,X0.1", const.CONF_UID: "duplicate-uid"},
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "create_entry"
+    assert flow._options[const.CONF_SENSORS][0][const.CONF_UID] == "duplicate-uid"
+    assert flow._options[const.CONF_SENSORS][1][const.CONF_UID] == "replacement-uid"
+
+
 def test_import_step_allows_same_address_across_entity_types():
     """Test that same address can be used in different entity types (e.g., sensor and button)."""
     flow = make_options_flow()
