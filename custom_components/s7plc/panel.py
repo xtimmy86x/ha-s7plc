@@ -8,7 +8,8 @@ from typing import Any
 import voluptuous as vol
 import yaml
 
-from .const import DOMAIN, OPTION_KEYS
+from .const import CONF_UID, DOMAIN, OPTION_KEYS
+from .helpers import generate_uid
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
@@ -49,18 +50,20 @@ _OPTION_DOMAINS = {
 
 
 def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
-    """Map every configured item to its Home Assistant entity_id (or None)."""
+    """Map every configured item to its Home Assistant entity_id (or None).
+
+    ``uid`` is already the complete unique_id (see helpers.CONF_UID), so no
+    device_id concatenation is needed here. Items without a uid yet (not
+    backfilled by ``ensure_item_uids`` because setup hasn't run) are simply
+    skipped by ``_iter_entity_unique_ids`` and resolve to ``None`` below.
+    """
     from homeassistant.helpers import entity_registry as er
 
     from .helpers import _iter_entity_unique_ids
 
-    device_id = getattr(getattr(entry, "runtime_data", None), "device_id", None)
-    if not device_id:
-        return {key: [None] * len(entry.options.get(key, [])) for key in OPTION_KEYS}
-
     registry = er.async_get(hass)
     uid_by_item = {
-        id(item): uid for uid, item in _iter_entity_unique_ids(device_id, entry.options)
+        id(item): uid for uid, item in _iter_entity_unique_ids(entry.options)
     }
     payload: dict[str, list[str | None]] = {}
     for key in OPTION_KEYS:
@@ -148,6 +151,7 @@ async def async_setup_panel(hass: Any) -> None:
     @websocket_api.require_admin
     @websocket_api.async_response
     async def ws_save_entity(hass, connection, msg):
+
         entry = hass.config_entries.async_get_entry(msg["entry_id"])
         if entry is None or entry.domain != DOMAIN:
             connection.send_error(
@@ -163,11 +167,18 @@ async def async_setup_panel(hass: Any) -> None:
             connection.send_error(msg["id"], "invalid_entity", str(err))
             return
         if index is None:
+            # New entity: assign a permanent uid now rather than relying on
+            # ensure_item_uids to backfill one at the next reload.
+            entity[CONF_UID] = generate_uid()
             items.append(entity)
         elif index < 0 or index >= len(items):
             connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
             return
         else:
+            # Preserve the existing item's uid as a backend guarantee, not
+            # an accident of the frontend echoing it back unchanged (the
+            # YAML editor lets a user delete that line from the payload).
+            entity[CONF_UID] = items[index].get(CONF_UID) or generate_uid()
             items[index] = entity
         options[msg["entity_type"]] = items
         hass.config_entries.async_update_entry(entry, options=options)

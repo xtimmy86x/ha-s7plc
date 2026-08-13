@@ -253,7 +253,53 @@ def test_edit_sensor_scan_interval_can_be_cleared():
     assert result["type"] == "create_entry"
     sensor = flow._options[const.CONF_SENSORS][0]
     assert const.CONF_SCAN_INTERVAL not in sensor
-    
+
+
+def test_add_sensor_assigns_uid():
+    """A newly added item gets a permanent uid, independent of its address."""
+    flow = make_options_flow(options={const.CONF_SENSORS: []})
+
+    result = run_flow(
+        flow.async_step_sensors({const.CONF_ADDRESS: "DB1,X0.0"})
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert sensor[const.CONF_UID]
+
+
+def test_edit_sensor_preserves_uid_when_address_changes():
+    """Regression test: editing an item's address must not change its uid.
+
+    Before the stable-uid fix, unique_id was derived straight from the
+    address, so editing it orphaned the existing entity. Now the uid is
+    assigned once at creation and must survive address edits unchanged.
+    """
+    options = {
+        const.CONF_SENSORS: [
+            {const.CONF_ADDRESS: "DB1,X0.0", const.CONF_UID: "original-uid"}
+        ]
+    }
+
+    flow = make_options_flow(options=options)
+    flow._action = "edit"
+    flow._edit_target = ("s", 0)
+
+    result = run_flow(
+        flow.async_step_edit_sensor(
+            {
+                const.CONF_ADDRESS: "DB2,X1.0",  # address changed
+                CONF_NAME: "",
+                const.CONF_SCAN_INTERVAL: "",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    sensor = flow._options[const.CONF_SENSORS][0]
+    assert sensor[const.CONF_ADDRESS] == "DB2,X1.0"
+    assert sensor[const.CONF_UID] == "original-uid"
+
 
 def test_add_sensor_with_value_multiplier():
     flow = make_options_flow(options={const.CONF_SENSORS: []})
@@ -383,7 +429,11 @@ def test_import_step_replaces_configuration():
 
     new_payload = {
         const.CONF_SENSORS: [
-            {const.CONF_ADDRESS: "DB10.DBW0", CONF_NAME: "New"}
+            {
+                const.CONF_ADDRESS: "DB10.DBW0",
+                CONF_NAME: "New",
+                const.CONF_AREA: "kitchen",
+            }
         ],
         const.CONF_LIGHTS: [
             {
@@ -401,7 +451,10 @@ def test_import_step_replaces_configuration():
     assert flow._options[const.CONF_SENSORS][0][const.CONF_ADDRESS] == "DB10.DBW0"
     assert flow._options[const.CONF_LIGHTS][0][const.CONF_COMMAND_ADDRESS] == "Q1.1"
     assert flow._options[const.CONF_BUTTONS] == []
-
+    assert (
+        flow._options[const.CONF_SENSORS][0][const.CONF_AREA]
+        == "kitchen"
+    )
 
 def test_import_step_handles_invalid_json():
     flow = make_options_flow()
@@ -537,6 +590,28 @@ def test_import_step_accepts_unique_addresses():
     assert len(flow._options[const.CONF_SENSORS]) == 2
     assert len(flow._options[const.CONF_SWITCHES]) == 1
     assert len(flow._options[const.CONF_BUTTONS]) == 1
+
+
+def test_import_step_preserves_existing_uid():
+    """A uid already present in the imported JSON (e.g. from this
+    integration's own export) must survive untouched, so re-importing a
+    backup doesn't orphan existing entities."""
+    flow = make_options_flow()
+
+    payload = {
+        const.CONF_SENSORS: [
+            {
+                const.CONF_ADDRESS: "DB1,X0.0",
+                CONF_NAME: "Sensor 1",
+                const.CONF_UID: "preserved-uid",
+            },
+        ],
+    }
+
+    result = run_flow(flow.async_step_import({"import_json": json.dumps(payload)}))
+
+    assert result["type"] == "create_entry"
+    assert flow._options[const.CONF_SENSORS][0][const.CONF_UID] == "preserved-uid"
 
 
 def test_import_step_allows_same_address_across_entity_types():

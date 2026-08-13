@@ -17,6 +17,7 @@ from .const import (
     CONF_PATTERN,
     CONF_SCAN_INTERVAL,
     CONF_TEXTS,
+    CONF_UID,
 )
 from .entity import S7BaseEntity
 from .helpers import default_entity_name, get_coordinator_and_device_info
@@ -30,7 +31,7 @@ async def async_setup_entry(
     async_add_entities,
 ):
     """Set up text entities from config entry."""
-    coordinator, device_info, device_id = get_coordinator_and_device_info(entry)
+    coordinator, device_info, _ = get_coordinator_and_device_info(entry)
 
     config = entry.options or entry.data
     texts = config.get(CONF_TEXTS, [])
@@ -71,7 +72,7 @@ async def async_setup_entry(
         max_length = tag.length if tag.length is not None else 254
 
         topic = f"text:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = text_config[CONF_UID]
         await coordinator.add_item(topic, address, scan_interval, None)
 
         entities.append(

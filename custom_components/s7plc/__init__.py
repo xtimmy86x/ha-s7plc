@@ -43,7 +43,12 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import S7Coordinator
-from .helpers import RuntimeEntryData, build_entity_area_map, build_expected_unique_ids
+from .helpers import (
+    RuntimeEntryData,
+    build_entity_area_map,
+    build_expected_unique_ids,
+    ensure_item_uids,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,6 +102,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         local_tsap = None
         remote_tsap = None
         device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
+
+    # Assign a permanent identity to every config item that doesn't have one
+    # yet, so unique_id no longer depends on any editable address field.
+    # Items that already correspond to a registered entity keep the exact
+    # same unique_id (see ensure_item_uids docstring); only brand-new items
+    # get a fresh one. Must run before platforms are set up.
+    if ensure_item_uids(device_id, entry.options):
+        hass.config_entries.async_update_entry(entry, options=entry.options)
 
     coordinator = S7Coordinator(
         hass,
@@ -298,9 +311,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
-    # Update areas in entity registry before reloading
-    await _async_update_entity_areas(hass, entry)
     await hass.config_entries.async_reload(entry.entry_id)
+
+    # Apply configured areas after reload, when newly added entities
+    # are available in the entity registry.
+    await _async_update_entity_areas(hass, entry)
 
 
 async def _async_update_entity_areas(hass: HomeAssistant, entry: ConfigEntry) -> None:

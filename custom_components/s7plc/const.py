@@ -52,6 +52,10 @@ OPTION_KEYS = (
 
 CONF_ADDRESS = "address"
 CONF_AREA = "area"
+# Permanent per-item identity, assigned once at creation and never derived
+# from any editable field. unique_id is built from this, not from addresses,
+# so editing an item's address only changes its behavior, never its identity.
+CONF_UID = "uid"
 CONF_SOURCE_ENTITY = "source_entity"
 CONF_DEVICE_CLASS = "device_class"
 CONF_INVERT_STATE = "invert_state"

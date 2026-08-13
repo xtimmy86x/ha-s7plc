@@ -23,6 +23,7 @@ from .const import (
     CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
     CONF_STEP,
+    CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_VALUE_MULTIPLIER,
 )
@@ -45,7 +46,7 @@ PARALLEL_UPDATES = 1
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    coord, device_info, device_id = get_coordinator_and_device_info(entry)
+    coord, device_info, _ = get_coordinator_and_device_info(entry)
 
     entities: list[S7Number] = []
     for item in entry.options.get(CONF_NUMBERS, []):
@@ -55,7 +56,7 @@ async def async_setup_entry(
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
         topic = f"number:{address}"
-        unique_id = f"{device_id}:{topic}"
+        unique_id = item[CONF_UID]
         command_address = item.get(CONF_COMMAND_ADDRESS) or address
         min_value = item.get(CONF_MIN_VALUE)
         max_value = item.get(CONF_MAX_VALUE)
