@@ -330,7 +330,7 @@
           "device_class": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. shutter, blind, garage).",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "add_another": "Rimani in questo step per aggiungere altre cover.",
-          "toggle_mode": "Una singola uscita a impulso del PLC (relè passo-passo) invece di indirizzi separati apertura/chiusura: ogni pressione fa avanzare la tapparella nel ciclo apertura/fermo/chiusura/fermo. close_command_address non viene usato. Richiede un feedback di movimento e di stato definito (cover_status_address con tutti e 4 i valori di stato, oppure cover_opening_address+cover_closing_address per il movimento insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato)."
+          "toggle_mode": "Pulsante a impulso invece di indirizzi separati di apertura/chiusura: ogni pressione avvia l'azione successiva - si apre/fermo/si chiude/fermo. L'indirizzo di chiusura non viene utilizzato. Richiede il rilevamento del movimento: un indirizzo di stato con tutti e 4 i valori di stato, oppure un indirizzo di apertura e un indirizzo di chiusura."
         }
       },
       "covers_position": {
@@ -738,7 +738,7 @@
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. shutter, blind, garage).",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-          "toggle_mode": "Una singola uscita a impulso del PLC (relè passo-passo) invece di indirizzi separati apertura/chiusura: ogni pressione fa avanzare la tapparella nel ciclo apertura/fermo/chiusura/fermo. close_command_address non viene usato. Richiede un feedback di movimento e di stato definito (cover_status_address con tutti e 4 i valori di stato, oppure cover_opening_address+cover_closing_address per il movimento insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato)."
+          "toggle_mode": "Pulsante a impulso invece di indirizzi separati di apertura/chiusura: ogni pressione avvia l'azione successiva - si apre/fermo/si chiude/fermo. L'indirizzo di chiusura non viene utilizzato. Richiede il rilevamento del movimento: un indirizzo di stato con tutti e 4 i valori di stato, oppure un indirizzo di apertura e un indirizzo di chiusura."
         }
       },
       "edit_cover_position": {
@@ -1041,7 +1041,7 @@
       "invalid_integer": "Inserisci un numero intero (i decimali non sono consentiti).",
       "duplicate_preset_value": "Lo stesso valore non può essere assegnato a due modalità HVAC diverse.",
       "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi.",
-      "toggle_mode_requires_feedback": "La modalità pulsante singolo richiede un feedback reale per funzionare correttamente: configura cover_status_address con i valori aperto/chiuso/apertura/chiusura, oppure cover_opening_address+cover_closing_address insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato."
+      "toggle_mode_requires_feedback": "La modalità pulsante singolo richiede un feedback reale per funzionare correttamente: un indirizzo di stato configurato con tutti e 4 i valori di stato, oppure un indirizzo di apertura e un indirizzo di chiusura per il movimento insieme a entrambi gli indirizzi di finecorsa/posizione per lo stato stabile."
     }
   },
   "issues": {

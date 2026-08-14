@@ -330,7 +330,7 @@
           "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
           "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?",
-          "toggle_mode": "Ein einzelner SPS-Impulsausgang (Schrittschaltrelais) statt getrennter Öffnen-/Schließen-Adressen: jeder Tastendruck schaltet die Abdeckung durch den Zyklus öffnet/gestoppt/schließt/gestoppt. close_command_address wird nicht verwendet. Erfordert konfiguriertes Bewegungs- und Zustands-Feedback (cover_status_address mit allen 4 Statuswerten, oder cover_opening_address+cover_closing_address für die Bewegung zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen)."
+          "toggle_mode": "Impulstaster anstelle separater Öffnen-/Schließen-Adressen: jeder Tastendruck löst die nächste Aktion aus - öffnet sich/gestoppt/schließt sich/gestoppt. Die Schließadresse wird nicht verwendet. Erfordert eine Bewegungserkennung: eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse."
         }
       },
       "covers_position": {
@@ -850,7 +850,7 @@
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
-          "toggle_mode": "Ein einzelner SPS-Impulsausgang (Schrittschaltrelais) statt getrennter Öffnen-/Schließen-Adressen: jeder Tastendruck schaltet die Abdeckung durch den Zyklus öffnet/gestoppt/schließt/gestoppt. close_command_address wird nicht verwendet. Erfordert konfiguriertes Bewegungs- und Zustands-Feedback (cover_status_address mit allen 4 Statuswerten, oder cover_opening_address+cover_closing_address für die Bewegung zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen)."
+          "toggle_mode": "Impulstaster anstelle separater Öffnen-/Schließen-Adressen: jeder Tastendruck löst die nächste Aktion aus - öffnet sich/gestoppt/schließt sich/gestoppt. Die Schließadresse wird nicht verwendet. Erfordert eine Bewegungserkennung: eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse."
         }
       },
       "edit_cover_position": {
@@ -1041,7 +1041,7 @@
       "invalid_integer": "Geben Sie eine ganze Zahl ein (Dezimalzahlen sind nicht zulässig).",
       "duplicate_preset_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Modi zugewiesen werden.",
       "duplicate_status_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Status zugewiesen werden.",
-      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: konfigurieren Sie cover_status_address mit offen/geschlossen/öffnet/schließt-Werten, oder cover_opening_address+cover_closing_address zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen."
+      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: entweder eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse für die Bewegung zusammen mit beiden Endlagen-/Positionsadressen für den eingeschwungenen Zustand."
     }
   },
   "issues": {

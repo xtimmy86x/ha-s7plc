@@ -349,9 +349,18 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._close_command_address = close_command
         self._toggle_mode = toggle_mode
         self._last_toggle_direction: str | None = None
-        self._attr_supported_features = (
-            CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
-        )
+        # Single-button mode drives one physical relay: expose only OPEN so
+        # the UI shows a single press button, matching the hardware. All
+        # three service calls still route to the same press logic (see
+        # _toggle_press) in case something calls close/stop directly.
+        if toggle_mode:
+            self._attr_supported_features = CoverEntityFeature.OPEN
+        else:
+            self._attr_supported_features = (
+                CoverEntityFeature.OPEN
+                | CoverEntityFeature.CLOSE
+                | CoverEntityFeature.STOP
+            )
         self._opened_state_address = opened_state  # Finecorsa aperto
         self._closed_state_address = closed_state  # Finecorsa chiuso
         self._opened_topic = opened_topic
@@ -495,9 +504,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
         # Remember the last real direction of travel so a subsequent
         # "stopped" reading knows which way another toggle press would
-        # reverse to (see _toggle_state/_toggle_open/_toggle_close). Must
-        # never be cleared on "stopped" - it needs to survive the
-        # transition.
+        # reverse to (see _toggle_state/_toggle_press). Must never be
+        # cleared on "stopped" - it needs to survive the transition.
         if self._toggle_mode:
             state = self._toggle_state()
             if state in ("opening", "closing"):
@@ -625,79 +633,43 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._open_command_address, False)
         await self.coordinator.async_request_refresh()
 
-    async def _toggle_open(self) -> None:
+    async def _toggle_press(self) -> None:
+        """Single-button mode: a press always advances the physical cycle
+        by one step, exactly like the step-by-step relay it drives - never
+        a no-op, never rejected. All three cover services (open/close/stop)
+        route here, since the UI only exposes one button (see
+        __init__'s toggle_mode branch on _attr_supported_features) and the
+        physical device has no notion of a "wrong" request, only "press".
+
+        closed -> opens; open -> closes; opening/closing -> stops (their
+        direction is already remembered in _last_toggle_direction by
+        _handle_coordinator_update); stopped -> reverses to the opposite of
+        _last_toggle_direction. With no direction memory yet (e.g. right
+        after a HA restart, before the first feedback update), still press
+        - the physical relay knows its own last direction even when HA
+        doesn't, and real feedback will resync _last_toggle_direction once
+        it starts moving again.
+        """
         state = self._toggle_state()
-        if state in ("opening", "open"):
-            return  # already satisfied - a press here would stop it
         if state == "closed":
             await self._pulse_toggle()
             self._last_toggle_direction = "opening"
-            self.async_write_ha_state()
-            return
-        if state == "stopped" and self._last_toggle_direction == "closing":
-            await self._pulse_toggle()  # reverses: was closing -> opening
-            self._last_toggle_direction = "opening"
-            self.async_write_ha_state()
-            return
-        if state == "stopped":
-            reason = (
-                "it was interrupted while opening, so the next press would "
-                "reverse it to closing"
-                if self._last_toggle_direction == "opening"
-                else "its direction before stopping is unknown"
-            )
-            raise HomeAssistantError(
-                f"Cover is stopped mid-travel and {reason} - not opening. "
-                "Press again once it starts closing, or operate the "
-                "physical control directly."
-            )
-        # state == "closing"
-        raise HomeAssistantError(
-            "Cover is currently closing; a single toggle press would stop "
-            "it, not open it. Call stop_cover, then open_cover again."
-        )
-
-    async def _toggle_close(self) -> None:
-        state = self._toggle_state()
-        if state in ("closing", "closed"):
-            return  # already satisfied - a press here would stop it
-        if state == "open":
+        elif state == "open":
             await self._pulse_toggle()
             self._last_toggle_direction = "closing"
-            self.async_write_ha_state()
-            return
-        if state == "stopped" and self._last_toggle_direction == "opening":
+        elif state == "stopped" and self._last_toggle_direction == "opening":
             await self._pulse_toggle()  # reverses: was opening -> closing
             self._last_toggle_direction = "closing"
-            self.async_write_ha_state()
-            return
-        if state == "stopped":
-            reason = (
-                "it was interrupted while closing, so the next press would "
-                "reverse it to opening"
-                if self._last_toggle_direction == "closing"
-                else "its direction before stopping is unknown"
-            )
-            raise HomeAssistantError(
-                f"Cover is stopped mid-travel and {reason} - not closing. "
-                "Press again once it starts opening, or operate the "
-                "physical control directly."
-            )
-        # state == "opening"
-        raise HomeAssistantError(
-            "Cover is currently opening; a single toggle press would stop "
-            "it, not close it. Call stop_cover, then close_cover again."
-        )
-
-    async def _toggle_stop(self) -> None:
-        if self._toggle_state() in ("opening", "closing"):
+        elif state == "stopped" and self._last_toggle_direction == "closing":
+            await self._pulse_toggle()  # reverses: was closing -> opening
+            self._last_toggle_direction = "opening"
+        else:
             await self._pulse_toggle()
-            self.async_write_ha_state()
-        # else: already stopped/settled - a press here would start moving.
+        self.async_write_ha_state()
 
     async def async_open_cover(self, **kwargs) -> None:
         if self._toggle_mode:
-            await self._toggle_open()
+            await self._toggle_press()
             return
         await self._ensure_connected()
         await self._stop_operation("close")
@@ -713,7 +685,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs) -> None:
         if self._toggle_mode:
-            await self._toggle_close()
+            await self._toggle_press()
             return
         await self._ensure_connected()
         await self._stop_operation("open")
@@ -730,7 +702,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
         if self._toggle_mode:
-            await self._toggle_stop()
+            await self._toggle_press()
             return
         await self._ensure_connected()
 
