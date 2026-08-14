@@ -309,7 +309,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         unique_id: str,
         device_info: DeviceInfo,
         open_command: str,
-        close_command: str | None,
+        close_command: str,
         opened_state: str | None,
         closed_state: str | None,
         opened_topic: str | None,
