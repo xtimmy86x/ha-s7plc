@@ -242,6 +242,23 @@ def _validate_entity_fields(entity_type: str | None, entity: dict[str, Any]) -> 
 
     if not _item_has_required_fields(entity_type, entity):
         raise ValueError(f"Missing required field(s) for {entity_type}")
+    _validate_address_fields(entity)
+
+
+def _validate_address_fields(entity: dict[str, Any]) -> None:
+    """Ensure every address field contains a parseable S7 address."""
+    from .address import parse_tag
+
+    for key in sorted(entity):
+        if key != CONF_ADDRESS and not key.endswith("_address"):
+            continue
+        value = entity[key]
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Invalid address for {key}: {value!r}")
+        try:
+            parse_tag(value.strip())
+        except (RuntimeError, ValueError) as err:
+            raise ValueError(f"Invalid address for {key}: {value!r}") from err
 
 
 def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:

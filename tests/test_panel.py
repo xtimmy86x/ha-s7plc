@@ -70,6 +70,39 @@ def test_yaml_editor_rejects_missing_required_fields() -> None:
 
 
 @pytest.mark.parametrize(
+    ("entity_type", "entity_yaml", "bad_field"),
+    [
+        ("sensors", 'address: "DB1,FOO0"\nname: "Temp"', "address"),
+        ("sensors", "address: 42", "address"),
+        (
+            "switches",
+            'state_address: "DB1,X0.0"\ncommand_address: "not an address"',
+            "command_address",
+        ),
+        (
+            "covers",
+            'open_command_address: "DB1,X0.9"\nclose_command_address: "DB1,X0.1"',
+            "open_command_address",
+        ),
+        (
+            "climates",
+            'control_mode: setpoint\ncurrent_temperature_address: "REAL0"\n'
+            'target_temperature_address: "DB1,REAL4"\nmin_temp: 5',
+            "current_temperature_address",
+        ),
+        ("entity_sync", 'source_entity: sensor.power\naddress: "DB1"', "address"),
+    ],
+)
+def test_yaml_editor_rejects_invalid_addresses(
+    entity_type, entity_yaml, bad_field
+) -> None:
+    with pytest.raises(ValueError, match=f"Invalid address for {bad_field}"):
+        _entity_from_message(
+            {"entity_type": entity_type, "entity_yaml": entity_yaml}
+        )
+
+
+@pytest.mark.parametrize(
     ("entity_type", "entity_yaml"),
     [
         ("sensors", 'address: "DB1,REAL0"\nname: "Temp"\ndevice_class: temperature'),
