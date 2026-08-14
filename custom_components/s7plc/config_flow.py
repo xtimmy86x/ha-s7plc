@@ -431,9 +431,7 @@ def _add_schema_cover_position(flow) -> vol.Schema:
             ): pulse_duration_selector,
             vol.Optional(CONF_TILT_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_TILT_COMMAND_ADDRESS): selector.TextSelector(),
-            vol.Optional(
-                CONF_INVERT_TILT, default=False
-            ): selector.BooleanSelector(),
+            vol.Optional(CONF_INVERT_TILT, default=False): selector.BooleanSelector(),
             vol.Optional(CONF_COVER_STATUS_ADDRESS): selector.TextSelector(),
             vol.Optional(
                 CONF_COVER_STATUS_OPEN_VALUES,

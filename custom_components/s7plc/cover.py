@@ -343,9 +343,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._open_command_address = open_command
         self._close_command_address = close_command
         self._attr_supported_features = (
-            CoverEntityFeature.OPEN
-            | CoverEntityFeature.CLOSE
-            | CoverEntityFeature.STOP
+            CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
         )
         self._opened_state_address = opened_state  # Finecorsa aperto
         self._closed_state_address = closed_state  # Finecorsa chiuso

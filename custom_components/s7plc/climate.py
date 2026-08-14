@@ -655,12 +655,8 @@ class S7ClimateSetpointControl(
             HVACAction.COOLING: parse_mode_values(hvac_status_cooling_values),
             HVACAction.DRYING: parse_mode_values(hvac_status_drying_values),
             HVACAction.FAN: parse_mode_values(hvac_status_fan_values),
-            HVACAction.PREHEATING: parse_mode_values(
-                hvac_status_preheating_values
-            ),
-            HVACAction.DEFROSTING: parse_mode_values(
-                hvac_status_defrosting_values
-            ),
+            HVACAction.PREHEATING: parse_mode_values(hvac_status_preheating_values),
+            HVACAction.DEFROSTING: parse_mode_values(hvac_status_defrosting_values),
             HVACAction.IDLE: parse_mode_values(hvac_status_idle_values),
         }
 
