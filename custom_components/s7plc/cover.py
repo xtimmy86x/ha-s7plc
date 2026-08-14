@@ -340,10 +340,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
-        # Single-button toggle mode (no close address): open/close/stop all
-        # pulse the same open_command_address, so only expose the OPEN
-        # button in HA's UI instead of a confusing open/close/stop trio
-        # that all do the same thing.
+        # Single-button toggle mode (no close address): a single physical
+        # relay pulse cycles open->stop->close->stop->open, so there's no
+        # dedicated "close" action distinct from "press the button" - only
+        # OPEN (the toggle trigger) and STOP (meaningful while it's
+        # actually moving) are exposed. See async_open_cover/
+        # async_close_cover/async_stop_cover below for the split.
         if close_command:
             self._attr_supported_features = (
                 CoverEntityFeature.OPEN
@@ -351,7 +353,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 | CoverEntityFeature.STOP
             )
         else:
-            self._attr_supported_features = CoverEntityFeature.OPEN
+            self._attr_supported_features = (
+                CoverEntityFeature.OPEN | CoverEntityFeature.STOP
+            )
         self._opened_state_address = opened_state  # Finecorsa aperto
         self._closed_state_address = closed_state  # Finecorsa chiuso
         self._opened_topic = opened_topic
@@ -536,8 +540,15 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs) -> None:
         if not self._close_command_address:
-            await self._toggle_pulse()
-            return
+            # A single toggle button can't guarantee a specific direction:
+            # pulsing it while already closed would actually open the
+            # cover. Refuse instead of silently doing the wrong thing -
+            # use 'Open' to cycle the single button.
+            raise HomeAssistantError(
+                "This cover only has a single toggle button "
+                "(no close_command_address configured); use 'Open' to "
+                "cycle it instead of 'Close'."
+            )
         await self._ensure_connected()
         await self._stop_operation("open")
         await self.coordinator.write_batched(self._close_command_address, True)
@@ -555,9 +566,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
         impulse-relay logic cycles through closed->opening, moving->
         stopped, open->closing. Mirrored here in software (the same
         timer-based bookkeeping used when there's no real movement
-        feedback) so is_opening/is_closing/is_closed keep updating in HA
-        regardless of which of the open/close/stop buttons was pressed —
-        physically they're all the same single button.
+        feedback) so is_opening/is_closing/is_closed keep updating in HA.
+
+        Called from async_open_cover unconditionally (it's the toggle
+        trigger), and from async_stop_cover only while actually moving
+        (pulsing it stops the current travel). async_close_cover never
+        calls it - there's no dedicated "close" action a single button can
+        offer.
         """
         await self._ensure_connected()
 
@@ -592,7 +607,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
         if not self._close_command_address:
-            await self._toggle_pulse()
+            # The single button only has an effect while actually moving
+            # (pulsing it stops the current travel); pulsing it while
+            # already stopped would instead start a new movement, so do
+            # nothing rather than misinterpreting "stop" as "toggle".
+            if self._is_opening or self._is_closing:
+                await self._toggle_pulse()
             return
         await self._ensure_connected()
 

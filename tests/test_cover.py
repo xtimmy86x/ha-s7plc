@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.s7plc.cover import S7Cover, async_setup_entry
 from custom_components.s7plc.const import (
@@ -448,9 +449,11 @@ def test_extra_state_attributes_with_state_topics(cover_factory):
 #
 # Without close_command_address, open_command_address doubles as a single
 # toggle button (common for impulse-relay shutter controllers): pressing
-# it while closed opens, while moving stops, while open closes — regardless
-# of which of HA's open/close/stop buttons was pressed, since physically
-# they're all the same PLC output.
+# it while closed opens, while moving stops, while open closes. Only OPEN
+# (the toggle trigger) and STOP (meaningful while actually moving) are
+# exposed to HA — CLOSE has no well-defined single-button meaning (pulsing
+# while already closed would incorrectly open it), so it's refused instead
+# of silently doing the wrong thing.
 # ============================================================================
 
 
@@ -473,18 +476,21 @@ async def test_toggle_open_from_closed_starts_opening(
 
 
 @pytest.mark.asyncio
-async def test_toggle_close_from_closed_also_starts_opening(
+async def test_toggle_close_raises_without_close_command_address(
     cover_factory, mock_coordinator, monkeypatch
 ):
-    """Calling async_close_cover while closed still opens — there's only
-    one physical button, so all 3 HA actions collapse to the same toggle."""
+    """async_close_cover refuses to run in single-button mode instead of
+    silently toggling — pulsing the one button while already closed would
+    incorrectly open the cover."""
     monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
     cover = cover_factory(close_command=None)
     cover._assumed_closed = True
 
-    await cover.async_close_cover()
+    with pytest.raises(HomeAssistantError):
+        await cover.async_close_cover()
 
-    assert cover.is_opening is True
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover.is_opening is False
     assert cover.is_closing is False
 
 
@@ -522,6 +528,28 @@ async def test_toggle_while_moving_stops(cover_factory, mock_coordinator, monkey
 
 
 @pytest.mark.asyncio
+async def test_toggle_stop_when_not_moving_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """async_stop_cover does nothing (no PLC write, no state change) when
+    the cover isn't currently moving — pulsing the single button while
+    stopped would incorrectly start a new movement instead of stopping
+    one."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._is_opening = False
+    cover._is_closing = False
+    cover._assumed_closed = True
+
+    await cover.async_stop_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+    assert cover._assumed_closed is True  # unchanged
+
+
+@pytest.mark.asyncio
 async def test_toggle_pulses_then_releases_the_open_address(
     cover_factory, mock_coordinator, monkeypatch
 ):
@@ -549,11 +577,13 @@ def test_toggle_mode_close_command_address_absent_from_attrs(cover_factory):
 
 
 def test_toggle_mode_only_advertises_open_feature(cover_factory):
-    """Single-button mode only exposes OPEN, so HA's UI shows just one
-    button instead of an open/close/stop trio that all do the same
-    thing."""
+    """Single-button mode exposes OPEN (the toggle trigger) and STOP
+    (meaningful while moving), but not CLOSE - there's no well-defined
+    single-button "close" action."""
     cover = cover_factory(close_command=None)
-    assert cover._attr_supported_features == CoverEntityFeature.OPEN
+    assert cover._attr_supported_features == (
+        CoverEntityFeature.OPEN | CoverEntityFeature.STOP
+    )
 
 
 # ============================================================================
