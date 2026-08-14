@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from collections.abc import Iterator, Mapping, MutableMapping
@@ -81,6 +82,8 @@ from .const import (
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -277,6 +280,33 @@ def parse_pulse_duration(value: Any | None) -> float:
     return round(pulse, 1)
 
 
+def parse_mode_values(raw: str | None) -> list[int]:
+    """Parse a comma-separated list of PLC integer values for a status.
+
+    An empty/unset field means this status should never be matched,
+    effectively skipping it (e.g. a blank "off status" field means no PLC
+    value is ever read as OFF). Every integer, including negative ones, is
+    otherwise a legitimate status value.
+
+    Used by climate's hvac_status_*_values and cover's cover_status_*_values
+    fields.
+    """
+    if not raw:
+        return []
+    values: list[int] = []
+    for token in str(raw).split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            value = int(token)
+        except ValueError:
+            _LOGGER.warning("Ignoring invalid mode value %r", token)
+            continue
+        values.append(value)
+    return values
+
+
 # ---------------------------------------------------------------------------
 # Centralised unique-id helpers
 # ---------------------------------------------------------------------------
@@ -424,9 +454,9 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
     if option_key == CONF_COVERS:
         if item.get(CONF_POSITION_STATE_ADDRESS):
             return True
-        return bool(
-            item.get(CONF_OPEN_COMMAND_ADDRESS) and item.get(CONF_CLOSE_COMMAND_ADDRESS)
-        )
+        # close_command_address is optional (single-button toggle mode via
+        # open_command_address) — see S7Cover._toggle_pulse.
+        return bool(item.get(CONF_OPEN_COMMAND_ADDRESS))
     if option_key == CONF_CLIMATES:
         if not item.get(CONF_CURRENT_TEMPERATURE_ADDRESS):
             return False

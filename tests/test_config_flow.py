@@ -540,6 +540,56 @@ def test_import_step_rejects_duplicate_light_addresses():
     assert errors["base"] == "duplicate_addresses_in_import"
 
 
+def test_add_cover_traditional_without_close_address_creates_single_button_cover():
+    """close_command_address is optional: open_command_address alone is
+    enough — it doubles as a single toggle button."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0"}
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_OPEN_COMMAND_ADDRESS] == "DB1,X0.0"
+    assert const.CONF_CLOSE_COMMAND_ADDRESS not in stored
+
+
+def test_add_cover_traditional_requires_open_address():
+    """open_command_address is still required."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1"}
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_address"
+
+
+def test_add_cover_traditional_with_both_addresses_stores_both():
+    """Normal two-button operation when both addresses are configured."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_OPEN_COMMAND_ADDRESS] == "DB1,X0.0"
+    assert stored[const.CONF_CLOSE_COMMAND_ADDRESS] == "DB1,X0.1"
+
+
 def test_import_step_rejects_duplicate_cover_addresses():
     """Test that import rejects duplicate addresses in covers."""
     flow = make_options_flow()

@@ -12,6 +12,9 @@ from custom_components.s7plc.cover import S7Cover, async_setup_entry
 from custom_components.s7plc.const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
+    CONF_COVER_CLOSING_ADDRESS,
+    CONF_COVER_OPENING_ADDRESS,
+    CONF_COVER_STOPPED_ADDRESS,
     CONF_COVERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -68,6 +71,19 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
         unique_id: str = "test_device:cover:db1,x0.0",
         operate_time: float = 15.0,
         use_state_topics: bool = False,
+        cover_opening_address: str | None = None,
+        cover_closing_address: str | None = None,
+        cover_stopped_address: str | None = None,
+        cover_opening_topic: str | None = None,
+        cover_closing_topic: str | None = None,
+        cover_stopped_topic: str | None = None,
+        cover_status_topic: str | None = None,
+        cover_status_address: str | None = None,
+        cover_status_open_values: str = "",
+        cover_status_closed_values: str = "",
+        cover_status_opening_values: str = "",
+        cover_status_closing_values: str = "",
+        cover_status_stopped_values: str = "",
     ):
         cover = S7Cover(
             mock_coordinator,
@@ -82,6 +98,19 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
             closed_topic=closed_topic,
             operate_time=operate_time,
             use_state_topics=use_state_topics,
+            cover_opening_address=cover_opening_address,
+            cover_closing_address=cover_closing_address,
+            cover_stopped_address=cover_stopped_address,
+            cover_opening_topic=cover_opening_topic,
+            cover_closing_topic=cover_closing_topic,
+            cover_stopped_topic=cover_stopped_topic,
+            cover_status_topic=cover_status_topic,
+            cover_status_address=cover_status_address,
+            cover_status_open_values=cover_status_open_values,
+            cover_status_closed_values=cover_status_closed_values,
+            cover_status_opening_values=cover_status_opening_values,
+            cover_status_closing_values=cover_status_closing_values,
+            cover_status_stopped_values=cover_status_stopped_values,
         )
         cover.hass = fake_hass
         return cover
@@ -413,6 +442,400 @@ def test_extra_state_attributes_with_state_topics(cover_factory):
     assert attrs["state_topics_used"] is True
     assert attrs["cover_type"] == "open/close"
 
+
+# ============================================================================
+# Single-button toggle mode (no close_command_address) Tests
+#
+# Without close_command_address, open_command_address doubles as a single
+# toggle button (common for impulse-relay shutter controllers): pressing
+# it while closed opens, while moving stops, while open closes — regardless
+# of which of HA's open/close/stop buttons was pressed, since physically
+# they're all the same PLC output.
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_from_closed_starts_opening(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Pressing (any of) open/close/stop while closed starts opening."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._assumed_closed = True
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", False)
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+    assert cover._assumed_closed is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_from_closed_also_starts_opening(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Calling async_close_cover while closed still opens — there's only
+    one physical button, so all 3 HA actions collapse to the same toggle."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._assumed_closed = True
+
+    await cover.async_close_cover()
+
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_from_open_starts_closing(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Pressing the button while open starts closing."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._assumed_closed = False
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    assert cover.is_opening is False
+    assert cover.is_closing is True
+    assert cover._assumed_closed is True
+
+
+@pytest.mark.asyncio
+async def test_toggle_while_moving_stops(cover_factory, mock_coordinator, monkeypatch):
+    """Pressing the button while moving stops the movement, without
+    changing the assumed open/closed position."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._is_opening = True
+    cover._assumed_closed = False
+
+    await cover.async_stop_cover()
+
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+    assert cover._assumed_closed is False  # unchanged — stopped mid-travel
+
+
+@pytest.mark.asyncio
+async def test_toggle_pulses_then_releases_the_open_address(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """The single button is pulsed (True then False), not held, matching
+    an impulse relay rather than the two-button hold-while-moving model."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._assumed_closed = True
+
+    await cover.async_open_cover()
+
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert ("db1,x0.0", True) in calls
+    assert ("db1,x0.0", False) in calls
+    assert calls.index(("db1,x0.0", True)) < calls.index(("db1,x0.0", False))
+
+
+def test_toggle_mode_close_command_address_absent_from_attrs(cover_factory):
+    """No s7_close_command_address attribute appears in single-button
+    mode."""
+    cover = cover_factory(close_command=None)
+    attrs = cover.extra_state_attributes
+    assert "s7_close_command_address" not in attrs
+    assert attrs["s7_open_command_address"] == "DB1,X0.0"
+
+
+def test_toggle_mode_only_advertises_open_feature(cover_factory):
+    """Single-button mode only exposes OPEN, so HA's UI shows just one
+    button instead of an open/close/stop trio that all do the same
+    thing."""
+    cover = cover_factory(close_command=None)
+    assert cover._attr_supported_features == CoverEntityFeature.OPEN
+
+
+# ============================================================================
+# Real movement status (cover_opening_address / cover_closing_address /
+# cover_stopped_address) Tests
+# ============================================================================
+
+
+def test_cover_status_unconfigured_uses_timer_flags(cover_factory):
+    """Without the movement-status addresses, is_opening/is_closing are
+    unaffected (already covered by test_is_opening/test_is_closing, asserted
+    again here for clarity alongside the configured-case tests below)."""
+    cover = cover_factory()
+    cover._is_opening = True
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+def test_cover_status_opening_address_drives_is_opening(cover_factory, mock_coordinator):
+    """A True cover_opening_address reading makes is_opening True even if
+    the internal timer flag disagrees."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    cover._is_opening = False
+    mock_coordinator.data = {"cover:opening:db1,b10": True}
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+def test_cover_status_closing_address_drives_is_closing(cover_factory, mock_coordinator):
+    """A True cover_closing_address reading makes is_closing True."""
+    cover = cover_factory(
+        cover_closing_address="db1,b11",
+        cover_closing_topic="cover:closing:db1,b11",
+    )
+    mock_coordinator.data = {"cover:closing:db1,b11": True}
+    assert cover.is_closing is True
+    assert cover.is_opening is False
+
+
+def test_cover_status_opening_address_false_overrides_stale_timer_flag(
+    cover_factory, mock_coordinator
+):
+    """Real PLC feedback is authoritative: a False reading forces
+    is_opening False even if the internal timer flag still thinks it's
+    moving."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    cover._is_opening = True  # stale/simulated flag
+    mock_coordinator.data = {"cover:opening:db1,b10": False}
+    assert cover.is_opening is False
+
+
+def test_cover_status_no_data_yet_forces_false(cover_factory, mock_coordinator):
+    """Before the first coordinator poll, status is unknown: treated as
+    not-moving rather than trusting the stale timer flag."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    cover._is_opening = True
+    mock_coordinator.data = {}
+    assert cover.is_opening is False
+
+
+def test_cover_status_does_not_affect_is_closed(cover_factory, mock_coordinator):
+    """The movement-status addresses are explicitly out of scope for
+    is_closed: it stays driven by opened_state/closed_state / the timer
+    fallback."""
+    cover = cover_factory(
+        opened_state="db1,x1.0",
+        closed_state="db1,x1.1",
+        opened_topic="cover:opened:db1,x1.0",
+        closed_topic="cover:closed:db1,x1.1",
+        use_state_topics=True,
+        cover_closing_address="db1,b10",
+        cover_closing_topic="cover:closing:db1,b10",
+    )
+    mock_coordinator.data = {
+        "cover:opened:db1,x1.0": False,
+        "cover:closed:db1,x1.1": True,
+        "cover:closing:db1,b10": True,  # unrelated to is_closed
+    }
+    assert cover.is_closed is True  # driven by closed_state, not status
+    assert cover.is_closing is True  # driven by status, independent of is_closed
+
+
+def test_cover_status_extra_state_attributes(cover_factory):
+    """Attributes expose each configured movement-status address."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_closing_address="db1,b11",
+        cover_stopped_address="db1,b12",
+    )
+    attrs = cover.extra_state_attributes
+    assert attrs["s7_cover_opening_address"] == "DB1,B10"
+    assert attrs["s7_cover_closing_address"] == "DB1,B11"
+    assert attrs["s7_cover_stopped_address"] == "DB1,B12"
+
+
+def test_cover_status_absent_from_attrs_when_unconfigured(cover_factory):
+    """No movement-status attributes appear when the addresses aren't set."""
+    cover = cover_factory()
+    attrs = cover.extra_state_attributes
+    assert "s7_cover_opening_address" not in attrs
+    assert "s7_cover_closing_address" not in attrs
+    assert "s7_cover_stopped_address" not in attrs
+
+
+# ============================================================================
+# Real movement status (cover_status_address) Tests — S7Cover
+#
+# cover_status_address is an alternative to the 3 boolean addresses above,
+# for PLCs that expose movement as a single status word instead of separate
+# bits. Takes priority over the booleans when configured.
+# ============================================================================
+
+
+def test_cover_status_address_takes_priority_over_booleans(
+    cover_factory, mock_coordinator
+):
+    """When both cover_status_address and the boolean addresses are
+    configured, cover_status_address wins for is_opening/is_closing."""
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,  # boolean says opening
+        "cover:status:db1,b10": 99,  # status word says something else
+    }
+    # cover_status_address is configured, so it's authoritative even though
+    # it doesn't currently match "opening" — the boolean is ignored.
+    assert cover.is_opening is False
+
+
+def test_cover_status_address_opening_value_drives_is_opening(
+    cover_factory, mock_coordinator
+):
+    """A matching 'opening' status value makes is_opening True."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 1}
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+def test_cover_status_address_closing_value_drives_is_closing(
+    cover_factory, mock_coordinator
+):
+    """A matching 'closing' status value makes is_closing True."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closing_values="2",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 2}
+    assert cover.is_closing is True
+    assert cover.is_opening is False
+
+
+def test_cover_status_address_closed_value_overrides_is_closed(
+    cover_factory, mock_coordinator
+):
+    """A matching 'closed' status value makes is_closed True, even without
+    opened_state/closed_state configured."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closed_values="3",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 3}
+    assert cover.is_closed is True
+
+
+def test_cover_status_address_open_value_overrides_is_closed(
+    cover_factory, mock_coordinator
+):
+    """A matching 'open' status value makes is_closed False, even if the
+    internal timer/assumed state would say otherwise."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_open_values="4",
+    )
+    cover._assumed_closed = True  # would otherwise report closed
+    mock_coordinator.data = {"cover:status:db1,b10": 4}
+    assert cover.is_closed is False
+
+
+def test_cover_status_address_unmatched_falls_back_to_existing_logic(
+    cover_factory, mock_coordinator
+):
+    """When cover_status_address doesn't match open/closed, is_closed falls
+    back to the existing opened_state/closed_state or timer logic."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    cover._assumed_closed = True
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # "opening", not open/closed
+    assert cover.is_closed is True  # falls back to _assumed_closed
+
+
+def test_cover_status_address_extra_state_attributes(cover_factory):
+    """Attributes expose the status address and configured value mapping
+    when configured, alongside/instead of the boolean address attrs."""
+    cover = cover_factory(
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+        cover_status_closing_values="2",
+    )
+    attrs = cover.extra_state_attributes
+    assert attrs["s7_cover_status_address"] == "DB1,B10"
+    assert attrs["s7_cover_status_values"]["opening"] == [1]
+    assert attrs["s7_cover_status_values"]["closing"] == [2]
+
+
+def test_cover_status_address_absent_from_attrs_when_unconfigured(cover_factory):
+    """No cover_status_* attributes appear when the address isn't set."""
+    cover = cover_factory()
+    attrs = cover.extra_state_attributes
+    assert "s7_cover_status_address" not in attrs
+    assert "s7_cover_status_values" not in attrs
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_traditional_with_status_address(
+    fake_hass, mock_coordinator, device_info
+):
+    """Setup registers cover_status_address as its own coordinator topic for
+    a traditional cover, alongside open/close commands."""
+    from custom_components.s7plc.const import (
+        CONF_OPEN_COMMAND_ADDRESS,
+        CONF_CLOSE_COMMAND_ADDRESS,
+        CONF_COVER_STATUS_ADDRESS,
+        CONF_COVER_STATUS_OPENING_VALUES,
+        CONF_COVER_STATUS_CLOSING_VALUES,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_COVER_STATUS_ADDRESS: "db1,b10",
+                CONF_COVER_STATUS_OPENING_VALUES: "1",
+                CONF_COVER_STATUS_CLOSING_VALUES: "2",
+                CONF_NAME: "Test Traditional Cover",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    assert mock_coordinator.add_item.call_count == 1
+    entities = async_add_entities.call_args[0][0]
+    cover = entities[0]
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_status_values["opening"] == [1]
+    assert cover._cover_status_values["closing"] == [2]
+
+
 # ============================================================================
 # async_setup_entry Tests
 # ============================================================================
@@ -464,12 +887,13 @@ async def test_async_setup_entry_with_covers(fake_hass, mock_coordinator, device
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_skip_missing_addresses(fake_hass, mock_coordinator, device_info):
-    """Test setup skips covers with missing command addresses."""
+async def test_async_setup_entry_skip_missing_open_address(fake_hass, mock_coordinator, device_info):
+    """Test setup skips covers with no open command address, even if a
+    close command address is present. open_command_address is the only
+    address that's still strictly required."""
     config_entry = MagicMock()
     config_entry.options = {
         CONF_COVERS: [
-            {CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0"},  # Missing close
             {CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1"},  # Missing open
             {
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.2",
@@ -478,16 +902,46 @@ async def test_async_setup_entry_skip_missing_addresses(fake_hass, mock_coordina
             },  # Valid
         ]
     }
-    
+
     async_add_entities = MagicMock()
-    
+
     with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
         mock_get.return_value = (mock_coordinator, device_info, "test_device")
-        
+
         await async_setup_entry(fake_hass, config_entry, async_add_entities)
-    
+
     entities = async_add_entities.call_args[0][0]
     assert len(entities) == 1
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_missing_close_address_creates_single_button_cover(
+    fake_hass, mock_coordinator, device_info
+):
+    """Without close_command_address, the cover is still created — it just
+    operates in single toggle-button mode via open_command_address."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_UID: "uid-1",
+            },
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 1
+    cover = entities[0]
+    assert cover._open_command_address == "db1,x0.0"
+    assert cover._close_command_address is None
 
 
 @pytest.mark.asyncio
@@ -519,6 +973,43 @@ async def test_async_setup_entry_with_state_addresses(fake_hass, mock_coordinato
     entities = async_add_entities.call_args[0][0]
     assert entities[0]._opened_state_address == "db1,x1.0"
     assert entities[0]._closed_state_address == "db1,x1.1"
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_with_movement_status_addresses(
+    fake_hass, mock_coordinator, device_info
+):
+    """Setup registers each configured movement-status address as its own
+    coordinator topic, alongside the opened/closed end-stop topics."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_COVER_OPENING_ADDRESS: "db1,b10",
+                CONF_COVER_CLOSING_ADDRESS: "db1,b11",
+                CONF_COVER_STOPPED_ADDRESS: "db1,b12",
+                CONF_NAME: "Cover with Status",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    # One add_item call per movement-status address (no opened/closed topics
+    # configured here).
+    assert mock_coordinator.add_item.call_count == 3
+    entities = async_add_entities.call_args[0][0]
+    assert entities[0]._cover_opening_address == "db1,b10"
+    assert entities[0]._cover_closing_address == "db1,b11"
+    assert entities[0]._cover_stopped_address == "db1,b12"
 
 
 @pytest.mark.asyncio
@@ -1255,3 +1746,561 @@ async def test_position_cover_setup_with_stop_address(fake_hass, mock_coordinato
     cover = entities[0]
     assert cover._stop_command_address == "db1,x1.0"
     assert cover._stop_pulse_duration == 2.0
+
+
+# ============================================================================
+# Real movement status (cover_status_address) Tests — S7PositionCover
+# ============================================================================
+
+
+def test_position_cover_status_unconfigured_is_never_opening_or_closing(
+    fake_hass, mock_coordinator, device_info
+):
+    """Without cover_status_address, is_opening/is_closing stay False: a raw
+    position alone can't tell HA whether the cover is actively moving."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator, "Test Cover", "test_id", device_info, "db1,b0", "db1,b1"
+    )
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+
+
+def test_position_cover_status_opening_value_drives_is_opening(
+    fake_hass, mock_coordinator, device_info
+):
+    """A matching 'opening' status value makes is_opening True."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 1}
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+def test_position_cover_status_closing_value_drives_is_closing(
+    fake_hass, mock_coordinator, device_info
+):
+    """A matching 'closing' status value makes is_closing True."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closing_values="2",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 2}
+    assert cover.is_closing is True
+    assert cover.is_opening is False
+
+
+def test_position_cover_status_unmatched_value_forces_false(
+    fake_hass, mock_coordinator, device_info
+):
+    """An unrecognized status value means neither opening nor closing."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 99}
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+
+
+def test_position_cover_status_does_not_affect_is_closed_when_unconfigured(
+    fake_hass, mock_coordinator, device_info
+):
+    """Without cover_status_open_values/cover_status_closed_values
+    configured, a status match of "opening"/"closing"/"stopped" leaves
+    is_closed driven by the position value (position == 0), same as
+    before this override existed."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closing_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 50,
+        "cover:status:db1,b10": 2,  # "closing" per status
+    }
+    assert cover.is_closed is False  # driven by position, not status
+    assert cover.is_closing is True  # driven by status, independent of position
+
+
+def test_position_cover_status_closed_value_overrides_is_closed(
+    fake_hass, mock_coordinator, device_info
+):
+    """A matching 'closed' status value makes is_closed True, even if the
+    raw position value would say otherwise (e.g. a stale/unscaled reading)."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closed_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 50,  # would say "not closed" on its own
+        "cover:status:db1,b10": 1,  # "closed" per status
+    }
+    assert cover.is_closed is True
+
+
+def test_position_cover_status_open_value_overrides_is_closed(
+    fake_hass, mock_coordinator, device_info
+):
+    """A matching 'open' status value makes is_closed False, even if the
+    raw position value is 0."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_open_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 0,  # would say "closed" on its own
+        "cover:status:db1,b10": 1,  # "open" per status
+    }
+    assert cover.is_closed is False
+
+
+def test_position_cover_status_extra_state_attributes(
+    fake_hass, mock_coordinator, device_info
+):
+    """Attributes expose the status address and configured value mapping
+    when configured, matching climate's hvac_status attribute pattern."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_open_values="0",
+        cover_status_closed_values="3",
+        cover_status_opening_values="1",
+        cover_status_closing_values="2",
+    )
+    attrs = cover.extra_state_attributes
+    assert attrs["s7_cover_status_address"] == "DB1,B10"
+    assert attrs["s7_cover_status_values"]["open"] == [0]
+    assert attrs["s7_cover_status_values"]["closed"] == [3]
+    assert attrs["s7_cover_status_values"]["opening"] == [1]
+    assert attrs["s7_cover_status_values"]["closing"] == [2]
+
+
+def test_position_cover_status_absent_from_attrs_when_unconfigured(
+    fake_hass, mock_coordinator, device_info
+):
+    """No cover_status_* attributes appear when the address isn't set."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator, "Test Cover", "test_id", device_info, "db1,b0", "db1,b1"
+    )
+    attrs = cover.extra_state_attributes
+    assert "s7_cover_status_address" not in attrs
+    assert "s7_cover_status_values" not in attrs
+
+
+@pytest.mark.asyncio
+async def test_position_cover_setup_with_status_address(
+    fake_hass, mock_coordinator, device_info
+):
+    """Setup registers cover_status_address as its own coordinator topic,
+    alongside the position topic."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_COVER_STATUS_ADDRESS,
+        CONF_COVER_STATUS_OPEN_VALUES,
+        CONF_COVER_STATUS_CLOSED_VALUES,
+        CONF_COVER_STATUS_OPENING_VALUES,
+        CONF_COVER_STATUS_CLOSING_VALUES,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,b0",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
+                CONF_COVER_STATUS_ADDRESS: "db1,b10",
+                CONF_COVER_STATUS_OPEN_VALUES: "0",
+                CONF_COVER_STATUS_CLOSED_VALUES: "3",
+                CONF_COVER_STATUS_OPENING_VALUES: "1",
+                CONF_COVER_STATUS_CLOSING_VALUES: "2",
+                CONF_NAME: "Test Position Cover",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    # Two add_item calls: one for the position topic, one for the status topic.
+    assert mock_coordinator.add_item.call_count == 2
+    entities = async_add_entities.call_args[0][0]
+    cover = entities[0]
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_status_values["open"] == [0]
+    assert cover._cover_status_values["closed"] == [3]
+    assert cover._cover_status_values["opening"] == [1]
+    assert cover._cover_status_values["closing"] == [2]
+
+
+# ============================================================================
+# Tilt support (S7PositionCover) Tests
+# ============================================================================
+
+
+def test_position_cover_tilt_unconfigured_no_features(fake_hass, mock_coordinator, device_info):
+    """Without tilt_state_address, no tilt feature flags are advertised and
+    current_cover_tilt_position is always None."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator, "Test Cover", "test_id", device_info, "db1,b0", "db1,b1"
+    )
+
+    assert not (cover._attr_supported_features & CoverEntityFeature.OPEN_TILT)
+    assert not (cover._attr_supported_features & CoverEntityFeature.CLOSE_TILT)
+    assert not (cover._attr_supported_features & CoverEntityFeature.SET_TILT_POSITION)
+    assert not (cover._attr_supported_features & CoverEntityFeature.STOP_TILT)
+    assert cover.current_cover_tilt_position is None
+
+
+def test_position_cover_tilt_configured_features(fake_hass, mock_coordinator, device_info):
+    """With tilt_state_address configured, tilt feature flags are added on
+    top of the base position/stop features (which stay present)."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+    )
+
+    features = cover._attr_supported_features
+    for flag in (
+        CoverEntityFeature.OPEN,
+        CoverEntityFeature.CLOSE,
+        CoverEntityFeature.SET_POSITION,
+        CoverEntityFeature.STOP,
+        CoverEntityFeature.OPEN_TILT,
+        CoverEntityFeature.CLOSE_TILT,
+        CoverEntityFeature.SET_TILT_POSITION,
+        CoverEntityFeature.STOP_TILT,
+    ):
+        assert features & flag, f"{flag} missing"
+
+
+def test_position_cover_current_tilt_position(fake_hass, mock_coordinator, device_info):
+    """current_cover_tilt_position clamps to 0-100, mirroring position."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+    )
+
+    mock_coordinator.data = {"cover:tilt:db1,b2": 50}
+    assert cover.current_cover_tilt_position == 50
+
+    mock_coordinator.data = {"cover:tilt:db1,b2": 150}
+    assert cover.current_cover_tilt_position == 100
+
+    mock_coordinator.data = {"cover:tilt:db1,b2": -10}
+    assert cover.current_cover_tilt_position == 0
+
+    mock_coordinator.data = {}
+    assert cover.current_cover_tilt_position is None
+
+
+def test_position_cover_tilt_invert(fake_hass, mock_coordinator, device_info):
+    """invert_tilt flips the reported/written tilt value, mirroring
+    invert_position."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+        invert_tilt=True,
+    )
+    cover.hass = fake_hass
+
+    mock_coordinator.data = {"cover:tilt:db1,b2": 30}
+    assert cover.current_cover_tilt_position == 70
+
+
+@pytest.mark.asyncio
+async def test_position_cover_open_close_tilt(fake_hass, mock_coordinator, device_info):
+    """open/close_cover_tilt set tilt to 100/0."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+
+    await cover.async_open_cover_tilt()
+    mock_coordinator.write_batched.assert_called_with("db1,b3", 100)
+
+    await cover.async_close_cover_tilt()
+    mock_coordinator.write_batched.assert_called_with("db1,b3", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_position_cover_tilt_command_falls_back_to_state_address(
+    fake_hass, mock_coordinator, device_info
+):
+    """Without a separate tilt_command_address, writes go to
+    tilt_state_address, mirroring position_command_address's fallback."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+
+    await cover.async_set_cover_tilt_position(tilt_position=50)
+    mock_coordinator.write_batched.assert_called_with("db1,b2", 50)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_set_tilt_position_not_configured(
+    fake_hass, mock_coordinator, device_info
+):
+    """Calling set_cover_tilt_position when tilt isn't configured logs an
+    error and does not write anything (defensive guard)."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator, "Test Cover", "test_id", device_info, "db1,b0", "db1,b1"
+    )
+    cover.hass = fake_hass
+
+    await cover.async_set_cover_tilt_position(tilt_position=50)
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_tilt_with_stop_address(
+    fake_hass, mock_coordinator, device_info
+):
+    """stop_cover_tilt pulses stop_command_address, the same physical stop
+    line used for position stop."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        stop_command="db1,x1.0",
+        stop_pulse_duration=0.01,
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {}
+
+    await cover.async_stop_cover_tilt()
+
+    calls = mock_coordinator.write_batched.call_args_list
+    assert calls[0].args == ("db1,x1.0", True)
+    assert calls[1].args == ("db1,x1.0", False)
+
+
+@pytest.mark.asyncio
+async def test_position_cover_stop_tilt_without_stop_address(
+    fake_hass, mock_coordinator, device_info
+):
+    """Without a stop address, stop_cover_tilt falls back to writing the
+    current tilt position back, same trick async_stop_cover uses."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+    )
+    cover.hass = fake_hass
+    mock_coordinator.data = {"cover:tilt:db1,b2": 42}
+
+    await cover.async_stop_cover_tilt()
+    mock_coordinator.write_batched.assert_called_with("db1,b3", 42)
+
+
+def test_position_cover_tilt_extra_state_attributes(fake_hass, mock_coordinator, device_info):
+    """Tilt addresses appear in extra_state_attributes when configured."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        tilt_state_address="db1,b2",
+        tilt_command_address="db1,b3",
+    )
+
+    attrs = cover.extra_state_attributes
+    assert attrs["s7_tilt_state_address"] == "DB1,B2"
+    assert attrs["s7_tilt_command_address"] == "DB1,B3"
+
+
+def test_position_cover_tilt_absent_from_attrs_when_unconfigured(
+    fake_hass, mock_coordinator, device_info
+):
+    """No tilt attributes appear when tilt isn't configured."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator, "Test Cover", "test_id", device_info, "db1,b0", "db1,b1"
+    )
+
+    attrs = cover.extra_state_attributes
+    assert "s7_tilt_state_address" not in attrs
+    assert "s7_tilt_command_address" not in attrs
+
+
+@pytest.mark.asyncio
+async def test_position_cover_setup_with_tilt(fake_hass, mock_coordinator, device_info):
+    """async_setup_entry wires tilt_state_address/tilt_command_address and
+    invert_tilt through to the entity."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_TILT_STATE_ADDRESS,
+        CONF_TILT_COMMAND_ADDRESS,
+        CONF_INVERT_TILT,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,b0",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
+                CONF_TILT_STATE_ADDRESS: "db1,b2",
+                CONF_TILT_COMMAND_ADDRESS: "db1,b3",
+                CONF_INVERT_TILT: True,
+                CONF_NAME: "Test Position Cover",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 1
+
+    cover = entities[0]
+    assert cover._tilt_state_address == "db1,b2"
+    assert cover._tilt_command_address == "db1,b3"
+    assert cover._invert_tilt is True
+    assert cover._attr_supported_features & CoverEntityFeature.SET_TILT_POSITION

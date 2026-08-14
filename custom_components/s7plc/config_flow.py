@@ -51,6 +51,15 @@ from .const import (
     CONF_CONNECTION_TYPE,
     CONF_COOLING_ACTION_ADDRESS,
     CONF_COOLING_OUTPUT_ADDRESS,
+    CONF_COVER_CLOSING_ADDRESS,
+    CONF_COVER_OPENING_ADDRESS,
+    CONF_COVER_STATUS_ADDRESS,
+    CONF_COVER_STATUS_CLOSED_VALUES,
+    CONF_COVER_STATUS_CLOSING_VALUES,
+    CONF_COVER_STATUS_OPEN_VALUES,
+    CONF_COVER_STATUS_OPENING_VALUES,
+    CONF_COVER_STATUS_STOPPED_VALUES,
+    CONF_COVER_STOPPED_ADDRESS,
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
     CONF_DEVICE_CLASS,
@@ -70,6 +79,7 @@ from .const import (
     CONF_HVAC_STATUS_PREHEATING_VALUES,
     CONF_INVERT_POSITION,
     CONF_INVERT_STATE,
+    CONF_INVERT_TILT,
     CONF_LIGHTS,
     CONF_LOCAL_TSAP,
     CONF_MAX_RETRIES,
@@ -118,6 +128,8 @@ from .const import (
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEMP_STEP,
     CONF_TEXTS,
+    CONF_TILT_COMMAND_ADDRESS,
+    CONF_TILT_STATE_ADDRESS,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
@@ -129,6 +141,11 @@ from .const import (
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_BRIGHTNESS_SCALE,
+    DEFAULT_COVER_STATUS_CLOSED_VALUES,
+    DEFAULT_COVER_STATUS_CLOSING_VALUES,
+    DEFAULT_COVER_STATUS_OPEN_VALUES,
+    DEFAULT_COVER_STATUS_OPENING_VALUES,
+    DEFAULT_COVER_STATUS_STOPPED_VALUES,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
     DEFAULT_HVAC_STATUS_COOLING_VALUES,
@@ -361,9 +378,33 @@ def _add_schema_cover(flow) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
-            vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COVER_OPENING_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COVER_CLOSING_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COVER_STOPPED_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_COVER_STATUS_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_OPEN_VALUES,
+                default=DEFAULT_COVER_STATUS_OPEN_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_CLOSED_VALUES,
+                default=DEFAULT_COVER_STATUS_CLOSED_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_OPENING_VALUES,
+                default=DEFAULT_COVER_STATUS_OPENING_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_CLOSING_VALUES,
+                default=DEFAULT_COVER_STATUS_CLOSING_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_STOPPED_VALUES,
+                default=DEFAULT_COVER_STATUS_STOPPED_VALUES,
+            ): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_COVERS),
@@ -388,6 +429,32 @@ def _add_schema_cover_position(flow) -> vol.Schema:
             vol.Optional(
                 CONF_STOP_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
             ): pulse_duration_selector,
+            vol.Optional(CONF_TILT_STATE_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_TILT_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_INVERT_TILT, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(CONF_COVER_STATUS_ADDRESS): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_OPEN_VALUES,
+                default=DEFAULT_COVER_STATUS_OPEN_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_CLOSED_VALUES,
+                default=DEFAULT_COVER_STATUS_CLOSED_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_OPENING_VALUES,
+                default=DEFAULT_COVER_STATUS_OPENING_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_CLOSING_VALUES,
+                default=DEFAULT_COVER_STATUS_CLOSING_VALUES,
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_COVER_STATUS_STOPPED_VALUES,
+                default=DEFAULT_COVER_STATUS_STOPPED_VALUES,
+            ): selector.TextSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional(CONF_DEVICE_CLASS): _device_selector_by_type(CONF_COVERS),
@@ -695,7 +762,7 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_OPEN_COMMAND_ADDRESS,
             default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
-        vol.Required(
+        vol.Optional(
             CONF_CLOSE_COMMAND_ADDRESS,
             default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
@@ -706,6 +773,52 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
         vol.Optional(
             CONF_CLOSING_STATE_ADDRESS,
             default=item.get(CONF_CLOSING_STATE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_OPENING_ADDRESS,
+            default=item.get(CONF_COVER_OPENING_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_CLOSING_ADDRESS,
+            default=item.get(CONF_COVER_CLOSING_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STOPPED_ADDRESS,
+            default=item.get(CONF_COVER_STOPPED_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_ADDRESS,
+            default=item.get(CONF_COVER_STATUS_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_OPEN_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_CLOSED_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_OPENING_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_CLOSING_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_STOPPED_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES
+            ),
         ): selector.TextSelector(),
         vol.Optional(
             CONF_NAME, default=item.get(CONF_NAME, "")
@@ -754,6 +867,51 @@ def _edit_schema_cover_position(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_STOP_PULSE_DURATION,
             default=float(item.get(CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION)),
         ): pulse_duration_selector,
+        vol.Optional(
+            CONF_TILT_STATE_ADDRESS,
+            default=item.get(CONF_TILT_STATE_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_TILT_COMMAND_ADDRESS,
+            default=item.get(CONF_TILT_COMMAND_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_INVERT_TILT, default=item.get(CONF_INVERT_TILT, False)
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_ADDRESS,
+            default=item.get(CONF_COVER_STATUS_ADDRESS, ""),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_OPEN_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_CLOSED_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_OPENING_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_CLOSING_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES
+            ),
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_COVER_STATUS_STOPPED_VALUES,
+            default=item.get(
+                CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES
+            ),
+        ): selector.TextSelector(),
         vol.Optional(
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),
@@ -2470,6 +2628,50 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 seen[value] = field
         return {}
 
+    def _validate_cover_status_fields(
+        self, user_input: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Validate cover_status_address and its per-status value mappings.
+
+        Shared by traditional and position covers. Returns only the fields
+        that ended up set (address and/or non-empty value lists) to merge
+        into the item, plus an errors dict.
+        """
+        fields: dict[str, Any] = {}
+
+        if user_input.get(CONF_COVER_STATUS_ADDRESS):
+            cover_status_addr, errors = self._validate_address_field(
+                user_input.get(CONF_COVER_STATUS_ADDRESS)
+            )
+            if errors:
+                return {}, errors
+            fields[CONF_COVER_STATUS_ADDRESS] = cover_status_addr
+
+        status_values: dict[str, str | None] = {}
+        for conf_key, default in (
+            (CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES),
+            (CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES),
+            (CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES),
+            (CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES),
+            (CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES),
+        ):
+            value, errors = self._validate_mode_values_field(
+                user_input.get(conf_key, default)
+            )
+            if errors:
+                return {}, errors
+            status_values[conf_key] = value
+
+        errors = self._validate_no_duplicate_status_values(status_values)
+        if errors:
+            return {}, errors
+
+        for conf_key, value in status_values.items():
+            if value:
+                fields[conf_key] = value
+
+        return fields, {}
+
     def _copy_optional_fields(
         self,
         item: dict[str, Any],
@@ -2670,18 +2872,22 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        # Validate required open and close command addresses
+        # open_command_address is required. close_command_address is
+        # optional: when omitted, open_command_address doubles as a single
+        # toggle button (common for impulse-relay shutter controllers).
         open_command, open_errors = self._validate_address_field(
             user_input.get(CONF_OPEN_COMMAND_ADDRESS)
         )
         if open_errors:
             return None, open_errors
 
-        close_command, close_errors = self._validate_address_field(
+        close_command = self._sanitize_address(
             user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
         )
-        if close_errors:
-            return None, close_errors
+        if close_command:
+            close_command, close_errors = self._validate_address_field(close_command)
+            if close_errors:
+                return None, close_errors
 
         # Get optional state addresses
         opening_state = self._sanitize_address(
@@ -2716,11 +2922,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         ):
             return None, {"base": "duplicate_entry"}
 
+        # Validate optional real-time movement status (cover_status_address
+        # and its per-status value mappings)
+        cover_status_fields, cover_status_errors = self._validate_cover_status_fields(
+            user_input
+        )
+        if cover_status_errors:
+            return None, cover_status_errors
+
         # Build item
         item: dict[str, Any] = {
             CONF_OPEN_COMMAND_ADDRESS: open_command,
-            CONF_CLOSE_COMMAND_ADDRESS: close_command,
         }
+        if close_command:
+            item[CONF_CLOSE_COMMAND_ADDRESS] = close_command
 
         # Add optional state addresses
         if opening_state:
@@ -2736,6 +2951,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
         item[CONF_USE_STATE_TOPICS] = use_state_topics
+        item.update(cover_status_fields)
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -2766,6 +2982,24 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             if cmd_errors:
                 return None, cmd_errors
 
+        # Get optional tilt state/command addresses; symmetric to position
+        # above.
+        tilt_state_addr = None
+        tilt_command_addr = None
+        if user_input.get(CONF_TILT_STATE_ADDRESS):
+            tilt_state_addr, tilt_state_errors = self._validate_address_field(
+                user_input.get(CONF_TILT_STATE_ADDRESS)
+            )
+            if tilt_state_errors:
+                return None, tilt_state_errors
+
+            if self._sanitize_address(user_input.get(CONF_TILT_COMMAND_ADDRESS)):
+                tilt_command_addr, tilt_cmd_errors = self._validate_address_field(
+                    user_input.get(CONF_TILT_COMMAND_ADDRESS)
+                )
+                if tilt_cmd_errors:
+                    return None, tilt_cmd_errors
+
         # Check for duplicates
         if self._has_duplicate(
             CONF_COVERS,
@@ -2774,6 +3008,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             skip_idx=skip_idx,
         ):
             return None, {"base": "duplicate_entry"}
+
+        # Validate optional real-time movement status (cover_status_address
+        # and its per-status value mappings)
+        cover_status_fields, cover_status_errors = self._validate_cover_status_fields(
+            user_input
+        )
+        if cover_status_errors:
+            return None, cover_status_errors
 
         # Build item
         item: dict[str, Any] = {
@@ -2795,6 +3037,16 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION
             )
             item[CONF_STOP_PULSE_DURATION] = float(stop_pulse)
+
+        # Add optional tilt addresses and invert flag
+        if tilt_state_addr:
+            item[CONF_TILT_STATE_ADDRESS] = tilt_state_addr
+            if tilt_command_addr:
+                item[CONF_TILT_COMMAND_ADDRESS] = tilt_command_addr
+            if user_input.get(CONF_INVERT_TILT, False):
+                item[CONF_INVERT_TILT] = True
+
+        item.update(cover_status_fields)
 
         # Copy optional fields
         self._copy_optional_fields(
