@@ -590,6 +590,65 @@ def test_add_cover_traditional_with_both_addresses_stores_both():
     assert stored[const.CONF_CLOSE_COMMAND_ADDRESS] == "DB1,X0.1"
 
 
+def test_add_cover_traditional_persists_movement_status_addresses():
+    """Regression test: cover_opening_address/cover_closing_address/
+    cover_stopped_address are exposed in the schema and consumed by
+    cover.py, but _build_cover_item previously never copied them from
+    user_input into the stored item - they were silently dropped on save."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
+                const.CONF_COVER_OPENING_ADDRESS: "DB1,X1.0",
+                const.CONF_COVER_CLOSING_ADDRESS: "DB1,X1.1",
+                const.CONF_COVER_STOPPED_ADDRESS: "DB1,X1.2",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_COVER_OPENING_ADDRESS] == "DB1,X1.0"
+    assert stored[const.CONF_COVER_CLOSING_ADDRESS] == "DB1,X1.1"
+    assert stored[const.CONF_COVER_STOPPED_ADDRESS] == "DB1,X1.2"
+
+
+def test_edit_cover_traditional_persists_movement_status_addresses():
+    """Same regression, via the edit path (_build_cover_item is shared
+    between add and edit)."""
+    options = {
+        const.CONF_COVERS: [
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_UID: "original-uid",
+            }
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow._action = "edit"
+    flow._edit_target = ("cv", 0)
+
+    result = run_flow(
+        flow.async_step_edit_cover(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_COVER_OPENING_ADDRESS: "DB1,X1.0",
+                const.CONF_COVER_CLOSING_ADDRESS: "DB1,X1.1",
+                const.CONF_COVER_STOPPED_ADDRESS: "DB1,X1.2",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_COVER_OPENING_ADDRESS] == "DB1,X1.0"
+    assert stored[const.CONF_COVER_CLOSING_ADDRESS] == "DB1,X1.1"
+    assert stored[const.CONF_COVER_STOPPED_ADDRESS] == "DB1,X1.2"
+
+
 def test_import_step_rejects_duplicate_cover_addresses():
     """Test that import rejects duplicate addresses in covers."""
     flow = make_options_flow()

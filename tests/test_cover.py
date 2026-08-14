@@ -596,6 +596,48 @@ def test_cover_status_closing_address_drives_is_closing(cover_factory, mock_coor
     assert cover.is_opening is False
 
 
+def test_cover_stopped_address_overrides_opening_and_closing(
+    cover_factory, mock_coordinator
+):
+    """A True cover_stopped_address reading forces both is_opening and
+    is_closing False, even when cover_opening_address/cover_closing_address
+    still report a stale in-motion reading - otherwise a dedicated stopped
+    signal would have no effect on the entity's state."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+        cover_closing_address="db1,b11",
+        cover_closing_topic="cover:closing:db1,b11",
+        cover_stopped_address="db1,b12",
+        cover_stopped_topic="cover:stopped:db1,b12",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b10": True,
+        "cover:closing:db1,b11": True,
+        "cover:stopped:db1,b12": True,
+    }
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+
+
+def test_cover_stopped_address_false_defers_to_opening_and_closing(
+    cover_factory, mock_coordinator
+):
+    """A False (or unset) cover_stopped_address reading doesn't interfere -
+    cover_opening_address/cover_closing_address still drive movement."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+        cover_stopped_address="db1,b12",
+        cover_stopped_topic="cover:stopped:db1,b12",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b10": True,
+        "cover:stopped:db1,b12": False,
+    }
+    assert cover.is_opening is True
+
+
 def test_cover_status_opening_address_false_overrides_stale_timer_flag(
     cover_factory, mock_coordinator
 ):

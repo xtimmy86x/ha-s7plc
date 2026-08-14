@@ -458,11 +458,18 @@ class S7Cover(S7BaseEntity, CoverEntity):
         """Return True when the cover is opening.
 
         cover_status_address (single climate-style status word), when
-        configured, takes priority over the boolean addresses below. If
-        neither is configured, falls back to the timer-simulated flag.
+        configured, takes priority over the boolean addresses below.
+        cover_stopped_address, when it reports True, overrides
+        cover_opening_address/cover_closing_address so a stopped signal
+        doesn't leave a stale in-motion reading. If none of these are
+        configured, falls back to the timer-simulated flag.
         """
         if self._cover_status_address:
             return self._get_movement_status() == "opening"
+        if self._cover_stopped_address and self._get_topic_state(
+            self._cover_stopped_topic
+        ):
+            return False
         if self._cover_opening_address:
             return self._get_topic_state(self._cover_opening_topic) is True
         return self._is_opening
@@ -472,6 +479,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
         """Return True when the cover is closing. See is_opening."""
         if self._cover_status_address:
             return self._get_movement_status() == "closing"
+        if self._cover_stopped_address and self._get_topic_state(
+            self._cover_stopped_topic
+        ):
+            return False
         if self._cover_closing_address:
             return self._get_topic_state(self._cover_closing_topic) is True
         return self._is_closing

@@ -2897,6 +2897,20 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             user_input.get(CONF_CLOSING_STATE_ADDRESS)
         )
 
+        # Get optional real-time movement status addresses (separate from
+        # the opened/closed end-stops above: each is a boolean address for
+        # "currently opening"/"currently closing"/"stopped", not a limit
+        # switch)
+        cover_opening_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_OPENING_ADDRESS)
+        )
+        cover_closing_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_CLOSING_ADDRESS)
+        )
+        cover_stopped_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_STOPPED_ADDRESS)
+        )
+
         # Get other parameters
         operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
         use_state_topics = bool(user_input.get(CONF_USE_STATE_TOPICS, False))
@@ -2907,7 +2921,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 return None, {"base": "state_addresses_required"}
 
         # Validate optional state addresses if present
-        for candidate in (opening_state, closing_state):
+        for candidate in (
+            opening_state,
+            closing_state,
+            cover_opening_addr,
+            cover_closing_addr,
+            cover_stopped_addr,
+        ):
             if candidate:
                 _, addr_errors = self._validate_address_field(candidate)
                 if addr_errors:
@@ -2942,6 +2962,14 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             item[CONF_OPENING_STATE_ADDRESS] = opening_state
         if closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
+
+        # Add optional real-time movement status addresses
+        if cover_opening_addr:
+            item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
+        if cover_closing_addr:
+            item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
+        if cover_stopped_addr:
+            item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields
         self._copy_optional_fields(

@@ -671,27 +671,16 @@ def test_panel_exposes_cover_status_and_tilt_fields() -> None:
     assert "cover_status_stopped_values" not in traditional_hidden_line
 
 
-def test_panel_hides_boolean_status_fields_when_status_address_used() -> None:
-    """In Basic mode, filling in cover_status_address dynamically hides
-    (and, on save, strips) the end-stop and boolean movement-status
-    addresses plus the use_state_topics checkbox that toggles the
-    end-stops, since it takes priority over all of them — surfacing that
-    priority in the UI instead of leaving both sets of fields visible and
-    looking equally active."""
+def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
+    """cover_status_address does NOT hide or strip the end-stop and boolean
+    movement-status addresses (or use_state_topics): the backend still
+    falls back to them (e.g. is_closed via opening/closing_state_address)
+    whenever the status word doesn't directly answer open/closed, so using
+    a status word for movement together with physical end-stops is a valid
+    configuration and the editor must not force them apart."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert "COVER_BOOL_STATUS_FIELDS" in source
-    assert (
-        "const COVER_BOOL_STATUS_FIELDS = "
-        '["opening_state_address","closing_state_address",'
-        '"cover_opening_address","cover_closing_address","cover_stopped_address",'
-        '"use_state_topics"]'
-    ) in source
-    # Dynamic hide: the status-address input triggers a re-sync on input.
-    assert "form.elements.cover_status_address.oninput=syncMode" in source
-    # Strip on save so stale boolean values don't linger once status_address
-    # is configured for a Basic cover.
-    assert "COVER_BOOL_STATUS_FIELDS.forEach(k=>delete entity[k])" in source
+    assert "COVER_BOOL_STATUS_FIELDS" not in source
 
 
 def test_panel_hides_status_value_fields_when_status_address_unused() -> None:
