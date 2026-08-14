@@ -282,6 +282,30 @@ def parse_pulse_duration(value: Any | None) -> float:
 # ---------------------------------------------------------------------------
 
 
+def make_unique_topic(seen_topics: set[str], base_topic: str) -> str:
+    """Return a topic guaranteed not to collide with one already seen.
+
+    Some entities may intentionally share the same source address (e.g.
+    two climates reading the same temperature sensor while controlling
+    different valves). The first entity to use a given base topic keeps
+    it unchanged; every further one sharing it gets an incrementing suffix
+    appended instead of colliding.
+
+    Only used for the coordinator's internal polling key (``topic``) now,
+    not for ``unique_id`` (which is uid-based and never collides on its
+    own) -- two entities sharing a source address still need distinct
+    coordinator topics so their per-item settings (e.g. scan_interval)
+    don't overwrite each other.
+    """
+    topic = base_topic
+    suffix = 2
+    while topic in seen_topics:
+        topic = f"{base_topic}:{suffix}"
+        suffix += 1
+    seen_topics.add(topic)
+    return topic
+
+
 def _iter_legacy_unique_ids(
     device_id: str, options: Mapping[str, Any]
 ) -> Iterator[tuple[str, dict[str, Any]]]:

@@ -26,6 +26,21 @@ from custom_components.s7plc.const import (
     CONF_UID,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
+    DEFAULT_HVAC_STATUS_COOLING_VALUES,
+    DEFAULT_HVAC_STATUS_DEFROSTING_VALUES,
+    DEFAULT_HVAC_STATUS_DRYING_VALUES,
+    DEFAULT_HVAC_STATUS_FAN_VALUES,
+    DEFAULT_HVAC_STATUS_HEATING_VALUES,
+    DEFAULT_HVAC_STATUS_IDLE_VALUES,
+    DEFAULT_HVAC_STATUS_OFF_VALUES,
+    DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
+    DEFAULT_PRESET_MODE_AUTO_VALUE,
+    DEFAULT_PRESET_MODE_COOL_VALUE,
+    DEFAULT_PRESET_MODE_DRY_VALUE,
+    DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
+    DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
+    DEFAULT_PRESET_MODE_HEAT_VALUE,
+    DEFAULT_PRESET_MODE_OFF_VALUE,
 )
 
 # Test constants
@@ -88,10 +103,28 @@ def climate_setpoint_factory(mock_coordinator, device_info):
     def _create_climate(
         current_temp_address: str = TEST_CURRENT_TEMP_ADDRESS,
         target_temp_address: str = TEST_TARGET_TEMP_ADDRESS,
+        preset_mode_address: str | None = None,
+        preset_mode_bidirectional: bool = False,
         hvac_status_address: str | None = None,
+        on_off_address: str | None = None,
         name: str = "Test Climate",
         topic: str = f"climate_setpoint:{TEST_CURRENT_TEMP_ADDRESS}",
         unique_id: str = f"test_device:climate_setpoint:{TEST_CURRENT_TEMP_ADDRESS}",
+        hvac_status_off_values: str = DEFAULT_HVAC_STATUS_OFF_VALUES,
+        hvac_status_heating_values: str = DEFAULT_HVAC_STATUS_HEATING_VALUES,
+        hvac_status_cooling_values: str = DEFAULT_HVAC_STATUS_COOLING_VALUES,
+        hvac_status_idle_values: str = DEFAULT_HVAC_STATUS_IDLE_VALUES,
+        hvac_status_drying_values: str = DEFAULT_HVAC_STATUS_DRYING_VALUES,
+        hvac_status_fan_values: str = DEFAULT_HVAC_STATUS_FAN_VALUES,
+        hvac_status_preheating_values: str = DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
+        hvac_status_defrosting_values: str = DEFAULT_HVAC_STATUS_DEFROSTING_VALUES,
+        preset_mode_off_value: int | None = DEFAULT_PRESET_MODE_OFF_VALUE,
+        preset_mode_heat_value: int | None = DEFAULT_PRESET_MODE_HEAT_VALUE,
+        preset_mode_cool_value: int | None = DEFAULT_PRESET_MODE_COOL_VALUE,
+        preset_mode_heat_cool_value: int | None = DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
+        preset_mode_auto_value: int | None = DEFAULT_PRESET_MODE_AUTO_VALUE,
+        preset_mode_dry_value: int | None = DEFAULT_PRESET_MODE_DRY_VALUE,
+        preset_mode_fan_only_value: int | None = DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
     ):
         return S7ClimateSetpointControl(
             mock_coordinator,
@@ -101,11 +134,28 @@ def climate_setpoint_factory(mock_coordinator, device_info):
             topic=topic,
             current_temp_address=current_temp_address,
             target_temp_address=target_temp_address,
-            preset_mode_address=None,
+            preset_mode_address=preset_mode_address,
             hvac_status_address=hvac_status_address,
             min_temp=7.0,
             max_temp=35.0,
             temp_step=0.5,
+            hvac_status_off_values=hvac_status_off_values,
+            hvac_status_heating_values=hvac_status_heating_values,
+            hvac_status_cooling_values=hvac_status_cooling_values,
+            hvac_status_idle_values=hvac_status_idle_values,
+            hvac_status_drying_values=hvac_status_drying_values,
+            hvac_status_fan_values=hvac_status_fan_values,
+            hvac_status_preheating_values=hvac_status_preheating_values,
+            hvac_status_defrosting_values=hvac_status_defrosting_values,
+            preset_mode_off_value=preset_mode_off_value,
+            preset_mode_heat_value=preset_mode_heat_value,
+            preset_mode_cool_value=preset_mode_cool_value,
+            preset_mode_heat_cool_value=preset_mode_heat_cool_value,
+            preset_mode_auto_value=preset_mode_auto_value,
+            preset_mode_dry_value=preset_mode_dry_value,
+            preset_mode_fan_only_value=preset_mode_fan_only_value,
+            preset_mode_bidirectional=preset_mode_bidirectional,
+            on_off_address=on_off_address,
         )
 
     return _create_climate
@@ -550,3 +600,208 @@ async def test_climate_direct_no_restore_invalid_mode(climate_direct_factory, fa
     # Mode should not change, but temperature should be restored
     assert climate.hvac_mode == initial_mode
     assert climate.target_temperature == 20.0
+
+
+# ============================================================================
+# Tests for review-driven setpoint control behavior (custom mappings,
+# disabled modes, bidirectional preset_mode readback, on_off_address,
+# multi-value/PREHEATING/DEFROSTING status matching, shared temp addresses)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_custom_mode_value_mappings(
+    climate_setpoint_factory, mock_coordinator
+):
+    """Custom (non-default) PLC values are honored for both the target
+    (preset_mode_*_value) and current (hvac_status_*_values) mappings."""
+    climate = climate_setpoint_factory(
+        preset_mode_address="db1,int0",
+        hvac_status_address=TEST_HVAC_STATUS_ADDRESS,
+        preset_mode_heat_value=10,
+        preset_mode_cool_value=20,
+        hvac_status_heating_values="10",
+        hvac_status_cooling_values="20",
+    )
+    mock_coordinator.write_batched = AsyncMock()
+    mock_coordinator.data = {
+        f"{climate._topic}:current_temp": 20.0,
+        f"{climate._topic}:target_temp": 22.0,
+    }
+
+    await climate.async_set_hvac_mode(HVACMode.HEAT)
+    mock_coordinator.write_batched.assert_any_call("db1,int0", 10)
+
+    from homeassistant.components.climate import HVACAction
+
+    mock_coordinator.data[f"{climate._topic}:hvac_status"] = 20
+    assert climate.hvac_action == HVACAction.COOLING
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_disabled_mode_via_empty_value(
+    climate_setpoint_factory,
+):
+    """A mode whose preset value is left empty (None) is excluded from
+    hvac_modes -- including a normally-enabled-by-default mode like HEAT,
+    not just the disabled-by-default ones (AUTO/DRY/FAN_ONLY)."""
+    climate = climate_setpoint_factory(preset_mode_heat_value=None)
+
+    assert HVACMode.HEAT not in climate._attr_hvac_modes
+    # The disabled-by-default modes stay excluded too.
+    assert HVACMode.AUTO not in climate._attr_hvac_modes
+    assert HVACMode.DRY not in climate._attr_hvac_modes
+    assert HVACMode.FAN_ONLY not in climate._attr_hvac_modes
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_bidirectional_off_by_default(
+    climate_setpoint_factory, mock_coordinator
+):
+    """preset_mode_address is write-only by default: polling a different
+    mode's value back does not change the reported hvac_mode."""
+    climate = climate_setpoint_factory(preset_mode_address="db1,int0")
+    climate._hvac_mode = HVACMode.HEAT
+
+    # PLC reports the COOL value, but bidirectional readback is off.
+    mock_coordinator.data = {f"{climate._topic}:preset_mode": 2}
+    assert climate.hvac_mode == HVACMode.HEAT
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_bidirectional_when_enabled(
+    climate_setpoint_factory, mock_coordinator
+):
+    """With preset_mode_bidirectional=True, hvac_mode follows the polled
+    preset_mode_address value instead of the cached commanded mode."""
+    climate = climate_setpoint_factory(
+        preset_mode_address="db1,int0", preset_mode_bidirectional=True
+    )
+    climate._hvac_mode = HVACMode.HEAT
+
+    mock_coordinator.data = {f"{climate._topic}:preset_mode": 2}
+    assert climate.hvac_mode == HVACMode.COOL
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_on_off_address_read(
+    climate_setpoint_factory, mock_coordinator
+):
+    """on_off_address reporting a falsy value forces hvac_mode to OFF,
+    taking priority over any cached/commanded mode."""
+    climate = climate_setpoint_factory(on_off_address="db1,x0.0")
+    climate._hvac_mode = HVACMode.HEAT
+
+    mock_coordinator.data = {f"{climate._topic}:on_off": False}
+    assert climate.hvac_mode == HVACMode.OFF
+
+    mock_coordinator.data[f"{climate._topic}:on_off"] = True
+    assert climate.hvac_mode == HVACMode.HEAT
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_on_off_address_write(
+    climate_setpoint_factory, mock_coordinator
+):
+    """Setting a mode writes on_off_address: False for OFF, True otherwise."""
+    climate = climate_setpoint_factory(on_off_address="db1,x0.0")
+    mock_coordinator.write_batched = AsyncMock()
+    mock_coordinator.data = {}
+
+    await climate.async_set_hvac_mode(HVACMode.HEAT)
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+
+    await climate.async_set_hvac_mode(HVACMode.OFF)
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", False)
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_multiple_status_values(
+    climate_setpoint_factory, mock_coordinator
+):
+    """A single hvac_status_*_values field can list several comma-separated
+    PLC codes that all mean the same HVAC action."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(
+        hvac_status_address=TEST_HVAC_STATUS_ADDRESS,
+        hvac_status_heating_values="2,3",
+    )
+    mock_coordinator.data = {f"{climate._topic}:hvac_status": 2}
+    assert climate.hvac_action == HVACAction.HEATING
+    mock_coordinator.data[f"{climate._topic}:hvac_status"] = 3
+    assert climate.hvac_action == HVACAction.HEATING
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_unknown_status_is_idle(
+    climate_setpoint_factory, mock_coordinator
+):
+    """A status value that matches none of the configured lists falls back
+    to IDLE rather than being left unhandled."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(hvac_status_address=TEST_HVAC_STATUS_ADDRESS)
+    mock_coordinator.data = {f"{climate._topic}:hvac_status": 999}
+    assert climate.hvac_action == HVACAction.IDLE
+
+
+@pytest.mark.asyncio
+async def test_climate_setpoint_hvac_action_preheating_and_defrosting(
+    climate_setpoint_factory, mock_coordinator
+):
+    """PREHEATING and DEFROSTING are each matched from their own configured
+    status value(s), independently of one another."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(
+        hvac_status_address=TEST_HVAC_STATUS_ADDRESS,
+        hvac_status_preheating_values="7",
+        hvac_status_defrosting_values="8",
+    )
+    mock_coordinator.data = {f"{climate._topic}:hvac_status": 7}
+    assert climate.hvac_action == HVACAction.PREHEATING
+    mock_coordinator.data[f"{climate._topic}:hvac_status"] = 8
+    assert climate.hvac_action == HVACAction.DEFROSTING
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_setpoint_control_shared_temperature_address(
+    fake_hass, mock_coordinator
+):
+    """Two setpoint climates sharing one current_temperature_address get
+    distinct coordinator topics (via make_unique_topic) and are both set
+    up as independent entities with their own unique_id."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_CLIMATES: [
+            {
+                CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+                CONF_CURRENT_TEMPERATURE_ADDRESS: TEST_CURRENT_TEMP_ADDRESS,
+                CONF_TARGET_TEMPERATURE_ADDRESS: TEST_TARGET_TEMP_ADDRESS,
+                CONF_NAME: "Zone 1",
+                CONF_UID: "uid-1",
+            },
+            {
+                CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+                CONF_CURRENT_TEMPERATURE_ADDRESS: TEST_CURRENT_TEMP_ADDRESS,
+                CONF_TARGET_TEMPERATURE_ADDRESS: "db1,real8",
+                CONF_NAME: "Zone 2",
+                CONF_UID: "uid-2",
+            },
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch(
+        "custom_components.s7plc.climate.get_coordinator_and_device_info",
+        return_value=(mock_coordinator, {"name": "Test PLC"}, "test_device"),
+    ):
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    assert len(entities) == 2
+    assert entities[0]._attr_unique_id == "uid-1"
+    assert entities[1]._attr_unique_id == "uid-2"
+    assert entities[0]._topic != entities[1]._topic
