@@ -15,6 +15,12 @@ Configuration is handled entirely through the Home Assistant UI. After installin
 5. Fill in connection parameters when prompted.
 6. Once the integration is added, open it and choose **Configure** to manage entities.
 
+After the first S7 PLC entry is loaded, administrators also get an **S7 PLC** item
+in the Home Assistant sidebar. This is the recommended workspace for day-to-day
+entity management. It provides a visual editor, an advanced YAML editor, current
+entity states, and a PLC connection indicator. See the dedicated
+[Side Panel Guide](sidepanel.md).
+
 ## Connection Types
 
 The integration supports two connection methods:
@@ -89,6 +95,18 @@ Use the following guidelines based on the typical round-trip latency between Hom
 Values outside these ranges are supported, but increasing them further may delay error reporting and entity updates. Lower values improve responsiveness but can cause frequent reconnects on congested networks.
 
 ## Managing Entities
+
+There are two supported management interfaces:
+
+- **S7 PLC side panel (recommended):** open **S7 PLC** in the Home Assistant
+  sidebar to add, inspect, edit, or delete entities. It is available to
+  administrators and supports both visual and YAML editing.
+- **Integration options flow:** open **Settings → Devices & Services → S7 PLC
+  → Configure**. This remains useful for connection settings, import/export,
+  and the guided add/remove flows.
+
+Both interfaces update the same config entry. Do not edit Home Assistant's
+internal config-entry storage manually.
 
 ### Adding Entities
 
@@ -211,13 +229,33 @@ Setpoint control mode: the PLC manages heating/cooling autonomously; Home Assist
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Current Temperature Address**: PLC address to read the current temperature (REAL)
 - **Target Temperature Address**: PLC address to read/write the target setpoint (REAL)
-- **Preset Mode Address** (optional): PLC address to write the HVAC mode (0=OFF, 1=HEAT, 2=COOL, 3=HEAT_COOL)
-- **HVAC Status Address** (optional): PLC address to read the actual HVAC status as an integer (0=OFF, 1=HEATING, 2=COOLING). When configured, the `hvac_action` property reflects the real PLC status instead of inferring it from the temperature comparison. If not provided, the action is estimated by comparing current vs. target temperature
+- **Preset Mode Address** (optional): PLC address to write HVAC mode commands.
+- **On/Off Address** (optional): Separate boolean enable address. The integration
+  writes `false` for OFF and `true` for every enabled HVAC mode. This is useful
+  when the PLC's mode register has no native OFF value.
+- **Bidirectional Preset Mode**: Read the preset mode address back from the PLC,
+  so changes made by an HMI or PLC program are reflected in Home Assistant. It
+  is disabled by default to preserve write-only command-register behavior.
+- **Preset mode values**: Map Home Assistant's OFF, HEAT, COOL, HEAT_COOL, AUTO,
+  DRY, and FAN_ONLY modes to the integer codes expected by the PLC. The defaults
+  are `0`, `1`, `2`, and `3` for the first four modes; AUTO, DRY, and FAN_ONLY
+  are disabled by default. Leave any mapping empty to hide/disable that mode.
+- **HVAC Status Address** (optional): PLC address used to report the current HVAC
+  action independently from the commanded mode.
+- **HVAC status values**: Map one or more comma-separated PLC integers to OFF,
+  HEATING, COOLING, IDLE, DRYING, FAN, PREHEATING, or DEFROSTING. Defaults are
+  `0`, `1`, and `2` for OFF, HEATING, and COOLING. Unmapped values fall back to
+  IDLE. If no status address is provided, the action is estimated by comparing
+  current and target temperatures.
 - **Min Temperature**: Minimum allowed target temperature (default: 7.0°C)
 - **Max Temperature**: Maximum allowed target temperature (default: 35.0°C)
 - **Temperature Step**: Step increment for temperature adjustments (default: 0.5°C)
 
 The entity exposes a `climate_type` attribute set to **"Setpoint Control"**.
+
+Preset-mode values must be unique, and a status code cannot be assigned to two
+different statuses. Both the options flow and side panel reject ambiguous
+mappings before saving.
 
 #### Entity Sync
 
