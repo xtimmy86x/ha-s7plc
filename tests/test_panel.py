@@ -124,6 +124,13 @@ def test_panel_renders_current_state_badges() -> None:
     assert "this.updateStates()" in source
 
 
+def test_panel_hides_uid_from_entity_summary() -> None:
+    """The internal UID is not rendered as a summary chip."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "k!=='uid'" in source
+
+
 def test_panel_exposes_climate_mode_and_status_fields() -> None:
     """The visual editor lets you configure the HVAC mode <-> PLC value
     mapping (setpoint control mode), not just the mode/status addresses —

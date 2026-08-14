@@ -116,7 +116,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
     const main=item.address||item.state_address||item.current_temperature_address||item.source_entity;
     const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
     return Object.entries(item)
-      .filter(([k,v])=>k!=='name'&&v!==false&&v!==''&&!(typeof v==='string'&&v===main))
+      .filter(([k,v])=>k!=='name'&&k!=='uid'&&v!==false&&v!==''&&!(typeof v==='string'&&v===main))
       .slice(0,5)
       .map(([k,v])=>{
         const label=this.escape(this.flowText(type,item,k,'data')||this.t(`fields.${k}`));
