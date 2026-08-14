@@ -597,3 +597,209 @@ def test_panel_clearing_a_core_status_value_stores_empty_string_not_deletes() ->
         '{hvac_status_off_values:"0",hvac_status_heating_values:"1",'
         'hvac_status_cooling_values:"2"}'
     ) in source
+
+
+def test_panel_exposes_cover_status_and_tilt_fields() -> None:
+    """The visual editor lets you configure the traditional cover's
+    real-time movement status — either 3 separate boolean addresses, or a
+    single climate-style status address + per-status values (available in
+    both Basic and Advanced modes, taking priority over the booleans in
+    Basic when configured) — and the position cover's tilt control
+    (tilt_state/command_address, invert_tilt)."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    for key in (
+        "cover_opening_address",
+        "cover_closing_address",
+        "cover_stopped_address",
+        "cover_status_address",
+        "cover_status_open_values",
+        "cover_status_closed_values",
+        "cover_status_opening_values",
+        "cover_status_closing_values",
+        "cover_status_stopped_values",
+        "tilt_state_address",
+        "tilt_command_address",
+        "invert_tilt",
+    ):
+        assert key in covers_line, f"{key} missing from covers FIELDS"
+        assert key in source, f"{key} missing a translated label"
+
+    # cover_status_address precedes the end-stop and boolean status fields
+    # in field order (right after close_command_address), so it's the
+    # visually-first, "primary" way to configure movement status.
+    assert covers_line.index('"cover_status_address"') < covers_line.index(
+        '"opening_state_address"'
+    )
+    assert covers_line.index('"cover_status_address"') < covers_line.index(
+        '"cover_opening_address"'
+    )
+
+    # Position mode hides the traditional-only boolean status fields, but
+    # not cover_status_address (available in both modes). Match on the
+    # MODE_HIDDEN array's own "position:"/"traditional:" line prefix, not
+    # just any line containing those substrings — the per-locale
+    # fields:{...} translation dicts also contain "cover_opening_address"
+    # (as a label key) and "position:" (inside "invert_position:"), so a
+    # loose substring match would silently pick the wrong line.
+    position_hidden_line = next(
+        line
+        for line in source.splitlines()
+        if line.strip().startswith("position:") and "cover_opening_address" in line
+    )
+    assert "cover_closing_address" in position_hidden_line
+    assert "cover_stopped_address" in position_hidden_line
+    assert "cover_status_address" not in position_hidden_line
+
+    # Traditional mode hides only the position-only tilt fields;
+    # cover_status_address and its value fields are available there too.
+    traditional_hidden_line = next(
+        line
+        for line in source.splitlines()
+        if line.strip().startswith("traditional:") and "tilt_state_address" in line
+    )
+    assert "tilt_command_address" in traditional_hidden_line
+    assert "invert_tilt" in traditional_hidden_line
+    assert "cover_status_address" not in traditional_hidden_line
+    assert "cover_status_open_values" not in traditional_hidden_line
+    assert "cover_status_closed_values" not in traditional_hidden_line
+    assert "cover_status_opening_values" not in traditional_hidden_line
+    assert "cover_status_closing_values" not in traditional_hidden_line
+    assert "cover_status_stopped_values" not in traditional_hidden_line
+
+
+def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
+    """cover_status_address does NOT hide or strip the end-stop and boolean
+    movement-status addresses (or use_state_topics): the backend still
+    falls back to them (e.g. is_closed via opening/closing_state_address)
+    whenever the status word doesn't directly answer open/closed, so using
+    a status word for movement together with physical end-stops is a valid
+    configuration and the editor must not force them apart."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "COVER_BOOL_STATUS_FIELDS" not in source
+
+
+def test_panel_hides_status_value_fields_when_status_address_unused() -> None:
+    """In either cover mode, the cover_status_*_values fields are
+    meaningless without cover_status_address filled in — dynamically
+    hidden (and stripped on save) until it has a value."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "COVER_STATUS_VALUE_FIELDS" in source
+    assert (
+        "const COVER_STATUS_VALUE_FIELDS = "
+        '["cover_status_open_values","cover_status_closed_values",'
+        '"cover_status_opening_values","cover_status_closing_values",'
+        '"cover_status_stopped_values"]'
+    ) in source
+    assert "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}" in source
+    assert (
+        "if(!entity.cover_status_address){"
+        "COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
+    ) in source
+
+
+def test_panel_hides_motion_bool_fields_when_status_address_used() -> None:
+    """cover_opening_address/cover_closing_address/cover_stopped_address
+    become inert once cover_status_address is configured (is_opening/
+    is_closing always read the status word then, never falling back to
+    these 3 booleans - unlike the end-stop addresses, which is_closed
+    still consults). Hidden to reduce clutter, but never stripped on
+    save - a previously-configured value is harmless to keep, and
+    silently deleting it was exactly the maintainer's complaint about the
+    old COVER_BOOL_STATUS_FIELDS behavior."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "const COVER_MOTION_BOOL_FIELDS = "
+        '["cover_opening_address","cover_closing_address","cover_stopped_address"]'
+    ) in source
+    assert (
+        "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}"
+        "else{hidden=[...hidden,...COVER_MOTION_BOOL_FIELDS];}"
+    ) in source
+    # Hidden only - formEntity must not delete these on save.
+    assert "COVER_MOTION_BOOL_FIELDS.forEach(k=>delete entity[k])" not in source
+
+
+def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
+    """In Position mode, invert_tilt has nothing to invert without
+    tilt_state_address filled in — dynamically hidden (and stripped on
+    save) until it has a value."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "COVER_TILT_INVERT_FIELDS" in source
+    assert (
+        'const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];'
+    ) in source
+    assert (
+        "if(sel.value==='position'&&!form.elements.tilt_state_address?.value.trim())"
+        "{hidden=[...hidden,...COVER_TILT_INVERT_FIELDS];}"
+    ) in source
+    # Dynamic hide: the tilt-state-address input triggers a re-sync on input.
+    assert "form.elements.tilt_state_address.oninput=syncMode" in source
+    assert (
+        "if(mode==='position'&&!entity.tilt_state_address){"
+        "COVER_TILT_INVERT_FIELDS.forEach(k=>delete entity[k]);}"
+    ) in source
+
+
+def test_panel_covers_bool_addresses_use_bool_placeholder() -> None:
+    """Cover open/close command and end-stop/status addresses are all
+    single PLC bits, not REAL values — they must not show the generic
+    REAL-flavored address example/help used by numeric address fields."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "const BOOL_FIELDS" in source
+    bool_fields_line = next(
+        line
+        for line in source.splitlines()
+        if line.strip().startswith("covers: [") and "open_command_address" in line
+    )
+    for key in (
+        "open_command_address",
+        "close_command_address",
+        "opening_state_address",
+        "closing_state_address",
+        "cover_opening_address",
+        "cover_closing_address",
+        "cover_stopped_address",
+        "stop_command_address",
+    ):
+        assert key in bool_fields_line, f"{key} missing from covers BOOL_FIELDS"
+
+    # Fields not on that list (e.g. numeric position) stay untouched.
+    assert "position_state_address" not in bool_fields_line
+    assert "position_command_address" not in bool_fields_line
+
+    assert "boolAddress=BOOL_FIELDS[type]?.includes(key)" in source
+    assert "address_example_bool" in source
+    assert "address_help_bool" in source
+
+
+def test_panel_close_command_address_required_for_traditional() -> None:
+    """close_command_address is required in the editor's save validation
+    for traditional covers, same as the config flow."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "const needed=mode==='position'?'position_state_address':"
+        "'open_command_address';if(!entity[needed]||(mode==='traditional'"
+        "&&!entity.close_command_address))throw "
+        "Error(this.t('cover_required_error'));"
+    ) in source
+
+
+def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
+    """Regression test: a checkbox field's label/description span is a
+    flex child of .check (display:flex, justify-content:space-between).
+    Flex items default to min-width:auto, so a long unbroken label could
+    refuse to wrap and push the switch itself past the dialog's right
+    edge instead of wrapping onto multiple lines."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert ".visual-form .check>span{min-width:0}" in source

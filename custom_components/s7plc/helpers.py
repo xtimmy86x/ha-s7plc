@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from collections.abc import Iterator, Mapping, MutableMapping
@@ -81,6 +82,8 @@ from .const import (
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +278,33 @@ def parse_pulse_duration(value: Any | None) -> float:
     if pulse < 0.1 or pulse > 60:
         return DEFAULT_PULSE_DURATION
     return round(pulse, 1)
+
+
+def parse_mode_values(raw: str | None) -> list[int]:
+    """Parse a comma-separated list of PLC integer values for a status.
+
+    An empty/unset field means this status should never be matched,
+    effectively skipping it (e.g. a blank "off status" field means no PLC
+    value is ever read as OFF). Every integer, including negative ones, is
+    otherwise a legitimate status value.
+
+    Used by climate's hvac_status_*_values and cover's cover_status_*_values
+    fields.
+    """
+    if not raw:
+        return []
+    values: list[int] = []
+    for token in str(raw).split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            value = int(token)
+        except ValueError:
+            _LOGGER.warning("Ignoring invalid mode value %r", token)
+            continue
+        values.append(value)
+    return values
 
 
 # ---------------------------------------------------------------------------

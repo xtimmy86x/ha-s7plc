@@ -10,6 +10,7 @@ from custom_components.s7plc.helpers import (
     generate_uid,
     get_coordinator_and_device_info,
     default_entity_name,
+    parse_mode_values,
     parse_pulse_duration,
     scale_value,
     inverse_scale_value,
@@ -184,7 +185,8 @@ def test_build_expected_unique_ids_empty_options_with_metrics():
 
 
 def test_build_expected_unique_ids_traditional_cover_variants():
-    """Traditional covers (open+close command required) get their uid-based id."""
+    """Traditional covers (open_command_address required, close optional)
+    get their uid-based id."""
     # opened_state present
     ids = build_expected_unique_ids("d", {
         "covers": [{
@@ -217,9 +219,16 @@ def test_build_expected_unique_ids_traditional_cover_variants():
     })
     assert "uid-command" in ids
 
-    # missing close_command_address: no entity would actually be created
+    # missing close_command_address (and no position_state_address): no
+    # entity is created — traditional covers require both.
     ids = build_expected_unique_ids("d", {
-        "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-incomplete"}],
+        "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-missing-close"}],
+    })
+    assert "uid-missing-close" not in ids
+
+    # missing open_command_address entirely: no entity is created.
+    ids = build_expected_unique_ids("d", {
+        "covers": [{"close_command_address": "DB1,X0.1", "uid": "uid-incomplete"}],
     })
     assert "uid-incomplete" not in ids
 
@@ -366,6 +375,41 @@ def test_parse_pulse_duration_boundaries():
 def test_parse_pulse_duration_non_numeric_returns_default():
     assert parse_pulse_duration("abc") == DEFAULT_PULSE_DURATION
     assert parse_pulse_duration(object()) == DEFAULT_PULSE_DURATION
+
+
+# ---------------------------------------------------------------------------
+# parse_mode_values
+# ---------------------------------------------------------------------------
+
+
+def test_parse_mode_values_none_or_empty_returns_empty_list():
+    assert parse_mode_values(None) == []
+    assert parse_mode_values("") == []
+
+
+def test_parse_mode_values_single_value():
+    assert parse_mode_values("1") == [1]
+
+
+def test_parse_mode_values_multiple_comma_separated():
+    assert parse_mode_values("2,3") == [2, 3]
+    assert parse_mode_values(" 2 , 3 ") == [2, 3]
+
+
+def test_parse_mode_values_treats_negative_one_as_legitimate():
+    """-1 is no longer a reserved sentinel: an unset field is represented
+    by an empty string instead, so -1 is just an ordinary matchable value."""
+    assert parse_mode_values("-1") == [-1]
+    assert parse_mode_values("1,-1,2") == [1, -1, 2]
+
+
+def test_parse_mode_values_ignores_invalid_tokens():
+    assert parse_mode_values("1,abc,2") == [1, 2]
+
+
+def test_parse_mode_values_skips_empty_tokens():
+    assert parse_mode_values("1,,2") == [1, 2]
+    assert parse_mode_values(",") == []
 
 
 # ============================================================================

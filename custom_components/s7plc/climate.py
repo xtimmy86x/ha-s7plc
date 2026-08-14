@@ -79,6 +79,7 @@ from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
     make_unique_topic,
+    parse_mode_values,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -649,18 +650,18 @@ class S7ClimateSetpointControl(
         # different codes than it accepts as a command. Priority order when
         # matching a status value is the dict's key order below.
         self._hvac_status_values: dict[HVACAction, list[int]] = {
-            HVACAction.OFF: self._parse_mode_values(hvac_status_off_values),
-            HVACAction.HEATING: self._parse_mode_values(hvac_status_heating_values),
-            HVACAction.COOLING: self._parse_mode_values(hvac_status_cooling_values),
-            HVACAction.DRYING: self._parse_mode_values(hvac_status_drying_values),
-            HVACAction.FAN: self._parse_mode_values(hvac_status_fan_values),
-            HVACAction.PREHEATING: self._parse_mode_values(
+            HVACAction.OFF: parse_mode_values(hvac_status_off_values),
+            HVACAction.HEATING: parse_mode_values(hvac_status_heating_values),
+            HVACAction.COOLING: parse_mode_values(hvac_status_cooling_values),
+            HVACAction.DRYING: parse_mode_values(hvac_status_drying_values),
+            HVACAction.FAN: parse_mode_values(hvac_status_fan_values),
+            HVACAction.PREHEATING: parse_mode_values(
                 hvac_status_preheating_values
             ),
-            HVACAction.DEFROSTING: self._parse_mode_values(
+            HVACAction.DEFROSTING: parse_mode_values(
                 hvac_status_defrosting_values
             ),
-            HVACAction.IDLE: self._parse_mode_values(hvac_status_idle_values),
+            HVACAction.IDLE: parse_mode_values(hvac_status_idle_values),
         }
 
         # Target mode mapping: single PLC value written to
@@ -759,30 +760,6 @@ class S7ClimateSetpointControl(
             if HVACMode.HEAT_COOL in self._attr_hvac_modes
             else self._attr_hvac_modes[0]
         )
-
-    @staticmethod
-    def _parse_mode_values(raw: str | None) -> list[int]:
-        """Parse a comma-separated list of PLC integer values for a mode.
-
-        An empty/unset field means this status should never be matched,
-        effectively skipping it (e.g. a blank "off status" field means no
-        PLC value is ever read as OFF). Every integer, including negative
-        ones, is otherwise a legitimate status value.
-        """
-        if not raw:
-            return []
-        values: list[int] = []
-        for token in str(raw).split(","):
-            token = token.strip()
-            if not token:
-                continue
-            try:
-                value = int(token)
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid mode value %r", token)
-                continue
-            values.append(value)
-        return values
 
     async def async_added_to_hass(self) -> None:
         """Restore last state when entity is added to hass."""

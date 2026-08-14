@@ -95,6 +95,39 @@ CONF_INVERT_POSITION = "invert_position"
 CONF_STOP_COMMAND_ADDRESS = "stop_command_address"
 CONF_STOP_PULSE_DURATION = "stop_pulse_duration"
 
+# Traditional cover: optional real-time movement status, read alongside the
+# existing opened/closed end-stop addresses. Each is a separate boolean PLC
+# address (not a multi-value status word like climate's hvac_status_address)
+# — when configured, it overrides the internal timer-based is_opening/
+# is_closing for display; is_closed is unaffected and still comes from
+# opened_state/closed_state.
+CONF_COVER_OPENING_ADDRESS = "cover_opening_address"
+CONF_COVER_CLOSING_ADDRESS = "cover_closing_address"
+CONF_COVER_STOPPED_ADDRESS = "cover_stopped_address"
+
+# Position cover: optional tilt control, symmetric to
+# position_state_address/position_command_address.
+CONF_TILT_STATE_ADDRESS = "tilt_state_address"
+CONF_TILT_COMMAND_ADDRESS = "tilt_command_address"
+CONF_INVERT_TILT = "invert_tilt"
+
+# Position cover: optional real-time movement status, same climate-style
+# single status address + per-status value mapping as hvac_status_address
+# (unlike the traditional cover's 3 separate boolean addresses above) — a
+# raw position word alone can't tell HA whether the cover is opening,
+# closing, or just sitting still at a mid-travel position. open/closed
+# values are optional too: when matched, they override the position-based
+# is_closed calculation, mirroring HA's own CoverState enum (OPEN/CLOSED/
+# OPENING/CLOSING) — useful when the PLC status word already distinguishes
+# "stopped at the open end-stop" from "stopped at the closed end-stop"
+# from a generic "stopped mid-travel".
+CONF_COVER_STATUS_ADDRESS = "cover_status_address"
+CONF_COVER_STATUS_OPEN_VALUES = "cover_status_open_values"
+CONF_COVER_STATUS_CLOSED_VALUES = "cover_status_closed_values"
+CONF_COVER_STATUS_OPENING_VALUES = "cover_status_opening_values"
+CONF_COVER_STATUS_CLOSING_VALUES = "cover_status_closing_values"
+CONF_COVER_STATUS_STOPPED_VALUES = "cover_status_stopped_values"
+
 # Climate entity configuration
 CONF_CLIMATE_CONTROL_MODE = "control_mode"
 CONF_CURRENT_TEMPERATURE_ADDRESS = "current_temperature_address"
@@ -121,6 +154,15 @@ CONF_TEMP_STEP = "temp_step"
 # for a single-value target field, "" for a comma-separated status field) --
 # not by a reserved sentinel value, so every PLC integer (including -1)
 # stays available as a legitimate mode/status code.
+
+# Cover status defaults: all disabled, since (unlike HVAC mode codes) there's
+# no common convention for a PLC cover-status word — nothing is matched
+# until the user explicitly configures a value for a given status.
+DEFAULT_COVER_STATUS_OPEN_VALUES = ""
+DEFAULT_COVER_STATUS_CLOSED_VALUES = ""
+DEFAULT_COVER_STATUS_OPENING_VALUES = ""
+DEFAULT_COVER_STATUS_CLOSING_VALUES = ""
+DEFAULT_COVER_STATUS_STOPPED_VALUES = ""
 
 # Current status: value(s) read from hvac_status_address that are recognized
 # as each mode. Each field accepts one or more comma-separated integers,
