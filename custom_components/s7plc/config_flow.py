@@ -555,16 +555,19 @@ def _add_schema_climate_setpoint(flow) -> vol.Schema:
                 CONF_HVAC_STATUS_OFF_VALUES, default=DEFAULT_HVAC_STATUS_OFF_VALUES
             ): selector.TextSelector(),
             vol.Optional(
-                CONF_HVAC_STATUS_HEATING_VALUES, default=DEFAULT_HVAC_STATUS_HEATING_VALUES
+                CONF_HVAC_STATUS_HEATING_VALUES,
+                default=DEFAULT_HVAC_STATUS_HEATING_VALUES,
             ): selector.TextSelector(),
             vol.Optional(
-                CONF_HVAC_STATUS_COOLING_VALUES, default=DEFAULT_HVAC_STATUS_COOLING_VALUES
+                CONF_HVAC_STATUS_COOLING_VALUES,
+                default=DEFAULT_HVAC_STATUS_COOLING_VALUES,
             ): selector.TextSelector(),
             vol.Optional(
                 CONF_HVAC_STATUS_IDLE_VALUES, default=DEFAULT_HVAC_STATUS_IDLE_VALUES
             ): selector.TextSelector(),
             vol.Optional(
-                CONF_HVAC_STATUS_DRYING_VALUES, default=DEFAULT_HVAC_STATUS_DRYING_VALUES
+                CONF_HVAC_STATUS_DRYING_VALUES,
+                default=DEFAULT_HVAC_STATUS_DRYING_VALUES,
             ): selector.TextSelector(),
             vol.Optional(
                 CONF_HVAC_STATUS_FAN_VALUES, default=DEFAULT_HVAC_STATUS_FAN_VALUES
@@ -980,9 +983,7 @@ def _edit_schema_climate_setpoint(flow, item: dict[str, Any]) -> vol.Schema:
         ): selector.TextSelector(),
         vol.Optional(
             CONF_PRESET_MODE_OFF_VALUE,
-            default=item.get(
-                CONF_PRESET_MODE_OFF_VALUE, DEFAULT_PRESET_MODE_OFF_VALUE
-            ),
+            default=item.get(CONF_PRESET_MODE_OFF_VALUE, DEFAULT_PRESET_MODE_OFF_VALUE),
         ): _int_sel,
         vol.Optional(
             CONF_PRESET_MODE_HEAT_VALUE,
@@ -1011,9 +1012,7 @@ def _edit_schema_climate_setpoint(flow, item: dict[str, Any]) -> vol.Schema:
         ): _int_sel,
         vol.Optional(
             CONF_PRESET_MODE_DRY_VALUE,
-            default=item.get(
-                CONF_PRESET_MODE_DRY_VALUE, DEFAULT_PRESET_MODE_DRY_VALUE
-            ),
+            default=item.get(CONF_PRESET_MODE_DRY_VALUE, DEFAULT_PRESET_MODE_DRY_VALUE),
         ): _int_sel,
         vol.Optional(
             CONF_PRESET_MODE_FAN_ONLY_VALUE,
@@ -3300,9 +3299,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None, errors
 
         hvac_status_fan_values, errors = self._validate_mode_values_field(
-            user_input.get(
-                CONF_HVAC_STATUS_FAN_VALUES, DEFAULT_HVAC_STATUS_FAN_VALUES
-            )
+            user_input.get(CONF_HVAC_STATUS_FAN_VALUES, DEFAULT_HVAC_STATUS_FAN_VALUES)
         )
         if errors:
             return None, errors
@@ -3333,17 +3330,13 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None, errors
 
         preset_mode_heat_value, errors = self._validate_preset_mode_value_field(
-            user_input.get(
-                CONF_PRESET_MODE_HEAT_VALUE, DEFAULT_PRESET_MODE_HEAT_VALUE
-            )
+            user_input.get(CONF_PRESET_MODE_HEAT_VALUE, DEFAULT_PRESET_MODE_HEAT_VALUE)
         )
         if errors:
             return None, errors
 
         preset_mode_cool_value, errors = self._validate_preset_mode_value_field(
-            user_input.get(
-                CONF_PRESET_MODE_COOL_VALUE, DEFAULT_PRESET_MODE_COOL_VALUE
-            )
+            user_input.get(CONF_PRESET_MODE_COOL_VALUE, DEFAULT_PRESET_MODE_COOL_VALUE)
         )
         if errors:
             return None, errors
@@ -3358,9 +3351,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return None, errors
 
         preset_mode_auto_value, errors = self._validate_preset_mode_value_field(
-            user_input.get(
-                CONF_PRESET_MODE_AUTO_VALUE, DEFAULT_PRESET_MODE_AUTO_VALUE
-            )
+            user_input.get(CONF_PRESET_MODE_AUTO_VALUE, DEFAULT_PRESET_MODE_AUTO_VALUE)
         )
         if errors:
             return None, errors

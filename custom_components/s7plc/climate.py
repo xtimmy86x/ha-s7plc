@@ -212,9 +212,7 @@ async def async_setup_entry(
             # for any other mode.
             on_off_address = item.get(CONF_ON_OFF_ADDRESS)
             if on_off_address:
-                await coord.add_item(
-                    f"{topic}:on_off", on_off_address, scan_interval
-                )
+                await coord.add_item(f"{topic}:on_off", on_off_address, scan_interval)
 
             # Optional: HVAC status address (mapping configured below)
             hvac_status_address = item.get(CONF_HVAC_STATUS_ADDRESS)
@@ -673,13 +671,19 @@ class S7ClimateSetpointControl(
         # device off regardless of preset_mode_off_value.
         self._preset_mode_values: dict[HVACMode, int | None] = {
             HVACMode.OFF: (
-                int(preset_mode_off_value) if preset_mode_off_value is not None else None
+                int(preset_mode_off_value)
+                if preset_mode_off_value is not None
+                else None
             ),
             HVACMode.HEAT: (
-                int(preset_mode_heat_value) if preset_mode_heat_value is not None else None
+                int(preset_mode_heat_value)
+                if preset_mode_heat_value is not None
+                else None
             ),
             HVACMode.COOL: (
-                int(preset_mode_cool_value) if preset_mode_cool_value is not None else None
+                int(preset_mode_cool_value)
+                if preset_mode_cool_value is not None
+                else None
             ),
             HVACMode.HEAT_COOL: (
                 int(preset_mode_heat_cool_value)
@@ -687,10 +691,14 @@ class S7ClimateSetpointControl(
                 else None
             ),
             HVACMode.AUTO: (
-                int(preset_mode_auto_value) if preset_mode_auto_value is not None else None
+                int(preset_mode_auto_value)
+                if preset_mode_auto_value is not None
+                else None
             ),
             HVACMode.DRY: (
-                int(preset_mode_dry_value) if preset_mode_dry_value is not None else None
+                int(preset_mode_dry_value)
+                if preset_mode_dry_value is not None
+                else None
             ),
             HVACMode.FAN_ONLY: (
                 int(preset_mode_fan_only_value)
