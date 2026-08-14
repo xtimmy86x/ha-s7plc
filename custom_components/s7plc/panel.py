@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Hashable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 import voluptuous as vol
 import yaml
@@ -105,6 +107,19 @@ from .helpers import generate_uid
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
+
+
+def _integration_version() -> str:
+    """Return the integration version declared in the manifest."""
+    manifest_path = Path(__file__).with_name("manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return manifest["version"]
+
+
+def _versioned_asset_url(asset_url: str) -> str:
+    """Append the integration version to an asset URL for cache busting."""
+    return f"{asset_url}?{urlencode({'v': _integration_version()})}"
+
 
 # Fields every entity type accepts ("name" comes from homeassistant.const,
 # imported lazily elsewhere in this module, so the literal is used here).
@@ -499,10 +514,10 @@ async def async_setup_panel(hass: Any) -> None:
         hass,
         webcomponent_name="s7plc-configuration-panel",
         frontend_url_path=PANEL_URL,
-        module_url=asset_url,
+        module_url=_versioned_asset_url(asset_url),
         sidebar_title="S7 PLC",
         sidebar_icon="mdi:memory",
         require_admin=True,
-        config={"domain": DOMAIN},
+        config={"domain": DOMAIN, "version": _integration_version()},
     )
     hass.data[DOMAIN][PANEL_DATA] = True

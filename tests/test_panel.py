@@ -8,10 +8,33 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.s7plc.panel import _entity_from_message, _entry_payload
+from custom_components.s7plc.panel import (
+    _entity_from_message,
+    _entry_payload,
+    _integration_version,
+    _versioned_asset_url,
+)
 
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
+
+
+def test_panel_asset_url_uses_manifest_version() -> None:
+    manifest = json.loads(
+        Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert _integration_version() == manifest["version"]
+    assert _versioned_asset_url("/s7plc_static/s7plc-panel.js") == (
+        f"/s7plc_static/s7plc-panel.js?v={manifest['version']}"
+    )
+
+
+def test_panel_displays_integration_version() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "this._panel?.config?.version" in source
+    assert 'class="integration-version"' in source
 
 
 def test_entity_from_visual_editor() -> None:
