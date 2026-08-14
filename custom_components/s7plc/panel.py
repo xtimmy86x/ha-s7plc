@@ -267,6 +267,7 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
         entity = msg.get("entity")
         if not isinstance(entity, dict):
             raise ValueError("Entity configuration must be an object")
+        _validate_address_fields(entity)
         return dict(entity)
 
     try:

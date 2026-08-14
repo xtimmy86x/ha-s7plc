@@ -20,6 +20,13 @@ def test_entity_from_visual_editor() -> None:
     assert _entity_from_message({"entity": entity}) == entity
 
 
+def test_visual_editor_rejects_invalid_addresses() -> None:
+    with pytest.raises(ValueError, match="Invalid address for command_address"):
+        _entity_from_message(
+            {"entity": {"state_address": "DB1,X0.0", "command_address": "DB1,FOO0"}}
+        )
+
+
 def test_entity_from_yaml_editor() -> None:
     assert _entity_from_message(
         {"entity_yaml": 'name: "Temperatura sala"\naddress: "DB1,REAL0"\ninvert_state: false'}
