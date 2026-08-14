@@ -330,7 +330,7 @@
           "device_class": "Klasa urządzenia (np. osłona, roleta, brama).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje.",
-          "toggle_mode": "Przycisk impulsowy zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie uruchamia akcje: otwiera się/zatrzymana/zamyka się/zatrzymana. Adres zamykania nie jest używany. Wymaga identyfikacji ruchu i adresu stanu ze wszystkimi 4 wartościami stanu, albo adresu otwierania i adresu zamykania."
+          "toggle_mode": "Przycisk impulsowy zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie uruchamia akcje: otwieranie/zatrzymana/zamykanie/zatrzymana. W tym trybie adres zamykania nie jest używany, ale wymagana jest identyfikacja ruchu i adresu stanu ze wszystkimi 4 wartościami stanu, albo adresu otwierania i adresu zamykania."
         }
       },
       "covers_position": {
@@ -850,7 +850,7 @@
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia (np. osłona, roleta, brama).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
-          "toggle_mode": "Przycisk impulsowy zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie uruchamia akcje: otwiera się/zatrzymana/zamyka się/zatrzymana. Adres zamykania nie jest używany. Wymaga identyfikacji ruchu i adresu stanu ze wszystkimi 4 wartościami stanu, albo adresu otwierania i adresu zamykania."
+          "toggle_mode": "Przycisk impulsowy zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie uruchamia akcje: otwieranie/zatrzymana/zamykanie/zatrzymana. W tym trybie adres zamykania nie jest używany, ale wymagana jest identyfikacja ruchu i adresu stanu ze wszystkimi 4 wartościami stanu, albo adresu otwierania i adresu zamykania."
         }
       },
       "edit_cover_position": {
