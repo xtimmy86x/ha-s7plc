@@ -378,7 +378,7 @@ def _add_schema_cover(flow) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
-            vol.Optional(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_COVER_OPENING_ADDRESS): selector.TextSelector(),
@@ -762,7 +762,7 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_OPEN_COMMAND_ADDRESS,
             default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
-        vol.Optional(
+        vol.Required(
             CONF_CLOSE_COMMAND_ADDRESS,
             default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
@@ -2872,22 +2872,17 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         *,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-        # open_command_address is required. close_command_address is
-        # optional: when omitted, open_command_address doubles as a single
-        # toggle button (common for impulse-relay shutter controllers).
         open_command, open_errors = self._validate_address_field(
             user_input.get(CONF_OPEN_COMMAND_ADDRESS)
         )
         if open_errors:
             return None, open_errors
 
-        close_command = self._sanitize_address(
+        close_command, close_errors = self._validate_address_field(
             user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
         )
-        if close_command:
-            close_command, close_errors = self._validate_address_field(close_command)
-            if close_errors:
-                return None, close_errors
+        if close_errors:
+            return None, close_errors
 
         # Get optional state addresses
         opening_state = self._sanitize_address(
@@ -2953,9 +2948,8 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Build item
         item: dict[str, Any] = {
             CONF_OPEN_COMMAND_ADDRESS: open_command,
+            CONF_CLOSE_COMMAND_ADDRESS: close_command,
         }
-        if close_command:
-            item[CONF_CLOSE_COMMAND_ADDRESS] = close_command
 
         # Add optional state addresses
         if opening_state:

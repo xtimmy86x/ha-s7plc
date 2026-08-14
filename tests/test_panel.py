@@ -758,16 +758,14 @@ def test_panel_covers_bool_addresses_use_bool_placeholder() -> None:
     assert "address_help_bool" in source
 
 
-def test_panel_close_command_address_not_required_for_traditional() -> None:
-    """close_command_address is optional in the editor's save validation —
-    open_command_address alone is enough (it doubles as a single toggle
-    button when close_command_address is left empty)."""
+def test_panel_close_command_address_required_for_traditional() -> None:
+    """close_command_address is required in the editor's save validation
+    for traditional covers, same as the config flow."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert (
         "const needed=mode==='position'?'position_state_address':"
-        "'open_command_address';if(!entity[needed])throw "
+        "'open_command_address';if(!entity[needed]||(mode==='traditional'"
+        "&&!entity.close_command_address))throw "
         "Error(this.t('cover_required_error'));"
     ) in source
-    # The old requirement (both addresses needed in traditional mode) is gone.
-    assert "mode==='traditional'&&!entity.close_command_address" not in source

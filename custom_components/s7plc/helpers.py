@@ -454,9 +454,9 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
     if option_key == CONF_COVERS:
         if item.get(CONF_POSITION_STATE_ADDRESS):
             return True
-        # close_command_address is optional (single-button toggle mode via
-        # open_command_address) — see S7Cover._toggle_pulse.
-        return bool(item.get(CONF_OPEN_COMMAND_ADDRESS))
+        return bool(
+            item.get(CONF_OPEN_COMMAND_ADDRESS) and item.get(CONF_CLOSE_COMMAND_ADDRESS)
+        )
     if option_key == CONF_CLIMATES:
         if not item.get(CONF_CURRENT_TEMPERATURE_ADDRESS):
             return False

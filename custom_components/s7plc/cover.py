@@ -159,14 +159,16 @@ async def async_setup_entry(
             )
             continue
 
-        # Traditional open/close cover. close_command is optional: when
-        # omitted, open_command doubles as a single toggle button (common
-        # for impulse-relay shutter controllers) — see S7Cover._toggle_pulse.
+        # Traditional open/close cover.
         open_command = item.get(CONF_OPEN_COMMAND_ADDRESS)
         close_command = item.get(CONF_CLOSE_COMMAND_ADDRESS)
 
         if not open_command:
             _LOGGER.debug("Skipping cover with missing open command address")
+            continue
+
+        if not close_command:
+            _LOGGER.debug("Skipping cover with missing close command address")
             continue
 
         # State addresses are for end-stop sensors (optional)
@@ -340,22 +342,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
-        # Single-button toggle mode (no close address): a single physical
-        # relay pulse cycles open->stop->close->stop->open, so there's no
-        # dedicated "close" action distinct from "press the button" - only
-        # OPEN (the toggle trigger) and STOP (meaningful while it's
-        # actually moving) are exposed. See async_open_cover/
-        # async_close_cover/async_stop_cover below for the split.
-        if close_command:
-            self._attr_supported_features = (
-                CoverEntityFeature.OPEN
-                | CoverEntityFeature.CLOSE
-                | CoverEntityFeature.STOP
-            )
-        else:
-            self._attr_supported_features = (
-                CoverEntityFeature.OPEN | CoverEntityFeature.STOP
-            )
+        self._attr_supported_features = (
+            CoverEntityFeature.OPEN
+            | CoverEntityFeature.CLOSE
+            | CoverEntityFeature.STOP
+        )
         self._opened_state_address = opened_state  # Finecorsa aperto
         self._closed_state_address = closed_state  # Finecorsa chiuso
         self._opened_topic = opened_topic
@@ -524,15 +515,6 @@ class S7Cover(S7BaseEntity, CoverEntity):
             return self._assumed_closed
 
     async def async_open_cover(self, **kwargs) -> None:
-        if not self._close_command_address:
-            # Pulsing while already fully open and not moving would start
-            # closing instead of doing nothing, which doesn't match HA's
-            # open_cover semantics (calling "open" on an already-open
-            # cover should be a no-op, not toggle it shut).
-            if not (self.is_opening or self.is_closing) and self.is_closed is False:
-                return
-            await self._toggle_pulse()
-            return
         await self._ensure_connected()
         await self._stop_operation("close")
         await self.coordinator.write_batched(self._open_command_address, True)
@@ -545,16 +527,6 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_close_cover(self, **kwargs) -> None:
-        if not self._close_command_address:
-            # A single toggle button can't guarantee a specific direction:
-            # pulsing it while already closed would actually open the
-            # cover. Refuse instead of silently doing the wrong thing -
-            # use 'Open' to cycle the single button.
-            raise HomeAssistantError(
-                "This cover only has a single toggle button "
-                "(no close_command_address configured); use 'Open' to "
-                "cycle it instead of 'Close'."
-            )
         await self._ensure_connected()
         await self._stop_operation("open")
         await self.coordinator.write_batched(self._close_command_address, True)
@@ -566,72 +538,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
 
-    async def _toggle_pulse(self) -> None:
-        """Single-button mode (no close_command_address configured): a
-        brief pulse on open_command_address is all the PLC needs — its own
-        impulse-relay logic cycles through closed->opening, moving->
-        stopped, open->closing. Mirrored here in software (the same
-        timer-based bookkeeping used when there's no real movement
-        feedback) so is_opening/is_closing/is_closed keep updating in HA.
-
-        Called from async_open_cover (unless already fully open and not
-        moving - see there), and from async_stop_cover only while actually
-        moving (pulsing it stops the current travel). async_close_cover
-        never calls it - there's no dedicated "close" action a single
-        button can offer.
-
-        Uses the effective is_opening/is_closing properties, not the raw
-        _is_opening/_is_closing timer-simulated flags: when real PLC
-        movement feedback (cover_status_address, cover_opening_address,
-        cover_closing_address, cover_stopped_address) is configured
-        alongside single-button mode, those flags stay at their initial
-        False after a Home Assistant restart even though the PLC may
-        already be reporting real movement - checking the raw flags would
-        make stop_cover a no-op in that case.
-        """
-        await self._ensure_connected()
-
-        currently_moving = self.is_opening or self.is_closing
-        currently_closed = False if currently_moving else bool(self.is_closed)
-
-        await self.coordinator.write_batched(self._open_command_address, True)
-        await asyncio.sleep(DEFAULT_PULSE_DURATION)
-        await self.coordinator.write_batched(self._open_command_address, False)
-
-        if currently_moving:
-            self._cancel_reset("open")
-            self._cancel_reset("close")
-            self._is_opening = False
-            self._is_closing = False
-        elif currently_closed:
-            self._is_opening = True
-            self._is_closing = False
-            if not self._use_state_topics:
-                self._assumed_closed = False
-            self._schedule_reset("open")
-        else:
-            self._is_opening = False
-            self._is_closing = True
-            if not self._use_state_topics:
-                self._assumed_closed = True
-            self._schedule_reset("close")
-
-        self.async_write_ha_state()
-        await self.coordinator.async_request_refresh()
-
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
-        if not self._close_command_address:
-            # The single button only has an effect while actually moving
-            # (pulsing it stops the current travel); pulsing it while
-            # already stopped would instead start a new movement, so do
-            # nothing rather than misinterpreting "stop" as "toggle".
-            # Uses the effective property (not the raw _is_opening/
-            # _is_closing flags) so real PLC movement feedback is honored
-            # even before any toggle call has run in this HA session.
-            if self.is_opening or self.is_closing:
-                await self._toggle_pulse()
-            return
         await self._ensure_connected()
 
         # Stop both operations

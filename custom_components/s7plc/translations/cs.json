@@ -309,8 +309,8 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "open_command_address": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0). Pokud zůstane adresa zavírání prázdná, tato adresa funguje jako jediné přepínací tlačítko: stisk při zavřeno otevře, při pohybu zastaví, při otevřeno zavře.",
-          "close_command_address": "Adresa PLC pro spuštění zavírání (např. Q0.1, DB1,X0.1). Volitelné: ponechte prázdné pro použití adresy otevírání jako jediného tlačítka (typické pro impulzní relé ovládání rolet).",
+          "open_command_address": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
+          "close_command_address": "Adresa PLC pro spuštění zavírání (např. Q0.1, DB1,X0.1).",
           "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
           "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
           "cover_opening_address": "Volitelná booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno.",
@@ -828,8 +828,8 @@
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
-          "open_command_address": "Adresa PLC, která spouští otevírání. Pokud zůstane adresa zavírání prázdná, tato adresa funguje jako jediné přepínací tlačítko: stisk při zavřeno otevře, při pohybu zastaví, při otevřeno zavře.",
-          "close_command_address": "Adresa PLC, která spouští zavírání. Volitelné: ponechte prázdné pro použití adresy otevírání jako jediného tlačítka (typické pro impulzní relé ovládání rolet).",
+          "open_command_address": "Adresa PLC, která spouští otevírání.",
+          "close_command_address": "Adresa PLC, která spouští zavírání.",
           "opening_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená.",
           "closing_state_address": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená.",
           "cover_opening_address": "Volitelná booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno.",

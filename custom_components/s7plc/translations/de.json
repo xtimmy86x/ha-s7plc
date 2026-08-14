@@ -309,8 +309,8 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "open_command_address": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0). Wenn die Schließadresse leer gelassen wird, fungiert diese Adresse als einzelner Umschalttaster: Drücken bei geschlossenem Zustand öffnet, bei Bewegung stoppt, bei geöffnetem Zustand schließt.",
-          "close_command_address": "SPS-Adresse zum Auslösen des Schließens (z. B. Q0.1, DB1,X0.1). Optional: leer lassen, um die Öffnen-Adresse als einzelnen Umschalttaster zu verwenden (typisch für impulsrelaisgesteuerte Rollladensteuerungen).",
+          "open_command_address": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0).",
+          "close_command_address": "SPS-Adresse zum Auslösen des Schließens (z. B. Q0.1, DB1,X0.1).",
           "opening_state_address": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist (optional).",
           "closing_state_address": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist (optional).",
           "cover_opening_address": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen.",
@@ -828,8 +828,8 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "open_command_address": "SPS-Adresse, die das Öffnen auslöst. Wenn die Schließadresse leer gelassen wird, fungiert diese Adresse als einzelner Umschalttaster: Drücken bei geschlossenem Zustand öffnet, bei Bewegung stoppt, bei geöffnetem Zustand schließt.",
-          "close_command_address": "SPS-Adresse, die das Schließen auslöst. Optional: leer lassen, um die Öffnen-Adresse als einzelnen Umschalttaster zu verwenden (typisch für impulsrelaisgesteuerte Rollladensteuerungen).",
+          "open_command_address": "SPS-Adresse, die das Öffnen auslöst.",
+          "close_command_address": "SPS-Adresse, die das Schließen auslöst.",
           "opening_state_address": "SPS-Adresse, die signalisiert, dass die Jalousie/Raffstore geöffnet ist (optional).",
           "closing_state_address": "SPS-Adresse, die signalisiert, dass die Jalousie/Raffstore geschlossen ist (optional).",
           "cover_opening_address": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen.",

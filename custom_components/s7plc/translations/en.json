@@ -309,8 +309,8 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0). If close_command_address is left empty, this address doubles as a single toggle button: press while closed to open, while moving to stop, while open to close.",
-          "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,X0.1). Optional: leave empty to use open_command_address as a single toggle button instead (common for impulse-relay shutter controllers).",
+          "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0).",
+          "close_command_address": "PLC address to trigger closing (e.g., Q0.1, DB1,X0.1).",
           "opening_state_address": "Optional PLC address that indicates the cover is opened.",
           "closing_state_address": "Optional PLC address that indicates the cover is closed.",
           "cover_opening_address": "Optional boolean PLC address that indicates the cover is currently opening. Independent of the opened/closed end-stop addresses above.",
@@ -828,8 +828,8 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "open_command_address": "PLC address that triggers the opening action. If close_command_address is left empty, this address doubles as a single toggle button: press while closed to open, while moving to stop, while open to close.",
-          "close_command_address": "PLC address that triggers the closing action. Optional: leave empty to use open_command_address as a single toggle button instead (common for impulse-relay shutter controllers).",
+          "open_command_address": "PLC address that triggers the opening action.",
+          "close_command_address": "PLC address that triggers the closing action.",
           "opening_state_address": "Optional PLC address that signals the cover is opened.",
           "closing_state_address": "Optional PLC address that signals the cover is closed.",
           "cover_opening_address": "Optional boolean PLC address that indicates the cover is currently opening. Independent of the opened/closed end-stop addresses above.",

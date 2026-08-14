@@ -540,9 +540,8 @@ def test_import_step_rejects_duplicate_light_addresses():
     assert errors["base"] == "duplicate_addresses_in_import"
 
 
-def test_add_cover_traditional_without_close_address_creates_single_button_cover():
-    """close_command_address is optional: open_command_address alone is
-    enough — it doubles as a single toggle button."""
+def test_add_cover_traditional_requires_close_address():
+    """close_command_address is required."""
     flow = make_options_flow(options={const.CONF_COVERS: []})
 
     result = run_flow(
@@ -551,10 +550,8 @@ def test_add_cover_traditional_without_close_address_creates_single_button_cover
         )
     )
 
-    assert result["type"] == "create_entry"
-    stored = flow._options[const.CONF_COVERS][0]
-    assert stored[const.CONF_OPEN_COMMAND_ADDRESS] == "DB1,X0.0"
-    assert const.CONF_CLOSE_COMMAND_ADDRESS not in stored
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "invalid_address"
 
 
 def test_add_cover_traditional_requires_open_address():
@@ -623,6 +620,7 @@ def test_edit_cover_traditional_persists_movement_status_addresses():
         const.CONF_COVERS: [
             {
                 const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
                 const.CONF_UID: "original-uid",
             }
         ]
@@ -635,6 +633,7 @@ def test_edit_cover_traditional_persists_movement_status_addresses():
         flow.async_step_edit_cover(
             {
                 const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
                 const.CONF_COVER_OPENING_ADDRESS: "DB1,X1.0",
                 const.CONF_COVER_CLOSING_ADDRESS: "DB1,X1.1",
                 const.CONF_COVER_STOPPED_ADDRESS: "DB1,X1.2",

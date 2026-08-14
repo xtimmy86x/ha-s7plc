@@ -309,8 +309,8 @@
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
-          "open_command_address": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0). Se l'indirizzo di chiusura viene lasciato vuoto, questo indirizzo funge da unico pulsante a scorrimento: premuto da chiuso apre, in movimento ferma, da aperto chiude.",
-          "close_command_address": "Indirizzo PLC per attivare la chiusura (es. Q0.1, DB1,X0.1). Opzionale: lascia vuoto per usare l'indirizzo di apertura come unico pulsante (tipico per i comandi a relè a impulsi delle tapparelle).",
+          "open_command_address": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0).",
+          "close_command_address": "Indirizzo PLC per attivare la chiusura (es. Q0.1, DB1,X0.1).",
           "opening_state_address": "Indirizzo PLC opzionale che indica che la cover è aperta.",
           "closing_state_address": "Indirizzo PLC opzionale che indica che la cover è chiusa.",
           "cover_opening_address": "Indirizzo booleano PLC opzionale che indica che la copertura si sta aprendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra.",
@@ -716,8 +716,8 @@
           "scan_interval": "Intervallo di scansione (s)"
         },
         "data_description": {
-          "open_command_address": "Indirizzo PLC che attiva l'apertura. Se l'indirizzo di chiusura viene lasciato vuoto, questo indirizzo funge da unico pulsante a scorrimento: premuto da chiuso apre, in movimento ferma, da aperto chiude.",
-          "close_command_address": "Indirizzo PLC che attiva la chiusura. Opzionale: lascia vuoto per usare l'indirizzo di apertura come unico pulsante (tipico per i comandi a relè a impulsi delle tapparelle).",
+          "open_command_address": "Indirizzo PLC che attiva l'apertura.",
+          "close_command_address": "Indirizzo PLC che attiva la chiusura.",
           "opening_state_address": "Indirizzo PLC opzionale che segnala che la cover è aperta.",
           "closing_state_address": "Indirizzo PLC opzionale che segnala che la cover è chiusa.",
           "cover_opening_address": "Indirizzo booleano PLC opzionale che indica che la copertura si sta aprendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra.",

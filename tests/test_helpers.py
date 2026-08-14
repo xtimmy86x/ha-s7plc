@@ -219,14 +219,12 @@ def test_build_expected_unique_ids_traditional_cover_variants():
     })
     assert "uid-command" in ids
 
-    # missing close_command_address: still creates an entity — it operates
-    # in single-button toggle mode via open_command_address (see
-    # S7Cover._toggle_pulse). Excluding it here would make the real,
-    # still-existing entity look orphaned to the repair check.
+    # missing close_command_address (and no position_state_address): no
+    # entity is created — traditional covers require both.
     ids = build_expected_unique_ids("d", {
-        "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-single-button"}],
+        "covers": [{"open_command_address": "DB1,X0.0", "uid": "uid-missing-close"}],
     })
-    assert "uid-single-button" in ids
+    assert "uid-missing-close" not in ids
 
     # missing open_command_address entirely: no entity is created.
     ids = build_expected_unique_ids("d", {
