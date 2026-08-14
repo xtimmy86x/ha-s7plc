@@ -103,16 +103,22 @@ const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];
 class S7PlcConfigurationPanel extends HTMLElement {
   connectedCallback(){this._statusTimer??=setInterval(()=>this.refreshConnectionStatus(),5000);}
   disconnectedCallback(){clearInterval(this._statusTimer);this._statusTimer=null;}
-  set hass(value) { const previous=this.language; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadFlowTranslations().then(()=>this.render()); else this.updateStates(); }
+  set hass(value) { const previous=this.language; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadFlowTranslations().then(()=>this.render()); else this.updateStates(); this.syncMenuButtons(); }
   set panel(value) { this._panel = value; }
+  set narrow(value) { this._narrow = value; this.syncMenuButtons(); }
+  // Custom panels must render their own ha-menu-button: without it the HA
+  // sidebar cannot be opened on narrow (mobile) screens.
+  menuButton(){return '<ha-menu-button></ha-menu-button>';}
+  syncMenuButtons(){this.querySelectorAll('ha-menu-button').forEach(b=>{b.hass=this._hass;b.narrow=this._narrow;});}
   get language(){const language=this._hass?.locale?.language||this._hass?.language||"en";return language.toLowerCase().split(/[-_]/)[0] in TRANSLATIONS?language.toLowerCase().split(/[-_]/)[0]:"en";}
   t(path){return path.split('.').reduce((value,key)=>value?.[key],TRANSLATIONS[this.language])??path.split('.').reduce((value,key)=>value?.[key],TRANSLATIONS.en)??path;}
   async loadFlowTranslations(){const language=this.language;try{const response=await fetch(`/s7plc_translations/${language}.json`);if(!response.ok)throw Error(`HTTP ${response.status}`);this.flowTranslations=await response.json();}catch(err){console.warn(`Unable to load S7 PLC config-flow translations for ${language}`,err);this.flowTranslations=null;}}
   async load() {
     if (!this._hass) return; this._loaded = true;
-    this.innerHTML = `<style>${this.styles}</style><div class="loading">${this.t('loading')}</div>`;
+    this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="loading">${this.t('loading')}</div>`;
+    this.syncMenuButtons();
     try { [this.entries] = await Promise.all([this._hass.callWS({type:"s7plc/config/list"}),this.loadFlowTranslations()]); this.entryId ||= this.entries[0]?.entry_id; this.render(); }
-    catch (err) { this.innerHTML = `<ha-alert alert-type="error">${this.escape(err.message || err)}</ha-alert>`; }
+    catch (err) { this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><ha-alert alert-type="error">${this.escape(err.message || err)}</ha-alert>`; this.syncMenuButtons(); }
   }
   async refreshConnectionStatus(){
     if(!this._hass||!this._loaded||this._refreshingStatus)return;
@@ -123,10 +129,11 @@ class S7PlcConfigurationPanel extends HTMLElement {
   }
   render() {
     const entry=this.entries.find(e=>e.entry_id===this.entryId);
-    if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div>`;return;}
+    if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div>`;this.syncMenuButtons();return;}
     const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0), type=this.type||TYPES[0];
-    this.innerHTML=`<style>${this.styles}</style><div class="page"><header><div><h1>${this.t('title')}</h1><p>${this.t('subtitle')}</p></div><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><span class="connection-badge ${entry.connected?'connected':''}">${this.t(entry.connected?'connected':'disconnected')}</span></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
+    this.innerHTML=`<style>${this.styles}</style><div class="page"><header><div class="header-start">${this.menuButton()}<div><h1>${this.t('title')}</h1><p>${this.t('subtitle')}</p></div></div><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><span class="connection-badge ${entry.connected?'connected':''}">${this.t(entry.connected?'connected':'disconnected')}</span></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
     this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.render();}; this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.render();}); this.querySelector('#add').onclick=()=>this.openEditor(); this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit))); this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove(Number(b.dataset.delete)));
+    this.syncMenuButtons();
   }
   entityCards(entry){const type=this.type||TYPES[0],items=entry.entities[type];if(!items.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('empty')}</h3><p>${this.t('empty_help')}</p></div>`;return items.map((item,i)=>{const entityId=entry.entity_ids?.[type]?.[i];return `<article><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div><div class="details"><b>${this.escape(item.name||item.address||item.state_address||item.current_temperature_address||`${this.t('entity')} ${i+1}`)}</b><code>${this.escape(item.address||item.state_address||item.current_temperature_address||item.source_entity||'—')}</code><div>${this.chips(item,type)}</div></div>${entityId?`<span class="state-badge" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<button data-edit="${i}" class="icon-btn" title="${this.t('edit')}"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-delete="${i}" class="icon-btn danger" title="${this.t('delete')}"><ha-icon icon="mdi:delete"></ha-icon></button></article>`;}).join('');}
   // Riepilogo compatto della card: niente booleani falsi, niente indirizzo duplicato,
@@ -185,6 +192,9 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .page{max-width:1180px;margin:auto;padding:32px 24px}
 header,.toolbar,.summary,article{display:flex;align-items:center}
 header{justify-content:space-between}
+.header-start{display:flex;align-items:center;gap:6px}
+.menubar{padding:8px 4px}
+ha-menu-button{color:var(--primary-text-color)}
 h1{font-size:30px;margin:0 0 6px}h2,p{margin:0}
 header p,.toolbar p{color:var(--secondary-text-color)}
 select,input{box-sizing:border-box;padding:11px 12px;border:1px solid var(--divider-color);border-radius:10px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px}
@@ -223,7 +233,7 @@ article:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divi
 .empty ha-icon{--mdc-icon-size:55px;color:var(--secondary-text-color)}
 .loading{padding:30px}
 @media(prefers-reduced-motion:reduce){.page *{transition:none!important}}
-@media(max-width:650px){.page{padding:20px 12px}header{align-items:flex-start;gap:14px;flex-direction:column}header select{width:100%}.details div,.toolbar p{display:none}}`;}
+@media(max-width:650px){.page{padding:20px 12px}header{align-items:flex-start;gap:14px;flex-direction:column}header select{width:100%}.header-start{align-items:flex-start}.details div,.toolbar p{display:none}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(76vh,860px);overflow:auto;padding:0 28px 28px;font-family:Roboto,sans-serif;color:var(--primary-text-color)}
 .dialog-body h3,.dialog-body p{margin:0}

@@ -167,6 +167,23 @@ def test_panel_uses_current_home_assistant_dialog_api() -> None:
     assert "dialog.close()" not in source
 
 
+def test_panel_provides_mobile_navigation() -> None:
+    """Mobile users can open HA's sidebar without a redundant back button."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "<ha-menu-button" in source
+    # HA passes the narrow property to custom panels; the panel must forward
+    # hass/narrow to every rendered ha-menu-button.
+    assert "set narrow(value)" in source
+    assert "b.hass=this._hass;b.narrow=this._narrow" in source
+    # The menu button is present in every render state, main page included.
+    assert '<div class="header-start">${this.menuButton()}' in source
+    assert '${this.menuButton()}</div><div class="loading">' in source
+    assert '${this.menuButton()}</div><div class="empty">' in source
+    assert "history.back()" not in source
+    assert 'id="back"' not in source
+
+
 def test_panel_hides_inactive_editor_mode() -> None:
     """Keep the visual and YAML editors mutually exclusive in the dialog layout."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
