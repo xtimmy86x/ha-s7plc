@@ -71,6 +71,7 @@ from .const import (
     CONF_SWITCHES,
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEXTS,
+    CONF_TOGGLE_MODE,
     CONF_UID,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
@@ -454,6 +455,8 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
     if option_key == CONF_COVERS:
         if item.get(CONF_POSITION_STATE_ADDRESS):
             return True
+        if item.get(CONF_TOGGLE_MODE):
+            return bool(item.get(CONF_OPEN_COMMAND_ADDRESS))
         return bool(
             item.get(CONF_OPEN_COMMAND_ADDRESS) and item.get(CONF_CLOSE_COMMAND_ADDRESS)
         )

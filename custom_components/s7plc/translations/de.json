@@ -306,7 +306,8 @@
           "area": "Bereich",
           "device_class": "Geräteklasse",
           "scan_interval": "Scan-Intervall (s)",
-          "add_another": "Nach dem Speichern weitere hinzufügen ?"
+          "add_another": "Nach dem Speichern weitere hinzufügen ?",
+          "toggle_mode": "Ein-Tasten-Modus"
         },
         "data_description": {
           "open_command_address": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0).",
@@ -328,7 +329,8 @@
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
           "scan_interval": "Abfragezyklus für diese Tags in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
-          "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?"
+          "add_another": "Weitere Jalousie/Raffstores hinzuzufügen ?",
+          "toggle_mode": "Ein einzelner SPS-Impulsausgang (Schrittschaltrelais) statt getrennter Öffnen-/Schließen-Adressen: jeder Tastendruck schaltet die Abdeckung durch den Zyklus öffnet/gestoppt/schließt/gestoppt. close_command_address wird nicht verwendet. Erfordert konfiguriertes Bewegungs- und Zustands-Feedback (cover_status_address mit allen 4 Statuswerten, oder cover_opening_address+cover_closing_address für die Bewegung zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen)."
         }
       },
       "covers_position": {
@@ -825,7 +827,8 @@
           "name": "Name",
           "area": "Bereich",
           "device_class": "Geräteklasse",
-          "scan_interval": "Scan-Intervall (s)"
+          "scan_interval": "Scan-Intervall (s)",
+          "toggle_mode": "Ein-Tasten-Modus"
         },
         "data_description": {
           "open_command_address": "SPS-Adresse, die das Öffnen auslöst.",
@@ -846,7 +849,8 @@
           "name": "Name für die Jalousie/Raffstore (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "device_class": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage).",
-          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen."
+          "scan_interval": "Abfragezyklus für diese Variable in Sekunden. Leerlassen, um den SPS-Standard zu übernehmen.",
+          "toggle_mode": "Ein einzelner SPS-Impulsausgang (Schrittschaltrelais) statt getrennter Öffnen-/Schließen-Adressen: jeder Tastendruck schaltet die Abdeckung durch den Zyklus öffnet/gestoppt/schließt/gestoppt. close_command_address wird nicht verwendet. Erfordert konfiguriertes Bewegungs- und Zustands-Feedback (cover_status_address mit allen 4 Statuswerten, oder cover_opening_address+cover_closing_address für die Bewegung zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen)."
         }
       },
       "edit_cover_position": {
@@ -1036,7 +1040,8 @@
       "sync_same_address": "Die Statussynchronisierung erfordert eine Befehlsadresse, die sich von der Statusadresse unterscheidet.",
       "invalid_integer": "Geben Sie eine ganze Zahl ein (Dezimalzahlen sind nicht zulässig).",
       "duplicate_preset_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Modi zugewiesen werden.",
-      "duplicate_status_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Status zugewiesen werden."
+      "duplicate_status_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Status zugewiesen werden.",
+      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: konfigurieren Sie cover_status_address mit offen/geschlossen/öffnet/schließt-Werten, oder cover_opening_address+cover_closing_address zusammen mit 'Zustandsadressen verwenden' und beiden Zustandsadressen."
     }
   },
   "issues": {

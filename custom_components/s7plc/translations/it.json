@@ -306,7 +306,8 @@
           "area": "Area",
           "device_class": "Classe dispositivo",
           "scan_interval": "Intervallo di scansione (s)",
-          "add_another": "Aggiungi un altro dopo il salvataggio"
+          "add_another": "Aggiungi un altro dopo il salvataggio",
+          "toggle_mode": "Modalità pulsante singolo"
         },
         "data_description": {
           "open_command_address": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0).",
@@ -328,7 +329,8 @@
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. shutter, blind, garage).",
           "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
-          "add_another": "Rimani in questo step per aggiungere altre cover."
+          "add_another": "Rimani in questo step per aggiungere altre cover.",
+          "toggle_mode": "Una singola uscita a impulso del PLC (relè passo-passo) invece di indirizzi separati apertura/chiusura: ogni pressione fa avanzare la tapparella nel ciclo apertura/fermo/chiusura/fermo. close_command_address non viene usato. Richiede un feedback di movimento e di stato definito (cover_status_address con tutti e 4 i valori di stato, oppure cover_opening_address+cover_closing_address per il movimento insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato)."
         }
       },
       "covers_position": {
@@ -713,7 +715,8 @@
           "name": "Nome",
           "area": "Area",
           "device_class": "Classe dispositivo",
-          "scan_interval": "Intervallo di scansione (s)"
+          "scan_interval": "Intervallo di scansione (s)",
+          "toggle_mode": "Modalità pulsante singolo"
         },
         "data_description": {
           "open_command_address": "Indirizzo PLC che attiva l'apertura.",
@@ -734,7 +737,8 @@
           "name": "Nome descrittivo opzionale per la cover.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "device_class": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. shutter, blind, garage).",
-          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+          "scan_interval": "Frequenza di polling specifica per questi tag in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
+          "toggle_mode": "Una singola uscita a impulso del PLC (relè passo-passo) invece di indirizzi separati apertura/chiusura: ogni pressione fa avanzare la tapparella nel ciclo apertura/fermo/chiusura/fermo. close_command_address non viene usato. Richiede un feedback di movimento e di stato definito (cover_status_address con tutti e 4 i valori di stato, oppure cover_opening_address+cover_closing_address per il movimento insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato)."
         }
       },
       "edit_cover_position": {
@@ -1036,7 +1040,8 @@
       "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato.",
       "invalid_integer": "Inserisci un numero intero (i decimali non sono consentiti).",
       "duplicate_preset_value": "Lo stesso valore non può essere assegnato a due modalità HVAC diverse.",
-      "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi."
+      "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi.",
+      "toggle_mode_requires_feedback": "La modalità pulsante singolo richiede un feedback reale per funzionare correttamente: configura cover_status_address con i valori aperto/chiuso/apertura/chiusura, oppure cover_opening_address+cover_closing_address insieme a 'Usa indirizzi di stato' ed entrambi gli indirizzi di stato."
     }
   },
   "issues": {

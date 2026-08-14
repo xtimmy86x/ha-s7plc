@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.s7plc.cover import S7Cover, async_setup_entry
 from custom_components.s7plc.const import (
@@ -85,6 +86,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
         cover_status_opening_values: str = "",
         cover_status_closing_values: str = "",
         cover_status_stopped_values: str = "",
+        toggle_mode: bool = False,
     ):
         cover = S7Cover(
             mock_coordinator,
@@ -112,6 +114,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
             cover_status_opening_values=cover_status_opening_values,
             cover_status_closing_values=cover_status_closing_values,
             cover_status_stopped_values=cover_status_stopped_values,
+            toggle_mode=toggle_mode,
         )
         cover.hass = fake_hass
         return cover
@@ -942,6 +945,330 @@ async def test_operate_time_still_governs_without_movement_feedback(
     await asyncio.sleep(0)
     mock_coordinator.write_batched.assert_not_called()
     assert cover._is_opening is True
+
+
+# ============================================================================
+# Toggle mode (single button) Tests
+#
+# A single PLC pulse output drives a step-by-step relay: each press cycles
+# the cover closed->opening->stopped->closing->stopped->opening->... This
+# only works correctly if the integration knows the PLC's real state (never
+# a simulated one), so every cover here is configured with real feedback -
+# in these tests, cover_status_address with values 0=open,1=closed,
+# 2=opening,3=closing,4=stopped, which is the simplest single-source setup.
+# ============================================================================
+
+
+def _status_cover(cover_factory, **extra):
+    return cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_open_values="0",
+        cover_status_closed_values="1",
+        cover_status_opening_values="2",
+        cover_status_closing_values="3",
+        cover_status_stopped_values="4",
+        **extra,
+    )
+
+
+def test_toggle_state_reads_every_value_from_cover_status_address(
+    cover_factory, mock_coordinator
+):
+    cover = _status_cover(cover_factory)
+    for raw, expected in (
+        (0, "open"),
+        (1, "closed"),
+        (2, "opening"),
+        (3, "closing"),
+        (4, "stopped"),
+    ):
+        mock_coordinator.data = {"cover:status:db1,b10": raw}
+        assert cover._toggle_state() == expected
+
+
+def test_toggle_state_infers_stopped_without_a_dedicated_signal(
+    cover_factory, mock_coordinator
+):
+    """Boolean feedback (no cover_status_address): if a gate reports
+    neither opening, closing, nor a conclusive open/closed position, it
+    must be stopped mid-travel - inferred, not read directly."""
+    cover = cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_closing_address="db1,b2",
+        cover_closing_topic="cover:closing:db1,b2",
+        opened_state="db1,b3",
+        closed_state="db1,b4",
+        opened_topic="cover:opened:db1,b3",
+        closed_topic="cover:closed:db1,b4",
+        use_state_topics=True,
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": False,
+        "cover:closing:db1,b2": False,
+        "cover:opened:db1,b3": False,
+        "cover:closed:db1,b4": False,
+    }
+    assert cover._toggle_state() == "stopped"
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_from_closed_pulses(cover_factory, mock_coordinator, monkeypatch):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # closed
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", False)
+    assert cover._last_toggle_direction == "opening"
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_when_already_opening_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Pulsing an already-opening cover would stop it - open_cover must
+    leave it alone."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_when_already_open_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 0}  # open
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_while_closing_raises(cover_factory, mock_coordinator, monkeypatch):
+    """A single press while closing would only stop it, not open it."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_from_stopped_after_closing_pulses(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Stopped mid-close: the next press reverses to opening - exactly
+    what open_cover wants."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    assert cover._last_toggle_direction == "opening"
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_from_stopped_after_opening_raises(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Stopped mid-open: the next press would reverse to closing - the
+    wrong direction for open_cover, so it must refuse instead of making
+    things worse."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "opening"
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_from_stopped_unknown_direction_raises(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Fresh Home Assistant restart, cover already stopped mid-travel:
+    direction has never been observed this session, so it's genuinely
+    unknown - can't safely guess which way a press would go."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    assert cover._last_toggle_direction is None
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_from_open_pulses(cover_factory, mock_coordinator, monkeypatch):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 0}  # open
+
+    await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    assert cover._last_toggle_direction == "closing"
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_when_already_closing_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_when_already_closed_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # closed
+
+    await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_while_opening_raises(cover_factory, mock_coordinator, monkeypatch):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_from_stopped_after_opening_pulses(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "opening"
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+    assert cover._last_toggle_direction == "closing"
+
+
+@pytest.mark.asyncio
+async def test_toggle_close_from_stopped_after_closing_raises(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_close_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_while_opening_pulses(cover_factory, mock_coordinator, monkeypatch):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
+
+    await cover.async_stop_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_while_closing_pulses(cover_factory, mock_coordinator, monkeypatch):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_stop_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_when_already_stopped_is_noop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Pulsing an already-stopped cover would start a new movement -
+    stop_cover must do nothing."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    await cover.async_stop_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+def test_toggle_direction_memory_persists_through_a_stop(cover_factory, mock_coordinator):
+    """The last real direction of travel must survive the transition to
+    "stopped" - it's the only way to know which way the next press goes."""
+    cover = _status_cover(cover_factory)
+
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
+    cover._handle_coordinator_update()
+    assert cover._last_toggle_direction == "opening"
+
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+    cover._handle_coordinator_update()
+    assert cover._last_toggle_direction == "opening"  # unchanged, not cleared
+
+
+@pytest.mark.asyncio
+async def test_pulse_toggle_writes_true_then_false_and_refreshes(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+
+    await cover._pulse_toggle()
+
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert ("db1,x0.0", True) in calls
+    assert ("db1,x0.0", False) in calls
+    assert calls.index(("db1,x0.0", True)) < calls.index(("db1,x0.0", False))
+    mock_coordinator.async_request_refresh.assert_awaited()
 
 
 # ============================================================================

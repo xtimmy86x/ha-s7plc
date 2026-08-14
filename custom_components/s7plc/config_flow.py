@@ -130,6 +130,7 @@ from .const import (
     CONF_TEXTS,
     CONF_TILT_COMMAND_ADDRESS,
     CONF_TILT_STATE_ADDRESS,
+    CONF_TOGGLE_MODE,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
@@ -177,6 +178,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DEFAULT_TEMP_STEP,
+    DEFAULT_TOGGLE_MODE,
     DEFAULT_USE_STATE_TOPICS,
     DOMAIN,
     OPTION_KEYS,
@@ -378,7 +380,7 @@ def _add_schema_cover(flow) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_OPEN_COMMAND_ADDRESS): selector.TextSelector(),
-            vol.Required(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
+            vol.Optional(CONF_CLOSE_COMMAND_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_OPENING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_CLOSING_STATE_ADDRESS): selector.TextSelector(),
             vol.Optional(CONF_COVER_OPENING_ADDRESS): selector.TextSelector(),
@@ -413,6 +415,9 @@ def _add_schema_cover(flow) -> vol.Schema:
             ): operate_time_selector,
             vol.Optional(
                 CONF_USE_STATE_TOPICS, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_TOGGLE_MODE, default=DEFAULT_TOGGLE_MODE
             ): selector.BooleanSelector(),
             vol.Optional(CONF_SCAN_INTERVAL): scan_interval_selector,
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -760,7 +765,7 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
             CONF_OPEN_COMMAND_ADDRESS,
             default=item.get(CONF_OPEN_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
-        vol.Required(
+        vol.Optional(
             CONF_CLOSE_COMMAND_ADDRESS,
             default=item.get(CONF_CLOSE_COMMAND_ADDRESS, ""),
         ): selector.TextSelector(),
@@ -836,6 +841,12 @@ def _edit_schema_cover(flow, item: dict[str, Any]) -> vol.Schema:
         vol.Optional(
             CONF_USE_STATE_TOPICS,
             default=item.get(CONF_USE_STATE_TOPICS, DEFAULT_USE_STATE_TOPICS),
+        )
+    ] = selector.BooleanSelector()
+    d[
+        vol.Optional(
+            CONF_TOGGLE_MODE,
+            default=item.get(CONF_TOGGLE_MODE, DEFAULT_TOGGLE_MODE),
         )
     ] = selector.BooleanSelector()
     for key, sel in [
@@ -2876,11 +2887,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if open_errors:
             return None, open_errors
 
-        close_command, close_errors = self._validate_address_field(
-            user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
-        )
-        if close_errors:
-            return None, close_errors
+        toggle_mode = bool(user_input.get(CONF_TOGGLE_MODE, DEFAULT_TOGGLE_MODE))
+
+        # In toggle_mode, open_command_address is the single PLC pulse
+        # output; close_command_address has no meaning and is ignored even
+        # if supplied (a cover is either two-address or toggle, not both).
+        if toggle_mode:
+            close_command = None
+        else:
+            close_command, close_errors = self._validate_address_field(
+                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
+            )
+            if close_errors:
+                return None, close_errors
 
         # Get optional state addresses
         opening_state = self._sanitize_address(
@@ -2943,11 +2962,30 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         if cover_status_errors:
             return None, cover_status_errors
 
+        if toggle_mode:
+            # toggle_mode's correctness depends entirely on knowing the
+            # PLC's real state - it can't fall back to a simulated timer
+            # like the two-address mode does. Require two independent
+            # feedback sources: motion (is_opening/is_closing) and settled
+            # state (is_closed), each satisfiable via cover_status_address
+            # alone or via the boolean/end-stop alternatives.
+            has_motion_feedback = bool(
+                cover_status_fields.get(CONF_COVER_STATUS_OPENING_VALUES)
+                and cover_status_fields.get(CONF_COVER_STATUS_CLOSING_VALUES)
+            ) or bool(cover_opening_addr and cover_closing_addr)
+            has_settled_feedback = bool(
+                cover_status_fields.get(CONF_COVER_STATUS_OPEN_VALUES)
+                and cover_status_fields.get(CONF_COVER_STATUS_CLOSED_VALUES)
+            ) or bool(use_state_topics and opening_state and closing_state)
+            if not (has_motion_feedback and has_settled_feedback):
+                return None, {"base": "toggle_mode_requires_feedback"}
+
         # Build item
         item: dict[str, Any] = {
             CONF_OPEN_COMMAND_ADDRESS: open_command,
-            CONF_CLOSE_COMMAND_ADDRESS: close_command,
         }
+        if close_command:
+            item[CONF_CLOSE_COMMAND_ADDRESS] = close_command
 
         # Add optional state addresses
         if opening_state:
@@ -2971,6 +3009,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
         item[CONF_USE_STATE_TOPICS] = use_state_topics
+        item[CONF_TOGGLE_MODE] = toggle_mode
         item.update(cover_status_fields)
 
         # Apply scan interval

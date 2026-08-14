@@ -854,13 +854,15 @@ def test_panel_covers_bool_addresses_use_bool_placeholder() -> None:
 
 def test_panel_close_command_address_required_for_traditional() -> None:
     """close_command_address is required in the editor's save validation
-    for traditional covers, same as the config flow."""
+    for traditional covers, same as the config flow - unless toggle_mode
+    is enabled, in which case it's not needed at all (single-button
+    covers only use open_command_address)."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert (
         "const needed=mode==='position'?'position_state_address':"
         "'open_command_address';if(!entity[needed]||(mode==='traditional'"
-        "&&!entity.close_command_address))throw "
+        "&&!entity.toggle_mode&&!entity.close_command_address))throw "
         "Error(this.t('cover_required_error'));"
     ) in source
 
@@ -874,3 +876,36 @@ def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert ".visual-form .check>span{min-width:0}" in source
+
+
+def test_panel_exposes_toggle_mode_field() -> None:
+    """The visual editor lets you enable toggle_mode for traditional
+    covers, and clears close_command_address on save when it's on (a
+    cover is either two-address or toggle, never both)."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    assert '"toggle_mode"' in covers_line
+    assert "toggle_mode" in source, "toggle_mode missing a translated label"
+
+    # Meaningless for position covers, same as open/close_command_address.
+    position_hidden_line = next(
+        line
+        for line in source.splitlines()
+        if line.strip().startswith("position:") and "cover_opening_address" in line
+    )
+    assert "toggle_mode" in position_hidden_line
+
+    # Dynamic hide: checking the box hides close_command_address.
+    assert "form.elements.toggle_mode.onchange=syncMode" in source
+    assert (
+        "if(sel.value==='traditional'&&form.elements.toggle_mode?.checked)"
+        "{hidden=[...hidden,'close_command_address'];}"
+    ) in source
+    # Strip on save so a stale value doesn't linger once toggle_mode is on.
+    assert (
+        "if(mode==='traditional'&&entity.toggle_mode){"
+        "delete entity.close_command_address;}"
+    ) in source

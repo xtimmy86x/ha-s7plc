@@ -306,7 +306,8 @@
           "area": "Oblast",
           "device_class": "Třída zařízení",
           "scan_interval": "Interval čtení (s)",
-          "add_another": "Přidat další po uložení"
+          "add_another": "Přidat další po uložení",
+          "toggle_mode": "Režim jednoho tlačítka"
         },
         "data_description": {
           "open_command_address": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
@@ -328,7 +329,8 @@
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
           "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
-          "add_another": "Zůstat v tomto kroku a přidat další krytiny."
+          "add_another": "Zůstat v tomto kroku a přidat další krytiny.",
+          "toggle_mode": "Jeden pulzní výstup PLC (krokové relé) místo samostatných adres otevírání/zavírání: každý stisk posune kryt v cyklu otevírání/zastaveno/zavírání/zastaveno. close_command_address se nepoužívá. Vyžaduje nastavenou zpětnou vazbu pohybu a ustáleného stavu (cover_status_address se všemi 4 hodnotami stavu, nebo cover_opening_address+cover_closing_address pro pohyb spolu s 'Použít stavové adresy' a oběma stavovými adresami)."
         }
       },
       "covers_position": {
@@ -825,7 +827,8 @@
           "name": "Název",
           "area": "Oblast",
           "device_class": "Třída zařízení",
-          "scan_interval": "Interval čtení (s)"
+          "scan_interval": "Interval čtení (s)",
+          "toggle_mode": "Režim jednoho tlačítka"
         },
         "data_description": {
           "open_command_address": "Adresa PLC, která spouští otevírání.",
@@ -846,7 +849,8 @@
           "name": "Volitelný srozumitelný název krytiny.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "device_class": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage).",
-          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+          "scan_interval": "Přepíše interval čtení pro tyto tagy v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
+          "toggle_mode": "Jeden pulzní výstup PLC (krokové relé) místo samostatných adres otevírání/zavírání: každý stisk posune kryt v cyklu otevírání/zastaveno/zavírání/zastaveno. close_command_address se nepoužívá. Vyžaduje nastavenou zpětnou vazbu pohybu a ustáleného stavu (cover_status_address se všemi 4 hodnotami stavu, nebo cover_opening_address+cover_closing_address pro pohyb spolu s 'Použít stavové adresy' a oběma stavovými adresami)."
         }
       },
       "edit_cover_position": {
@@ -1036,7 +1040,8 @@
       "sync_same_address": "Synchronizace stavu vyžaduje adresu příkazu odlišnou od adresy stavu.",
       "invalid_integer": "Zadejte celé číslo (desetinná čísla nejsou povolena).",
       "duplicate_preset_value": "Stejnou hodnotu nelze přiřadit dvěma různým režimům HVAC.",
-      "duplicate_status_value": "Stejnou hodnotu nelze přiřadit dvěma různým stavům HVAC."
+      "duplicate_status_value": "Stejnou hodnotu nelze přiřadit dvěma různým stavům HVAC.",
+      "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje pro správnou funkci reálnou zpětnou vazbu: nastavte cover_status_address s hodnotami otevřeno/zavřeno/otevírání/zavírání, nebo cover_opening_address+cover_closing_address spolu s 'Použít stavové adresy' a oběma stavovými adresami."
     }
   },
   "issues": {

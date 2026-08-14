@@ -587,6 +587,176 @@ def test_add_cover_traditional_with_both_addresses_stores_both():
     assert stored[const.CONF_CLOSE_COMMAND_ADDRESS] == "DB1,X0.1"
 
 
+def test_add_cover_toggle_mode_does_not_require_close_address():
+    """toggle_mode covers use a single PLC pulse (open_command_address) -
+    close_command_address has no meaning and must not be required."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_STATUS_ADDRESS: "DB1,INT0",
+                const.CONF_COVER_STATUS_OPEN_VALUES: "0",
+                const.CONF_COVER_STATUS_CLOSED_VALUES: "1",
+                const.CONF_COVER_STATUS_OPENING_VALUES: "2",
+                const.CONF_COVER_STATUS_CLOSING_VALUES: "3",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_TOGGLE_MODE] is True
+    assert const.CONF_CLOSE_COMMAND_ADDRESS not in stored
+
+
+def test_add_cover_toggle_mode_ignores_a_supplied_close_address():
+    """A cover is either two-address or toggle, never both - a supplied
+    close_command_address is dropped when toggle_mode is on."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_STATUS_ADDRESS: "DB1,INT0",
+                const.CONF_COVER_STATUS_OPEN_VALUES: "0",
+                const.CONF_COVER_STATUS_CLOSED_VALUES: "1",
+                const.CONF_COVER_STATUS_OPENING_VALUES: "2",
+                const.CONF_COVER_STATUS_CLOSING_VALUES: "3",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert const.CONF_CLOSE_COMMAND_ADDRESS not in stored
+
+
+def test_add_cover_toggle_mode_requires_movement_feedback():
+    """toggle_mode's correctness depends on knowing the PLC's real state -
+    with no feedback configured at all, it must be rejected up front
+    rather than silently misbehaving at runtime."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "toggle_mode_requires_feedback"
+
+
+def test_add_cover_toggle_mode_requires_settled_state_feedback():
+    """Motion feedback alone (cover_opening_address/cover_closing_address)
+    isn't enough - without a settled-state source, a closed gate could
+    never be told apart from an open one. Locks in the is_closed fix."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_OPENING_ADDRESS: "DB1,X1.0",
+                const.CONF_COVER_CLOSING_ADDRESS: "DB1,X1.1",
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"]["base"] == "toggle_mode_requires_feedback"
+
+
+def test_add_cover_toggle_mode_with_status_address_feedback_succeeds():
+    """cover_status_address alone (with all 4 relevant values) satisfies
+    both motion and settled-state feedback at once."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_STATUS_ADDRESS: "DB1,INT0",
+                const.CONF_COVER_STATUS_OPEN_VALUES: "0",
+                const.CONF_COVER_STATUS_CLOSED_VALUES: "1",
+                const.CONF_COVER_STATUS_OPENING_VALUES: "2",
+                const.CONF_COVER_STATUS_CLOSING_VALUES: "3",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+
+
+def test_add_cover_toggle_mode_with_boolean_and_state_topics_feedback_succeeds():
+    """The alternative combination: boolean motion addresses plus
+    use_state_topics + both end-stops for settled state."""
+    flow = make_options_flow(options={const.CONF_COVERS: []})
+
+    result = run_flow(
+        flow.async_step_covers_traditional(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_OPENING_ADDRESS: "DB1,X1.0",
+                const.CONF_COVER_CLOSING_ADDRESS: "DB1,X1.1",
+                const.CONF_USE_STATE_TOPICS: True,
+                const.CONF_OPENING_STATE_ADDRESS: "DB1,X2.0",
+                const.CONF_CLOSING_STATE_ADDRESS: "DB1,X2.1",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+
+
+def test_edit_cover_toggle_mode_does_not_require_close_address():
+    """Same regression, via the edit path (_build_cover_item is shared
+    between add and edit)."""
+    options = {
+        const.CONF_COVERS: [
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_CLOSE_COMMAND_ADDRESS: "DB1,X0.1",
+                const.CONF_UID: "original-uid",
+            }
+        ]
+    }
+    flow = make_options_flow(options=options)
+    flow._action = "edit"
+    flow._edit_target = ("cv", 0)
+
+    result = run_flow(
+        flow.async_step_edit_cover(
+            {
+                const.CONF_OPEN_COMMAND_ADDRESS: "DB1,X0.0",
+                const.CONF_TOGGLE_MODE: True,
+                const.CONF_COVER_STATUS_ADDRESS: "DB1,INT0",
+                const.CONF_COVER_STATUS_OPEN_VALUES: "0",
+                const.CONF_COVER_STATUS_CLOSED_VALUES: "1",
+                const.CONF_COVER_STATUS_OPENING_VALUES: "2",
+                const.CONF_COVER_STATUS_CLOSING_VALUES: "3",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    stored = flow._options[const.CONF_COVERS][0]
+    assert stored[const.CONF_TOGGLE_MODE] is True
+    assert const.CONF_CLOSE_COMMAND_ADDRESS not in stored
+
+
 def test_add_cover_traditional_persists_movement_status_addresses():
     """Regression test: cover_opening_address/cover_closing_address/
     cover_stopped_address are exposed in the schema and consumed by

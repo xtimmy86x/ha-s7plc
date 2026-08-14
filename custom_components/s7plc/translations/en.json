@@ -306,7 +306,8 @@
           "area": "Area",
           "device_class": "Device class",
           "scan_interval": "Scan interval (s)",
-          "add_another": "Add another after saving"
+          "add_another": "Add another after saving",
+          "toggle_mode": "Toggle mode (single button)"
         },
         "data_description": {
           "open_command_address": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0).",
@@ -328,7 +329,8 @@
           "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
           "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
-          "add_another": "Stay on this step to add more covers."
+          "add_another": "Stay on this step to add more covers.",
+          "toggle_mode": "Single physical PLC pulse output (step-by-step relay) instead of separate open/close addresses: each press cycles the cover through opening/stopped/closing/stopped. close_command_address is not used. Requires movement and settled-state feedback to be configured (cover_status_address with all 4 status values, or cover_opening_address+cover_closing_address for motion together with 'Use state topics' and both state addresses for position)."
         }
       },
       "covers_position": {
@@ -825,7 +827,8 @@
           "name": "Name",
           "area": "Area",
           "device_class": "Device class",
-          "scan_interval": "Scan interval (s)"
+          "scan_interval": "Scan interval (s)",
+          "toggle_mode": "Toggle mode (single button)"
         },
         "data_description": {
           "open_command_address": "PLC address that triggers the opening action.",
@@ -846,7 +849,8 @@
           "name": "Optional friendly name for the cover.",
           "area": "Home Assistant area to assign this entity to.",
           "device_class": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage).",
-          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default."
+          "scan_interval": "Override the poll interval for these tags in seconds. Leave blank to inherit the PLC default.",
+          "toggle_mode": "Single physical PLC pulse output (step-by-step relay) instead of separate open/close addresses: each press cycles the cover through opening/stopped/closing/stopped. close_command_address is not used. Requires movement and settled-state feedback to be configured (cover_status_address with all 4 status values, or cover_opening_address+cover_closing_address for motion together with 'Use state topics' and both state addresses for position)."
         }
       },
       "edit_cover_position": {
@@ -1036,7 +1040,8 @@
       "sync_same_address": "Sync state requires a command address different from the state address.",
       "invalid_integer": "Enter a whole number (decimals are not allowed).",
       "duplicate_preset_value": "The same value can't be assigned to two different HVAC modes.",
-      "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses."
+      "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses.",
+      "toggle_mode_requires_feedback": "Toggle mode requires real feedback to work correctly: configure cover_status_address with open/closed/opening/closing values, or cover_opening_address+cover_closing_address together with 'Use state topics' and both state addresses."
     }
   },
   "issues": {

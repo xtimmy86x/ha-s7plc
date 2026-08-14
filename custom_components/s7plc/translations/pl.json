@@ -306,7 +306,8 @@
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "scan_interval": "Interwał skanowania (s)",
-          "add_another": "Dodaj kolejną encje po zapisaniu"
+          "add_another": "Dodaj kolejną encje po zapisaniu",
+          "toggle_mode": "Tryb jednego przycisku"
         },
         "data_description": {
           "open_command_address": "Adres PLC wyzwalający otwieranie (np. Q0.0, DB1,X0.0).",
@@ -328,7 +329,8 @@
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia (np. osłona, roleta, brama).",
           "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
-          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
+          "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje.",
+          "toggle_mode": "Pojedyncze wyjście impulsowe PLC (przekaźnik krokowy) zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie przesuwa roletę w cyklu otwiera się/zatrzymana/zamyka się/zatrzymana. close_command_address nie jest używany. Wymaga skonfigurowanego feedbacku ruchu i stanu ustalonego (cover_status_address ze wszystkimi 4 wartościami stanu, albo cover_opening_address+cover_closing_address dla ruchu razem z 'Użyj adresów odczytu położenia' i obydwoma adresami stanu)."
         }
       },
       "covers_position": {
@@ -825,7 +827,8 @@
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
-          "scan_interval": "Interwał skanowania (s)"
+          "scan_interval": "Interwał skanowania (s)",
+          "toggle_mode": "Tryb jednego przycisku"
         },
         "data_description": {
           "open_command_address": "Adres PLC wyzwalający otwieranie.",
@@ -846,7 +849,8 @@
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "device_class": "Klasa urządzenia (np. osłona, roleta, brama).",
-          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC."
+          "scan_interval": "Nadpisz interwał skanowania dla tej encji. Pozostaw puste, aby dziedziczyć domyślne ustawienie z kofiguracji połączenia z PLC.",
+          "toggle_mode": "Pojedyncze wyjście impulsowe PLC (przekaźnik krokowy) zamiast osobnych adresów otwierania/zamykania: każde naciśnięcie przesuwa roletę w cyklu otwiera się/zatrzymana/zamyka się/zatrzymana. close_command_address nie jest używany. Wymaga skonfigurowanego feedbacku ruchu i stanu ustalonego (cover_status_address ze wszystkimi 4 wartościami stanu, albo cover_opening_address+cover_closing_address dla ruchu razem z 'Użyj adresów odczytu położenia' i obydwoma adresami stanu)."
         }
       },
       "edit_cover_position": {
@@ -1036,7 +1040,8 @@
       "sync_same_address": "Synchronizacja stanu wymaga adresu zapisu innego niż adres odczytu.",
       "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",
       "duplicate_preset_value": "Ta sama wartość nie może być przypisana do dwóch różnych trybów HVAC.",
-      "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC."
+      "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC.",
+      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga realnego feedbacku, aby działać poprawnie: skonfiguruj cover_status_address z wartościami otwarta/zamknięta/otwiera się/zamyka się, albo cover_opening_address+cover_closing_address razem z 'Użyj adresów odczytu położenia' i obydwoma adresami stanu."
     }
   },
   "issues": {
