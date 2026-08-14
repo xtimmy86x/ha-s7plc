@@ -45,6 +45,78 @@ def test_entity_from_message_rejects_invalid_input(message) -> None:
         _entity_from_message(message)
 
 
+def test_yaml_editor_rejects_duplicate_keys() -> None:
+    with pytest.raises(ValueError, match="duplicate key"):
+        _entity_from_message(
+            {"entity_yaml": 'address: "DB1,REAL0"\nname: "A"\naddress: "DB1,REAL4"'}
+        )
+
+
+def test_yaml_editor_rejects_unknown_fields() -> None:
+    with pytest.raises(ValueError, match="Unknown field.*adress"):
+        _entity_from_message(
+            {
+                "entity_type": "sensors",
+                "entity_yaml": 'adress: "DB1,REAL0"\nname: "Typo"',
+            }
+        )
+
+
+def test_yaml_editor_rejects_missing_required_fields() -> None:
+    with pytest.raises(ValueError, match="required"):
+        _entity_from_message(
+            {"entity_type": "sensors", "entity_yaml": 'name: "No address"'}
+        )
+
+
+@pytest.mark.parametrize(
+    ("entity_type", "entity_yaml"),
+    [
+        ("sensors", 'address: "DB1,REAL0"\nname: "Temp"\ndevice_class: temperature'),
+        ("switches", 'state_address: "DB1,X0.0"\ncommand_address: "DB1,X0.1"'),
+        ("covers", 'open_command_address: "DB1,X0.0"\nclose_command_address: "DB1,X0.1"'),
+        (
+            "climates",
+            'control_mode: setpoint\ncurrent_temperature_address: "DB1,REAL0"\n'
+            'target_temperature_address: "DB1,REAL4"\nmin_temp: 5',
+        ),
+        ("entity_sync", 'source_entity: sensor.power\naddress: "DB1,REAL0"'),
+    ],
+)
+def test_yaml_editor_accepts_valid_fields(entity_type, entity_yaml) -> None:
+    entity = _entity_from_message(
+        {"entity_type": entity_type, "entity_yaml": entity_yaml}
+    )
+    assert isinstance(entity, dict) and entity
+
+
+def test_allowed_fields_cover_every_entity_type() -> None:
+    from custom_components.s7plc.const import OPTION_KEYS
+    from custom_components.s7plc.panel import _ALLOWED_FIELDS
+
+    assert set(_ALLOWED_FIELDS) == set(OPTION_KEYS)
+
+
+def test_allowed_fields_match_panel_javascript_catalog() -> None:
+    """Every field the visual editor can save must pass backend validation."""
+    import re
+
+    from custom_components.s7plc.panel import _ALLOWED_FIELDS
+
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
+    common_block = re.search(r"const COMMON = \[(.*?)\n\];", source, re.DOTALL).group(1)
+    common = re.findall(r'\["([a-z_]+)"', common_block)
+    ui_only = {"cover_mode"}  # never stored (see formEntity)
+    for line in fields_block.strip().splitlines():
+        entity_type, spec = line.split(":", 1)
+        keys = set(re.findall(r'\["([a-z_]+)"', spec)) | set(common)
+        expected = keys - ui_only
+        allowed = _ALLOWED_FIELDS[entity_type.strip()]
+        missing = expected - allowed
+        assert not missing, f"{entity_type}: fields missing from backend: {missing}"
+
+
 def test_panel_uses_current_home_assistant_dialog_api() -> None:
     """Ensure editor actions remain visible and can close the current dialog."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")

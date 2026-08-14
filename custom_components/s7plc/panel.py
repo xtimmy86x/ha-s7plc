@@ -2,17 +2,246 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
 import yaml
 
-from .const import CONF_UID, DOMAIN, OPTION_KEYS
+from .const import (
+    CONF_ADDRESS,
+    CONF_AREA,
+    CONF_BINARY_SENSORS,
+    CONF_BRIGHTNESS_COMMAND_ADDRESS,
+    CONF_BRIGHTNESS_SCALE,
+    CONF_BRIGHTNESS_STATE_ADDRESS,
+    CONF_BUTTON_PULSE,
+    CONF_BUTTONS,
+    CONF_CLIMATE_CONTROL_MODE,
+    CONF_CLIMATES,
+    CONF_CLOSE_COMMAND_ADDRESS,
+    CONF_CLOSING_STATE_ADDRESS,
+    CONF_COMMAND_ADDRESS,
+    CONF_COOLING_ACTION_ADDRESS,
+    CONF_COOLING_OUTPUT_ADDRESS,
+    CONF_COVERS,
+    CONF_CURRENT_TEMPERATURE_ADDRESS,
+    CONF_DEVICE_CLASS,
+    CONF_ENTITY_SYNC,
+    CONF_HEATING_ACTION_ADDRESS,
+    CONF_HEATING_OUTPUT_ADDRESS,
+    CONF_HVAC_STATUS_ADDRESS,
+    CONF_HVAC_STATUS_COOLING_VALUES,
+    CONF_HVAC_STATUS_DEFROSTING_VALUES,
+    CONF_HVAC_STATUS_DRYING_VALUES,
+    CONF_HVAC_STATUS_FAN_VALUES,
+    CONF_HVAC_STATUS_HEATING_VALUES,
+    CONF_HVAC_STATUS_IDLE_VALUES,
+    CONF_HVAC_STATUS_OFF_VALUES,
+    CONF_HVAC_STATUS_PREHEATING_VALUES,
+    CONF_INVERT_POSITION,
+    CONF_INVERT_STATE,
+    CONF_LIGHTS,
+    CONF_MAX_TEMP,
+    CONF_MAX_VALUE,
+    CONF_MIN_TEMP,
+    CONF_MIN_VALUE,
+    CONF_NUMBERS,
+    CONF_ON_OFF_ADDRESS,
+    CONF_OPEN_COMMAND_ADDRESS,
+    CONF_OPENING_STATE_ADDRESS,
+    CONF_OPERATE_TIME,
+    CONF_PATTERN,
+    CONF_POSITION_COMMAND_ADDRESS,
+    CONF_POSITION_STATE_ADDRESS,
+    CONF_PRESET_MODE_ADDRESS,
+    CONF_PRESET_MODE_AUTO_VALUE,
+    CONF_PRESET_MODE_BIDIRECTIONAL,
+    CONF_PRESET_MODE_COOL_VALUE,
+    CONF_PRESET_MODE_DRY_VALUE,
+    CONF_PRESET_MODE_FAN_ONLY_VALUE,
+    CONF_PRESET_MODE_HEAT_COOL_VALUE,
+    CONF_PRESET_MODE_HEAT_VALUE,
+    CONF_PRESET_MODE_OFF_VALUE,
+    CONF_PULSE_COMMAND,
+    CONF_PULSE_DURATION,
+    CONF_REAL_PRECISION,
+    CONF_SCALE_RAW_MAX,
+    CONF_SCALE_RAW_MIN,
+    CONF_SCAN_INTERVAL,
+    CONF_SENSORS,
+    CONF_SOURCE_ENTITY,
+    CONF_STATE_ADDRESS,
+    CONF_STATE_CLASS,
+    CONF_STEP,
+    CONF_STOP_COMMAND_ADDRESS,
+    CONF_STOP_PULSE_DURATION,
+    CONF_SWITCHES,
+    CONF_SYNC_STATE,
+    CONF_TARGET_TEMPERATURE_ADDRESS,
+    CONF_TEMP_STEP,
+    CONF_TEXTS,
+    CONF_UID,
+    CONF_UNIT_OF_MEASUREMENT,
+    CONF_USE_STATE_TOPICS,
+    CONF_VALUE_MULTIPLIER,
+    DOMAIN,
+    OPTION_KEYS,
+)
 from .helpers import generate_uid
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
+
+# Fields every entity type accepts ("name" comes from homeassistant.const,
+# imported lazily elsewhere in this module, so the literal is used here).
+_COMMON_FIELDS = frozenset({"name", CONF_AREA, CONF_SCAN_INTERVAL, CONF_UID})
+
+_NUMERIC_SCALE_FIELDS = frozenset(
+    {
+        CONF_VALUE_MULTIPLIER,
+        CONF_MIN_VALUE,
+        CONF_MAX_VALUE,
+        CONF_SCALE_RAW_MIN,
+        CONF_SCALE_RAW_MAX,
+        CONF_REAL_PRECISION,
+    }
+)
+
+# Option key → fields the YAML editor may set. Mirrors the per-type FIELDS
+# catalog in www/s7plc-panel.js (minus UI-only keys such as cover_mode).
+_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
+    CONF_SENSORS: _COMMON_FIELDS
+    | _NUMERIC_SCALE_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_DEVICE_CLASS,
+        CONF_UNIT_OF_MEASUREMENT,
+        CONF_STATE_CLASS,
+    },
+    CONF_BINARY_SENSORS: _COMMON_FIELDS
+    | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_INVERT_STATE},
+    # CONF_ADDRESS kept for switches/lights: accepted as a legacy alias of
+    # state_address (see config_flow import validation).
+    CONF_SWITCHES: _COMMON_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_STATE_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_SYNC_STATE,
+        CONF_PULSE_COMMAND,
+        CONF_PULSE_DURATION,
+    },
+    CONF_COVERS: _COMMON_FIELDS
+    | {
+        CONF_OPEN_COMMAND_ADDRESS,
+        CONF_CLOSE_COMMAND_ADDRESS,
+        CONF_OPENING_STATE_ADDRESS,
+        CONF_CLOSING_STATE_ADDRESS,
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_STOP_COMMAND_ADDRESS,
+        CONF_STOP_PULSE_DURATION,
+        CONF_OPERATE_TIME,
+        CONF_USE_STATE_TOPICS,
+        CONF_INVERT_POSITION,
+        CONF_DEVICE_CLASS,
+    },
+    CONF_LIGHTS: _COMMON_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_STATE_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_SYNC_STATE,
+        CONF_PULSE_COMMAND,
+        CONF_PULSE_DURATION,
+        CONF_BRIGHTNESS_STATE_ADDRESS,
+        CONF_BRIGHTNESS_COMMAND_ADDRESS,
+        CONF_BRIGHTNESS_SCALE,
+    },
+    CONF_BUTTONS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_BUTTON_PULSE},
+    CONF_NUMBERS: _COMMON_FIELDS
+    | _NUMERIC_SCALE_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_DEVICE_CLASS,
+        CONF_UNIT_OF_MEASUREMENT,
+        CONF_STEP,
+    },
+    CONF_TEXTS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_COMMAND_ADDRESS, CONF_PATTERN},
+    CONF_CLIMATES: _COMMON_FIELDS
+    | {
+        CONF_CLIMATE_CONTROL_MODE,
+        CONF_CURRENT_TEMPERATURE_ADDRESS,
+        CONF_TARGET_TEMPERATURE_ADDRESS,
+        CONF_HEATING_OUTPUT_ADDRESS,
+        CONF_COOLING_OUTPUT_ADDRESS,
+        CONF_HEATING_ACTION_ADDRESS,
+        CONF_COOLING_ACTION_ADDRESS,
+        CONF_PRESET_MODE_ADDRESS,
+        CONF_PRESET_MODE_BIDIRECTIONAL,
+        CONF_ON_OFF_ADDRESS,
+        CONF_PRESET_MODE_OFF_VALUE,
+        CONF_PRESET_MODE_HEAT_VALUE,
+        CONF_PRESET_MODE_COOL_VALUE,
+        CONF_PRESET_MODE_HEAT_COOL_VALUE,
+        CONF_PRESET_MODE_AUTO_VALUE,
+        CONF_PRESET_MODE_DRY_VALUE,
+        CONF_PRESET_MODE_FAN_ONLY_VALUE,
+        CONF_HVAC_STATUS_ADDRESS,
+        CONF_HVAC_STATUS_OFF_VALUES,
+        CONF_HVAC_STATUS_HEATING_VALUES,
+        CONF_HVAC_STATUS_COOLING_VALUES,
+        CONF_HVAC_STATUS_IDLE_VALUES,
+        CONF_HVAC_STATUS_DRYING_VALUES,
+        CONF_HVAC_STATUS_FAN_VALUES,
+        CONF_HVAC_STATUS_PREHEATING_VALUES,
+        CONF_HVAC_STATUS_DEFROSTING_VALUES,
+        CONF_MIN_TEMP,
+        CONF_MAX_TEMP,
+        CONF_TEMP_STEP,
+    },
+    CONF_ENTITY_SYNC: _COMMON_FIELDS | {CONF_SOURCE_ENTITY, CONF_ADDRESS},
+}
+
+
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate mapping keys instead of silently
+    keeping only the last occurrence (yaml.safe_load's default behavior)."""
+
+    def construct_mapping(
+        self, node: yaml.MappingNode, deep: bool = False
+    ) -> dict[Any, Any]:
+        seen: set[Any] = set()
+        for key_node, _value_node in node.value:
+            key = self.construct_object(key_node, deep=True)
+            if not isinstance(key, Hashable):
+                continue  # SafeLoader raises its own error for unhashable keys
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"found duplicate key {key!r}",
+                    key_node.start_mark,
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def _validate_entity_fields(entity_type: str | None, entity: dict[str, Any]) -> None:
+    """Reject unknown fields and missing required fields for *entity_type*."""
+    allowed = _ALLOWED_FIELDS.get(entity_type)  # type: ignore[arg-type]
+    if allowed is None:
+        return
+    unknown = sorted(set(entity) - allowed)
+    if unknown:
+        raise ValueError(f"Unknown field(s) for {entity_type}: {', '.join(unknown)}")
+    from .helpers import _item_has_required_fields
+
+    if not _item_has_required_fields(entity_type, entity):
+        raise ValueError(f"Missing required field(s) for {entity_type}")
 
 
 def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
@@ -24,13 +253,14 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
         return dict(entity)
 
     try:
-        entity = yaml.safe_load(msg["entity_yaml"])
+        entity = yaml.load(msg["entity_yaml"], Loader=_UniqueKeyLoader)
     except yaml.YAMLError as err:
         raise ValueError(f"Invalid YAML: {err}") from err
     if not isinstance(entity, dict) or not entity:
         raise ValueError("YAML configuration must be a non-empty mapping")
     if not all(isinstance(key, str) for key in entity):
         raise ValueError("YAML configuration keys must be strings")
+    _validate_entity_fields(msg.get("entity_type"), entity)
     return entity
 
 
