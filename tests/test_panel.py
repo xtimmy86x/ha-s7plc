@@ -37,6 +37,14 @@ def test_panel_displays_integration_version() -> None:
     assert 'class="integration-version"' in source
 
 
+def test_panel_supports_batch_entity_deletion() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert 'type="checkbox" data-select="${i}"' in source
+    assert "sort((a,b)=>b-a)" in source
+    assert "for(const index of sorted)await this._hass.callWS" in source
+
+
 def test_entity_from_visual_editor() -> None:
     entity = {"name": "Temperatura", "address": "DB1,REAL0"}
 

@@ -33,6 +33,10 @@ const TRANSLATIONS = {
     choices:{traditional:"Tradycyjna",position:"Pozycja",direct:"Kontroler",setpoint:"Klient"}
   }
 };
+const BATCH_TRANSLATIONS = {
+  en:{select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},
+  it:{select_entity:"Seleziona entità",delete_selected:"Elimina selezionate",delete_selected_confirm:"Eliminare le {count} entità selezionate?"}
+};
 const COMMON = [
   ["name","Nome"], ["area","Area"], ["scan_interval","Intervallo di scansione (s)","number"]
 ];
@@ -101,7 +105,7 @@ const COVER_MOTION_BOOL_FIELDS = ["cover_opening_address","cover_closing_address
 const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];
 
 class S7PlcConfigurationPanel extends HTMLElement {
-  connectedCallback(){this._statusTimer??=setInterval(()=>this.refreshConnectionStatus(),5000);}
+  connectedCallback(){this.selectedIndices??=new Set();this._statusTimer??=setInterval(()=>this.refreshConnectionStatus(),5000);}
   disconnectedCallback(){clearInterval(this._statusTimer);this._statusTimer=null;}
   set hass(value) { const previous=this.language; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadFlowTranslations().then(()=>this.render()); else this.updateStates(); this.syncMenuButtons(); }
   set panel(value) { this._panel = value; if(this._loaded&&this.entries)this.render(); }
@@ -113,6 +117,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   get integrationVersion(){return this._panel?.config?.version||'';}
   get language(){const language=this._hass?.locale?.language||this._hass?.language||"en";return language.toLowerCase().split(/[-_]/)[0] in TRANSLATIONS?language.toLowerCase().split(/[-_]/)[0]:"en";}
   t(path){return path.split('.').reduce((value,key)=>value?.[key],TRANSLATIONS[this.language])??path.split('.').reduce((value,key)=>value?.[key],TRANSLATIONS.en)??path;}
+  bt(key,values={}){const text=BATCH_TRANSLATIONS[this.language]?.[key]??BATCH_TRANSLATIONS.en[key]??key;return Object.entries(values).reduce((result,[name,value])=>result.replace(`{${name}}`,value),text);}
   async loadFlowTranslations(){const language=this.language;try{const response=await fetch(`/s7plc_translations/${language}.json`);if(!response.ok)throw Error(`HTTP ${response.status}`);this.flowTranslations=await response.json();}catch(err){console.warn(`Unable to load S7 PLC config-flow translations for ${language}`,err);this.flowTranslations=null;}}
   async load() {
     if (!this._hass) return; this._loaded = true;
@@ -132,11 +137,13 @@ class S7PlcConfigurationPanel extends HTMLElement {
     const entry=this.entries.find(e=>e.entry_id===this.entryId);
     if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div>`;this.syncMenuButtons();return;}
     const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0), type=this.type||TYPES[0];
-    this.innerHTML=`<style>${this.styles}</style><div class="page"><header><div class="header-start">${this.menuButton()}<div><h1>${this.t('title')}</h1><p>${this.t('subtitle')}</p></div></div><div class="header-actions"><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><span class="connection-badge ${entry.connected?'connected':''}">${this.t(entry.connected?'connected':'disconnected')}</span></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
-    this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.render();}; this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.render();}); this.querySelector('#add').onclick=()=>this.openEditor(); this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit))); this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove(Number(b.dataset.delete)));
+    this.innerHTML=`<style>${this.styles}</style><div class="page"><header><div class="header-start">${this.menuButton()}<div><h1>${this.t('title')}</h1><p>${this.t('subtitle')}</p></div></div><div class="header-actions"><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><span class="connection-badge ${entry.connected?'connected':''}">${this.t(entry.connected?'connected':'disconnected')}</span></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><div class="toolbar-actions"><button class="batch-delete danger" id="delete-selected" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
+    this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();}; this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();}); this.querySelector('#add').onclick=()=>this.openEditor(); this.querySelector('#delete-selected').onclick=()=>this.remove([...this.selectedIndices]); this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const index=Number(input.dataset.select);if(input.checked)this.selectedIndices.add(index);else this.selectedIndices.delete(index);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();}); this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit))); this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)]));
+    this.updateBulkAction();
     this.syncMenuButtons();
   }
-  entityCards(entry){const type=this.type||TYPES[0],items=entry.entities[type];if(!items.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('empty')}</h3><p>${this.t('empty_help')}</p></div>`;return items.map((item,i)=>{const entityId=entry.entity_ids?.[type]?.[i];return `<article><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div><div class="details"><b>${this.escape(item.name||item.address||item.state_address||item.current_temperature_address||`${this.t('entity')} ${i+1}`)}</b><code>${this.escape(item.address||item.state_address||item.current_temperature_address||item.source_entity||'—')}</code><div>${this.chips(item,type)}</div></div>${entityId?`<span class="state-badge" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<button data-edit="${i}" class="icon-btn" title="${this.t('edit')}"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-delete="${i}" class="icon-btn danger" title="${this.t('delete')}"><ha-icon icon="mdi:delete"></ha-icon></button></article>`;}).join('');}
+  entityCards(entry){const type=this.type||TYPES[0],items=entry.entities[type];if(!items.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('empty')}</h3><p>${this.t('empty_help')}</p></div>`;return items.map((item,i)=>{const entityId=entry.entity_ids?.[type]?.[i],selected=this.selectedIndices.has(i);return `<article class="${selected?'selected':''}"><label class="entity-select" title="${this.bt('select_entity')}"><input type="checkbox" data-select="${i}" aria-label="${this.bt('select_entity')}" ${selected?'checked':''}><span></span></label><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div><div class="details"><b>${this.escape(item.name||item.address||item.state_address||item.current_temperature_address||`${this.t('entity')} ${i+1}`)}</b><code>${this.escape(item.address||item.state_address||item.current_temperature_address||item.source_entity||'—')}</code><div>${this.chips(item,type)}</div></div>${entityId?`<span class="state-badge" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<button data-edit="${i}" class="icon-btn" title="${this.t('edit')}"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-delete="${i}" class="icon-btn danger" title="${this.t('delete')}"><ha-icon icon="mdi:delete"></ha-icon></button></article>`;}).join('');}
+  updateBulkAction(){const button=this.querySelector('#delete-selected');if(!button)return;const count=this.selectedIndices.size;button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;}
   // Riepilogo compatto della card: niente booleani falsi, niente indirizzo duplicato,
   // ✓ per i flag attivi e valori "pretty" per device/state class.
   chips(item,type){
@@ -174,16 +181,20 @@ class S7PlcConfigurationPanel extends HTMLElement {
   formEntity(form,original,type){if(!form.reportValidity())throw Error(this.t('required_error'));const entity={...original};for(const field of FIELDS[type]){const [key,,,required]=field,input=form.elements[key];let value=input.type==='checkbox'?input.checked:input.value.trim();if(key==='cover_mode'||key==='control_mode')continue;if(input.type==='number'&&value!=='')value=Number(value);const presetModeValue=key.startsWith('preset_mode_')&&key.endsWith('_value'),statusCoreValue=key in CLIMATE_STATUS_CORE_DEFAULTS;if(value===''&&!required){if(presetModeValue)entity[key]=null;else if(statusCoreValue)entity[key]='';else delete entity[key];}else entity[key]=value;}const mode=form.elements.cover_mode?.value;if(type==='covers'){MODE_HIDDEN.covers[mode].forEach(k=>delete entity[k]);if(!entity.cover_status_address){COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}if(mode==='position'&&!entity.tilt_state_address){COVER_TILT_INVERT_FIELDS.forEach(k=>delete entity[k]);}const needed=mode==='position'?'position_state_address':'open_command_address';if(!entity[needed]||(mode==='traditional'&&!entity.close_command_address))throw Error(this.t('cover_required_error'));}if(type==='climates'){entity.control_mode=form.elements.control_mode.value;MODE_HIDDEN.climates[entity.control_mode].forEach(k=>delete entity[k]);if(entity.control_mode==='setpoint'){if(!entity.preset_mode_address){CLIMATE_PRESET_VALUE_FIELDS.forEach(k=>delete entity[k]);}if(!entity.hvac_status_address){CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}const presetSeen=new Set();for(const k of CLIMATE_PRESET_VALUE_FIELDS.filter(f=>f.endsWith('_value'))){if(entity[k]===undefined||entity[k]===null)continue;if(presetSeen.has(entity[k]))throw Error(this.t('climate_duplicate_preset_error'));presetSeen.add(entity[k]);}const statusSeen=new Set();for(const k of CLIMATE_STATUS_VALUE_FIELDS){if(!entity[k])continue;for(const token of String(entity[k]).split(',')){const v=token.trim();if(!v)continue;if(statusSeen.has(v))throw Error(this.t('climate_duplicate_status_error'));statusSeen.add(v);}}}if(entity.control_mode==='setpoint'&&!entity.target_temperature_address)throw Error(this.t('climate_required_error'));}return entity;}
   toYaml(obj){return Object.entries(obj).map(([k,v])=>`${k}: ${JSON.stringify(v)}`).join('\n');}
   // Conferma di eliminazione con ha-dialog, coerente con lo stile di Home Assistant
-  remove(index){
+  remove(indices){
+    const sorted=[...new Set(indices)].sort((a,b)=>b-a);
+    if(!sorted.length)return;
     const dialog=document.createElement('ha-dialog');
     dialog.open=true;dialog.headerTitle=this.t('delete_title');
-    dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:Roboto,sans-serif;color:var(--primary-text-color);max-width:420px">${this.t('delete_confirm')}</div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('delete')}</ha-button></ha-dialog-footer>`;
+    const confirmation=sorted.length===1?this.t('delete_confirm'):this.bt('delete_selected_confirm',{count:sorted.length});
+    dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:Roboto,sans-serif;color:var(--primary-text-color);max-width:420px">${confirmation}</div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('delete')}</ha-button></ha-dialog-footer>`;
     document.body.appendChild(dialog);
     dialog.addEventListener('closed',()=>dialog.remove());
     dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};
     dialog.querySelector('[slot=primaryAction]').onclick=async()=>{
       dialog.open=false;
-      await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:this.type||TYPES[0],index});
+      for(const index of sorted)await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:this.type||TYPES[0],index});
+      this.selectedIndices.clear();
       this._loaded=false;await this.load();
     };
   }
@@ -212,13 +223,15 @@ nav button:hover{border-color:var(--primary-color)}
 nav button.active{background:var(--primary-color);color:white;border-color:var(--primary-color)}
 nav button.active ha-icon{opacity:1}
 nav span{opacity:.65;margin-left:2px;font-variant-numeric:tabular-nums}
-.toolbar{justify-content:space-between;margin:10px 0 16px}.toolbar p{font-size:13px;margin-top:5px}
+.toolbar{justify-content:space-between;margin:10px 0 16px;gap:12px}.toolbar p{font-size:13px;margin-top:5px}.toolbar-actions{display:flex;align-items:center;gap:8px}.batch-delete{display:flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb,var(--error-color) 35%,var(--divider-color));background:var(--card-background-color)}.batch-delete[hidden]{display:none}
 .primary{background:var(--primary-color);color:white;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px color-mix(in srgb,var(--primary-color) 35%,transparent);transition:transform .15s,box-shadow .15s}
 .primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px color-mix(in srgb,var(--primary-color) 45%,transparent)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:10px;align-items:start}
 .cards .empty.small{grid-column:1/-1}
 article{background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:13px;margin:0;padding:14px;gap:12px;transition:border-color .15s,box-shadow .15s,transform .15s}
 article:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color));box-shadow:0 4px 16px #0000000f;transform:translateY(-1px)}
+article.selected{border-color:var(--primary-color);background:color-mix(in srgb,var(--primary-color) 5%,var(--card-background-color))}
+.entity-select{display:grid;place-items:center;flex:0 0 auto;cursor:pointer}.entity-select input{position:absolute;opacity:0;pointer-events:none}.entity-select span{box-sizing:border-box;width:20px;height:20px;border:2px solid var(--secondary-text-color);border-radius:4px;display:grid;place-items:center}.entity-select input:checked+span{border-color:var(--primary-color);background:var(--primary-color)}.entity-select input:checked+span::after{content:'✓';color:white;font-size:14px;font-weight:700;line-height:1}.entity-select input:focus-visible+span{outline:2px solid var(--primary-color);outline-offset:2px}
 .entity-icon{padding:11px;border-radius:10px;background:color-mix(in srgb,var(--primary-color) 14%,transparent);color:var(--primary-color)}
 .details{flex:1;min-width:0}.details>b,.details>code{display:block}
 .details code{margin:4px 0 8px;color:var(--secondary-text-color);font-size:12px}
@@ -236,7 +249,7 @@ article:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divi
 .empty ha-icon{--mdc-icon-size:55px;color:var(--secondary-text-color)}
 .loading{padding:30px}
 @media(prefers-reduced-motion:reduce){.page *{transition:none!important}}
-@media(max-width:650px){.page{padding:20px 12px}header{align-items:flex-start;gap:14px;flex-direction:column}.header-actions{width:100%}.header-actions select{flex:1;min-width:0}.header-start{align-items:flex-start}.details div,.toolbar p{display:none}}`;}
+@media(max-width:650px){.page{padding:20px 12px}header{align-items:flex-start;gap:14px;flex-direction:column}.header-actions{width:100%}.header-actions select{flex:1;min-width:0}.header-start{align-items:flex-start}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(76vh,860px);overflow:auto;padding:0 28px 28px;font-family:Roboto,sans-serif;color:var(--primary-text-color)}
 .dialog-body h3,.dialog-body p{margin:0}
