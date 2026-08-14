@@ -816,31 +816,52 @@ async def test_async_setup_entry_with_covers(fake_hass, mock_coordinator, device
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_skip_missing_open_address(fake_hass, mock_coordinator, device_info):
-    """Test setup skips covers with no open command address, even if a
-    close command address is present. open_command_address is the only
-    address that's still strictly required."""
+async def test_async_setup_entry_skip_missing_command_addresses(
+    fake_hass, mock_coordinator, device_info
+):
+    """Test setup skips traditional covers missing open or close command addresses."""
     config_entry = MagicMock()
     config_entry.options = {
         CONF_COVERS: [
-            {CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1"},  # Missing open
+            {
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                CONF_UID: "uid-missing-open",
+            },  # Missing open
             {
                 CONF_OPEN_COMMAND_ADDRESS: "db1,x0.2",
-                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.3",
-                CONF_UID: "uid-1",
+                CONF_UID: "uid-missing-close",
+            },  # Missing close
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.3",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.4",
+                CONF_UID: "uid-valid",
             },  # Valid
         ]
     }
 
     async_add_entities = MagicMock()
 
-    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
-        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+    with patch(
+        "custom_components.s7plc.cover.get_coordinator_and_device_info"
+    ) as mock_get:
+        mock_get.return_value = (
+            mock_coordinator,
+            device_info,
+            "test_device",
+        )
 
-        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+        await async_setup_entry(
+            fake_hass,
+            config_entry,
+            async_add_entities,
+        )
 
     entities = async_add_entities.call_args[0][0]
+
     assert len(entities) == 1
+    assert isinstance(entities[0], S7Cover)
+    assert entities[0]._open_command_address == "db1,x0.3"
+    assert entities[0]._close_command_address == "db1,x0.4"
 
 
 @pytest.mark.asyncio
