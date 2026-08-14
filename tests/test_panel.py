@@ -703,6 +703,29 @@ def test_panel_hides_status_value_fields_when_status_address_unused() -> None:
     ) in source
 
 
+def test_panel_hides_motion_bool_fields_when_status_address_used() -> None:
+    """cover_opening_address/cover_closing_address/cover_stopped_address
+    become inert once cover_status_address is configured (is_opening/
+    is_closing always read the status word then, never falling back to
+    these 3 booleans - unlike the end-stop addresses, which is_closed
+    still consults). Hidden to reduce clutter, but never stripped on
+    save - a previously-configured value is harmless to keep, and
+    silently deleting it was exactly the maintainer's complaint about the
+    old COVER_BOOL_STATUS_FIELDS behavior."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "const COVER_MOTION_BOOL_FIELDS = "
+        '["cover_opening_address","cover_closing_address","cover_stopped_address"]'
+    ) in source
+    assert (
+        "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}"
+        "else{hidden=[...hidden,...COVER_MOTION_BOOL_FIELDS];}"
+    ) in source
+    # Hidden only - formEntity must not delete these on save.
+    assert "COVER_MOTION_BOOL_FIELDS.forEach(k=>delete entity[k])" not in source
+
+
 def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
     """In Position mode, invert_tilt has nothing to invert without
     tilt_state_address filled in — dynamically hidden (and stripped on
@@ -769,3 +792,14 @@ def test_panel_close_command_address_required_for_traditional() -> None:
         "&&!entity.close_command_address))throw "
         "Error(this.t('cover_required_error'));"
     ) in source
+
+
+def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
+    """Regression test: a checkbox field's label/description span is a
+    flex child of .check (display:flex, justify-content:space-between).
+    Flex items default to min-width:auto, so a long unbroken label could
+    refuse to wrap and push the switch itself past the dialog's right
+    edge instead of wrapping onto multiple lines."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert ".visual-form .check>span{min-width:0}" in source
