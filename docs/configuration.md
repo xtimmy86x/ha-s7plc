@@ -96,6 +96,12 @@ Values outside these ranges are supported, but increasing them further may delay
 
 ## Managing Entities
 
+> [!IMPORTANT]
+> The config flow for entity management will be deprecated starting with version
+> **7.0.0**. From that version onward, the **S7 PLC side panel** is the only
+> supported interface for configuring entities. Instructions for the integration
+> options flow in this guide apply only to releases before 7.0.0.
+
 There are two supported management interfaces:
 
 - **S7 PLC side panel (recommended):** open **S7 PLC** in the Home Assistant
@@ -110,7 +116,11 @@ internal config-entry storage manually.
 
 ### Adding Entities
 
-1. Open the integration and choose **Configure** → **Add items**.
+Use the **S7 PLC side panel** on version 7.0.0 and later. On earlier releases,
+you can open the integration and choose **Configure** → **Add items**.
+
+1. Select **Add** in the appropriate entity-type tab in the side panel, or select
+   **Add items** in the pre-7.0.0 options flow.
 2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `climate`, `Entity Sync`).
 3. Fill in the form fields based on entity type (see below for details).
 4. Use **Add another** to chain the creation of multiple entities. The next form will be pre-filled with the values from the previous entry, so you only need to change what's different (e.g., address and name).

@@ -82,6 +82,11 @@ Direct + lightweight custom component using `pys7`.
 
 ### Basic Setup
 
+> [!IMPORTANT]
+> Starting with version **7.0.0**, the config flow for entity management will be
+> deprecated. From that version onward, entities can be configured only through
+> the **S7 PLC side panel**.
+
 1. Go to **Settings → Devices & Services** → **Add Integration**
 2. Search for **"S7 PLC"**
 3. Choose connection type:
@@ -92,7 +97,8 @@ Direct + lightweight custom component using `pys7`.
    - Rack/Slot (typically `0/1` for S7-1200/1500, `0/2` for S7-300/400 and Logo! 8)
    - or Local/Remote TSAP for TSAP mode (e.g. `10.00` / `10.01` for Logo! 0BA7)
 5. Configure timeout and retry settings for your network
-6. Add entities through **Configure** → **Add items**
+6. Add entities through the **S7 PLC side panel**. On releases before 7.0.0,
+   **Configure** → **Add items** is also available.
 
 ---
 

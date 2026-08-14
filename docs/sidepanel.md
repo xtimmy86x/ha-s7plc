@@ -1,4 +1,8 @@
- S7 PLC Side Panel
+# S7 PLC Side Panel
+
+> [!IMPORTANT]
+> Starting with version **7.0.0**, the config flow for entity management will be
+> deprecated and entities can be configured only from this side panel.
 
 The integration registers a native **S7 PLC** page in the Home Assistant
 sidebar. It is the quickest way to inspect and maintain PLC entities without
@@ -98,7 +102,9 @@ might need to restore it; see [Export and Import](configuration.md#export-and-im
 
 ## Side Panel vs. Integration Options
 
-Use the side panel for routine entity creation and maintenance. Continue to use
+The side panel is the recommended interface for routine entity creation and
+maintenance, and becomes the only supported entity-configuration interface in
+version 7.0.0. On releases before 7.0.0, you can continue to use
 **Settings → Devices & Services → S7 PLC → Configure** for:
 
 - PLC host, Rack/Slot or TSAP, timeout, retry, and performance settings;
