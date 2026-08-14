@@ -45,7 +45,12 @@ jobs:
             PyYAML \
             voluptuous \
             "pys7==2.8.2"
-            
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          
       - name: Run tests
         run: |
           python -m pytest tests -v \
