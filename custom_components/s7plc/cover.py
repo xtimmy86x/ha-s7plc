@@ -525,6 +525,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs) -> None:
         if not self._close_command_address:
+            # Pulsing while already fully open and not moving would start
+            # closing instead of doing nothing, which doesn't match HA's
+            # open_cover semantics (calling "open" on an already-open
+            # cover should be a no-op, not toggle it shut).
+            if not (self.is_opening or self.is_closing) and self.is_closed is False:
+                return
             await self._toggle_pulse()
             return
         await self._ensure_connected()
@@ -568,15 +574,24 @@ class S7Cover(S7BaseEntity, CoverEntity):
         timer-based bookkeeping used when there's no real movement
         feedback) so is_opening/is_closing/is_closed keep updating in HA.
 
-        Called from async_open_cover unconditionally (it's the toggle
-        trigger), and from async_stop_cover only while actually moving
-        (pulsing it stops the current travel). async_close_cover never
-        calls it - there's no dedicated "close" action a single button can
-        offer.
+        Called from async_open_cover (unless already fully open and not
+        moving - see there), and from async_stop_cover only while actually
+        moving (pulsing it stops the current travel). async_close_cover
+        never calls it - there's no dedicated "close" action a single
+        button can offer.
+
+        Uses the effective is_opening/is_closing properties, not the raw
+        _is_opening/_is_closing timer-simulated flags: when real PLC
+        movement feedback (cover_status_address, cover_opening_address,
+        cover_closing_address, cover_stopped_address) is configured
+        alongside single-button mode, those flags stay at their initial
+        False after a Home Assistant restart even though the PLC may
+        already be reporting real movement - checking the raw flags would
+        make stop_cover a no-op in that case.
         """
         await self._ensure_connected()
 
-        currently_moving = self._is_opening or self._is_closing
+        currently_moving = self.is_opening or self.is_closing
         currently_closed = False if currently_moving else bool(self.is_closed)
 
         await self.coordinator.write_batched(self._open_command_address, True)
@@ -611,7 +626,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
             # (pulsing it stops the current travel); pulsing it while
             # already stopped would instead start a new movement, so do
             # nothing rather than misinterpreting "stop" as "toggle".
-            if self._is_opening or self._is_closing:
+            # Uses the effective property (not the raw _is_opening/
+            # _is_closing flags) so real PLC movement feedback is honored
+            # even before any toggle call has run in this HA session.
+            if self.is_opening or self.is_closing:
                 await self._toggle_pulse()
             return
         await self._ensure_connected()

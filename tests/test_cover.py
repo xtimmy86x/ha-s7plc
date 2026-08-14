@@ -495,20 +495,41 @@ async def test_toggle_close_raises_without_close_command_address(
 
 
 @pytest.mark.asyncio
-async def test_toggle_from_open_starts_closing(
+async def test_toggle_open_when_already_open_is_noop(
     cover_factory, mock_coordinator, monkeypatch
 ):
-    """Pressing the button while open starts closing."""
+    """Calling async_open_cover while already fully open (not moving) does
+    nothing - pulsing the single button there would actually start
+    closing, which doesn't match HA's open_cover semantics (open on an
+    open cover should be a no-op, not toggle it shut)."""
     monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
     cover = cover_factory(close_command=None)
     cover._assumed_closed = False
 
     await cover.async_open_cover()
 
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+    assert cover._assumed_closed is False  # unchanged
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_while_closing_stops_it(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Pressing the single button (via open_cover, the only exposed
+    action) while the cover is moving stops it, same as stop_cover."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(close_command=None)
+    cover._is_closing = True
+    cover._assumed_closed = True
+
+    await cover.async_open_cover()
+
     mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
     assert cover.is_opening is False
-    assert cover.is_closing is True
-    assert cover._assumed_closed is True
+    assert cover.is_closing is False
 
 
 @pytest.mark.asyncio
@@ -525,6 +546,35 @@ async def test_toggle_while_moving_stops(cover_factory, mock_coordinator, monkey
     assert cover.is_opening is False
     assert cover.is_closing is False
     assert cover._assumed_closed is False  # unchanged — stopped mid-travel
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_honors_real_feedback_over_stale_internal_flag(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Regression test: single-button mode combined with real PLC movement
+    feedback (cover_opening_address here). After a Home Assistant restart
+    the internal _is_opening/_is_closing timer flags start out False even
+    though the PLC may already report real movement - stop_cover must
+    honor the effective is_opening/is_closing (which reads the real
+    feedback), not the stale internal flags, or it would silently do
+    nothing while the cover is actually moving."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = cover_factory(
+        close_command=None,
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    # Fresh state, as after a restart: internal flags are False...
+    assert cover._is_opening is False
+    assert cover._is_closing is False
+    # ...but the PLC reports real movement.
+    mock_coordinator.data = {"cover:opening:db1,b10": True}
+    assert cover.is_opening is True
+
+    await cover.async_stop_cover()
+
+    mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
 
 
 @pytest.mark.asyncio
