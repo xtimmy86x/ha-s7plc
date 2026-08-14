@@ -870,10 +870,17 @@ class S7ClimateSetpointControl(
             status_topic = f"{self._topic}:hvac_status"
             status = data.get(status_topic)
             if status is not None:
-                status = int(status)
-                for action, values in self._hvac_status_values.items():
-                    if status in values:
-                        return action
+                try:
+                    status_value = int(status)
+                except (TypeError, ValueError):
+                    # A transient malformed coordinator value must not make
+                    # Home Assistant fail while evaluating the entity state.
+                    # Treat it like any other unrecognised PLC status instead.
+                    status_value = None
+                if status_value is not None:
+                    for action, values in self._hvac_status_values.items():
+                        if status_value in values:
+                            return action
             # Any other value (including unconfigured/unmatched status)
             # is treated as IDLE.
             return HVACAction.IDLE

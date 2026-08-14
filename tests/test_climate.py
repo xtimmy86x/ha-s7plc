@@ -747,6 +747,20 @@ async def test_climate_setpoint_hvac_action_unknown_status_is_idle(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_status", ["invalid", object()])
+async def test_climate_setpoint_hvac_action_malformed_status_is_idle(
+    climate_setpoint_factory, mock_coordinator, invalid_status
+):
+    """Malformed PLC feedback does not break entity state evaluation."""
+    from homeassistant.components.climate import HVACAction
+
+    climate = climate_setpoint_factory(hvac_status_address=TEST_HVAC_STATUS_ADDRESS)
+    mock_coordinator.data = {f"{climate._topic}:hvac_status": invalid_status}
+
+    assert climate.hvac_action == HVACAction.IDLE
+
+    
+@pytest.mark.asyncio
 async def test_climate_setpoint_hvac_action_preheating_and_defrosting(
     climate_setpoint_factory, mock_coordinator
 ):
