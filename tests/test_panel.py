@@ -171,23 +171,80 @@ def test_panel_exposes_climate_mode_and_status_fields() -> None:
         assert key in mode_hidden_line, f"{key} missing from MODE_HIDDEN.climates.direct"
 
 
-def test_panel_hints_mode_and_status_field_semantics() -> None:
-    """preset_mode_*_value and hvac_status_*_values fields explain that
-    leaving the field empty hides/skips it (no reserved sentinel value, so
-    every PLC integer including -1 stays available), and that status fields
-    accept multiple comma-separated values — otherwise this is only
-    discoverable via the YAML editor or the docs, not from the visual
-    editor itself."""
+def test_panel_uses_config_flow_field_descriptions() -> None:
+    """Field help comes from the config flow instead of shorter panel copies."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value')" in source
-    assert "statusValues=key.startsWith('hvac_status_')&&key.endsWith('_values')" in source
-    assert 'preset_value_help:"Leave empty to hide this mode."' in source
-    assert "comma-separated" in source
-    assert "presetValue?" in source and "statusValues?" in source
+    assert "this.flowText(type,item,key,'data_description')" in source
+    assert "/s7plc_translations/${language}.json" in source
+    assert "${help}</label>" in source
     # Preset values are PLC integer mode codes: step=1, not step=any (which
     # would silently allow decimal input to be truncated).
     assert "(presetValue?'step=\"1\"':'step=\"any\"')" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_config_flow_translations_cover_every_visible_panel_field() -> None:
+    """Every panel field has the config flow's label and help in every locale."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    prefix = source.split("class S7PlcConfigurationPanel", 1)[0]
+    script = (
+        "const vm=require('vm');"
+        "const context={};vm.createContext(context);"
+        "vm.runInContext(process.argv[1] + "
+        "'\\nglobalThis.result={FIELDS,MODE_HIDDEN};',context);"
+        "process.stdout.write(JSON.stringify(context.result));"
+    )
+    result = subprocess.run(
+        ["node", "-e", script, prefix],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    panel_config = json.loads(result.stdout)
+    fields = panel_config["FIELDS"]
+    hidden = panel_config["MODE_HIDDEN"]
+    steps = {
+        "sensors": [("sensors", None)],
+        "binary_sensors": [("binary_sensors", None)],
+        "switches": [("switches", None)],
+        "covers": [
+            ("covers_traditional", "traditional"),
+            ("covers_position", "position"),
+        ],
+        "lights": [("lights", None)],
+        "buttons": [("buttons", None)],
+        "numbers": [("numbers", None)],
+        "texts": [("texts", None)],
+        "climates": [
+            ("climates_direct", "direct"),
+            ("climates_setpoint", "setpoint"),
+        ],
+        "entity_sync": [("entity_sync", None)],
+    }
+
+    for language in ("en", "it", "cs", "de", "pl"):
+        translation_path = Path(
+            f"custom_components/s7plc/translations/{language}.json"
+        )
+        flow_steps = json.loads(translation_path.read_text(encoding="utf-8"))[
+            "options"
+        ]["step"]
+        for entity_type, entity_steps in steps.items():
+            all_keys = {field[0] for field in fields[entity_type]}
+            for step, mode in entity_steps:
+                visible_keys = all_keys - {"cover_mode", "control_mode"}
+                if mode:
+                    visible_keys -= set(hidden[entity_type][mode])
+                labels = flow_steps[step]["data"]
+                descriptions = flow_steps[step]["data_description"]
+                assert visible_keys <= labels.keys(), (language, step, "data")
+                assert visible_keys <= descriptions.keys(), (
+                    language,
+                    step,
+                    "data_description",
+                )
 
 
 def test_panel_hides_climate_preset_values_when_preset_mode_address_unused() -> None:
