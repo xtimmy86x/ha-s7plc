@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
@@ -335,7 +335,10 @@ async def test_async_stop_cover_while_opening(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write_batched.assert_called_with("db1,x0.0", False)
+    assert mock_coordinator.write_batched.await_args_list == [
+        call("db1,x0.0", False),
+        call("db1,x0.1", False),
+    ]
     assert cover._is_opening is False
     assert cover._is_closing is False
 
@@ -349,7 +352,10 @@ async def test_async_stop_cover_while_closing(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    mock_coordinator.write_batched.assert_called_with("db1,x0.1", False)
+    assert mock_coordinator.write_batched.await_args_list == [
+        call("db1,x0.0", False),
+        call("db1,x0.1", False),
+    ]
     assert cover._is_opening is False
     assert cover._is_closing is False
 
@@ -362,9 +368,34 @@ async def test_async_stop_cover_idle(cover_factory, mock_coordinator):
     
     await cover.async_stop_cover()
     
-    # Should not raise error even when not moving
+    assert mock_coordinator.write_batched.await_args_list == [
+        call("db1,x0.0", False),
+        call("db1,x0.1", False),
+    ]
     assert cover._is_opening is False
     assert cover._is_closing is False
+
+
+@pytest.mark.asyncio
+async def test_async_stop_cover_with_plc_opening_feedback(
+    cover_factory, mock_coordinator
+):
+    """Stop both commands when PLC feedback reports external movement."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    mock_coordinator.data = {"cover:opening:db1,b10": True}
+    cover._is_opening = False
+    cover._is_closing = False
+
+    await cover.async_stop_cover()
+
+    assert cover.is_opening is True
+    assert mock_coordinator.write_batched.await_args_list == [
+        call("db1,x0.0", False),
+        call("db1,x0.1", False),
+    ]
 
 
 # ============================================================================
