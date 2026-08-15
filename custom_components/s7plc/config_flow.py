@@ -3706,27 +3706,25 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
-        # Reject the same PLC value assigned to more than one HVAC mode -
-        # reading the mode back from preset_mode_address would otherwise be
-        # ambiguous. Checked against the final stored values (post-default
-        # substitution), not the raw form input, since a blank field falling
-        # back to a default can itself collide with another field.
-        errors = self._validate_no_duplicate_preset_values(
-            {
-                field: item[field]
-                for field in (
-                    CONF_PRESET_MODE_OFF_VALUE,
-                    CONF_PRESET_MODE_HEAT_VALUE,
-                    CONF_PRESET_MODE_COOL_VALUE,
-                    CONF_PRESET_MODE_HEAT_COOL_VALUE,
-                    CONF_PRESET_MODE_AUTO_VALUE,
-                    CONF_PRESET_MODE_DRY_VALUE,
-                    CONF_PRESET_MODE_FAN_ONLY_VALUE,
-                )
-            }
-        )
-        if errors:
-            return None, errors
+        # Duplicate values are ambiguous only when preset mode readback is
+        # enabled. Write-only mappings may intentionally share PLC values.
+        if preset_mode_addr and preset_mode_bidirectional:
+            errors = self._validate_no_duplicate_preset_values(
+                {
+                    field: item[field]
+                    for field in (
+                        CONF_PRESET_MODE_OFF_VALUE,
+                        CONF_PRESET_MODE_HEAT_VALUE,
+                        CONF_PRESET_MODE_COOL_VALUE,
+                        CONF_PRESET_MODE_HEAT_COOL_VALUE,
+                        CONF_PRESET_MODE_AUTO_VALUE,
+                        CONF_PRESET_MODE_DRY_VALUE,
+                        CONF_PRESET_MODE_FAN_ONLY_VALUE,
+                    )
+                }
+            )
+            if errors:
+                return None, errors
 
         # Reject the same PLC status value appearing under more than one
         # HVAC action - the match would otherwise silently depend on dict

@@ -1222,8 +1222,8 @@ def test_add_climate_setpoint_rejects_non_integer_preset_value():
     assert result["kwargs"]["errors"]["base"] == "invalid_integer"
 
 
-def test_add_climate_setpoint_rejects_duplicate_preset_value():
-    """Two HVAC modes can't be mapped to the same PLC value."""
+def test_add_climate_setpoint_accepts_duplicate_preset_value_when_write_only():
+    """Write-only preset mappings may share the same PLC value."""
     flow = make_options_flow(options={const.CONF_CLIMATES: []})
 
     result = run_flow(
@@ -1231,6 +1231,28 @@ def test_add_climate_setpoint_rejects_duplicate_preset_value():
             {
                 const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
                 const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_ADDRESS: "DB1,INT0",
+                const.CONF_PRESET_MODE_BIDIRECTIONAL: False,
+                const.CONF_PRESET_MODE_HEAT_VALUE: "5",
+                const.CONF_PRESET_MODE_COOL_VALUE: "5",
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+
+
+def test_add_climate_setpoint_rejects_duplicate_preset_value_when_bidirectional():
+    """Bidirectional preset mappings must use distinct PLC values."""
+    flow = make_options_flow(options={const.CONF_CLIMATES: []})
+
+    result = run_flow(
+        flow.async_step_climates_setpoint(
+            {
+                const.CONF_CURRENT_TEMPERATURE_ADDRESS: "DB1,REAL0",
+                const.CONF_TARGET_TEMPERATURE_ADDRESS: "DB1,REAL4",
+                const.CONF_PRESET_MODE_ADDRESS: "DB1,INT0",
+                const.CONF_PRESET_MODE_BIDIRECTIONAL: True,
                 const.CONF_PRESET_MODE_HEAT_VALUE: "5",
                 const.CONF_PRESET_MODE_COOL_VALUE: "5",
             }
