@@ -428,18 +428,21 @@ class S7Cover(S7BaseEntity, CoverEntity):
         ):
             return "stopped"
 
-        has_boolean_status = bool(
-            self._cover_opening_address or self._cover_closing_address
+        opening_state = (
+            self._get_topic_state(self._cover_opening_topic)
+            if self._cover_opening_address
+            else None
         )
-        if self._cover_opening_address and self._get_topic_state(
-            self._cover_opening_topic
-        ):
+        closing_state = (
+            self._get_topic_state(self._cover_closing_topic)
+            if self._cover_closing_address
+            else None
+        )
+        if opening_state is True:
             return "opening"
-        if self._cover_closing_address and self._get_topic_state(
-            self._cover_closing_topic
-        ):
+        if closing_state is True:
             return "closing"
-        if has_boolean_status:
+        if opening_state is not None or closing_state is not None:
             return "stopped"
 
         if self._is_opening:

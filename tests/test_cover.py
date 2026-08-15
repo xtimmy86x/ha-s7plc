@@ -480,6 +480,127 @@ def test_extra_state_attributes_with_state_topics(cover_factory):
 # ============================================================================
 
 
+def test_movement_contract_a_status_opening_overrides_false_opening_bit(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": False,
+        "cover:status:db1,b10": 1,
+    }
+
+    assert cover.is_opening is True
+
+
+def test_movement_contract_b_unknown_status_falls_back_to_true_opening_bit(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,
+        "cover:status:db1,b10": 99,
+    }
+
+    assert cover.is_opening is True
+
+
+def test_movement_contract_c_status_closing_overrides_true_opening_bit(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_closing_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,
+        "cover:status:db1,b10": 2,
+    }
+
+    assert cover.is_opening is False
+    assert cover.is_closing is True
+
+
+def test_movement_contract_d_stopped_bit_overrides_true_opening_bit(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_stopped_address="db1,b2",
+        cover_stopped_topic="cover:stopped:db1,b2",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,
+        "cover:stopped:db1,b2": True,
+    }
+
+    assert cover.is_opening is False
+
+
+@pytest.mark.asyncio
+async def test_movement_contract_e_ha_open_command_without_plc_feedback(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+    )
+    mock_coordinator.data = {}
+
+    await cover.async_open_cover()
+
+    assert cover.is_opening is True
+
+
+def test_movement_contract_f_restart_uses_true_opening_feedback(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+    )
+    cover._is_opening = False
+    cover._is_closing = False
+    mock_coordinator.data = {"cover:opening:db1,b1": True}
+
+    assert cover.is_opening is True
+
+
+@pytest.mark.asyncio
+async def test_movement_contract_g_stop_writes_both_outputs_false_after_restart(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+    )
+    cover._is_opening = False
+    cover._is_closing = False
+    mock_coordinator.data = {"cover:opening:db1,b1": True}
+
+    await cover.async_stop_cover()
+
+    assert mock_coordinator.write_batched.await_args_list == [
+        call("db1,x0.0", False),
+        call("db1,x0.1", False),
+    ]
+
+
 def test_cover_status_unconfigured_uses_timer_flags(cover_factory):
     """Without the movement-status addresses, is_opening/is_closing are
     unaffected (already covered by test_is_opening/test_is_closing, asserted
@@ -571,16 +692,15 @@ def test_cover_status_opening_address_false_overrides_stale_timer_flag(
     assert cover.is_opening is False
 
 
-def test_cover_status_no_data_yet_forces_false(cover_factory, mock_coordinator):
-    """Before the first coordinator poll, status is unknown: treated as
-    not-moving rather than trusting the stale timer flag."""
+def test_cover_status_no_data_yet_uses_timer_flag(cover_factory, mock_coordinator):
+    """Before the first coordinator poll, fall back to the HA command flag."""
     cover = cover_factory(
         cover_opening_address="db1,b10",
         cover_opening_topic="cover:opening:db1,b10",
     )
     cover._is_opening = True
     mock_coordinator.data = {}
-    assert cover.is_opening is False
+    assert cover.is_opening is True
 
 
 def test_cover_status_does_not_affect_is_closed(cover_factory, mock_coordinator):
