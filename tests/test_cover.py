@@ -553,6 +553,25 @@ def test_movement_contract_d_stopped_bit_overrides_true_opening_bit(
     assert cover.is_opening is False
 
 
+def test_movement_contract_contradictory_direction_bits_are_unknown(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_closing_address="db1,b2",
+        cover_closing_topic="cover:closing:db1,b2",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,
+        "cover:closing:db1,b2": True,
+    }
+
+    assert cover._get_feedback_movement() is None
+    assert cover.is_opening is False
+    assert cover.is_closing is False
+
+
 @pytest.mark.asyncio
 async def test_movement_contract_e_ha_open_command_without_plc_feedback(
     cover_factory, mock_coordinator

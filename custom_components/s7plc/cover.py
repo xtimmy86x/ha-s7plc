@@ -440,6 +440,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
             if self._cover_closing_address
             else None
         )
+        if opening_state is True and closing_state is True:
+            return None
         if opening_state is True:
             return "opening"
         if closing_state is True:
