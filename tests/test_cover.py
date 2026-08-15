@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
@@ -763,6 +764,184 @@ async def test_async_setup_entry_traditional_with_status_address(
     assert cover._cover_status_address == "db1,b10"
     assert cover._cover_status_values["opening"] == [1]
     assert cover._cover_status_values["closing"] == [2]
+
+
+# ============================================================================
+# Movement-feedback early stop Tests
+#
+# For traditional covers, operate_time is a safety-net maximum, not the
+# primary timing source, whenever real movement feedback is configured
+# (cover_status_address, or the boolean opening/closing/stopped addresses):
+# the command output is cut as soon as that feedback confirms movement is
+# over, instead of always waiting the full operate_time.
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_status_address_stops_open_early_once_movement_confirmed_over(
+    cover_factory, mock_coordinator
+):
+    """cover_status_address reports opening, then stopped: the command
+    output is cut as soon as "stopped" is observed, without waiting for
+    operate_time to elapse."""
+    cover = cover_factory(
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+        cover_status_stopped_values="2",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 0}  # idle/unmatched
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.reset_mock()
+
+    # PLC confirms movement started.
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # opening
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._is_opening is True
+
+    # PLC confirms movement is over - stop early.
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # stopped
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.0", False)
+    assert cover._is_opening is False
+
+
+@pytest.mark.asyncio
+async def test_status_address_does_not_stop_before_movement_confirmed(
+    cover_factory, mock_coordinator
+):
+    """A stale coordinator reading right after the command is issued (the
+    PLC hasn't processed it yet) must not be mistaken for "movement over" -
+    only a reading that first confirmed movement can trigger the early
+    stop."""
+    cover = cover_factory(
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+        cover_status_stopped_values="2",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 0}  # idle/unmatched
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.reset_mock()
+
+    # Still the stale pre-command reading - movement was never confirmed.
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._is_opening is True
+
+
+@pytest.mark.asyncio
+async def test_boolean_opening_address_stops_open_early(
+    cover_factory, mock_coordinator
+):
+    """Same early-stop behavior via the boolean cover_opening_address
+    instead of cover_status_address."""
+    cover = cover_factory(
+        cover_opening_address="db1,b10",
+        cover_opening_topic="cover:opening:db1,b10",
+    )
+    mock_coordinator.data = {"cover:opening:db1,b10": False}
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.reset_mock()
+
+    mock_coordinator.data = {"cover:opening:db1,b10": True}
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_not_called()
+
+    mock_coordinator.data = {"cover:opening:db1,b10": False}
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_called_with("db1,x0.0", False)
+    assert cover._is_opening is False
+
+
+@pytest.mark.asyncio
+async def test_movement_confirmed_resets_between_operations(
+    cover_factory, mock_coordinator
+):
+    """_movement_confirmed must not leak True from a prior operation into
+    the next one - each new command starts unconfirmed again."""
+    cover = cover_factory(
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+        cover_status_closing_values="3",
+        cover_status_stopped_values="2",
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 0}
+    await cover.async_open_cover()
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # opening
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert cover._movement_confirmed is True
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # stopped -> early stop
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert cover._movement_confirmed is False
+
+    # New close command: still the "stopped" reading from a moment ago -
+    # must not be mistaken for "closing already finished".
+    await cover.async_close_cover()
+    assert cover._movement_confirmed is False
+    mock_coordinator.write_batched.reset_mock()
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_complete_operation_cancels_pending_operate_time_timer(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """When movement feedback stops the cover early, the operate_time
+    safety-net timer must be cancelled - otherwise it would fire again
+    later and redundantly repeat the stop."""
+    cancel = MagicMock()
+    monkeypatch.setattr(
+        "custom_components.s7plc.cover.async_call_later",
+        MagicMock(return_value=cancel),
+    )
+    cover = cover_factory(
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="1",
+        cover_status_stopped_values="2",
+        operate_time=15.0,
+    )
+    mock_coordinator.data = {"cover:status:db1,b10": 0}
+    await cover.async_open_cover()
+    mock_coordinator.data = {"cover:status:db1,b10": 1}  # opening
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # stopped
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+
+    cancel.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_operate_time_still_governs_without_movement_feedback(
+    cover_factory, mock_coordinator
+):
+    """Without any movement feedback configured, the new early-stop logic
+    is inert - _handle_coordinator_update never fires it, operate_time
+    remains the only timing source (regression guard)."""
+    cover = cover_factory()
+    mock_coordinator.data = {}
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.reset_mock()
+
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._is_opening is True
 
 
 # ============================================================================

@@ -354,6 +354,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._reset_handles: dict[str, Callable[[], None]] = {}
         self._is_opening = False
         self._is_closing = False
+        # Set once real movement feedback (cover_status_address or the
+        # boolean opening/closing/stopped addresses) confirms the cover is
+        # actually moving after a command - see _handle_coordinator_update.
+        # Guards against a PLC-scan-cycle race: a stale pre-command reading
+        # (still "stopped" a moment after we just issued "open") must not
+        # immediately abort a movement that hasn't started yet.
+        self._movement_confirmed = False
         self._assumed_closed: bool = (
             False  # Assume open by default when using operate_time
         )
@@ -426,13 +433,55 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
             # If opening and reached open position, stop
             if self._is_opening and opened_state is True:
-                _LOGGER.debug("Cover %s reached open position, stopping", self.name)
+                _LOGGER.debug(
+                    "Cover %s reached open position, stopping", self._attr_name
+                )
                 self.hass.async_create_task(self._complete_operation("open"))
 
             # If closing and reached closed position, stop
             elif self._is_closing and closed_state is True:
-                _LOGGER.debug("Cover %s reached closed position, stopping", self.name)
+                _LOGGER.debug(
+                    "Cover %s reached closed position, stopping", self._attr_name
+                )
                 self.hass.async_create_task(self._complete_operation("close"))
+
+        # Movement feedback (cover_status_address or the boolean opening/
+        # closing/stopped addresses) - separate from the end-stop pair
+        # above - reports whether the cover is still actually moving. When
+        # configured, use it to stop the command output as soon as
+        # movement is confirmed over, instead of always waiting the full
+        # operate_time: operate_time becomes a safety-net maximum instead
+        # of the primary timing source. Only trigger after this feedback
+        # has *confirmed* movement at least once (self._movement_confirmed)
+        # so a stale reading right after the command was issued - the PLC
+        # may not have processed it yet - can't immediately abort a
+        # movement that hasn't started.
+        if (
+            self._cover_status_address
+            or self._cover_opening_address
+            or self._cover_closing_address
+            or self._cover_stopped_address
+        ):
+            if self._is_opening:
+                if self.is_opening:
+                    self._movement_confirmed = True
+                elif self._movement_confirmed:
+                    self._movement_confirmed = False
+                    _LOGGER.debug(
+                        "Cover %s feedback reports movement finished, stopping",
+                        self._attr_name,
+                    )
+                    self.hass.async_create_task(self._complete_operation("open"))
+            elif self._is_closing:
+                if self.is_closing:
+                    self._movement_confirmed = True
+                elif self._movement_confirmed:
+                    self._movement_confirmed = False
+                    _LOGGER.debug(
+                        "Cover %s feedback reports movement finished, stopping",
+                        self._attr_name,
+                    )
+                    self.hass.async_create_task(self._complete_operation("close"))
 
         super()._handle_coordinator_update()
 
@@ -518,6 +567,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._open_command_address, True)
         self._is_opening = True
         self._is_closing = False
+        self._movement_confirmed = False
         if not self._use_state_topics:
             self._assumed_closed = False  # Assume open when opening starts
         self._schedule_reset("open")
@@ -530,6 +580,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._close_command_address, True)
         self._is_opening = False
         self._is_closing = True
+        self._movement_confirmed = False
         if not self._use_state_topics:
             self._assumed_closed = True  # Assume closed when closing starts
         self._schedule_reset("close")
@@ -647,6 +698,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             self._is_opening = False
         else:
             self._is_closing = False
+        self._movement_confirmed = False
 
         # When stopped, maintain last known position
         # No change to _assumed_closed - it keeps the last state
@@ -656,6 +708,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
             await self.coordinator.async_request_refresh()
 
     async def _complete_operation(self, direction: str) -> None:
+        # Cancel the operate_time safety-net timer if this fired early via
+        # feedback (see _handle_coordinator_update) - otherwise it would
+        # fire again later and redundantly repeat this whole method.
+        self._cancel_reset(direction)
         address = (
             self._open_command_address
             if direction == "open"
@@ -668,6 +724,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 pass  # Non-critical, already logged
         self._is_opening = False
         self._is_closing = False
+        self._movement_confirmed = False
 
         # _assumed_closed is already set when operation starts
 

@@ -768,10 +768,33 @@ def test_panel_hides_motion_bool_fields_when_status_address_used() -> None:
     ) in source
     assert (
         "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}"
-        "else{hidden=[...hidden,...COVER_MOTION_BOOL_FIELDS];}"
+        "else{hidden=[...hidden,...COVER_MOTION_BOOL_FIELDS];"
     ) in source
     # Hidden only - formEntity must not delete these on save.
     assert "COVER_MOTION_BOOL_FIELDS.forEach(k=>delete entity[k])" not in source
+
+
+def test_panel_hides_end_stop_addresses_unless_use_state_topics_checked() -> None:
+    """opening_state_address/closing_state_address only do anything when
+    "use_state_topics" is checked (is_closed's fallback and the auto-stop
+    that cuts the command output once an end-stop confirms position) -
+    independent of cover_status_address, which only reports movement for
+    display. Hidden once a status address is set, unless the checkbox is
+    also checked (meaning: don't rely on the status address for open/
+    closed, use these end-stops instead). Hidden only, never stripped on
+    save, same non-destructive rule as COVER_MOTION_BOOL_FIELDS."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "const COVER_END_STOP_FIELDS = "
+        '["opening_state_address","closing_state_address"]'
+    ) in source
+    assert (
+        "if(!form.elements.use_state_topics?.checked)"
+        "{hidden=[...hidden,...COVER_END_STOP_FIELDS];}"
+    ) in source
+    assert "form.elements.use_state_topics.onchange=syncMode" in source
+    assert "COVER_END_STOP_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
 def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
