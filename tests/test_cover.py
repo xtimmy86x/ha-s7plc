@@ -771,11 +771,11 @@ async def test_async_setup_entry_traditional_with_status_address(
 # ============================================================================
 # Movement-feedback early stop Tests
 #
-# For traditional covers, operate_time is a safety-net maximum, not the
-# primary timing source, whenever real movement feedback is configured
-# (cover_status_address, or the boolean opening/closing/stopped addresses):
-# the command output is cut as soon as that feedback confirms movement is
-# over, instead of always waiting the full operate_time.
+# For traditional (non-toggle) covers, operate_time is a safety-net maximum,
+# not the primary timing source, whenever real movement feedback is
+# configured (cover_status_address, or the boolean opening/closing/stopped
+# addresses): the command output is cut as soon as that feedback confirms
+# movement is over, instead of always waiting the full operate_time.
 # ============================================================================
 
 
