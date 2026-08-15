@@ -417,6 +417,37 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 return movement
         return None
 
+    def _get_effective_movement(self) -> str | None:
+        """Return movement from the highest-priority usable source."""
+        status = self._get_movement_status()
+        if status is not None:
+            return status
+
+        if self._cover_stopped_address and self._get_topic_state(
+            self._cover_stopped_topic
+        ):
+            return "stopped"
+
+        has_boolean_status = bool(
+            self._cover_opening_address or self._cover_closing_address
+        )
+        if self._cover_opening_address and self._get_topic_state(
+            self._cover_opening_topic
+        ):
+            return "opening"
+        if self._cover_closing_address and self._get_topic_state(
+            self._cover_closing_topic
+        ):
+            return "closing"
+        if has_boolean_status:
+            return "stopped"
+
+        if self._is_opening:
+            return "opening"
+        if self._is_closing:
+            return "closing"
+        return None
+
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         # If using state topics (limit switches), check if movement should stop
@@ -448,37 +479,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     @property
     def is_opening(self) -> bool:
-        """Return True when the cover is opening.
-
-        cover_status_address (single climate-style status word), when
-        configured, takes priority over the boolean addresses below.
-        cover_stopped_address, when it reports True, overrides
-        cover_opening_address/cover_closing_address so a stopped signal
-        doesn't leave a stale in-motion reading. If none of these are
-        configured, falls back to the timer-simulated flag.
-        """
-        if self._cover_status_address:
-            return self._get_movement_status() == "opening"
-        if self._cover_stopped_address and self._get_topic_state(
-            self._cover_stopped_topic
-        ):
-            return False
-        if self._cover_opening_address:
-            return self._get_topic_state(self._cover_opening_topic) is True
-        return self._is_opening
+        """Return True when the effective movement is opening."""
+        return self._get_effective_movement() == "opening"
 
     @property
     def is_closing(self) -> bool:
-        """Return True when the cover is closing. See is_opening."""
-        if self._cover_status_address:
-            return self._get_movement_status() == "closing"
-        if self._cover_stopped_address and self._get_topic_state(
-            self._cover_stopped_topic
-        ):
-            return False
-        if self._cover_closing_address:
-            return self._get_topic_state(self._cover_closing_topic) is True
-        return self._is_closing
+        """Return True when the effective movement is closing."""
+        return self._get_effective_movement() == "closing"
 
     @property
     def is_closed(self) -> bool | None:

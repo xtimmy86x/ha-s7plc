@@ -636,11 +636,10 @@ def test_cover_status_absent_from_attrs_when_unconfigured(cover_factory):
 # ============================================================================
 
 
-def test_cover_status_address_takes_priority_over_booleans(
+def test_cover_status_address_unmatched_falls_back_to_booleans(
     cover_factory, mock_coordinator
 ):
-    """When both cover_status_address and the boolean addresses are
-    configured, cover_status_address wins for is_opening/is_closing."""
+    """An unmatched status word falls back to boolean movement feedback."""
     cover = cover_factory(
         cover_opening_address="db1,b1",
         cover_opening_topic="cover:opening:db1,b1",
@@ -650,11 +649,31 @@ def test_cover_status_address_takes_priority_over_booleans(
     )
     mock_coordinator.data = {
         "cover:opening:db1,b1": True,  # boolean says opening
-        "cover:status:db1,b10": 99,  # status word says something else
+        "cover:status:db1,b10": 99,  # status word is not mapped
     }
-    # cover_status_address is configured, so it's authoritative even though
-    # it doesn't currently match "opening" — the boolean is ignored.
+    assert cover.is_opening is True
+
+
+def test_cover_status_address_unmatched_falls_back_to_stopped(
+    cover_factory, mock_coordinator
+):
+    """An unmatched status word still honors a dedicated stopped bit."""
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_stopped_address="db1,b2",
+        cover_stopped_topic="cover:stopped:db1,b2",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_opening_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": True,
+        "cover:stopped:db1,b2": True,
+        "cover:status:db1,b10": 99,
+    }
     assert cover.is_opening is False
+    assert cover.is_closing is False
 
 
 def test_cover_status_address_opening_value_drives_is_opening(
