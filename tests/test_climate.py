@@ -700,6 +700,36 @@ async def test_climate_setpoint_on_off_address_read(
 
 
 @pytest.mark.asyncio
+async def test_climate_setpoint_on_off_does_not_invent_unknown_mode(
+    climate_setpoint_factory, mock_coordinator
+):
+    """An on signal alone does not identify a specific HVAC mode."""
+    climate = climate_setpoint_factory(on_off_address="db1,x0.0")
+    climate._hvac_mode = HVACMode.OFF
+
+    mock_coordinator.data = {f"{climate._topic}:on_off": True}
+    assert climate.hvac_mode == HVACMode.OFF
+
+
+@pytest.mark.parametrize(
+    ("preset_mode_bidirectional", "expects_warning"),
+    [(False, False), (True, True)],
+)
+def test_climate_setpoint_duplicate_presets_validated_only_when_bidirectional(
+    climate_setpoint_factory, caplog, preset_mode_bidirectional, expects_warning
+):
+    """Duplicate preset values matter only when PLC readback is enabled."""
+    climate_setpoint_factory(
+        preset_mode_address="db1,int0",
+        preset_mode_bidirectional=preset_mode_bidirectional,
+        preset_mode_heat_value=1,
+        preset_mode_cool_value=1,
+    )
+
+    assert ("Duplicate preset mode value" in caplog.text) is expects_warning
+
+
+@pytest.mark.asyncio
 async def test_climate_setpoint_on_off_address_write(
     climate_setpoint_factory, mock_coordinator
 ):

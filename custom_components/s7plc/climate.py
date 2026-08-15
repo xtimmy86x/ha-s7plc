@@ -737,7 +737,7 @@ class S7ClimateSetpointControl(
             value = self._preset_mode_values[mode]
             if value is None:
                 continue
-            if value in self._preset_value_to_mode:
+            if self._preset_mode_bidirectional and value in self._preset_value_to_mode:
                 _LOGGER.warning(
                     "Duplicate preset mode value %s for %s (modes %s and %s); "
                     "reading the mode back from PLC may be ambiguous",
@@ -831,21 +831,6 @@ class S7ClimateSetpointControl(
                     mode = None
                 if mode is not None:
                     return mode
-
-        if (
-            self._on_off_address
-            and data.get(f"{self._topic}:on_off")
-            and self._hvac_mode == HVACMode.OFF
-            and len(self._attr_hvac_modes) > 1
-        ):
-            # Device reports "on" but we have no more specific mode source
-            # and our last known mode was OFF: assume some active mode
-            # rather than showing OFF while the device is actually running.
-            return (
-                HVACMode.HEAT_COOL
-                if HVACMode.HEAT_COOL in self._attr_hvac_modes
-                else next(m for m in self._attr_hvac_modes if m != HVACMode.OFF)
-            )
 
         return self._hvac_mode
 
