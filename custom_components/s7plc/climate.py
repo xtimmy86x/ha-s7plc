@@ -803,7 +803,7 @@ class S7ClimateSetpointControl(
         return None
 
     @property
-    def hvac_mode(self) -> HVACMode:
+    def hvac_mode(self) -> HVACMode | None:
         """Return current HVAC mode.
 
         on_off_address (if False, the mode is always OFF) is read whenever
@@ -821,6 +821,8 @@ class S7ClimateSetpointControl(
             on_off_value = data.get(f"{self._topic}:on_off")
             if on_off_value is not None and not bool(on_off_value):
                 return HVACMode.OFF
+            if on_off_value is True and self._hvac_mode == HVACMode.OFF:
+                return None
 
         if self._preset_mode_address and self._preset_mode_bidirectional:
             preset_value = data.get(f"{self._topic}:preset_mode")

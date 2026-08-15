@@ -708,7 +708,7 @@ async def test_climate_setpoint_on_off_does_not_invent_unknown_mode(
     climate._hvac_mode = HVACMode.OFF
 
     mock_coordinator.data = {f"{climate._topic}:on_off": True}
-    assert climate.hvac_mode == HVACMode.OFF
+    assert climate.hvac_mode is None
 
 
 @pytest.mark.parametrize(
