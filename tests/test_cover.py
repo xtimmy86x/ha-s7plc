@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -599,6 +600,44 @@ async def test_movement_contract_g_stop_writes_both_outputs_false_after_restart(
         call("db1,x0.0", False),
         call("db1,x0.1", False),
     ]
+
+
+@pytest.mark.asyncio
+async def test_external_movement_stopping_does_not_write_outputs(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+    )
+    mock_coordinator.data = {"cover:opening:db1,b1": True}
+    cover._handle_coordinator_update()
+    mock_coordinator.data = {"cover:opening:db1,b1": False}
+
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+
+    mock_coordinator.write_batched.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_ha_movement_stopping_completes_command(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+    )
+    await cover.async_open_cover()
+    mock_coordinator.write_batched.reset_mock()
+    mock_coordinator.data = {"cover:opening:db1,b1": True}
+    cover._handle_coordinator_update()
+    mock_coordinator.data = {"cover:opening:db1,b1": False}
+
+    cover._handle_coordinator_update()
+    await asyncio.sleep(0)
+
+    mock_coordinator.write_batched.assert_awaited_once_with("db1,x0.0", False)
 
 
 def test_cover_status_unconfigured_uses_timer_flags(cover_factory):

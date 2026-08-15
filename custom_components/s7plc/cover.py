@@ -354,6 +354,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._reset_handles: dict[str, Callable[[], None]] = {}
         self._is_opening = False
         self._is_closing = False
+        self._ha_command_direction: str | None = None
+        self._ha_movement_feedback_seen = False
         self._assumed_closed: bool = (
             False  # Assume open by default when using operate_time
         )
@@ -417,8 +419,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 return movement
         return None
 
-    def _get_effective_movement(self) -> str | None:
-        """Return movement from the highest-priority usable source."""
+    def _get_feedback_movement(self) -> str | None:
+        """Return movement reported by configured PLC feedback."""
         status = self._get_movement_status()
         if status is not None:
             return status
@@ -445,6 +447,14 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if opening_state is not None or closing_state is not None:
             return "stopped"
 
+        return None
+
+    def _get_effective_movement(self) -> str | None:
+        """Return movement from the highest-priority usable source."""
+        feedback = self._get_feedback_movement()
+        if feedback is not None:
+            return feedback
+
         if self._is_opening:
             return "opening"
         if self._is_closing:
@@ -453,20 +463,37 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        completion_direction = None
+
         # If using state topics (limit switches), check if movement should stop
         if self._use_state_topics:
             opened_state = self._get_topic_state(self._opened_topic)
             closed_state = self._get_topic_state(self._closed_topic)
 
             # If opening and reached open position, stop
-            if self._is_opening and opened_state is True:
+            if self._ha_command_direction == "open" and opened_state is True:
                 _LOGGER.debug("Cover %s reached open position, stopping", self.name)
-                self.hass.async_create_task(self._complete_operation("open"))
+                completion_direction = "open"
 
             # If closing and reached closed position, stop
-            elif self._is_closing and closed_state is True:
+            elif self._ha_command_direction == "close" and closed_state is True:
                 _LOGGER.debug("Cover %s reached closed position, stopping", self.name)
-                self.hass.async_create_task(self._complete_operation("close"))
+                completion_direction = "close"
+
+        if completion_direction is None and self._ha_command_direction is not None:
+            feedback = self._get_feedback_movement()
+            expected_feedback = (
+                "opening" if self._ha_command_direction == "open" else "closing"
+            )
+            if feedback == expected_feedback:
+                self._ha_movement_feedback_seen = True
+            elif self._ha_movement_feedback_seen and feedback is not None:
+                completion_direction = self._ha_command_direction
+
+        if completion_direction is not None:
+            self._ha_command_direction = None
+            self._ha_movement_feedback_seen = False
+            self.hass.async_create_task(self._complete_operation(completion_direction))
 
         super()._handle_coordinator_update()
 
@@ -528,6 +555,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._open_command_address, True)
         self._is_opening = True
         self._is_closing = False
+        self._ha_command_direction = "open"
+        self._ha_movement_feedback_seen = False
         if not self._use_state_topics:
             self._assumed_closed = False  # Assume open when opening starts
         self._schedule_reset("open")
@@ -540,6 +569,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._close_command_address, True)
         self._is_opening = False
         self._is_closing = True
+        self._ha_command_direction = "close"
+        self._ha_movement_feedback_seen = False
         if not self._use_state_topics:
             self._assumed_closed = True  # Assume closed when closing starts
         self._schedule_reset("close")
@@ -634,6 +665,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
             self._is_opening = False
         else:
             self._is_closing = False
+        if self._ha_command_direction == direction:
+            self._ha_command_direction = None
+            self._ha_movement_feedback_seen = False
 
         # When stopped, maintain last known position
         # No change to _assumed_closed - it keeps the last state
@@ -643,6 +677,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
             await self.coordinator.async_request_refresh()
 
     async def _complete_operation(self, direction: str) -> None:
+        if self._ha_command_direction == direction:
+            self._ha_command_direction = None
+            self._ha_movement_feedback_seen = False
         address = (
             self._open_command_address
             if direction == "open"
