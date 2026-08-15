@@ -11,7 +11,6 @@ import pytest
 from custom_components.s7plc.panel import (
     _entity_from_message,
     _entry_payload,
-    _integration_version,
     _versioned_asset_url,
 )
 
@@ -24,8 +23,9 @@ def test_panel_asset_url_uses_manifest_version() -> None:
         Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
     )
 
-    assert _integration_version() == manifest["version"]
-    assert _versioned_asset_url("/s7plc_static/s7plc-panel.js") == (
+    assert _versioned_asset_url(
+        "/s7plc_static/s7plc-panel.js", manifest["version"]
+    ) == (
         f"/s7plc_static/s7plc-panel.js?v={manifest['version']}"
     )
 

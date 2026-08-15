@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Hashable
 from pathlib import Path
 from typing import Any
@@ -109,16 +108,9 @@ PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
 
 
-def _integration_version() -> str:
-    """Return the integration version declared in the manifest."""
-    manifest_path = Path(__file__).with_name("manifest.json")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    return manifest["version"]
-
-
-def _versioned_asset_url(asset_url: str) -> str:
+def _versioned_asset_url(asset_url: str, version: str) -> str:
     """Append the integration version to an asset URL for cache busting."""
-    return f"{asset_url}?{urlencode({'v': _integration_version()})}"
+    return f"{asset_url}?{urlencode({'v': version})}"
 
 
 # Fields every entity type accepts ("name" comes from homeassistant.const,
@@ -406,11 +398,13 @@ async def async_setup_panel(hass: Any) -> None:
 
     from homeassistant.components import panel_custom, websocket_api
     from homeassistant.components.http import StaticPathConfig
+    from homeassistant.loader import async_get_integration
 
     asset_url = "/s7plc_static/s7plc-panel.js"
     asset_path = Path(__file__).parent / "www" / "s7plc-panel.js"
     translations_url = "/s7plc_translations"
     translations_path = Path(__file__).parent / "translations"
+    integration = await async_get_integration(hass, DOMAIN)
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(asset_url, str(asset_path), cache_headers=False),
@@ -514,10 +508,10 @@ async def async_setup_panel(hass: Any) -> None:
         hass,
         webcomponent_name="s7plc-configuration-panel",
         frontend_url_path=PANEL_URL,
-        module_url=_versioned_asset_url(asset_url),
+        module_url=_versioned_asset_url(asset_url, integration.version),
         sidebar_title="S7 PLC",
         sidebar_icon="mdi:memory",
         require_admin=True,
-        config={"domain": DOMAIN, "version": _integration_version()},
+        config={"domain": DOMAIN, "version": integration.version},
     )
     hass.data[DOMAIN][PANEL_DATA] = True
