@@ -797,6 +797,18 @@ def test_panel_hides_end_stop_addresses_unless_use_state_topics_checked() -> Non
     assert "COVER_END_STOP_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
+def test_panel_hides_operate_time_in_toggle_mode() -> None:
+    """toggle_mode pulses open_command_address for a fixed short duration
+    (DEFAULT_PULSE_DURATION) instead of the timer-based operate_time -
+    hidden once toggle_mode is checked since it has no effect there."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "if(sel.value==='traditional'&&form.elements.toggle_mode?.checked)"
+        "{hidden=[...hidden,'close_command_address','operate_time'];}"
+    ) in source
+
+
 def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
     """In Position mode, invert_tilt has nothing to invert without
     tilt_state_address filled in — dynamically hidden (and stripped on
@@ -898,11 +910,12 @@ def test_panel_exposes_toggle_mode_field() -> None:
     )
     assert "toggle_mode" in position_hidden_line
 
-    # Dynamic hide: checking the box hides close_command_address.
+    # Dynamic hide: checking the box hides close_command_address (and
+    # operate_time, see test_panel_hides_operate_time_in_toggle_mode).
     assert "form.elements.toggle_mode.onchange=syncMode" in source
     assert (
         "if(sel.value==='traditional'&&form.elements.toggle_mode?.checked)"
-        "{hidden=[...hidden,'close_command_address'];}"
+        "{hidden=[...hidden,'close_command_address','operate_time'];}"
     ) in source
     # Strip on save so a stale value doesn't linger once toggle_mode is on.
     assert (
