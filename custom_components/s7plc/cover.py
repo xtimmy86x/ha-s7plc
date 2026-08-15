@@ -677,6 +677,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             await self.coordinator.async_request_refresh()
 
     async def _complete_operation(self, direction: str) -> None:
+        self._cancel_reset(direction)
         if self._ha_command_direction == direction:
             self._ha_command_direction = None
             self._ha_movement_feedback_seen = False

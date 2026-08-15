@@ -629,6 +629,7 @@ async def test_ha_movement_stopping_completes_command(
         cover_opening_topic="cover:opening:db1,b1",
     )
     await cover.async_open_cover()
+    assert "open" in cover._reset_handles
     mock_coordinator.write_batched.reset_mock()
     mock_coordinator.data = {"cover:opening:db1,b1": True}
     cover._handle_coordinator_update()
@@ -638,6 +639,7 @@ async def test_ha_movement_stopping_completes_command(
     await asyncio.sleep(0)
 
     mock_coordinator.write_batched.assert_awaited_once_with("db1,x0.0", False)
+    assert "open" not in cover._reset_handles
 
 
 def test_cover_status_unconfigured_uses_timer_flags(cover_factory):
