@@ -11,3 +11,5 @@ htmlcov/
 
 config.json
 node_modules/
+
+patch.patch
