@@ -414,56 +414,36 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
                 )
 
 
-def test_panel_hides_climate_preset_values_when_preset_mode_address_unused() -> None:
-    """In Setpoint mode, the per-mode preset_mode_*_value fields are
-    meaningless without preset_mode_address filled in — dynamically
-    hidden (and stripped on save) until it has a value."""
+def test_panel_keeps_climate_preset_values_without_preset_mode_address() -> None:
+    """Preset values remain visible and saved because they determine which
+    HVAC modes are exposed, while bidirectional readback still needs an address."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert "CLIMATE_PRESET_VALUE_FIELDS" in source
     assert (
         "const CLIMATE_PRESET_VALUE_FIELDS = "
         '["preset_mode_off_value","preset_mode_heat_value",'
         '"preset_mode_cool_value","preset_mode_heat_cool_value",'
         '"preset_mode_auto_value","preset_mode_dry_value",'
-        '"preset_mode_fan_only_value","preset_mode_bidirectional"]'
+        '"preset_mode_fan_only_value"]'
     ) in source
     assert (
         "if(!form.elements.preset_mode_address?.value.trim())"
-        "{hidden=[...hidden,...CLIMATE_PRESET_VALUE_FIELDS];}"
+        "{hidden=[...hidden,'preset_mode_bidirectional'];}"
     ) in source
-    # Dynamic hide: the preset-mode-address input triggers a re-sync on input.
-    assert "form.elements.preset_mode_address.oninput=syncMode" in source
-    assert (
-        "if(!entity.preset_mode_address){"
-        "CLIMATE_PRESET_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
-    ) in source
+    assert "hidden=[...hidden,...CLIMATE_PRESET_VALUE_FIELDS]" not in source
+    assert "CLIMATE_PRESET_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
-def test_panel_hides_climate_status_values_when_hvac_status_address_unused() -> None:
-    """In Setpoint mode, the per-status hvac_status_*_values fields are
-    meaningless without hvac_status_address filled in — dynamically
-    hidden (and stripped on save) until it has a value."""
+def test_panel_preserves_climate_status_values_without_status_address() -> None:
+    """Hidden HVAC status mappings survive temporarily clearing the address."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "CLIMATE_STATUS_VALUE_FIELDS" in source
     assert (
-        "const CLIMATE_STATUS_VALUE_FIELDS = "
-        '["hvac_status_off_values","hvac_status_heating_values",'
-        '"hvac_status_cooling_values","hvac_status_idle_values",'
-        '"hvac_status_drying_values","hvac_status_fan_values",'
-        '"hvac_status_preheating_values","hvac_status_defrosting_values"]'
-    ) in source
-    assert (
         "if(!form.elements.hvac_status_address?.value.trim())"
         "{hidden=[...hidden,...CLIMATE_STATUS_VALUE_FIELDS];}"
     ) in source
-    # Dynamic hide: the hvac-status-address input triggers a re-sync on input.
-    assert "form.elements.hvac_status_address.oninput=syncMode" in source
-    assert (
-        "if(!entity.hvac_status_address){"
-        "CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
-    ) in source
+    assert "CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
 def test_panel_rejects_duplicate_climate_values() -> None:
@@ -732,10 +712,8 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
     assert "COVER_MOTION_BOOL_FIELDS" not in source
 
 
-def test_panel_hides_status_value_fields_when_status_address_unused() -> None:
-    """In either cover mode, the cover_status_*_values fields are
-    meaningless without cover_status_address filled in — dynamically
-    hidden (and stripped on save) until it has a value."""
+def test_panel_preserves_status_value_fields_when_status_address_unused() -> None:
+    """Hidden cover status mappings survive temporarily clearing the address."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "COVER_STATUS_VALUE_FIELDS" in source
@@ -746,10 +724,7 @@ def test_panel_hides_status_value_fields_when_status_address_unused() -> None:
         '"cover_status_stopped_values"]'
     ) in source
     assert "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}" in source
-    assert (
-        "if(!entity.cover_status_address){"
-        "COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k]);}"
-    ) in source
+    assert "COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
 
