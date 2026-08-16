@@ -23,7 +23,14 @@ from custom_components.s7plc.const import (
     ("entity", "expected_method"),
     [
         ({}, "_build_cover_item"),
-        ({CONF_POSITION_STATE_ADDRESS: "DB1,DBW0"}, "_build_cover_position_item"),
+        (
+            {CONF_POSITION_STATE_ADDRESS: ""},
+            "_build_cover_item",
+        ),
+        (
+            {CONF_POSITION_STATE_ADDRESS: "DB1,DBW0"},
+            "_build_cover_position_item",
+        ),
     ],
 )
 def test_build_entity_item_dispatches_cover(
@@ -65,7 +72,10 @@ def test_build_entity_item_dispatches_climate(
         CONF_CLIMATES,
         {CONF_CLIMATE_CONTROL_MODE: control_mode},
         options={},
-    ) == ({"builder": expected_method}, {})
+    ) == (
+        {"builder": expected_method},
+        {},
+    )
 
 
 def test_validate_entity_fields_rejects_unknown_field() -> None:
@@ -76,3 +86,14 @@ def test_validate_entity_fields_rejects_unknown_field() -> None:
 def test_validate_entity_fields_rejects_unknown_entity_type() -> None:
     with pytest.raises(ValueError, match="Unknown entity type: widgets"):
         validate_entity_fields("widgets", {})
+
+
+def test_build_entity_item_rejects_invalid_climate_control_mode() -> None:
+    item, errors = build_entity_item(
+        CONF_CLIMATES,
+        {CONF_CLIMATE_CONTROL_MODE: "invalid"},
+        options={},
+    )
+
+    assert item is None
+    assert errors == {"base": "invalid_control_mode"}

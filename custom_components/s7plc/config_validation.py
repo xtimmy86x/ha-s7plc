@@ -1682,15 +1682,21 @@ def build_entity_item(
     if entity_type == CONF_COVERS:
         method = (
             builder._build_cover_position_item
-            if CONF_POSITION_STATE_ADDRESS in entity
+            if entity.get(CONF_POSITION_STATE_ADDRESS)
             else builder._build_cover_item
         )
     elif entity_type == CONF_CLIMATES:
-        method = (
-            builder._build_climate_direct_item
-            if entity.get(CONF_CLIMATE_CONTROL_MODE) == CONTROL_MODE_DIRECT
-            else builder._build_climate_setpoint_item
+        control_mode = entity.get(
+            CONF_CLIMATE_CONTROL_MODE,
+            CONTROL_MODE_SETPOINT,
         )
+
+        if control_mode == CONTROL_MODE_DIRECT:
+            method = builder._build_climate_direct_item
+        elif control_mode == CONTROL_MODE_SETPOINT:
+            method = builder._build_climate_setpoint_item
+        else:
+            return None, {"base": "invalid_control_mode"}
     else:
         method = {
             CONF_SENSORS: builder._build_sensor_item,
