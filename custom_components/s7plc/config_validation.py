@@ -16,6 +16,7 @@ from .const import (
     CONF_BUTTON_PULSE,
     CONF_BUTTONS,
     CONF_CLIMATE_CONTROL_MODE,
+    CONF_CLIMATES,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
@@ -90,6 +91,7 @@ from .const import (
     CONF_TEXTS,
     CONF_TILT_COMMAND_ADDRESS,
     CONF_TILT_STATE_ADDRESS,
+    CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
     CONF_VALUE_MULTIPLIER,
@@ -124,6 +126,131 @@ from .const import (
     DEFAULT_TEMP_STEP,
 )
 from .helpers import parse_pulse_duration
+
+# Fields accepted by each entity configuration.  This catalog describes only
+# the shape of an entity; semantic and duplicate-address checks remain the
+# responsibility of ``EntityConfigBuilder``.
+_COMMON_FIELDS = frozenset({CONF_NAME, CONF_AREA, CONF_SCAN_INTERVAL, CONF_UID})
+_NUMERIC_SCALE_FIELDS = frozenset(
+    {
+        CONF_VALUE_MULTIPLIER,
+        CONF_MIN_VALUE,
+        CONF_MAX_VALUE,
+        CONF_SCALE_RAW_MIN,
+        CONF_SCALE_RAW_MAX,
+        CONF_REAL_PRECISION,
+    }
+)
+
+ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
+    CONF_SENSORS: _COMMON_FIELDS
+    | _NUMERIC_SCALE_FIELDS
+    | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_UNIT_OF_MEASUREMENT, CONF_STATE_CLASS},
+    CONF_BINARY_SENSORS: _COMMON_FIELDS
+    | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_INVERT_STATE},
+    CONF_SWITCHES: _COMMON_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_STATE_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_SYNC_STATE,
+        CONF_PULSE_COMMAND,
+        CONF_PULSE_DURATION,
+    },
+    CONF_COVERS: _COMMON_FIELDS
+    | {
+        CONF_OPEN_COMMAND_ADDRESS,
+        CONF_CLOSE_COMMAND_ADDRESS,
+        CONF_OPENING_STATE_ADDRESS,
+        CONF_CLOSING_STATE_ADDRESS,
+        CONF_COVER_OPENING_ADDRESS,
+        CONF_COVER_CLOSING_ADDRESS,
+        CONF_COVER_STOPPED_ADDRESS,
+        CONF_COVER_STATUS_ADDRESS,
+        CONF_COVER_STATUS_OPEN_VALUES,
+        CONF_COVER_STATUS_CLOSED_VALUES,
+        CONF_COVER_STATUS_OPENING_VALUES,
+        CONF_COVER_STATUS_CLOSING_VALUES,
+        CONF_COVER_STATUS_STOPPED_VALUES,
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_STOP_COMMAND_ADDRESS,
+        CONF_STOP_PULSE_DURATION,
+        CONF_TILT_STATE_ADDRESS,
+        CONF_TILT_COMMAND_ADDRESS,
+        CONF_INVERT_TILT,
+        CONF_OPERATE_TIME,
+        CONF_USE_STATE_TOPICS,
+        CONF_INVERT_POSITION,
+        CONF_DEVICE_CLASS,
+    },
+    CONF_LIGHTS: _COMMON_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_STATE_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_SYNC_STATE,
+        CONF_PULSE_COMMAND,
+        CONF_PULSE_DURATION,
+        CONF_BRIGHTNESS_STATE_ADDRESS,
+        CONF_BRIGHTNESS_COMMAND_ADDRESS,
+        CONF_BRIGHTNESS_SCALE,
+    },
+    CONF_BUTTONS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_BUTTON_PULSE},
+    CONF_NUMBERS: _COMMON_FIELDS
+    | _NUMERIC_SCALE_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_DEVICE_CLASS,
+        CONF_UNIT_OF_MEASUREMENT,
+        CONF_STEP,
+    },
+    CONF_TEXTS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_COMMAND_ADDRESS, CONF_PATTERN},
+    CONF_CLIMATES: _COMMON_FIELDS
+    | {
+        CONF_CLIMATE_CONTROL_MODE,
+        CONF_CURRENT_TEMPERATURE_ADDRESS,
+        CONF_TARGET_TEMPERATURE_ADDRESS,
+        CONF_HEATING_OUTPUT_ADDRESS,
+        CONF_COOLING_OUTPUT_ADDRESS,
+        CONF_HEATING_ACTION_ADDRESS,
+        CONF_COOLING_ACTION_ADDRESS,
+        CONF_PRESET_MODE_ADDRESS,
+        CONF_PRESET_MODE_BIDIRECTIONAL,
+        CONF_ON_OFF_ADDRESS,
+        CONF_PRESET_MODE_OFF_VALUE,
+        CONF_PRESET_MODE_HEAT_VALUE,
+        CONF_PRESET_MODE_COOL_VALUE,
+        CONF_PRESET_MODE_HEAT_COOL_VALUE,
+        CONF_PRESET_MODE_AUTO_VALUE,
+        CONF_PRESET_MODE_DRY_VALUE,
+        CONF_PRESET_MODE_FAN_ONLY_VALUE,
+        CONF_HVAC_STATUS_ADDRESS,
+        CONF_HVAC_STATUS_OFF_VALUES,
+        CONF_HVAC_STATUS_HEATING_VALUES,
+        CONF_HVAC_STATUS_COOLING_VALUES,
+        CONF_HVAC_STATUS_IDLE_VALUES,
+        CONF_HVAC_STATUS_DRYING_VALUES,
+        CONF_HVAC_STATUS_FAN_VALUES,
+        CONF_HVAC_STATUS_PREHEATING_VALUES,
+        CONF_HVAC_STATUS_DEFROSTING_VALUES,
+        CONF_MIN_TEMP,
+        CONF_MAX_TEMP,
+        CONF_TEMP_STEP,
+    },
+    CONF_ENTITY_SYNC: _COMMON_FIELDS | {CONF_SOURCE_ENTITY, CONF_ADDRESS},
+}
+
+
+def validate_entity_fields(entity_type: str, entity: dict[str, Any]) -> None:
+    """Reject entity types and fields that are not part of the public schema."""
+    allowed = ENTITY_ALLOWED_FIELDS.get(entity_type)
+    if allowed is None:
+        raise ValueError(f"Unknown entity type: {entity_type}")
+    unknown = sorted(set(entity) - allowed)
+    if unknown:
+        raise ValueError(f"Unknown field(s) for {entity_type}: {', '.join(unknown)}")
 
 
 class EntityConfigBuilder:
@@ -1539,3 +1666,41 @@ class EntityConfigBuilder:
             return None, errors
 
         return item, {}
+
+
+def build_entity_item(
+    entity_type: str,
+    entity: dict[str, Any],
+    *,
+    options: dict[str, list[dict[str, Any]]],
+    skip_idx: int | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, str]]:
+    """Validate and normalize one entity using the appropriate builder."""
+    validate_entity_fields(entity_type, entity)
+    builder = EntityConfigBuilder(options)
+
+    if entity_type == CONF_COVERS:
+        method = (
+            builder._build_cover_position_item
+            if CONF_POSITION_STATE_ADDRESS in entity
+            else builder._build_cover_item
+        )
+    elif entity_type == CONF_CLIMATES:
+        method = (
+            builder._build_climate_direct_item
+            if entity.get(CONF_CLIMATE_CONTROL_MODE) == CONTROL_MODE_DIRECT
+            else builder._build_climate_setpoint_item
+        )
+    else:
+        method = {
+            CONF_SENSORS: builder._build_sensor_item,
+            CONF_BINARY_SENSORS: builder._build_binary_sensor_item,
+            CONF_SWITCHES: builder._build_switch_item,
+            CONF_LIGHTS: builder._build_light_item,
+            CONF_BUTTONS: builder._build_button_item,
+            CONF_NUMBERS: builder._build_number_item,
+            CONF_TEXTS: builder._build_text_item,
+            CONF_ENTITY_SYNC: builder._build_writer_item,
+        }[entity_type]
+
+    return method(entity, skip_idx=skip_idx)
