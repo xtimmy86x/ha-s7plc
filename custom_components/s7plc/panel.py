@@ -10,8 +10,8 @@ from urllib.parse import urlencode
 import voluptuous as vol
 import yaml
 
-from .config_validation import ENTITY_ALLOWED_FIELDS
-from .const import CONF_ADDRESS, CONF_UID, DOMAIN, OPTION_KEYS
+from .config_validation import build_entity_item
+from .const import CONF_UID, DOMAIN, OPTION_KEYS
 from .helpers import generate_uid
 
 PANEL_URL = "s7plc-config"
@@ -21,9 +21,6 @@ PANEL_DATA = "_panel_registered"
 def _versioned_asset_url(asset_url: str, version: str) -> str:
     """Append the integration version to an asset URL for cache busting."""
     return f"{asset_url}?{urlencode({'v': version})}"
-
-
-_ALLOWED_FIELDS = ENTITY_ALLOWED_FIELDS
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):
@@ -49,44 +46,12 @@ class _UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep=deep)
 
 
-def _validate_entity_fields(entity_type: str | None, entity: dict[str, Any]) -> None:
-    """Reject unknown fields and missing required fields for *entity_type*."""
-    allowed = _ALLOWED_FIELDS.get(entity_type)  # type: ignore[arg-type]
-    if allowed is None:
-        return
-    unknown = sorted(set(entity) - allowed)
-    if unknown:
-        raise ValueError(f"Unknown field(s) for {entity_type}: {', '.join(unknown)}")
-    from .helpers import _item_has_required_fields
-
-    if not _item_has_required_fields(entity_type, entity):
-        raise ValueError(f"Missing required field(s) for {entity_type}")
-    _validate_address_fields(entity)
-
-
-def _validate_address_fields(entity: dict[str, Any]) -> None:
-    """Ensure every address field contains a parseable S7 address."""
-    from .address import parse_tag
-
-    for key in sorted(entity):
-        if key != CONF_ADDRESS and not key.endswith("_address"):
-            continue
-        value = entity[key]
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"Invalid address for {key}: {value!r}")
-        try:
-            parse_tag(value.strip())
-        except (RuntimeError, ValueError) as err:
-            raise ValueError(f"Invalid address for {key}: {value!r}") from err
-
-
 def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
-    """Return and validate an entity supplied by the visual or YAML editor."""
+    """Parse an entity supplied by the visual or YAML editor."""
     if "entity_yaml" not in msg:
         entity = msg.get("entity")
         if not isinstance(entity, dict):
             raise ValueError("Entity configuration must be an object")
-        _validate_address_fields(entity)
         return dict(entity)
 
     try:
@@ -97,7 +62,6 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("YAML configuration must be a non-empty mapping")
     if not all(isinstance(key, str) for key in entity):
         raise ValueError("YAML configuration keys must be strings")
-    _validate_entity_fields(msg.get("entity_type"), entity)
     return entity
 
 
@@ -237,25 +201,35 @@ async def async_setup_panel(hass: Any) -> None:
         options = dict(entry.options)
         items = list(options.get(msg["entity_type"], []))
         index = msg.get("index")
+        if index is not None and (index < 0 or index >= len(items)):
+            connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
+            return
         try:
-            entity = _entity_from_message(msg)
+            raw_entity = _entity_from_message(msg)
+            item, errors = build_entity_item(
+                msg["entity_type"],
+                raw_entity,
+                options=options,
+                skip_idx=index,
+            )
         except ValueError as err:
             connection.send_error(msg["id"], "invalid_entity", str(err))
+            return
+        if item is None:
+            message = errors.get("base", str(errors))
+            connection.send_error(msg["id"], "invalid_entity", message)
             return
         if index is None:
             # New entity: assign a permanent uid now rather than relying on
             # ensure_item_uids to backfill one at the next reload.
-            entity[CONF_UID] = generate_uid()
-            items.append(entity)
-        elif index < 0 or index >= len(items):
-            connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
-            return
+            item[CONF_UID] = generate_uid()
+            items.append(item)
         else:
             # Preserve the existing item's uid as a backend guarantee, not
             # an accident of the frontend echoing it back unchanged (the
             # YAML editor lets a user delete that line from the payload).
-            entity[CONF_UID] = items[index].get(CONF_UID) or generate_uid()
-            items[index] = entity
+            item[CONF_UID] = items[index].get(CONF_UID) or generate_uid()
+            items[index] = item
         options[msg["entity_type"]] = items
         hass.config_entries.async_update_entry(entry, options=options)
         connection.send_result(msg["id"], {"entities": items})

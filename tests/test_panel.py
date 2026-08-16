@@ -3,12 +3,15 @@
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
+import yaml
 
 from custom_components.s7plc.panel import (
+    async_setup_panel,
     _entity_from_message,
     _entry_payload,
     _versioned_asset_url,
@@ -51,11 +54,11 @@ def test_entity_from_visual_editor() -> None:
     assert _entity_from_message({"entity": entity}) == entity
 
 
-def test_visual_editor_rejects_invalid_addresses() -> None:
-    with pytest.raises(ValueError, match="Invalid address for command_address"):
-        _entity_from_message(
-            {"entity": {"state_address": "DB1,X0.0", "command_address": "DB1,FOO0"}}
-        )
+def test_visual_editor_parser_does_not_validate_entity() -> None:
+    entity = {"address": "invalid", "unknown": True}
+
+    assert _entity_from_message({"entity": entity}) == entity
+    assert _entity_from_message({"entity": entity}) is not entity
 
 
 def test_entity_from_yaml_editor() -> None:
@@ -90,89 +93,196 @@ def test_yaml_editor_rejects_duplicate_keys() -> None:
         )
 
 
-def test_yaml_editor_rejects_unknown_fields() -> None:
-    with pytest.raises(ValueError, match="Unknown field.*adress"):
-        _entity_from_message(
-            {
-                "entity_type": "sensors",
-                "entity_yaml": 'adress: "DB1,REAL0"\nname: "Typo"',
-            }
-        )
+def test_yaml_editor_parser_does_not_validate_entity() -> None:
+    assert _entity_from_message(
+        {"entity_type": "sensors", "entity_yaml": "address: invalid\nunknown: true"}
+    ) == {"address": "invalid", "unknown": True}
 
 
-def test_yaml_editor_rejects_missing_required_fields() -> None:
-    with pytest.raises(ValueError, match="required"):
-        _entity_from_message(
-            {"entity_type": "sensors", "entity_yaml": 'name: "No address"'}
-        )
+async def _save_entity_handler(monkeypatch, options):
+    """Set up the panel and return its registered save command and entry."""
+    import custom_components.s7plc.panel as panel
 
+    monkeypatch.setattr(panel.vol, "In", lambda values: values, raising=False)
+    monkeypatch.setattr(panel.vol, "Any", lambda *values: values, raising=False)
+    commands = []
+    websocket_api = ModuleType("homeassistant.components.websocket_api")
+    websocket_api.websocket_command = lambda schema: lambda func: func
+    websocket_api.require_admin = lambda func: func
+    websocket_api.async_response = lambda func: func
+    websocket_api.async_register_command = lambda hass, func: commands.append(func)
+    panel_custom = ModuleType("homeassistant.components.panel_custom")
 
-@pytest.mark.parametrize(
-    ("entity_type", "entity_yaml", "bad_field"),
-    [
-        ("sensors", 'address: "DB1,FOO0"\nname: "Temp"', "address"),
-        ("sensors", "address: 42", "address"),
-        (
-            "switches",
-            'state_address: "DB1,X0.0"\ncommand_address: "not an address"',
-            "command_address",
-        ),
-        (
-            "covers",
-            'open_command_address: "DB1,X0.9"\nclose_command_address: "DB1,X0.1"',
-            "open_command_address",
-        ),
-        (
-            "climates",
-            'control_mode: setpoint\ncurrent_temperature_address: "REAL0"\n'
-            'target_temperature_address: "DB1,REAL4"\nmin_temp: 5',
-            "current_temperature_address",
-        ),
-        ("entity_sync", 'source_entity: sensor.power\naddress: "DB1"', "address"),
-    ],
-)
-def test_yaml_editor_rejects_invalid_addresses(
-    entity_type, entity_yaml, bad_field
-) -> None:
-    with pytest.raises(ValueError, match=f"Invalid address for {bad_field}"):
-        _entity_from_message(
-            {"entity_type": entity_type, "entity_yaml": entity_yaml}
-        )
+    async def register_panel(*args, **kwargs):
+        return None
 
-
-@pytest.mark.parametrize(
-    ("entity_type", "entity_yaml"),
-    [
-        ("sensors", 'address: "DB1,REAL0"\nname: "Temp"\ndevice_class: temperature'),
-        ("switches", 'state_address: "DB1,X0.0"\ncommand_address: "DB1,X0.1"'),
-        ("covers", 'open_command_address: "DB1,X0.0"\nclose_command_address: "DB1,X0.1"'),
-        (
-            "climates",
-            'control_mode: setpoint\ncurrent_temperature_address: "DB1,REAL0"\n'
-            'target_temperature_address: "DB1,REAL4"\nmin_temp: 5',
-        ),
-        ("entity_sync", 'source_entity: sensor.power\naddress: "DB1,REAL0"'),
-    ],
-)
-def test_yaml_editor_accepts_valid_fields(entity_type, entity_yaml) -> None:
-    entity = _entity_from_message(
-        {"entity_type": entity_type, "entity_yaml": entity_yaml}
+    panel_custom.async_register_panel = register_panel
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.components.websocket_api", websocket_api
     )
-    assert isinstance(entity, dict) and entity
+    monkeypatch.setitem(sys.modules, "homeassistant.components.panel_custom", panel_custom)
+    import homeassistant.components as components
+
+    monkeypatch.setattr(components, "websocket_api", websocket_api, raising=False)
+    monkeypatch.setattr(components, "panel_custom", panel_custom, raising=False)
+
+    loader = ModuleType("homeassistant.loader")
+
+    async def get_integration(hass, domain):
+        return SimpleNamespace(version="1.0")
+
+    loader.async_get_integration = get_integration
+    monkeypatch.setitem(sys.modules, "homeassistant.loader", loader)
+    http = ModuleType("homeassistant.components.http")
+    http.StaticPathConfig = lambda *args, **kwargs: (args, kwargs)
+    monkeypatch.setitem(sys.modules, "homeassistant.components.http", http)
+
+    entry = SimpleNamespace(
+        entry_id="entry-1", domain="s7plc", options=options, data={}, title="PLC"
+    )
+    updates = []
+    config_entries = SimpleNamespace(
+        async_get_entry=lambda entry_id: entry,
+        async_update_entry=lambda entry, **kwargs: updates.append(kwargs["options"]),
+    )
+
+    async def register_static_paths(paths):
+        return None
+
+    hass = SimpleNamespace(
+        data={},
+        config_entries=config_entries,
+        http=SimpleNamespace(async_register_static_paths=register_static_paths),
+    )
+    await async_setup_panel(hass)
+    return commands[1], hass, entry, updates
 
 
-def test_allowed_fields_cover_every_entity_type() -> None:
-    from custom_components.s7plc.const import OPTION_KEYS
-    from custom_components.s7plc.panel import _ALLOWED_FIELDS
+class _Connection:
+    def __init__(self):
+        self.error = None
+        self.result = None
 
-    assert set(_ALLOWED_FIELDS) == set(OPTION_KEYS)
+    def send_error(self, msg_id, code, message):
+        self.error = (code, message)
+
+    def send_result(self, msg_id, result):
+        self.result = result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("editor", ["visual", "yaml"])
+@pytest.mark.parametrize(
+    "entity",
+    [
+        {"name": "Bad", "address": "invalid"},
+        {"name": "Bad", "address": "DB1,REAL0", "unknown": True},
+    ],
+)
+async def test_save_entity_shared_validation_rejects_invalid_input(
+    monkeypatch, editor, entity
+) -> None:
+    handler, hass, _entry, _updates = await _save_entity_handler(monkeypatch, {})
+    connection = _Connection()
+    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+
+    await handler(
+        hass,
+        connection,
+        {"id": 1, "entry_id": "entry-1", "entity_type": "sensors", **payload},
+    )
+
+    assert connection.error[0] == "invalid_entity"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("editor", ["visual", "yaml"])
+async def test_save_entity_shared_validation_rejects_duplicate_address(
+    monkeypatch, editor
+) -> None:
+    existing = {"name": "First", "address": "DB1,REAL0", "uid": "existing"}
+    handler, hass, _entry, _updates = await _save_entity_handler(
+        monkeypatch, {"sensors": [existing]}
+    )
+    connection = _Connection()
+    entity = {"name": "Second", "address": "DB1,REAL0"}
+    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+
+    await handler(
+        hass,
+        connection,
+        {"id": 1, "entry_id": "entry-1", "entity_type": "sensors", **payload},
+    )
+
+    assert connection.error[0] == "invalid_entity"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("editor", ["visual", "yaml"])
+async def test_save_entity_stores_canonical_builder_item(
+    monkeypatch, editor
+) -> None:
+    handler, hass, _entry, updates = await _save_entity_handler(monkeypatch, {})
+    connection = _Connection()
+    entity = {"name": "Temp", "address": "DB1,REAL0", "uid": "untrusted"}
+    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+
+    await handler(
+        hass,
+        connection,
+        {"id": 1, "entry_id": "entry-1", "entity_type": "sensors", **payload},
+    )
+
+    saved = updates[0]["sensors"][0]
+    assert saved["name"] == "Temp"
+    assert saved["address"] == "DB1,REAL0"
+    assert saved["uid"] != "untrusted"
+
+
+@pytest.mark.asyncio
+async def test_save_entity_edit_preserves_uid_and_normalizes_climate(monkeypatch) -> None:
+    existing = {
+        "name": "Heating",
+        "control_mode": "setpoint",
+        "current_temperature_address": "DB1,REAL0",
+        "target_temperature_address": "DB1,REAL4",
+        "uid": "stable-uid",
+    }
+    handler, hass, _entry, updates = await _save_entity_handler(
+        monkeypatch, {"climates": [existing]}
+    )
+    connection = _Connection()
+    edited = {
+        **existing,
+        "uid": "changed-uid",
+        "hvac_status_address": "DB1,BYTE8",
+        "hvac_status_heating_values": "02, 3",
+        "hvac_status_cooling_values": "",
+    }
+
+    await handler(
+        hass,
+        connection,
+        {
+            "id": 1,
+            "entry_id": "entry-1",
+            "entity_type": "climates",
+            "index": 0,
+            "entity": edited,
+        },
+    )
+
+    assert connection.error is None
+    saved = updates[0]["climates"][0]
+    assert saved["uid"] == "stable-uid"
+    assert saved["hvac_status_heating_values"] == "2,3"
 
 
 def test_allowed_fields_match_panel_javascript_catalog() -> None:
     """Every field the visual editor can save must pass backend validation."""
     import re
 
-    from custom_components.s7plc.panel import _ALLOWED_FIELDS
+    from custom_components.s7plc.config_validation import ENTITY_ALLOWED_FIELDS
 
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
@@ -183,7 +293,7 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
         entity_type, spec = line.split(":", 1)
         keys = set(re.findall(r'\["([a-z_]+)"', spec)) | set(common)
         expected = keys - ui_only
-        allowed = _ALLOWED_FIELDS[entity_type.strip()]
+        allowed = ENTITY_ALLOWED_FIELDS[entity_type.strip()]
         missing = expected - allowed
         assert not missing, f"{entity_type}: fields missing from backend: {missing}"
 
