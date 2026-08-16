@@ -812,17 +812,19 @@ class S7ClimateSetpointControl(
         address back as the current mode would misreport it on PLCs that
         reset or otherwise modify that address independently of the
         commanded mode. Set preset_mode_bidirectional to opt into reading it
-        back too. Falls back to the last mode commanded from HA (or restored
-        on startup) when no configured/enabled source yields a known mode.
+        back too - checked before the on_off_address "unknown" fallback
+        below, so a real preset_mode reading (e.g. AUTO) always takes
+        priority over reporting unknown. Falls back to the last mode
+        commanded from HA (or restored on startup) when no configured/
+        enabled source yields a known mode.
         """
         data = self.coordinator.data or {}
+        on_off_value = (
+            data.get(f"{self._topic}:on_off") if self._on_off_address else None
+        )
 
-        if self._on_off_address:
-            on_off_value = data.get(f"{self._topic}:on_off")
-            if on_off_value is not None and not bool(on_off_value):
-                return HVACMode.OFF
-            if on_off_value is True and self._hvac_mode == HVACMode.OFF:
-                return None
+        if on_off_value is not None and not bool(on_off_value):
+            return HVACMode.OFF
 
         if self._preset_mode_address and self._preset_mode_bidirectional:
             preset_value = data.get(f"{self._topic}:preset_mode")
@@ -833,6 +835,9 @@ class S7ClimateSetpointControl(
                     mode = None
                 if mode is not None:
                     return mode
+
+        if on_off_value is True and self._hvac_mode == HVACMode.OFF:
+            return None
 
         return self._hvac_mode
 
