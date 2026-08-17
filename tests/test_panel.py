@@ -196,30 +196,6 @@ _SETPOINT_CLIMATE = {
             id="write-only-duplicate-climate-presets",
         ),
         pytest.param(
-            "climates",
-            {
-                **_SETPOINT_CLIMATE,
-                "preset_mode_address": "DB1,BYTE8",
-                "preset_mode_bidirectional": True,
-                "preset_mode_off_value": 7,
-                "preset_mode_heat_value": 7,
-            },
-            False,
-            id="bidirectional-duplicate-climate-presets",
-        ),
-        pytest.param(
-            "climates",
-            {
-                **_SETPOINT_CLIMATE,
-                "hvac_status_address": "DB1,BYTE8",
-                "hvac_status_off_values": "02",
-                "hvac_status_heating_values": "2",
-                "hvac_status_cooling_values": "",
-            },
-            False,
-            id="normalized-overlapping-hvac-statuses",
-        ),
-        pytest.param(
             "sensors",
             {"name": "Bad address", "address": "not a PLC address"},
             False,
@@ -709,16 +685,66 @@ def test_panel_preserves_climate_status_values_without_status_address() -> None:
     assert "CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
-def test_panel_rejects_duplicate_climate_values() -> None:
-    """In Setpoint mode, saving rejects the same PLC value assigned to two
-    different preset modes or two different HVAC statuses, mirroring
-    config_flow.py's server-side validation client-side too — otherwise the
-    panel would silently accept configs the classic options flow wouldn't."""
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entity",
+    [
+        pytest.param(
+            {
+                **_SETPOINT_CLIMATE,
+                "preset_mode_address": "DB1,BYTE8",
+                "preset_mode_bidirectional": True,
+                "preset_mode_off_value": 7,
+                "preset_mode_heat_value": 7,
+            },
+            id="duplicate-bidirectional-preset",
+        ),
+        pytest.param(
+            {
+                **_SETPOINT_CLIMATE,
+                "hvac_status_address": "DB1,BYTE8",
+                "hvac_status_off_values": "02",
+                "hvac_status_heating_values": "2",
+                "hvac_status_cooling_values": "",
+            },
+            id="duplicate-normalized-status",
+        ),
+    ],
+)
+async def test_panel_backend_rejects_duplicate_climate_values(
+    monkeypatch, entity
+) -> None:
+    """The panel backend is authoritative for climate mapping semantics."""
+    handler, hass, _entry, updates = await _save_entity_handler(monkeypatch, {})
+    connection = _Connection()
+
+    await handler(
+        hass,
+        connection,
+        {
+            "id": 1,
+            "entry_id": "entry-1",
+            "entity_type": "climates",
+            "entity": entity,
+        },
+    )
+
+    assert connection.error[0] == "invalid_entity"
+    assert updates == []
+
+
+def test_panel_leaves_duplicate_climate_validation_to_backend() -> None:
+    """The visual editor must not duplicate authoritative Python validation.
+
+    The parametrized panel save tests above verify that the shared backend builder
+    rejects duplicate bidirectional preset and normalized HVAC status values.
+    """
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert "climate_duplicate_preset_error" in source
-    assert "climate_duplicate_status_error" in source
-    assert "presetSeen" in source and "statusSeen" in source
+    assert "climate_duplicate_preset_error" not in source
+    assert "climate_duplicate_status_error" not in source
+    assert "presetSeen" not in source
+    assert "statusSeen" not in source
 
 
 def test_panel_clearing_a_preset_mode_value_stores_null_not_deletes() -> None:
@@ -732,10 +758,6 @@ def test_panel_clearing_a_preset_mode_value_stores_null_not_deletes() -> None:
 
     assert "presetModeValue" in source
     assert "entity[key]=null" in source
-    # The duplicate-value check must also skip nulled-out (cleared) fields,
-    # not just genuinely-undefined ones, or two cleared modes would falsely
-    # collide as "duplicate" nulls.
-    assert "entity[k]===undefined||entity[k]===null" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
