@@ -10,6 +10,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 import yaml
 
+from custom_components.s7plc.config_validation import build_entity_item
 from custom_components.s7plc.panel import (
     async_setup_panel,
     _entity_from_message,
@@ -168,6 +169,158 @@ class _Connection:
 
     def send_result(self, msg_id, result):
         self.result = result
+
+
+_SETPOINT_CLIMATE = {
+    "control_mode": "setpoint",
+    "current_temperature_address": "DB1,REAL0",
+    "target_temperature_address": "DB1,REAL4",
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("editor", ["visual", "yaml"])
+@pytest.mark.parametrize(
+    ("entity_type", "entity", "accepted"),
+    [
+        pytest.param(
+            "climates",
+            {
+                **_SETPOINT_CLIMATE,
+                "preset_mode_address": "DB1,BYTE8",
+                "preset_mode_bidirectional": False,
+                "preset_mode_off_value": 7,
+                "preset_mode_heat_value": 7,
+            },
+            True,
+            id="write-only-duplicate-climate-presets",
+        ),
+        pytest.param(
+            "climates",
+            {
+                **_SETPOINT_CLIMATE,
+                "preset_mode_address": "DB1,BYTE8",
+                "preset_mode_bidirectional": True,
+                "preset_mode_off_value": 7,
+                "preset_mode_heat_value": 7,
+            },
+            False,
+            id="bidirectional-duplicate-climate-presets",
+        ),
+        pytest.param(
+            "climates",
+            {
+                **_SETPOINT_CLIMATE,
+                "hvac_status_address": "DB1,BYTE8",
+                "hvac_status_off_values": "02",
+                "hvac_status_heating_values": "2",
+                "hvac_status_cooling_values": "",
+            },
+            False,
+            id="normalized-overlapping-hvac-statuses",
+        ),
+        pytest.param(
+            "sensors",
+            {"name": "Bad address", "address": "not a PLC address"},
+            False,
+            id="invalid-plc-address",
+        ),
+        *(
+            pytest.param(
+                entity_type,
+                {
+                    "state_address": "DB1,X0.0",
+                    "command_address": "DB1,X0.1",
+                    "sync_state": True,
+                    "pulse_command": True,
+                },
+                False,
+                id=f"{entity_type}-sync-pulse-conflict",
+            )
+            for entity_type in ("switches", "lights")
+        ),
+        *(
+            pytest.param(
+                entity_type,
+                {
+                    "state_address": "DB1,X0.0",
+                    "command_address": "DB1,X0.0",
+                    "sync_state": True,
+                },
+                False,
+                id=f"{entity_type}-sync-same-address",
+            )
+            for entity_type in ("switches", "lights")
+        ),
+        pytest.param(
+            "numbers",
+            {"address": "DB1,INT0", "min_value": 10, "max_value": 5},
+            False,
+            id="number-invalid-range",
+        ),
+        pytest.param(
+            "numbers",
+            {"address": "DB1,REAL0"},
+            False,
+            id="real-number-missing-range",
+        ),
+        pytest.param(
+            "numbers",
+            {"address": "DB1,LREAL0", "min_value": 0},
+            False,
+            id="lreal-number-missing-range",
+        ),
+        pytest.param(
+            "covers",
+            {"open_command_address": "DB1,X0.0"},
+            False,
+            id="traditional-cover-missing-close-command",
+        ),
+        pytest.param(
+            "covers",
+            {"position_state_address": "DB1,BYTE0"},
+            True,
+            id="minimum-position-cover",
+        ),
+        pytest.param(
+            "sensors",
+            {"address": "DB1,REAL0", "future_field": True},
+            False,
+            id="unknown-field",
+        ),
+    ],
+)
+async def test_panel_and_config_flow_share_semantic_validation(
+    monkeypatch, editor, entity_type, entity, accepted
+) -> None:
+    """Equivalent Config Flow and panel inputs must have the same outcome."""
+    try:
+        built_item, _errors = build_entity_item(entity_type, entity, options={})
+    except ValueError:
+        built_item = None
+
+    assert (built_item is not None) is accepted
+
+    handler, hass, _entry, updates = await _save_entity_handler(monkeypatch, {})
+    connection = _Connection()
+    payload = (
+        {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    )
+
+    await handler(
+        hass,
+        connection,
+        {"id": 1, "entry_id": "entry-1", "entity_type": entity_type, **payload},
+    )
+
+    assert (connection.error is None) is accepted
+    if accepted:
+        saved = dict(updates[0][entity_type][0])
+        saved.pop("uid")
+        assert saved == built_item
+    else:
+        assert connection.error[0] == "invalid_entity"
+        assert updates == []
 
 
 @pytest.mark.asyncio
