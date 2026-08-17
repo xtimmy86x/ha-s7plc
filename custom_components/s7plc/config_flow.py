@@ -653,6 +653,7 @@ def _add_schema_writer(flow) -> vol.Schema:
         {
             vol.Required(CONF_ADDRESS): selector.TextSelector(),
             vol.Required(CONF_SOURCE_ENTITY): selector.EntitySelector(),
+            vol.Optional(CONF_INVERT_STATE, default=False): selector.BooleanSelector(),
             vol.Optional(CONF_NAME): selector.TextSelector(),
             vol.Optional(CONF_AREA): flow._get_area_selector(),
             vol.Optional("add_another", default=False): selector.BooleanSelector(),
@@ -1255,6 +1256,9 @@ def _edit_schema_writer(flow, item: dict[str, Any]) -> vol.Schema:
         vol.Required(
             CONF_SOURCE_ENTITY, default=item.get(CONF_SOURCE_ENTITY, "")
         ): selector.EntitySelector(),
+        vol.Optional(
+            CONF_INVERT_STATE, default=item.get(CONF_INVERT_STATE, False)
+        ): selector.BooleanSelector(),
         vol.Optional(
             CONF_NAME, default=item.get(CONF_NAME, "")
         ): selector.TextSelector(),

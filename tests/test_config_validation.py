@@ -13,7 +13,10 @@ from custom_components.s7plc.const import (
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,
     CONF_COVERS,
+    CONF_ENTITY_SYNC,
+    CONF_INVERT_STATE,
     CONF_POSITION_STATE_ADDRESS,
+    CONF_SOURCE_ENTITY,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
 )
@@ -86,6 +89,23 @@ def test_validate_entity_fields_rejects_unknown_field() -> None:
 def test_validate_entity_fields_rejects_unknown_entity_type() -> None:
     with pytest.raises(ValueError, match="Unknown entity type: widgets"):
         validate_entity_fields("widgets", {})
+
+
+def test_build_entity_sync_preserves_invert_state() -> None:
+    """Test the entity sync builder accepts and stores state inversion."""
+    item, errors = build_entity_item(
+        CONF_ENTITY_SYNC,
+        {
+            "address": "DB1,X0.0",
+            CONF_SOURCE_ENTITY: "binary_sensor.test",
+            CONF_INVERT_STATE: True,
+        },
+        options={},
+    )
+
+    assert errors == {}
+    assert item is not None
+    assert item[CONF_INVERT_STATE] is True
 
 
 def test_build_entity_item_rejects_invalid_climate_control_mode() -> None:

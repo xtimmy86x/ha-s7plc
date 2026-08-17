@@ -703,6 +703,7 @@
         "data": {
           "address": "Adresa PLC",
           "source_entity": "Zdrojová entita",
+          "invert_state": "Invertovat stav",
           "name": "Název",
           "area": "Oblast",
           "add_another": "Přidat další po uložení"
@@ -710,6 +711,7 @@
         "data_description": {
           "address": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4).",
           "source_entity": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC.",
+          "invert_state": "Invertuje binární stavy před zápisem na BIT adresu PLC.",
           "name": "Volitelný srozumitelný název synchronizace entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
           "add_another": "Zůstat v tomto kroku a přidat další synchronizace."

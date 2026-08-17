@@ -430,6 +430,7 @@ async def test_async_setup_entry_with_entity_syncs():
                 "source_entity": "sensor.test",
                 "name": "Test Sync",
                 "uid": "test-uid",
+                "invert_state": True,
             }
         ]
     }
@@ -457,6 +458,7 @@ async def test_async_setup_entry_with_entity_syncs():
         # Second call: 1 entity sync
         sync_entities = async_add_entities.call_args_list[1][0][0]
         assert len(sync_entities) == 1
+        assert sync_entities[0]._invert_state is True
 
 
 @pytest.mark.asyncio
@@ -557,6 +559,7 @@ def entity_sync_factory(fake_hass):
         source_entity: str = "sensor.test",
         name: str = "Test Entity Sync",
         coordinator = None,
+        invert_state: bool = False,
     ):
         coord = coordinator if coordinator is not None else DummyCoordinator()
         
@@ -572,6 +575,7 @@ def entity_sync_factory(fake_hass):
                 device_info={"identifiers": {"domain"}},
                 address=address,
                 source_entity=source_entity,
+                invert_state=invert_state,
             )
             entity_sync.hass = fake_hass
             entity_sync.name = name
@@ -588,6 +592,7 @@ def test_entity_sync_numeric_initialization(entity_sync_factory):
     assert entity_sync._source_entity == "sensor.test"
     assert entity_sync._data_type == DataType.REAL
     assert entity_sync._is_binary is False
+    assert entity_sync._invert_state is False
     assert entity_sync._last_written_value is None
     assert entity_sync._initial_write_pending is False
     assert entity_sync._write_count == 0
@@ -819,6 +824,35 @@ async def test_entity_sync_binary_invalid_state(entity_sync_factory):
     assert len(coord.write_calls) == 0
     assert entity_sync._error_count == 1
     assert entity_sync._write_count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("source_state", "expected_value"),
+    [("on", False), ("off", True), ("1", False), ("0", True)],
+)
+async def test_entity_sync_binary_invert_state(
+    entity_sync_factory, source_state, expected_value
+):
+    """Test entity sync inverts binary states before writing to the PLC."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator()
+    entity_sync = entity_sync_factory(
+        "db1,x0.0",
+        DataType.BIT,
+        "binary_sensor.test",
+        coordinator=coord,
+        invert_state=True,
+    )
+
+    await entity_sync._async_write_to_plc(
+        State("binary_sensor.test", source_state)
+    )
+
+    assert coord.write_calls == [("write_batched", "db1,x0.0", expected_value)]
+    assert entity_sync._last_written_value == (1.0 if expected_value else 0.0)
 
 
 @pytest.mark.asyncio

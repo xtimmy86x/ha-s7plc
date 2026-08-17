@@ -703,6 +703,7 @@
         "data": {
           "address": "Adres zapisu",
           "source_entity": "Encja źródłowa",
+          "invert_state": "Odwróć stan",
           "name": "Nazwa",
           "area": "Obszar",
           "add_another": "Dodaj kolejną encje po zapisaniu"
@@ -710,6 +711,7 @@
         "data_description": {
           "address": "Adres do zapisu wartości (np. DB1,D0, DB2,W4).",
           "source_entity": "Encja źródłowa, której wartość będzie zapisywana do PLC.",
+          "invert_state": "Odwraca stany binarne przed zapisaniem ich pod adresem BIT sterownika PLC.",
           "name": "Opcjonalna własna nazwa encji.",
           "area": "Obszar do którego ma zostać przypisana ta encja.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."

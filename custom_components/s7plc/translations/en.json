@@ -703,6 +703,7 @@
         "data": {
           "address": "PLC address",
           "source_entity": "Source entity",
+          "invert_state": "Invert state",
           "name": "Name",
           "area": "Area",
           "add_another": "Add another after saving"
@@ -710,6 +711,7 @@
         "data_description": {
           "address": "PLC address to write the value (e.g., DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant entity whose value will be written to the PLC.",
+          "invert_state": "Invert binary states before writing them to a PLC BIT address.",
           "name": "Optional friendly name for the Entity Sync.",
           "area": "Home Assistant area to assign this entity to.",
           "add_another": "Stay on this step to add more Entity Syncs."

@@ -703,6 +703,7 @@
         "data": {
           "address": "SPS-Adresse",
           "source_entity": "Quellentität",
+          "invert_state": "Zustand invertieren",
           "name": "Name",
           "area": "Bereich",
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
@@ -710,6 +711,7 @@
         "data_description": {
           "address": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4).",
           "source_entity": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird.",
+          "invert_state": "Invertiert binäre Zustände vor dem Schreiben an eine SPS-BIT-Adresse.",
           "name": "Name für die Entitätssynchronisierung (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
           "add_another": "Entitätssynchronisierungen hinzuzufügen ?"

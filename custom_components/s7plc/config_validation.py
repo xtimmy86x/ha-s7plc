@@ -239,7 +239,8 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_MAX_TEMP,
         CONF_TEMP_STEP,
     },
-    CONF_ENTITY_SYNC: _COMMON_FIELDS | {CONF_SOURCE_ENTITY, CONF_ADDRESS},
+    CONF_ENTITY_SYNC: _COMMON_FIELDS
+    | {CONF_SOURCE_ENTITY, CONF_ADDRESS, CONF_INVERT_STATE},
 }
 
 
@@ -1310,7 +1311,9 @@ class EntityConfigBuilder:
         }
 
         # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
+        self._copy_optional_fields(
+            item, user_input, CONF_NAME, CONF_AREA, CONF_INVERT_STATE
+        )
 
         return item, {}
 

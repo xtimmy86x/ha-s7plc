@@ -24,6 +24,7 @@ from .const import (
     CONF_AREA,
     CONF_DEVICE_CLASS,
     CONF_ENTITY_SYNC,
+    CONF_INVERT_STATE,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_REAL_PRECISION,
@@ -348,6 +349,7 @@ async def async_setup_entry(
     for item in entry.options.get(CONF_ENTITY_SYNC, []):
         address = item.get(CONF_ADDRESS)
         source_entity = item.get(CONF_SOURCE_ENTITY)
+        invert_state = item.get(CONF_INVERT_STATE, False)
 
         if not address or not source_entity:
             _LOGGER.debug(
@@ -371,6 +373,7 @@ async def async_setup_entry(
                 address,
                 source_entity,
                 area,
+                invert_state,
             )
         )
 
@@ -551,6 +554,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         address: str,
         source_entity: str,
         suggested_area_id: str | None = None,
+        invert_state: bool = False,
     ) -> None:
         """Initialize the entity sync."""
         super().__init__(
@@ -563,6 +567,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         )
         self._address = address
         self._source_entity = source_entity
+        self._invert_state = invert_state
         self._last_written_value: float | None = None
         self._initial_write_pending: bool = False
         self._write_count = 0
@@ -635,6 +640,8 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         # --- value conversion (only part that differs) ---
         if self._is_binary:
             value = self._parse_binary_value(source_state)
+            if value is not None and self._invert_state:
+                value = not value
         else:
             value = self._parse_numeric_value(source_state)
 
