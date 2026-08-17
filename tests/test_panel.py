@@ -196,6 +196,30 @@ _SETPOINT_CLIMATE = {
             id="write-only-duplicate-climate-presets",
         ),
         pytest.param(
+            "climates",
+            {
+                **_SETPOINT_CLIMATE,
+                "preset_mode_address": "DB1,BYTE8",
+                "preset_mode_bidirectional": True,
+                "preset_mode_off_value": 7,
+                "preset_mode_heat_value": 7,
+            },
+            False,
+            id="bidirectional-duplicate-climate-presets",
+        ),
+        pytest.param(
+            "climates",
+            {
+                **_SETPOINT_CLIMATE,
+                "hvac_status_address": "DB1,BYTE8",
+                "hvac_status_off_values": "02",
+                "hvac_status_heating_values": "2",
+                "hvac_status_cooling_values": "",
+            },
+            False,
+            id="normalized-overlapping-hvac-statuses",
+        ),
+        pytest.param(
             "sensors",
             {"name": "Bad address", "address": "not a PLC address"},
             False,
