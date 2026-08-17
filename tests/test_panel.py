@@ -615,6 +615,47 @@ def test_panel_uses_config_flow_field_descriptions() -> None:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_panel_translates_backend_validation_errors() -> None:
+    """Known flow errors are translated while unknown messages remain readable."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    translations = json.loads(
+        Path("custom_components/s7plc/translations/it.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    script = (
+        "const vm=require('vm');"
+        "let Panel;"
+        "const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls}};"
+        "vm.createContext(context);vm.runInContext(process.argv[1],context);"
+        "const panel=new Panel();panel.flowTranslations=JSON.parse(process.argv[2]);"
+        "process.stdout.write(JSON.stringify(process.argv.slice(3).map(key=>panel.flowError(key))));"
+    )
+
+    result = subprocess.run(
+        [
+            "node",
+            "-e",
+            script,
+            source,
+            json.dumps(translations),
+            "invalid_address",
+            "duplicate_entry",
+            "Unknown field(s) for sensors: pippo",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(result.stdout) == [
+        "Formato indirizzo non valido.",
+        "Questo elemento è già presente.",
+        "Unknown field(s) for sensors: pippo",
+    ]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_config_flow_translations_cover_every_visible_panel_field() -> None:
     """Every panel field has the config flow's label and help in every locale."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
