@@ -201,7 +201,7 @@
       },
       "sensors": {
         "title": "Dodaj czujnik",
-        "description": "Utwórz czujnik liczbowy. Ustaw adres, nazwę i opcjonalnie klasę urządzenia i stanu.",
+        "description": "Utwórz czujnik. Ustaw adres, nazwę i opcjonalnie klasę urządzenia i stanu.",
         "data": {
           "address": "Adres odczytu",
           "name": "Nazwa",
@@ -230,7 +230,7 @@
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia.",
           "state_class": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk.",
-          "real_precision": "Liczba miejsc po przecinku, domyślnie (1).",
+          "real_precision": "Liczba miejsc po przecinku, puste (precyzja oryginalna).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -265,7 +265,7 @@
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Dwukierunkowa komunikacja",
+          "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Długość impulsu",
           "scan_interval": "Interwał skanowania",
@@ -276,7 +276,7 @@
           "command_address": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
-          "sync_state": "Dwukierunkowa komunikacja synchronizuje dane z adresów zapisu w obu kierunkach, domyślnie wyłączona.",
+          "sync_state": "Synchronizacja stanu aktualizuje adres zapisu z adresu stanu.",
           "pulse_command": "Tryb impulsu działa jak przycisk i wysyła (zał./wył.) zamiast zmiany stanu.",
           "pulse_duration": "Długość impulsu (0.1-60s), domyślnie (0.5s).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
@@ -309,7 +309,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "open_command_address": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0). W trybie jednego przycisku sekwencyjnie (otwórz/zatrzymaj/zamknij/zatrzymaj).",
+          "open_command_address": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0).",
           "close_command_address": "Adres wyzwalający zamykanie (np. Q0.1, DB1,X0.1).",
           "opening_state_address": "Opcjonalny adres odczytu aktualnego stanu (otwarta).",
           "closing_state_address": "Opcjonalny adres odczytu aktualnego stanu (zamknięta).",
@@ -322,7 +322,7 @@
           "cover_status_opening_values": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closing_values": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_stopped_values": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
-          "operate_time": "Maksymalny czas, przez jaki wyjście sterujące pozostaje aktywne. Rzeczywisty stan ruchu z (adresu stanów, lub z adresów stanu otwarta/zamknięta/otwieranie/zamykanie/zatrzymania) zatrzymuje roletę od razu, gdy potwierdzi zakończenie ruchu, ten czas działa tylko wtedy, gdy adres stanów lub adresy stanu nie są skonfigurowane, albo nigdy nie potwierdzone.",
+          "operate_time": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej.",
           "use_state_topics": "Włącz, aby używać adresów stanu (otwarta/zamknięta) dla określenia położenia. Gdy wyłączone, położenie będzie wynikać z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -405,7 +405,7 @@
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Dwukierunkowa komunikacja",
+          "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Długość impulsu",
           "brightness_state_address": "Adres odczytu jasności",
@@ -419,7 +419,7 @@
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
-          "sync_state": "Dwukierunkowa komunikacja synchronizuje dane z adresów zapisu w obu kierunkach, domyślnie wyłączona.",
+          "sync_state": "Synchronizacja stanu aktualizuje adres zapisu z adresu stanu.",
           "pulse_command": "Tryb impulsu działa jak przycisk i wysyła (zał./wył.) zamiast zmiany stanu.",
           "pulse_duration": "Długość impulsu (0.1-60s), domyślnie (0.5s).",
           "brightness_state_address": "Opcjonalny adres odczytu poziomu jasności (np. DB1,B2).",
@@ -462,7 +462,7 @@
           "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
-          "real_precision": "Liczba miejsc po przecinku, domyślnie (1).",
+          "real_precision": "Liczba miejsc po przecinku, puste (precyzja oryginalna).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -571,7 +571,7 @@
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_cooling_values": "Wartość(-i) oznaczające (chłodzenie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 2 lub 2,12). Pozostaw puste, aby pominąć ten stan.",
-          "hvac_status_idle_values": "Wartość(-i) oznaczające stan (bezczynny), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 3 lub 3,13). Pozostaw puste, aby pominąć ten stan.",
+          "hvac_status_idle_values": "Wartość(-i) oznaczające stan (bezczynny), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 3 lub 3,13). Zawsze dostępne dla stanów nierozpoznanych.",
           "hvac_status_drying_values": "Opcjonalna wartość(-i) oznaczające stan (osuszanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 4 lub 4,14). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_fan_values": "Opcjonalna wartość(-i) oznaczające stan (wentylowanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 5 lub 5,15). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_preheating_values": "Opcjonalna wartość(-i) oznaczające stan (podgrzewanie wstępne), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 6 lub 6,16). Pozostaw puste, aby pominąć ten stan.",
@@ -684,7 +684,7 @@
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_cooling_values": "Wartość(-i) oznaczające (chłodzenie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 2 lub 2,12). Pozostaw puste, aby pominąć ten stan.",
-          "hvac_status_idle_values": "Wartość(-i) oznaczające stan (bezczynny), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 3 lub 3,13). Pozostaw puste, aby pominąć ten stan.",
+          "hvac_status_idle_values": "Wartość(-i) oznaczające stan (bezczynny), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 3 lub 3,13). Zawsze dostępne dla stanów nierozpoznanych.",
           "hvac_status_drying_values": "Opcjonalna wartość(-i) oznaczające stan (osuszanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 4 lub 4,14). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_fan_values": "Opcjonalna wartość(-i) oznaczające stan (wentylowanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 5 lub 5,15). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_preheating_values": "Opcjonalna wartość(-i) oznaczające stan (podgrzewanie wstępne), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 6 lub 6,16). Pozostaw puste, aby pominąć ten stan.",
@@ -757,7 +757,7 @@
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia.",
           "state_class": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk.",
-          "real_precision": "Liczba miejsc po przecinku, domyślnie (1).",
+          "real_precision": "Liczba miejsc po przecinku, puste (precyzja oryginalna).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
@@ -789,7 +789,7 @@
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Dwukierunkowa komunikacja",
+          "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Długość impulsu",
           "scan_interval": "Interwał skanowania"
@@ -799,7 +799,7 @@
           "command_address": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
-          "sync_state": "Dwukierunkowa komunikacja synchronizuje dane z adresów zapisu w obu kierunkach, domyślnie wyłączona.",
+          "sync_state": "Synchronizacja stanu aktualizuje adres zapisu z adresu stanu.",
           "pulse_command": "Tryb impulsu działa jak przycisk i wysyła (zał./wył.) zamiast zmiany stanu.",
           "pulse_duration": "Długość impulsu (0.1-60s), domyślnie (0.5s).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
@@ -830,7 +830,7 @@
           "scan_interval": "Interwał skanowania"
         },
         "data_description": {
-          "open_command_address": "Adres wyzwalający otwieranie. W trybie jednego przycisku sekwencyjnie (otwórz/zatrzymaj/zamknij/zatrzymaj).",
+          "open_command_address": "Adres wyzwalający otwieranie.",
           "close_command_address": "Adres wyzwalający zamykanie.",
           "opening_state_address": "Opcjonalny adres odczytu aktualnego stanu (otwarta).",
           "closing_state_address": "Opcjonalny adres odczytu aktualnego stanu (zamknięta).",
@@ -843,7 +843,7 @@
           "cover_status_opening_values": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closing_values": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_stopped_values": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
-          "operate_time": "Maksymalny czas, przez jaki wyjście sterujące pozostaje aktywne. Rzeczywisty stan ruchu z (adresu stanów, lub z adresów stanu otwarta/zamknięta/otwieranie/zamykanie/zatrzymania) zatrzymuje roletę od razu, gdy potwierdzi zakończenie ruchu, ten czas działa tylko wtedy, gdy adres stanów lub adresy stanu nie są skonfigurowane, albo nigdy nie potwierdzone.",
+          "operate_time": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej.",
           "use_state_topics": "Włącz, aby używać adresów stanu (otwarta/zamknięta) dla określenia położenia. Gdy wyłączone, położenie będzie wynikać z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -921,7 +921,7 @@
           "command_address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "sync_state": "Dwukierunkowa komunikacja",
+          "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
           "pulse_duration": "Długość impulsu",
           "brightness_state_address": "Adres odczytu jasności",
@@ -934,7 +934,7 @@
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
-          "sync_state": "Dwukierunkowa komunikacja synchronizuje dane z adresów zapisu w obu kierunkach, domyślnie wyłączona.",
+          "sync_state": "Synchronizacja stanu aktualizuje adres zapisu z adresu stanu.",
           "pulse_command": "Tryb impulsu działa jak przycisk i wysyła (zał./wył.) zamiast zmiany stanu.",
           "pulse_duration": "Długość impulsu (0.1-60s), domyślnie (0.5s).",
           "brightness_state_address": "Opcjonalny adres odczytu poziomu jasności (np. DB1,B2).",
@@ -975,7 +975,7 @@
           "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
-          "real_precision": "Liczba miejsc po przecinku, domyślnie (1).",
+          "real_precision": "Liczba miejsc po przecinku, puste (precyzja oryginalna).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
