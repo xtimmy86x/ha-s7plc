@@ -19,11 +19,11 @@
           "rack": "Rack",
           "slot": "Slot",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał odpytywania",
-          "operation_timeout": "Limit czasu operacji",
+          "scan_interval": "Interwał odpytywania (s)",
+          "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
-          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie",
-          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów",
           "enable_metrics": "Włącz metryki wydajności"
@@ -55,11 +55,11 @@
           "local_tsap": "Lokalny TSAP",
           "remote_tsap": "Zdalny TSAP",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał odpytywania",
-          "operation_timeout": "Limit czasu operacji",
+          "scan_interval": "Interwał odpytywania (s)",
+          "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
-          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie",
-          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów",
           "enable_metrics": "Włącz metryki wydajności"
@@ -173,11 +173,11 @@
           "rack": "CPU rack (zwykle 0).",
           "slot": "CPU slot (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał skanowania",
-          "operation_timeout": "Limit czasu operacji",
+          "scan_interval": "Interwał skanowania (s)",
+          "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób",
-          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie",
-          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach",
+          "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
+          "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
           "optimize_read": "Optymalizuj odczyty wsadowe",
           "enable_write_batching": "Włącz grupowanie zapisów",
           "enable_metrics": "Włącz metryki wydajności"
@@ -215,7 +215,7 @@
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Precyzja zaokrąglania",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -244,7 +244,7 @@
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "invert_state": "Odwróć stan",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -267,8 +267,8 @@
           "area": "Obszar",
           "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
-          "pulse_duration": "Długość impulsu",
-          "scan_interval": "Interwał skanowania",
+          "pulse_duration": "Długość impulsu (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -305,7 +305,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -338,7 +338,7 @@
           "position_state_address": "Adres odczytu pozycji",
           "position_command_address": "Adres zapisu pozycji",
           "stop_command_address": "Adres zapisu zatrzymaj",
-          "stop_pulse_duration": "Długość impulsu",
+          "stop_pulse_duration": "Długość impulsu (s)",
           "tilt_state_address": "Adres odczytu przechylenia",
           "tilt_command_address": "Adres zapisu przechylenia",
           "invert_tilt": "Odwróć przechylenie",
@@ -351,7 +351,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć pozycję",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
@@ -384,9 +384,9 @@
           "address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu",
-          "button_pulse": "Długość impulsu"
+          "button_pulse": "Długość impulsu (s)"
         },
         "data_description": {
           "address": "Adres zapisu (np. Q0.0, DB1,X0.1).",
@@ -407,11 +407,11 @@
           "area": "Obszar",
           "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
-          "pulse_duration": "Długość impulsu",
+          "pulse_duration": "Długość impulsu (s)",
           "brightness_state_address": "Adres odczytu jasności",
           "brightness_command_address": "Adres zapisu jasności",
           "brightness_scale": "Maksymalna wartość jasności",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -446,7 +446,7 @@
           "min_value": "Limit dolny",
           "max_value": "Limit górny",
           "real_precision": "Precyzja zaokrąglania",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -476,7 +476,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "pattern": "Wzorzec (regex)",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -503,7 +503,7 @@
           "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -529,7 +529,7 @@
           "target_temperature_address": "Adres zapisu temperatury zadanej",
           "preset_mode_address": "Adres zapisu trybu pracy",
           "preset_mode_bidirectional": "Dwukierunkowa komunikacja",
-          "on_off_address": "Adres zapisu wł./wył.",
+          "on_off_address": "Adres wł./wył.",
           "preset_mode_off_value": "Wartość trybu (wył.)",
           "preset_mode_heat_value": "Wartość trybu (grzanie)",
           "preset_mode_cool_value": "Wartość trybu (chłodzenie)",
@@ -551,7 +551,7 @@
           "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
@@ -559,7 +559,7 @@
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
           "preset_mode_bidirectional": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb.",
-          "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu.",
+          "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
@@ -594,7 +594,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "pattern": "Wzorzec (regex)",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,W0.128).",
@@ -619,7 +619,7 @@
           "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
@@ -643,7 +643,7 @@
           "target_temperature_address": "Adres temperatury zadanej",
           "preset_mode_address": "Adres zapisu trybu pracy",
           "preset_mode_bidirectional": "Dwukierunkowa komunikacja",
-          "on_off_address": "Adres zapisu wł./wył.",
+          "on_off_address": "Adres wł./wył.",
           "preset_mode_off_value": "Wartość trybu (wył.)",
           "preset_mode_heat_value": "Wartość trybu (grzanie)",
           "preset_mode_cool_value": "Wartość trybu (chłodzenie)",
@@ -665,14 +665,14 @@
           "temp_step": "Krok",
           "name": "Nazwa",
           "area": "Obszar",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
           "preset_mode_bidirectional": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb.",
-          "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu.",
+          "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
@@ -743,7 +743,7 @@
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
           "real_precision": "Precyzja zaokrąglania",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres odczytu (np. DB1000,D0, MW10, DB1,W2).",
@@ -770,7 +770,7 @@
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
           "invert_state": "Odwróć stan",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres (np. I0.0, Q1.3, DB10,X0.1).",
@@ -791,8 +791,8 @@
           "area": "Obszar",
           "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
-          "pulse_duration": "Długość impulsu",
-          "scan_interval": "Interwał skanowania"
+          "pulse_duration": "Długość impulsu (s)",
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "state_address": "Adres odczytu stanu (np. Q0.0, DB20,X0.0).",
@@ -827,7 +827,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "open_command_address": "Adres wyzwalający otwieranie.",
@@ -858,7 +858,7 @@
           "position_state_address": "Adres odczytu pozycji",
           "position_command_address": "Adres zapisu pozycji",
           "stop_command_address": "Adres zapisu zatrzymaj",
-          "stop_pulse_duration": "Długość impulsu",
+          "stop_pulse_duration": "Długość impulsu (s)",
           "tilt_state_address": "Adres odczytu przechylenia",
           "tilt_command_address": "Adres zapisu przechylenia",
           "invert_tilt": "Odwróć przechylenie",
@@ -871,7 +871,7 @@
           "name": "Nazwa",
           "area": "Obszar",
           "device_class": "Klasa urządzenia",
-          "scan_interval": "Interwał skanowania",
+          "scan_interval": "Interwał skanowania (s)",
           "invert_position": "Odwróć pozycję"
         },
         "data_description": {
@@ -902,8 +902,8 @@
           "address": "Adres zapisu",
           "name": "Nazwa",
           "area": "Obszar",
-          "button_pulse": "Długość impulsu",
-          "scan_interval": "Interwał skanowania"
+          "button_pulse": "Długość impulsu (s)",
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres zapisu (np. Q0.0, DB1,X0.1).",
@@ -923,11 +923,11 @@
           "area": "Obszar",
           "sync_state": "Synchronizacja stanu",
           "pulse_command": "Tryb impulsu",
-          "pulse_duration": "Długość impulsu",
+          "pulse_duration": "Długość impulsu (s)",
           "brightness_state_address": "Adres odczytu jasności",
           "brightness_command_address": "Adres zapisu jasności",
           "brightness_scale": "Maksymalna wartość jasności",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "state_address": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)",
@@ -960,7 +960,7 @@
           "min_value": "Limit dolny",
           "max_value": "Limit górny",
           "real_precision": "Precyzja zaokrąglania",
-          "scan_interval": "Interwał skanowania"
+          "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
           "address": "Adres odczytu (np. DB1,D0, DB2,W4).",
