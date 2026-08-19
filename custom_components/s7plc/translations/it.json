@@ -133,7 +133,7 @@
           "lights": "Luce",
           "numbers": "Numero",
           "texts": "Testo",
-          "climates": "climatizzazione",
+          "climates": "Climatizzazione",
           "entity_sync": "Sincronizzazione Entità verso PLC"
         }
       },

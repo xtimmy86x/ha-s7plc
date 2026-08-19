@@ -49,6 +49,67 @@ def test_panel_supports_batch_entity_deletion() -> None:
     assert "for(const index of sorted)await this._hass.callWS" in source
 
 
+def test_panel_control_mode_mapping_preserves_backend_format() -> None:
+    """The graphical mode must remain a view over the legacy boolean keys."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const fixtures = [
+  {{}},
+  {{sync_state: true}},
+  {{pulse_command: true}},
+  {{sync_state: true, pulse_command: true}}
+];
+console.log(JSON.stringify({{
+  loaded: fixtures.map(CONTROL_MODE_FROM_ENTITY),
+  saved: ["direct", "sync", "pulse"].map(mode =>
+    APPLY_CONTROL_MODE({{name: "unchanged", unrelated: 42}}, mode))
+}}));
+"""
+    result = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    )
+    behavior = json.loads(result.stdout)
+
+    assert behavior["loaded"] == ["direct", "sync", "pulse", "pulse"]
+    assert behavior["saved"] == [
+        {
+            "name": "unchanged",
+            "unrelated": 42,
+            "sync_state": False,
+            "pulse_command": False,
+        },
+        {
+            "name": "unchanged",
+            "unrelated": 42,
+            "sync_state": True,
+            "pulse_command": False,
+        },
+        {
+            "name": "unchanged",
+            "unrelated": 42,
+            "sync_state": False,
+            "pulse_command": True,
+        },
+    ]
+
+
+def test_panel_control_mode_is_context_aware() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert 'command!==state' in source
+    assert 'sync.disabled=!canSync' in source
+    assert 'selected!==\'pulse\'' in source
+    assert '[data-field="pulse_duration"]' in source
+    assert '["control_behavior","Comportamento controllo","control"]' in source
+    assert 'name="sync_state" type="checkbox"' not in source
+    assert 'name="pulse_command" type="checkbox"' not in source
+
+
 def test_entity_from_visual_editor() -> None:
     entity = {"name": "Temperatura", "address": "DB1,REAL0"}
 
@@ -441,7 +502,7 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
     fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
     common_block = re.search(r"const COMMON = \[(.*?)\n\];", source, re.DOTALL).group(1)
     common = re.findall(r'\["([a-z_]+)"', common_block)
-    ui_only = {"cover_mode"}  # never stored (see formEntity)
+    ui_only = {"cover_mode", "control_behavior"}  # virtual UI fields; never stored
     for line in fields_block.strip().splitlines():
         entity_type, spec = line.split(":", 1)
         keys = set(re.findall(r'\["([a-z_]+)"', spec)) | set(common)
@@ -705,7 +766,7 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
         for entity_type, entity_steps in steps.items():
             all_keys = {field[0] for field in fields[entity_type]}
             for step, mode in entity_steps:
-                visible_keys = all_keys - {"cover_mode", "control_mode"}
+                visible_keys = all_keys - {"cover_mode", "control_mode", "control_behavior"}
                 if mode:
                     visible_keys -= set(hidden[entity_type][mode])
                 labels = flow_steps[step]["data"]
