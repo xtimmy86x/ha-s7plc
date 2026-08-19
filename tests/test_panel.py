@@ -14,6 +14,8 @@ from custom_components.s7plc.config_validation import build_entity_item
 from custom_components.s7plc.panel import (
     async_setup_panel,
     _entity_from_message,
+    _configuration_from_yaml,
+    _configuration_yaml,
     _entry_payload,
     _versioned_asset_url,
 )
@@ -159,6 +161,48 @@ def test_yaml_editor_parser_does_not_validate_entity() -> None:
     assert _entity_from_message(
         {"entity_type": "sensors", "entity_yaml": "address: invalid\nunknown: true"}
     ) == {"address": "invalid", "unknown": True}
+
+
+def test_complete_configuration_yaml_round_trip() -> None:
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "name": "Temperature", "uid": "one"}],
+        "switches": [{"state_address": "DB1,X4.0", "uid": "two"}],
+        "unrelated_option": True,
+    }
+
+    saved = _configuration_from_yaml(_configuration_yaml(options), options)
+
+    assert saved["sensors"][0]["uid"] == "one"
+    assert saved["switches"][0]["uid"] == "two"
+    assert saved["unrelated_option"] is True
+    assert saved["covers"] == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "- not-a-mapping",
+        "unknown: []",
+        "sensors: not-a-list",
+        "sensors:\n  - invalid-item",
+        "sensors:\n  - address: invalid",
+        "sensors: []\nsensors: []",
+    ],
+)
+def test_complete_configuration_yaml_rejects_invalid_input(source) -> None:
+    with pytest.raises(ValueError):
+        _configuration_from_yaml(source, {})
+
+
+def test_complete_configuration_yaml_replaces_duplicate_uids() -> None:
+    saved = _configuration_from_yaml(
+        "sensors:\n  - address: DB1,REAL0\n    uid: repeated\n"
+        "binary_sensors:\n  - address: DB1,X4.0\n    uid: repeated\n",
+        {},
+    )
+
+    assert saved["sensors"][0]["uid"] == "repeated"
+    assert saved["binary_sensors"][0]["uid"] != "repeated"
 
 
 async def _save_entity_handler(monkeypatch, options):

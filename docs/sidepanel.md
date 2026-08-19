@@ -94,6 +94,22 @@ Errors are shown in the editor dialog and the existing configuration remains
 unchanged. Prefer the visual editor unless you understand the stored entity
 schema; omitted optional YAML keys may remove their previous values.
 
+### Complete configuration editor
+
+Choose **Advanced YAML** in the page header to edit every entity belonging to
+the selected PLC in one document. The top-level mapping contains one list for
+each supported entity type (`sensors`, `binary_sensors`, `switches`, and so on).
+Saving validates every item before replacing the entity configuration; if any
+item is invalid, none of the changes are applied. Options unrelated to entity
+lists are retained.
+
+Use **Export YAML** to download the document currently shown in the editor, or
+**Import YAML** to load a `.yaml`/`.yml` file into the editor. Importing a file
+does not change Home Assistant until **Save changes** is selected. Because a
+save replaces all entity lists, export a backup before making bulk changes.
+Existing unique IDs in exported files are retained so restored entities keep
+their Home Assistant identity; missing or duplicate IDs are safely regenerated.
+
 ## Deleting Entities
 
 Choose the delete button on an entity card and confirm the dialog. Deletion is

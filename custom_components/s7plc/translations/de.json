@@ -1190,6 +1190,11 @@
       "select_entity": "Entität auswählen",
       "delete_selected": "Ausgewählte löschen",
       "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?"
-    }
+    },
+    "configuration_yaml": "Erweitertes YAML",
+    "configuration_yaml_title": "Erweiterte YAML-Konfiguration",
+    "configuration_yaml_warning": "Bearbeiten Sie alle Entitäten dieser SPS gleichzeitig. Beim Speichern wird die gesamte Entitätskonfiguration ersetzt. Exportieren Sie zuerst eine Sicherung.",
+    "import_yaml": "YAML importieren",
+    "export_yaml": "YAML exportieren"
   }
 }

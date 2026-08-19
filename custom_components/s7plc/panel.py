@@ -65,6 +65,58 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
     return entity
 
 
+def _configuration_from_yaml(
+    configuration_yaml: str, current_options: dict[str, Any]
+) -> dict[str, Any]:
+    """Parse and validate a complete entity configuration from YAML."""
+    try:
+        payload = yaml.load(configuration_yaml, Loader=_UniqueKeyLoader)
+    except yaml.YAMLError as err:
+        raise ValueError(f"Invalid YAML: {err}") from err
+    if not isinstance(payload, dict):
+        raise ValueError("YAML configuration must be a mapping")
+    if not all(isinstance(key, str) for key in payload):
+        raise ValueError("YAML configuration keys must be strings")
+    unknown = set(payload) - set(OPTION_KEYS)
+    if unknown:
+        raise ValueError(f"Unknown configuration key: {sorted(unknown)[0]}")
+
+    result = {
+        key: value for key, value in current_options.items() if key not in OPTION_KEYS
+    }
+    used_uids: set[str] = set()
+    for entity_type in OPTION_KEYS:
+        raw_items = payload.get(entity_type, [])
+        if raw_items is None:
+            raw_items = []
+        if not isinstance(raw_items, list):
+            raise ValueError(f"{entity_type} must be a list")
+        result[entity_type] = []
+        for index, raw_item in enumerate(raw_items):
+            if not isinstance(raw_item, dict):
+                raise ValueError(f"{entity_type}[{index}] must be a mapping")
+            item, errors = build_entity_item(entity_type, raw_item, options=result)
+            if item is None:
+                raise ValueError(
+                    f"{entity_type}[{index}]: {errors.get('base', str(errors))}"
+                )
+            uid = raw_item.get(CONF_UID)
+            if not isinstance(uid, str) or not uid or uid in used_uids:
+                uid = generate_uid()
+                while uid in used_uids:
+                    uid = generate_uid()
+            item[CONF_UID] = uid
+            used_uids.add(uid)
+            result[entity_type].append(item)
+    return result
+
+
+def _configuration_yaml(options: dict[str, Any]) -> str:
+    """Serialize all editable entity options as readable YAML."""
+    payload = {key: list(options.get(key, [])) for key in OPTION_KEYS}
+    return yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+
+
 # Option key → Home Assistant entity domain (entity_sync entities are sensors).
 _OPTION_DOMAINS = {
     "sensors": "sensor",
@@ -136,6 +188,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
         "data": dict(entry.data),
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
+        "configuration_yaml": _configuration_yaml(dict(entry.options)),
         "selector_options": _selector_options(),
     }
     if hass is not None:
@@ -262,9 +315,38 @@ async def async_setup_panel(hass: Any) -> None:
         hass.config_entries.async_update_entry(entry, options=options)
         connection.send_result(msg["id"], {"entities": items})
 
+    @websocket_api.websocket_command(
+        {
+            vol.Required("type"): "s7plc/config/save_configuration",
+            vol.Required("entry_id"): str,
+            vol.Required("configuration_yaml"): str,
+        }
+    )
+    @websocket_api.require_admin
+    @websocket_api.async_response
+    async def ws_save_configuration(hass, connection, msg):
+        entry = hass.config_entries.async_get_entry(msg["entry_id"])
+        if entry is None or entry.domain != DOMAIN:
+            connection.send_error(
+                msg["id"], "entry_not_found", "S7 PLC entry not found"
+            )
+            return
+        try:
+            options = _configuration_from_yaml(
+                msg["configuration_yaml"], dict(entry.options)
+            )
+        except ValueError as err:
+            connection.send_error(msg["id"], "invalid_configuration", str(err))
+            return
+        hass.config_entries.async_update_entry(entry, options=options)
+        connection.send_result(
+            msg["id"], {"configuration_yaml": _configuration_yaml(options)}
+        )
+
     websocket_api.async_register_command(hass, ws_list)
     websocket_api.async_register_command(hass, ws_save_entity)
     websocket_api.async_register_command(hass, ws_delete_entity)
+    websocket_api.async_register_command(hass, ws_save_configuration)
 
     await panel_custom.async_register_panel(
         hass,

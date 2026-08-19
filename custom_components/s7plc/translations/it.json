@@ -1190,6 +1190,11 @@
       "select_entity": "Seleziona entità",
       "delete_selected": "Elimina selezionate",
       "delete_selected_confirm": "Eliminare le {count} entità selezionate?"
-    }
+    },
+    "configuration_yaml": "YAML avanzato",
+    "configuration_yaml_title": "Configurazione YAML avanzata",
+    "configuration_yaml_warning": "Modifica contemporaneamente tutte le entità di questo PLC. Il salvataggio sostituisce l’intera configurazione delle entità. Esporta prima una copia di sicurezza.",
+    "import_yaml": "Importa YAML",
+    "export_yaml": "Esporta YAML"
   }
 }

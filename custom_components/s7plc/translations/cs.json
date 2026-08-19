@@ -1190,6 +1190,11 @@
       "select_entity": "Vybrat entitu",
       "delete_selected": "Odstranit vybrané",
       "delete_selected_confirm": "Odstranit {count} vybraných entit?"
-    }
+    },
+    "configuration_yaml": "Pokročilý YAML",
+    "configuration_yaml_title": "Pokročilá konfigurace YAML",
+    "configuration_yaml_warning": "Upravte všechny entity tohoto PLC najednou. Uložení nahradí celou konfiguraci entit. Nejprve exportujte zálohu.",
+    "import_yaml": "Importovat YAML",
+    "export_yaml": "Exportovat YAML"
   }
 }

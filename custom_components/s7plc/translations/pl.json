@@ -1190,6 +1190,11 @@
       "select_entity": "Wybierz encję",
       "delete_selected": "Usuń wybrane",
       "delete_selected_confirm": "Usunąć {count} wybranych encji?"
-    }
+    },
+    "configuration_yaml": "Zaawansowany YAML",
+    "configuration_yaml_title": "Zaawansowana konfiguracja YAML",
+    "configuration_yaml_warning": "Edytuj jednocześnie wszystkie encje tego PLC. Zapis zastępuje pełną konfigurację encji. Najpierw wyeksportuj kopię zapasową.",
+    "import_yaml": "Importuj YAML",
+    "export_yaml": "Eksportuj YAML"
   }
 }
