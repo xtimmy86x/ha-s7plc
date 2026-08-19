@@ -478,7 +478,7 @@
           "add_another": "Nach dem Speichern weitere hinzufügen ?"
         },
         "data_description": {
-          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
+          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,WS0.128).",
           "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Textentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
@@ -595,7 +595,7 @@
           "scan_interval": "Scan-Intervall (s)"
         },
         "data_description": {
-          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,W0.128).",
+          "address": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,WS0.128).",
           "command_address": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet.",
           "name": "Name für die Textentität (optional).",
           "area": "Home Assistant Bereich, dem diese Entität zugeordnet werden soll.",
@@ -1099,6 +1099,92 @@
       "metrics_total_bytes_written": {
         "name": "Geschriebene Bytes gesamt"
       }
+    }
+  },
+  "config_panel": {
+    "loading": "Konfiguration wird geladen…",
+    "no_plc": "Keine SPS konfiguriert",
+    "no_plc_help": "Fügen Sie zuerst die Siemens-S7-Integration unter Geräte & Dienste hinzu.",
+    "title": "S7-SPS-Konfiguration",
+    "subtitle": "Konfigurieren Sie Entitäten visuell oder verwenden Sie YAML in den erweiterten Optionen.",
+    "entities": "Entitäten",
+    "connected": "Verbunden",
+    "disconnected": "Getrennt",
+    "reload_help": "Änderungen werden durch automatisches Neuladen der Integration angewendet.",
+    "add": "Hinzufügen",
+    "empty": "Keine Entitäten",
+    "empty_help": "Erstellen Sie mit „Hinzufügen“ die erste Entität.",
+    "entity": "Entität",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "enabled_help": "Diese Option aktivieren",
+    "required": "Erforderlich",
+    "no_area": "Kein Bereich",
+    "none_option": "Keine",
+    "address_example": "z. B. DB1,REAL0",
+    "address_example_bool": "z. B. DB1,X0.0",
+    "entity_example": "z. B. sensor.wohnzimmer_temperatur",
+    "name_example": "z. B. Wohnzimmer-Temperatur",
+    "address_help": "Siemens-S7-Format, zum Beispiel DB1,REAL0",
+    "address_help_bool": "Siemens-S7-Format, zum Beispiel DB1,X0.0",
+    "preset_value_help": "Leer lassen, um diesen Modus auszublenden.",
+    "status_values_help": "Eine oder mehrere durch Kommas getrennte Werte (z.B. 2,3). Leer lassen, um diesen Status zu überspringen.",
+    "plc_connection": "SPS-Verbindung",
+    "plc_connection_help": "Datenadressen und Quellen",
+    "behavior": "Verhalten",
+    "behavior_help": "Für diese Entität spezifische Optionen",
+    "ha_details": "Details in Home Assistant",
+    "ha_details_help": "Name, Bereich und Aktualisierungsintervall",
+    "new_entity": "Neue Entität",
+    "edit_entity": "Entität bearbeiten",
+    "configure_new": "Eine neue Entität konfigurieren",
+    "update_configuration": "Konfiguration aktualisieren",
+    "save_help": "Felder werden direkt in der SPS-Konfiguration gespeichert.",
+    "editor_mode": "Editormodus",
+    "visual_editor": "Visueller Editor",
+    "guided": "Einfach und geführt",
+    "advanced": "Erweiterte Steuerung",
+    "yaml_warning": "Im erweiterten Modus können Sie alle Felder manuell bearbeiten. Verwenden Sie ein YAML-Mapping für eine einzelne Entität.",
+    "yaml_label": "YAML-Konfiguration",
+    "cancel": "Abbrechen",
+    "save": "Änderungen speichern",
+    "required_error": "Füllen Sie alle erforderlichen Felder aus.",
+    "cover_required_error": "Geben Sie die erforderlichen Adressen für den gewählten Abdeckungstyp ein.",
+    "climate_required_error": "Geben Sie die Adresse der Zieltemperatur ein.",
+    "delete_confirm": "Diese Entität löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "delete_title": "Entität löschen",
+    "control_ui": {
+      "label": "Steuerverhalten",
+      "direct_title": "Direkte Steuerung",
+      "direct_description": "Home Assistant schreibt auf die Befehlsadresse und liest die Statusadresse. Status und Befehl bleiben unabhängig.",
+      "sync_title": "Befehl mit Status synchronisieren",
+      "sync_description": "Wenn sich der SPS-Status extern ändert, wird der von der Statusadresse gelesene Wert auch auf die Befehlsadresse geschrieben.",
+      "pulse_title": "Impulssteuerung",
+      "pulse_description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten.",
+      "sync_requires_different": "Erfordert unterschiedliche Status- und Befehlsadressen."
+    },
+    "types": {
+      "sensors": "Sensoren",
+      "binary_sensors": "Binärsensoren",
+      "switches": "Schalter",
+      "covers": "Jalousien/Raffstores",
+      "lights": "Lichter",
+      "buttons": "Tasten",
+      "numbers": "Nummern",
+      "texts": "Texte",
+      "climates": "Klima",
+      "entity_sync": "Entität zu SPS-Synchronisierungen"
+    },
+    "choices": {
+      "traditional": "Traditionell",
+      "position": "Position",
+      "direct": "Direkte Ausgänge",
+      "setpoint": "Sollwert"
+    },
+    "batch": {
+      "select_entity": "Entität auswählen",
+      "delete_selected": "Ausgewählte löschen",
+      "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?"
     }
   }
 }

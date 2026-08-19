@@ -478,7 +478,7 @@
           "add_another": "Přidat další po uložení"
         },
         "data_description": {
-          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
+          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,WS0.128).",
           "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název textové entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
@@ -595,7 +595,7 @@
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
-          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,W0.128).",
+          "address": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,WS0.128).",
           "command_address": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa.",
           "name": "Volitelný srozumitelný název textové entity.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
@@ -1099,6 +1099,92 @@
       "metrics_total_bytes_written": {
         "name": "Celkem zapsaných bajtů"
       }
+    }
+  },
+  "config_panel": {
+    "loading": "Načítání konfigurace…",
+    "no_plc": "Není nakonfigurováno žádné PLC",
+    "no_plc_help": "Nejprve přidejte integraci Siemens S7 v Zařízení a služby.",
+    "title": "Konfigurace S7 PLC",
+    "subtitle": "Nakonfigurujte entity vizuálně nebo použijte YAML v pokročilých možnostech.",
+    "entities": "entity",
+    "connected": "Připojeno",
+    "disconnected": "Odpojeno",
+    "reload_help": "Změny se použijí automatickým opětovným načtením integrace.",
+    "add": "Přidat",
+    "empty": "Žádné entity",
+    "empty_help": "Pomocí „Přidat“ vytvořte první entitu.",
+    "entity": "Entita",
+    "edit": "Upravit",
+    "delete": "Odstranit",
+    "enabled_help": "Povolit tuto možnost",
+    "required": "Povinné",
+    "no_area": "Žádná oblast",
+    "none_option": "Žádná",
+    "address_example": "např. DB1,REAL0",
+    "address_example_bool": "např. DB1,X0.0",
+    "entity_example": "např. sensor.teplota_obyvaciho_pokoje",
+    "name_example": "např. Teplota obývacího pokoje",
+    "address_help": "Formát Siemens S7, například DB1,REAL0",
+    "address_help_bool": "Formát Siemens S7, například DB1,X0.0",
+    "preset_value_help": "Ponechte prázdné pro skrytí tohoto režimu.",
+    "status_values_help": "Jedna nebo více hodnot oddělených čárkami (např. 2,3). Ponechte prázdné pro přeskočení tohoto stavu.",
+    "plc_connection": "Připojení PLC",
+    "plc_connection_help": "Datové adresy a zdroje",
+    "behavior": "Chování",
+    "behavior_help": "Možnosti specifické pro tuto entitu",
+    "ha_details": "Podrobnosti v Home Assistant",
+    "ha_details_help": "Název, oblast a frekvence aktualizace",
+    "new_entity": "Nová entita",
+    "edit_entity": "Upravit entitu",
+    "configure_new": "Nakonfigurujte novou entitu",
+    "update_configuration": "Aktualizujte konfiguraci",
+    "save_help": "Pole se ukládají přímo do konfigurace PLC.",
+    "editor_mode": "Režim editoru",
+    "visual_editor": "Vizuální editor",
+    "guided": "Jednoduché a s průvodcem",
+    "advanced": "Pokročilé ovládání",
+    "yaml_warning": "Pokročilý režim umožňuje ručně upravit všechna pole. Pro jednu entitu použijte mapování YAML.",
+    "yaml_label": "Konfigurace YAML",
+    "cancel": "Zrušit",
+    "save": "Uložit změny",
+    "required_error": "Vyplňte všechna povinná pole.",
+    "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",
+    "climate_required_error": "Zadejte adresu cílové teploty.",
+    "delete_confirm": "Odstranit tuto entitu? Tuto akci nelze vrátit zpět.",
+    "delete_title": "Odstranit entitu",
+    "control_ui": {
+      "label": "Chování ovládání",
+      "direct_title": "Přímé ovládání",
+      "direct_description": "Home Assistant zapisuje na příkazovou adresu a čte stavovou adresu. Stav a příkaz zůstávají nezávislé.",
+      "sync_title": "Synchronizovat příkaz se stavem",
+      "sync_description": "Při externí změně stavu PLC se hodnota ze stavové adresy zapíše také na příkazovou adresu.",
+      "pulse_title": "Pulzní ovládání",
+      "pulse_description": "Odešle časovaný pulz na příkazovou adresu namísto udržování hodnoty ON/OFF.",
+      "sync_requires_different": "Vyžaduje odlišnou stavovou a příkazovou adresu."
+    },
+    "types": {
+      "sensors": "Senzory",
+      "binary_sensors": "Binární senzory",
+      "switches": "Spínače",
+      "covers": "Rolety / žaluzie",
+      "lights": "Světla",
+      "buttons": "Tlačítka",
+      "numbers": "Čísla",
+      "texts": "Texty",
+      "climates": "Klimatizace",
+      "entity_sync": "Synchronizace entity do PLC"
+    },
+    "choices": {
+      "traditional": "Tradiční",
+      "position": "Poloha",
+      "direct": "Přímé výstupy",
+      "setpoint": "Požadovaná hodnota"
+    },
+    "batch": {
+      "select_entity": "Vybrat entitu",
+      "delete_selected": "Odstranit vybrané",
+      "delete_selected_confirm": "Odstranit {count} vybraných entit?"
     }
   }
 }

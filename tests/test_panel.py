@@ -676,6 +676,110 @@ def test_panel_uses_config_flow_field_descriptions() -> None:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+@pytest.mark.parametrize(
+    ("locale", "responses", "expected_urls", "expected_title", "expected_field"),
+    [
+        (
+            "it-IT",
+            ["it"],
+            ["/s7plc_translations/it.json"],
+            "Configurazione S7 PLC",
+            "Nome",
+        ),
+        (
+            "fr-FR",
+            ["en"],
+            ["/s7plc_translations/en.json"],
+            "S7 PLC configuration",
+            "Name",
+        ),
+        (
+            "de-DE",
+            [],
+            [
+                "/s7plc_translations/de.json",
+                "/s7plc_translations/en.json",
+            ],
+            "S7 PLC configuration",
+            None,
+        ),
+    ],
+)
+def test_panel_translation_loading_and_fallbacks(
+    locale: str,
+    responses: list[str],
+    expected_urls: list[str],
+    expected_title: str,
+    expected_field: str | None,
+) -> None:
+    """External JSON is canonical, with locale and fetch failures kept safe."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    payloads = {
+        language: json.loads(
+            Path(f"custom_components/s7plc/translations/{language}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for language in responses
+    }
+    script = r"""
+const vm=require('vm'); let Panel; const urls=[];
+const payloads=JSON.parse(process.argv[2]);
+const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls},console,
+  fetch:async url=>{urls.push(url);const language=url.match(/\/([^/]+)\.json$/)[1];
+    if(!(language in payloads))return {ok:false,status:503};
+    return {ok:true,json:async()=>payloads[language]};}};
+vm.createContext(context);vm.runInContext(process.argv[1],context);
+(async()=>{const panel=new Panel();panel._hass={locale:{language:process.argv[3]}};
+  await panel.loadFlowTranslations();
+  process.stdout.write(JSON.stringify({urls,title:panel.t('title'),
+    field:panel.flowText('sensors',{},'name','data')??null}));})();
+"""
+
+    result = subprocess.run(
+        ["node", "-e", script, source, json.dumps(payloads), locale],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "urls": expected_urls,
+        "title": expected_title,
+        "field": expected_field,
+    }
+
+
+def test_panel_translations_use_supported_config_panel_namespace() -> None:
+    """Panel strings use HA's validated namespace, never a custom top-level key."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "const TRANSLATIONS" not in source
+    assert "const BATCH_TRANSLATIONS" not in source
+    entity_types = {
+        "sensors",
+        "binary_sensors",
+        "switches",
+        "covers",
+        "lights",
+        "buttons",
+        "numbers",
+        "texts",
+        "climates",
+        "entity_sync",
+    }
+
+    for language in ("en", "it", "cs", "de", "pl"):
+        translations = json.loads(
+            Path(f"custom_components/s7plc/translations/{language}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert "panel" not in translations
+        assert translations["config_panel"]["types"].keys() == entity_types
+        assert "fields" not in translations["config_panel"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_translates_backend_validation_errors() -> None:
     """Known flow errors are translated while unknown messages remain readable."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
@@ -1191,7 +1295,12 @@ def test_panel_covers_bool_addresses_use_bool_placeholder() -> None:
 
     assert "boolAddress=BOOL_FIELDS[type]?.includes(key)" in source
     assert "address_example_bool" in source
-    assert "address_help_bool" in source
+    english = json.loads(
+        Path("custom_components/s7plc/translations/en.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert english["config_panel"]["address_help_bool"]
 
 
 def test_panel_close_command_address_required_for_traditional() -> None:

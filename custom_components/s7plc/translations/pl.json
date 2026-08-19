@@ -478,7 +478,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "address": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,W0.128).",
+          "address": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,WS0.128).",
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -595,7 +595,7 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "address": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,W0.128).",
+          "address": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,WS0.128).",
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -1099,6 +1099,92 @@
       "metrics_total_bytes_written": {
         "name": "Łącznie zapisanych bajtów"
       }
+    }
+  },
+  "config_panel": {
+    "loading": "Ładowanie konfiguracji…",
+    "no_plc": "Nie skonfigurowano PLC",
+    "no_plc_help": "Najpierw dodaj integrację Siemens S7 w Urządzenia i usługi.",
+    "title": "Konfiguracja S7 PLC",
+    "subtitle": "Konfiguruj encje wizualnie lub użyj YAML w opcjach zaawansowanych.",
+    "entities": "encji",
+    "connected": "Połączono",
+    "disconnected": "Rozłączono",
+    "reload_help": "Zmiany są stosowane przez automatyczne przeładowanie integracji.",
+    "add": "Dodaj",
+    "empty": "Brak encji",
+    "empty_help": "Użyj „Dodaj”, aby utworzyć pierwszą encję.",
+    "entity": "Encja",
+    "edit": "Edytuj",
+    "delete": "Usuń",
+    "enabled_help": "Włącz tę opcję",
+    "required": "Wymagane",
+    "no_area": "Brak obszaru",
+    "none_option": "Brak",
+    "address_example": "np. DB1,REAL0",
+    "address_example_bool": "np. DB1,X0.0",
+    "entity_example": "np. sensor.temperatura_salonu",
+    "name_example": "np. Temperatura salonu",
+    "address_help": "Format Siemens S7, na przykład DB1,REAL0",
+    "address_help_bool": "Format Siemens S7, na przykład DB1,X0.0",
+    "preset_value_help": "Pozostaw puste, aby ukryć ten tryb.",
+    "status_values_help": "Jedna lub więcej wartości oddzielonych przecinkami (np. 2,3). Pozostaw puste, aby pominąć ten stan.",
+    "plc_connection": "Połączenie PLC",
+    "plc_connection_help": "Adresy i źródła danych",
+    "behavior": "Zachowanie",
+    "behavior_help": "Opcje właściwe dla tej encji",
+    "ha_details": "Szczegóły w Home Assistant",
+    "ha_details_help": "Nazwa, obszar i częstotliwość aktualizacji",
+    "new_entity": "Nowa encja",
+    "edit_entity": "Edytuj encję",
+    "configure_new": "Skonfiguruj nową encję",
+    "update_configuration": "Zaktualizuj konfigurację",
+    "save_help": "Pola są zapisywane bezpośrednio w konfiguracji PLC.",
+    "editor_mode": "Tryb edytora",
+    "visual_editor": "Edytor wizualny",
+    "guided": "Prosty i prowadzony",
+    "advanced": "Sterowanie zaawansowane",
+    "yaml_warning": "Tryb zaawansowany pozwala ręcznie edytować wszystkie pola. Użyj mapowania YAML dla pojedynczej encji.",
+    "yaml_label": "Konfiguracja YAML",
+    "cancel": "Anuluj",
+    "save": "Zapisz zmiany",
+    "required_error": "Wypełnij wszystkie wymagane pola.",
+    "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu rolety/osłony.",
+    "climate_required_error": "Wprowadź adres temperatury docelowej.",
+    "delete_confirm": "Usunąć tę encję? Tej operacji nie można cofnąć.",
+    "delete_title": "Usuń encję",
+    "control_ui": {
+      "label": "Sposób sterowania",
+      "direct_title": "Sterowanie bezpośrednie",
+      "direct_description": "Home Assistant zapisuje adres polecenia i odczytuje adres stanu. Stan i polecenie pozostają niezależne.",
+      "sync_title": "Synchronizuj polecenie ze stanem",
+      "sync_description": "Gdy stan PLC zmieni się zewnętrznie, wartość odczytana z adresu stanu jest również zapisywana pod adresem polecenia.",
+      "pulse_title": "Sterowanie impulsowe",
+      "pulse_description": "Wysyła impuls czasowy na adres polecenia zamiast utrzymywać wartość WŁ./WYŁ.",
+      "sync_requires_different": "Wymaga różnych adresów stanu i polecenia."
+    },
+    "types": {
+      "sensors": "Sensory",
+      "binary_sensors": "Sensory binarne",
+      "switches": "Przełączniki",
+      "covers": "Rolety/Osłony",
+      "lights": "Światła",
+      "buttons": "Przyciski",
+      "numbers": "Liczby",
+      "texts": "Teksty",
+      "climates": "Termostaty",
+      "entity_sync": "Zapisujące do PLC"
+    },
+    "choices": {
+      "traditional": "Tradycyjna",
+      "position": "Pozycja",
+      "direct": "Kontroler",
+      "setpoint": "Klient"
+    },
+    "batch": {
+      "select_entity": "Wybierz encję",
+      "delete_selected": "Usuń wybrane",
+      "delete_selected_confirm": "Usunąć {count} wybranych encji?"
     }
   }
 }

@@ -478,7 +478,7 @@
           "add_another": "Add another after saving"
         },
         "data_description": {
-          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
+          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,WS0.128).",
           "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the text entity.",
           "area": "Home Assistant area to assign this entity to.",
@@ -595,7 +595,7 @@
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
-          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,W0.128).",
+          "address": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,WS0.128).",
           "command_address": "PLC address to write text values (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the text entity.",
           "area": "Home Assistant area to assign this entity to.",
@@ -1099,6 +1099,92 @@
       "metrics_total_bytes_written": {
         "name": "Total bytes written"
       }
+    }
+  },
+  "config_panel": {
+    "loading": "Loading configuration…",
+    "no_plc": "No PLC configured",
+    "no_plc_help": "First add the Siemens S7 integration from Devices & services.",
+    "title": "S7 PLC configuration",
+    "subtitle": "Configure entities visually or use YAML in the advanced options.",
+    "entities": "entities",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "reload_help": "Changes are applied by automatically reloading the integration.",
+    "add": "Add",
+    "empty": "No entities",
+    "empty_help": "Use “Add” to create the first one.",
+    "entity": "Entity",
+    "edit": "Edit",
+    "delete": "Delete",
+    "enabled_help": "Enable this option",
+    "required": "Required",
+    "no_area": "No area",
+    "none_option": "None",
+    "address_example": "e.g. DB1,REAL0",
+    "address_example_bool": "e.g. DB1,X0.0",
+    "entity_example": "e.g. sensor.living_room_temperature",
+    "name_example": "e.g. Living room temperature",
+    "address_help": "Siemens S7 format, for example DB1,REAL0",
+    "address_help_bool": "Siemens S7 format, for example DB1,X0.0",
+    "preset_value_help": "Leave empty to hide this mode.",
+    "status_values_help": "One or more comma-separated values (e.g. 2,3). Leave empty to skip this status.",
+    "plc_connection": "PLC connection",
+    "plc_connection_help": "Data addresses and sources",
+    "behavior": "Behavior",
+    "behavior_help": "Options specific to this entity",
+    "ha_details": "Details in Home Assistant",
+    "ha_details_help": "Name, area, and update frequency",
+    "new_entity": "New entity",
+    "edit_entity": "Edit entity",
+    "configure_new": "Configure a new entity",
+    "update_configuration": "Update the configuration",
+    "save_help": "Fields are saved directly in the PLC configuration.",
+    "editor_mode": "Editor mode",
+    "visual_editor": "Visual editor",
+    "guided": "Guided and simple",
+    "advanced": "Advanced control",
+    "yaml_warning": "Advanced mode lets you manually edit every field. Use a YAML mapping for a single entity.",
+    "yaml_label": "YAML configuration",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "required_error": "Fill in all required fields.",
+    "cover_required_error": "Enter the required addresses for the selected cover type.",
+    "climate_required_error": "Enter the target temperature address.",
+    "delete_confirm": "Delete this entity? This action cannot be undone.",
+    "delete_title": "Delete entity",
+    "control_ui": {
+      "label": "Control behavior",
+      "direct_title": "Direct control",
+      "direct_description": "Home Assistant writes the command address and reads the state address. State and command remain independent.",
+      "sync_title": "Synchronize command with state",
+      "sync_description": "When the PLC state changes externally, the value read from the state address is also written to the command address. Useful when the PLC uses a command marker and a separate address or physical output as the real state.",
+      "pulse_title": "Pulse control",
+      "pulse_description": "Send a timed pulse to the command address instead of maintaining the ON/OFF value.",
+      "sync_requires_different": "Requires different state and command addresses."
+    },
+    "types": {
+      "sensors": "Sensors",
+      "binary_sensors": "Binary sensors",
+      "switches": "Switches",
+      "covers": "Covers",
+      "lights": "Lights",
+      "buttons": "Buttons",
+      "numbers": "Numbers",
+      "texts": "Texts",
+      "climates": "Climates",
+      "entity_sync": "Entity Syncs"
+    },
+    "choices": {
+      "traditional": "Traditional",
+      "position": "Position",
+      "direct": "Direct outputs",
+      "setpoint": "Setpoint"
+    },
+    "batch": {
+      "select_entity": "Select entity",
+      "delete_selected": "Delete selected",
+      "delete_selected_confirm": "Delete {count} selected entities?"
     }
   }
 }
