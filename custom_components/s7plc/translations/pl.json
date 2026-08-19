@@ -1123,6 +1123,7 @@
     "none_option": "Brak",
     "address_example": "np. DB1,REAL0",
     "address_example_bool": "np. DB1,X0.0",
+    "address_example_string": "np. DB1,S0.254",
     "entity_example": "np. sensor.temperatura_salonu",
     "name_example": "np. Temperatura salonu",
     "address_help": "Format Siemens S7, na przykład DB1,REAL0",
@@ -1153,6 +1154,10 @@
     "climate_required_error": "Wprowadź adres temperatury docelowej.",
     "delete_confirm": "Usunąć tę encję? Tej operacji nie można cofnąć.",
     "delete_title": "Usuń encję",
+    "fields": {
+      "cover_mode": "Typ osłony",
+      "control_mode": "Tryb sterowania"
+    },
     "control_ui": {
       "label": "Sposób sterowania",
       "direct_title": "Sterowanie bezpośrednie",

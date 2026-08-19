@@ -1123,6 +1123,7 @@
     "none_option": "Nessuna",
     "address_example": "es. DB1,REAL0",
     "address_example_bool": "es. DB1,X0.0",
+    "address_example_string": "es. DB1,S0.254",
     "entity_example": "es. sensor.temperatura_soggiorno",
     "name_example": "es. Temperatura soggiorno",
     "address_help": "Formato Siemens S7, ad esempio DB1,REAL0",
@@ -1153,6 +1154,10 @@
     "climate_required_error": "Inserisci l'indirizzo della temperatura obiettivo.",
     "delete_confirm": "Eliminare questa entità? L'azione non può essere annullata.",
     "delete_title": "Elimina entità",
+    "fields": {
+      "cover_mode": "Tipo di cover",
+      "control_mode": "Modalità di controllo"
+    },
     "control_ui": {
       "label": "Comportamento controllo",
       "direct_title": "Controllo diretto",

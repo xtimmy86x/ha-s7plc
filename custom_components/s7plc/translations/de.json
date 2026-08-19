@@ -1123,6 +1123,7 @@
     "none_option": "Keine",
     "address_example": "z. B. DB1,REAL0",
     "address_example_bool": "z. B. DB1,X0.0",
+    "address_example_string": "z. B. DB1,S0.254",
     "entity_example": "z. B. sensor.wohnzimmer_temperatur",
     "name_example": "z. B. Wohnzimmer-Temperatur",
     "address_help": "Siemens-S7-Format, zum Beispiel DB1,REAL0",
@@ -1153,6 +1154,10 @@
     "climate_required_error": "Geben Sie die Adresse der Zieltemperatur ein.",
     "delete_confirm": "Diese Entität löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "delete_title": "Entität löschen",
+    "fields": {
+      "cover_mode": "Rollladentyp",
+      "control_mode": "Steuerungsmodus"
+    },
     "control_ui": {
       "label": "Steuerverhalten",
       "direct_title": "Direkte Steuerung",

@@ -1123,6 +1123,7 @@
     "none_option": "None",
     "address_example": "e.g. DB1,REAL0",
     "address_example_bool": "e.g. DB1,X0.0",
+    "address_example_string": "e.g. DB1,S0.254",
     "entity_example": "e.g. sensor.living_room_temperature",
     "name_example": "e.g. Living room temperature",
     "address_help": "Siemens S7 format, for example DB1,REAL0",
@@ -1153,6 +1154,10 @@
     "climate_required_error": "Enter the target temperature address.",
     "delete_confirm": "Delete this entity? This action cannot be undone.",
     "delete_title": "Delete entity",
+    "fields": {
+      "cover_mode": "Cover type",
+      "control_mode": "Control mode"
+    },
     "control_ui": {
       "label": "Control behavior",
       "direct_title": "Direct control",

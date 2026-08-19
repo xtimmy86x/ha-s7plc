@@ -1123,6 +1123,7 @@
     "none_option": "Žádná",
     "address_example": "např. DB1,REAL0",
     "address_example_bool": "např. DB1,X0.0",
+    "address_example_string": "např. DB1,S0.254",
     "entity_example": "např. sensor.teplota_obyvaciho_pokoje",
     "name_example": "např. Teplota obývacího pokoje",
     "address_help": "Formát Siemens S7, například DB1,REAL0",
@@ -1153,6 +1154,10 @@
     "climate_required_error": "Zadejte adresu cílové teploty.",
     "delete_confirm": "Odstranit tuto entitu? Tuto akci nelze vrátit zpět.",
     "delete_title": "Odstranit entitu",
+    "fields": {
+      "cover_mode": "Typ krytu",
+      "control_mode": "Režim ovládání"
+    },
     "control_ui": {
       "label": "Chování ovládání",
       "direct_title": "Přímé ovládání",
