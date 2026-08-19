@@ -711,6 +711,32 @@ async def test_climate_setpoint_on_off_does_not_invent_unknown_mode(
     assert climate.hvac_mode is None
 
 
+@pytest.mark.asyncio
+async def test_climate_setpoint_preset_mode_resolves_before_unknown_fallback(
+    climate_setpoint_factory, mock_coordinator
+):
+    """A real preset_mode_address reading (e.g. AUTO) must take priority
+    over the on_off "unknown" fallback, even when the internal _hvac_mode
+    is still OFF (its initial value whenever heat_cool is disabled, since
+    OFF is then the first entry in _attr_hvac_modes) and on_off_address
+    reports the device as on. Regression test: this previously reported
+    None ("unknown") instead of the real polled preset value."""
+    climate = climate_setpoint_factory(
+        on_off_address="db1,x0.0",
+        preset_mode_address="db1,int0",
+        preset_mode_bidirectional=True,
+        preset_mode_heat_cool_value=None,
+        preset_mode_auto_value=0,
+    )
+    assert climate._hvac_mode == HVACMode.OFF
+
+    mock_coordinator.data = {
+        f"{climate._topic}:on_off": True,
+        f"{climate._topic}:preset_mode": 0,
+    }
+    assert climate.hvac_mode == HVACMode.AUTO
+
+
 @pytest.mark.parametrize(
     ("preset_mode_bidirectional", "expects_warning"),
     [(False, False), (True, True)],
