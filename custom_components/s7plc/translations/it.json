@@ -385,7 +385,6 @@
           "name": "Nome",
           "area": "Area",
           "button_pulse": "Durata impulso",
-          "scan_interval": "Intervallo di scansione (s)",
           "add_another": "Aggiungi un altro dopo il salvataggio"
         },
         "data_description": {
@@ -393,7 +392,6 @@
           "name": "Nome descrittivo opzionale per il pulsante.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
           "add_another": "Rimani in questa schermata per aggiungere altri pulsanti.",
-          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC.",
           "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100 ms)."
         }
       },
@@ -790,15 +788,13 @@
           "address": "Indirizzo",
           "name": "Nome",
           "area": "Area",
-          "button_pulse": "Durata impulso",
-          "scan_interval": "Intervallo di scansione (s)"
+          "button_pulse": "Durata impulso"
         },
         "data_description": {
           "address": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1).",
           "name": "Nome descrittivo opzionale per il pulsante.",
           "area": "Area di Home Assistant a cui assegnare questa entità.",
-          "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100 ms).",
-          "scan_interval": "Frequenza di polling specifica per questo pulsante in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+          "button_pulse": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100 ms)."
         }
       },
       "edit_light": {
