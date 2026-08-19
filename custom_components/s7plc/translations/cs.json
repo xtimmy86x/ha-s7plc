@@ -146,8 +146,8 @@
         }
       },
       "climates": {
-        "title": "Add Climate",
-        "description": "Select the type of climate control to add.",
+        "title": "Přidat klimatizaci",
+        "description": "Vyberte typ ovládání klimatizace, který chcete přidat.",
         "menu_options": {
           "climates_direct": "Klimatizace (Přímé řízení)",
           "climates_setpoint": "Klimatizace (Řízení nastavením)"
@@ -214,7 +214,7 @@
           "max_value": "Zobrazené max.",
           "unit_of_measurement": "Jednotka",
           "state_class": "Třída stavu",
-          "real_precision": "Zaokrouhlení REAL",
+          "real_precision": "Desetinná místa REAL",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
         },
@@ -230,7 +230,7 @@
           "max_value": "Maximální zobrazená hodnota po škálování.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
           "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+          "real_precision": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další senzory."
         }
@@ -265,7 +265,7 @@
           "command_address": "Příkazová adresa",
           "name": "Název",
           "area": "Oblast",
-          "sync_state": "Synchronizovat stav s příkazovou adresou",
+          "sync_state": "Zapsat externí změny stavu na příkazovou adresu",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení",
           "pulse_command": "Režim pulzního příkazu",
@@ -276,7 +276,7 @@
           "command_address": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav.",
           "name": "Volitelný srozumitelný název spínače.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "sync_state": "Pokud je zapnuto, příkazová adresa se automaticky aktualizuje podle aktuálního stavu.",
+          "sync_state": "Když se stavová adresa externě změní, zapíše se nový stav na příkazovou adresu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další spínače.",
           "pulse_command": "Když je povoleno, odešle pulz (ZAP pak VYP) namísto trvalého stavu. Užitečné pro bistabilní relé nebo klopné obvody.",
@@ -384,7 +384,6 @@
           "address": "Adresa",
           "name": "Název",
           "area": "Oblast",
-          "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení",
           "button_pulse": "Délka pulzu"
         },
@@ -392,7 +391,6 @@
           "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
           "name": "Volitelný srozumitelný název tlačítka.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další tlačítka.",
           "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms)."
         }
@@ -405,7 +403,7 @@
           "command_address": "Příkazová adresa (zap/vyp)",
           "name": "Název",
           "area": "Oblast",
-          "sync_state": "Synchronizovat stav na příkazovou adresu",
+          "sync_state": "Zapsat externí změny stavu na příkazovou adresu",
           "pulse_command": "Režim pulsního příkazu",
           "pulse_duration": "Délka pulsu (s)",
           "brightness_state_address": "Stavová adresa jasu",
@@ -419,7 +417,7 @@
           "command_address": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa.",
           "name": "Volitelný přátelský název světla.",
           "area": "Oblast Home Assistant, do které se tato entita přiřadí.",
-          "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
+          "sync_state": "Když se stavová adresa externě změní, zapíše se nový stav zapnuto/vypnuto na příkazovou adresu.",
           "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
           "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
           "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu (např. DB1,B2). Nechte prázdné pro pouze zap/vyp.",
@@ -445,7 +443,7 @@
           "value_multiplier": "Násobitel hodnoty",
           "scale_raw_min": "Syr. min. hodnota (rozsah)",
           "scale_raw_max": "Syr. max. hodnota (rozsah)",
-          "real_precision": "Zaokrouhlení REAL",
+          "real_precision": "Desetinná místa REAL",
           "scan_interval": "Interval čtení (s)",
           "add_another": "Přidat další po uložení"
         },
@@ -462,7 +460,7 @@
           "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "scale_raw_min": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování.",
           "scale_raw_max": "Maximální surová (PLC) hodnota pro lineární škálování.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+          "real_precision": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "add_another": "Zůstat v tomto kroku a přidat další číselné entity."
         }
@@ -527,8 +525,8 @@
         "data": {
           "current_temperature_address": "Adresa aktuální teploty",
           "target_temperature_address": "Adresa cílové teploty",
-          "preset_mode_address": "Adresa režimu předvolby",
-          "preset_mode_bidirectional": "Obousměrný režim přednastavení",
+          "preset_mode_address": "Adresa režimu HVAC",
+          "preset_mode_bidirectional": "Číst režim HVAC z PLC",
           "on_off_address": "Adresa zap./vyp.",
           "preset_mode_off_value": "Hodnota pro režim VYPNUTO",
           "preset_mode_heat_value": "Hodnota pro režim TOPENÍ",
@@ -571,7 +569,7 @@
           "hvac_status_off_values": "Hodnota(y) PLC znamenající VYPNUTO, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 0 nebo 0,10). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_heating_values": "Hodnota(y) PLC znamenající TOPENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_cooling_values": "Hodnota(y) PLC znamenající CHLAZENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 2 nebo 4,5). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
-          "hvac_status_idle_values": "Volitelná hodnota(y) PLC znamenající NEČINNÝ (ani topení, ani chlazení), čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 9). Ponechte prázdné, aby byla jakákoli neshodná hodnota považována za NEČINNÝ (výchozí chování). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
+          "hvac_status_idle_values": "Volitelná hodnota (hodnoty) PLC znamenající NEČINNÝ (ani topení, ani chlazení), čtená z adresy stavu HVAC. Jedno nebo více celých čísel oddělených čárkami (např. 9). Ponechte prázdné, aby byla jakákoli neshodná hodnota považována za NEČINNÝ (výchozí chování).",
           "hvac_status_drying_values": "Volitelná hodnota(y) PLC znamenající SUŠENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_fan_values": "Volitelná hodnota(y) PLC znamenající VENTILÁTOR (pouze cirkulace vzduchu), čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_preheating_values": "Volitelná hodnota(y) PLC znamenající PŘEDEHŘEV, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
@@ -641,8 +639,8 @@
         "data": {
           "current_temperature_address": "Adresa aktuální teploty",
           "target_temperature_address": "Adresa cílové teploty",
-          "preset_mode_address": "Adresa předvoleného režimu",
-          "preset_mode_bidirectional": "Obousměrný režim přednastavení",
+          "preset_mode_address": "Adresa režimu HVAC",
+          "preset_mode_bidirectional": "Číst režim HVAC z PLC",
           "on_off_address": "Adresa zap./vyp.",
           "preset_mode_off_value": "Hodnota pro režim VYPNUTO",
           "preset_mode_heat_value": "Hodnota pro režim TOPENÍ",
@@ -684,7 +682,7 @@
           "hvac_status_off_values": "Hodnota(y) PLC znamenající VYPNUTO, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 0 nebo 0,10). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_heating_values": "Hodnota(y) PLC znamenající TOPENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_cooling_values": "Hodnota(y) PLC znamenající CHLAZENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 2 nebo 4,5). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
-          "hvac_status_idle_values": "Volitelná hodnota(y) PLC znamenající NEČINNÝ (ani topení, ani chlazení), čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 9). Ponechte prázdné, aby byla jakákoli neshodná hodnota považována za NEČINNÝ (výchozí chování). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
+          "hvac_status_idle_values": "Volitelná hodnota (hodnoty) PLC znamenající NEČINNÝ (ani topení, ani chlazení), čtená z adresy stavu HVAC. Jedno nebo více celých čísel oddělených čárkami (např. 9). Ponechte prázdné, aby byla jakákoli neshodná hodnota považována za NEČINNÝ (výchozí chování).",
           "hvac_status_drying_values": "Volitelná hodnota(y) PLC znamenající SUŠENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_fan_values": "Volitelná hodnota(y) PLC znamenající VENTILÁTOR (pouze cirkulace vzduchu), čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
           "hvac_status_preheating_values": "Volitelná hodnota(y) PLC znamenající PŘEDEHŘEV, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen).",
@@ -742,7 +740,7 @@
           "max_value": "Zobrazené max.",
           "unit_of_measurement": "Jednotka",
           "state_class": "Třída stavu",
-          "real_precision": "Zaokrouhlení REAL",
+          "real_precision": "Desetinná místa REAL",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
@@ -757,7 +755,7 @@
           "max_value": "Maximální zobrazená hodnota po škálování.",
           "unit_of_measurement": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení.",
           "state_class": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+          "real_precision": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },
@@ -789,7 +787,7 @@
           "command_address": "Příkazová adresa",
           "name": "Název",
           "area": "Oblast",
-          "sync_state": "Synchronizovat stav s PLC",
+          "sync_state": "Zapsat externí změny stavu na příkazovou adresu",
           "scan_interval": "Interval čtení (s)",
           "pulse_command": "Režim pulzního příkazu",
           "pulse_duration": "Doba trvání pulzu (s)"
@@ -799,7 +797,7 @@
           "command_address": "Adresa v PLC pro zápis příkazů (volitelné).",
           "name": "Volitelný srozumitelný název spínače.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "sync_state": "Pokud je zapnuto, stav entity se pravidelně synchronizuje z PLC.",
+          "sync_state": "Když se stavová adresa externě změní, zapíše se nový stav na příkazovou adresu.",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC.",
           "pulse_command": "Když je povoleno, odešle pulz (ZAP pak VYP) namísto trvalého stavu. Užitečné pro bistabilní relé nebo klopné obvody.",
           "pulse_duration": "Doba trvání pulzu v sekundách. Minimum: 0,1s, Maximum: 60s."
@@ -902,15 +900,13 @@
           "address": "Adresa",
           "name": "Název",
           "area": "Oblast",
-          "button_pulse": "Délka pulzu",
-          "scan_interval": "Interval čtení (s)"
+          "button_pulse": "Délka pulzu"
         },
         "data_description": {
           "address": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1).",
           "name": "Volitelný srozumitelný název tlačítka.",
           "area": "Oblast Home Assistantu, do které má být tato entita přiřazena.",
-          "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms).",
-          "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
+          "button_pulse": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms)."
         }
       },
       "edit_light": {
@@ -921,7 +917,7 @@
           "command_address": "Příkazová adresa (zap/vyp)",
           "name": "Název",
           "area": "Oblast",
-          "sync_state": "Synchronizovat stav s PLC",
+          "sync_state": "Zapsat externí změny stavu na příkazovou adresu",
           "pulse_command": "Režim pulsního příkazu",
           "pulse_duration": "Délka pulsu (s)",
           "brightness_state_address": "Stavová adresa jasu",
@@ -934,7 +930,7 @@
           "command_address": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa.",
           "name": "Volitelný přátelský název světla.",
           "area": "Oblast Home Assistant, do které se tato entita přiřadí.",
-          "sync_state": "Pokud je povoleno, příkazová adresa se automaticky aktualizuje aktuálním stavem zap/vyp.",
+          "sync_state": "Když se stavová adresa externě změní, zapíše se nový stav zapnuto/vypnuto na příkazovou adresu.",
           "pulse_command": "Odeslat puls místo příkazů zap/vyp.",
           "pulse_duration": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s.",
           "brightness_state_address": "Číselná PLC adresa pro čtení úrovně jasu. Nechte prázdné pro pouze zap/vyp.",
@@ -959,7 +955,7 @@
           "value_multiplier": "Násobitel hodnoty",
           "scale_raw_min": "Syr. min. hodnota (rozsah)",
           "scale_raw_max": "Syr. max. hodnota (rozsah)",
-          "real_precision": "Zaokrouhlení REAL",
+          "real_precision": "Desetinná místa REAL",
           "scan_interval": "Interval čtení (s)"
         },
         "data_description": {
@@ -975,7 +971,7 @@
           "value_multiplier": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu.",
           "scale_raw_min": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování.",
           "scale_raw_max": "Maximální surová (PLC) hodnota pro lineární škálování.",
-          "real_precision": "Počet desetinných míst pro zaokrouhlení REAL hodnot. Ponechte prázdné pro výchozí přesnost (1).",
+          "real_precision": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1).",
           "scan_interval": "Přepíše interval čtení pro tento tag v sekundách. Ponechte prázdné pro použití výchozího intervalu PLC."
         }
       },

@@ -214,7 +214,7 @@
           "max_value": "Scale max",
           "unit_of_measurement": "Unit of measurement",
           "state_class": "State class",
-          "real_precision": "REAL round precision",
+          "real_precision": "REAL decimal precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -230,7 +230,7 @@
           "max_value": "Maximum displayed value after scaling.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "state_class": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic.",
-          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
+          "real_precision": "Number of decimal places for REAL values. Leave blank to use the default (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more sensors."
         }
@@ -265,7 +265,7 @@
           "command_address": "Command address",
           "name": "Name",
           "area": "Area",
-          "sync_state": "Sync state to command anddress",
+          "sync_state": "Write external state changes to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
           "scan_interval": "Scan interval (s)",
@@ -276,7 +276,7 @@
           "command_address": "PLC address to write commands (optional). If omitted, only state will be read.",
           "name": "Optional friendly name for the switch.",
           "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the command address is automatically updated with the current state.",
+          "sync_state": "When the state address changes externally, write the new state to the command address.",
           "pulse_command": "When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
@@ -384,7 +384,6 @@
           "address": "Address",
           "name": "Name",
           "area": "Area",
-          "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving",
           "button_pulse": "Pulse duration"
         },
@@ -392,7 +391,6 @@
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
           "area": "Home Assistant area to assign this entity to.",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more buttons.",
           "button_pulse": "Duration of the pulse in seconds."
         }
@@ -405,7 +403,7 @@
           "command_address": "Command address (on/off)",
           "name": "Name",
           "area": "Area",
-          "sync_state": "Sync state to command address",
+          "sync_state": "Write external state changes to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
           "brightness_state_address": "Brightness state address",
@@ -419,7 +417,7 @@
           "command_address": "PLC boolean address to write on/off commands (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the light.",
           "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
+          "sync_state": "When the state address changes externally, write the new on/off state to the command address.",
           "pulse_command": "Send pulse instead of on/off commands.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
           "brightness_state_address": "PLC numeric address to read the brightness level (e.g., DB1,B2). Leave blank for on/off only.",
@@ -445,7 +443,7 @@
           "value_multiplier": "Value multiplier",
           "scale_raw_min": "Scale raw min",
           "scale_raw_max": "Scale raw max",
-          "real_precision": "REAL round precision",
+          "real_precision": "REAL decimal precision",
           "scan_interval": "Scan interval (s)",
           "add_another": "Add another after saving"
         },
@@ -462,7 +460,7 @@
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
           "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
           "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
-          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
+          "real_precision": "Number of decimal places for REAL values. Leave blank to use the default (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default.",
           "add_another": "Stay on this step to add more number entities."
         }
@@ -545,8 +543,8 @@
         "data": {
           "current_temperature_address": "Current temperature address",
           "target_temperature_address": "Target temperature address",
-          "preset_mode_address": "Preset mode address",
-          "preset_mode_bidirectional": "Bidirectional preset mode",
+          "preset_mode_address": "HVAC mode address",
+          "preset_mode_bidirectional": "Read HVAC mode from PLC",
           "on_off_address": "On/off address",
           "preset_mode_off_value": "Off mode value",
           "preset_mode_heat_value": "Heat mode value",
@@ -574,8 +572,8 @@
         "data_description": {
           "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
-          "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Write-only by default; enable preset_mode_bidirectional to also read it back.",
-          "preset_mode_bidirectional": "Also read preset_mode_address back and use it as the current HVAC mode. Off by default for backward compatibility: some PLCs treat this address purely as a command and may reset or modify it independently of the requested mode, which could misreport the mode if read back.",
+          "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Write-only by default; enable HVAC mode feedback to also read it back.",
+          "preset_mode_bidirectional": "Read the HVAC mode address from the PLC and use a recognized value as the current HVAC mode. Disabled by default because some PLCs reset or modify command addresses independently, which could misreport the mode.",
           "on_off_address": "Optional boolean PLC address to switch this thermostat on/off, for devices with no native OFF mode of their own (e.g. a heater/cooler turned on/off by a separate output). Writes False/0 when the target mode is set to OFF, and True/1 for any other mode. Leave blank to rely on the standard OFF behavior instead. Also read back from the PLC to reflect the actual on/off state (bidirectional).",
           "preset_mode_off_value": "PLC value written when the mode is set to OFF (e.g. 0). Leave empty to hide this mode from the thermostat's mode list. If on_off_address is configured, this is ignored for OFF: the mode stays available and is switched via that address instead.",
           "preset_mode_heat_value": "PLC value written when the mode is set to HEAT (e.g. 1). Leave empty to hide this mode from the thermostat's mode list.",
@@ -639,8 +637,8 @@
         "data": {
           "current_temperature_address": "Current temperature address",
           "target_temperature_address": "Target temperature address",
-          "preset_mode_address": "Preset mode address",
-          "preset_mode_bidirectional": "Bidirectional preset mode",
+          "preset_mode_address": "HVAC mode address",
+          "preset_mode_bidirectional": "Read HVAC mode from PLC",
           "on_off_address": "On/off address",
           "preset_mode_off_value": "Off mode value",
           "preset_mode_heat_value": "Heat mode value",
@@ -669,8 +667,8 @@
         "data_description": {
           "current_temperature_address": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8).",
-          "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Useful if the PLC needs to enable/disable climate control. Write-only by default; enable preset_mode_bidirectional to also read it back.",
-          "preset_mode_bidirectional": "Also read preset_mode_address back and use it as the current HVAC mode. Off by default for backward compatibility: some PLCs treat this address purely as a command and may reset or modify it independently of the requested mode, which could misreport the mode if read back.",
+          "preset_mode_address": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Write-only by default; enable HVAC mode feedback to also read it back.",
+          "preset_mode_bidirectional": "Read the HVAC mode address from the PLC and use a recognized value as the current HVAC mode. Disabled by default because some PLCs reset or modify command addresses independently, which could misreport the mode.",
           "on_off_address": "Optional boolean PLC address to switch this thermostat on/off, for devices with no native OFF mode of their own (e.g. a heater/cooler turned on/off by a separate output). Writes False/0 when the target mode is set to OFF, and True/1 for any other mode. Leave blank to rely on the standard OFF behavior instead. Also read back from the PLC to reflect the actual on/off state (bidirectional).",
           "preset_mode_off_value": "PLC value written when the mode is set to OFF (e.g. 0). Leave empty to hide this mode from the thermostat's mode list. If on_off_address is configured, this is ignored for OFF: the mode stays available and is switched via that address instead.",
           "preset_mode_heat_value": "PLC value written when the mode is set to HEAT (e.g. 1). Leave empty to hide this mode from the thermostat's mode list.",
@@ -742,7 +740,7 @@
           "max_value": "Scale max",
           "unit_of_measurement": "Unit of measurement",
           "state_class": "State class",
-          "real_precision": "REAL round precision",
+          "real_precision": "REAL decimal precision",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -757,7 +755,7 @@
           "max_value": "Maximum displayed value after scaling.",
           "unit_of_measurement": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class.",
           "state_class": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic.",
-          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
+          "real_precision": "Number of decimal places for REAL values. Leave blank to use the default (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
@@ -789,7 +787,7 @@
           "command_address": "Command address",
           "name": "Name",
           "area": "Area",
-          "sync_state": "Sync state with PLC",
+          "sync_state": "Write external state changes to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
           "scan_interval": "Scan interval (s)"
@@ -799,7 +797,7 @@
           "command_address": "PLC address to write commands (optional).",
           "name": "Optional friendly name for the switch.",
           "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the entity state is periodically synchronized from the PLC.",
+          "sync_state": "When the state address changes externally, write the new state to the command address.",
           "pulse_command": "When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits.",
           "pulse_duration": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s.",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
@@ -902,15 +900,13 @@
           "address": "Address",
           "name": "Name",
           "area": "Area",
-          "button_pulse": "Pulse duration",
-          "scan_interval": "Scan interval (s)"
+          "button_pulse": "Pulse duration"
         },
         "data_description": {
           "address": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1).",
           "name": "Optional friendly name for the button.",
           "area": "Home Assistant area to assign this entity to.",
-          "button_pulse": "Duration of the pulse in seconds.",
-          "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
+          "button_pulse": "Duration of the pulse in seconds."
         }
       },
       "edit_light": {
@@ -921,7 +917,7 @@
           "command_address": "Command address (on/off)",
           "name": "Name",
           "area": "Area",
-          "sync_state": "Sync state with PLC",
+          "sync_state": "Write external state changes to command address",
           "pulse_command": "Pulse command mode",
           "pulse_duration": "Pulse duration (s)",
           "brightness_state_address": "Brightness state address",
@@ -934,7 +930,7 @@
           "command_address": "PLC boolean address to write on/off commands (optional). If omitted, the state address is used.",
           "name": "Optional friendly name for the light.",
           "area": "Home Assistant area to assign this entity to.",
-          "sync_state": "When enabled, the command address is automatically updated with the current on/off state.",
+          "sync_state": "When the state address changes externally, write the new on/off state to the command address.",
           "pulse_command": "Send pulse instead of on/off commands.",
           "pulse_duration": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s.",
           "brightness_state_address": "PLC numeric address to read the brightness level. Leave blank for on/off only.",
@@ -959,7 +955,7 @@
           "value_multiplier": "Value multiplier",
           "scale_raw_min": "Scale raw min",
           "scale_raw_max": "Scale raw max",
-          "real_precision": "REAL round precision",
+          "real_precision": "REAL decimal precision",
           "scan_interval": "Scan interval (s)"
         },
         "data_description": {
@@ -975,7 +971,7 @@
           "value_multiplier": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value.",
           "scale_raw_min": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling.",
           "scale_raw_max": "Maximum raw (PLC) value for linear scaling.",
-          "real_precision": "Number of decimal places to round REAL values. Leave blank to keep the original precision (1).",
+          "real_precision": "Number of decimal places for REAL values. Leave blank to use the default (1).",
           "scan_interval": "Override the poll interval for this tag in seconds. Leave blank to inherit the PLC default."
         }
       },
