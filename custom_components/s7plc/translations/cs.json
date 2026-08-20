@@ -1195,6 +1195,7 @@
     "configuration_yaml_title": "Pokročilá konfigurace YAML",
     "configuration_yaml_warning": "Upravte všechny entity tohoto PLC najednou. Uložení nahradí celou konfiguraci entit. Nejprve exportujte zálohu.",
     "import_yaml": "Importovat YAML",
-    "export_yaml": "Exportovat YAML"
+    "export_current_yaml": "Exportovat aktuální YAML",
+    "download_backup": "Stáhnout zálohu"
   }
 }

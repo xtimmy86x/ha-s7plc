@@ -1195,6 +1195,7 @@
     "configuration_yaml_title": "Advanced YAML configuration",
     "configuration_yaml_warning": "Edit all entities for this PLC at once. Saving replaces the complete entity configuration. Export a backup first.",
     "import_yaml": "Import YAML",
-    "export_yaml": "Export YAML"
+    "export_current_yaml": "Export current YAML",
+    "download_backup": "Download backup"
   }
 }

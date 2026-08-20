@@ -170,7 +170,9 @@ def test_complete_configuration_yaml_round_trip() -> None:
         "unrelated_option": True,
     }
 
-    saved = _configuration_from_yaml(_configuration_yaml(options), options)
+    saved = _configuration_from_yaml(
+        _configuration_yaml(options, "entry-1", "PLC"), options, "entry-1"
+    )
 
     assert saved["sensors"][0]["uid"] == "one"
     assert saved["switches"][0]["uid"] == "two"
@@ -200,6 +202,49 @@ def test_complete_configuration_yaml_replaces_duplicate_uids() -> None:
         "binary_sensors:\n  - address: DB1,X4.0\n    uid: repeated\n",
         {},
     )
+
+    assert saved["sensors"][0]["uid"] != "repeated"
+    assert saved["binary_sensors"][0]["uid"] != "repeated"
+    assert saved["binary_sensors"][0]["uid"] != saved["sensors"][0]["uid"]
+
+
+def test_configuration_backup_metadata_and_uid_import_rules() -> None:
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "uid": "original"}],
+        "unrelated": "preserved",
+    }
+    backup = _configuration_yaml(options, "source-entry", "Source PLC")
+    payload = yaml.safe_load(backup)
+
+    assert payload["s7plc"] == {
+        "format_version": 1,
+        "source_entry_id": "source-entry",
+        "source_title": "Source PLC",
+    }
+    assert _configuration_from_yaml(backup, options, "source-entry")["sensors"][0][
+        "uid"
+    ] == "original"
+    assert _configuration_from_yaml(backup, options, "other-entry")["sensors"][0][
+        "uid"
+    ] != "original"
+    legacy = "sensors:\n  - address: DB1,REAL0\n    uid: original\n"
+    assert _configuration_from_yaml(legacy, options, "source-entry")["sensors"][0][
+        "uid"
+    ] != "original"
+
+
+def test_same_entry_duplicate_uids_are_replaced_safely() -> None:
+    source = """s7plc:
+  format_version: 1
+  source_entry_id: entry-1
+sensors:
+  - address: DB1,REAL0
+    uid: repeated
+binary_sensors:
+  - address: DB1,X4.0
+    uid: repeated
+"""
+    saved = _configuration_from_yaml(source, {}, "entry-1")
 
     assert saved["sensors"][0]["uid"] == "repeated"
     assert saved["binary_sensors"][0]["uid"] != "repeated"
@@ -261,7 +306,79 @@ async def _save_entity_handler(monkeypatch, options):
         http=SimpleNamespace(async_register_static_paths=register_static_paths),
     )
     await async_setup_panel(hass)
+    hass.panel_commands = commands
     return commands[1], hass, entry, updates
+
+
+@pytest.mark.asyncio
+async def test_configuration_websocket_commands(monkeypatch) -> None:
+    _, hass, entry, updates = await _save_entity_handler(
+        monkeypatch,
+        {
+            "sensors": [{"address": "DB1,REAL0", "uid": "one"}],
+            "unrelated": 42,
+        },
+    )
+    get_configuration = hass.panel_commands[4]
+    save_configuration = hass.panel_commands[3]
+    connection = _Connection()
+
+    await get_configuration(
+        hass, connection, {"id": 1, "entry_id": entry.entry_id}
+    )
+    backup = connection.result["configuration_yaml"]
+    assert yaml.safe_load(backup)["s7plc"]["source_entry_id"] == entry.entry_id
+
+    await save_configuration(
+        hass,
+        connection,
+        {
+            "id": 2,
+            "entry_id": entry.entry_id,
+            "configuration_yaml": "sensors:\n  - address: DB1,REAL4\n",
+        },
+    )
+    assert updates[-1]["unrelated"] == 42
+    assert updates[-1]["covers"] == []
+    assert "s7plc" not in updates[-1]
+
+
+@pytest.mark.asyncio
+async def test_invalid_full_configuration_is_structured_and_not_saved(
+    monkeypatch,
+) -> None:
+    _, hass, entry, updates = await _save_entity_handler(monkeypatch, {})
+    connection = _Connection()
+
+    await hass.panel_commands[3](
+        hass,
+        connection,
+        {
+            "id": 1,
+            "entry_id": entry.entry_id,
+            "configuration_yaml": "climates:\n  - current_temperature_address: invalid\n",
+        },
+    )
+
+    assert connection.error[0] == "invalid_configuration_entity"
+    assert json.loads(connection.error[1]) == {
+        "entity_type": "climates",
+        "index": 0,
+        "error_key": "invalid_address",
+    }
+    assert updates == []
+
+
+def test_list_is_lightweight_and_frontend_has_three_yaml_actions() -> None:
+    entry = SimpleNamespace(
+        entry_id="entry-1", title="PLC", data={}, options={}, runtime_data=None
+    )
+    assert "configuration_yaml" not in _entry_payload(entry)
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "import_yaml" in source
+    assert "export_current_yaml" in source
+    assert "download_backup" in source
+    assert "s7plc/config/get_configuration" in source
 
 
 class _Connection:

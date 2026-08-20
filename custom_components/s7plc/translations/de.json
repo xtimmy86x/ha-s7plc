@@ -1195,6 +1195,7 @@
     "configuration_yaml_title": "Erweiterte YAML-Konfiguration",
     "configuration_yaml_warning": "Bearbeiten Sie alle Entitäten dieser SPS gleichzeitig. Beim Speichern wird die gesamte Entitätskonfiguration ersetzt. Exportieren Sie zuerst eine Sicherung.",
     "import_yaml": "YAML importieren",
-    "export_yaml": "YAML exportieren"
+    "export_current_yaml": "Aktuelles YAML exportieren",
+    "download_backup": "Sicherung herunterladen"
   }
 }

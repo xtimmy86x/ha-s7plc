@@ -1195,6 +1195,7 @@
     "configuration_yaml_title": "Configurazione YAML avanzata",
     "configuration_yaml_warning": "Modifica contemporaneamente tutte le entità di questo PLC. Il salvataggio sostituisce l’intera configurazione delle entità. Esporta prima una copia di sicurezza.",
     "import_yaml": "Importa YAML",
-    "export_yaml": "Esporta YAML"
+    "export_current_yaml": "Esporta YAML corrente",
+    "download_backup": "Scarica copia di sicurezza"
   }
 }
