@@ -15,6 +15,9 @@ stepping through the integration options flow for each change.
 - If multiple PLC entries exist, use the selector in the page header to switch
   between them. Every change applies only to the selected entry.
 - The header shows whether the selected PLC coordinator is currently connected.
+  Select the connection-status badge beside the PLC name to open a read-only
+  view of all connection parameters (host, connection method, timing, retries,
+  and performance options).
 
 If the item does not appear after installing or upgrading the integration,
 restart Home Assistant and confirm that the S7 PLC integration loaded without

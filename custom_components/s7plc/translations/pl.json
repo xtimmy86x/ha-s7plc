@@ -1196,6 +1196,19 @@
     "configuration_yaml_warning": "Edytuj jednocześnie wszystkie encje tego PLC. Zapis zastępuje pełną konfigurację encji. Najpierw wyeksportuj kopię zapasową.",
     "import_yaml": "Importuj YAML",
     "export_current_yaml": "Eksportuj bieżący YAML",
-    "download_backup": "Pobierz kopię zapasową"
+    "download_backup": "Pobierz kopię zapasową",
+    "connection_details_title": "Szczegóły połączenia",
+    "connection_details_help": "Pokaż szczegóły połączenia",
+    "connection_details_description": "Parametry połączenia tego PLC tylko do odczytu.",
+    "close": "Zamknij",
+    "yes": "Tak",
+    "no": "Nie",
+    "connection_values": {
+      "rack_slot": "Kaseta i gniazdo",
+      "tsap": "TSAP",
+      "pg": "PG (urządzenie programujące)",
+      "op": "OP (panel operatorski)",
+      "s7basic": "S7 Basic"
+    }
   }
 }

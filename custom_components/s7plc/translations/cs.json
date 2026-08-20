@@ -1196,6 +1196,19 @@
     "configuration_yaml_warning": "Upravte všechny entity tohoto PLC najednou. Uložení nahradí celou konfiguraci entit. Nejprve exportujte zálohu.",
     "import_yaml": "Importovat YAML",
     "export_current_yaml": "Exportovat aktuální YAML",
-    "download_backup": "Stáhnout zálohu"
+    "download_backup": "Stáhnout zálohu",
+    "connection_details_title": "Podrobnosti připojení",
+    "connection_details_help": "Zobrazit podrobnosti připojení",
+    "connection_details_description": "Parametry připojení tohoto PLC pouze pro čtení.",
+    "close": "Zavřít",
+    "yes": "Ano",
+    "no": "Ne",
+    "connection_values": {
+      "rack_slot": "Rack a slot",
+      "tsap": "TSAP",
+      "pg": "PG (programovací zařízení)",
+      "op": "OP (operátorský panel)",
+      "s7basic": "S7 Basic"
+    }
   }
 }

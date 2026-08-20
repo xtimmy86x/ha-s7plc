@@ -1196,6 +1196,19 @@
     "configuration_yaml_warning": "Bearbeiten Sie alle Entitäten dieser SPS gleichzeitig. Beim Speichern wird die gesamte Entitätskonfiguration ersetzt. Exportieren Sie zuerst eine Sicherung.",
     "import_yaml": "YAML importieren",
     "export_current_yaml": "Aktuelles YAML exportieren",
-    "download_backup": "Sicherung herunterladen"
+    "download_backup": "Sicherung herunterladen",
+    "connection_details_title": "Verbindungsdetails",
+    "connection_details_help": "Verbindungsdetails anzeigen",
+    "connection_details_description": "Schreibgeschützte Verbindungsparameter für diese SPS.",
+    "close": "Schließen",
+    "yes": "Ja",
+    "no": "Nein",
+    "connection_values": {
+      "rack_slot": "Rack und Steckplatz",
+      "tsap": "TSAP",
+      "pg": "PG (Programmiergerät)",
+      "op": "OP (Bediengerät)",
+      "s7basic": "S7 Basic"
+    }
   }
 }

@@ -43,6 +43,22 @@ def test_panel_displays_integration_version() -> None:
     assert 'class="integration-version"' in source
 
 
+def test_connection_badge_opens_read_only_connection_details() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert 'type="button" class="connection-badge' in source
+    assert (
+        ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
+    )
+    assert "Object.entries(entry.data)" in source
+    assert 'class="connection-detail"' in source
+    assert "openConnectionDetails(entry)" in source
+    details_source = source[
+        source.index("  openConnectionDetails(entry){") : source.index("  field(")
+    ]
+    assert "input name=" not in details_source
+
+
 def test_panel_supports_batch_entity_deletion() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 

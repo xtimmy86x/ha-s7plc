@@ -1190,6 +1190,19 @@
       "select_entity": "Select entity",
       "delete_selected": "Delete selected",
       "delete_selected_confirm": "Delete {count} selected entities?"
+    },
+    "connection_details_title": "Connection details",
+    "connection_details_help": "Show connection details",
+    "connection_details_description": "Read-only connection parameters for this PLC.",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "connection_values": {
+      "rack_slot": "Rack and slot",
+      "tsap": "TSAP",
+      "pg": "PG (programming device)",
+      "op": "OP (operator panel)",
+      "s7basic": "S7 Basic"
     }
   }
 }

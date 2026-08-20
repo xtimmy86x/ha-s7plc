@@ -1196,6 +1196,19 @@
     "configuration_yaml_warning": "Edit all entities for this PLC at once. Saving replaces the complete entity configuration. Export a backup first.",
     "import_yaml": "Import YAML",
     "export_current_yaml": "Export current YAML",
-    "download_backup": "Download backup"
+    "download_backup": "Download backup",
+    "connection_details_title": "Connection details",
+    "connection_details_help": "Show connection details",
+    "connection_details_description": "Read-only connection parameters for this PLC.",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "connection_values": {
+      "rack_slot": "Rack and slot",
+      "tsap": "TSAP",
+      "pg": "PG (programming device)",
+      "op": "OP (operator panel)",
+      "s7basic": "S7 Basic"
+    }
   }
 }

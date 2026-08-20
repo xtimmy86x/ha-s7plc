@@ -1196,6 +1196,19 @@
     "configuration_yaml_warning": "Modifica contemporaneamente tutte le entità di questo PLC. Il salvataggio sostituisce l’intera configurazione delle entità. Esporta prima una copia di sicurezza.",
     "import_yaml": "Importa YAML",
     "export_current_yaml": "Esporta YAML corrente",
-    "download_backup": "Scarica copia di sicurezza"
+    "download_backup": "Scarica copia di sicurezza",
+    "connection_details_title": "Dettagli connessione",
+    "connection_details_help": "Mostra i dettagli della connessione",
+    "connection_details_description": "Parametri di connessione in sola lettura per questo PLC.",
+    "close": "Chiudi",
+    "yes": "Sì",
+    "no": "No",
+    "connection_values": {
+      "rack_slot": "Rack e slot",
+      "tsap": "TSAP",
+      "pg": "PG (dispositivo di programmazione)",
+      "op": "OP (pannello operatore)",
+      "s7basic": "S7 Basic"
+    }
   }
 }
