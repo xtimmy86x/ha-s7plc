@@ -239,14 +239,23 @@ async def async_setup_panel(hass: Any) -> None:
 
     asset_url = "/s7plc_static/s7plc-panel.js"
     asset_path = Path(__file__).parent / "www" / "s7plc-panel.js"
+
+    banner_url = "/s7plc_static/s7plc-header.png"
+    banner_path = Path(__file__).parent / "www" / "s7plc-header.png"
+
     translations_url = "/s7plc_translations"
     translations_path = Path(__file__).parent / "translations"
+
     integration = await async_get_integration(hass, DOMAIN)
+
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(asset_url, str(asset_path), cache_headers=False),
+            StaticPathConfig(banner_url, str(banner_path), cache_headers=False),
             StaticPathConfig(
-                translations_url, str(translations_path), cache_headers=False
+                translations_url,
+                str(translations_path),
+                cache_headers=False,
             ),
         ]
     )

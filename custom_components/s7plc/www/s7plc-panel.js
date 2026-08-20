@@ -120,6 +120,10 @@ class S7PlcConfigurationPanel extends HTMLElement {
   // Custom panels must render their own ha-menu-button: without it the HA
   // sidebar cannot be opened on narrow (mobile) screens.
   menuButton(){return '<ha-menu-button></ha-menu-button>';}
+  banner(){
+    const version=this.integrationVersion?`?v=${encodeURIComponent(this.integrationVersion)}`:'';
+    return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${version}" alt="ha-s7plc"></div>`;
+  }
   syncMenuButtons(){this.querySelectorAll('ha-menu-button').forEach(b=>{b.hass=this._hass;b.narrow=this._narrow;});}
   get integrationVersion(){return this._panel?.config?.version||'';}
   get language(){const language=(this._hass?.locale?.language||this._hass?.language||"en").toLowerCase().split(/[-_]/)[0];return SUPPORTED_LANGUAGES.has(language)?language:"en";}
@@ -150,10 +154,20 @@ class S7PlcConfigurationPanel extends HTMLElement {
   }
   render() {
     const entry=this.entries.find(e=>e.entry_id===this.entryId);
-    if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div>`;this.syncMenuButtons();return;}
+    if(!entry){
+      this.innerHTML=`<style>${this.styles}</style><div class="page">${this.banner()}<div class="menubar">${this.menuButton()}</div><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div></div>`;
+      this.syncMenuButtons();
+      return;
+    }
     const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0), type=this.type||TYPES[0];
-    this.innerHTML=`<style>${this.styles}</style><div class="page"><header><div class="header-start">${this.menuButton()}<div><h1>${this.t('title')}</h1><p>${this.t('subtitle')}</p></div></div><div class="header-actions"><button class="config-yaml" id="config-yaml"><ha-icon icon="mdi:file-code-outline"></ha-icon>${this.t('configuration_yaml')}</button><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${entry.connected?'connected':''}" title="${this.t('connection_details_help')}" aria-label="${this.t('connection_details_help')}">${this.t(entry.connected?'connected':'disconnected')}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><div class="toolbar-actions"><button class="batch-delete danger" id="delete-selected" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
-    this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();}; this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();}); this.querySelector('#add').onclick=()=>this.openEditor(); this.querySelector('#delete-selected').onclick=()=>this.remove([...this.selectedIndices]); this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const index=Number(input.dataset.select);if(input.checked)this.selectedIndices.add(index);else this.selectedIndices.delete(index);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();}); this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit))); this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)]));
+    this.innerHTML=`<style>${this.styles}</style><div class="page">${this.banner()}<header class="panel-controls"><div class="header-start">${this.menuButton()}</div><div class="header-actions"><button class="config-yaml" id="config-yaml"><ha-icon icon="mdi:file-code-outline"></ha-icon>${this.t('configuration_yaml')}</button><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${entry.connected?'connected':''}" title="${this.t('connection_details_help')}" aria-label="${this.t('connection_details_help')}">${this.t(entry.connected?'connected':'disconnected')}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><div class="toolbar-actions"><button class="batch-delete danger" id="delete-selected" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
+    this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();};
+    this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();});
+    this.querySelector('#add').onclick=()=>this.openEditor();
+    this.querySelector('#delete-selected').onclick=()=>this.remove([...this.selectedIndices]);
+    this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const index=Number(input.dataset.select);if(input.checked)this.selectedIndices.add(index);else this.selectedIndices.delete(index);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
+    this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit)));
+    this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)]));
     this.querySelector('#config-yaml').onclick=()=>this.openConfigurationEditor();
     this.querySelector('.connection-badge').onclick=()=>this.openConnectionDetails(entry);
     this.updateBulkAction();
@@ -247,18 +261,19 @@ class S7PlcConfigurationPanel extends HTMLElement {
   get styles(){return `
 :host{display:block;background:var(--primary-background-color);min-height:100vh;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif);-webkit-font-smoothing:antialiased}
 .page{max-width:1180px;margin:auto;padding:32px 24px 64px}
+.hero-banner{width:100%;margin:0 0 18px;border-radius:18px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
+.hero-banner img{display:block;width:100%;height:auto}
 header,.toolbar,.summary,article{display:flex;align-items:center}
-header{justify-content:space-between;gap:16px}
+.panel-controls{justify-content:space-between;gap:16px}
 .header-start{display:flex;align-items:center;gap:8px}
 .header-actions{display:flex;align-items:center;gap:10px}
 .integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
 ha-menu-button{color:var(--primary-text-color)}
-h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px}
 h2,p{margin:0}
 h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
-header p,.toolbar p{color:var(--secondary-text-color);font-size:14px}
+.toolbar p{color:var(--secondary-text-color);font-size:14px}
 select,input{box-sizing:border-box;padding:11px 13px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}
 select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}
 select:focus,input:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 16%,transparent)}
@@ -320,7 +335,7 @@ article.selected::before{opacity:1}
 .empty p{color:var(--secondary-text-color)}
 .loading{padding:36px;color:var(--secondary-text-color)}
 @media(prefers-reduced-motion:reduce){.page *,.page *::before{transition:none!important;animation:none!important}}
-@media(max-width:650px){.page{padding:20px 12px 48px}header{align-items:flex-start;gap:14px;flex-direction:column}.header-actions{width:100%}.header-actions select{flex:1;min-width:0}.header-start{align-items:flex-start}.summary{padding:18px 18px;border-radius:16px}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}}`;}
+@media(max-width:650px){.page{padding:12px 12px 48px}.hero-banner{margin-bottom:12px;border-radius:14px}.panel-controls{align-items:center;gap:10px}.header-start{align-items:center}.header-actions{flex:1;min-width:0;justify-content:flex-end}.header-actions select{flex:1;min-width:0}.integration-version{display:none}.summary{padding:18px;border-radius:16px}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(76vh,860px);overflow:auto;padding:0 28px 28px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color)}
 .dialog-body h3,.dialog-body p{margin:0}
