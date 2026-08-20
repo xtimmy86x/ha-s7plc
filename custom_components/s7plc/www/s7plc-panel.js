@@ -196,7 +196,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   flowStep(type,item){if(type==='covers')return item.cover_mode==='position'?'covers_position':'covers_traditional';if(type==='climates')return item.control_mode==='direct'?'climates_direct':'climates_setpoint';return type;}
   flowText(type,item,key,section){const primary=this.flowStep(type,item),alternates=type==='covers'?['covers_traditional','covers_position']:type==='climates'?['climates_direct','climates_setpoint']:[];for(const step of [primary,...alternates]){const text=this.flowTranslations?.options?.step?.[step]?.[section]?.[key];if(text)return text;}}
   flowError(key){return this.flowTranslations?.options?.error?.[key]??key;}
-  connectionLabel(key){for(const root of ['options','config'])for(const step of ['connection','rack_slot','tsap']){const label=this.flowTranslations?.[root]?.step?.[step]?.data?.[key];if(label)return label;}return key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
+  connectionLabel(key){for(const root of ['options','config'])for(const step of ['connection','user','rack_slot','tsap']){const label=this.flowTranslations?.[root]?.step?.[step]?.data?.[key];if(label)return label;}return key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
   connectionValue(value){if(typeof value==='boolean')return this.t(value?'yes':'no');if(value===null||value===undefined||value==='')return '—';const translated=this.t(`connection_values.${value}`);return translated===`connection_values.${value}`?String(value):translated;}
   openConnectionDetails(entry){
     const dialog=document.createElement('ha-dialog'),{host,port}=entry.data;
