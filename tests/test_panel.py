@@ -708,10 +708,10 @@ def test_panel_provides_mobile_navigation() -> None:
     # hass/narrow to every rendered ha-menu-button.
     assert "set narrow(value)" in source
     assert "b.hass=this._hass;b.narrow=this._narrow" in source
-    # The menu button is present in every render state, main page included.
-    assert '<div class="header-start">${this.menuButton()}' in source
+    # The mobile control row is present in the populated and empty render states.
+    assert source.count('<div class="mobile-controls">${this.menuButton()}') == 2
     assert '${this.menuButton()}</div><div class="loading">' in source
-    assert '${this.menuButton()}</div><div class="empty">' in source
+    assert '<div class="mobile-controls">${this.menuButton()}</div>${this.banner()}' in source
     assert "history.back()" not in source
     assert 'id="back"' not in source
 

@@ -124,6 +124,9 @@ class S7PlcConfigurationPanel extends HTMLElement {
     const version=this.integrationVersion?`?v=${encodeURIComponent(this.integrationVersion)}`:'';
     return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${version}" alt="ha-s7plc"></div>`;
   }
+  panelActions(className){
+    return `<div class="${className}"><button class="config-yaml" data-config-yaml title="${this.t('configuration_yaml')}" aria-label="${this.t('configuration_yaml')}"><ha-icon icon="mdi:file-code-outline"></ha-icon><span>${this.t('configuration_yaml')}</span></button><select data-entry-selector aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div>`;
+  }
   syncMenuButtons(){this.querySelectorAll('ha-menu-button').forEach(b=>{b.hass=this._hass;b.narrow=this._narrow;});}
   get integrationVersion(){return this._panel?.config?.version||'';}
   get language(){const language=(this._hass?.locale?.language||this._hass?.language||"en").toLowerCase().split(/[-_]/)[0];return SUPPORTED_LANGUAGES.has(language)?language:"en";}
@@ -155,20 +158,20 @@ class S7PlcConfigurationPanel extends HTMLElement {
   render() {
     const entry=this.entries.find(e=>e.entry_id===this.entryId);
     if(!entry){
-      this.innerHTML=`<style>${this.styles}</style><div class="page">${this.banner()}<div class="menubar">${this.menuButton()}</div><div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div></div>`;
+      this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}</div>${this.banner()}<div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('no_plc')}</h2><p>${this.t('no_plc_help')}</p></div></div>`;
       this.syncMenuButtons();
       return;
     }
     const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0), type=this.type||TYPES[0];
-    this.innerHTML=`<style>${this.styles}</style><div class="page">${this.banner()}<header class="panel-controls"><div class="header-start">${this.menuButton()}</div><div class="header-actions"><button class="config-yaml" id="config-yaml"><ha-icon icon="mdi:file-code-outline"></ha-icon>${this.t('configuration_yaml')}</button><select id="entry" aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div></header><div class="summary"><ha-icon icon="mdi:memory"></ha-icon><div><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${entry.connected?'connected':''}" title="${this.t('connection_details_help')}" aria-label="${this.t('connection_details_help')}">${this.t(entry.connected?'connected':'disconnected')}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><div class="toolbar-actions"><button class="batch-delete danger" id="delete-selected" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
-    this.querySelector('#entry').onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();};
+    this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}${this.panelActions('mobile-actions')}</div>${this.banner()}<div class="summary"><div class="summary-info"><ha-icon icon="mdi:memory"></ha-icon><div class="plc-details"><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${entry.connected?'connected':''}" title="${this.t('connection_details_help')}" aria-label="${this.t('connection_details_help')}">${this.t(entry.connected?'connected':'disconnected')}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('entities')}</span></div></div>${this.panelActions('summary-actions')}</div><nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`types.${t}`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`types.${type}`)}</h2><p>${this.t('reload_help')}</p></div><div class="toolbar-actions"><button class="batch-delete danger" id="delete-selected" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" id="add"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('add')}</button></div></div><div class="cards">${this.entityCards(entry)}</div></main></div>`;
+    this.querySelectorAll('[data-entry-selector]').forEach(selector=>selector.onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();});
     this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();});
     this.querySelector('#add').onclick=()=>this.openEditor();
     this.querySelector('#delete-selected').onclick=()=>this.remove([...this.selectedIndices]);
     this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const index=Number(input.dataset.select);if(input.checked)this.selectedIndices.add(index);else this.selectedIndices.delete(index);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
     this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit)));
     this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)]));
-    this.querySelector('#config-yaml').onclick=()=>this.openConfigurationEditor();
+    this.querySelectorAll('[data-config-yaml]').forEach(button=>button.onclick=()=>this.openConfigurationEditor());
     this.querySelector('.connection-badge').onclick=()=>this.openConnectionDetails(entry);
     this.updateBulkAction();
     this.syncMenuButtons();
@@ -264,9 +267,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .hero-banner{width:100%;margin:0 0 18px;border-radius:18px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
 .hero-banner img{display:block;width:100%;height:auto}
 header,.toolbar,.summary,article{display:flex;align-items:center}
-.panel-controls{justify-content:space-between;gap:16px}
-.header-start{display:flex;align-items:center;gap:8px}
-.header-actions{display:flex;align-items:center;gap:10px}
+.mobile-controls{display:none}
+.mobile-actions,.summary-actions{display:flex;align-items:center;gap:10px;min-width:0}
 .integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
@@ -277,12 +279,26 @@ h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
 select,input{box-sizing:border-box;padding:11px 13px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}
 select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}
 select:focus,input:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 16%,transparent)}
-.summary{position:relative;overflow:hidden;margin:26px 0 18px;padding:22px 26px;background:linear-gradient(125deg,color-mix(in srgb,var(--primary-color) 90%,black),color-mix(in srgb,var(--primary-color) 58%,var(--accent-color)));color:#fff;border-radius:20px;gap:16px;box-shadow:0 12px 32px color-mix(in srgb,var(--primary-color) 28%,transparent)}
+.summary{position:relative;overflow:hidden;margin:0 0 18px;padding:22px 26px;background:linear-gradient(125deg,color-mix(in srgb,var(--primary-color) 90%,black),color-mix(in srgb,var(--primary-color) 58%,var(--accent-color)));color:#fff;border-radius:20px;gap:20px;justify-content:space-between;box-shadow:0 12px 32px color-mix(in srgb,var(--primary-color) 28%,transparent)}
 .summary::before{content:'';position:absolute;inset:0;background:radial-gradient(560px 220px at 88% -30%,#ffffff2e,transparent 65%),radial-gradient(320px 180px at 6% 130%,#ffffff14,transparent 70%);pointer-events:none}
-.summary ha-icon{--mdc-icon-size:26px;position:relative;display:grid;place-items:center;width:54px;height:54px;flex:0 0 auto;border-radius:16px;background:#ffffff24;box-shadow:inset 0 0 0 1px #ffffff30;backdrop-filter:blur(4px)}
-.summary div{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0}
-.summary span{opacity:.85;font-size:13.5px}
+.summary-info>ha-icon{--mdc-icon-size:26px;position:relative;display:grid;place-items:center;width:54px;height:54px;flex:0 0 auto;border-radius:16px;background:#ffffff24;box-shadow:inset 0 0 0 1px #ffffff30;backdrop-filter:blur(4px)}
+.summary-info{position:relative;display:flex;align-items:center;gap:16px;min-width:0;flex:1 1 auto}
+.summary .plc-details{display:flex;flex-direction:column;gap:4px;min-width:0}
+.summary .plc-details>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.summary .plc-details>span{opacity:.85;font-size:13.5px}
 .summary .plc-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;opacity:1;font-size:15px}
+.summary .plc-title b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.summary-actions{position:relative;flex:0 1 auto;justify-content:flex-end}
+.summary-actions .config-yaml,
+.summary-actions select,
+.summary-actions .integration-version{color:#fff;background:#ffffff18;border-color:#ffffff30;box-shadow:none}
+.summary-actions .config-yaml:hover,
+.summary-actions select:hover{background:#ffffff26;border-color:#ffffff45}
+.summary-actions .config-yaml:focus-visible,
+.summary-actions select:focus{border-color:#ffffff70;box-shadow:0 0 0 3px #ffffff20}
+.summary-actions select{min-width:120px;max-width:230px}
+.summary-actions select option{color:var(--primary-text-color);background:var(--card-background-color)}
+.summary-actions .integration-version{opacity:1}
 .connection-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:99px;background:#ffffff1f;box-shadow:inset 0 0 0 1px #ffffff2e;color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;line-height:1.5;transition:background .15s,transform .15s}
 .connection-badge:hover{background:#ffffff30;transform:translateY(-1px)}
 .connection-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#ff8a80;box-shadow:0 0 8px #ff8a80aa}
@@ -335,7 +351,9 @@ article.selected::before{opacity:1}
 .empty p{color:var(--secondary-text-color)}
 .loading{padding:36px;color:var(--secondary-text-color)}
 @media(prefers-reduced-motion:reduce){.page *,.page *::before{transition:none!important;animation:none!important}}
-@media(max-width:650px){.page{padding:12px 12px 48px}.hero-banner{margin-bottom:12px;border-radius:14px}.panel-controls{align-items:center;gap:10px}.header-start{align-items:center}.header-actions{flex:1;min-width:0;justify-content:flex-end}.header-actions select{flex:1;min-width:0}.integration-version{display:none}.summary{padding:18px;border-radius:16px}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}}`;}
+@media(max-width:650px){.page{padding:12px 12px 48px}.mobile-controls{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-width:0}.mobile-actions{flex:1;justify-content:flex-end}.mobile-actions select{flex:1;min-width:0}.mobile-actions .config-yaml{flex:0 0 auto}.hero-banner{margin-bottom:12px;border-radius:14px}.summary{padding:18px;border-radius:16px}.summary-actions{display:none}.summary-info{gap:14px}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}}
+@media(max-width:500px){.mobile-actions .integration-version{display:none}.mobile-actions .config-yaml span{display:none}}
+@media(min-width:651px) and (max-width:850px){.summary{padding:18px}.summary-actions{gap:7px}.summary-actions .integration-version{display:none}.summary-actions select{max-width:180px}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(76vh,860px);overflow:auto;padding:0 28px 28px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color)}
 .dialog-body h3,.dialog-body p{margin:0}
