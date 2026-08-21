@@ -49,7 +49,12 @@ Assistant entity identity.
 5. Review the values and choose **Save changes**.
 
 The editor groups fields into PLC connection/data sources, entity-specific
-behavior, and Home Assistant details. The cover editor dynamically shows only fields compatible with the selected control type, position feedback, movement feedback, stop command, and (for position covers) tilt. These guided choices are derived from existing configuration keys and do not add YAML properties. Fields that do not apply to the chosen climate control mode are hidden automatically. Climate preset mappings
+behavior, and Home Assistant details. The cover editor dynamically shows only
+fields compatible with the selected control type, position feedback, movement
+feedback, stop command, and (for position covers) tilt. These guided choices are
+derived from existing configuration keys and do not add YAML properties. Fields
+that do not apply to the chosen climate control mode are hidden automatically.
+Climate preset mappings
 appear only when a preset mode address is configured, while HVAC status mappings
 appear only when an HVAC status address is configured.
 

@@ -1911,7 +1911,7 @@ def test_panel_status_values_follow_explicit_movement_mode() -> None:
 def test_panel_tilt_fields_follow_explicit_virtual_toggle() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt']" in source
-    assert "if(!ui.cover_tilt_enabled)" in source
+    assert 'ui.cover_tilt_enabled===false' in source
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_bool_addresses_use_bool_placeholder() -> None:
@@ -2204,6 +2204,10 @@ console.log(JSON.stringify({{
     assert result["endstops"] == result["legacyEndstop"] == "endstops"
     assert result["statusWins"] == "status"
     assert result["bits"] == "bits"
+    assert result["traditional"]["cover_stop_enabled"] == "disabled"
+    assert result["traditional"]["cover_tilt_enabled"] == "disabled"
+    assert result["position"]["cover_stop_enabled"] == "enabled"
+    assert result["position"]["cover_tilt_enabled"] == "enabled"
     traditional = result["toTraditional"]
     assert traditional["uid"] == "kept" and traditional["name"] == "Legacy"
     assert "position_state_address" not in traditional and "tilt_command_address" not in traditional
@@ -2213,6 +2217,120 @@ console.log(JSON.stringify({{
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
     for key in ("open_command_address", "close_command_address", "opening_state_address", "closing_state_address", "operate_time", "use_state_topics", "cover_opening_address", "stop_command_address", "tilt_state_address", "cover_mode", "feedback_mode"):
         assert key not in position
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_cover_editor_radio_markup_and_form_submission_regressions() -> None:
+    """Exercise the radio values and the same formEntity path used by Save."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+panel.fieldText=(type,key,part)=>`${{key}}.${{part}}`;
+panel.escape=value=>String(value);
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+const stop={{position_state_address:"DB1,BYTE0",stop_command_address:"DB1,X10.0",stop_pulse_duration:0.5}};
+const tilt={{position_state_address:"DB1,BYTE0",tilt_state_address:"DB1,BYTE2",tilt_command_address:"DB1,BYTE4",invert_tilt:true}};
+const opening={{open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1",opening_state_address:"DB1,X0.2"}};
+const closing={{open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1",closing_state_address:"DB1,X0.3"}};
+const markup=entity=>{{const ui=infer(entity);return {{
+  stop:panel.field(FIELDS.covers.find(field=>field[0]==="cover_stop_enabled"),ui,"covers"),
+  tilt:panel.field(FIELDS.covers.find(field=>field[0]==="cover_tilt_enabled"),ui,"covers")
+}};}};
+const virtual=COVER_VIRTUAL_FIELDS;
+const switchedToTraditional=save({{uid:"same",name:"Legacy",area:"living",device_class:"blind",scan_interval:2,...stop,...tilt}},{{cover_control_mode:"traditional",cover_position_feedback:"timed",open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1"}});
+const switchedToPosition=save({{uid:"same",name:"Legacy",open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1",opening_state_address:"DB1,X0.2",operate_time:20,use_state_topics:false,cover_opening_address:"DB1,X0.4",cover_closing_address:"DB1,X0.5",cover_stopped_address:"DB1,X0.6"}},{{cover_control_mode:"position",position_state_address:"DB1,BYTE0",cover_position_feedback:"timed",cover_movement_feedback:"none"}});
+console.log(JSON.stringify({{
+  inferred:{{none:infer({{}}),stop:infer(stop),tiltState:infer(tilt),tiltCommand:infer({{tilt_command_address:"DB1,BYTE4"}})}},
+  markup:{{none:markup({{}}),stop:markup(stop),tilt:markup(tilt)}},
+  unchanged:{{stop:save(stop),tilt:save(tilt)}},
+  disabled:{{stop:save(stop,{{cover_stop_enabled:"disabled"}}),tilt:save(tilt,{{cover_tilt_enabled:"disabled"}})}},
+  endstops:{{opening:save(opening),closing:save(closing)}},
+  switched:{{traditional:switchedToTraditional,position:switchedToPosition}},
+  hasVirtual:[save(stop),save(tilt),switchedToTraditional,switchedToPosition].some(entity=>virtual.some(key=>key in entity))
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    inferred = result["inferred"]
+    assert inferred["none"]["cover_stop_enabled"] == "disabled"
+    assert inferred["stop"]["cover_stop_enabled"] == "enabled"
+    assert inferred["none"]["cover_tilt_enabled"] == "disabled"
+    assert inferred["tiltState"]["cover_tilt_enabled"] == "enabled"
+    # A command-only legacy value deterministically exposes tilt controls; the
+    # existing state-address validation still applies if the user saves it.
+    assert inferred["tiltCommand"]["cover_tilt_enabled"] == "enabled"
+    assert 'value="disabled" checked' in result["markup"]["none"]["stop"]
+    assert 'value="disabled" checked' in result["markup"]["none"]["tilt"]
+    assert 'value="enabled" checked' in result["markup"]["stop"]["stop"]
+    assert 'value="enabled" checked' in result["markup"]["tilt"]["tilt"]
+
+    assert result["unchanged"]["stop"]["stop_command_address"] == "DB1,X10.0"
+    assert result["unchanged"]["stop"]["stop_pulse_duration"] == 0.5
+    assert result["unchanged"]["tilt"]["tilt_state_address"] == "DB1,BYTE2"
+    assert result["unchanged"]["tilt"]["tilt_command_address"] == "DB1,BYTE4"
+    assert result["unchanged"]["tilt"]["invert_tilt"] is True
+    assert "stop_command_address" not in result["disabled"]["stop"]
+    assert "stop_pulse_duration" not in result["disabled"]["stop"]
+    assert "tilt_state_address" not in result["disabled"]["tilt"]
+    assert "tilt_command_address" not in result["disabled"]["tilt"]
+    assert "invert_tilt" not in result["disabled"]["tilt"]
+
+    assert result["endstops"]["opening"]["opening_state_address"] == "DB1,X0.2"
+    assert "closing_state_address" not in result["endstops"]["opening"]
+    assert result["endstops"]["closing"]["closing_state_address"] == "DB1,X0.3"
+    assert "opening_state_address" not in result["endstops"]["closing"]
+    assert result["endstops"]["opening"]["use_state_topics"] is False
+    assert result["endstops"]["closing"]["use_state_topics"] is False
+
+    traditional = result["switched"]["traditional"]
+    for key in (
+        "position_state_address",
+        "position_command_address",
+        "invert_position",
+        "tilt_state_address",
+        "tilt_command_address",
+        "invert_tilt",
+        "stop_command_address",
+        "stop_pulse_duration",
+    ):
+        assert key not in traditional
+    assert traditional["uid"] == "same"
+    assert traditional["name"] == "Legacy"
+    assert traditional["area"] == "living"
+    assert traditional["device_class"] == "blind"
+    assert traditional["scan_interval"] == 2
+
+    position = result["switched"]["position"]
+    for key in (
+        "open_command_address",
+        "close_command_address",
+        "opening_state_address",
+        "closing_state_address",
+        "operate_time",
+        "use_state_topics",
+        "cover_opening_address",
+        "cover_closing_address",
+        "cover_stopped_address",
+    ):
+        assert key not in position
+    assert result["hasVirtual"] is False
 
 
 def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:
