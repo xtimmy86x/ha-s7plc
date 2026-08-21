@@ -1157,7 +1157,8 @@
     "delete_title": "Odstranit entitu",
     "fields": {
       "cover_mode": "Typ krytu",
-      "control_mode": "Režim ovládání"
+      "control_mode": "Režim ovládání",
+      "light_mode": "Typ světla"
     },
     "control_ui": {
       "label": "Chování ovládání",
@@ -1244,6 +1245,21 @@
     "connection_detail_labels": {
       "connection_type": "Způsob připojení",
       "pys7_connection_type": "Profil připojení S7"
+    },
+    "command_behavior": "Chování příkazu",
+    "command_behavior_help": "Jak Home Assistant ovládá výstup PLC",
+    "options_section": "Možnosti",
+    "options_section_help": "Nastavení vybraného chování a režim ovládání",
+    "brightness_state_required_error": "Zadejte adresu stavu jasu pro stmívatelné světlo.",
+    "brightness_scale_error": "Rozsah jasu musí být mezi 1 a 65535.",
+    "light_ui": {
+      "label": "Typ světla",
+      "section_title": "Typ světla",
+      "section_help": "Zvolte ovládání zap/vyp nebo jasu",
+      "on_off_title": "Zap/Vyp",
+      "on_off_description": "Pouze zapnutí a vypnutí",
+      "dimmable_title": "Stmívatelné",
+      "dimmable_description": "Zapnutí, vypnutí a ovládání jasu"
     }
   }
 }

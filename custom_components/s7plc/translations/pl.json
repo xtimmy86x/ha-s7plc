@@ -1157,7 +1157,8 @@
     "delete_title": "Usuń encję",
     "fields": {
       "cover_mode": "Typ osłony",
-      "control_mode": "Tryb sterowania"
+      "control_mode": "Tryb sterowania",
+      "light_mode": "Typ światła"
     },
     "control_ui": {
       "label": "Sposób sterowania",
@@ -1244,6 +1245,21 @@
     "connection_detail_labels": {
       "connection_type": "Metoda połączenia",
       "pys7_connection_type": "Profil połączenia S7"
+    },
+    "command_behavior": "Zachowanie polecenia",
+    "command_behavior_help": "Jak Home Assistant steruje wyjściem PLC",
+    "options_section": "Opcje",
+    "options_section_help": "Ustawienia wybranego zachowania i tryb sterowania",
+    "brightness_state_required_error": "Wprowadź adres stanu jasności dla światła ściemnialnego.",
+    "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
+    "light_ui": {
+      "label": "Typ światła",
+      "section_title": "Typ światła",
+      "section_help": "Wybierz sterowanie włącz/wyłącz lub jasnością",
+      "on_off_title": "Włącz/Wyłącz",
+      "on_off_description": "Tylko włączanie i wyłączanie",
+      "dimmable_title": "Ściemnialne",
+      "dimmable_description": "Włączanie, wyłączanie i regulacja jasności"
     }
   }
 }

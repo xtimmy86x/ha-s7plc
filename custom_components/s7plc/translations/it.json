@@ -1157,7 +1157,8 @@
     "delete_title": "Elimina entità",
     "fields": {
       "cover_mode": "Tipo di cover",
-      "control_mode": "Modalità di controllo"
+      "control_mode": "Modalità di controllo",
+      "light_mode": "Tipo di luce"
     },
     "control_ui": {
       "label": "Comportamento controllo",
@@ -1244,6 +1245,21 @@
     "connection_detail_labels": {
       "connection_type": "Metodo di collegamento",
       "pys7_connection_type": "Profilo della connessione S7"
+    },
+    "command_behavior": "Comportamento del comando",
+    "command_behavior_help": "Come Home Assistant controlla l’uscita PLC",
+    "options_section": "Opzioni",
+    "options_section_help": "Impostazioni per il comportamento e il tipo di comando selezionati",
+    "brightness_state_required_error": "Inserisci l’indirizzo di stato luminosità per una luce dimmerabile.",
+    "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
+    "light_ui": {
+      "label": "Tipo di luce",
+      "section_title": "Tipo di luce",
+      "section_help": "Scegli il controllo On/Off o della luminosità",
+      "on_off_title": "On/Off",
+      "on_off_description": "Solo accensione e spegnimento",
+      "dimmable_title": "Dimmerabile",
+      "dimmable_description": "Accensione, spegnimento e regolazione della luminosità"
     }
   }
 }

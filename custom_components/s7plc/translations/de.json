@@ -1157,7 +1157,8 @@
     "delete_title": "Entität löschen",
     "fields": {
       "cover_mode": "Rollladentyp",
-      "control_mode": "Steuerungsmodus"
+      "control_mode": "Steuerungsmodus",
+      "light_mode": "Lichttyp"
     },
     "control_ui": {
       "label": "Steuerverhalten",
@@ -1244,6 +1245,21 @@
     "connection_detail_labels": {
       "connection_type": "Verbindungsmethode",
       "pys7_connection_type": "S7-Verbindungsprofil"
+    },
+    "command_behavior": "Befehlsverhalten",
+    "command_behavior_help": "Wie Home Assistant den SPS-Ausgang steuert",
+    "options_section": "Optionen",
+    "options_section_help": "Einstellungen für das gewählte Verhalten und den Steuerungsmodus",
+    "brightness_state_required_error": "Geben Sie die Helligkeits-Statusadresse für eine dimmbare Leuchte ein.",
+    "brightness_scale_error": "Die Helligkeitsskala muss zwischen 1 und 65535 liegen.",
+    "light_ui": {
+      "label": "Lichttyp",
+      "section_title": "Lichttyp",
+      "section_help": "Ein/Aus- oder Helligkeitssteuerung wählen",
+      "on_off_title": "Ein/Aus",
+      "on_off_description": "Nur ein- und ausschalten",
+      "dimmable_title": "Dimmbar",
+      "dimmable_description": "Ein, aus und Helligkeitsregelung"
     }
   }
 }

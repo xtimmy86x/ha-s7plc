@@ -1157,7 +1157,8 @@
     "delete_title": "Delete entity",
     "fields": {
       "cover_mode": "Cover type",
-      "control_mode": "Control mode"
+      "control_mode": "Control mode",
+      "light_mode": "Light type"
     },
     "control_ui": {
       "label": "Control behavior",
@@ -1236,6 +1237,21 @@
     "connection_detail_labels": {
       "connection_type": "Connection method",
       "pys7_connection_type": "S7 connection profile"
+    },
+    "command_behavior": "Command behavior",
+    "command_behavior_help": "How Home Assistant controls the PLC output",
+    "options_section": "Options",
+    "options_section_help": "Settings for the selected behavior and Control mode",
+    "brightness_state_required_error": "Enter the brightness state address for a dimmable light.",
+    "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
+    "light_ui": {
+      "label": "Light type",
+      "section_title": "Light type",
+      "section_help": "Choose on/off or brightness control",
+      "on_off_title": "On/Off",
+      "on_off_description": "Switching on and off only",
+      "dimmable_title": "Dimmable",
+      "dimmable_description": "On, off, and brightness control"
     }
   }
 }

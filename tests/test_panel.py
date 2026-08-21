@@ -480,6 +480,40 @@ console.log(JSON.stringify({{
     ]
 
 
+def test_panel_light_mode_inference_uses_only_brightness_state_address() -> None:
+    """The virtual mode follows the backend's actual dimmer requirement."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    prefix = source.split("const CONNECTION_WINDOW_MS", 1)[0]
+    script = prefix + "\nconsole.log(JSON.stringify([{}, {brightness_scale: 10}, {brightness_command_address: 'DB1,W2'}, {brightness_state_address: 'DB1,W0'}].map(LIGHT_MODE_FROM_ENTITY)));"
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    assert json.loads(result.stdout) == ["on_off", "on_off", "on_off", "dimmable"]
+
+
+def test_switch_and_light_editor_section_order_is_explicit() -> None:
+    """Primary virtual choices are rendered before PLC addresses."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    switch_start = source.index("if(type==='switches')return section")
+    light_start = source.index("if(type==='lights')return section")
+    switch_definition = source[switch_start:light_start]
+    light_definition = source[light_start:source.index("return section('connection'", light_start)]
+    assert switch_definition.index("['control_behavior']") < switch_definition.index("['state_address','command_address']")
+    assert light_definition.index("['control_behavior']") < light_definition.index("['light_mode']") < light_definition.index("['state_address','command_address'")
+    # Other entity types continue to use the unchanged generic section classifier.
+    assert "fields.filter(isAddress)" in source
+
+
+def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "delete entity.light_mode" in source
+    assert "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}" in source
+    assert "if(!entity.brightness_state_address)throw Error(this.t('brightness_state_required_error'))" in source
+    assert "if(entity.brightness_scale==null)entity.brightness_scale=255" in source
+    assert 'min="1" max="65535"' in source
+    assert "['brightness_state_address','brightness_command_address','brightness_scale'].forEach" in source
+
+
 def test_panel_control_mode_is_context_aware() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
@@ -1092,7 +1126,7 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
     fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
     common_block = re.search(r"const COMMON = \[(.*?)\n\];", source, re.DOTALL).group(1)
     common = re.findall(r'\["([a-z_]+)"', common_block)
-    ui_only = {"cover_mode", "control_behavior"}  # virtual UI fields; never stored
+    ui_only = {"cover_mode", "control_behavior", "light_mode"}  # virtual UI fields
     for line in fields_block.strip().splitlines():
         entity_type, spec = line.split(":", 1)
         keys = set(re.findall(r'\["([a-z_]+)"', spec)) | set(common)
@@ -1267,7 +1301,7 @@ def test_panel_uses_config_flow_field_descriptions() -> None:
     assert "${help}</label>" in source
     # Preset values are PLC integer mode codes: step=1, not step=any (which
     # would silently allow decimal input to be truncated).
-    assert "(presetValue?'step=\"1\"':'step=\"any\"')" in source
+    assert "presetValue?'step=\"1\"':key==='brightness_scale'" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -1366,6 +1400,7 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
     panel_fields = {
         "cover_mode",
         "control_mode",
+        "light_mode",
     }
 
     for language in ("en", "it", "cs", "de", "pl"):
@@ -1470,7 +1505,7 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
         for entity_type, entity_steps in steps.items():
             all_keys = {field[0] for field in fields[entity_type]}
             for step, mode in entity_steps:
-                visible_keys = all_keys - {"cover_mode", "control_mode", "control_behavior"}
+                visible_keys = all_keys - {"cover_mode", "control_mode", "control_behavior", "light_mode"}
                 if mode:
                     visible_keys -= set(hidden[entity_type][mode])
                 labels = flow_steps[step]["data"]
