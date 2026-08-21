@@ -120,6 +120,96 @@ console.log(JSON.stringify(result));
     assert result["disconnects"] == 0
 
 
+def test_connection_duration_prefers_live_state_and_handles_edge_cases() -> None:
+    """Live last_changed wins, while absent/invalid states degrade safely."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const hour=3600000,now=Date.parse("2026-08-21T12:00:00Z");
+const historical={{currentUptime:2*hour}};
+const apply=state=>APPLY_LIVE_CONNECTION_DURATION(historical,state,now);
+console.log(JSON.stringify({{
+  longUptime:apply({{state:"on",last_changed:"2026-08-19T06:00:00Z"}}),
+  absent:apply(undefined),
+  invalid:apply({{state:"on",last_changed:"not-a-date"}}),
+  off:apply({{state:"off",last_changed:"2026-08-21T07:00:00Z"}}),
+  unknown:apply({{state:"unknown",last_changed:"2026-08-21T07:00:00Z"}}),
+  unavailable:apply({{state:"unavailable",last_changed:"2026-08-21T07:00:00Z"}})
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    assert result["longUptime"]["currentUptime"] == 54 * 3_600_000
+    assert result["absent"]["currentUptime"] == 2 * 3_600_000
+    assert result["invalid"]["currentUptime"] == 2 * 3_600_000
+    assert result["off"]["currentUptime"] is None
+    assert result["off"]["currentDowntime"] == 5 * 3_600_000
+    assert result["unknown"]["currentUptime"] is None
+    assert result["unavailable"]["currentUptime"] is None
+
+
+def test_connection_popup_status_uses_live_sensor_before_snapshot() -> None:
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+console.log(JSON.stringify([
+  LIVE_CONNECTION_STATUS({{state:"on"}},false),
+  LIVE_CONNECTION_STATUS({{state:"off"}},true),
+  LIVE_CONNECTION_STATUS({{state:"unknown"}},true),
+  LIVE_CONNECTION_STATUS({{state:"unavailable"}},true),
+  LIVE_CONNECTION_STATUS(undefined,true),
+  LIVE_CONNECTION_STATUS(undefined,false)
+]));
+"""
+    result = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    )
+    assert json.loads(result.stdout) == [
+        "connected",
+        "disconnected",
+        "unknown",
+        "unknown",
+        "connected",
+        "disconnected",
+    ]
+
+
+def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert 'icon="mdi:information-outline"' in source
+    assert 'class="connection-badge-details"' in source
+    assert "this.t('connection_details_title')" in source
+    assert "@media(max-width:480px){.connection-badge-details{display:none}}" in source
+    assert ".connection-badge:focus-visible" in source
+    assert ".connection-badge:active" in source
+    assert '<span tabindex="0" class="timeline-segment' in source
+
+
+def test_connection_diagnostics_translations_are_complete() -> None:
+    paths = [
+        Path("custom_components/s7plc/strings.json"),
+        *Path("custom_components/s7plc/translations").glob("*.json"),
+    ]
+
+    for path in paths:
+        panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
+        assert panel["connection_details_title"]
+        assert panel["availability"]["current_downtime"]
+
+
 def test_panel_supports_batch_entity_deletion() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 

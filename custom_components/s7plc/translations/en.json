@@ -1231,7 +1231,8 @@
       "history_unavailable": "Historical data is not available; the current status is still shown above.",
       "day_short": "d",
       "hour_short": "h",
-      "minute_short": "m"
+      "minute_short": "m",
+      "current_downtime": "Current downtime"
     }
   }
 }

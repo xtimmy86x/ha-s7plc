@@ -1231,7 +1231,8 @@
       "history_unavailable": "I dati storici non sono disponibili; lo stato corrente è comunque mostrato sopra.",
       "day_short": "g",
       "hour_short": "h",
-      "minute_short": "min"
+      "minute_short": "min",
+      "current_downtime": "Disconnessione attuale"
     }
   }
 }

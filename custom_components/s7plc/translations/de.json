@@ -1231,7 +1231,8 @@
       "history_unavailable": "Verlaufsdaten sind nicht verfügbar; der aktuelle Status wird oben weiterhin angezeigt.",
       "day_short": "T",
       "hour_short": "Std.",
-      "minute_short": "Min."
+      "minute_short": "Min.",
+      "current_downtime": "Aktuelle Ausfallzeit"
     }
   }
 }

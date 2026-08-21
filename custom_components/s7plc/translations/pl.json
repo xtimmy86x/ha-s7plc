@@ -1231,7 +1231,8 @@
       "history_unavailable": "Dane historyczne są niedostępne; bieżący stan jest nadal widoczny powyżej.",
       "day_short": "d",
       "hour_short": "g",
-      "minute_short": "min"
+      "minute_short": "min",
+      "current_downtime": "Bieżący czas rozłączenia"
     }
   }
 }
