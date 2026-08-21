@@ -20,7 +20,7 @@ const APPLY_CONTROL_MODE = (entity,mode) => ({...entity,sync_state:mode==="sync"
 const CONNECTION_WINDOW_MS = 24*60*60*1000;
 const CONNECTION_DETAIL_GROUPS = [
   {key:"connection",icon:"mdi:lan-connect",fields:["connection_type","pys7_connection_type"]},
-  {key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","group_writes","enable_metrics"]},
+  {key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","enable_write_batching","enable_metrics"]},
   {key:"retry",icon:"mdi:reload",fields:["max_retries","retry_backoff_initial","retry_backoff_max"]}
 ];
 const CONNECTION_DETAIL_HEADER_FIELDS = new Set(["name","host","port"]);

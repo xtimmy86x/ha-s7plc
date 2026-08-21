@@ -74,7 +74,7 @@ const simplify=data=>connectionDetailGroups(data).map(group=>({{
 }}));
 console.log(JSON.stringify({{
  rack:simplify({{future_option:42,port:102,slot:1,name:"S7 PLC",rack:0,
-   group_writes:true,connection_type:"rack_slot",host:"192.168.100.89",
+   enable_write_batching:true,connection_type:"rack_slot",host:"192.168.100.89",
    pys7_connection_type:"pg",scan_interval:1,operation_timeout:5,
    optimize_read:true,enable_metrics:false,max_retries:3,
    retry_backoff_initial:0.5,retry_backoff_max:2,local_tsap:"ignored"}}),
@@ -101,7 +101,7 @@ console.log(JSON.stringify({{
                 "scan_interval",
                 "operation_timeout",
                 "optimize_read",
-                "group_writes",
+                "enable_write_batching",
                 "enable_metrics",
             ],
         },
