@@ -1197,6 +1197,8 @@
     "import_yaml": "Import YAML",
     "export_current_yaml": "Export current YAML",
     "download_backup": "Download backup",
+    "configuration_load_error": "Unable to load the YAML configuration.",
+    "configuration_download_error": "Unable to download the backup.",
     "connection_details_title": "Connection details",
     "connection_details_help": "Show connection details",
     "connection_details_description": "Read-only connection parameters for this PLC.",

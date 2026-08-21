@@ -1197,6 +1197,8 @@
     "import_yaml": "Importovat YAML",
     "export_current_yaml": "Exportovat aktuální YAML",
     "download_backup": "Stáhnout zálohu",
+    "configuration_load_error": "Konfiguraci YAML se nepodařilo načíst.",
+    "configuration_download_error": "Zálohu se nepodařilo stáhnout.",
     "connection_details_title": "Podrobnosti připojení",
     "connection_details_help": "Zobrazit podrobnosti připojení",
     "connection_details_description": "Parametry připojení tohoto PLC pouze pro čtení.",

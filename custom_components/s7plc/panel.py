@@ -96,9 +96,17 @@ def _configuration_from_yaml(
     if unknown:
         raise ValueError(f"Unknown configuration key: {sorted(unknown)[0]}")
 
+    metadata_present = BACKUP_METADATA_KEY in payload
     metadata = payload.get(BACKUP_METADATA_KEY)
-    if metadata is not None and not isinstance(metadata, dict):
+    if metadata_present and not isinstance(metadata, dict):
         raise ValueError(f"{BACKUP_METADATA_KEY} must be a mapping")
+    if isinstance(metadata, dict) and "format_version" in metadata:
+        format_version = metadata["format_version"]
+        if type(format_version) is not int or format_version != BACKUP_FORMAT_VERSION:
+            raise ValueError(
+                "Unsupported S7 PLC backup format version: "
+                f"{format_version!r} (supported: {BACKUP_FORMAT_VERSION})"
+            )
     preserve_uids = bool(
         target_entry_id
         and isinstance(metadata, dict)

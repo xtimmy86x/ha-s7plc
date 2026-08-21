@@ -1197,6 +1197,8 @@
     "import_yaml": "Importuj YAML",
     "export_current_yaml": "Eksportuj bieżący YAML",
     "download_backup": "Pobierz kopię zapasową",
+    "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
+    "configuration_download_error": "Nie można pobrać kopii zapasowej.",
     "connection_details_title": "Szczegóły połączenia",
     "connection_details_help": "Pokaż szczegóły połączenia",
     "connection_details_description": "Parametry połączenia tego PLC tylko do odczytu.",

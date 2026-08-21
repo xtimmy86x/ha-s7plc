@@ -9,6 +9,8 @@ const ENGLISH_EMERGENCY_FALLBACK = {
   disconnected:"Disconnected", add:"Add", empty:"No entities", entity:"Entity",
   edit:"Edit", delete:"Delete", cancel:"Cancel", save:"Save changes",
   required:"Required", required_error:"Fill in all required fields.",
+  configuration_load_error:"Unable to load the YAML configuration.",
+  configuration_download_error:"Unable to download the backup.",
   batch:{select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"}
 };
 // The control mode is deliberately virtual: the backend continues to store the
@@ -230,17 +232,19 @@ class S7PlcConfigurationPanel extends HTMLElement {
   toYaml(obj){return Object.entries(obj).map(([k,v])=>`${k}: ${JSON.stringify(v)}`).join('\n');}
   async openConfigurationEditor(){
     const entry=this.entries.find(e=>e.entry_id===this.entryId),dialog=document.createElement('ha-dialog');
-    let canonical='';
-    try{canonical=(await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId})).configuration_yaml||'';}catch(err){console.error('Unable to load S7 PLC YAML configuration',err);}
+    let canonical='',loadError='';
+    try{canonical=(await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId})).configuration_yaml||'';}catch(err){loadError=`${this.t('configuration_load_error')} ${err.message||String(err)}`;}
     dialog.open=true;dialog.headerTitle=this.t('configuration_yaml_title');dialog.style.setProperty('--mdc-dialog-max-width','min(1000px,96vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(900px,96vw)');dialog.style.setProperty('--dialog-content-padding','0');
     dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body configuration-editor"><ha-alert alert-type="warning">${this.t('configuration_yaml_warning')}</ha-alert><div class="configuration-tools"><button id="yaml-import"><ha-icon icon="mdi:upload"></ha-icon>${this.t('import_yaml')}</button><button id="yaml-export"><ha-icon icon="mdi:download"></ha-icon>${this.t('export_current_yaml')}</button><button id="yaml-backup"><ha-icon icon="mdi:database-export-outline"></ha-icon>${this.t('download_backup')}</button><input id="yaml-file" type="file" accept=".yaml,.yml,text/yaml,application/yaml" hidden></div><textarea spellcheck="false" aria-label="${this.t('configuration_yaml')}">${this.escape(canonical)}</textarea><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent">${this.t('save')}</ha-button></ha-dialog-footer>`;
-    document.body.appendChild(dialog);const textarea=dialog.querySelector('textarea'),file=dialog.querySelector('#yaml-file');
+    document.body.appendChild(dialog);const textarea=dialog.querySelector('textarea'),file=dialog.querySelector('#yaml-file'),alert=dialog.querySelector('.editor-error'),saveButton=dialog.querySelector('[slot=primaryAction]'),backupButton=dialog.querySelector('#yaml-backup');
+    const showError=message=>{alert.textContent=message;alert.style.display='block';alert.scrollIntoView({behavior:'smooth',block:'nearest'});};
+    textarea.disabled=!!loadError;saveButton.disabled=!!loadError;dialog.querySelector('#yaml-import').disabled=!!loadError;dialog.querySelector('#yaml-export').disabled=!!loadError;backupButton.disabled=!!loadError;if(loadError)showError(loadError);
     dialog.querySelector('#yaml-import').onclick=()=>file.click();file.onchange=async()=>{if(file.files[0])textarea.value=await file.files[0].text();file.value='';};
     const download=(contents,suffix)=>{const blob=new Blob([contents],{type:'application/yaml;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${(entry.title||'s7plc').replace(/[^a-z0-9_-]+/gi,'-').toLowerCase()}-${suffix}.yaml`;link.click();URL.revokeObjectURL(url);};
     dialog.querySelector('#yaml-export').onclick=()=>download(textarea.value,'config');
-    dialog.querySelector('#yaml-backup').onclick=async()=>{const backup=await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId});download(backup.configuration_yaml,'backup');};
+    let backupLoading=false;backupButton.onclick=async()=>{if(backupLoading)return;backupLoading=true;backupButton.disabled=true;alert.style.display='none';try{const backup=await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId});download(backup.configuration_yaml,'backup');}catch(err){showError(`${this.t('configuration_download_error')} ${err.message||String(err)}`);}finally{backupLoading=false;backupButton.disabled=false;}};
     dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};dialog.addEventListener('closed',()=>dialog.remove());
-    dialog.querySelector('[slot=primaryAction]').onclick=async()=>{const alert=dialog.querySelector('.editor-error');try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`types.${detail.entity_type}`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}alert.textContent=message;alert.style.display='block';}};
+    let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`types.${detail.entity_type}`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
   }
   // Conferma di eliminazione con ha-dialog, coerente con lo stile di Home Assistant
   remove(indices){

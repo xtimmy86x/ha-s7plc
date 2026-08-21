@@ -249,6 +249,43 @@ def test_configuration_backup_metadata_and_uid_import_rules() -> None:
     ] != "original"
 
 
+@pytest.mark.parametrize("metadata", ["{}", "{source_entry_id: entry-1}"])
+def test_backup_metadata_without_format_version_is_accepted(metadata) -> None:
+    saved = _configuration_from_yaml(
+        f"s7plc: {metadata}\nsensors:\n  - address: DB1,REAL0\n",
+        {},
+        "entry-1",
+    )
+
+    assert saved["sensors"][0]["address"] == "DB1,REAL0"
+
+
+def test_supported_backup_format_version_is_accepted() -> None:
+    saved = _configuration_from_yaml(
+        "s7plc:\n  format_version: 1\nsensors:\n  - address: DB1,REAL0\n", {}
+    )
+
+    assert saved["sensors"][0]["address"] == "DB1,REAL0"
+
+
+@pytest.mark.parametrize("version", ["999", '"1"', "true", "null"])
+def test_unsupported_or_invalid_backup_format_version_is_rejected(version) -> None:
+    with pytest.raises(ValueError, match="Unsupported S7 PLC backup format version"):
+        _configuration_from_yaml(f"s7plc:\n  format_version: {version}\n", {})
+
+
+@pytest.mark.parametrize("metadata", ["[]", "null", '"invalid"'])
+def test_malformed_backup_metadata_is_rejected(metadata) -> None:
+    with pytest.raises(ValueError, match="s7plc must be a mapping"):
+        _configuration_from_yaml(f"s7plc: {metadata}\n", {})
+
+
+def test_metadata_less_legacy_configuration_is_accepted() -> None:
+    saved = _configuration_from_yaml("sensors:\n  - address: DB1,REAL0\n", {})
+
+    assert saved["sensors"][0]["address"] == "DB1,REAL0"
+
+
 def test_same_entry_duplicate_uids_are_replaced_safely() -> None:
     source = """s7plc:
   format_version: 1
@@ -395,6 +432,18 @@ def test_list_is_lightweight_and_frontend_has_three_yaml_actions() -> None:
     assert "export_current_yaml" in source
     assert "download_backup" in source
     assert "s7plc/config/get_configuration" in source
+
+
+def test_configuration_editor_handles_load_download_and_repeated_clicks() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "configuration_load_error" in source
+    assert "configuration_download_error" in source
+    assert "textarea.disabled=!!loadError" in source
+    assert "if(backupLoading)return" in source
+    assert "if(saveLoading)return" in source
+    assert "backupButton.disabled=true" in source
+    assert "saveButton.disabled=true" in source
 
 
 class _Connection:

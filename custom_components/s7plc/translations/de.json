@@ -1197,6 +1197,8 @@
     "import_yaml": "YAML importieren",
     "export_current_yaml": "Aktuelles YAML exportieren",
     "download_backup": "Sicherung herunterladen",
+    "configuration_load_error": "Die YAML-Konfiguration konnte nicht geladen werden.",
+    "configuration_download_error": "Die Sicherung konnte nicht heruntergeladen werden.",
     "connection_details_title": "Verbindungsdetails",
     "connection_details_help": "Verbindungsdetails anzeigen",
     "connection_details_description": "Schreibgeschützte Verbindungsparameter für diese SPS.",
