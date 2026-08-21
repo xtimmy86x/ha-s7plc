@@ -1249,14 +1249,6 @@
       "covers": {
         "label": "Cover",
         "fields": {
-          "cover_mode": {
-            "label": "Tipo di cover",
-            "description": "Tipo di cover",
-            "options": {
-              "traditional": "Tradizionale",
-              "position": "Posizione"
-            }
-          },
           "open_command_address": {
             "label": "Indirizzo comando apertura",
             "description": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0)."
@@ -1290,11 +1282,11 @@
             "description": "Valore/i PLC che indicano che la cover è ferma (non in movimento), letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato."
           },
           "opening_state_address": {
-            "label": "Indirizzo stato aperto",
+            "label": "Finecorsa aperto",
             "description": "Indirizzo PLC opzionale che indica che la cover è aperta."
           },
           "closing_state_address": {
-            "label": "Indirizzo stato chiuso",
+            "label": "Finecorsa chiuso",
             "description": "Indirizzo PLC opzionale che indica che la cover è chiusa."
           },
           "cover_opening_address": {
@@ -1352,6 +1344,90 @@
           "device_class": {
             "label": "Classe dispositivo",
             "description": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. tapparella, tenda, garage)."
+          },
+          "cover_control_mode": {
+            "label": "Tipo di controllo",
+            "description": "Scegli come il PLC controlla la cover.",
+            "options": {
+              "traditional": "Apri / Chiudi",
+              "position": "Posizione 0–100%"
+            },
+            "descriptions": {
+              "traditional": "Due comandi distinti di apertura e chiusura.",
+              "position": "Feedback e comando numerico della posizione."
+            }
+          },
+          "cover_position_feedback": {
+            "label": "Feedback della posizione",
+            "description": "Scegli come viene determinata la posizione terminale.",
+            "options": {
+              "timed": "Temporizzato",
+              "endstops": "Finecorsa"
+            },
+            "descriptions": {
+              "timed": "Stima la posizione usando il tempo di manovra.",
+              "endstops": "Legge i finecorsa completamente aperto e chiuso."
+            }
+          },
+          "cover_movement_feedback": {
+            "label": "Feedback del movimento",
+            "description": "Scegli come viene indicato il movimento corrente.",
+            "options": {
+              "none": "Nessuno / Stimato",
+              "bits": "Bit separati",
+              "status": "Stato PLC unico"
+            },
+            "descriptions": {
+              "none": "Usa la stima interna oppure soltanto la posizione.",
+              "bits": "Legge bit distinti di apertura, chiusura e arresto.",
+              "status": "Confronta un unico valore di stato PLC."
+            }
+          },
+          "cover_stop_enabled": {
+            "label": "Comando di arresto",
+            "description": "Abilita un comando PLC dedicato per l’arresto.",
+            "options": {
+              "disabled": "Disabilitato",
+              "enabled": "Abilitato"
+            },
+            "descriptions": {
+              "disabled": "Usa il comportamento alternativo della cover a posizione.",
+              "enabled": "Invia un impulso a un indirizzo di arresto dedicato."
+            }
+          },
+          "cover_tilt_enabled": {
+            "label": "Inclinazione",
+            "description": "Abilita il posizionamento opzionale dell’inclinazione.",
+            "options": {
+              "disabled": "Disabilitata",
+              "enabled": "Abilitata"
+            },
+            "descriptions": {
+              "disabled": "Non configurare l’inclinazione.",
+              "enabled": "Legge e comanda la posizione dell’inclinazione."
+            }
+          }
+        },
+        "modes": {
+          "control": {
+            "title": "Tipo di controllo",
+            "description": "Seleziona il modello di controllo prima di inserire gli indirizzi PLC."
+          },
+          "position_feedback": {
+            "title": "Feedback della posizione",
+            "description": "Scegli la stima temporizzata oppure i finecorsa fisici."
+          },
+          "movement_feedback": {
+            "title": "Feedback del movimento",
+            "description": "Mantieni l’indicazione del movimento distinta dalla posizione terminale."
+          },
+          "stop": {
+            "title": "Arresto",
+            "description": "Configura facoltativamente un comando di arresto dedicato per le cover a posizione."
+          },
+          "tilt": {
+            "title": "Inclinazione",
+            "description": "Controllo opzionale dell’inclinazione per le cover a posizione."
           }
         }
       },
@@ -1774,7 +1850,13 @@
       "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato.",
       "invalid_integer": "Inserisci un numero intero (i decimali non sono consentiti).",
       "duplicate_preset_value": "Lo stesso valore non può essere assegnato a due modalità HVAC diverse.",
-      "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi."
+      "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi.",
+      "cover_commands_required_error": "Apri / Chiudi richiede entrambi gli indirizzi di comando.",
+      "cover_position_required_error": "Il controllo a posizione richiede un indirizzo di stato posizione.",
+      "cover_endstops_required_error": "Il feedback a finecorsa richiede gli indirizzi di completamente aperto e completamente chiuso.",
+      "cover_status_required_error": "Il feedback con stato PLC unico richiede un indirizzo di stato cover.",
+      "cover_tilt_required_error": "L’inclinazione abilitata richiede un indirizzo di stato inclinazione.",
+      "cover_stop_required_error": "L’arresto abilitato richiede un indirizzo del comando di arresto."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

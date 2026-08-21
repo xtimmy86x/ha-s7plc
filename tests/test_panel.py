@@ -1151,12 +1151,12 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
     fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
     common_block = re.search(r"const COMMON = \[(.*?)\n\];", source, re.DOTALL).group(1)
     common = re.findall(r'\["([a-z_]+)"', common_block)
-    ui_only = {"cover_mode", "control_behavior", "light_mode"}  # virtual UI fields
+    ui_only = {"cover_control_mode", "cover_position_feedback", "cover_movement_feedback", "cover_stop_enabled", "cover_tilt_enabled", "control_behavior", "light_mode"}  # virtual UI fields
     for line in fields_block.strip().splitlines():
         entity_type, spec = line.split(":", 1)
         keys = set(
             re.findall(
-                r'\["([a-z_]+)"(?:,"(?:text|number|checkbox|select|control|light)"|\])',
+                r'\["([a-z_]+)"(?:,"(?:text|number|checkbox|select|control|light|cover-selector)"|\])',
                 spec,
             )
         ) | set(common)
@@ -1445,7 +1445,7 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
         assert "panel" not in translations
         panel = translations["config_panel"]
         assert panel["entity_types"].keys() == entity_types
-        assert panel["entity_types"]["covers"]["fields"]["cover_mode"]
+        assert panel["entity_types"]["covers"]["fields"]["cover_control_mode"]
         assert panel["entity_types"]["climates"]["fields"]["control_mode"]
         assert panel["entity_types"]["lights"]["fields"]["light_mode"]
 
@@ -1538,7 +1538,11 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
             all_keys = {field[0] for field in fields[entity_type]}
             for step, mode in entity_steps:
                 visible_keys = all_keys - {
-                    "cover_mode",
+                    "cover_control_mode",
+                    "cover_position_feedback",
+                    "cover_movement_feedback",
+                    "cover_stop_enabled",
+                    "cover_tilt_enabled",
                     "control_mode",
                     "control_behavior",
                     "light_mode",
@@ -1899,40 +1903,15 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
     assert "COVER_MOTION_BOOL_FIELDS" not in source
 
 
-def test_panel_preserves_status_value_fields_when_status_address_unused() -> None:
-    """Hidden cover status mappings survive temporarily clearing the address."""
+def test_panel_status_values_follow_explicit_movement_mode() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]" in source
+    assert "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
 
-    assert "COVER_STATUS_VALUE_FIELDS" in source
-    assert (
-        "const COVER_STATUS_VALUE_FIELDS = "
-        '["cover_status_open_values","cover_status_closed_values",'
-        '"cover_status_opening_values","cover_status_closing_values",'
-        '"cover_status_stopped_values"]'
-    ) in source
-    assert "if(!statusAddr){hidden=[...hidden,...COVER_STATUS_VALUE_FIELDS];}" in source
-    assert "COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
-
-
-def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
-    """In Position mode, invert_tilt has nothing to invert without
-    tilt_state_address filled in — dynamically hidden (and stripped on
-    save) until it has a value."""
+def test_panel_tilt_fields_follow_explicit_virtual_toggle() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "COVER_TILT_INVERT_FIELDS" in source
-    assert ('const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];') in source
-    assert (
-        "if(sel.value==='position'&&!form.elements.tilt_state_address?.value.trim())"
-        "{hidden=[...hidden,...COVER_TILT_INVERT_FIELDS];}"
-    ) in source
-    # Dynamic hide: the tilt-state-address input triggers a re-sync on input.
-    assert "form.elements.tilt_state_address.oninput=syncMode" in source
-    assert (
-        "if(mode==='position'&&!entity.tilt_state_address){"
-        "COVER_TILT_INVERT_FIELDS.forEach(k=>delete entity[k]);}"
-    ) in source
-
+    assert "if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt']" in source
+    assert "if(!ui.cover_tilt_enabled)" in source
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_bool_addresses_use_bool_placeholder() -> None:
@@ -2112,17 +2091,9 @@ process.stdout.write(JSON.stringify({
 
 
 def test_panel_close_command_address_required_for_traditional() -> None:
-    """close_command_address is required in the editor's save validation
-    for traditional covers, same as the config flow."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert (
-        "const needed=mode==='position'?'position_state_address':"
-        "'open_command_address';if(!entity[needed]||(mode==='traditional'"
-        "&&!entity.close_command_address))throw "
-        "Error(this.t('errors.cover_required_error'));"
-    ) in source
-
+    assert "ui.cover_control_mode==='traditional'&&(!entity.open_command_address||!entity.close_command_address)" in source
+    assert "errors.cover_commands_required_error" in source
 
 def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
     """Regression test: a checkbox field's label/description span is a
@@ -2170,7 +2141,7 @@ console.log(JSON.stringify(FIELDS));
     english = json.loads(
         Path("custom_components/s7plc/translations/en.json").read_text(encoding="utf-8")
     )["config_panel"]
-    technical_kinds = {"text", "number", "checkbox", "select", "control", "light"}
+    technical_kinds = {"text", "number", "checkbox", "select", "control", "light", "cover-selector"}
     for entity_type, definitions in fields.items():
         for definition in definitions:
             assert len(definition) <= 4
@@ -2195,9 +2166,71 @@ def test_panel_has_no_flow_step_dependency_or_unresolved_translation_paths() -> 
 def test_cover_and_climate_modes_have_autonomous_options() -> None:
     for path in Path("custom_components/s7plc/translations").glob("*.json"):
         panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
-        assert set(
-            panel["entity_types"]["covers"]["fields"]["cover_mode"]["options"]
-        ) == {"traditional", "position"}
+        cover_fields = panel["entity_types"]["covers"]["fields"]
+        assert set(cover_fields["cover_control_mode"]["options"]) == {"traditional", "position"}
+        assert set(cover_fields["cover_position_feedback"]["options"]) == {"timed", "endstops"}
+        assert set(cover_fields["cover_movement_feedback"]["options"]) == {"none", "bits", "status"}
         assert set(
             panel["entity_types"]["climates"]["fields"]["control_mode"]["options"]
         ) == {"direct", "setpoint"}
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_cover_virtual_modes_and_cleanup_follow_backend_precedence() -> None:
+    """Cover UI projections are deterministic and virtual fields never persist."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const infer = COVER_UI_FROM_ENTITY;
+const clean = (entity, ui) => CLEAN_COVER_ENTITY(entity, ui);
+const mixed={{uid:"kept",name:"Legacy",position_state_address:"DB1,B0",open_command_address:"Q0.0",cover_status_address:"DB1,B10",cover_opening_address:"I0.0",tilt_command_address:"DB1,B2",stop_command_address:"Q0.2"}};
+console.log(JSON.stringify({{
+ traditional:infer({{open_command_address:"Q0.0"}}),
+ position:infer(mixed),
+ timed:infer({{}}).cover_position_feedback,
+ endstops:infer({{use_state_topics:true}}).cover_position_feedback,
+ legacyEndstop:infer({{opening_state_address:"I0.0"}}).cover_position_feedback,
+ statusWins:infer(mixed).cover_movement_feedback,
+ bits:infer({{cover_closing_address:"I0.1"}}).cover_movement_feedback,
+ toTraditional:clean(mixed,{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"none",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}})
+}}));
+"""
+    result = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    assert result["traditional"]["cover_control_mode"] == "traditional"
+    assert result["position"]["cover_control_mode"] == "position"
+    assert result["timed"] == "timed"
+    assert result["endstops"] == result["legacyEndstop"] == "endstops"
+    assert result["statusWins"] == "status"
+    assert result["bits"] == "bits"
+    traditional = result["toTraditional"]
+    assert traditional["uid"] == "kept" and traditional["name"] == "Legacy"
+    assert "position_state_address" not in traditional and "tilt_command_address" not in traditional
+    assert "cover_status_address" not in traditional and "stop_command_address" not in traditional
+    assert traditional["use_state_topics"] is False
+    position = result["toPosition"]
+    assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
+    for key in ("open_command_address", "close_command_address", "opening_state_address", "closing_state_address", "operate_time", "use_state_topics", "cover_opening_address", "stop_command_address", "tilt_state_address", "cover_mode", "feedback_mode"):
+        assert key not in position
+
+
+def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    ordered = ["cover-control", "cover-position-feedback", "cover-movement-feedback", "addresses", "cover-stop", "cover-tilt", "ha"]
+    positions = [source.index(f"'{key}'", source.index("if(type==='covers')return")) for key in ordered]
+    assert positions == sorted(positions)
+    assert "this.toYaml(raw)" in source
+    assert "COVER_UI_FROM_ENTITY(raw)" not in source
+
+
+def test_cover_translation_modes_have_language_parity() -> None:
+    paths = [Path("custom_components/s7plc/strings.json"), *Path("custom_components/s7plc/translations").glob("*.json")]
+    panels = [json.loads(path.read_text(encoding="utf-8"))["config_panel"] for path in paths]
+    expected_fields = {"cover_control_mode", "cover_position_feedback", "cover_movement_feedback", "cover_stop_enabled", "cover_tilt_enabled"}
+    expected_errors = {"cover_commands_required_error", "cover_position_required_error", "cover_endstops_required_error", "cover_status_required_error", "cover_tilt_required_error", "cover_stop_required_error"}
+    for panel in panels:
+        cover = panel["entity_types"]["covers"]
+        assert expected_fields <= cover["fields"].keys()
+        assert set(cover["modes"]) == {"control", "position_feedback", "movement_feedback", "stop", "tilt"}
+        assert expected_errors <= panel["errors"].keys()

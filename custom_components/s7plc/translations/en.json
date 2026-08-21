@@ -1249,14 +1249,6 @@
       "covers": {
         "label": "Covers",
         "fields": {
-          "cover_mode": {
-            "label": "Cover type",
-            "description": "Cover type",
-            "options": {
-              "traditional": "Traditional",
-              "position": "Position"
-            }
-          },
           "open_command_address": {
             "label": "Open command address",
             "description": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0)."
@@ -1290,11 +1282,11 @@
             "description": "PLC value(s) meaning the cover is stopped (not moving), read from the status address above. One or more integers separated by commas. Leave empty to skip this status."
           },
           "opening_state_address": {
-            "label": "Opened state address",
+            "label": "Fully-open end stop",
             "description": "Optional PLC address that indicates the cover is opened."
           },
           "closing_state_address": {
-            "label": "Closed state address",
+            "label": "Fully-closed end stop",
             "description": "Optional PLC address that indicates the cover is closed."
           },
           "cover_opening_address": {
@@ -1352,6 +1344,90 @@
           "device_class": {
             "label": "Device class",
             "description": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage)."
+          },
+          "cover_control_mode": {
+            "label": "Control type",
+            "description": "Choose how the PLC controls the cover.",
+            "options": {
+              "traditional": "Open / Close",
+              "position": "Position 0–100%"
+            },
+            "descriptions": {
+              "traditional": "Two discrete open and close commands.",
+              "position": "Numeric position feedback and command."
+            }
+          },
+          "cover_position_feedback": {
+            "label": "Position feedback",
+            "description": "Choose how terminal position is determined.",
+            "options": {
+              "timed": "Timed",
+              "endstops": "End stops"
+            },
+            "descriptions": {
+              "timed": "Estimate position using operating time.",
+              "endstops": "Read fully-open and fully-closed limit switches."
+            }
+          },
+          "cover_movement_feedback": {
+            "label": "Movement feedback",
+            "description": "Choose how current movement is reported.",
+            "options": {
+              "none": "None / Estimated",
+              "bits": "Separate bits",
+              "status": "Single PLC status"
+            },
+            "descriptions": {
+              "none": "Use internal estimation, or position only.",
+              "bits": "Read separate opening, closing, and stopped bits.",
+              "status": "Match one PLC status value."
+            }
+          },
+          "cover_stop_enabled": {
+            "label": "Stop command",
+            "description": "Enable a dedicated PLC stop command.",
+            "options": {
+              "disabled": "Disabled",
+              "enabled": "Enabled"
+            },
+            "descriptions": {
+              "disabled": "Use the position-cover fallback.",
+              "enabled": "Pulse a dedicated stop address."
+            }
+          },
+          "cover_tilt_enabled": {
+            "label": "Tilt",
+            "description": "Enable optional tilt positioning.",
+            "options": {
+              "disabled": "Disabled",
+              "enabled": "Enabled"
+            },
+            "descriptions": {
+              "disabled": "Do not configure tilt.",
+              "enabled": "Read and command tilt position."
+            }
+          }
+        },
+        "modes": {
+          "control": {
+            "title": "Control type",
+            "description": "Select the control model before entering PLC addresses."
+          },
+          "position_feedback": {
+            "title": "Position feedback",
+            "description": "Choose timed estimation or physical end stops."
+          },
+          "movement_feedback": {
+            "title": "Movement feedback",
+            "description": "Keep movement indication independent from terminal position."
+          },
+          "stop": {
+            "title": "Stop",
+            "description": "Optionally configure a dedicated stop command for position covers."
+          },
+          "tilt": {
+            "title": "Tilt",
+            "description": "Optional tilt control for position covers."
           }
         }
       },
@@ -1774,7 +1850,13 @@
       "sync_same_address": "Sync state requires a command address different from the state address.",
       "invalid_integer": "Enter a whole number (decimals are not allowed).",
       "duplicate_preset_value": "The same value can't be assigned to two different HVAC modes.",
-      "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses."
+      "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses.",
+      "cover_commands_required_error": "Open / Close requires both command addresses.",
+      "cover_position_required_error": "Position control requires a position state address.",
+      "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed addresses.",
+      "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
+      "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
+      "cover_stop_required_error": "Enabled stop requires a stop command address."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
