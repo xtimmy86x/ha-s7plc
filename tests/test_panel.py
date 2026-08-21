@@ -60,6 +60,38 @@ def test_connection_badge_opens_read_only_connection_details() -> None:
     assert "input name=" not in details_source
 
 
+def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
+    """Normal UI values inherit HA typography; only technical data is mono."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "var(--ha-font-family-body,Roboto,sans-serif)" in source
+    assert "@import" not in source
+    assert "fonts.googleapis.com" not in source
+    assert (
+        ".connection-detail dd{margin:0;font-size:13px;font-family:inherit;"
+        "font-weight:500" in source
+    )
+    assert "font-variant-numeric:tabular-nums" in source
+    assert ".connection-detail dd.technical-value{font-family:ui-monospace" in source
+    assert "key==='local_tsap'||key==='remote_tsap'" in source
+    assert ".connection-head-text code{font-family:ui-monospace" in source
+    assert ".details code{" in source and "font-family:ui-monospace" in source
+    assert ".visual-form input.mono{font-family:ui-monospace" in source
+    assert ".yaml-editor textarea{" in source
+    assert ".configuration-editor textarea{" in source
+    assert "@media(max-width:650px)" in source
+
+
+def test_connection_performance_uses_write_batching_key() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    performance_group = next(
+        line for line in source.splitlines() if '{key:"performance"' in line
+    )
+    assert '"enable_write_batching"' in performance_group
+    assert "group_writes" not in source
+
+
 def test_connection_detail_groups_are_ordered_dynamic_and_lossless() -> None:
     """The executable helper owns ordering and mode-specific filtering."""
     if shutil.which("node") is None:

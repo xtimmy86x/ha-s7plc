@@ -251,7 +251,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   async loadConnectionAvailability(dialog,entry){const container=dialog.querySelector('.availability-container'),entityId=entry.connection_entity_id,connectionState=this.connectionState(entry),now=Date.now();if(!entityId){container.innerHTML=this.liveAvailabilityFallback(connectionState,now);return;}try{const start=new Date(now-CONNECTION_WINDOW_MS).toISOString(),end=new Date(now).toISOString(),path=`history/period/${encodeURIComponent(start)}?filter_entity_id=${encodeURIComponent(entityId)}&end_time=${encodeURIComponent(end)}&minimal_response&no_attributes`;const response=await this._hass.callApi('GET',path),history=Array.isArray(response?.[0])?response[0]:[];if(!history.length)throw Error('empty history');const result=BUILD_CONNECTION_AVAILABILITY(history,now);container.innerHTML=this.availabilityMarkup(APPLY_LIVE_CONNECTION_DURATION(result,connectionState,now));}catch(err){console.debug('Unable to load S7 PLC connection history',err);container.innerHTML=this.liveAvailabilityFallback(connectionState,now);}}
   openConnectionDetails(entry){
     const dialog=document.createElement('ha-dialog'),data=entry.data||{},{host,port}=data;
-    const groups=connectionDetailGroups(data).map(group=>`<section class="connection-detail-group"><h3><ha-icon icon="${group.icon}"></ha-icon>${this.t(`connection_detail_sections.${group.key}`)}</h3><dl>${group.fields.map(({key,value})=>`<div class="connection-detail"><dt>${this.escape(this.connectionDetailLabel(key))}</dt><dd>${this.escape(this.connectionValue(value))}</dd></div>`).join('')}</dl></section>`).join('');
+    const groups=connectionDetailGroups(data).map(group=>`<section class="connection-detail-group"><h3><ha-icon icon="${group.icon}"></ha-icon>${this.t(`connection_detail_sections.${group.key}`)}</h3><dl>${group.fields.map(({key,value})=>`<div class="connection-detail"><dt>${this.escape(this.connectionDetailLabel(key))}</dt><dd${key==='local_tsap'||key==='remote_tsap'?' class="technical-value"':''}>${this.escape(this.connectionValue(value))}</dd></div>`).join('')}</dl></section>`).join('');
     dialog.open=true;dialog.headerTitle=this.t('connection_details_title');dialog.style.setProperty('--mdc-dialog-max-width','min(560px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(480px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');
     const status=this.connectionStatus(entry);
     dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body connection-details"><div class="connection-head"><div class="connection-head-text"><b>${this.escape(entry.title)}</b><code>${this.escape(host??'—')}${port!==undefined&&port!==null&&port!==''?`:${this.escape(port)}`:''}</code></div><span class="connection-status ${status}">${this.t(status)}</span></div><p>${this.t('connection_details_description')}</p><div class="availability-container"><div class="history-loading" role="status"><span></span>${this.t('availability.loading')}</div></div><div class="connection-detail-groups">${groups}</div></div><ha-dialog-footer slot="footer"><ha-button slot="primaryAction" appearance="accent">${this.t('close')}</ha-button></ha-dialog-footer>`;
@@ -314,6 +314,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   icon(t){return({sensors:'gauge',binary_sensors:'checkbox-marked-circle',switches:'toggle-switch',covers:'window-shutter',lights:'lightbulb',buttons:'gesture-tap-button',numbers:'numeric',texts:'form-textbox',climates:'thermostat',entity_sync:'sync'})[t];} escape(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;}
   get styles(){return `
 :host{display:block;background:var(--primary-background-color);min-height:100vh;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif);-webkit-font-smoothing:antialiased}
+button,input,select,textarea,ha-button{font-family:inherit}
 .page{max-width:1180px;margin:auto;padding:32px 24px 64px}
 .hero-banner{width:100%;margin:0 0 18px;border-radius:18px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
 .hero-banner img{display:block;width:100%;height:auto}
@@ -388,7 +389,7 @@ article.selected::before{opacity:1}
 .entity-icon{display:grid;place-items:center;width:44px;height:44px;flex:0 0 auto;border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary-color) 18%,transparent),color-mix(in srgb,var(--primary-color) 8%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary-color) 22%,transparent);color:var(--primary-color)}
 .entity-icon ha-icon{--mdc-icon-size:21px}
 .details{flex:1;min-width:0}.details>b,.details>code{display:block}
-.details>b{font-size:14px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.details>b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details code{margin:4px 0 9px;color:var(--secondary-text-color);font-size:12px;font-family:ui-monospace,'SF Mono',Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details span{font-size:11px;background:var(--secondary-background-color);padding:4px 9px;border-radius:99px;margin:2px 4px 2px 0;display:inline-block}
 .details span.chip-flag{background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color);font-weight:600}
@@ -412,6 +413,7 @@ article.selected::before{opacity:1}
 @media(min-width:651px) and (max-width:850px){.summary{padding:18px}.summary-actions{gap:7px}.summary-actions .integration-version{display:none}.summary-actions select{max-width:180px}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(76vh,860px);overflow:auto;padding:0 28px 28px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color)}
+.dialog-body button,.dialog-body input,.dialog-body select,.dialog-body textarea,ha-dialog-footer,ha-button{font-family:inherit}
 .dialog-body h3,.dialog-body p{margin:0}
 .dialog-body select,.dialog-body input:not([type=checkbox]){box-sizing:border-box;padding:11px 13px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px}
 .dialog-body button{border:0;cursor:pointer;color:inherit;font:inherit;font-size:13px;background:transparent}
@@ -464,7 +466,7 @@ article.selected::before{opacity:1}
 .configuration-editor>ha-alert{display:block;margin-bottom:14px}.configuration-editor textarea{box-sizing:border-box;width:100%;height:min(62vh,680px);padding:16px;border-radius:14px;border:1px solid var(--divider-color);background:var(--code-editor-background-color,var(--secondary-background-color));color:var(--code-editor-text-color,var(--primary-text-color));font:13.5px/1.55 ui-monospace,'SF Mono',Consolas,monospace;resize:vertical}.configuration-tools{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px}.configuration-tools button{display:flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid var(--divider-color);border-radius:10px;background:var(--card-background-color)}
 .yaml-editor textarea:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 14%,transparent)}
 .editor-error{margin-top:16px}
-.connection-details>p{color:var(--secondary-text-color);font-size:12.5px;margin:12px 0 14px}
+.connection-details>p{color:var(--secondary-text-color);font-size:12.5px;font-weight:400;margin:12px 0 14px}
 .connection-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0 16px;border-bottom:1px solid var(--divider-color)}
 .connection-head-text{min-width:0;display:flex;flex-direction:column;gap:3px}
 .connection-head-text b{font-size:15px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -479,13 +481,14 @@ article.selected::before{opacity:1}
 .timeline-labels{display:flex;justify-content:space-between;margin-top:3px}.availability-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));border:0!important;border-radius:0!important;overflow:visible!important;margin:10px 0 7px!important;gap:6px}.availability-stats>div{display:block!important;padding:7px 8px!important;border:0!important;border-radius:8px;background:var(--card-background-color)!important}.availability-stats dt{white-space:normal!important;font-size:10px!important}.availability-stats dd{text-align:left!important;margin-top:3px!important;font-size:12px!important}
 .availability-stats-live{grid-template-columns:minmax(0,180px);margin:0 0 8px!important}
 .last-disconnection{display:flex;justify-content:space-between;gap:10px!important;margin:5px 0!important;font-size:11px!important}.last-disconnection span{color:var(--secondary-text-color);text-align:right}.availability-note{display:block;margin-top:6px}.history-loading,.history-unavailable{display:flex;align-items:center;gap:8px;margin:0 0 14px!important;padding:12px;border-radius:10px;background:var(--secondary-background-color);color:var(--secondary-text-color);font-size:12px!important}.history-loading span{width:12px;height:12px;border:2px solid var(--divider-color);border-top-color:var(--primary-color);border-radius:50%;animation:s7spin .8s linear infinite}@keyframes s7spin{to{transform:rotate(360deg)}}
-.connection-detail-groups{display:flex;flex-direction:column;gap:14px}.connection-detail-group h3{display:flex;align-items:center;gap:7px;margin:0 0 7px;font-size:12px;color:var(--secondary-text-color);font-weight:700}.connection-detail-group h3 ha-icon{--mdc-icon-size:16px;color:var(--primary-color)}
+.connection-detail-groups{display:flex;flex-direction:column;gap:14px}.connection-detail-group h3{display:flex;align-items:center;gap:7px;margin:0 0 7px;font-size:12px;color:var(--secondary-text-color);font-weight:600}.connection-detail-group h3 ha-icon{--mdc-icon-size:16px;color:var(--primary-color)}
 .connection-details .connection-detail-group dl{margin:0;border:1px solid var(--divider-color);border-radius:14px;overflow:hidden}
 .connection-detail{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:11px 16px}
 .connection-detail+.connection-detail{border-top:1px solid var(--divider-color)}
 .connection-detail:nth-child(odd){background:color-mix(in srgb,var(--secondary-background-color) 35%,transparent)}
-.connection-detail dt{color:var(--secondary-text-color);font-size:12.5px;white-space:nowrap}
-.connection-detail dd{margin:0;font-size:13px;font-weight:600;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;font-family:ui-monospace,'SF Mono',Consolas,monospace}
+.connection-detail dt{color:var(--secondary-text-color);font-size:12.5px;font-weight:400;white-space:nowrap}
+.connection-detail dd{margin:0;font-size:13px;font-family:inherit;font-weight:500;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.connection-detail dd.technical-value{font-family:ui-monospace,'SF Mono',Consolas,monospace}
 @media(prefers-reduced-motion:reduce){.dialog-body *,.dialog-body *::before,.dialog-body *::after{transition:none!important;animation:none!important}}
 @media(max-width:650px){.dialog-body{max-height:66vh;padding:0 14px 16px}.editor-intro p{display:none}.form-section{padding:14px 12px}.field-grid{grid-template-columns:1fr}.control-options{grid-template-columns:1fr}.control-card{min-height:0;flex-direction:row!important}.mode-tabs button{font-size:12px}.mode-tabs button small{display:none}.availability-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-detail{gap:10px;padding:10px 12px}.connection-detail dt{white-space:normal}}`;}
 }
