@@ -1102,117 +1102,613 @@
     }
   },
   "config_panel": {
-    "loading": "Loading configuration…",
-    "no_plc": "No PLC configured",
-    "no_plc_help": "First add the Siemens S7 integration from Devices & services.",
-    "title": "S7 PLC configuration",
-    "subtitle": "Configure entities visually or use YAML in the advanced options.",
-    "entities": "entities",
-    "connected": "Connected",
-    "disconnected": "Disconnected",
-    "unknown": "Unknown",
-    "reload_help": "Changes are applied by automatically reloading the integration.",
-    "add": "Add",
-    "empty": "No entities",
-    "empty_help": "Use “Add” to create the first one.",
-    "entity": "Entity",
-    "edit": "Edit",
-    "delete": "Delete",
-    "enabled_help": "Enable this option",
-    "required": "Required",
-    "no_area": "No area",
-    "none_option": "None",
-    "address_example": "e.g. DB1,REAL0",
-    "address_example_bool": "e.g. DB1,X0.0",
-    "address_example_string": "e.g. DB1,S0.254",
-    "entity_example": "e.g. sensor.living_room_temperature",
-    "name_example": "e.g. Living room temperature",
-    "address_help": "Siemens S7 format, for example DB1,REAL0",
-    "address_help_bool": "Siemens S7 format, for example DB1,X0.0",
-    "preset_value_help": "Leave empty to hide this mode.",
-    "status_values_help": "One or more comma-separated values (e.g. 2,3). Leave empty to skip this status.",
-    "plc_connection": "PLC connection",
-    "plc_connection_help": "Data addresses and sources",
-    "behavior": "Behavior",
-    "behavior_help": "Options specific to this entity",
-    "ha_details": "Details in Home Assistant",
-    "ha_details_help": "Name, area, and update frequency",
-    "new_entity": "New entity",
-    "edit_entity": "Edit entity",
-    "configure_new": "Configure a new entity",
-    "update_configuration": "Update the configuration",
-    "save_help": "Fields are saved directly in the PLC configuration.",
-    "editor_mode": "Editor mode",
-    "visual_editor": "Visual editor",
-    "guided": "Guided and simple",
-    "advanced": "Advanced control",
-    "yaml_warning": "Advanced mode lets you manually edit every field. Use a YAML mapping for a single entity.",
-    "yaml_label": "YAML configuration",
-    "cancel": "Cancel",
-    "save": "Save changes",
-    "required_error": "Fill in all required fields.",
-    "cover_required_error": "Enter the required addresses for the selected cover type.",
-    "climate_required_error": "Enter the target temperature address.",
-    "delete_confirm": "Delete this entity? This action cannot be undone.",
-    "delete_title": "Delete entity",
-    "fields": {
-      "cover_mode": "Cover type",
-      "control_mode": "Control mode",
-      "light_mode": "Light type"
+    "common": {
+      "loading": "Loading configuration…",
+      "no_plc": "No PLC configured",
+      "no_plc_help": "First add the Siemens S7 integration from Devices & services.",
+      "title": "S7 PLC configuration",
+      "subtitle": "Configure entities visually or use YAML in the advanced options.",
+      "entities": "entities",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "unknown": "Unknown",
+      "reload_help": "Changes are applied by automatically reloading the integration.",
+      "empty": "No entities",
+      "empty_help": "Use “Add” to create the first one.",
+      "entity": "Entity",
+      "enabled_help": "Enable this option",
+      "required": "Required",
+      "no_area": "No area",
+      "none_option": "None",
+      "address_example": "e.g. DB1,REAL0",
+      "address_example_bool": "e.g. DB1,X0.0",
+      "address_example_string": "e.g. DB1,S0.254",
+      "entity_example": "e.g. sensor.living_room_temperature",
+      "name_example": "e.g. Living room temperature",
+      "fields": {
+        "area": {
+          "label": "Area",
+          "description": "Home Assistant area to assign this entity to."
+        },
+        "name": {
+          "label": "Name",
+          "description": "Optional descriptive name for this entity."
+        },
+        "scan_interval": {
+          "label": "Scan interval (s)",
+          "description": "Polling frequency specific to this entity in seconds. Use decimal values for millisecond precision. If omitted, the PLC default scan interval is used."
+        }
+      }
     },
-    "control_ui": {
+    "sections": {
+      "plc_connection": {
+        "title": "PLC connection",
+        "description": "Data addresses and sources"
+      },
+      "behavior": {
+        "title": "Behavior",
+        "description": "Options specific to this entity"
+      },
+      "ha_details": {
+        "title": "Details in Home Assistant",
+        "description": "Name, area, and update frequency"
+      },
+      "command_behavior": {
+        "title": "Command behavior",
+        "description": "How Home Assistant controls the PLC output"
+      },
+      "options": {
+        "title": "Options",
+        "description": "Settings for the selected behavior and Control mode"
+      }
+    },
+    "entity_types": {
+      "sensors": {
+        "label": "Sensors",
+        "fields": {
+          "address": {
+            "label": "Address",
+            "description": "PLC address to read (e.g., DB1000,D0, MW10, DB1,W2)."
+          },
+          "device_class": {
+            "label": "Device class",
+            "description": "Home Assistant device class to refine the UI/behavior (e.g., battery, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Unit of measurement",
+            "description": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class."
+          },
+          "value_multiplier": {
+            "label": "Value multiplier",
+            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
+          },
+          "min_value": {
+            "label": "Scale min",
+            "description": "Minimum displayed value after scaling."
+          },
+          "max_value": {
+            "label": "Scale max",
+            "description": "Maximum displayed value after scaling."
+          },
+          "scale_raw_min": {
+            "label": "Scale raw min",
+            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
+          },
+          "scale_raw_max": {
+            "label": "Scale raw max",
+            "description": "Maximum raw (PLC) value for linear scaling."
+          },
+          "state_class": {
+            "label": "State class",
+            "description": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic."
+          },
+          "real_precision": {
+            "label": "REAL decimal precision",
+            "description": "Number of decimal places for REAL values. Leave blank to use the default (1)."
+          }
+        }
+      },
+      "binary_sensors": {
+        "label": "Binary sensors",
+        "fields": {
+          "address": {
+            "label": "Address",
+            "description": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1)."
+          },
+          "device_class": {
+            "label": "Device class",
+            "description": "Home Assistant device class to refine the UI/behavior (e.g., door, window, power)."
+          },
+          "invert_state": {
+            "label": "Invert state",
+            "description": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts."
+          }
+        }
+      },
+      "switches": {
+        "label": "Switches",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "state_address": {
+            "label": "State address",
+            "description": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0)."
+          },
+          "command_address": {
+            "label": "Command address",
+            "description": "PLC address to write commands (optional). If omitted, only state will be read."
+          },
+          "pulse_duration": {
+            "label": "Pulse duration (s)",
+            "description": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s."
+          }
+        }
+      },
+      "covers": {
+        "label": "Covers",
+        "fields": {
+          "cover_mode": {
+            "label": "Cover type",
+            "description": "Cover type",
+            "options": {
+              "traditional": "Traditional",
+              "position": "Position"
+            }
+          },
+          "open_command_address": {
+            "label": "Open command address",
+            "description": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0)."
+          },
+          "close_command_address": {
+            "label": "Close command address",
+            "description": "PLC address to trigger closing (e.g., Q0.1, DB1,X0.1)."
+          },
+          "cover_status_address": {
+            "label": "Cover status address",
+            "description": "Optional PLC address reporting real-time movement (opening/closing/stopped), matched against the value(s) configured below. Takes priority over the boolean opening/closing/stopped status addresses above when configured."
+          },
+          "cover_status_open_values": {
+            "label": "Open status value(s)",
+            "description": "PLC value(s) meaning the cover is fully open, read from the status address above. One or more integers separated by commas (e.g. 1 or 2,3). When matched, the cover's closed state is determined by this, taking priority over the end-stop based state. Leave empty to skip this status."
+          },
+          "cover_status_closed_values": {
+            "label": "Closed status value(s)",
+            "description": "PLC value(s) meaning the cover is fully closed, read from the status address above. One or more integers separated by commas. When matched, the cover's closed state is determined by this, taking priority over the end-stop based state. Leave empty to skip this status."
+          },
+          "cover_status_opening_values": {
+            "label": "Opening status value(s)",
+            "description": "PLC value(s) meaning the cover is opening, read from the status address above. One or more integers separated by commas (e.g. 1 or 2,3). Leave empty to skip this status."
+          },
+          "cover_status_closing_values": {
+            "label": "Closing status value(s)",
+            "description": "PLC value(s) meaning the cover is closing, read from the status address above. One or more integers separated by commas. Leave empty to skip this status."
+          },
+          "cover_status_stopped_values": {
+            "label": "Stopped status value(s)",
+            "description": "PLC value(s) meaning the cover is stopped (not moving), read from the status address above. One or more integers separated by commas. Leave empty to skip this status."
+          },
+          "opening_state_address": {
+            "label": "Opened state address",
+            "description": "Optional PLC address that indicates the cover is opened."
+          },
+          "closing_state_address": {
+            "label": "Closed state address",
+            "description": "Optional PLC address that indicates the cover is closed."
+          },
+          "cover_opening_address": {
+            "label": "Opening status address",
+            "description": "Optional boolean PLC address that indicates the cover is currently opening. Independent of the opened/closed end-stop addresses above."
+          },
+          "cover_closing_address": {
+            "label": "Closing status address",
+            "description": "Optional boolean PLC address that indicates the cover is currently closing. Independent of the opened/closed end-stop addresses above."
+          },
+          "cover_stopped_address": {
+            "label": "Stopped status address",
+            "description": "Optional boolean PLC address that indicates the cover is stopped (not moving)."
+          },
+          "position_state_address": {
+            "label": "Position state address",
+            "description": "PLC address to read the current position value (0-100, e.g., DB1,B0, DB2,W4)."
+          },
+          "position_command_address": {
+            "label": "Position command address",
+            "description": "PLC address to write position commands (0-100). If omitted, the state address is used."
+          },
+          "stop_command_address": {
+            "label": "Stop command address",
+            "description": "PLC boolean address to pulse when stop is pressed. If omitted, stop writes the current position back."
+          },
+          "stop_pulse_duration": {
+            "label": "Stop pulse duration (s)",
+            "description": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms)."
+          },
+          "tilt_state_address": {
+            "label": "Tilt state address",
+            "description": "Optional PLC address to read the current tilt position (0-100). Enables tilt control (open/close/set/stop tilt) for this cover."
+          },
+          "tilt_command_address": {
+            "label": "Tilt command address",
+            "description": "PLC address to write tilt position commands (optional). If omitted, the tilt state address is used."
+          },
+          "invert_tilt": {
+            "label": "Invert tilt",
+            "description": "Invert the tilt scale (0 becomes 100 and vice versa), for actuators wired the opposite way."
+          },
+          "operate_time": {
+            "label": "Operate time (s)",
+            "description": "Seconds to keep the command active before resetting the outputs and clearing the movement state."
+          },
+          "use_state_topics": {
+            "label": "Use state topics for position",
+            "description": "Enable to use state feedback addresses for determining cover position. When disabled, position is inferred from operate time."
+          },
+          "invert_position": {
+            "label": "Invert position (0=open, 100=closed)",
+            "description": "Enable if your PLC uses 0 for fully open and 100 for fully closed (reverses the normal logic)."
+          },
+          "device_class": {
+            "label": "Device class",
+            "description": "Home Assistant device class to refine the UI/behavior (e.g., shutter, blind, garage)."
+          }
+        }
+      },
+      "lights": {
+        "label": "Lights",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "light_mode": {
+            "label": "Light type",
+            "description": "Light type"
+          },
+          "state_address": {
+            "label": "State address (on/off)",
+            "description": "PLC boolean address to read the on/off state (e.g., DB1,X0.0)."
+          },
+          "command_address": {
+            "label": "Command address (on/off)",
+            "description": "PLC boolean address to write on/off commands (optional). If omitted, the state address is used."
+          },
+          "brightness_state_address": {
+            "label": "Brightness state address",
+            "description": "PLC numeric address to read the brightness level (e.g., DB1,B2). Leave blank for on/off only."
+          },
+          "brightness_command_address": {
+            "label": "Brightness command address",
+            "description": "PLC numeric address to write brightness commands (optional). If omitted, the brightness state address is used."
+          },
+          "pulse_duration": {
+            "label": "Pulse duration (s)",
+            "description": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s."
+          },
+          "brightness_scale": {
+            "label": "Brightness scale (max value)",
+            "description": "Maximum value the PLC uses for full brightness (e.g., 255 for BYTE, 100 for percentage). Required when brightness addresses are set."
+          }
+        },
+        "mode": {
+          "title": "Light type",
+          "description": "Choose on/off or brightness control",
+          "options": {
+            "on_off": {
+              "title": "On/Off",
+              "description": "Switching on and off only"
+            },
+            "dimmable": {
+              "title": "Dimmable",
+              "description": "On, off, and brightness control"
+            }
+          }
+        }
+      },
+      "buttons": {
+        "label": "Buttons",
+        "fields": {
+          "address": {
+            "label": "Address",
+            "description": "PLC boolean address to pulse (e.g., Q0.0, DB1,X0.1)."
+          },
+          "button_pulse": {
+            "label": "Pulse duration",
+            "description": "Duration of the pulse in seconds."
+          }
+        }
+      },
+      "numbers": {
+        "label": "Numbers",
+        "fields": {
+          "address": {
+            "label": "State address",
+            "description": "PLC address to read the numeric value (e.g., DB1,D0, DB2,W4)."
+          },
+          "command_address": {
+            "label": "Command address",
+            "description": "PLC address to write values (optional). If omitted, the state address is used."
+          },
+          "device_class": {
+            "label": "Device class",
+            "description": "Device class for the number entity (e.g., temperature, voltage, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Unit of measurement",
+            "description": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed."
+          },
+          "min_value": {
+            "label": "Minimum value",
+            "description": "Optional minimum bound for the value shown in Home Assistant."
+          },
+          "max_value": {
+            "label": "Maximum value",
+            "description": "Optional maximum bound for the value shown in Home Assistant."
+          },
+          "step": {
+            "label": "Step",
+            "description": "Optional increment used when adjusting the value in the UI."
+          },
+          "value_multiplier": {
+            "label": "Value multiplier",
+            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
+          },
+          "scale_raw_min": {
+            "label": "Scale raw min",
+            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
+          },
+          "scale_raw_max": {
+            "label": "Scale raw max",
+            "description": "Maximum raw (PLC) value for linear scaling."
+          },
+          "real_precision": {
+            "label": "REAL decimal precision",
+            "description": "Number of decimal places for REAL values. Leave blank to use the default (1)."
+          }
+        }
+      },
+      "texts": {
+        "label": "Texts",
+        "fields": {
+          "address": {
+            "label": "State address",
+            "description": "PLC STRING or WSTRING address to read (e.g., DB1,S0.254, DB2,WS0.128)."
+          },
+          "command_address": {
+            "label": "Command address",
+            "description": "PLC address to write text values (optional). If omitted, the state address is used."
+          },
+          "pattern": {
+            "label": "Pattern (regex)",
+            "description": "Optional regex pattern to validate the text input."
+          }
+        }
+      },
+      "climates": {
+        "label": "Climates",
+        "fields": {
+          "control_mode": {
+            "label": "Control mode",
+            "description": "Control mode",
+            "options": {
+              "direct": "Direct outputs",
+              "setpoint": "Setpoint"
+            }
+          },
+          "current_temperature_address": {
+            "label": "Current temperature address",
+            "description": "PLC address to read current temperature (e.g., DB1,REAL0, DB2,INT4)."
+          },
+          "target_temperature_address": {
+            "label": "Target temperature address",
+            "description": "PLC address to write and read target temperature setpoint (e.g., DB1,REAL4, DB2,INT8)."
+          },
+          "heating_output_address": {
+            "label": "Heating output address",
+            "description": "PLC address to control heating output (e.g., Q0.0, DB1,X0.0). Optional if only cooling is used."
+          },
+          "cooling_output_address": {
+            "label": "Cooling output address",
+            "description": "PLC address to control cooling output (e.g., Q0.1, DB1,X0.1). Optional if only heating is used."
+          },
+          "heating_action_address": {
+            "label": "Heating action address",
+            "description": "Optional PLC address to read heating action state. If not specified, action is inferred from mode."
+          },
+          "cooling_action_address": {
+            "label": "Cooling action address",
+            "description": "Optional PLC address to read cooling action state. If not specified, action is inferred from mode."
+          },
+          "preset_mode_address": {
+            "label": "HVAC mode address",
+            "description": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Write-only by default; enable HVAC mode feedback to also read it back."
+          },
+          "preset_mode_bidirectional": {
+            "label": "Read HVAC mode from PLC",
+            "description": "Read the HVAC mode address from the PLC and use a recognized value as the current HVAC mode. Disabled by default because some PLCs reset or modify command addresses independently, which could misreport the mode."
+          },
+          "on_off_address": {
+            "label": "On/off address",
+            "description": "Optional boolean PLC address to switch this thermostat on/off, for devices with no native OFF mode of their own (e.g. a heater/cooler turned on/off by a separate output). Writes False/0 when the target mode is set to OFF, and True/1 for any other mode. Leave blank to rely on the standard OFF behavior instead. Also read back from the PLC to reflect the actual on/off state (bidirectional)."
+          },
+          "preset_mode_off_value": {
+            "label": "Off mode value",
+            "description": "PLC value written when the mode is set to OFF (e.g. 0). Leave empty to hide this mode from the thermostat's mode list. If on_off_address is configured, this is ignored for OFF: the mode stays available and is switched via that address instead."
+          },
+          "preset_mode_heat_value": {
+            "label": "Heat mode value",
+            "description": "PLC value written when the mode is set to HEAT (e.g. 1). Leave empty to hide this mode from the thermostat's mode list."
+          },
+          "preset_mode_cool_value": {
+            "label": "Cool mode value",
+            "description": "PLC value written when the mode is set to COOL (e.g. 2). Leave empty to hide this mode from the thermostat's mode list."
+          },
+          "preset_mode_heat_cool_value": {
+            "label": "Heat/Cool (auto) mode value",
+            "description": "PLC value written when the mode is set to HEAT/COOL (auto) (e.g. 3). Leave empty to hide this mode from the thermostat's mode list."
+          },
+          "preset_mode_auto_value": {
+            "label": "Auto mode value",
+            "description": "PLC value written when the mode is set to AUTO (legacy alias for automatic heat/cool switching, similar to Heat/Cool). Disabled (left empty) by default."
+          },
+          "preset_mode_dry_value": {
+            "label": "Dry mode value",
+            "description": "PLC value written when the mode is set to DRY (dehumidify only, no temperature control). Disabled (left empty) by default."
+          },
+          "preset_mode_fan_only_value": {
+            "label": "Fan only mode value",
+            "description": "PLC value written when the mode is set to FAN ONLY (circulate air only, no heating/cooling). Disabled (left empty) by default."
+          },
+          "hvac_status_address": {
+            "label": "HVAC status address",
+            "description": "Optional PLC address to read the actual HVAC status, matched against the value(s) configured below for each mode. If not set, status is inferred from temperature comparison."
+          },
+          "hvac_status_off_values": {
+            "label": "Off status value(s)",
+            "description": "PLC value(s) meaning OFF, read from hvac_status_address. One or more integers separated by commas (e.g. 0 or 0,10). Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_heating_values": {
+            "label": "Heating status value(s)",
+            "description": "PLC value(s) meaning HEATING, read from hvac_status_address. One or more integers separated by commas (e.g. 1 or 2,3). Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_cooling_values": {
+            "label": "Cooling status value(s)",
+            "description": "PLC value(s) meaning COOLING, read from hvac_status_address. One or more integers separated by commas (e.g. 2 or 4,5). Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_idle_values": {
+            "label": "Idle status value(s)",
+            "description": "Optional PLC value(s) meaning IDLE (neither heating nor cooling), read from hvac_status_address. One or more integers separated by commas (e.g. 9). Leave blank to treat any unmatched status as IDLE (default behavior)."
+          },
+          "hvac_status_drying_values": {
+            "label": "Drying status value(s)",
+            "description": "Optional PLC value(s) meaning DRYING, read from hvac_status_address. One or more integers separated by commas. Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_fan_values": {
+            "label": "Fan status value(s)",
+            "description": "Optional PLC value(s) meaning FAN (circulating air only), read from hvac_status_address. One or more integers separated by commas. Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_preheating_values": {
+            "label": "Preheating status value(s)",
+            "description": "Optional PLC value(s) meaning PREHEATING, read from hvac_status_address. One or more integers separated by commas. Leave empty to skip this status (it will never be matched)."
+          },
+          "hvac_status_defrosting_values": {
+            "label": "Defrosting status value(s)",
+            "description": "Optional PLC value(s) meaning DEFROSTING, read from hvac_status_address. One or more integers separated by commas. Leave empty to skip this status (it will never be matched)."
+          },
+          "min_temp": {
+            "label": "Minimum temperature",
+            "description": "Minimum settable temperature (°C)."
+          },
+          "max_temp": {
+            "label": "Maximum temperature",
+            "description": "Maximum settable temperature (°C)."
+          },
+          "temp_step": {
+            "label": "Temperature step",
+            "description": "Temperature adjustment step (°C)."
+          }
+        }
+      },
+      "entity_sync": {
+        "label": "Entity Syncs",
+        "fields": {
+          "source_entity": {
+            "label": "Source entity",
+            "description": "Home Assistant entity whose value will be written to the PLC."
+          },
+          "address": {
+            "label": "PLC address",
+            "description": "PLC address to write the value (e.g., DB1,D0, DB2,W4)."
+          },
+          "invert_state": {
+            "label": "Invert state",
+            "description": "Invert binary states before writing them to a PLC BIT address."
+          }
+        }
+      }
+    },
+    "control_behavior": {
       "label": "Control behavior",
-      "direct_title": "Direct control",
-      "direct_description": "Home Assistant writes the command address and reads the state address. State and command remain independent.",
-      "sync_title": "Synchronize command with state",
-      "sync_description": "When the PLC state changes externally, the value read from the state address is also written to the command address. Useful when the PLC uses a command marker and a separate address or physical output as the real state.",
-      "pulse_title": "Pulse control",
-      "pulse_description": "Send a timed pulse to the command address instead of maintaining the ON/OFF value.",
-      "sync_requires_different": "Requires different state and command addresses."
+      "sync_requires_different": "Requires different state and command addresses.",
+      "options": {
+        "direct": {
+          "title": "Direct control",
+          "description": "Home Assistant writes the command address and reads the state address. State and command remain independent."
+        },
+        "sync": {
+          "title": "Synchronize command with state",
+          "description": "When the PLC state changes externally, the value read from the state address is also written to the command address. Useful when the PLC uses a command marker and a separate address or physical output as the real state."
+        },
+        "pulse": {
+          "title": "Pulse control",
+          "description": "Send a timed pulse to the command address instead of maintaining the ON/OFF value."
+        }
+      }
     },
-    "types": {
-      "sensors": "Sensors",
-      "binary_sensors": "Binary sensors",
-      "switches": "Switches",
-      "covers": "Covers",
-      "lights": "Lights",
-      "buttons": "Buttons",
-      "numbers": "Numbers",
-      "texts": "Texts",
-      "climates": "Climates",
-      "entity_sync": "Entity Syncs"
-    },
-    "choices": {
-      "traditional": "Traditional",
-      "position": "Position",
-      "direct": "Direct outputs",
-      "setpoint": "Setpoint"
-    },
-    "batch": {
-      "select_entity": "Select entity",
-      "delete_selected": "Delete selected",
-      "delete_selected_confirm": "Delete {count} selected entities?"
-    },
-    "configuration_yaml": "Advanced YAML",
-    "configuration_yaml_title": "Advanced YAML configuration",
-    "configuration_yaml_warning": "Edit all entities for this PLC at once. Saving replaces the complete entity configuration. Export a backup first.",
-    "import_yaml": "Import YAML",
-    "export_current_yaml": "Export current YAML",
-    "download_backup": "Download backup",
-    "configuration_load_error": "Unable to load the YAML configuration.",
-    "configuration_download_error": "Unable to download the backup.",
-    "connection_details_title": "Connection details",
-    "connection_details_help": "Show connection details",
-    "connection_details_description": "Read-only connection parameters for this PLC.",
-    "close": "Close",
-    "yes": "Yes",
-    "no": "No",
-    "connection_values": {
-      "rack_slot": "Rack and slot",
-      "tsap": "TSAP",
-      "pg": "PG (programming device)",
-      "op": "OP (operator panel)",
-      "s7basic": "S7 Basic"
+    "connection_details": {
+      "title": "Connection details",
+      "help": "Show connection details",
+      "description": "Read-only connection parameters for this PLC.",
+      "sections": {
+        "connection": "PLC connection",
+        "performance": "Communication and performance",
+        "retry": "Reconnection",
+        "other": "Other parameters"
+      },
+      "fields": {
+        "connection_type": {
+          "label": "Connection method"
+        },
+        "pys7_connection_type": {
+          "label": "S7 connection profile"
+        },
+        "rack": {
+          "label": "Rack"
+        },
+        "slot": {
+          "label": "Slot"
+        },
+        "local_tsap": {
+          "label": "Local TSAP"
+        },
+        "remote_tsap": {
+          "label": "Remote TSAP"
+        },
+        "scan_interval": {
+          "label": "Scan interval (s)"
+        },
+        "operation_timeout": {
+          "label": "Operation timeout (s)"
+        },
+        "optimize_read": {
+          "label": "Optimize batch reads"
+        },
+        "enable_write_batching": {
+          "label": "Enable write batching"
+        },
+        "enable_metrics": {
+          "label": "Enable performance metrics"
+        },
+        "max_retries": {
+          "label": "Retry attempts"
+        },
+        "retry_backoff_initial": {
+          "label": "Retry backoff start (s)"
+        },
+        "retry_backoff_max": {
+          "label": "Retry backoff max (s)"
+        }
+      },
+      "values": {
+        "yes": "Yes",
+        "no": "No",
+        "rack_slot": "Rack and slot",
+        "tsap": "TSAP",
+        "pg": "PG (programming device)",
+        "op": "OP (operator panel)",
+        "s7basic": "S7 Basic"
+      }
     },
     "availability": {
       "title": "Connection availability",
@@ -1236,30 +1732,68 @@
       "minute_short": "m",
       "current_downtime": "Current downtime"
     },
-    "connection_detail_sections": {
-      "connection": "PLC connection",
-      "performance": "Communication and performance",
-      "retry": "Reconnection",
-      "other": "Other parameters"
+    "actions": {
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "close": "Close",
+      "delete_confirm": "Delete this entity? This action cannot be undone.",
+      "delete_title": "Delete entity",
+      "select_entity": "Select entity",
+      "delete_selected": "Delete selected",
+      "delete_selected_confirm": "Delete {count} selected entities?"
     },
-    "connection_detail_labels": {
-      "connection_type": "Connection method",
-      "pys7_connection_type": "S7 connection profile"
+    "errors": {
+      "required_error": "Fill in all required fields.",
+      "cover_required_error": "Enter the required addresses for the selected cover type.",
+      "climate_required_error": "Enter the target temperature address.",
+      "brightness_state_required_error": "Enter the brightness state address for a dimmable light.",
+      "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
+      "configuration_load_error": "Unable to load the YAML configuration.",
+      "configuration_download_error": "Unable to download the backup.",
+      "invalid_address": "Invalid address format.",
+      "duplicate_entry": "This item already exists.",
+      "duplicate_addresses_in_import": "The import contains duplicate addresses within the same entity type.",
+      "state_addresses_required": "When 'Use state topics' is enabled, both opened and closed state addresses are required.",
+      "invalid_source_entity": "Source entity is required.",
+      "invalid_number": "Invalid numeric value.",
+      "invalid_mode_values": "Enter one or more whole numbers separated by commas (e.g. 2,3).",
+      "invalid_range": "Minimum value cannot be greater than maximum value.",
+      "no_items": "There are no configured items to edit.",
+      "cannot_connect": "Cannot connect to the PLC with the provided settings.",
+      "already_configured": "Another S7 PLC entry already uses these connection parameters.",
+      "invalid_json": "Invalid JSON payload.",
+      "invalid_selection": "Select a valid item type.",
+      "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
+      "scale_raw_requires_min_max": "Scale raw min/max require both min value and max value to be set.",
+      "scale_requires_all_four": "Scaling requires all four parameters: min value, max value, scale raw min and scale raw max.",
+      "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses.",
+      "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time.",
+      "sync_same_address": "Sync state requires a command address different from the state address.",
+      "invalid_integer": "Enter a whole number (decimals are not allowed).",
+      "duplicate_preset_value": "The same value can't be assigned to two different HVAC modes.",
+      "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses."
     },
-    "command_behavior": "Command behavior",
-    "command_behavior_help": "How Home Assistant controls the PLC output",
-    "options_section": "Options",
-    "options_section_help": "Settings for the selected behavior and Control mode",
-    "brightness_state_required_error": "Enter the brightness state address for a dimmable light.",
-    "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
-    "light_ui": {
-      "label": "Light type",
-      "section_title": "Light type",
-      "section_help": "Choose on/off or brightness control",
-      "on_off_title": "On/Off",
-      "on_off_description": "Switching on and off only",
-      "dimmable_title": "Dimmable",
-      "dimmable_description": "On, off, and brightness control"
+    "editor": {
+      "configuration_yaml": "Advanced YAML",
+      "configuration_yaml_title": "Advanced YAML configuration",
+      "configuration_yaml_warning": "Edit all entities for this PLC at once. Saving replaces the complete entity configuration. Export a backup first.",
+      "import_yaml": "Import YAML",
+      "export_current_yaml": "Export current YAML",
+      "download_backup": "Download backup",
+      "editor_mode": "Editor mode",
+      "visual_editor": "Visual editor",
+      "guided": "Guided and simple",
+      "advanced": "Advanced control",
+      "yaml_warning": "Advanced mode lets you manually edit every field. Use a YAML mapping for a single entity.",
+      "yaml_label": "YAML configuration",
+      "new_entity": "New entity",
+      "edit_entity": "Edit entity",
+      "configure_new": "Configure a new entity",
+      "update_configuration": "Update the configuration",
+      "save_help": "Fields are saved directly in the PLC configuration."
     }
   }
 }

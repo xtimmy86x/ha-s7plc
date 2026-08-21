@@ -1102,117 +1102,613 @@
     }
   },
   "config_panel": {
-    "loading": "Ładowanie konfiguracji…",
-    "no_plc": "Nie skonfigurowano PLC",
-    "no_plc_help": "Najpierw dodaj integrację Siemens S7 w Urządzenia i usługi.",
-    "title": "Konfiguracja S7 PLC",
-    "subtitle": "Konfiguruj encje wizualnie lub użyj YAML w opcjach zaawansowanych.",
-    "entities": "encji",
-    "connected": "Połączono",
-    "disconnected": "Rozłączono",
-    "unknown": "Nieznany",
-    "reload_help": "Zmiany są stosowane przez automatyczne przeładowanie integracji.",
-    "add": "Dodaj",
-    "empty": "Brak encji",
-    "empty_help": "Użyj „Dodaj”, aby utworzyć pierwszą encję.",
-    "entity": "Encja",
-    "edit": "Edytuj",
-    "delete": "Usuń",
-    "enabled_help": "Włącz tę opcję",
-    "required": "Wymagane",
-    "no_area": "Brak obszaru",
-    "none_option": "Brak",
-    "address_example": "np. DB1,REAL0",
-    "address_example_bool": "np. DB1,X0.0",
-    "address_example_string": "np. DB1,S0.254",
-    "entity_example": "np. sensor.temperatura_salonu",
-    "name_example": "np. Temperatura salonu",
-    "address_help": "Format Siemens S7, na przykład DB1,REAL0",
-    "address_help_bool": "Format Siemens S7, na przykład DB1,X0.0",
-    "preset_value_help": "Pozostaw puste, aby ukryć ten tryb.",
-    "status_values_help": "Jedna lub więcej wartości oddzielonych przecinkami (np. 2,3). Pozostaw puste, aby pominąć ten stan.",
-    "plc_connection": "Połączenie PLC",
-    "plc_connection_help": "Adresy i źródła danych",
-    "behavior": "Zachowanie",
-    "behavior_help": "Opcje właściwe dla tej encji",
-    "ha_details": "Szczegóły w Home Assistant",
-    "ha_details_help": "Nazwa, obszar i częstotliwość aktualizacji",
-    "new_entity": "Nowa encja",
-    "edit_entity": "Edytuj encję",
-    "configure_new": "Skonfiguruj nową encję",
-    "update_configuration": "Zaktualizuj konfigurację",
-    "save_help": "Pola są zapisywane bezpośrednio w konfiguracji PLC.",
-    "editor_mode": "Tryb edytora",
-    "visual_editor": "Edytor wizualny",
-    "guided": "Prosty i prowadzony",
-    "advanced": "Sterowanie zaawansowane",
-    "yaml_warning": "Tryb zaawansowany pozwala ręcznie edytować wszystkie pola. Użyj mapowania YAML dla pojedynczej encji.",
-    "yaml_label": "Konfiguracja YAML",
-    "cancel": "Anuluj",
-    "save": "Zapisz zmiany",
-    "required_error": "Wypełnij wszystkie wymagane pola.",
-    "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu rolety/osłony.",
-    "climate_required_error": "Wprowadź adres temperatury docelowej.",
-    "delete_confirm": "Usunąć tę encję? Tej operacji nie można cofnąć.",
-    "delete_title": "Usuń encję",
-    "fields": {
-      "cover_mode": "Typ osłony",
-      "control_mode": "Tryb sterowania",
-      "light_mode": "Typ światła"
+    "common": {
+      "loading": "Ładowanie konfiguracji…",
+      "no_plc": "Nie skonfigurowano PLC",
+      "no_plc_help": "Najpierw dodaj integrację Siemens S7 w Urządzenia i usługi.",
+      "title": "Konfiguracja S7 PLC",
+      "subtitle": "Konfiguruj encje wizualnie lub użyj YAML w opcjach zaawansowanych.",
+      "entities": "encji",
+      "connected": "Połączono",
+      "disconnected": "Rozłączono",
+      "unknown": "Nieznany",
+      "reload_help": "Zmiany są stosowane przez automatyczne przeładowanie integracji.",
+      "empty": "Brak encji",
+      "empty_help": "Użyj „Dodaj”, aby utworzyć pierwszą encję.",
+      "entity": "Encja",
+      "enabled_help": "Włącz tę opcję",
+      "required": "Wymagane",
+      "no_area": "Brak obszaru",
+      "none_option": "Brak",
+      "address_example": "np. DB1,REAL0",
+      "address_example_bool": "np. DB1,X0.0",
+      "address_example_string": "np. DB1,S0.254",
+      "entity_example": "np. sensor.temperatura_salonu",
+      "name_example": "np. Temperatura salonu",
+      "fields": {
+        "area": {
+          "label": "Obszar",
+          "description": "Obszar Home Assistant, do którego ma zostać przypisana ta encja."
+        },
+        "name": {
+          "label": "Nazwa",
+          "description": "Opcjonalna opisowa nazwa tej encji."
+        },
+        "scan_interval": {
+          "label": "Interwał skanowania (s)",
+          "description": "Częstotliwość odpytywania określona dla tej encji w sekundach. Użyj wartości dziesiętnych, aby uzyskać dokładność do milisekund. Jeśli pominięto, zostanie użyty domyślny interwał skanowania PLC."
+        }
+      }
     },
-    "control_ui": {
+    "sections": {
+      "plc_connection": {
+        "title": "Połączenie PLC",
+        "description": "Adresy i źródła danych"
+      },
+      "behavior": {
+        "title": "Zachowanie",
+        "description": "Opcje właściwe dla tej encji"
+      },
+      "ha_details": {
+        "title": "Szczegóły w Home Assistant",
+        "description": "Nazwa, obszar i częstotliwość aktualizacji"
+      },
+      "command_behavior": {
+        "title": "Zachowanie polecenia",
+        "description": "Jak Home Assistant steruje wyjściem PLC"
+      },
+      "options": {
+        "title": "Opcje",
+        "description": "Ustawienia wybranego zachowania i tryb sterowania"
+      }
+    },
+    "entity_types": {
+      "sensors": {
+        "label": "Sensory",
+        "fields": {
+          "address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu stanu (np. DB1000,D0, MW10, DB1,W2)."
+          },
+          "device_class": {
+            "label": "Klasa urządzenia",
+            "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+          },
+          "unit_of_measurement": {
+            "label": "Jednostka miary",
+            "description": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
+          },
+          "value_multiplier": {
+            "label": "Mnożnik wartości",
+            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
+          },
+          "min_value": {
+            "label": "Wartość wyjściowa min.",
+            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
+          },
+          "max_value": {
+            "label": "Wartość wyjściowa maks.",
+            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
+          },
+          "scale_raw_min": {
+            "label": "Wartość wejściowa min.",
+            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
+          },
+          "scale_raw_max": {
+            "label": "Wartość wejściowa maks.",
+            "description": "Maksymalna wartość wejściowa skalowania liniowego."
+          },
+          "state_class": {
+            "label": "Klasa stanu",
+            "description": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+          },
+          "real_precision": {
+            "label": "Miejsca dziesiętne REAL",
+            "description": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1)."
+          }
+        }
+      },
+      "binary_sensors": {
+        "label": "Sensory binarne",
+        "fields": {
+          "address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu stanu (np. I0.0, Q1.3, DB10,X0.1)."
+          },
+          "device_class": {
+            "label": "Klasa urządzenia",
+            "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+          },
+          "invert_state": {
+            "label": "Odwróć stan",
+            "description": "Odwróć stan (prawda,1/wył,0., fałsz,0/zał,1.), domyślnie wyłączone."
+          }
+        }
+      },
+      "switches": {
+        "label": "Przełączniki",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "state_address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0)."
+          },
+          "command_address": {
+            "label": "Adres zapisu",
+            "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
+          },
+          "pulse_duration": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
+          }
+        }
+      },
+      "covers": {
+        "label": "Rolety/Osłony",
+        "fields": {
+          "cover_mode": {
+            "label": "Typ osłony",
+            "description": "Typ osłony",
+            "options": {
+              "traditional": "Tradycyjna",
+              "position": "Pozycja"
+            }
+          },
+          "open_command_address": {
+            "label": "Adres zapisu otwórz",
+            "description": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0)."
+          },
+          "close_command_address": {
+            "label": "Adres zapisu zamknij",
+            "description": "Adres wyzwalający zamykanie (np. Q0.1, DB1,X0.1)."
+          },
+          "cover_status_address": {
+            "label": "Adres odczytu stanów",
+            "description": "Opcjonalny adres raportujący stan w czasie rzeczywistym (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad boolowskimi adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), gdy skonfigurowane."
+          },
+          "cover_status_open_values": {
+            "label": "Wartość(-i) stanu (otwarta)",
+            "description": "Wartość(-i) oznaczające, że roleta jest całkowicie otwarta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Po dopasowaniu roleta zostanie zgłoszona jako otwarta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
+          },
+          "cover_status_closed_values": {
+            "label": "Wartość(-i) stanu (zamknięta)",
+            "description": "Wartość(-i) oznaczające, że roleta jest całkowicie zamknięta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Po dopasowaniu roleta zostanie zgłoszona jako zamknięta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
+          },
+          "cover_status_opening_values": {
+            "label": "Wartość(-i) stanu (otwieranie)",
+            "description": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan."
+          },
+          "cover_status_closing_values": {
+            "label": "Wartość(-i) stanu (zamykanie)",
+            "description": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
+          },
+          "cover_status_stopped_values": {
+            "label": "Wartość(-i) stanu (zatrzymana)",
+            "description": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
+          },
+          "opening_state_address": {
+            "label": "Adres stanu otwarta",
+            "description": "Opcjonalny adres odczytu aktualnego stanu (otwarta)."
+          },
+          "closing_state_address": {
+            "label": "Adres stanu zamknięta",
+            "description": "Opcjonalny adres odczytu aktualnego stanu (zamknięta)."
+          },
+          "cover_opening_address": {
+            "label": "Adres stanu otwieranie",
+            "description": "Opcjonalny adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+          },
+          "cover_closing_address": {
+            "label": "Adres stanu zamykanie",
+            "description": "Opcjonalny adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+          },
+          "cover_stopped_address": {
+            "label": "Adres stanu zatrzymana",
+            "description": "Opcjonalny adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+          },
+          "position_state_address": {
+            "label": "Adres odczytu pozycji",
+            "description": "Adres odczytu pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4)."
+          },
+          "position_command_address": {
+            "label": "Adres zapisu pozycji",
+            "description": "Adres zapisu nowej pozycji osłony/rolety (0-100). Jeśli brak, użyty zostanie adres odczytu."
+          },
+          "stop_command_address": {
+            "label": "Adres zapisu zatrzymaj",
+            "description": "Opcjonalny adres zapisu komendy (zatrzymaj). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę."
+          },
+          "stop_pulse_duration": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu dla adresu zapisu zatrzymaj (0.1-60s), domyślnie (0.5s)."
+          },
+          "tilt_state_address": {
+            "label": "Adres odczytu przechylenia",
+            "description": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/zatrzymaj)."
+          },
+          "tilt_command_address": {
+            "label": "Adres zapisu przechylenia",
+            "description": "Opcjonalny adres zapisu przechylenia. Jeśli pominięty, używany jest adres odczytu przechylenia."
+          },
+          "invert_tilt": {
+            "label": "Odwróć przechylenie",
+            "description": "Odwraca skalę przechylenia (0 staje się 100 i odwrotnie) dla siłowników podłączonych w drugą stronę."
+          },
+          "operate_time": {
+            "label": "Czas otwarcia/zamknięcia (s)",
+            "description": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej."
+          },
+          "use_state_topics": {
+            "label": "Użyj adresów stanu (otwarta/zamknięta) dla określenia położenia",
+            "description": "Włącz, aby używać adresów stanu (otwarta/zamknięta) dla określenia położenia. Gdy wyłączone, położenie będzie wynikać z czasu otwarcia/zamknięcia."
+          },
+          "invert_position": {
+            "label": "Odwróć pozycję",
+            "description": "Załączenie odwraca pozycje krańcowe (0 = Otwarta, 100 = Zamknięta)."
+          },
+          "device_class": {
+            "label": "Klasa urządzenia",
+            "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+          }
+        }
+      },
+      "lights": {
+        "label": "Światła",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "light_mode": {
+            "label": "Typ światła",
+            "description": "Typ światła"
+          },
+          "state_address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)"
+          },
+          "command_address": {
+            "label": "Adres zapisu",
+            "description": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu."
+          },
+          "brightness_state_address": {
+            "label": "Adres odczytu jasności",
+            "description": "Opcjonalny adres odczytu poziomu jasności (np. DB1,B2)."
+          },
+          "brightness_command_address": {
+            "label": "Adres zapisu jasności",
+            "description": "Opcjonalny adres zapisu poziomu jasności. Jeśli puste, użyty zostanie adres odczytu jasności."
+          },
+          "pulse_duration": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
+          },
+          "brightness_scale": {
+            "label": "Maksymalna wartość jasności",
+            "description": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100)."
+          }
+        },
+        "mode": {
+          "title": "Typ światła",
+          "description": "Wybierz sterowanie włącz/wyłącz lub jasnością",
+          "options": {
+            "on_off": {
+              "title": "Włącz/Wyłącz",
+              "description": "Tylko włączanie i wyłączanie"
+            },
+            "dimmable": {
+              "title": "Ściemnialne",
+              "description": "Włączanie, wyłączanie i regulacja jasności"
+            }
+          }
+        }
+      },
+      "buttons": {
+        "label": "Przyciski",
+        "fields": {
+          "address": {
+            "label": "Adres zapisu",
+            "description": "Adres zapisu (np. Q0.0, DB1,X0.1)."
+          },
+          "button_pulse": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
+          }
+        }
+      },
+      "numbers": {
+        "label": "Liczby",
+        "fields": {
+          "address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu (np. DB1,D0, DB2,W4)."
+          },
+          "command_address": {
+            "label": "Adres zapisu",
+            "description": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu."
+          },
+          "device_class": {
+            "label": "Klasa urządzenia",
+            "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+          },
+          "unit_of_measurement": {
+            "label": "Jednostka miary",
+            "description": "Jednostka miary (np. °C, V, kW). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
+          },
+          "min_value": {
+            "label": "Limit dolny",
+            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
+          },
+          "max_value": {
+            "label": "Limit górny",
+            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
+          },
+          "step": {
+            "label": "Krok",
+            "description": "Krok przy zmianie wartości w interfejsie."
+          },
+          "value_multiplier": {
+            "label": "Mnożnik wartości",
+            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
+          },
+          "scale_raw_min": {
+            "label": "Wartość wejściowa min.",
+            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
+          },
+          "scale_raw_max": {
+            "label": "Wartość wejściowa maks.",
+            "description": "Maksymalna wartość wejściowa skalowania liniowego."
+          },
+          "real_precision": {
+            "label": "Miejsca dziesiętne REAL",
+            "description": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1)."
+          }
+        }
+      },
+      "texts": {
+        "label": "Teksty",
+        "fields": {
+          "address": {
+            "label": "Adres odczytu",
+            "description": "Adres odczytu (STRING/WSTRING, DB1,S0.254, DB2,WS0.128)."
+          },
+          "command_address": {
+            "label": "Adres zapisu",
+            "description": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu."
+          },
+          "pattern": {
+            "label": "Wzorzec (regex)",
+            "description": "Opcjonalny wzorzec regex do walidacji tekstu."
+          }
+        }
+      },
+      "climates": {
+        "label": "Termostaty",
+        "fields": {
+          "control_mode": {
+            "label": "Tryb sterowania",
+            "description": "Tryb sterowania",
+            "options": {
+              "direct": "Kontroler",
+              "setpoint": "Klient"
+            }
+          },
+          "current_temperature_address": {
+            "label": "Adres odczytu temperatury",
+            "description": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4)."
+          },
+          "target_temperature_address": {
+            "label": "Adres zapisu temperatury zadanej",
+            "description": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8)."
+          },
+          "heating_output_address": {
+            "label": "Adres wyjścia grzanie",
+            "description": "Adres sterowania wyjściem ogrzewania (np. Q0.0, DB1,X0.0). Opcjonalny, jeśli używane jest tylko chłodzenie."
+          },
+          "cooling_output_address": {
+            "label": "Adres wyjścia chłodzenie",
+            "description": "Adres sterowania wyjściem chłodzenia (np. Q0.1, DB1,X0.1). Opcjonalny, jeśli używane jest tylko grzanie."
+          },
+          "heating_action_address": {
+            "label": "Adres stanu grzanie",
+            "description": "Opcjonalny adres odczytu stanu (grzanie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej."
+          },
+          "cooling_action_address": {
+            "label": "Adres stanu chłodzenie",
+            "description": "Opcjonalny adres odczytu stanu (chłodzenie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej."
+          },
+          "preset_mode_address": {
+            "label": "Adres trybu HVAC",
+            "description": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem."
+          },
+          "preset_mode_bidirectional": {
+            "label": "Odczytuj tryb HVAC ze sterownika PLC",
+            "description": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb."
+          },
+          "on_off_address": {
+            "label": "Adres wł./wył.",
+            "description": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan."
+          },
+          "preset_mode_off_value": {
+            "label": "Wartość trybu (wył.)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres."
+          },
+          "preset_mode_heat_value": {
+            "label": "Wartość trybu (grzanie)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
+          },
+          "preset_mode_cool_value": {
+            "label": "Wartość trybu (chłodzenie)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
+          },
+          "preset_mode_heat_cool_value": {
+            "label": "Wartość trybu (grzanie/chłodzenie)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
+          },
+          "preset_mode_auto_value": {
+            "label": "Wartość trybu (auto)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste)."
+          },
+          "preset_mode_dry_value": {
+            "label": "Wartość trybu (osuszanie)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste)."
+          },
+          "preset_mode_fan_only_value": {
+            "label": "Wartość trybu (wentylowanie)",
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste)."
+          },
+          "hvac_status_address": {
+            "label": "Adres odczytu stanów",
+            "description": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego stan zostanie ustalony na podstawie temperatury aktualnej i zadanej."
+          },
+          "hvac_status_off_values": {
+            "label": "Wartość(-i) stanu (wył.)",
+            "description": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_heating_values": {
+            "label": "Wartość(-i) stanu (grzanie)",
+            "description": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_cooling_values": {
+            "label": "Wartość(-i) stanu (chłodzenie)",
+            "description": "Wartość(-i) oznaczające (chłodzenie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 2 lub 2,12). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_idle_values": {
+            "label": "Wartość(-i) stanu (bezczynny)",
+            "description": "Wartość(-i) oznaczające stan (bezczynny), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 3 lub 3,13). Zawsze dostępne dla stanów nierozpoznanych."
+          },
+          "hvac_status_drying_values": {
+            "label": "Wartość(-i) stanu (osuszanie)",
+            "description": "Opcjonalna wartość(-i) oznaczające stan (osuszanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 4 lub 4,14). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_fan_values": {
+            "label": "Wartość(-i) stanu (wentylowanie)",
+            "description": "Opcjonalna wartość(-i) oznaczające stan (wentylowanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 5 lub 5,15). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_preheating_values": {
+            "label": "Wartość(-i) stanu (podgrzewanie wstępne)",
+            "description": "Opcjonalna wartość(-i) oznaczające stan (podgrzewanie wstępne), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 6 lub 6,16). Pozostaw puste, aby pominąć ten stan."
+          },
+          "hvac_status_defrosting_values": {
+            "label": "Wartość(-i) stanu (rozmrażanie)",
+            "description": "Opcjonalna wartość oznaczająca stan (rozmrażanie) odczytywana z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 7 lub 7,17). Pozostaw puste, aby pominąć ten stan."
+          },
+          "min_temp": {
+            "label": "Limit dolny",
+            "description": "Limit dolny temperatury zadanej (°C)."
+          },
+          "max_temp": {
+            "label": "Limit górny",
+            "description": "Limit górny temperatury zadanej (°C)."
+          },
+          "temp_step": {
+            "label": "Krok",
+            "description": "Krok regulacji temperatury zadanej (°C)."
+          }
+        }
+      },
+      "entity_sync": {
+        "label": "Zapisujące do PLC",
+        "fields": {
+          "source_entity": {
+            "label": "Encja źródłowa",
+            "description": "Encja źródłowa zapisująca do PLC."
+          },
+          "address": {
+            "label": "Adres zapisu",
+            "description": "Adres zapisu (np. DB1,D0, DB2,W4)."
+          },
+          "invert_state": {
+            "label": "Odwróć stan",
+            "description": "Odwróć stan (prawda,1/wył,0., fałsz,0/zał,1.), domyślnie wyłączone."
+          }
+        }
+      }
+    },
+    "control_behavior": {
       "label": "Sposób sterowania",
-      "direct_title": "Sterowanie bezpośrednie",
-      "direct_description": "Home Assistant zapisuje adres polecenia i odczytuje adres stanu. Stan i polecenie pozostają niezależne.",
-      "sync_title": "Synchronizuj polecenie ze stanem",
-      "sync_description": "Gdy stan PLC zmieni się zewnętrznie, wartość odczytana z adresu stanu jest również zapisywana pod adresem polecenia.",
-      "pulse_title": "Sterowanie impulsowe",
-      "pulse_description": "Wysyła impuls czasowy na adres polecenia zamiast utrzymywać wartość WŁ./WYŁ.",
-      "sync_requires_different": "Wymaga różnych adresów stanu i polecenia."
+      "sync_requires_different": "Wymaga różnych adresów stanu i polecenia.",
+      "options": {
+        "direct": {
+          "title": "Sterowanie bezpośrednie",
+          "description": "Home Assistant zapisuje adres polecenia i odczytuje adres stanu. Stan i polecenie pozostają niezależne."
+        },
+        "sync": {
+          "title": "Synchronizuj polecenie ze stanem",
+          "description": "Gdy stan PLC zmieni się zewnętrznie, wartość odczytana z adresu stanu jest również zapisywana pod adresem polecenia."
+        },
+        "pulse": {
+          "title": "Sterowanie impulsowe",
+          "description": "Wysyła impuls czasowy na adres polecenia zamiast utrzymywać wartość WŁ./WYŁ."
+        }
+      }
     },
-    "types": {
-      "sensors": "Sensory",
-      "binary_sensors": "Sensory binarne",
-      "switches": "Przełączniki",
-      "covers": "Rolety/Osłony",
-      "lights": "Światła",
-      "buttons": "Przyciski",
-      "numbers": "Liczby",
-      "texts": "Teksty",
-      "climates": "Termostaty",
-      "entity_sync": "Zapisujące do PLC"
-    },
-    "choices": {
-      "traditional": "Tradycyjna",
-      "position": "Pozycja",
-      "direct": "Kontroler",
-      "setpoint": "Klient"
-    },
-    "batch": {
-      "select_entity": "Wybierz encję",
-      "delete_selected": "Usuń wybrane",
-      "delete_selected_confirm": "Usunąć {count} wybranych encji?"
-    },
-    "configuration_yaml": "Zaawansowany YAML",
-    "configuration_yaml_title": "Zaawansowana konfiguracja YAML",
-    "configuration_yaml_warning": "Edytuj jednocześnie wszystkie encje tego PLC. Zapis zastępuje pełną konfigurację encji. Najpierw wyeksportuj kopię zapasową.",
-    "import_yaml": "Importuj YAML",
-    "export_current_yaml": "Eksportuj bieżący YAML",
-    "download_backup": "Pobierz kopię zapasową",
-    "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
-    "configuration_download_error": "Nie można pobrać kopii zapasowej.",
-    "connection_details_title": "Szczegóły połączenia",
-    "connection_details_help": "Pokaż szczegóły połączenia",
-    "connection_details_description": "Parametry połączenia tego PLC tylko do odczytu.",
-    "close": "Zamknij",
-    "yes": "Tak",
-    "no": "Nie",
-    "connection_values": {
-      "rack_slot": "Kaseta i gniazdo",
-      "tsap": "TSAP",
-      "pg": "PG (urządzenie programujące)",
-      "op": "OP (panel operatorski)",
-      "s7basic": "S7 Basic"
+    "connection_details": {
+      "title": "Szczegóły połączenia",
+      "help": "Pokaż szczegóły połączenia",
+      "description": "Parametry połączenia tego PLC tylko do odczytu.",
+      "sections": {
+        "connection": "Połączenie PLC",
+        "performance": "Komunikacja i wydajność",
+        "retry": "Ponowne łączenie",
+        "other": "Inne parametry"
+      },
+      "fields": {
+        "connection_type": {
+          "label": "Metoda połączenia"
+        },
+        "pys7_connection_type": {
+          "label": "Profil połączenia S7"
+        },
+        "rack": {
+          "label": "CPU rack (zwykle 0)."
+        },
+        "slot": {
+          "label": "CPU slot (1 dla S7-1200/1500)."
+        },
+        "local_tsap": {
+          "label": "Lokalny TSAP"
+        },
+        "remote_tsap": {
+          "label": "Zdalny TSAP"
+        },
+        "scan_interval": {
+          "label": "Interwał skanowania (s)"
+        },
+        "operation_timeout": {
+          "label": "Limit czasu operacji (s)"
+        },
+        "optimize_read": {
+          "label": "Optymalizuj odczyty wsadowe"
+        },
+        "enable_write_batching": {
+          "label": "Włącz grupowanie zapisów"
+        },
+        "enable_metrics": {
+          "label": "Włącz metryki wydajności"
+        },
+        "max_retries": {
+          "label": "Liczba prób"
+        },
+        "retry_backoff_initial": {
+          "label": "Opóźnienie przy pierwszej próbie (s)"
+        },
+        "retry_backoff_max": {
+          "label": "Maksymalne opóźnienie przy kolejnych próbach (s)"
+        }
+      },
+      "values": {
+        "yes": "Tak",
+        "no": "Nie",
+        "rack_slot": "Kaseta i gniazdo",
+        "tsap": "TSAP",
+        "pg": "PG (urządzenie programujące)",
+        "op": "OP (panel operatorski)",
+        "s7basic": "S7 Basic"
+      }
     },
     "availability": {
       "title": "Dostępność połączenia",
@@ -1236,30 +1732,68 @@
       "minute_short": "min",
       "current_downtime": "Bieżący czas rozłączenia"
     },
-    "connection_detail_sections": {
-      "connection": "Połączenie PLC",
-      "performance": "Komunikacja i wydajność",
-      "retry": "Ponowne łączenie",
-      "other": "Inne parametry"
+    "actions": {
+      "add": "Dodaj",
+      "edit": "Edytuj",
+      "delete": "Usuń",
+      "cancel": "Anuluj",
+      "save": "Zapisz zmiany",
+      "close": "Zamknij",
+      "delete_confirm": "Usunąć tę encję? Tej operacji nie można cofnąć.",
+      "delete_title": "Usuń encję",
+      "select_entity": "Wybierz encję",
+      "delete_selected": "Usuń wybrane",
+      "delete_selected_confirm": "Usunąć {count} wybranych encji?"
     },
-    "connection_detail_labels": {
-      "connection_type": "Metoda połączenia",
-      "pys7_connection_type": "Profil połączenia S7"
+    "errors": {
+      "required_error": "Wypełnij wszystkie wymagane pola.",
+      "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu rolety/osłony.",
+      "climate_required_error": "Wprowadź adres temperatury docelowej.",
+      "brightness_state_required_error": "Wprowadź adres stanu jasności dla światła ściemnialnego.",
+      "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
+      "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
+      "configuration_download_error": "Nie można pobrać kopii zapasowej.",
+      "invalid_address": "Nieprawidłowy format adresu.",
+      "duplicate_entry": "Ta encja już istnieje.",
+      "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
+      "state_addresses_required": "Gdy 'użyj adresów stanu' jest włączone, wymagane są adresy stanu (otwarta/zamknięta).",
+      "invalid_source_entity": "Wymagana jest encja źródłowa.",
+      "invalid_number": "Nieprawidłowa wartość liczbowa.",
+      "invalid_mode_values": "Podaj jedną lub więcej liczb całkowitych oddzielonych przecinkami (np. 2,3).",
+      "invalid_range": "Wartość minimalna nie może być większa niż maksymalna.",
+      "no_items": "Brak skonfigurowanych encji do edycji.",
+      "cannot_connect": "Nie można połączyć się z PLC przy użyciu podanych parametrów.",
+      "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia.",
+      "invalid_json": "Nieprawidłowy format JSON.",
+      "invalid_selection": "Wybierz prawidłowy typ encji.",
+      "min_max_required_for_real": "Wartość minimalna i maksymalna jest wymagana dla danych typu (REAL/LREAL).",
+      "scale_raw_requires_min_max": "Skalowanie wymaga podania wartości minimalnej i maksymalnej.",
+      "scale_requires_all_four": "Funkcja skalowanie wymaga wszystkich czterech parametrów: wartość wejściowa min./maks. oraz wartość wyjściowa min./maks.",
+      "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING/WSTRING).",
+      "sync_pulse_conflict": "Synchronizacja stanu i tryb impulsu nie mogą być aktywne jednocześnie.",
+      "sync_same_address": "Synchronizacja stanu wymaga adresu zapisu innego niż adres odczytu.",
+      "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",
+      "duplicate_preset_value": "Ta sama wartość nie może być przypisana do dwóch różnych trybów HVAC.",
+      "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC."
     },
-    "command_behavior": "Zachowanie polecenia",
-    "command_behavior_help": "Jak Home Assistant steruje wyjściem PLC",
-    "options_section": "Opcje",
-    "options_section_help": "Ustawienia wybranego zachowania i tryb sterowania",
-    "brightness_state_required_error": "Wprowadź adres stanu jasności dla światła ściemnialnego.",
-    "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
-    "light_ui": {
-      "label": "Typ światła",
-      "section_title": "Typ światła",
-      "section_help": "Wybierz sterowanie włącz/wyłącz lub jasnością",
-      "on_off_title": "Włącz/Wyłącz",
-      "on_off_description": "Tylko włączanie i wyłączanie",
-      "dimmable_title": "Ściemnialne",
-      "dimmable_description": "Włączanie, wyłączanie i regulacja jasności"
+    "editor": {
+      "configuration_yaml": "Zaawansowany YAML",
+      "configuration_yaml_title": "Zaawansowana konfiguracja YAML",
+      "configuration_yaml_warning": "Edytuj jednocześnie wszystkie encje tego PLC. Zapis zastępuje pełną konfigurację encji. Najpierw wyeksportuj kopię zapasową.",
+      "import_yaml": "Importuj YAML",
+      "export_current_yaml": "Eksportuj bieżący YAML",
+      "download_backup": "Pobierz kopię zapasową",
+      "editor_mode": "Tryb edytora",
+      "visual_editor": "Edytor wizualny",
+      "guided": "Prosty i prowadzony",
+      "advanced": "Sterowanie zaawansowane",
+      "yaml_warning": "Tryb zaawansowany pozwala ręcznie edytować wszystkie pola. Użyj mapowania YAML dla pojedynczej encji.",
+      "yaml_label": "Konfiguracja YAML",
+      "new_entity": "Nowa encja",
+      "edit_entity": "Edytuj encję",
+      "configure_new": "Skonfiguruj nową encję",
+      "update_configuration": "Zaktualizuj konfigurację",
+      "save_help": "Pola są zapisywane bezpośrednio w konfiguracji PLC."
     }
   }
 }

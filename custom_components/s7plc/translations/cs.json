@@ -1102,117 +1102,613 @@
     }
   },
   "config_panel": {
-    "loading": "Načítání konfigurace…",
-    "no_plc": "Není nakonfigurováno žádné PLC",
-    "no_plc_help": "Nejprve přidejte integraci Siemens S7 v Zařízení a služby.",
-    "title": "Konfigurace S7 PLC",
-    "subtitle": "Nakonfigurujte entity vizuálně nebo použijte YAML v pokročilých možnostech.",
-    "entities": "entity",
-    "connected": "Připojeno",
-    "disconnected": "Odpojeno",
-    "unknown": "Neznámé",
-    "reload_help": "Změny se použijí automatickým opětovným načtením integrace.",
-    "add": "Přidat",
-    "empty": "Žádné entity",
-    "empty_help": "Pomocí „Přidat“ vytvořte první entitu.",
-    "entity": "Entita",
-    "edit": "Upravit",
-    "delete": "Odstranit",
-    "enabled_help": "Povolit tuto možnost",
-    "required": "Povinné",
-    "no_area": "Žádná oblast",
-    "none_option": "Žádná",
-    "address_example": "např. DB1,REAL0",
-    "address_example_bool": "např. DB1,X0.0",
-    "address_example_string": "např. DB1,S0.254",
-    "entity_example": "např. sensor.teplota_obyvaciho_pokoje",
-    "name_example": "např. Teplota obývacího pokoje",
-    "address_help": "Formát Siemens S7, například DB1,REAL0",
-    "address_help_bool": "Formát Siemens S7, například DB1,X0.0",
-    "preset_value_help": "Ponechte prázdné pro skrytí tohoto režimu.",
-    "status_values_help": "Jedna nebo více hodnot oddělených čárkami (např. 2,3). Ponechte prázdné pro přeskočení tohoto stavu.",
-    "plc_connection": "Připojení PLC",
-    "plc_connection_help": "Datové adresy a zdroje",
-    "behavior": "Chování",
-    "behavior_help": "Možnosti specifické pro tuto entitu",
-    "ha_details": "Podrobnosti v Home Assistant",
-    "ha_details_help": "Název, oblast a frekvence aktualizace",
-    "new_entity": "Nová entita",
-    "edit_entity": "Upravit entitu",
-    "configure_new": "Nakonfigurujte novou entitu",
-    "update_configuration": "Aktualizujte konfiguraci",
-    "save_help": "Pole se ukládají přímo do konfigurace PLC.",
-    "editor_mode": "Režim editoru",
-    "visual_editor": "Vizuální editor",
-    "guided": "Jednoduché a s průvodcem",
-    "advanced": "Pokročilé ovládání",
-    "yaml_warning": "Pokročilý režim umožňuje ručně upravit všechna pole. Pro jednu entitu použijte mapování YAML.",
-    "yaml_label": "Konfigurace YAML",
-    "cancel": "Zrušit",
-    "save": "Uložit změny",
-    "required_error": "Vyplňte všechna povinná pole.",
-    "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",
-    "climate_required_error": "Zadejte adresu cílové teploty.",
-    "delete_confirm": "Odstranit tuto entitu? Tuto akci nelze vrátit zpět.",
-    "delete_title": "Odstranit entitu",
-    "fields": {
-      "cover_mode": "Typ krytu",
-      "control_mode": "Režim ovládání",
-      "light_mode": "Typ světla"
+    "common": {
+      "loading": "Načítání konfigurace…",
+      "no_plc": "Není nakonfigurováno žádné PLC",
+      "no_plc_help": "Nejprve přidejte integraci Siemens S7 v Zařízení a služby.",
+      "title": "Konfigurace S7 PLC",
+      "subtitle": "Nakonfigurujte entity vizuálně nebo použijte YAML v pokročilých možnostech.",
+      "entities": "entity",
+      "connected": "Připojeno",
+      "disconnected": "Odpojeno",
+      "unknown": "Neznámé",
+      "reload_help": "Změny se použijí automatickým opětovným načtením integrace.",
+      "empty": "Žádné entity",
+      "empty_help": "Pomocí „Přidat“ vytvořte první entitu.",
+      "entity": "Entita",
+      "enabled_help": "Povolit tuto možnost",
+      "required": "Povinné",
+      "no_area": "Žádná oblast",
+      "none_option": "Žádná",
+      "address_example": "např. DB1,REAL0",
+      "address_example_bool": "např. DB1,X0.0",
+      "address_example_string": "např. DB1,S0.254",
+      "entity_example": "např. sensor.teplota_obyvaciho_pokoje",
+      "name_example": "např. Teplota obývacího pokoje",
+      "fields": {
+        "area": {
+          "label": "Oblast",
+          "description": "Oblast Home Assistantu, do které má být tato entita přiřazena."
+        },
+        "name": {
+          "label": "Název",
+          "description": "Volitelný popisný název této entity."
+        },
+        "scan_interval": {
+          "label": "Interval čtení (s)",
+          "description": "Frekvence dotazování specifická pro tuto entitu v sekundách. Pro přesnost na milisekundy použijte desetinné hodnoty. Pokud není uvedena, použije se výchozí interval čtení PLC."
+        }
+      }
     },
-    "control_ui": {
+    "sections": {
+      "plc_connection": {
+        "title": "Připojení PLC",
+        "description": "Datové adresy a zdroje"
+      },
+      "behavior": {
+        "title": "Chování",
+        "description": "Možnosti specifické pro tuto entitu"
+      },
+      "ha_details": {
+        "title": "Podrobnosti v Home Assistant",
+        "description": "Název, oblast a frekvence aktualizace"
+      },
+      "command_behavior": {
+        "title": "Chování příkazu",
+        "description": "Jak Home Assistant ovládá výstup PLC"
+      },
+      "options": {
+        "title": "Možnosti",
+        "description": "Nastavení vybraného chování a režim ovládání"
+      }
+    },
+    "entity_types": {
+      "sensors": {
+        "label": "Senzory",
+        "fields": {
+          "address": {
+            "label": "Adresa",
+            "description": "Adresa v PLC pro čtení (např. DB1000,D0, MW10, DB1,W2)."
+          },
+          "device_class": {
+            "label": "Třída zařízení",
+            "description": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. battery, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Jednotka",
+            "description": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení."
+          },
+          "value_multiplier": {
+            "label": "Násobitel hodnoty",
+            "description": "Násobí surovou hodnotu z PLC před odesíláním. Ponechte prázdné pro původní hodnotu."
+          },
+          "min_value": {
+            "label": "Zobrazené min.",
+            "description": "Minimální zobrazená hodnota po škálování."
+          },
+          "max_value": {
+            "label": "Zobrazené max.",
+            "description": "Maximální zobrazená hodnota po škálování."
+          },
+          "scale_raw_min": {
+            "label": "Syr. min. hodnota (rozsah)",
+            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
+          },
+          "scale_raw_max": {
+            "label": "Syr. max. hodnota (rozsah)",
+            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
+          },
+          "state_class": {
+            "label": "Třída stavu",
+            "description": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku."
+          },
+          "real_precision": {
+            "label": "Desetinná místa REAL",
+            "description": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1)."
+          }
+        }
+      },
+      "binary_sensors": {
+        "label": "Binární senzory",
+        "fields": {
+          "address": {
+            "label": "Adresa",
+            "description": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1)."
+          },
+          "device_class": {
+            "label": "Třída zařízení",
+            "description": "Třída zařízení v Home Assistant pro upřesnění UI/chování (např. door, window, power)."
+          },
+          "invert_state": {
+            "label": "Invertovat stav",
+            "description": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty."
+          }
+        }
+      },
+      "switches": {
+        "label": "Spínače",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "state_address": {
+            "label": "Stavová adresa",
+            "description": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0)."
+          },
+          "command_address": {
+            "label": "Příkazová adresa",
+            "description": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav."
+          },
+          "pulse_duration": {
+            "label": "Doba trvání pulzu (s)",
+            "description": "Doba trvání pulzu v sekundách. Minimum: 0,1s, Maximum: 60s."
+          }
+        }
+      },
+      "covers": {
+        "label": "Rolety / žaluzie",
+        "fields": {
+          "cover_mode": {
+            "label": "Typ krytu",
+            "description": "Typ krytu",
+            "options": {
+              "traditional": "Tradiční",
+              "position": "Poloha"
+            }
+          },
+          "open_command_address": {
+            "label": "Adresa příkazu otevřít",
+            "description": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0)."
+          },
+          "close_command_address": {
+            "label": "Adresa příkazu zavřít",
+            "description": "Adresa PLC pro spuštění zavírání (např. Q0.1, DB1,X0.1)."
+          },
+          "cover_status_address": {
+            "label": "Adresa stavu krytu",
+            "description": "Volitelná adresa PLC hlásící pohyb v reálném čase (otevírání/zavírání/zastaveno), porovnávaná s hodnotami nastavenými níže. Má přednost před booleovskými adresami stavu otevírání/zavírání/zastavení výše, pokud je nastavena."
+          },
+          "cover_status_open_values": {
+            "label": "Hodnota(y) stavu Otevřeno",
+            "description": "Hodnota(y) PLC znamenající, že je kryt zcela otevřen, čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Při shodě stav zavření je určen tímto, s prioritou před stavem odvozeným z koncových spínačů. Ponechte prázdné pro přeskočení tohoto stavu."
+          },
+          "cover_status_closed_values": {
+            "label": "Hodnota(y) stavu Zavřeno",
+            "description": "Hodnota(y) PLC znamenající, že je kryt zcela zavřen, čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Při shodě stav zavření je určen tímto, s prioritou před stavem odvozeným z koncových spínačů. Ponechte prázdné pro přeskočení tohoto stavu."
+          },
+          "cover_status_opening_values": {
+            "label": "Hodnota(y) stavu Otevírání",
+            "description": "Hodnota(y) PLC znamenající, že se kryt otevírá, čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Ponechte prázdné pro přeskočení tohoto stavu."
+          },
+          "cover_status_closing_values": {
+            "label": "Hodnota(y) stavu Zavírání",
+            "description": "Hodnota(y) PLC znamenající, že se kryt zavírá, čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu."
+          },
+          "cover_status_stopped_values": {
+            "label": "Hodnota(y) stavu Zastaveno",
+            "description": "Hodnota(y) PLC znamenající, že kryt je zastaven (nehýbe se), čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu."
+          },
+          "opening_state_address": {
+            "label": "Adresa stavu otevřeno",
+            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená."
+          },
+          "closing_state_address": {
+            "label": "Adresa stavu zavřeno",
+            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená."
+          },
+          "cover_opening_address": {
+            "label": "Adresa stavu Otevírání",
+            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+          },
+          "cover_closing_address": {
+            "label": "Adresa stavu Zavírání",
+            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě zavírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+          },
+          "cover_stopped_address": {
+            "label": "Adresa stavu Zastaveno",
+            "description": "Volitelná booleovská adresa PLC signalizující, že kryt je zastaven (nehýbe se)."
+          },
+          "position_state_address": {
+            "label": "Adresa stavu pozice",
+            "description": "Adresa PLC pro čtení aktuální hodnoty pozice (0-100, např. DB1,B0, DB2,W4)."
+          },
+          "position_command_address": {
+            "label": "Adresa příkazu pozice",
+            "description": "Adresa PLC pro zápis příkazů pozice (0-100). Pokud je vynecháno, použije se adresa stavu."
+          },
+          "stop_command_address": {
+            "label": "Adresa příkazu zastavení",
+            "description": "Booleovská adresa PLC, která se pulzuje při stisknutí stop. Pokud je vynecháno, stop zapíše aktuální pozici zpět."
+          },
+          "stop_pulse_duration": {
+            "label": "Délka pulzu zastavení (s)",
+            "description": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms)."
+          },
+          "tilt_state_address": {
+            "label": "Adresa stavu naklopení",
+            "description": "Volitelná adresa PLC pro čtení aktuální polohy naklopení (0-100). Povoluje ovládání naklopení (otevřít/zavřít/nastavit/zastavit naklopení) pro tento kryt."
+          },
+          "tilt_command_address": {
+            "label": "Adresa příkazu naklopení",
+            "description": "Adresa PLC pro zápis příkazů polohy naklopení (volitelné). Pokud není zadána, použije se adresa stavu naklopení."
+          },
+          "invert_tilt": {
+            "label": "Invertovat naklopení",
+            "description": "Invertuje škálu naklopení (0 se stane 100 a naopak) pro pohony zapojené opačně."
+          },
+          "operate_time": {
+            "label": "Doba chodu (s)",
+            "description": "Počet sekund, po které má být příkaz aktivní, než se výstupy resetují a stav pohybu se vymaže."
+          },
+          "use_state_topics": {
+            "label": "Použít stavové adresy pro polohu",
+            "description": "Zapněte pro použití stavových adres k určení polohy krytiny. Pokud je vypnuto, poloha se odhaduje podle doby chodu."
+          },
+          "invert_position": {
+            "label": "Invertovat pozici (0=otevřeno, 100=zavřeno)",
+            "description": "Povolit, pokud vaše PLC používá 0 pro úplně otevřeno a 100 pro úplně zavřeno (obrátí normální logiku)."
+          },
+          "device_class": {
+            "label": "Třída zařízení",
+            "description": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage)."
+          }
+        }
+      },
+      "lights": {
+        "label": "Světla",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "light_mode": {
+            "label": "Typ světla",
+            "description": "Typ světla"
+          },
+          "state_address": {
+            "label": "Stavová adresa (zap/vyp)",
+            "description": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0)."
+          },
+          "command_address": {
+            "label": "Příkazová adresa (zap/vyp)",
+            "description": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa."
+          },
+          "brightness_state_address": {
+            "label": "Stavová adresa jasu",
+            "description": "Číselná PLC adresa pro čtení úrovně jasu (např. DB1,B2). Nechte prázdné pro pouze zap/vyp."
+          },
+          "brightness_command_address": {
+            "label": "Příkazová adresa jasu",
+            "description": "Číselná PLC adresa pro zápis příkazů jasu (volitelné). Pokud je prázdná, použije se stavová adresa jasu."
+          },
+          "pulse_duration": {
+            "label": "Délka pulsu (s)",
+            "description": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s."
+          },
+          "brightness_scale": {
+            "label": "Stupnice jasu (maximální hodnota)",
+            "description": "Maximální hodnota, kterou PLC používá pro plný jas (např. 255 pro BYTE, 100 pro procenta). Povinné, pokud jsou nastaveny adresy jasu."
+          }
+        },
+        "mode": {
+          "title": "Typ světla",
+          "description": "Zvolte ovládání zap/vyp nebo jasu",
+          "options": {
+            "on_off": {
+              "title": "Zap/Vyp",
+              "description": "Pouze zapnutí a vypnutí"
+            },
+            "dimmable": {
+              "title": "Stmívatelné",
+              "description": "Zapnutí, vypnutí a ovládání jasu"
+            }
+          }
+        }
+      },
+      "buttons": {
+        "label": "Tlačítka",
+        "fields": {
+          "address": {
+            "label": "Adresa",
+            "description": "Booleovská adresa v PLC pro pulz (např. Q0.0, DB1,X0.1)."
+          },
+          "button_pulse": {
+            "label": "Délka pulzu",
+            "description": "Trvání pulzu v sekundách (podporuje desetinná čísla, např. 0.1 pro 100ms)."
+          }
+        }
+      },
+      "numbers": {
+        "label": "Čísla",
+        "fields": {
+          "address": {
+            "label": "Stavová adresa",
+            "description": "Adresa v PLC pro čtení číselné hodnoty (např. DB1,D0, DB2,W4)."
+          },
+          "command_address": {
+            "label": "Příkazová adresa",
+            "description": "Adresa v PLC pro zápis hodnot (volitelné). Pokud není zadána, použije se stavová adresa."
+          },
+          "device_class": {
+            "label": "Třída zařízení",
+            "description": "Třída zařízení pro číselnou entitu (např. temperature, voltage, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Jednotka",
+            "description": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba."
+          },
+          "min_value": {
+            "label": "Minimální hodnota",
+            "description": "Volitelná minimální hodnota pro rozsah v Home Assistant."
+          },
+          "max_value": {
+            "label": "Maximální hodnota",
+            "description": "Volitelná maximální hodnota pro rozsah v Home Assistant."
+          },
+          "step": {
+            "label": "Krok",
+            "description": "Volitelný krok, o který se hodnota mění v UI."
+          },
+          "value_multiplier": {
+            "label": "Násobitel hodnoty",
+            "description": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu."
+          },
+          "scale_raw_min": {
+            "label": "Syr. min. hodnota (rozsah)",
+            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
+          },
+          "scale_raw_max": {
+            "label": "Syr. max. hodnota (rozsah)",
+            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
+          },
+          "real_precision": {
+            "label": "Desetinná místa REAL",
+            "description": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1)."
+          }
+        }
+      },
+      "texts": {
+        "label": "Texty",
+        "fields": {
+          "address": {
+            "label": "Stavová adresa",
+            "description": "Adresa STRING nebo WSTRING v PLC pro čtení (např. DB1,S0.254, DB2,WS0.128)."
+          },
+          "command_address": {
+            "label": "Příkazová adresa",
+            "description": "Adresa v PLC pro zápis textu (volitelné). Pokud není zadána, použije se stavová adresa."
+          },
+          "pattern": {
+            "label": "Vzor (regex)",
+            "description": "Volitelný regex vzor pro validaci textového vstupu."
+          }
+        }
+      },
+      "climates": {
+        "label": "Klimatizace",
+        "fields": {
+          "control_mode": {
+            "label": "Režim ovládání",
+            "description": "Režim ovládání",
+            "options": {
+              "direct": "Přímé výstupy",
+              "setpoint": "Požadovaná hodnota"
+            }
+          },
+          "current_temperature_address": {
+            "label": "Adresa aktuální teploty",
+            "description": "Adresa PLC pro čtení aktuální teploty (např. DB1,REAL0, DB2,INT4)."
+          },
+          "target_temperature_address": {
+            "label": "Adresa cílové teploty",
+            "description": "Adresa PLC pro zápis a čtení nastavené cílové teploty (např. DB1,REAL4, DB2,INT8)."
+          },
+          "heating_output_address": {
+            "label": "Adresa výstupu topení",
+            "description": "Adresa PLC pro ovládání výstupu topení (např. Q0.0, DB1,X0.0). Volitelné, pokud se používá pouze chlazení."
+          },
+          "cooling_output_address": {
+            "label": "Adresa výstupu chlazení",
+            "description": "Adresa PLC pro ovládání výstupu chlazení (např. Q0.1, DB1,X0.1). Volitelné, pokud se používá pouze topení."
+          },
+          "heating_action_address": {
+            "label": "Adresa akce topení",
+            "description": "Volitelná adresa PLC pro čtení stavu akce topení. Pokud není uvedena, akce je odvozena z režimu."
+          },
+          "cooling_action_address": {
+            "label": "Adresa akce chlazení",
+            "description": "Volitelná adresa PLC pro čtení stavu akce chlazení. Pokud není uvedena, akce je odvozena z režimu."
+          },
+          "preset_mode_address": {
+            "label": "Adresa režimu HVAC",
+            "description": "Volitelná adresa PLC pro zápis režimu HVAC pomocí hodnoty nastavené níže pro každý režim. Užitečné, pokud PLC potřebuje povolit/zakázat regulaci klimatizace. Ve výchozím nastavení pouze pro zápis; povolením preset_mode_bidirectional ji lze také číst zpět."
+          },
+          "preset_mode_bidirectional": {
+            "label": "Číst režim HVAC z PLC",
+            "description": "Také čte preset_mode_address zpět a použije ji jako aktuální režim HVAC. Ve výchozím nastavení vypnuto kvůli zpětné kompatibilitě: některá PLC považují tuto adresu čistě za příkaz a mohou ji resetovat nebo upravit nezávisle na požadovaném režimu, což by při zpětném čtení mohlo vést k nesprávnému hlášení režimu."
+          },
+          "on_off_address": {
+            "label": "Adresa zap./vyp.",
+            "description": "Volitelná booleovská adresa PLC pro zapnutí/vypnutí tohoto termostatu, pro zařízení bez vlastního režimu VYPNUTO (např. topení/chlazení zapínané samostatným výstupem). Zapisuje Nepravda/0, když je cílový režim nastaven na VYPNUTO, a Pravda/1 pro jakýkoli jiný režim. Ponechte prázdné pro použití standardního chování VYPNUTO. Také zpětně čtena z PLC pro zobrazení skutečného stavu zap./vyp. (obousměrná komunikace)."
+          },
+          "preset_mode_off_value": {
+            "label": "Hodnota pro režim VYPNUTO",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na VYPNUTO (např. 0). Ponechte prázdné pro skrytí tohoto režimu ze seznamu režimů termostatu. Pokud je nakonfigurována on_off_address, je toto pro VYPNUTO ignorováno: režim zůstává dostupný a je přepínán prostřednictvím této adresy."
+          },
+          "preset_mode_heat_value": {
+            "label": "Hodnota pro režim TOPENÍ",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na TOPENÍ (např. 1). Ponechte prázdné pro skrytí tohoto režimu ze seznamu režimů termostatu."
+          },
+          "preset_mode_cool_value": {
+            "label": "Hodnota pro režim CHLAZENÍ",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na CHLAZENÍ (např. 2). Ponechte prázdné pro skrytí tohoto režimu ze seznamu režimů termostatu."
+          },
+          "preset_mode_heat_cool_value": {
+            "label": "Hodnota pro režim Auto (Topení/Chlazení)",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na Auto (Topení/Chlazení) (např. 3). Ponechte prázdné pro skrytí tohoto režimu ze seznamu režimů termostatu."
+          },
+          "preset_mode_auto_value": {
+            "label": "Hodnota pro režim Auto",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na AUTO (starší ekvivalent automatického přepínání topení/chlazení, podobný režimu Auto Topení/Chlazení). Ve výchozím nastavení zakázáno (ponecháno prázdné)."
+          },
+          "preset_mode_dry_value": {
+            "label": "Hodnota pro režim Sušení",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na SUŠENÍ (pouze odvlhčování, bez regulace teploty). Ve výchozím nastavení zakázáno (ponecháno prázdné)."
+          },
+          "preset_mode_fan_only_value": {
+            "label": "Hodnota pro režim Pouze ventilátor",
+            "description": "Hodnota PLC zapsaná při nastavení režimu na POUZE VENTILÁTOR (pouze cirkulace vzduchu, bez topení/chlazení). Ve výchozím nastavení zakázáno (ponecháno prázdné)."
+          },
+          "hvac_status_address": {
+            "label": "Adresa stavu HVAC",
+            "description": "Volitelná adresa PLC pro čtení skutečného stavu HVAC, porovnávaná s hodnotami nakonfigurovanými níže pro každý režim. Pokud není nastavena, stav se odvodí z porovnání teplot."
+          },
+          "hvac_status_off_values": {
+            "label": "Hodnota(y) stavu VYPNUTO",
+            "description": "Hodnota(y) PLC znamenající VYPNUTO, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 0 nebo 0,10). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_heating_values": {
+            "label": "Hodnota(y) stavu TOPENÍ",
+            "description": "Hodnota(y) PLC znamenající TOPENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 1 nebo 2,3). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_cooling_values": {
+            "label": "Hodnota(y) stavu CHLAZENÍ",
+            "description": "Hodnota(y) PLC znamenající CHLAZENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami (např. 2 nebo 4,5). Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_idle_values": {
+            "label": "Hodnota(y) stavu Nečinný",
+            "description": "Volitelná hodnota (hodnoty) PLC znamenající NEČINNÝ (ani topení, ani chlazení), čtená z adresy stavu HVAC. Jedno nebo více celých čísel oddělených čárkami (např. 9). Ponechte prázdné, aby byla jakákoli neshodná hodnota považována za NEČINNÝ (výchozí chování)."
+          },
+          "hvac_status_drying_values": {
+            "label": "Hodnota(y) stavu Sušení",
+            "description": "Volitelná hodnota(y) PLC znamenající SUŠENÍ, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_fan_values": {
+            "label": "Hodnota(y) stavu Ventilátor",
+            "description": "Volitelná hodnota(y) PLC znamenající VENTILÁTOR (pouze cirkulace vzduchu), čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_preheating_values": {
+            "label": "Hodnota(y) stavu Předehřev",
+            "description": "Volitelná hodnota(y) PLC znamenající PŘEDEHŘEV, čtená z adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude přiřazen)."
+          },
+          "hvac_status_defrosting_values": {
+            "label": "Hodnota(y) stavu Odmrazování",
+            "description": "Volitelná hodnota (hodnoty) PLC znamenající ODMRAZOVÁNÍ, čtená z hvac_status_address. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu (nikdy nebude nalezena shoda)."
+          },
+          "min_temp": {
+            "label": "Minimální teplota",
+            "description": "Minimální nastavitelná teplota (°C)."
+          },
+          "max_temp": {
+            "label": "Maximální teplota",
+            "description": "Maximální nastavitelná teplota (°C)."
+          },
+          "temp_step": {
+            "label": "Krok teploty",
+            "description": "Krok nastavení teploty (°C)."
+          }
+        }
+      },
+      "entity_sync": {
+        "label": "Synchronizace entity do PLC",
+        "fields": {
+          "source_entity": {
+            "label": "Zdrojová entita",
+            "description": "Entita v Home Assistant, jejíž hodnota se bude zapisovat do PLC."
+          },
+          "address": {
+            "label": "Adresa PLC",
+            "description": "Adresa v PLC, kam se má hodnota zapisovat (např. DB1,D0, DB2,W4)."
+          },
+          "invert_state": {
+            "label": "Invertovat stav",
+            "description": "Invertuje binární stavy před zápisem na BIT adresu PLC."
+          }
+        }
+      }
+    },
+    "control_behavior": {
       "label": "Chování ovládání",
-      "direct_title": "Přímé ovládání",
-      "direct_description": "Home Assistant zapisuje na příkazovou adresu a čte stavovou adresu. Stav a příkaz zůstávají nezávislé.",
-      "sync_title": "Synchronizovat příkaz se stavem",
-      "sync_description": "Při externí změně stavu PLC se hodnota ze stavové adresy zapíše také na příkazovou adresu.",
-      "pulse_title": "Pulzní ovládání",
-      "pulse_description": "Odešle časovaný pulz na příkazovou adresu namísto udržování hodnoty ON/OFF.",
-      "sync_requires_different": "Vyžaduje odlišnou stavovou a příkazovou adresu."
+      "sync_requires_different": "Vyžaduje odlišnou stavovou a příkazovou adresu.",
+      "options": {
+        "direct": {
+          "title": "Přímé ovládání",
+          "description": "Home Assistant zapisuje na příkazovou adresu a čte stavovou adresu. Stav a příkaz zůstávají nezávislé."
+        },
+        "sync": {
+          "title": "Synchronizovat příkaz se stavem",
+          "description": "Při externí změně stavu PLC se hodnota ze stavové adresy zapíše také na příkazovou adresu."
+        },
+        "pulse": {
+          "title": "Pulzní ovládání",
+          "description": "Odešle časovaný pulz na příkazovou adresu namísto udržování hodnoty ON/OFF."
+        }
+      }
     },
-    "types": {
-      "sensors": "Senzory",
-      "binary_sensors": "Binární senzory",
-      "switches": "Spínače",
-      "covers": "Rolety / žaluzie",
-      "lights": "Světla",
-      "buttons": "Tlačítka",
-      "numbers": "Čísla",
-      "texts": "Texty",
-      "climates": "Klimatizace",
-      "entity_sync": "Synchronizace entity do PLC"
-    },
-    "choices": {
-      "traditional": "Tradiční",
-      "position": "Poloha",
-      "direct": "Přímé výstupy",
-      "setpoint": "Požadovaná hodnota"
-    },
-    "batch": {
-      "select_entity": "Vybrat entitu",
-      "delete_selected": "Odstranit vybrané",
-      "delete_selected_confirm": "Odstranit {count} vybraných entit?"
-    },
-    "configuration_yaml": "Pokročilý YAML",
-    "configuration_yaml_title": "Pokročilá konfigurace YAML",
-    "configuration_yaml_warning": "Upravte všechny entity tohoto PLC najednou. Uložení nahradí celou konfiguraci entit. Nejprve exportujte zálohu.",
-    "import_yaml": "Importovat YAML",
-    "export_current_yaml": "Exportovat aktuální YAML",
-    "download_backup": "Stáhnout zálohu",
-    "configuration_load_error": "Konfiguraci YAML se nepodařilo načíst.",
-    "configuration_download_error": "Zálohu se nepodařilo stáhnout.",
-    "connection_details_title": "Podrobnosti připojení",
-    "connection_details_help": "Zobrazit podrobnosti připojení",
-    "connection_details_description": "Parametry připojení tohoto PLC pouze pro čtení.",
-    "close": "Zavřít",
-    "yes": "Ano",
-    "no": "Ne",
-    "connection_values": {
-      "rack_slot": "Rack a slot",
-      "tsap": "TSAP",
-      "pg": "PG (programovací zařízení)",
-      "op": "OP (operátorský panel)",
-      "s7basic": "S7 Basic"
+    "connection_details": {
+      "title": "Podrobnosti připojení",
+      "help": "Zobrazit podrobnosti připojení",
+      "description": "Parametry připojení tohoto PLC pouze pro čtení.",
+      "sections": {
+        "connection": "Připojení PLC",
+        "performance": "Komunikace a výkon",
+        "retry": "Opětovné připojení",
+        "other": "Další parametry"
+      },
+      "fields": {
+        "connection_type": {
+          "label": "Způsob připojení"
+        },
+        "pys7_connection_type": {
+          "label": "Profil připojení S7"
+        },
+        "rack": {
+          "label": "Rack"
+        },
+        "slot": {
+          "label": "Slot"
+        },
+        "local_tsap": {
+          "label": "Lokální TSAP"
+        },
+        "remote_tsap": {
+          "label": "Vzdálený TSAP"
+        },
+        "scan_interval": {
+          "label": "Interval čtení (s)"
+        },
+        "operation_timeout": {
+          "label": "Časový limit operace (s)"
+        },
+        "optimize_read": {
+          "label": "Optimalizovat dávkové čtení"
+        },
+        "enable_write_batching": {
+          "label": "Povolit dávkové zápisy"
+        },
+        "enable_metrics": {
+          "label": "Povolit metriky výkonu"
+        },
+        "max_retries": {
+          "label": "Počet pokusů"
+        },
+        "retry_backoff_initial": {
+          "label": "Počáteční prodleva při opakování (s)"
+        },
+        "retry_backoff_max": {
+          "label": "Maximální prodleva při opakování (s)"
+        }
+      },
+      "values": {
+        "yes": "Ano",
+        "no": "Ne",
+        "rack_slot": "Rack a slot",
+        "tsap": "TSAP",
+        "pg": "PG (programovací zařízení)",
+        "op": "OP (operátorský panel)",
+        "s7basic": "S7 Basic"
+      }
     },
     "availability": {
       "title": "Dostupnost připojení",
@@ -1236,30 +1732,68 @@
       "minute_short": "min",
       "current_downtime": "Aktuální doba odpojení"
     },
-    "connection_detail_sections": {
-      "connection": "Připojení PLC",
-      "performance": "Komunikace a výkon",
-      "retry": "Opětovné připojení",
-      "other": "Další parametry"
+    "actions": {
+      "add": "Přidat",
+      "edit": "Upravit",
+      "delete": "Odstranit",
+      "cancel": "Zrušit",
+      "save": "Uložit změny",
+      "close": "Zavřít",
+      "delete_confirm": "Odstranit tuto entitu? Tuto akci nelze vrátit zpět.",
+      "delete_title": "Odstranit entitu",
+      "select_entity": "Vybrat entitu",
+      "delete_selected": "Odstranit vybrané",
+      "delete_selected_confirm": "Odstranit {count} vybraných entit?"
     },
-    "connection_detail_labels": {
-      "connection_type": "Způsob připojení",
-      "pys7_connection_type": "Profil připojení S7"
+    "errors": {
+      "required_error": "Vyplňte všechna povinná pole.",
+      "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",
+      "climate_required_error": "Zadejte adresu cílové teploty.",
+      "brightness_state_required_error": "Zadejte adresu stavu jasu pro stmívatelné světlo.",
+      "brightness_scale_error": "Rozsah jasu musí být mezi 1 a 65535.",
+      "configuration_load_error": "Konfiguraci YAML se nepodařilo načíst.",
+      "configuration_download_error": "Zálohu se nepodařilo stáhnout.",
+      "invalid_address": "Neplatný formát adresy.",
+      "duplicate_entry": "Tato položka už existuje.",
+      "duplicate_addresses_in_import": "Import obsahuje duplicitní adresy ve stejném typu entity.",
+      "state_addresses_required": "Pokud je zapnuto „Použít stavové adresy“, jsou vyžadovány adresy pro otevřeno i zavřeno.",
+      "invalid_source_entity": "Je vyžadována zdrojová entita.",
+      "invalid_number": "Neplatná číselná hodnota.",
+      "invalid_mode_values": "Zadejte jedno nebo více celých čísel oddělených čárkami (např. 2,3).",
+      "invalid_range": "Minimální hodnota nesmí být větší než maximální.",
+      "no_items": "Nejsou nakonfigurovány žádné položky k úpravě.",
+      "cannot_connect": "Nelze se připojit k PLC s poskytnutým nastavením.",
+      "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení.",
+      "invalid_json": "Neplatný JSON.",
+      "invalid_selection": "Vyberte platný typ položky.",
+      "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
+      "scale_raw_requires_min_max": "Pokud je nastaven surový rozsah škálování, musí být zadány také minimální a maximální hodnota.",
+      "scale_requires_all_four": "Škálování vyžaduje všechny čtyři parametry: minimální hodnotu, maximální hodnotu, surový min a surový max.",
+      "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING.",
+      "sync_pulse_conflict": "Synchronizaci stavu a pulzní příkaz nelze aktivovat současně.",
+      "sync_same_address": "Synchronizace stavu vyžaduje adresu příkazu odlišnou od adresy stavu.",
+      "invalid_integer": "Zadejte celé číslo (desetinná čísla nejsou povolena).",
+      "duplicate_preset_value": "Stejnou hodnotu nelze přiřadit dvěma různým režimům HVAC.",
+      "duplicate_status_value": "Stejnou hodnotu nelze přiřadit dvěma různým stavům HVAC."
     },
-    "command_behavior": "Chování příkazu",
-    "command_behavior_help": "Jak Home Assistant ovládá výstup PLC",
-    "options_section": "Možnosti",
-    "options_section_help": "Nastavení vybraného chování a režim ovládání",
-    "brightness_state_required_error": "Zadejte adresu stavu jasu pro stmívatelné světlo.",
-    "brightness_scale_error": "Rozsah jasu musí být mezi 1 a 65535.",
-    "light_ui": {
-      "label": "Typ světla",
-      "section_title": "Typ světla",
-      "section_help": "Zvolte ovládání zap/vyp nebo jasu",
-      "on_off_title": "Zap/Vyp",
-      "on_off_description": "Pouze zapnutí a vypnutí",
-      "dimmable_title": "Stmívatelné",
-      "dimmable_description": "Zapnutí, vypnutí a ovládání jasu"
+    "editor": {
+      "configuration_yaml": "Pokročilý YAML",
+      "configuration_yaml_title": "Pokročilá konfigurace YAML",
+      "configuration_yaml_warning": "Upravte všechny entity tohoto PLC najednou. Uložení nahradí celou konfiguraci entit. Nejprve exportujte zálohu.",
+      "import_yaml": "Importovat YAML",
+      "export_current_yaml": "Exportovat aktuální YAML",
+      "download_backup": "Stáhnout zálohu",
+      "editor_mode": "Režim editoru",
+      "visual_editor": "Vizuální editor",
+      "guided": "Jednoduché a s průvodcem",
+      "advanced": "Pokročilé ovládání",
+      "yaml_warning": "Pokročilý režim umožňuje ručně upravit všechna pole. Pro jednu entitu použijte mapování YAML.",
+      "yaml_label": "Konfigurace YAML",
+      "new_entity": "Nová entita",
+      "edit_entity": "Upravit entitu",
+      "configure_new": "Nakonfigurujte novou entitu",
+      "update_configuration": "Aktualizujte konfiguraci",
+      "save_help": "Pole se ukládají přímo do konfigurace PLC."
     }
   }
 }

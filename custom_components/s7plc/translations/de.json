@@ -1102,117 +1102,613 @@
     }
   },
   "config_panel": {
-    "loading": "Konfiguration wird geladen…",
-    "no_plc": "Keine SPS konfiguriert",
-    "no_plc_help": "Fügen Sie zuerst die Siemens-S7-Integration unter Geräte & Dienste hinzu.",
-    "title": "S7-SPS-Konfiguration",
-    "subtitle": "Konfigurieren Sie Entitäten visuell oder verwenden Sie YAML in den erweiterten Optionen.",
-    "entities": "Entitäten",
-    "connected": "Verbunden",
-    "disconnected": "Getrennt",
-    "unknown": "Unbekannt",
-    "reload_help": "Änderungen werden durch automatisches Neuladen der Integration angewendet.",
-    "add": "Hinzufügen",
-    "empty": "Keine Entitäten",
-    "empty_help": "Erstellen Sie mit „Hinzufügen“ die erste Entität.",
-    "entity": "Entität",
-    "edit": "Bearbeiten",
-    "delete": "Löschen",
-    "enabled_help": "Diese Option aktivieren",
-    "required": "Erforderlich",
-    "no_area": "Kein Bereich",
-    "none_option": "Keine",
-    "address_example": "z. B. DB1,REAL0",
-    "address_example_bool": "z. B. DB1,X0.0",
-    "address_example_string": "z. B. DB1,S0.254",
-    "entity_example": "z. B. sensor.wohnzimmer_temperatur",
-    "name_example": "z. B. Wohnzimmer-Temperatur",
-    "address_help": "Siemens-S7-Format, zum Beispiel DB1,REAL0",
-    "address_help_bool": "Siemens-S7-Format, zum Beispiel DB1,X0.0",
-    "preset_value_help": "Leer lassen, um diesen Modus auszublenden.",
-    "status_values_help": "Eine oder mehrere durch Kommas getrennte Werte (z.B. 2,3). Leer lassen, um diesen Status zu überspringen.",
-    "plc_connection": "SPS-Verbindung",
-    "plc_connection_help": "Datenadressen und Quellen",
-    "behavior": "Verhalten",
-    "behavior_help": "Für diese Entität spezifische Optionen",
-    "ha_details": "Details in Home Assistant",
-    "ha_details_help": "Name, Bereich und Aktualisierungsintervall",
-    "new_entity": "Neue Entität",
-    "edit_entity": "Entität bearbeiten",
-    "configure_new": "Eine neue Entität konfigurieren",
-    "update_configuration": "Konfiguration aktualisieren",
-    "save_help": "Felder werden direkt in der SPS-Konfiguration gespeichert.",
-    "editor_mode": "Editormodus",
-    "visual_editor": "Visueller Editor",
-    "guided": "Einfach und geführt",
-    "advanced": "Erweiterte Steuerung",
-    "yaml_warning": "Im erweiterten Modus können Sie alle Felder manuell bearbeiten. Verwenden Sie ein YAML-Mapping für eine einzelne Entität.",
-    "yaml_label": "YAML-Konfiguration",
-    "cancel": "Abbrechen",
-    "save": "Änderungen speichern",
-    "required_error": "Füllen Sie alle erforderlichen Felder aus.",
-    "cover_required_error": "Geben Sie die erforderlichen Adressen für den gewählten Abdeckungstyp ein.",
-    "climate_required_error": "Geben Sie die Adresse der Zieltemperatur ein.",
-    "delete_confirm": "Diese Entität löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-    "delete_title": "Entität löschen",
-    "fields": {
-      "cover_mode": "Rollladentyp",
-      "control_mode": "Steuerungsmodus",
-      "light_mode": "Lichttyp"
+    "common": {
+      "loading": "Konfiguration wird geladen…",
+      "no_plc": "Keine SPS konfiguriert",
+      "no_plc_help": "Fügen Sie zuerst die Siemens-S7-Integration unter Geräte & Dienste hinzu.",
+      "title": "S7-SPS-Konfiguration",
+      "subtitle": "Konfigurieren Sie Entitäten visuell oder verwenden Sie YAML in den erweiterten Optionen.",
+      "entities": "Entitäten",
+      "connected": "Verbunden",
+      "disconnected": "Getrennt",
+      "unknown": "Unbekannt",
+      "reload_help": "Änderungen werden durch automatisches Neuladen der Integration angewendet.",
+      "empty": "Keine Entitäten",
+      "empty_help": "Erstellen Sie mit „Hinzufügen“ die erste Entität.",
+      "entity": "Entität",
+      "enabled_help": "Diese Option aktivieren",
+      "required": "Erforderlich",
+      "no_area": "Kein Bereich",
+      "none_option": "Keine",
+      "address_example": "z. B. DB1,REAL0",
+      "address_example_bool": "z. B. DB1,X0.0",
+      "address_example_string": "z. B. DB1,S0.254",
+      "entity_example": "z. B. sensor.wohnzimmer_temperatur",
+      "name_example": "z. B. Wohnzimmer-Temperatur",
+      "fields": {
+        "area": {
+          "label": "Bereich",
+          "description": "Home-Assistant-Bereich, dem diese Entität zugeordnet werden soll."
+        },
+        "name": {
+          "label": "Name",
+          "description": "Optionaler beschreibender Name für diese Entität."
+        },
+        "scan_interval": {
+          "label": "Scan-Intervall (s)",
+          "description": "Spezifische Abfragehäufigkeit für diese Entität in Sekunden. Verwenden Sie Dezimalwerte für Millisekundengenauigkeit. Wenn nicht angegeben, wird das Standard-Scan-Intervall der SPS verwendet."
+        }
+      }
     },
-    "control_ui": {
+    "sections": {
+      "plc_connection": {
+        "title": "SPS-Verbindung",
+        "description": "Datenadressen und Quellen"
+      },
+      "behavior": {
+        "title": "Verhalten",
+        "description": "Für diese Entität spezifische Optionen"
+      },
+      "ha_details": {
+        "title": "Details in Home Assistant",
+        "description": "Name, Bereich und Aktualisierungsintervall"
+      },
+      "command_behavior": {
+        "title": "Befehlsverhalten",
+        "description": "Wie Home Assistant den SPS-Ausgang steuert"
+      },
+      "options": {
+        "title": "Optionen",
+        "description": "Einstellungen für das gewählte Verhalten und den Steuerungsmodus"
+      }
+    },
+    "entity_types": {
+      "sensors": {
+        "label": "Sensoren",
+        "fields": {
+          "address": {
+            "label": "Adresse",
+            "description": "Zu lesende SPS-Adresse (z.B. DB1000,D0, MW10, DB1,W2)."
+          },
+          "device_class": {
+            "label": "Geräteklasse",
+            "description": "Home Assistant Geräteklasse(z.B. battery, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Maßeinheit",
+            "description": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden."
+          },
+          "value_multiplier": {
+            "label": "Wertmultiplikator",
+            "description": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten."
+          },
+          "min_value": {
+            "label": "Skalierung Min",
+            "description": "Minimaler angezeigter Wert nach der Skalierung."
+          },
+          "max_value": {
+            "label": "Skalierung Max",
+            "description": "Maximaler angezeigter Wert nach der Skalierung."
+          },
+          "scale_raw_min": {
+            "label": "Roh-Min-Skalierung",
+            "description": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren."
+          },
+          "scale_raw_max": {
+            "label": "Roh-Max-Skalierung",
+            "description": "Maximaler Rohwert (SPS) für die lineare Skalierung."
+          },
+          "state_class": {
+            "label": "Zustandsklasse",
+            "description": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch."
+          },
+          "real_precision": {
+            "label": "REAL-Dezimalstellen",
+            "description": "Anzahl der Dezimalstellen für REAL-Werte. Leer lassen, um den Standardwert (1) zu verwenden."
+          }
+        }
+      },
+      "binary_sensors": {
+        "label": "Binärsensoren",
+        "fields": {
+          "address": {
+            "label": "Adresse",
+            "description": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1)."
+          },
+          "device_class": {
+            "label": "Geräteklasse",
+            "description": "Home Assistant Geräteklasse (z.B. door, window, power)."
+          },
+          "invert_state": {
+            "label": "Zustand invertieren",
+            "description": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed)."
+          }
+        }
+      },
+      "switches": {
+        "label": "Schalter",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "state_address": {
+            "label": "Zustandsvariable",
+            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0)."
+          },
+          "command_address": {
+            "label": "Befehlsvariable",
+            "description": "SPS-Adresse zum Schreiben von Befehlen (optional). Wenn es weggelassen wird, wird nur der Zustand gelesen."
+          },
+          "pulse_duration": {
+            "label": "Impulsdauer (s)",
+            "description": "Dauer des Impulses in Sekunden. Minimum: 0,1s, Maximum: 60s."
+          }
+        }
+      },
+      "covers": {
+        "label": "Jalousien/Raffstores",
+        "fields": {
+          "cover_mode": {
+            "label": "Rollladentyp",
+            "description": "Rollladentyp",
+            "options": {
+              "traditional": "Traditionell",
+              "position": "Position"
+            }
+          },
+          "open_command_address": {
+            "label": "Befehlsvariable öffnen",
+            "description": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0)."
+          },
+          "close_command_address": {
+            "label": "Befehlsvariable schließen",
+            "description": "SPS-Adresse zum Auslösen des Schließens (z. B. Q0.1, DB1,X0.1)."
+          },
+          "cover_status_address": {
+            "label": "Statusadresse Abdeckung",
+            "description": "Optionale SPS-Adresse, die die Bewegung in Echtzeit meldet (öffnet/schließt/gestoppt), abgeglichen mit den unten konfigurierten Werten. Hat Vorrang vor den booleschen Statusadressen für Öffnen/Schließen/Gestoppt oben, wenn konfiguriert."
+          },
+          "cover_status_open_values": {
+            "label": "Statuswert(e) Offen",
+            "description": "SPS-Wert(e) für 'Abdeckung vollständig offen', gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 1 oder 2,3). Bei Übereinstimmung wird der geschlossene Zustand dadurch bestimmt, mit Vorrang vor dem auf Endschaltern basierenden Zustand. Leer lassen, um diesen Status zu überspringen."
+          },
+          "cover_status_closed_values": {
+            "label": "Statuswert(e) Geschlossen",
+            "description": "SPS-Wert(e) für 'Abdeckung vollständig geschlossen', gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Bei Übereinstimmung wird der geschlossene Zustand dadurch bestimmt, mit Vorrang vor dem auf Endschaltern basierenden Zustand. Leer lassen, um diesen Status zu überspringen."
+          },
+          "cover_status_opening_values": {
+            "label": "Statuswert(e) Öffnen",
+            "description": "SPS-Wert(e) für 'Abdeckung öffnet sich', gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 1 oder 2,3). Leer lassen, um diesen Status zu überspringen."
+          },
+          "cover_status_closing_values": {
+            "label": "Statuswert(e) Schließen",
+            "description": "SPS-Wert(e) für 'Abdeckung schließt sich', gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen."
+          },
+          "cover_status_stopped_values": {
+            "label": "Statuswert(e) Gestoppt",
+            "description": "SPS-Wert(e) für 'Abdeckung gestoppt' (keine Bewegung), gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen."
+          },
+          "opening_state_address": {
+            "label": "Zustandsvariable geöffnet",
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist (optional)."
+          },
+          "closing_state_address": {
+            "label": "Zustandsvariable geschlossen",
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist (optional)."
+          },
+          "cover_opening_address": {
+            "label": "Statusadresse Öffnen",
+            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+          },
+          "cover_closing_address": {
+            "label": "Statusadresse Schließen",
+            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade schließt. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+          },
+          "cover_stopped_address": {
+            "label": "Statusadresse Gestoppt",
+            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung gestoppt ist (keine Bewegung)."
+          },
+          "position_state_address": {
+            "label": "Positionszustandsadresse",
+            "description": "SPS-Adresse zum Lesen des aktuellen Positionswerts (0-100, z.B. DB1,B0, DB2,W4)."
+          },
+          "position_command_address": {
+            "label": "Positionsbefehlsadresse",
+            "description": "SPS-Adresse zum Schreiben von Positionsbefehlen (0-100). Wenn weggelassen, wird die Zustandsadresse verwendet."
+          },
+          "stop_command_address": {
+            "label": "Stopp-Befehlsadresse",
+            "description": "SPS-Bool-Adresse, die beim Drücken von Stopp gepulst wird. Wenn weggelassen, wird die aktuelle Position zurückgeschrieben."
+          },
+          "stop_pulse_duration": {
+            "label": "Stopp-Pulsdauer (s)",
+            "description": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms)."
+          },
+          "tilt_state_address": {
+            "label": "Neigungs-Zustandsadresse",
+            "description": "Optionale SPS-Adresse zum Lesen der aktuellen Neigungsposition (0-100). Aktiviert die Neigungssteuerung (öffnen/schließen/setzen/stoppen) für diese Abdeckung."
+          },
+          "tilt_command_address": {
+            "label": "Neigungs-Befehlsadresse",
+            "description": "SPS-Adresse zum Schreiben von Neigungspositionsbefehlen (optional). Falls weggelassen, wird die Neigungs-Zustandsadresse verwendet."
+          },
+          "invert_tilt": {
+            "label": "Neigung invertieren",
+            "description": "Kehrt die Neigungsskala um (0 wird 100 und umgekehrt), für Aktoren mit umgekehrter Verdrahtung."
+          },
+          "operate_time": {
+            "label": "Laufzeit (s)",
+            "description": "Zeit (s), um den Befehl aktiv zu halten, bevor die Ausgänge zurückgesetzt und der Bewegungszustand gelöscht wird."
+          },
+          "use_state_topics": {
+            "label": "Zustandvariable für Position verwenden",
+            "description": "Aktivieren Sie diese Option, um Adressen zur Bestimmung der Position zu verwenden. Wenn deaktiviert, wird die Position aus der Laufzeit abgeleitet."
+          },
+          "invert_position": {
+            "label": "Position umkehren (0=offen, 100=geschlossen)",
+            "description": "Aktivieren, wenn Ihre SPS 0 für vollständig geöffnet und 100 für vollständig geschlossen verwendet (kehrt die normale Logik um)."
+          },
+          "device_class": {
+            "label": "Geräteklasse",
+            "description": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage)."
+          }
+        }
+      },
+      "lights": {
+        "label": "Lichter",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "light_mode": {
+            "label": "Lichttyp",
+            "description": "Lichttyp"
+          },
+          "state_address": {
+            "label": "Statusadresse (ein/aus)",
+            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0)."
+          },
+          "command_address": {
+            "label": "Befehlsadresse (ein/aus)",
+            "description": "Boolesche PLC-Adresse zum Schreiben von Ein/Aus-Befehlen (optional). Wenn leer, wird die Statusadresse verwendet."
+          },
+          "brightness_state_address": {
+            "label": "Helligkeits-Statusadresse",
+            "description": "Numerische PLC-Adresse zum Lesen der Helligkeit (z.B. DB1,B2). Leer lassen für nur Ein/Aus."
+          },
+          "brightness_command_address": {
+            "label": "Helligkeits-Befehlsadresse",
+            "description": "Numerische PLC-Adresse zum Schreiben von Helligkeitsbefehlen (optional). Wenn leer, wird die Helligkeits-Statusadresse verwendet."
+          },
+          "pulse_duration": {
+            "label": "Impulsdauer (s)",
+            "description": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s."
+          },
+          "brightness_scale": {
+            "label": "Helligkeitsskala (Maximalwert)",
+            "description": "Maximalwert, den der PLC für volle Helligkeit verwendet (z.B. 255 für BYTE, 100 für Prozent). Erforderlich wenn Helligkeitsadressen gesetzt sind."
+          }
+        },
+        "mode": {
+          "title": "Lichttyp",
+          "description": "Ein/Aus- oder Helligkeitssteuerung wählen",
+          "options": {
+            "on_off": {
+              "title": "Ein/Aus",
+              "description": "Nur ein- und ausschalten"
+            },
+            "dimmable": {
+              "title": "Dimmbar",
+              "description": "Ein, aus und Helligkeitsregelung"
+            }
+          }
+        }
+      },
+      "buttons": {
+        "label": "Tasten",
+        "fields": {
+          "address": {
+            "label": "Adresse",
+            "description": "Zu pulsierende SPS-Bool-Adresse (z.B. Q0.0, DB1,X0.1)."
+          },
+          "button_pulse": {
+            "label": "Pulsdauer",
+            "description": "Dauer des Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0.1 für 100ms)."
+          }
+        }
+      },
+      "numbers": {
+        "label": "Nummern",
+        "fields": {
+          "address": {
+            "label": "Zustandsvariable",
+            "description": "SPS-Adresse zum Lesen des numerischen Werts (z.B. DB1,D0, DB2,W4)."
+          },
+          "command_address": {
+            "label": "Befehlsvariable",
+            "description": "SPS-Adresse zum Schreiben von Werten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet."
+          },
+          "device_class": {
+            "label": "Geräteklasse",
+            "description": "Geräteklasse für die Nummernentität (z.B. temperature, voltage, power)."
+          },
+          "unit_of_measurement": {
+            "label": "Maßeinheit",
+            "description": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leerlassen, falls nicht benötigt."
+          },
+          "min_value": {
+            "label": "Mindestwert",
+            "description": "Untergrenze für den in Home Assistant angezeigten Wert (optional)."
+          },
+          "max_value": {
+            "label": "Maximalwert",
+            "description": "Obergrenze für den in Home Assistant angezeigten Wert (optional)."
+          },
+          "step": {
+            "label": "Schritt",
+            "description": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional)."
+          },
+          "value_multiplier": {
+            "label": "Wertmultiplikator",
+            "description": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten."
+          },
+          "scale_raw_min": {
+            "label": "Roh-Min-Skalierung",
+            "description": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren."
+          },
+          "scale_raw_max": {
+            "label": "Roh-Max-Skalierung",
+            "description": "Maximaler Rohwert (SPS) für die lineare Skalierung."
+          },
+          "real_precision": {
+            "label": "REAL-Dezimalstellen",
+            "description": "Anzahl der Dezimalstellen für REAL-Werte. Leer lassen, um den Standardwert (1) zu verwenden."
+          }
+        }
+      },
+      "texts": {
+        "label": "Texte",
+        "fields": {
+          "address": {
+            "label": "Zustandsvariable",
+            "description": "Zu lesende SPS STRING- oder WSTRING-Adresse (z.B. DB1,S0.254, DB2,WS0.128)."
+          },
+          "command_address": {
+            "label": "Befehlsvariable",
+            "description": "SPS-Adresse zum Schreiben von Textwerten (optional). Wenn weggelassen, wird die Zustandsvariable verwendet."
+          },
+          "pattern": {
+            "label": "Muster (Regex)",
+            "description": "Regex-Muster zur Validierung der Texteingabe (optional)."
+          }
+        }
+      },
+      "climates": {
+        "label": "Klima",
+        "fields": {
+          "control_mode": {
+            "label": "Steuerungsmodus",
+            "description": "Steuerungsmodus",
+            "options": {
+              "direct": "Direkte Ausgänge",
+              "setpoint": "Sollwert"
+            }
+          },
+          "current_temperature_address": {
+            "label": "Aktuelle Temperaturadresse",
+            "description": "SPS-Adresse zum Lesen der aktuellen Temperatur (z.B. DB1,REAL0, DB2,INT4)."
+          },
+          "target_temperature_address": {
+            "label": "Zieltemperaturadresse",
+            "description": "SPS-Adresse zum Schreiben und Lesen des Zieltemperatur-Sollwerts (z.B. DB1,REAL4, DB2,INT8)."
+          },
+          "heating_output_address": {
+            "label": "Heizungsausgangsadresse",
+            "description": "SPS-Adresse zur Steuerung des Heizungsausgangs (z.B. Q0.0, DB1,X0.0). Optional, wenn nur Kühlung verwendet wird."
+          },
+          "cooling_output_address": {
+            "label": "Kühlungsausgangsadresse",
+            "description": "SPS-Adresse zur Steuerung des Kühlungsausgangs (z.B. Q0.1, DB1,X0.1). Optional, wenn nur Heizung verwendet wird."
+          },
+          "heating_action_address": {
+            "label": "Heizungsaktionsadresse",
+            "description": "Optionale SPS-Adresse zum Lesen des Heizungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet."
+          },
+          "cooling_action_address": {
+            "label": "Kühlungsaktionsadresse",
+            "description": "Optionale SPS-Adresse zum Lesen des Kühlungsaktionsstatus. Falls nicht angegeben, wird die Aktion aus dem Modus abgeleitet."
+          },
+          "preset_mode_address": {
+            "label": "HVAC-Modus-Adresse",
+            "description": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, wobei der unten für jeden Modus konfigurierte Wert verwendet wird. Nützlich, wenn die SPS die Klimasteuerung aktivieren/deaktivieren muss. Standardmäßig nur zum Schreiben; aktivieren Sie preset_mode_bidirectional, um sie auch zurückzulesen."
+          },
+          "preset_mode_bidirectional": {
+            "label": "HVAC-Modus aus SPS lesen",
+            "description": "Liest preset_mode_address auch zurück und verwendet sie als aktuellen HVAC-Modus. Standardmäßig deaktiviert, aus Gründen der Abwärtskompatibilität: Einige SPS behandeln diese Adresse ausschließlich als Befehl und können sie unabhängig vom angeforderten Modus zurücksetzen oder ändern, was beim Zurücklesen zu einer falschen Modusanzeige führen könnte."
+          },
+          "on_off_address": {
+            "label": "Ein/Aus-Adresse",
+            "description": "Optionale boolesche SPS-Adresse zum Ein-/Ausschalten dieses Thermostats, für Geräte ohne eigenen AUS-Modus (z.B. eine Heizung/Kühlung, die über einen separaten Ausgang ein-/ausgeschaltet wird). Schreibt Falsch/0, wenn der Zielmodus auf AUS gesetzt wird, und Wahr/1 für jeden anderen Modus. Leer lassen, um stattdessen das Standard-AUS-Verhalten zu verwenden. Wird auch von der SPS zurückgelesen, um den tatsächlichen Ein-/Aus-Zustand widerzuspiegeln (bidirektional)."
+          },
+          "preset_mode_off_value": {
+            "label": "Wert für Modus AUS",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUS gesetzt wird (z.B. 0). Leer lassen, um diesen Modus aus der Modusliste des Thermostats auszublenden. Wenn on_off_address konfiguriert ist, wird dies für AUS ignoriert: der Modus bleibt verfügbar und wird stattdessen über diese Adresse geschaltet."
+          },
+          "preset_mode_heat_value": {
+            "label": "Wert für Modus HEIZEN",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf HEIZEN gesetzt wird (z.B. 1). Leer lassen, um diesen Modus aus der Modusliste des Thermostats auszublenden."
+          },
+          "preset_mode_cool_value": {
+            "label": "Wert für Modus KÜHLEN",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf KÜHLEN gesetzt wird (z.B. 2). Leer lassen, um diesen Modus aus der Modusliste des Thermostats auszublenden."
+          },
+          "preset_mode_heat_cool_value": {
+            "label": "Wert für Modus Auto (Heizen/Kühlen)",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf Auto (Heizen/Kühlen) gesetzt wird (z.B. 3). Leer lassen, um diesen Modus aus der Modusliste des Thermostats auszublenden."
+          },
+          "preset_mode_auto_value": {
+            "label": "Wert für Modus Auto",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf AUTO gesetzt wird (älteres Äquivalent zur automatischen Heiz-/Kühlumschaltung, ähnlich wie Heizen/Kühlen). Standardmäßig deaktiviert (leer gelassen)."
+          },
+          "preset_mode_dry_value": {
+            "label": "Wert für Modus Trocknen",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf TROCKNEN gesetzt wird (nur Entfeuchtung, keine Temperaturregelung). Standardmäßig deaktiviert (leer gelassen)."
+          },
+          "preset_mode_fan_only_value": {
+            "label": "Wert für Modus Nur Lüfter",
+            "description": "SPS-Wert, der geschrieben wird, wenn der Modus auf NUR LÜFTER gesetzt wird (nur Luftumwälzung, kein Heizen/Kühlen). Standardmäßig deaktiviert (leer gelassen)."
+          },
+          "hvac_status_address": {
+            "label": "HVAC-Statusadresse",
+            "description": "Optionale SPS-Adresse zum Lesen des tatsächlichen HVAC-Status, abgeglichen mit den unten für jeden Modus konfigurierten Werten. Wenn nicht gesetzt, wird der Status aus dem Temperaturvergleich abgeleitet."
+          },
+          "hvac_status_off_values": {
+            "label": "Statuswert(e) für AUS",
+            "description": "SPS-Wert(e) für AUS, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 0 oder 0,10). Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_heating_values": {
+            "label": "Statuswert(e) für HEIZEN",
+            "description": "SPS-Wert(e) für HEIZEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 1 oder 2,3). Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_cooling_values": {
+            "label": "Statuswert(e) für KÜHLEN",
+            "description": "SPS-Wert(e) für KÜHLEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 2 oder 4,5). Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_idle_values": {
+            "label": "Statuswert(e) für Leerlauf (IDLE)",
+            "description": "Optionale(r) SPS-Wert(e) für LEERLAUF (weder Heizen noch Kühlen), gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt (z.B. 9). Leer lassen, damit jeder nicht zugeordnete Status als LEERLAUF behandelt wird (Standardverhalten). Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_drying_values": {
+            "label": "Statuswert(e) für Trocknen",
+            "description": "Optionale(r) SPS-Wert(e) für TROCKNEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_fan_values": {
+            "label": "Statuswert(e) für Lüfter",
+            "description": "Optionale(r) SPS-Wert(e) für LÜFTER (nur Luftumwälzung), gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_preheating_values": {
+            "label": "Statuswert(e) für Vorheizen",
+            "description": "Optionale(r) SPS-Wert(e) für VORHEIZEN, gelesen von der Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen (er wird nie zugeordnet)."
+          },
+          "hvac_status_defrosting_values": {
+            "label": "Statuswert(e) für Abtauen",
+            "description": "Optionale(r) SPS-Wert(e) für ABTAUEN, gelesen von hvac_status_address. Eine oder mehrere durch Kommas getrennte Ganzzahlen. Leer lassen, um diesen Status zu überspringen (er wird nie übereinstimmen)."
+          },
+          "min_temp": {
+            "label": "Mindesttemperatur",
+            "description": "Minimal einstellbare Temperatur (°C)."
+          },
+          "max_temp": {
+            "label": "Maximaltemperatur",
+            "description": "Maximal einstellbare Temperatur (°C)."
+          },
+          "temp_step": {
+            "label": "Temperaturschritt",
+            "description": "Temperaturanpassungsschritt (°C)."
+          }
+        }
+      },
+      "entity_sync": {
+        "label": "Entität zu SPS-Synchronisierungen",
+        "fields": {
+          "source_entity": {
+            "label": "Quellentität",
+            "description": "Home Assistant-Entität, deren Wert in die SPS geschrieben wird."
+          },
+          "address": {
+            "label": "SPS-Adresse",
+            "description": "SPS-Adresse zum Schreiben des Werts (z.B. DB1,D0, DB2,W4)."
+          },
+          "invert_state": {
+            "label": "Zustand invertieren",
+            "description": "Invertiert binäre Zustände vor dem Schreiben an eine SPS-BIT-Adresse."
+          }
+        }
+      }
+    },
+    "control_behavior": {
       "label": "Steuerverhalten",
-      "direct_title": "Direkte Steuerung",
-      "direct_description": "Home Assistant schreibt auf die Befehlsadresse und liest die Statusadresse. Status und Befehl bleiben unabhängig.",
-      "sync_title": "Befehl mit Status synchronisieren",
-      "sync_description": "Wenn sich der SPS-Status extern ändert, wird der von der Statusadresse gelesene Wert auch auf die Befehlsadresse geschrieben.",
-      "pulse_title": "Impulssteuerung",
-      "pulse_description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten.",
-      "sync_requires_different": "Erfordert unterschiedliche Status- und Befehlsadressen."
+      "sync_requires_different": "Erfordert unterschiedliche Status- und Befehlsadressen.",
+      "options": {
+        "direct": {
+          "title": "Direkte Steuerung",
+          "description": "Home Assistant schreibt auf die Befehlsadresse und liest die Statusadresse. Status und Befehl bleiben unabhängig."
+        },
+        "sync": {
+          "title": "Befehl mit Status synchronisieren",
+          "description": "Wenn sich der SPS-Status extern ändert, wird der von der Statusadresse gelesene Wert auch auf die Befehlsadresse geschrieben."
+        },
+        "pulse": {
+          "title": "Impulssteuerung",
+          "description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten."
+        }
+      }
     },
-    "types": {
-      "sensors": "Sensoren",
-      "binary_sensors": "Binärsensoren",
-      "switches": "Schalter",
-      "covers": "Jalousien/Raffstores",
-      "lights": "Lichter",
-      "buttons": "Tasten",
-      "numbers": "Nummern",
-      "texts": "Texte",
-      "climates": "Klima",
-      "entity_sync": "Entität zu SPS-Synchronisierungen"
-    },
-    "choices": {
-      "traditional": "Traditionell",
-      "position": "Position",
-      "direct": "Direkte Ausgänge",
-      "setpoint": "Sollwert"
-    },
-    "batch": {
-      "select_entity": "Entität auswählen",
-      "delete_selected": "Ausgewählte löschen",
-      "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?"
-    },
-    "configuration_yaml": "Erweitertes YAML",
-    "configuration_yaml_title": "Erweiterte YAML-Konfiguration",
-    "configuration_yaml_warning": "Bearbeiten Sie alle Entitäten dieser SPS gleichzeitig. Beim Speichern wird die gesamte Entitätskonfiguration ersetzt. Exportieren Sie zuerst eine Sicherung.",
-    "import_yaml": "YAML importieren",
-    "export_current_yaml": "Aktuelles YAML exportieren",
-    "download_backup": "Sicherung herunterladen",
-    "configuration_load_error": "Die YAML-Konfiguration konnte nicht geladen werden.",
-    "configuration_download_error": "Die Sicherung konnte nicht heruntergeladen werden.",
-    "connection_details_title": "Verbindungsdetails",
-    "connection_details_help": "Verbindungsdetails anzeigen",
-    "connection_details_description": "Schreibgeschützte Verbindungsparameter für diese SPS.",
-    "close": "Schließen",
-    "yes": "Ja",
-    "no": "Nein",
-    "connection_values": {
-      "rack_slot": "Rack und Steckplatz",
-      "tsap": "TSAP",
-      "pg": "PG (Programmiergerät)",
-      "op": "OP (Bediengerät)",
-      "s7basic": "S7 Basic"
+    "connection_details": {
+      "title": "Verbindungsdetails",
+      "help": "Verbindungsdetails anzeigen",
+      "description": "Schreibgeschützte Verbindungsparameter für diese SPS.",
+      "sections": {
+        "connection": "SPS-Verbindung",
+        "performance": "Kommunikation und Leistung",
+        "retry": "Wiederverbindung",
+        "other": "Weitere Parameter"
+      },
+      "fields": {
+        "connection_type": {
+          "label": "Verbindungsmethode"
+        },
+        "pys7_connection_type": {
+          "label": "S7-Verbindungsprofil"
+        },
+        "rack": {
+          "label": "Rack"
+        },
+        "slot": {
+          "label": "Slot"
+        },
+        "local_tsap": {
+          "label": "Lokales TSAP"
+        },
+        "remote_tsap": {
+          "label": "Remote TSAP"
+        },
+        "scan_interval": {
+          "label": "Scan-Intervall (s)"
+        },
+        "operation_timeout": {
+          "label": "Timeout (s)"
+        },
+        "optimize_read": {
+          "label": "Lesevorgänge optimieren"
+        },
+        "enable_write_batching": {
+          "label": "Schreibvorgänge bündeln aktivieren"
+        },
+        "enable_metrics": {
+          "label": "Leistungsmetriken aktivieren"
+        },
+        "max_retries": {
+          "label": "Wiederholungsversuche"
+        },
+        "retry_backoff_initial": {
+          "label": "Wiederholungs-Backoff Start (s)"
+        },
+        "retry_backoff_max": {
+          "label": "Wiederholungs-Backoff Max (s)"
+        }
+      },
+      "values": {
+        "yes": "Ja",
+        "no": "Nein",
+        "rack_slot": "Rack und Steckplatz",
+        "tsap": "TSAP",
+        "pg": "PG (Programmiergerät)",
+        "op": "OP (Bediengerät)",
+        "s7basic": "S7 Basic"
+      }
     },
     "availability": {
       "title": "Verbindungsverfügbarkeit",
@@ -1236,30 +1732,68 @@
       "minute_short": "Min.",
       "current_downtime": "Aktuelle Ausfallzeit"
     },
-    "connection_detail_sections": {
-      "connection": "SPS-Verbindung",
-      "performance": "Kommunikation und Leistung",
-      "retry": "Wiederverbindung",
-      "other": "Weitere Parameter"
+    "actions": {
+      "add": "Hinzufügen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "cancel": "Abbrechen",
+      "save": "Änderungen speichern",
+      "close": "Schließen",
+      "delete_confirm": "Diese Entität löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "delete_title": "Entität löschen",
+      "select_entity": "Entität auswählen",
+      "delete_selected": "Ausgewählte löschen",
+      "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?"
     },
-    "connection_detail_labels": {
-      "connection_type": "Verbindungsmethode",
-      "pys7_connection_type": "S7-Verbindungsprofil"
+    "errors": {
+      "required_error": "Füllen Sie alle erforderlichen Felder aus.",
+      "cover_required_error": "Geben Sie die erforderlichen Adressen für den gewählten Abdeckungstyp ein.",
+      "climate_required_error": "Geben Sie die Adresse der Zieltemperatur ein.",
+      "brightness_state_required_error": "Geben Sie die Helligkeits-Statusadresse für eine dimmbare Leuchte ein.",
+      "brightness_scale_error": "Die Helligkeitsskala muss zwischen 1 und 65535 liegen.",
+      "configuration_load_error": "Die YAML-Konfiguration konnte nicht geladen werden.",
+      "configuration_download_error": "Die Sicherung konnte nicht heruntergeladen werden.",
+      "invalid_address": "Ungültiges Adressformat.",
+      "duplicate_entry": "Dieses Element existiert bereits.",
+      "duplicate_addresses_in_import": "Der Import enthält doppelte Adressen innerhalb desselben Entitätstyps.",
+      "state_addresses_required": "Wenn 'Zustandsthemen verwenden' aktiviert ist, sind sowohl geöffnete als auch geschlossene Zustandsvariablen erforderlich.",
+      "invalid_source_entity": "Quellentität ist erforderlich.",
+      "invalid_number": "Ungültiger numerischer Wert.",
+      "invalid_mode_values": "Geben Sie eine oder mehrere ganze Zahlen durch Kommas getrennt ein (z.B. 2,3).",
+      "invalid_range": "Der Mindestwert darf nicht größer als der Maximalwert sein.",
+      "no_items": "Es sind keine konfigurierten Elemente zum Bearbeiten vorhanden.",
+      "cannot_connect": "Verbindung zur SPS mit den angegebenen Einstellungen nicht möglich.",
+      "already_configured": "Ein anderer S7-SPS-Eintrag verwendet bereits diese Verbindungsparameter.",
+      "invalid_json": "Ungültige JSON-Nutzlast.",
+      "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
+      "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
+      "scale_raw_requires_min_max": "Wenn Skalierungs-Rohmin/-max gesetzt sind, müssen auch Min-Wert und Max-Wert angegeben werden.",
+      "scale_requires_all_four": "Die Skalierung erfordert alle vier Parameter: Minimalwert, Maximalwert, Roh-Min und Roh-Max.",
+      "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen.",
+      "sync_pulse_conflict": "Statussynchronisierung und Impulsbefehl können nicht gleichzeitig aktiviert werden.",
+      "sync_same_address": "Die Statussynchronisierung erfordert eine Befehlsadresse, die sich von der Statusadresse unterscheidet.",
+      "invalid_integer": "Geben Sie eine ganze Zahl ein (Dezimalzahlen sind nicht zulässig).",
+      "duplicate_preset_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Modi zugewiesen werden.",
+      "duplicate_status_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Status zugewiesen werden."
     },
-    "command_behavior": "Befehlsverhalten",
-    "command_behavior_help": "Wie Home Assistant den SPS-Ausgang steuert",
-    "options_section": "Optionen",
-    "options_section_help": "Einstellungen für das gewählte Verhalten und den Steuerungsmodus",
-    "brightness_state_required_error": "Geben Sie die Helligkeits-Statusadresse für eine dimmbare Leuchte ein.",
-    "brightness_scale_error": "Die Helligkeitsskala muss zwischen 1 und 65535 liegen.",
-    "light_ui": {
-      "label": "Lichttyp",
-      "section_title": "Lichttyp",
-      "section_help": "Ein/Aus- oder Helligkeitssteuerung wählen",
-      "on_off_title": "Ein/Aus",
-      "on_off_description": "Nur ein- und ausschalten",
-      "dimmable_title": "Dimmbar",
-      "dimmable_description": "Ein, aus und Helligkeitsregelung"
+    "editor": {
+      "configuration_yaml": "Erweitertes YAML",
+      "configuration_yaml_title": "Erweiterte YAML-Konfiguration",
+      "configuration_yaml_warning": "Bearbeiten Sie alle Entitäten dieser SPS gleichzeitig. Beim Speichern wird die gesamte Entitätskonfiguration ersetzt. Exportieren Sie zuerst eine Sicherung.",
+      "import_yaml": "YAML importieren",
+      "export_current_yaml": "Aktuelles YAML exportieren",
+      "download_backup": "Sicherung herunterladen",
+      "editor_mode": "Editormodus",
+      "visual_editor": "Visueller Editor",
+      "guided": "Einfach und geführt",
+      "advanced": "Erweiterte Steuerung",
+      "yaml_warning": "Im erweiterten Modus können Sie alle Felder manuell bearbeiten. Verwenden Sie ein YAML-Mapping für eine einzelne Entität.",
+      "yaml_label": "YAML-Konfiguration",
+      "new_entity": "Neue Entität",
+      "edit_entity": "Entität bearbeiten",
+      "configure_new": "Eine neue Entität konfigurieren",
+      "update_configuration": "Konfiguration aktualisieren",
+      "save_help": "Felder werden direkt in der SPS-Konfiguration gespeichert."
     }
   }
 }

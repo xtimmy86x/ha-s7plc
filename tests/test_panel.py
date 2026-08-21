@@ -31,9 +31,7 @@ def test_panel_asset_url_uses_manifest_version() -> None:
 
     assert _versioned_asset_url(
         "/s7plc_static/s7plc-panel.js", manifest["version"]
-    ) == (
-        f"/s7plc_static/s7plc-panel.js?v={manifest['version']}"
-    )
+    ) == (f"/s7plc_static/s7plc-panel.js?v={manifest['version']}")
 
 
 def test_panel_displays_integration_version() -> None:
@@ -47,9 +45,7 @@ def test_connection_badge_opens_read_only_connection_details() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert 'type="button" class="connection-badge' in source
-    assert (
-        ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
-    )
+    assert ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
     assert "connectionDetailGroups(data)" in source
     assert "Object.entries(entry.data)" not in source
     assert 'class="connection-detail"' in source
@@ -158,9 +154,7 @@ console.log(JSON.stringify({{
             ],
         }
     ]
-    assert result["incomplete"] == [
-        {"key": "other", "fields": ["new_setting"]}
-    ]
+    assert result["incomplete"] == [{"key": "other", "fields": ["new_setting"]}]
     assert result["empty"] == []
 
 
@@ -296,7 +290,7 @@ def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
 
     assert 'icon="mdi:information-outline"' in source
     assert 'class="connection-badge-details"' in source
-    assert "this.t('connection_details_title')" in source
+    assert "this.t('connection_details.title')" in source
     assert "@media(max-width:480px){.connection-badge-details{display:none}}" in source
     assert ".connection-badge:focus-visible" in source
     assert ".connection-badge:active" in source
@@ -314,7 +308,7 @@ global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
 {source}
 const panel=new S7PlcConfigurationPanel();
-panel.t=key=>({{connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",connection_details_help:"Show connection details"}}[key]);
+panel.t=key=>({{"common.connected":"Connected","common.disconnected":"Disconnected","common.unknown":"Unknown","connection_details.help":"Show connection details"}}[key]);
 panel._loaded=true;panel.entryId="plc";panel.querySelector=()=>badge;
 const labels=[],badge={{classList:{{toggle() {{}}}},setAttribute:(name,value)=>{{if(name==="aria-label")labels.push(value);}}}};
 const statuses=[true,false,null];let index=0;
@@ -399,28 +393,26 @@ def test_connection_diagnostics_translations_are_complete() -> None:
 
     for path in paths:
         panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
-        assert panel["connection_details_title"]
-        assert panel["unknown"]
+        assert panel["connection_details"]["title"]
+        assert panel["common"]["unknown"]
         assert panel["availability"]["current_downtime"]
-        assert list(panel["connection_detail_sections"]) == [
+        assert list(panel["connection_details"]["sections"]) == [
             "connection",
             "performance",
             "retry",
             "other",
         ]
-        assert panel["connection_detail_labels"]["connection_type"]
-        assert panel["connection_detail_labels"]["pys7_connection_type"]
+        assert panel["connection_details"]["fields"]["connection_type"]["label"]
+        assert panel["connection_details"]["fields"]["pys7_connection_type"]["label"]
 
     italian = json.loads(
-        Path("custom_components/s7plc/translations/it.json").read_text(
-            encoding="utf-8"
-        )
+        Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
     )["config_panel"]
-    assert italian["connection_detail_labels"] == {
-        "connection_type": "Metodo di collegamento",
-        "pys7_connection_type": "Profilo della connessione S7",
-    }
-    assert italian["connection_detail_sections"]["other"] == "Altri parametri"
+    assert (
+        italian["connection_details"]["fields"]["connection_type"]["label"]
+        == "Metodo di collegamento"
+    )
+    assert italian["connection_details"]["sections"]["other"] == "Altri parametri"
 
 
 def test_panel_supports_batch_entity_deletion() -> None:
@@ -486,8 +478,13 @@ def test_panel_light_mode_inference_uses_only_brightness_state_address() -> None
         pytest.skip("node is required to evaluate the panel helpers")
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     prefix = source.split("const CONNECTION_WINDOW_MS", 1)[0]
-    script = prefix + "\nconsole.log(JSON.stringify([{}, {brightness_scale: 10}, {brightness_command_address: 'DB1,W2'}, {brightness_state_address: 'DB1,W0'}].map(LIGHT_MODE_FROM_ENTITY)));"
-    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    script = (
+        prefix
+        + "\nconsole.log(JSON.stringify([{}, {brightness_scale: 10}, {brightness_command_address: 'DB1,W2'}, {brightness_state_address: 'DB1,W0'}].map(LIGHT_MODE_FROM_ENTITY)));"
+    )
+    result = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    )
     assert json.loads(result.stdout) == ["on_off", "on_off", "on_off", "dimmable"]
 
 
@@ -497,9 +494,17 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
     switch_start = source.index("if(type==='switches')return section")
     light_start = source.index("if(type==='lights')return section")
     switch_definition = source[switch_start:light_start]
-    light_definition = source[light_start:source.index("return section('connection'", light_start)]
-    assert switch_definition.index("['control_behavior']") < switch_definition.index("['state_address','command_address']")
-    assert light_definition.index("['control_behavior']") < light_definition.index("['light_mode']") < light_definition.index("['state_address','command_address'")
+    light_definition = source[
+        light_start : source.index("return section('connection'", light_start)
+    ]
+    assert switch_definition.index("['control_behavior']") < switch_definition.index(
+        "['state_address','command_address']"
+    )
+    assert (
+        light_definition.index("['control_behavior']")
+        < light_definition.index("['light_mode']")
+        < light_definition.index("['state_address','command_address'")
+    )
     # Other entity types continue to use the unchanged generic section classifier.
     assert "fields.filter(isAddress)" in source
 
@@ -507,21 +512,30 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
 def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "delete entity.light_mode" in source
-    assert "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}" in source
-    assert "if(!entity.brightness_state_address)throw Error(this.t('brightness_state_required_error'))" in source
+    assert (
+        "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}"
+        in source
+    )
+    assert (
+        "if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'))"
+        in source
+    )
     assert "if(entity.brightness_scale==null)entity.brightness_scale=255" in source
     assert 'min="1" max="65535"' in source
-    assert "['brightness_state_address','brightness_command_address','brightness_scale'].forEach" in source
+    assert (
+        "['brightness_state_address','brightness_command_address','brightness_scale'].forEach"
+        in source
+    )
 
 
 def test_panel_control_mode_is_context_aware() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert 'command!==state' in source
-    assert 'sync.disabled=!canSync' in source
-    assert 'selected!==\'pulse\'' in source
+    assert "command!==state" in source
+    assert "sync.disabled=!canSync" in source
+    assert "selected!=='pulse'" in source
     assert '[data-field="pulse_duration"]' in source
-    assert '["control_behavior","Comportamento controllo","control"]' in source
+    assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
     assert 'name="pulse_command" type="checkbox"' not in source
 
@@ -541,7 +555,9 @@ def test_visual_editor_parser_does_not_validate_entity() -> None:
 
 def test_entity_from_yaml_editor() -> None:
     assert _entity_from_message(
-        {"entity_yaml": 'name: "Temperatura sala"\naddress: "DB1,REAL0"\ninvert_state: false'}
+        {
+            "entity_yaml": 'name: "Temperatura sala"\naddress: "DB1,REAL0"\ninvert_state: false'
+        }
     ) == {
         "name": "Temperatura sala",
         "address": "DB1,REAL0",
@@ -635,16 +651,19 @@ def test_configuration_backup_metadata_and_uid_import_rules() -> None:
         "source_entry_id": "source-entry",
         "source_title": "Source PLC",
     }
-    assert _configuration_from_yaml(backup, options, "source-entry")["sensors"][0][
-        "uid"
-    ] == "original"
-    assert _configuration_from_yaml(backup, options, "other-entry")["sensors"][0][
-        "uid"
-    ] != "original"
+    assert (
+        _configuration_from_yaml(backup, options, "source-entry")["sensors"][0]["uid"]
+        == "original"
+    )
+    assert (
+        _configuration_from_yaml(backup, options, "other-entry")["sensors"][0]["uid"]
+        != "original"
+    )
     legacy = "sensors:\n  - address: DB1,REAL0\n    uid: original\n"
-    assert _configuration_from_yaml(legacy, options, "source-entry")["sensors"][0][
-        "uid"
-    ] != "original"
+    assert (
+        _configuration_from_yaml(legacy, options, "source-entry")["sensors"][0]["uid"]
+        != "original"
+    )
 
 
 @pytest.mark.parametrize("metadata", ["{}", "{source_entry_id: entry-1}"])
@@ -722,7 +741,9 @@ async def _save_entity_handler(monkeypatch, options):
     monkeypatch.setitem(
         sys.modules, "homeassistant.components.websocket_api", websocket_api
     )
-    monkeypatch.setitem(sys.modules, "homeassistant.components.panel_custom", panel_custom)
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.components.panel_custom", panel_custom
+    )
     import homeassistant.components as components
 
     monkeypatch.setattr(components, "websocket_api", websocket_api, raising=False)
@@ -774,9 +795,7 @@ async def test_configuration_websocket_commands(monkeypatch) -> None:
     save_configuration = hass.panel_commands[3]
     connection = _Connection()
 
-    await get_configuration(
-        hass, connection, {"id": 1, "entry_id": entry.entry_id}
-    )
+    await get_configuration(hass, connection, {"id": 1, "entry_id": entry.entry_id})
     backup = connection.result["configuration_yaml"]
     assert yaml.safe_load(backup)["s7plc"]["source_entry_id"] == entry.entry_id
 
@@ -1022,7 +1041,9 @@ async def test_save_entity_shared_validation_rejects_invalid_input(
 ) -> None:
     handler, hass, _entry, _updates = await _save_entity_handler(monkeypatch, {})
     connection = _Connection()
-    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    payload = (
+        {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    )
 
     await handler(
         hass,
@@ -1044,7 +1065,9 @@ async def test_save_entity_shared_validation_rejects_duplicate_address(
     )
     connection = _Connection()
     entity = {"name": "Second", "address": "DB1,REAL0"}
-    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    payload = (
+        {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    )
 
     await handler(
         hass,
@@ -1057,13 +1080,13 @@ async def test_save_entity_shared_validation_rejects_duplicate_address(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("editor", ["visual", "yaml"])
-async def test_save_entity_stores_canonical_builder_item(
-    monkeypatch, editor
-) -> None:
+async def test_save_entity_stores_canonical_builder_item(monkeypatch, editor) -> None:
     handler, hass, _entry, updates = await _save_entity_handler(monkeypatch, {})
     connection = _Connection()
     entity = {"name": "Temp", "address": "DB1,REAL0", "uid": "untrusted"}
-    payload = {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    payload = (
+        {"entity": entity} if editor == "visual" else {"entity_yaml": yaml.dump(entity)}
+    )
 
     await handler(
         hass,
@@ -1078,7 +1101,9 @@ async def test_save_entity_stores_canonical_builder_item(
 
 
 @pytest.mark.asyncio
-async def test_save_entity_edit_preserves_uid_and_normalizes_climate(monkeypatch) -> None:
+async def test_save_entity_edit_preserves_uid_and_normalizes_climate(
+    monkeypatch,
+) -> None:
     existing = {
         "name": "Heating",
         "control_mode": "setpoint",
@@ -1129,7 +1154,12 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
     ui_only = {"cover_mode", "control_behavior", "light_mode"}  # virtual UI fields
     for line in fields_block.strip().splitlines():
         entity_type, spec = line.split(":", 1)
-        keys = set(re.findall(r'\["([a-z_]+)"', spec)) | set(common)
+        keys = set(
+            re.findall(
+                r'\["([a-z_]+)"(?:,"(?:text|number|checkbox|select|control|light)"|\])',
+                spec,
+            )
+        ) | set(common)
         expected = keys - ui_only
         allowed = ENTITY_ALLOWED_FIELDS[entity_type.strip()]
         missing = expected - allowed
@@ -1158,7 +1188,10 @@ def test_panel_provides_mobile_navigation() -> None:
     # The mobile control row is present in the populated and empty render states.
     assert source.count('<div class="mobile-controls">${this.menuButton()}') == 2
     assert '${this.menuButton()}</div><div class="loading">' in source
-    assert '<div class="mobile-controls">${this.menuButton()}</div>${this.banner()}' in source
+    assert (
+        '<div class="mobile-controls">${this.menuButton()}</div>${this.banner()}'
+        in source
+    )
     assert "history.back()" not in source
     assert 'id="back"' not in source
 
@@ -1288,15 +1321,21 @@ def test_panel_exposes_climate_mode_and_status_fields() -> None:
         if "direct:" in line and "on_off_address" in line
     )
     for key in setpoint_only_keys:
-        assert key in mode_hidden_line, f"{key} missing from MODE_HIDDEN.climates.direct"
+        assert key in mode_hidden_line, (
+            f"{key} missing from MODE_HIDDEN.climates.direct"
+        )
 
 
-def test_panel_uses_config_flow_field_descriptions() -> None:
+def test_panel_uses_autonomous_field_descriptions() -> None:
     """Field help comes from the config flow instead of shorter panel copies."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert "presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value')" in source
-    assert "this.flowText(type,item,key,'data_description')" in source
+    assert (
+        "presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value')" in source
+    )
+    assert "fieldText(type,key,'description')" in source
+    assert "options?.step" not in source
+    assert "config?.step" not in source
     assert "/s7plc_translations/${language}.json" in source
     assert "${help}</label>" in source
     # Preset values are PLC integer mode codes: step=1, not step=any (which
@@ -1330,7 +1369,7 @@ def test_panel_uses_config_flow_field_descriptions() -> None:
                 "/s7plc_translations/en.json",
             ],
             "S7 PLC configuration",
-            None,
+            "Name",
         ),
     ],
 )
@@ -1360,9 +1399,9 @@ const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls},co
     return {ok:true,json:async()=>payloads[language]};}};
 vm.createContext(context);vm.runInContext(process.argv[1],context);
 (async()=>{const panel=new Panel();panel._hass={locale:{language:process.argv[3]}};
-  await panel.loadFlowTranslations();
-  process.stdout.write(JSON.stringify({urls,title:panel.t('title'),
-    field:panel.flowText('sensors',{},'name','data')??null}));})();
+  await panel.loadPanelTranslations();
+  process.stdout.write(JSON.stringify({urls,title:panel.t('common.title'),
+    field:panel.fieldText('sensors','name','label')??null}));})();
 """
 
     result = subprocess.run(
@@ -1397,12 +1436,6 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
         "entity_sync",
     }
 
-    panel_fields = {
-        "cover_mode",
-        "control_mode",
-        "light_mode",
-    }
-
     for language in ("en", "it", "cs", "de", "pl"):
         translations = json.loads(
             Path(f"custom_components/s7plc/translations/{language}.json").read_text(
@@ -1410,8 +1443,11 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
             )
         )
         assert "panel" not in translations
-        assert translations["config_panel"]["types"].keys() == entity_types
-        assert translations["config_panel"]["fields"].keys() == panel_fields
+        panel = translations["config_panel"]
+        assert panel["entity_types"].keys() == entity_types
+        assert panel["entity_types"]["covers"]["fields"]["cover_mode"]
+        assert panel["entity_types"]["climates"]["fields"]["control_mode"]
+        assert panel["entity_types"]["lights"]["fields"]["light_mode"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -1419,16 +1455,14 @@ def test_panel_translates_backend_validation_errors() -> None:
     """Known flow errors are translated while unknown messages remain readable."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     translations = json.loads(
-        Path("custom_components/s7plc/translations/it.json").read_text(
-            encoding="utf-8"
-        )
+        Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
     )
     script = (
         "const vm=require('vm');"
         "let Panel;"
         "const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls}};"
         "vm.createContext(context);vm.runInContext(process.argv[1],context);"
-        "const panel=new Panel();panel.flowTranslations=JSON.parse(process.argv[2]);"
+        "const panel=new Panel();panel.panelTranslations=JSON.parse(process.argv[2]);"
         "process.stdout.write(JSON.stringify(process.argv.slice(3).map(key=>panel.flowError(key))));"
     )
 
@@ -1496,16 +1530,19 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
     }
 
     for language in ("en", "it", "cs", "de", "pl"):
-        translation_path = Path(
-            f"custom_components/s7plc/translations/{language}.json"
-        )
+        translation_path = Path(f"custom_components/s7plc/translations/{language}.json")
         flow_steps = json.loads(translation_path.read_text(encoding="utf-8"))[
             "options"
         ]["step"]
         for entity_type, entity_steps in steps.items():
             all_keys = {field[0] for field in fields[entity_type]}
             for step, mode in entity_steps:
-                visible_keys = all_keys - {"cover_mode", "control_mode", "control_behavior", "light_mode"}
+                visible_keys = all_keys - {
+                    "cover_mode",
+                    "control_mode",
+                    "control_behavior",
+                    "light_mode",
+                }
                 if mode:
                     visible_keys -= set(hidden[entity_type][mode])
                 labels = flow_steps[step]["data"]
@@ -1877,7 +1914,6 @@ def test_panel_preserves_status_value_fields_when_status_address_unused() -> Non
     assert "COVER_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
-
 def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
     """In Position mode, invert_tilt has nothing to invert without
     tilt_state_address filled in — dynamically hidden (and stripped on
@@ -1885,9 +1921,7 @@ def test_panel_hides_invert_tilt_when_tilt_state_address_unused() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "COVER_TILT_INVERT_FIELDS" in source
-    assert (
-        'const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];'
-    ) in source
+    assert ('const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];') in source
     assert (
         "if(sel.value==='position'&&!form.elements.tilt_state_address?.value.trim())"
         "{hidden=[...hidden,...COVER_TILT_INVERT_FIELDS];}"
@@ -1968,11 +2002,9 @@ def test_panel_bool_addresses_use_bool_placeholder() -> None:
     assert "address_example_bool" in source
 
     english = json.loads(
-        Path("custom_components/s7plc/translations/en.json").read_text(
-            encoding="utf-8"
-        )
+        Path("custom_components/s7plc/translations/en.json").read_text(encoding="utf-8")
     )
-    assert english["config_panel"]["address_example_bool"]
+    assert english["config_panel"]["common"]["address_example_bool"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -2008,14 +2040,14 @@ def test_panel_text_addresses_use_string_placeholder() -> None:
 
     for language in ("en", "it", "cs", "de", "pl"):
         translations = json.loads(
-            Path(
-                f"custom_components/s7plc/translations/{language}.json"
-            ).read_text(encoding="utf-8")
+            Path(f"custom_components/s7plc/translations/{language}.json").read_text(
+                encoding="utf-8"
+            )
         )
 
-        assert translations["config_panel"]["address_example_string"]
+        assert translations["config_panel"]["common"]["address_example_string"]
 
-        
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_address_placeholders_match_plc_data_type() -> None:
     """Text addresses use STRING examples while BOOL and REAL stay unchanged."""
@@ -2027,14 +2059,14 @@ const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Pan
 vm.createContext(context);
 vm.runInContext(process.argv[1], context);
 const panel = new Panel();
-panel.flowText = () => null;
+panel.fieldText = () => 'Label';
 panel.escape = value => String(value);
 panel.t = key => ({
-  address_example: 'REAL',
-  address_example_bool: 'BOOL',
-  address_example_string: 'STRING'
+  'common.address_example': 'REAL',
+  'common.address_example_bool': 'BOOL',
+  'common.address_example_string': 'STRING'
 }[key] || key);
-const placeholder = (type, key) => panel.field([key, 'label'], {}, type)
+const placeholder = (type, key) => panel.field([key], {}, type)
   .match(/placeholder="([^"]*)"/)[1];
 process.stdout.write(JSON.stringify({
   textAddress: placeholder('texts', 'address'),
@@ -2067,14 +2099,16 @@ process.stdout.write(JSON.stringify({
     strings = json.loads(
         Path("custom_components/s7plc/strings.json").read_text(encoding="utf-8")
     )
-    assert strings["config_panel"]["address_example_string"] == expected["en"]
+    assert strings["config_panel"]["common"]["address_example_string"] == expected["en"]
     for language, example in expected.items():
         translations = json.loads(
             Path(f"custom_components/s7plc/translations/{language}.json").read_text(
                 encoding="utf-8"
             )
         )
-        assert translations["config_panel"]["address_example_string"] == example
+        assert (
+            translations["config_panel"]["common"]["address_example_string"] == example
+        )
 
 
 def test_panel_close_command_address_required_for_traditional() -> None:
@@ -2086,7 +2120,7 @@ def test_panel_close_command_address_required_for_traditional() -> None:
         "const needed=mode==='position'?'position_state_address':"
         "'open_command_address';if(!entity[needed]||(mode==='traditional'"
         "&&!entity.close_command_address))throw "
-        "Error(this.t('cover_required_error'));"
+        "Error(this.t('errors.cover_required_error'));"
     ) in source
 
 
@@ -2099,3 +2133,71 @@ def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert ".visual-form .check>span{min-width:0}" in source
+
+
+def _translation_shape(value):
+    if isinstance(value, dict):
+        return {key: _translation_shape(child) for key, child in value.items()}
+    return None
+
+
+def test_config_panel_translation_tree_has_language_parity() -> None:
+    paths = [
+        Path("custom_components/s7plc/strings.json"),
+        *sorted(Path("custom_components/s7plc/translations").glob("*.json")),
+    ]
+    panels = [
+        json.loads(path.read_text(encoding="utf-8"))["config_panel"] for path in paths
+    ]
+    expected = _translation_shape(panels[0])
+    assert all(_translation_shape(panel) == expected for panel in panels)
+
+
+def test_fields_contain_only_technical_metadata_and_have_panel_text() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate FIELDS")
+    script = f"""
+global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
+{source}
+console.log(JSON.stringify(FIELDS));
+"""
+    fields = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    english = json.loads(
+        Path("custom_components/s7plc/translations/en.json").read_text(encoding="utf-8")
+    )["config_panel"]
+    technical_kinds = {"text", "number", "checkbox", "select", "control", "light"}
+    for entity_type, definitions in fields.items():
+        for definition in definitions:
+            assert len(definition) <= 4
+            assert len(definition) == 1 or definition[1] in technical_kinds
+            key = definition[0]
+            text = english["entity_types"][entity_type]["fields"].get(key) or english[
+                "common"
+            ]["fields"].get(key)
+            assert text and text["label"] and text["description"]
+
+
+def test_panel_has_no_flow_step_dependency_or_unresolved_translation_paths() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "flowText" not in source
+    assert "flowStep" not in source
+    assert "connectionLabel" not in source
+    assert "options.step" not in source
+    assert "config.step" not in source
+    assert "??path;}" not in source
+
+
+def test_cover_and_climate_modes_have_autonomous_options() -> None:
+    for path in Path("custom_components/s7plc/translations").glob("*.json"):
+        panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
+        assert set(
+            panel["entity_types"]["covers"]["fields"]["cover_mode"]["options"]
+        ) == {"traditional", "position"}
+        assert set(
+            panel["entity_types"]["climates"]["fields"]["control_mode"]["options"]
+        ) == {"direct", "setpoint"}

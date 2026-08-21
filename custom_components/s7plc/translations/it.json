@@ -1102,117 +1102,613 @@
     }
   },
   "config_panel": {
-    "loading": "Caricamento configurazione…",
-    "no_plc": "Nessun PLC configurato",
-    "no_plc_help": "Aggiungi prima l'integrazione Siemens S7 da Dispositivi e servizi.",
-    "title": "Configurazione S7 PLC",
-    "subtitle": "Configura graficamente le entità o usa YAML nelle opzioni avanzate.",
-    "entities": "entità",
-    "connected": "Connesso",
-    "disconnected": "Disconnesso",
-    "unknown": "Sconosciuto",
-    "reload_help": "Le modifiche vengono applicate ricaricando automaticamente l'integrazione.",
-    "add": "Aggiungi",
-    "empty": "Nessuna entità",
-    "empty_help": "Usa “Aggiungi” per creare la prima.",
-    "entity": "Entità",
-    "edit": "Modifica",
-    "delete": "Elimina",
-    "enabled_help": "Attiva questa opzione",
-    "required": "Obbligatorio",
-    "no_area": "Nessuna area",
-    "none_option": "Nessuna",
-    "address_example": "es. DB1,REAL0",
-    "address_example_bool": "es. DB1,X0.0",
-    "address_example_string": "es. DB1,S0.254",
-    "entity_example": "es. sensor.temperatura_soggiorno",
-    "name_example": "es. Temperatura soggiorno",
-    "address_help": "Formato Siemens S7, ad esempio DB1,REAL0",
-    "address_help_bool": "Formato Siemens S7, ad esempio DB1,X0.0",
-    "preset_value_help": "Lascia vuoto per nascondere questa modalità.",
-    "status_values_help": "Uno o più valori separati da virgole (es. 2,3). Lascia vuoto per saltare questo stato.",
-    "plc_connection": "Collegamento PLC",
-    "plc_connection_help": "Indirizzi e sorgenti dei dati",
-    "behavior": "Comportamento",
-    "behavior_help": "Opzioni specifiche di questa entità",
-    "ha_details": "Dettagli in Home Assistant",
-    "ha_details_help": "Nome, area e frequenza di aggiornamento",
-    "new_entity": "Nuova entità",
-    "edit_entity": "Modifica entità",
-    "configure_new": "Configura una nuova entità",
-    "update_configuration": "Aggiorna la configurazione",
-    "save_help": "I campi vengono salvati direttamente nella configurazione del PLC.",
-    "editor_mode": "Modalità editor",
-    "visual_editor": "Editor grafico",
-    "guided": "Guidato e semplice",
-    "advanced": "Controllo avanzato",
-    "yaml_warning": "La modalità avanzata consente di modificare manualmente tutti i campi. Usa una mappa YAML per una singola entità.",
-    "yaml_label": "Configurazione YAML",
-    "cancel": "Annulla",
-    "save": "Salva modifiche",
-    "required_error": "Compila tutti i campi obbligatori.",
-    "cover_required_error": "Inserisci gli indirizzi obbligatori per il tipo di tapparella scelto.",
-    "climate_required_error": "Inserisci l'indirizzo della temperatura obiettivo.",
-    "delete_confirm": "Eliminare questa entità? L'azione non può essere annullata.",
-    "delete_title": "Elimina entità",
-    "fields": {
-      "cover_mode": "Tipo di cover",
-      "control_mode": "Modalità di controllo",
-      "light_mode": "Tipo di luce"
+    "common": {
+      "loading": "Caricamento configurazione…",
+      "no_plc": "Nessun PLC configurato",
+      "no_plc_help": "Aggiungi prima l'integrazione Siemens S7 da Dispositivi e servizi.",
+      "title": "Configurazione S7 PLC",
+      "subtitle": "Configura graficamente le entità o usa YAML nelle opzioni avanzate.",
+      "entities": "entità",
+      "connected": "Connesso",
+      "disconnected": "Disconnesso",
+      "unknown": "Sconosciuto",
+      "reload_help": "Le modifiche vengono applicate ricaricando automaticamente l'integrazione.",
+      "empty": "Nessuna entità",
+      "empty_help": "Usa “Aggiungi” per creare la prima.",
+      "entity": "Entità",
+      "enabled_help": "Attiva questa opzione",
+      "required": "Obbligatorio",
+      "no_area": "Nessuna area",
+      "none_option": "Nessuna",
+      "address_example": "es. DB1,REAL0",
+      "address_example_bool": "es. DB1,X0.0",
+      "address_example_string": "es. DB1,S0.254",
+      "entity_example": "es. sensor.temperatura_soggiorno",
+      "name_example": "es. Temperatura soggiorno",
+      "fields": {
+        "area": {
+          "label": "Area",
+          "description": "Area di Home Assistant a cui assegnare questa entità."
+        },
+        "name": {
+          "label": "Nome",
+          "description": "Nome descrittivo opzionale per questa entità."
+        },
+        "scan_interval": {
+          "label": "Intervallo di scansione (s)",
+          "description": "Frequenza di polling specifica per questa entità in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        }
+      }
     },
-    "control_ui": {
+    "sections": {
+      "plc_connection": {
+        "title": "Collegamento PLC",
+        "description": "Indirizzi e sorgenti dei dati"
+      },
+      "behavior": {
+        "title": "Comportamento",
+        "description": "Opzioni specifiche di questa entità"
+      },
+      "ha_details": {
+        "title": "Dettagli in Home Assistant",
+        "description": "Nome, area e frequenza di aggiornamento"
+      },
+      "command_behavior": {
+        "title": "Comportamento del comando",
+        "description": "Come Home Assistant controlla l’uscita PLC"
+      },
+      "options": {
+        "title": "Opzioni",
+        "description": "Impostazioni per il comportamento e il tipo di comando selezionati"
+      }
+    },
+    "entity_types": {
+      "sensors": {
+        "label": "Sensori",
+        "fields": {
+          "address": {
+            "label": "Indirizzo",
+            "description": "Indirizzo PLC da leggere (es. DB1000,D0, MW10, DB1,W2)."
+          },
+          "device_class": {
+            "label": "Classe dispositivo",
+            "description": "Classe dispositivo di Home Assistant per definire meglio l’interfaccia e il comportamento (es. batteria, potenza)."
+          },
+          "unit_of_measurement": {
+            "label": "Unità di misura",
+            "description": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla classe dispositivo."
+          },
+          "value_multiplier": {
+            "label": "Moltiplicatore di valore",
+            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
+          },
+          "min_value": {
+            "label": "Scala min",
+            "description": "Valore minimo visualizzato dopo la scalatura."
+          },
+          "max_value": {
+            "label": "Scala max",
+            "description": "Valore massimo visualizzato dopo la scalatura."
+          },
+          "scale_raw_min": {
+            "label": "Valore grezzo minimo",
+            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
+          },
+          "scale_raw_max": {
+            "label": "Valore grezzo massimo",
+            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
+          },
+          "state_class": {
+            "label": "Classe di stato",
+            "description": "Classe di stato per le statistiche: “measurement” per valori istantanei, “total” per valori cumulativi che possono diminuire, “total_increasing” per contatori (es. energia, consumo acqua). Lascia vuoto per automatico."
+          },
+          "real_precision": {
+            "label": "Numero decimali REAL",
+            "description": "Numero di cifre decimali da visualizzare per i valori REAL (valore predefinito dell’integrazione: 1)."
+          }
+        }
+      },
+      "binary_sensors": {
+        "label": "Sensori binari",
+        "fields": {
+          "address": {
+            "label": "Indirizzo",
+            "description": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1)."
+          },
+          "device_class": {
+            "label": "Classe dispositivo",
+            "description": "Classe dispositivo di Home Assistant per definire meglio l’interfaccia e il comportamento (es. porta, finestra, alimentazione)."
+          },
+          "invert_state": {
+            "label": "Inverti stato",
+            "description": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi)."
+          }
+        }
+      },
+      "switches": {
+        "label": "Interruttori",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "state_address": {
+            "label": "Indirizzo stato",
+            "description": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0)."
+          },
+          "command_address": {
+            "label": "Indirizzo comando",
+            "description": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato."
+          },
+          "pulse_duration": {
+            "label": "Durata impulso (s)",
+            "description": "Durata dell'impulso in secondi. Minimo: 0,1 s, Massimo: 60 s."
+          }
+        }
+      },
+      "covers": {
+        "label": "Cover",
+        "fields": {
+          "cover_mode": {
+            "label": "Tipo di cover",
+            "description": "Tipo di cover",
+            "options": {
+              "traditional": "Tradizionale",
+              "position": "Posizione"
+            }
+          },
+          "open_command_address": {
+            "label": "Indirizzo comando apertura",
+            "description": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0)."
+          },
+          "close_command_address": {
+            "label": "Indirizzo comando chiusura",
+            "description": "Indirizzo PLC per attivare la chiusura (es. Q0.1, DB1,X0.1)."
+          },
+          "cover_status_address": {
+            "label": "Indirizzo stato cover",
+            "description": "Indirizzo PLC opzionale che riporta il movimento in tempo reale (apertura/chiusura/fermo), confrontato con i valori configurati sotto. Ha la priorità sugli indirizzi booleani di stato apertura/chiusura/fermo sopra, quando configurato."
+          },
+          "cover_status_open_values": {
+            "label": "Valore/i stato aperto",
+            "description": "Valore/i PLC che indicano che la cover è completamente aperta, letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole (es. 1 oppure 2,3). Se corrisponde, lo stato di chiusura viene determinato da questo, con priorità sullo stato basato sui finecorsa. Lascia vuoto per saltare questo stato."
+          },
+          "cover_status_closed_values": {
+            "label": "Valore/i stato chiuso",
+            "description": "Valore/i PLC che indicano che la cover è completamente chiusa, letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole. Se corrisponde, lo stato di chiusura viene determinato da questo, con priorità sullo stato basato sui finecorsa. Lascia vuoto per saltare questo stato."
+          },
+          "cover_status_opening_values": {
+            "label": "Valore/i stato apertura",
+            "description": "Valore/i PLC che indicano che la cover si sta aprendo, letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole (es. 1 oppure 2,3). Lascia vuoto per saltare questo stato."
+          },
+          "cover_status_closing_values": {
+            "label": "Valore/i stato chiusura",
+            "description": "Valore/i PLC che indicano che la cover si sta chiudendo, letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato."
+          },
+          "cover_status_stopped_values": {
+            "label": "Valore/i stato fermo",
+            "description": "Valore/i PLC che indicano che la cover è ferma (non in movimento), letti dall'indirizzo di stato sopra. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato."
+          },
+          "opening_state_address": {
+            "label": "Indirizzo stato aperto",
+            "description": "Indirizzo PLC opzionale che indica che la cover è aperta."
+          },
+          "closing_state_address": {
+            "label": "Indirizzo stato chiuso",
+            "description": "Indirizzo PLC opzionale che indica che la cover è chiusa."
+          },
+          "cover_opening_address": {
+            "label": "Indirizzo stato apertura",
+            "description": "Indirizzo booleano PLC opzionale che indica che la cover si sta aprendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
+          },
+          "cover_closing_address": {
+            "label": "Indirizzo stato chiusura",
+            "description": "Indirizzo booleano PLC opzionale che indica che la cover si sta chiudendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
+          },
+          "cover_stopped_address": {
+            "label": "Indirizzo stato fermo",
+            "description": "Indirizzo booleano PLC opzionale che indica che la cover è ferma (non in movimento)."
+          },
+          "position_state_address": {
+            "label": "Indirizzo stato posizione",
+            "description": "Indirizzo PLC per leggere il valore di posizione corrente (0-100, es. DB1,B0, DB2,W4)."
+          },
+          "position_command_address": {
+            "label": "Indirizzo comando posizione",
+            "description": "Indirizzo PLC per scrivere i comandi di posizione (0-100). Se omesso, viene usato l'indirizzo di stato."
+          },
+          "stop_command_address": {
+            "label": "Indirizzo comando stop",
+            "description": "Indirizzo booleano PLC da impulsare quando viene premuto stop. Se omesso, lo stop riscrive la posizione corrente."
+          },
+          "stop_pulse_duration": {
+            "label": "Durata impulso stop (s)",
+            "description": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500 ms)."
+          },
+          "tilt_state_address": {
+            "label": "Indirizzo stato inclinazione",
+            "description": "Indirizzo PLC opzionale per leggere la posizione attuale dell'inclinazione (0-100). Abilita il controllo dell'inclinazione (apri/chiudi/imposta/ferma inclinazione) per questa cover."
+          },
+          "tilt_command_address": {
+            "label": "Indirizzo comando inclinazione",
+            "description": "Indirizzo PLC per scrivere i comandi di posizione dell'inclinazione (opzionale). Se omesso, viene usato l'indirizzo di stato dell'inclinazione."
+          },
+          "invert_tilt": {
+            "label": "Inverti inclinazione",
+            "description": "Inverte la scala dell'inclinazione (0 diventa 100 e viceversa), per attuatori cablati al contrario."
+          },
+          "operate_time": {
+            "label": "Tempo di manovra (s)",
+            "description": "Secondi in cui mantenere attivo il comando prima di riportare l'uscita a falso e azzerare lo stato di movimento."
+          },
+          "use_state_topics": {
+            "label": "Usa feedback di stato per posizione",
+            "description": "Abilita per usare gli indirizzi di feedback di stato per determinare la posizione della cover. Se disabilitato, la posizione viene dedotta dal tempo di manovra."
+          },
+          "invert_position": {
+            "label": "Inverti posizione (0=aperto, 100=chiuso)",
+            "description": "Abilita se il tuo PLC usa 0 per completamente aperto e 100 per completamente chiuso (inverte la logica normale)."
+          },
+          "device_class": {
+            "label": "Classe dispositivo",
+            "description": "Classe dispositivo di Home Assistant per affinare l'interfaccia/il comportamento (es. tapparella, tenda, garage)."
+          }
+        }
+      },
+      "lights": {
+        "label": "Luci",
+        "fields": {
+          "control_behavior": {
+            "label": "Control Behavior",
+            "description": "Control Behavior"
+          },
+          "light_mode": {
+            "label": "Tipo di luce",
+            "description": "Tipo di luce"
+          },
+          "state_address": {
+            "label": "Indirizzo stato (on/off)",
+            "description": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0)."
+          },
+          "command_address": {
+            "label": "Indirizzo comando (on/off)",
+            "description": "Indirizzo booleano del PLC per scrivere i comandi on/off (opzionale). Se omesso, viene usato l'indirizzo di stato."
+          },
+          "brightness_state_address": {
+            "label": "Indirizzo stato luminosità",
+            "description": "Indirizzo numerico del PLC per leggere il livello di luminosità (es. DB1,B2). Lasciare vuoto per solo on/off."
+          },
+          "brightness_command_address": {
+            "label": "Indirizzo comando luminosità",
+            "description": "Indirizzo numerico del PLC per scrivere i comandi di luminosità (opzionale). Se omesso, viene usato l'indirizzo stato luminosità."
+          },
+          "pulse_duration": {
+            "label": "Durata impulso (s)",
+            "description": "Durata dell'impulso in secondi (0,1-60 s, supporta decimali). Predefinito: 0,5 s."
+          },
+          "brightness_scale": {
+            "label": "Scala luminosità (valore massimo)",
+            "description": "Valore massimo usato dal PLC per la luminosità piena (es. 255 per BYTE, 100 per percentuale). Obbligatorio quando sono impostati gli indirizzi luminosità."
+          }
+        },
+        "mode": {
+          "title": "Tipo di luce",
+          "description": "Scegli il controllo On/Off o della luminosità",
+          "options": {
+            "on_off": {
+              "title": "On/Off",
+              "description": "Solo accensione e spegnimento"
+            },
+            "dimmable": {
+              "title": "Dimmerabile",
+              "description": "Accensione, spegnimento e regolazione della luminosità"
+            }
+          }
+        }
+      },
+      "buttons": {
+        "label": "Pulsanti",
+        "fields": {
+          "address": {
+            "label": "Indirizzo",
+            "description": "Indirizzo booleano del PLC da impulsare (es. Q0.0, DB1,X0.1)."
+          },
+          "button_pulse": {
+            "label": "Durata impulso",
+            "description": "Durata dell'impulso in secondi (supporta decimali, es. 0.1 per 100 ms)."
+          }
+        }
+      },
+      "numbers": {
+        "label": "Numeri",
+        "fields": {
+          "address": {
+            "label": "Indirizzo stato",
+            "description": "Indirizzo del PLC da cui leggere il valore numerico (es. DB1,D0, DB2,W4)."
+          },
+          "command_address": {
+            "label": "Indirizzo comando",
+            "description": "Indirizzo del PLC su cui scrivere i valori (opzionale). Se omesso, viene usato l'indirizzo di stato."
+          },
+          "device_class": {
+            "label": "Classe dispositivo",
+            "description": "Classe dispositivo per l’entità numero (es. temperatura, tensione, potenza)."
+          },
+          "unit_of_measurement": {
+            "label": "Unità di misura",
+            "description": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria."
+          },
+          "min_value": {
+            "label": "Valore minimo",
+            "description": "Limite minimo opzionale per il valore mostrato in Home Assistant."
+          },
+          "max_value": {
+            "label": "Valore massimo",
+            "description": "Limite massimo opzionale per il valore mostrato in Home Assistant."
+          },
+          "step": {
+            "label": "Passo",
+            "description": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente."
+          },
+          "value_multiplier": {
+            "label": "Moltiplicatore di valore",
+            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
+          },
+          "scale_raw_min": {
+            "label": "Valore grezzo minimo",
+            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
+          },
+          "scale_raw_max": {
+            "label": "Valore grezzo massimo",
+            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
+          },
+          "real_precision": {
+            "label": "Numero decimali REAL",
+            "description": "Numero di cifre decimali da visualizzare per i valori REAL (valore predefinito dell’integrazione: 1)."
+          }
+        }
+      },
+      "texts": {
+        "label": "Testi",
+        "fields": {
+          "address": {
+            "label": "Indirizzo stato",
+            "description": "Indirizzo STRING o WSTRING del PLC da cui leggere (es. DB1,S0.254, DB2,WS0.128)."
+          },
+          "command_address": {
+            "label": "Indirizzo comando",
+            "description": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato."
+          },
+          "pattern": {
+            "label": "Pattern (regex)",
+            "description": "Pattern regex opzionale per validare l'input del testo."
+          }
+        }
+      },
+      "climates": {
+        "label": "Climatizzazione",
+        "fields": {
+          "control_mode": {
+            "label": "Modalità di controllo",
+            "description": "Modalità di controllo",
+            "options": {
+              "direct": "Uscite dirette",
+              "setpoint": "Setpoint"
+            }
+          },
+          "current_temperature_address": {
+            "label": "Indirizzo temperatura corrente",
+            "description": "Indirizzo PLC per leggere la temperatura corrente (es. DB1,REAL0, DB2,INT4)."
+          },
+          "target_temperature_address": {
+            "label": "Indirizzo temperatura target",
+            "description": "Indirizzo PLC per scrivere e leggere il setpoint della temperatura target (es. DB1,REAL4, DB2,INT8)."
+          },
+          "heating_output_address": {
+            "label": "Indirizzo uscita riscaldamento",
+            "description": "Indirizzo PLC per controllare l'uscita del riscaldamento (es. Q0.0, DB1,X0.0). Opzionale se si usa solo il raffreddamento."
+          },
+          "cooling_output_address": {
+            "label": "Indirizzo uscita raffreddamento",
+            "description": "Indirizzo PLC per controllare l'uscita del raffreddamento (es. Q0.1, DB1,X0.1). Opzionale se si usa solo il riscaldamento."
+          },
+          "heating_action_address": {
+            "label": "Indirizzo azione riscaldamento",
+            "description": "Indirizzo PLC opzionale per leggere lo stato dell'azione di riscaldamento. Se non specificato, l'azione viene dedotta dalla modalità."
+          },
+          "cooling_action_address": {
+            "label": "Indirizzo azione raffreddamento",
+            "description": "Indirizzo PLC opzionale per leggere lo stato dell'azione di raffreddamento. Se non specificato, l'azione viene dedotta dalla modalità."
+          },
+          "preset_mode_address": {
+            "label": "Indirizzo modalità HVAC",
+            "description": "Indirizzo PLC opzionale per scrivere la modalità HVAC, usando il valore configurato di seguito per ciascuna modalità. Utile se il PLC deve abilitare/disabilitare il controllo climatico. Di sola scrittura per impostazione predefinita; abilita la lettura bidirezionale per usarlo anche come feedback."
+          },
+          "preset_mode_bidirectional": {
+            "label": "Lettura bidirezionale della modalità HVAC",
+            "description": "Legge anche l’indirizzo della modalità HVAC e lo usa come modalità corrente. Disattivato per impostazione predefinita per compatibilità con le versioni precedenti: alcuni PLC trattano questo indirizzo esclusivamente come un comando e potrebbero azzerarlo o modificarlo indipendentemente dalla modalità richiesta, il che potrebbe segnalare la modalità in modo errato se letto."
+          },
+          "on_off_address": {
+            "label": "Indirizzo on/off",
+            "description": "Indirizzo PLC booleano opzionale per accendere/spegnere questo termostato, per dispositivi privi di una propria modalità OFF (es. un riscaldatore/raffreddatore acceso/spento tramite un'uscita separata). Scrive Falso/0 quando la modalità target è impostata su OFF, e Vero/1 per qualsiasi altra modalità. Lascia vuoto per usare invece il comportamento OFF standard. Viene anche riletto dal PLC per riflettere lo stato on/off effettivo (bidirezionale)."
+          },
+          "preset_mode_off_value": {
+            "label": "Valore modalità OFF",
+            "description": "Valore PLC scritto quando la modalità è impostata su OFF (es. 0). Lascia vuoto per nascondere questa modalità dall'elenco delle modalità del termostato. Se on_off_address è configurato, questo viene ignorato per OFF: la modalità rimane disponibile e viene commutata tramite tale indirizzo."
+          },
+          "preset_mode_heat_value": {
+            "label": "Valore modalità Riscaldamento",
+            "description": "Valore PLC scritto quando la modalità è impostata su Riscaldamento (es. 1). Lascia vuoto per nascondere questa modalità dall'elenco delle modalità del termostato."
+          },
+          "preset_mode_cool_value": {
+            "label": "Valore modalità Raffreddamento",
+            "description": "Valore PLC scritto quando la modalità è impostata su Raffreddamento (es. 2). Lascia vuoto per nascondere questa modalità dall'elenco delle modalità del termostato."
+          },
+          "preset_mode_heat_cool_value": {
+            "label": "Valore modalità caldo/freddo",
+            "description": "Valore PLC scritto quando la modalità è impostata su commutazione automatica caldo/freddo (es. 3). Lascia vuoto per nascondere questa modalità dall'elenco delle modalità del termostato."
+          },
+          "preset_mode_auto_value": {
+            "label": "Valore modalità Auto",
+            "description": "Valore PLC scritto quando la modalità è impostata su AUTO, modalità HVAC distinta dalla commutazione automatica caldo/freddo. Disabilitato (lasciato vuoto) per impostazione predefinita."
+          },
+          "preset_mode_dry_value": {
+            "label": "Valore modalità Deumidificazione",
+            "description": "Valore PLC scritto quando la modalità è impostata su DEUMIDIFICAZIONE (solo deumidificazione, nessun controllo della temperatura). Disabilitato (lasciato vuoto) per impostazione predefinita."
+          },
+          "preset_mode_fan_only_value": {
+            "label": "Valore modalità Solo ventola",
+            "description": "Valore PLC scritto quando la modalità è impostata su SOLO VENTOLA (solo circolazione dell'aria, nessun riscaldamento/raffreddamento). Disabilitato (lasciato vuoto) per impostazione predefinita."
+          },
+          "hvac_status_address": {
+            "label": "Indirizzo stato HVAC",
+            "description": "Indirizzo PLC opzionale per leggere lo stato effettivo HVAC, confrontato con i valori configurati di seguito per ciascuna modalità. Se non impostato, lo stato viene dedotto dal confronto delle temperature."
+          },
+          "hvac_status_off_values": {
+            "label": "Valore/i stato OFF",
+            "description": "Valore/i PLC che indicano OFF, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 0 oppure 0,10). Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_heating_values": {
+            "label": "Valore/i stato Riscaldamento",
+            "description": "Valore/i PLC che indicano RISCALDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 1 oppure 2,3). Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_cooling_values": {
+            "label": "Valore/i stato Raffreddamento",
+            "description": "Valore/i PLC che indicano RAFFREDDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole (es. 2 oppure 4,5). Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_idle_values": {
+            "label": "Valore/i stato Inattivo",
+            "description": "Valore/i PLC opzionali che indicano INATTIVO (né riscaldamento né raffreddamento), letti dall’indirizzo di stato. Inserisci uno o più numeri interi separati da virgole (es. 9). Se il campo è vuoto, qualsiasi valore che non corrisponde agli altri stati viene considerato INATTIVO (comportamento predefinito)."
+          },
+          "hvac_status_drying_values": {
+            "label": "Valore/i stato Deumidificazione",
+            "description": "Valore/i PLC opzionali che indicano DEUMIDIFICAZIONE, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_fan_values": {
+            "label": "Valore/i stato Ventola",
+            "description": "Valore/i PLC opzionali che indicano VENTOLA (solo circolazione dell'aria), letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_preheating_values": {
+            "label": "Valore/i stato Preriscaldamento",
+            "description": "Valore/i PLC opzionali che indicano PRERISCALDAMENTO, letti dall'indirizzo di stato. Uno o più numeri interi separati da virgole. Lascia vuoto per saltare questo stato (non verrà mai associato)."
+          },
+          "hvac_status_defrosting_values": {
+            "label": "Valore/i stato Sbrinamento",
+            "description": "Valore/i PLC opzionale/i che indica/no SBRINAMENTO, letto/i da hvac_status_address. Uno o più interi separati da virgole. Lascia vuoto per saltare questo stato (non verrà mai trovata corrispondenza)."
+          },
+          "min_temp": {
+            "label": "Temperatura minima",
+            "description": "Temperatura minima impostabile (°C)."
+          },
+          "max_temp": {
+            "label": "Temperatura massima",
+            "description": "Temperatura massima impostabile (°C)."
+          },
+          "temp_step": {
+            "label": "Passo temperatura",
+            "description": "Passo di regolazione della temperatura (°C)."
+          }
+        }
+      },
+      "entity_sync": {
+        "label": "Entity Sync",
+        "fields": {
+          "source_entity": {
+            "label": "Entità sorgente",
+            "description": "Entità di Home Assistant il cui valore verrà scritto sul PLC."
+          },
+          "address": {
+            "label": "Indirizzo PLC",
+            "description": "Indirizzo PLC dove scrivere il valore (es. DB1,D0, DB2,W4)."
+          },
+          "invert_state": {
+            "label": "Inverti stato",
+            "description": "Inverte gli stati binari prima di scriverli in un indirizzo BIT del PLC."
+          }
+        }
+      }
+    },
+    "control_behavior": {
       "label": "Comportamento controllo",
-      "direct_title": "Controllo diretto",
-      "direct_description": "Home Assistant scrive nell’indirizzo comando e legge l’indirizzo stato. Stato e comando restano indipendenti.",
-      "sync_title": "Sincronizza comando con stato",
-      "sync_description": "Quando lo stato PLC cambia esternamente, il valore letto dall’indirizzo stato viene scritto anche nell’indirizzo comando. Utile quando il PLC usa un marker per il comando e un indirizzo separato o un’uscita fisica come stato reale.",
-      "pulse_title": "Comando a impulso",
-      "pulse_description": "Invia un impulso temporizzato all’indirizzo comando invece di mantenere il valore ON/OFF.",
-      "sync_requires_different": "Richiede indirizzi stato e comando differenti."
+      "sync_requires_different": "Richiede indirizzi stato e comando differenti.",
+      "options": {
+        "direct": {
+          "title": "Controllo diretto",
+          "description": "Home Assistant scrive nell’indirizzo comando e legge l’indirizzo stato. Stato e comando restano indipendenti."
+        },
+        "sync": {
+          "title": "Sincronizza comando con stato",
+          "description": "Quando lo stato PLC cambia esternamente, il valore letto dall’indirizzo stato viene scritto anche nell’indirizzo comando. Utile quando il PLC usa un marker per il comando e un indirizzo separato o un’uscita fisica come stato reale."
+        },
+        "pulse": {
+          "title": "Comando a impulso",
+          "description": "Invia un impulso temporizzato all’indirizzo comando invece di mantenere il valore ON/OFF."
+        }
+      }
     },
-    "types": {
-      "sensors": "Sensori",
-      "binary_sensors": "Sensori binari",
-      "switches": "Interruttori",
-      "covers": "Cover",
-      "lights": "Luci",
-      "buttons": "Pulsanti",
-      "numbers": "Numeri",
-      "texts": "Testi",
-      "climates": "Climatizzazione",
-      "entity_sync": "Entity Sync"
-    },
-    "choices": {
-      "traditional": "Tradizionale",
-      "position": "Posizione",
-      "direct": "Uscite dirette",
-      "setpoint": "Setpoint"
-    },
-    "batch": {
-      "select_entity": "Seleziona entità",
-      "delete_selected": "Elimina selezionate",
-      "delete_selected_confirm": "Eliminare le {count} entità selezionate?"
-    },
-    "configuration_yaml": "YAML avanzato",
-    "configuration_yaml_title": "Configurazione YAML avanzata",
-    "configuration_yaml_warning": "Modifica contemporaneamente tutte le entità di questo PLC. Il salvataggio sostituisce l’intera configurazione delle entità. Esporta prima una copia di sicurezza.",
-    "import_yaml": "Importa YAML",
-    "export_current_yaml": "Esporta YAML corrente",
-    "download_backup": "Scarica copia di sicurezza",
-    "configuration_load_error": "Impossibile caricare la configurazione YAML.",
-    "configuration_download_error": "Impossibile scaricare la copia di sicurezza.",
-    "connection_details_title": "Dettagli connessione",
-    "connection_details_help": "Mostra i dettagli della connessione",
-    "connection_details_description": "Parametri di connessione in sola lettura per questo PLC.",
-    "close": "Chiudi",
-    "yes": "Sì",
-    "no": "No",
-    "connection_values": {
-      "rack_slot": "Rack e slot",
-      "tsap": "TSAP",
-      "pg": "PG (dispositivo di programmazione)",
-      "op": "OP (pannello operatore)",
-      "s7basic": "S7 Basic"
+    "connection_details": {
+      "title": "Dettagli connessione",
+      "help": "Mostra i dettagli della connessione",
+      "description": "Parametri di connessione in sola lettura per questo PLC.",
+      "sections": {
+        "connection": "Connessione PLC",
+        "performance": "Comunicazione e prestazioni",
+        "retry": "Riconnessione",
+        "other": "Altri parametri"
+      },
+      "fields": {
+        "connection_type": {
+          "label": "Metodo di collegamento"
+        },
+        "pys7_connection_type": {
+          "label": "Profilo della connessione S7"
+        },
+        "rack": {
+          "label": "Rack"
+        },
+        "slot": {
+          "label": "Slot"
+        },
+        "local_tsap": {
+          "label": "TSAP locale"
+        },
+        "remote_tsap": {
+          "label": "TSAP remoto"
+        },
+        "scan_interval": {
+          "label": "Intervallo di scansione (s)"
+        },
+        "operation_timeout": {
+          "label": "Timeout operazione (s)"
+        },
+        "optimize_read": {
+          "label": "Ottimizza le letture raggruppate"
+        },
+        "enable_write_batching": {
+          "label": "Raggruppa le scritture"
+        },
+        "enable_metrics": {
+          "label": "Abilita le metriche delle prestazioni"
+        },
+        "max_retries": {
+          "label": "Numero di tentativi"
+        },
+        "retry_backoff_initial": {
+          "label": "Ritardo iniziale tra i tentativi (s)"
+        },
+        "retry_backoff_max": {
+          "label": "Ritardo massimo tra i tentativi (s)"
+        }
+      },
+      "values": {
+        "yes": "Sì",
+        "no": "No",
+        "rack_slot": "Rack e slot",
+        "tsap": "TSAP",
+        "pg": "PG (dispositivo di programmazione)",
+        "op": "OP (pannello operatore)",
+        "s7basic": "S7 Basic"
+      }
     },
     "availability": {
       "title": "Disponibilità connessione",
@@ -1236,30 +1732,68 @@
       "minute_short": "min",
       "current_downtime": "Disconnessione attuale"
     },
-    "connection_detail_sections": {
-      "connection": "Connessione PLC",
-      "performance": "Comunicazione e prestazioni",
-      "retry": "Riconnessione",
-      "other": "Altri parametri"
+    "actions": {
+      "add": "Aggiungi",
+      "edit": "Modifica",
+      "delete": "Elimina",
+      "cancel": "Annulla",
+      "save": "Salva modifiche",
+      "close": "Chiudi",
+      "delete_confirm": "Eliminare questa entità? L'azione non può essere annullata.",
+      "delete_title": "Elimina entità",
+      "select_entity": "Seleziona entità",
+      "delete_selected": "Elimina selezionate",
+      "delete_selected_confirm": "Eliminare le {count} entità selezionate?"
     },
-    "connection_detail_labels": {
-      "connection_type": "Metodo di collegamento",
-      "pys7_connection_type": "Profilo della connessione S7"
+    "errors": {
+      "required_error": "Compila tutti i campi obbligatori.",
+      "cover_required_error": "Inserisci gli indirizzi obbligatori per il tipo di tapparella scelto.",
+      "climate_required_error": "Inserisci l'indirizzo della temperatura obiettivo.",
+      "brightness_state_required_error": "Inserisci l’indirizzo di stato luminosità per una luce dimmerabile.",
+      "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
+      "configuration_load_error": "Impossibile caricare la configurazione YAML.",
+      "configuration_download_error": "Impossibile scaricare la copia di sicurezza.",
+      "invalid_address": "Formato indirizzo non valido.",
+      "duplicate_entry": "Questo elemento è già presente.",
+      "duplicate_addresses_in_import": "L'importazione contiene indirizzi duplicati nello stesso tipo di entità.",
+      "invalid_source_entity": "L'entità sorgente è obbligatoria.",
+      "invalid_number": "Valore numerico non valido.",
+      "invalid_mode_values": "Inserisci uno o più numeri interi separati da virgole (es. 2,3).",
+      "invalid_range": "Il valore minimo non può essere maggiore del valore massimo.",
+      "state_addresses_required": "Quando 'Usa feedback di stato per posizione' è abilitato, gli indirizzi di stato aperto e chiuso sono obbligatori.",
+      "no_items": "Non ci sono elementi configurati da modificare.",
+      "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
+      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
+      "invalid_json": "Payload JSON non valido.",
+      "invalid_selection": "Seleziona un tipo di elemento valido.",
+      "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
+      "scale_raw_requires_min_max": "Se si impostano scala raw min/max, è obbligatorio specificare anche min value e max value.",
+      "scale_requires_all_four": "La scalatura richiede tutti e quattro i parametri: valore minimo, valore massimo, scala raw min e scala raw max.",
+      "text_requires_string_type": "Le entità testo richiedono indirizzi di tipo STRING o WSTRING.",
+      "sync_pulse_conflict": "Sincronizzazione stato e comando a impulso non possono essere attivi contemporaneamente.",
+      "sync_same_address": "La sincronizzazione stato richiede un indirizzo comando diverso dall'indirizzo stato.",
+      "invalid_integer": "Inserisci un numero intero (i decimali non sono consentiti).",
+      "duplicate_preset_value": "Lo stesso valore non può essere assegnato a due modalità HVAC diverse.",
+      "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi."
     },
-    "command_behavior": "Comportamento del comando",
-    "command_behavior_help": "Come Home Assistant controlla l’uscita PLC",
-    "options_section": "Opzioni",
-    "options_section_help": "Impostazioni per il comportamento e il tipo di comando selezionati",
-    "brightness_state_required_error": "Inserisci l’indirizzo di stato luminosità per una luce dimmerabile.",
-    "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
-    "light_ui": {
-      "label": "Tipo di luce",
-      "section_title": "Tipo di luce",
-      "section_help": "Scegli il controllo On/Off o della luminosità",
-      "on_off_title": "On/Off",
-      "on_off_description": "Solo accensione e spegnimento",
-      "dimmable_title": "Dimmerabile",
-      "dimmable_description": "Accensione, spegnimento e regolazione della luminosità"
+    "editor": {
+      "configuration_yaml": "YAML avanzato",
+      "configuration_yaml_title": "Configurazione YAML avanzata",
+      "configuration_yaml_warning": "Modifica contemporaneamente tutte le entità di questo PLC. Il salvataggio sostituisce l’intera configurazione delle entità. Esporta prima una copia di sicurezza.",
+      "import_yaml": "Importa YAML",
+      "export_current_yaml": "Esporta YAML corrente",
+      "download_backup": "Scarica copia di sicurezza",
+      "editor_mode": "Modalità editor",
+      "visual_editor": "Editor grafico",
+      "guided": "Guidato e semplice",
+      "advanced": "Controllo avanzato",
+      "yaml_warning": "La modalità avanzata consente di modificare manualmente tutti i campi. Usa una mappa YAML per una singola entità.",
+      "yaml_label": "Configurazione YAML",
+      "new_entity": "Nuova entità",
+      "edit_entity": "Modifica entità",
+      "configure_new": "Configura una nuova entità",
+      "update_configuration": "Aggiorna la configurazione",
+      "save_help": "I campi vengono salvati direttamente nella configurazione del PLC."
     }
   }
 }
