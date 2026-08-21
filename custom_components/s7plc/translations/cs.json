@@ -1234,6 +1234,16 @@
       "hour_short": "h",
       "minute_short": "min",
       "current_downtime": "Aktuální doba odpojení"
+    },
+    "connection_detail_sections": {
+      "connection": "Připojení PLC",
+      "performance": "Komunikace a výkon",
+      "retry": "Opětovné připojení",
+      "other": "Další parametry"
+    },
+    "connection_detail_labels": {
+      "connection_type": "Způsob připojení",
+      "pys7_connection_type": "Profil připojení S7"
     }
   }
 }

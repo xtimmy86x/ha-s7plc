@@ -1234,6 +1234,16 @@
       "hour_short": "Std.",
       "minute_short": "Min.",
       "current_downtime": "Aktuelle Ausfallzeit"
+    },
+    "connection_detail_sections": {
+      "connection": "SPS-Verbindung",
+      "performance": "Kommunikation und Leistung",
+      "retry": "Wiederverbindung",
+      "other": "Weitere Parameter"
+    },
+    "connection_detail_labels": {
+      "connection_type": "Verbindungsmethode",
+      "pys7_connection_type": "S7-Verbindungsprofil"
     }
   }
 }

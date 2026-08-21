@@ -50,13 +50,86 @@ def test_connection_badge_opens_read_only_connection_details() -> None:
     assert (
         ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
     )
-    assert "Object.entries(entry.data)" in source
+    assert "connectionDetailGroups(data)" in source
+    assert "Object.entries(entry.data)" not in source
     assert 'class="connection-detail"' in source
     assert "openConnectionDetails(entry)" in source
     details_source = source[
         source.index("  openConnectionDetails(entry){") : source.index("  field(")
     ]
     assert "input name=" not in details_source
+
+
+def test_connection_detail_groups_are_ordered_dynamic_and_lossless() -> None:
+    """The executable helper owns ordering and mode-specific filtering."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const simplify=data=>connectionDetailGroups(data).map(group=>({{
+  key:group.key,fields:group.fields.map(field=>field.key)
+}}));
+console.log(JSON.stringify({{
+ rack:simplify({{future_option:42,port:102,slot:1,name:"S7 PLC",rack:0,
+   group_writes:true,connection_type:"rack_slot",host:"192.168.100.89",
+   pys7_connection_type:"pg",scan_interval:1,operation_timeout:5,
+   optimize_read:true,enable_metrics:false,max_retries:3,
+   retry_backoff_initial:0.5,retry_backoff_max:2,local_tsap:"ignored"}}),
+ tsap:simplify({{slot:9,remote_tsap:"03.02",rack:9,connection_type:"tsap",
+   local_tsap:"01.00",pys7_connection_type:"op"}}),
+ incomplete:simplify({{host:"plc.local",new_setting:"kept"}}),
+ empty:simplify(null)
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    assert result["rack"] == [
+        {
+            "key": "connection",
+            "fields": ["connection_type", "pys7_connection_type", "rack", "slot"],
+        },
+        {
+            "key": "performance",
+            "fields": [
+                "scan_interval",
+                "operation_timeout",
+                "optimize_read",
+                "group_writes",
+                "enable_metrics",
+            ],
+        },
+        {
+            "key": "retry",
+            "fields": [
+                "max_retries",
+                "retry_backoff_initial",
+                "retry_backoff_max",
+            ],
+        },
+        {"key": "other", "fields": ["future_option"]},
+    ]
+    assert result["tsap"] == [
+        {
+            "key": "connection",
+            "fields": [
+                "connection_type",
+                "pys7_connection_type",
+                "local_tsap",
+                "remote_tsap",
+            ],
+        }
+    ]
+    assert result["incomplete"] == [
+        {"key": "other", "fields": ["new_setting"]}
+    ]
+    assert result["empty"] == []
 
 
 def test_connection_availability_calculations_cover_unknown_and_transitions() -> None:
@@ -297,6 +370,25 @@ def test_connection_diagnostics_translations_are_complete() -> None:
         assert panel["connection_details_title"]
         assert panel["unknown"]
         assert panel["availability"]["current_downtime"]
+        assert list(panel["connection_detail_sections"]) == [
+            "connection",
+            "performance",
+            "retry",
+            "other",
+        ]
+        assert panel["connection_detail_labels"]["connection_type"]
+        assert panel["connection_detail_labels"]["pys7_connection_type"]
+
+    italian = json.loads(
+        Path("custom_components/s7plc/translations/it.json").read_text(
+            encoding="utf-8"
+        )
+    )["config_panel"]
+    assert italian["connection_detail_labels"] == {
+        "connection_type": "Metodo di collegamento",
+        "pys7_connection_type": "Profilo della connessione S7",
+    }
+    assert italian["connection_detail_sections"]["other"] == "Altri parametri"
 
 
 def test_panel_supports_batch_entity_deletion() -> None:

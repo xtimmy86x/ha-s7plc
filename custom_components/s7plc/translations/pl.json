@@ -1234,6 +1234,16 @@
       "hour_short": "g",
       "minute_short": "min",
       "current_downtime": "Bieżący czas rozłączenia"
+    },
+    "connection_detail_sections": {
+      "connection": "Połączenie PLC",
+      "performance": "Komunikacja i wydajność",
+      "retry": "Ponowne łączenie",
+      "other": "Inne parametry"
+    },
+    "connection_detail_labels": {
+      "connection_type": "Metoda połączenia",
+      "pys7_connection_type": "Profil połączenia S7"
     }
   }
 }

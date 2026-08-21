@@ -1226,6 +1226,16 @@
       "hour_short": "h",
       "minute_short": "m",
       "current_downtime": "Current downtime"
+    },
+    "connection_detail_sections": {
+      "connection": "PLC connection",
+      "performance": "Communication and performance",
+      "retry": "Reconnection",
+      "other": "Other parameters"
+    },
+    "connection_detail_labels": {
+      "connection_type": "Connection method",
+      "pys7_connection_type": "S7 connection profile"
     }
   }
 }

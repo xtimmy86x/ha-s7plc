@@ -1234,6 +1234,16 @@
       "hour_short": "h",
       "minute_short": "min",
       "current_downtime": "Disconnessione attuale"
+    },
+    "connection_detail_sections": {
+      "connection": "Connessione PLC",
+      "performance": "Comunicazione e prestazioni",
+      "retry": "Riconnessione",
+      "other": "Altri parametri"
+    },
+    "connection_detail_labels": {
+      "connection_type": "Metodo di collegamento",
+      "pys7_connection_type": "Profilo della connessione S7"
     }
   }
 }
