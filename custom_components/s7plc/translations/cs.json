@@ -1211,6 +1211,27 @@
       "pg": "PG (programovací zařízení)",
       "op": "OP (operátorský panel)",
       "s7basic": "S7 Basic"
+    },
+    "availability": {
+      "title": "Dostupnost připojení",
+      "last_24_hours": "Posledních 24 hodin",
+      "loading": "Načítání historie připojení…",
+      "timeline_label": "Stavy připojení PLC za posledních 24 hodin",
+      "hours_ago": "Před 24 h",
+      "now": "Nyní",
+      "connected": "Připojeno",
+      "disconnected": "Odpojeno",
+      "unknown": "Neznámé",
+      "percentage": "Dostupnost",
+      "current_uptime": "Aktuální doba připojení",
+      "disconnections": "Odpojení",
+      "unknown_time": "Neznámý čas",
+      "last_disconnection": "Poslední odpojení",
+      "percentage_note": "Dostupnost nezahrnuje neznámá období.",
+      "history_unavailable": "Historická data nejsou dostupná; aktuální stav je stále zobrazen výše.",
+      "day_short": "d",
+      "hour_short": "h",
+      "minute_short": "min"
     }
   }
 }

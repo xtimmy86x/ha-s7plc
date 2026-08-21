@@ -1203,6 +1203,27 @@
       "pg": "PG (programming device)",
       "op": "OP (operator panel)",
       "s7basic": "S7 Basic"
+    },
+    "availability": {
+      "title": "Connection availability",
+      "last_24_hours": "Last 24 hours",
+      "loading": "Loading connection history…",
+      "timeline_label": "PLC connection states over the last 24 hours",
+      "hours_ago": "24h ago",
+      "now": "Now",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "unknown": "Unknown",
+      "percentage": "Availability",
+      "current_uptime": "Current uptime",
+      "disconnections": "Disconnections",
+      "unknown_time": "Unknown time",
+      "last_disconnection": "Last disconnection",
+      "percentage_note": "Availability excludes unknown periods.",
+      "history_unavailable": "Historical data is not available; the current status is still shown above.",
+      "day_short": "d",
+      "hour_short": "h",
+      "minute_short": "m"
     }
   }
 }

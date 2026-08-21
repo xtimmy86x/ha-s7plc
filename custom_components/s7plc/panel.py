@@ -202,6 +202,19 @@ def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
     return payload
 
 
+def _connection_entity_id(hass: Any, entry: Any) -> str | None:
+    """Return the diagnostic connection binary sensor for an entry."""
+    from homeassistant.helpers import entity_registry as er
+
+    runtime_data = getattr(entry, "runtime_data", None)
+    device_id = getattr(runtime_data, "device_id", None)
+    if not device_id:
+        return None
+    return er.async_get(hass).async_get_entity_id(
+        "binary_sensor", DOMAIN, f"{device_id}:connection"
+    )
+
+
 def _selector_options() -> dict[str, Any]:
     """Return device/state class choices used by the panel dropdowns.
 
@@ -233,6 +246,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
     }
     if hass is not None:
         payload["entity_ids"] = _entity_ids_payload(hass, entry)
+        payload["connection_entity_id"] = _connection_entity_id(hass, entry)
     return payload
 
 

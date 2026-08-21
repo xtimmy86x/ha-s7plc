@@ -1211,6 +1211,27 @@
       "pg": "PG (urządzenie programujące)",
       "op": "OP (panel operatorski)",
       "s7basic": "S7 Basic"
+    },
+    "availability": {
+      "title": "Dostępność połączenia",
+      "last_24_hours": "Ostatnie 24 godziny",
+      "loading": "Ładowanie historii połączenia…",
+      "timeline_label": "Stany połączenia PLC w ciągu ostatnich 24 godzin",
+      "hours_ago": "24 godz. temu",
+      "now": "Teraz",
+      "connected": "Połączono",
+      "disconnected": "Rozłączono",
+      "unknown": "Nieznany",
+      "percentage": "Dostępność",
+      "current_uptime": "Bieżący czas działania",
+      "disconnections": "Rozłączenia",
+      "unknown_time": "Nieznany czas",
+      "last_disconnection": "Ostatnie rozłączenie",
+      "percentage_note": "Dostępność nie obejmuje nieznanych okresów.",
+      "history_unavailable": "Dane historyczne są niedostępne; bieżący stan jest nadal widoczny powyżej.",
+      "day_short": "d",
+      "hour_short": "g",
+      "minute_short": "min"
     }
   }
 }
