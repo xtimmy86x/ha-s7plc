@@ -1110,6 +1110,7 @@
     "entities": "Entitäten",
     "connected": "Verbunden",
     "disconnected": "Getrennt",
+    "unknown": "Unbekannt",
     "reload_help": "Änderungen werden durch automatisches Neuladen der Integration angewendet.",
     "add": "Hinzufügen",
     "empty": "Keine Entitäten",

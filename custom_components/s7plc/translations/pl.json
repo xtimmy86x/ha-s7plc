@@ -1110,6 +1110,7 @@
     "entities": "encji",
     "connected": "Połączono",
     "disconnected": "Rozłączono",
+    "unknown": "Nieznany",
     "reload_help": "Zmiany są stosowane przez automatyczne przeładowanie integracji.",
     "add": "Dodaj",
     "empty": "Brak encji",

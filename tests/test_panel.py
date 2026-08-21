@@ -198,6 +198,94 @@ def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
     assert '<span tabindex="0" class="timeline-segment' in source
 
 
+def test_connection_badge_aria_label_is_localized_and_refreshed() -> None:
+    """Initial rendering and live refresh use the same label for every status."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert 'aria-label="${this.connectionBadgeAriaLabel(status)}"' in source
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>({{connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",connection_details_help:"Show connection details"}}[key]);
+panel._loaded=true;panel.entryId="plc";panel.querySelector=()=>badge;
+const labels=[],badge={{classList:{{toggle() {{}}}},setAttribute:(name,value)=>{{if(name==="aria-label")labels.push(value);}}}};
+const statuses=[true,false,null];let index=0;
+panel._hass={{callWS:async()=>[{{entry_id:"plc",connected:statuses[index++]}}]}};
+(async()=>{{
+  const initial=statuses.map(value=>panel.connectionBadgeAriaLabel(value===true?"connected":value===false?"disconnected":"unknown"));
+  for(let i=0;i<statuses.length;i++)await panel.refreshConnectionStatus();
+  console.log(JSON.stringify({{initial,labels}}));
+}})();
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    expected = [
+        "Connected · Show connection details",
+        "Disconnected · Show connection details",
+        "Unknown · Show connection details",
+    ]
+    assert result == {"initial": expected, "labels": expected}
+
+
+def test_connection_history_fallback_preserves_only_valid_live_duration() -> None:
+    """Missing history keeps a valid live uptime/downtime without invented stats."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+console.debug=()=>{{}};
+{source}
+const now=Date.parse("2026-08-21T12:00:00Z");Date.now=()=>now;
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>({{
+  "availability.current_uptime":"Current uptime",
+  "availability.current_downtime":"Current downtime",
+  "availability.history_unavailable":"Historical data is not available.",
+  "availability.day_short":"d","availability.hour_short":"h","availability.minute_short":"m"
+}}[key]||key);
+const states={{
+  on:{{state:"on",last_changed:"2026-08-18T05:00:00Z"}},
+  off:{{state:"off",last_changed:"2026-08-21T11:42:00Z"}},
+  unknown:{{state:"unknown",last_changed:"2026-08-21T11:00:00Z"}},
+  unavailable:{{state:"unavailable",last_changed:"2026-08-21T11:00:00Z"}},
+  missing:{{state:"on"}},invalid:{{state:"off",last_changed:"invalid"}}
+}};
+const run=async(name,history,entity=true)=>{{
+  const container={{innerHTML:""}};panel._hass={{states:entity?{{"binary_sensor.connection":states[name]}}:{{}},callApi:async()=>{{if(history==="error")throw Error("history");return history;}}}};
+  await panel.loadConnectionAvailability({{querySelector:()=>container}},entity?{{connection_entity_id:"binary_sensor.connection"}}:{{}});
+  return container.innerHTML;
+}};
+(async()=>console.log(JSON.stringify({{
+  emptyOn:await run("on",[[]]),errorOff:await run("off","error"),noEntity:await run("on",null,false),
+  unknown:await run("unknown",[[]]),unavailable:await run("unavailable",[[]]),missing:await run("missing",[[]]),invalid:await run("invalid",[[]])
+}})))();
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert "Current uptime" in result["emptyOn"]
+    assert "3d 7h" in result["emptyOn"]
+    assert "Current downtime" in result["errorOff"]
+    assert "18m" in result["errorOff"]
+    for key, markup in result.items():
+        assert "Historical data is not available." in markup
+        assert "connection-timeline" not in markup
+        assert "availability.percentage" not in markup
+        assert "availability.disconnections" not in markup
+        if key not in {"emptyOn", "errorOff"}:
+            assert "availability-stats" not in markup
+
+
 def test_connection_diagnostics_translations_are_complete() -> None:
     paths = [
         Path("custom_components/s7plc/strings.json"),
@@ -207,6 +295,7 @@ def test_connection_diagnostics_translations_are_complete() -> None:
     for path in paths:
         panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
         assert panel["connection_details_title"]
+        assert panel["unknown"]
         assert panel["availability"]["current_downtime"]
 
 

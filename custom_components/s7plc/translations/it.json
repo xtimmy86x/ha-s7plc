@@ -1110,6 +1110,7 @@
     "entities": "entità",
     "connected": "Connesso",
     "disconnected": "Disconnesso",
+    "unknown": "Sconosciuto",
     "reload_help": "Le modifiche vengono applicate ricaricando automaticamente l'integrazione.",
     "add": "Aggiungi",
     "empty": "Nessuna entità",
