@@ -2287,6 +2287,64 @@ console.log(JSON.stringify({{
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_cover_rendered_form_saves_without_use_state_topics_input() -> None:
+    """Regression for #113: save the fields rendered by the real cover editor."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+panel.fieldText=(type,key,part)=>`${{key}}.${{part}}`;
+panel.escape=value=>String(value);
+panel.entries=[];
+const makeRenderedForm=(original,overrides={{}})=>{{
+  const initial={{...original,...COVER_UI_FROM_ENTITY(original),...overrides}};
+  const markup=panel.editorSections("covers",initial);
+  const names=new Set([...markup.matchAll(/ name="([^"]+)"/g)].map(match=>match[1]));
+  const elements={{}};
+  for(const key of names){{
+    const kind=FIELDS.covers.find(field=>field[0]===key)?.[1];
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,markup,reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>{{
+  const form=makeRenderedForm(original,overrides);
+  return {{entity:panel.formEntity(form,original,"covers"),hasDerivedInput:"use_state_topics" in form.elements,markup:form.markup}};
+}};
+const details={{uid:"cover-1",name:"Blind",area:"living",device_class:"blind",scan_interval:2}};
+const commands={{open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1"}};
+const timed=save({{...details}},commands);
+const endstops=save({{...details}},{{...commands,cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}});
+const position=save({{...details}},{{cover_control_mode:"position",position_state_address:"DB1,BYTE0"}});
+const edited=save({{...details,...commands,use_state_topics:true,opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}},{{name:"Edited"}});
+console.log(JSON.stringify({{timed,endstops,position,edited,virtual:COVER_VIRTUAL_FIELDS}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    for saved in ("timed", "endstops", "position", "edited"):
+        assert result[saved]["hasDerivedInput"] is False
+        assert 'name="use_state_topics"' not in result[saved]["markup"]
+        assert not set(result[saved]["entity"]) & set(result["virtual"])
+        for key in ("uid", "area", "device_class", "scan_interval"):
+            assert result[saved]["entity"][key] == result["timed"]["entity"][key]
+
+    assert result["timed"]["entity"]["use_state_topics"] is False
+    assert result["timed"]["entity"]["name"] == "Blind"
+    assert result["endstops"]["entity"]["use_state_topics"] is True
+    assert "use_state_topics" not in result["position"]["entity"]
+    assert result["edited"]["entity"]["use_state_topics"] is True
+    assert result["edited"]["entity"]["name"] == "Edited"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_cover_editor_radio_markup_and_form_submission_regressions() -> None:
     """Exercise the radio values and the same formEntity path used by Save."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
