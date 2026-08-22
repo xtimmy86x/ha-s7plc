@@ -309,7 +309,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "open_command_address": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0). W trybie jednego przycisku sekwencyjnie (otwórz/stop/zamknij/stop).",
+          "open_command_address": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0).",
           "close_command_address": "Adres wyzwalający zamykanie (np. Q0.1, DB1,X0.1).",
           "opening_state_address": "Opcjonalny adres odczytu aktualnego stanu (otwarta).",
           "closing_state_address": "Opcjonalny adres odczytu aktualnego stanu (zamknięta).",
@@ -828,7 +828,7 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "open_command_address": "Adres wyzwalający otwieranie. W trybie jednego przycisku sekwencyjnie (otwórz/stop/zamknij/stop).",
+          "open_command_address": "Adres wyzwalający otwieranie.",
           "close_command_address": "Adres wyzwalający zamykanie.",
           "opening_state_address": "Opcjonalny adres odczytu aktualnego stanu (otwarta).",
           "closing_state_address": "Opcjonalny adres odczytu aktualnego stanu (zamknięta).",
@@ -1605,15 +1605,15 @@
             "description": "Opcjonalny adres PLC do zapisu trybu pracy, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu, włącz dwukierunkową komunikację, aby również odczytywać go z powrotem."
           },
           "preset_mode_bidirectional": {
-            "label": "Odczyt trybu",
-            "description": "Tryb pracy będzie zapisywany tylko lokalnie.",
+            "label": "Synchronizacja",
+            "description": "Tryb pracy nie będzie synchronizowany z PLC, będzie tylko do niego wysyłany.",
             "options": {
-              "false": "Lokalny w Home Assistant",
-              "true": "Synchronizacja z PLC"
+              "false": "Wyłączona",
+              "true": "Włączona"
             },
             "descriptions": {
-              "false": "Tryb pracy będzie zapisywany tylko lokalnie.",
-              "true": "Tryb pracy będzie synchronizowany z PLC."
+              "false": "Wybrany tryb jest zapisywany do PLC, ale nie jest odczytywany z powrotem — Home Assistant zachowuje ostatnio ustawiony tryb.",
+              "true": "Tryb pracy będzie synchronizowany z PLC w obu kierunkach."
             }
           },
           "on_off_address": {
@@ -1697,7 +1697,7 @@
             "description": "Krok regulacji temperatury zadanej (°C)."
           },
           "climate_direct_function": {
-            "label": "Tryby",
+            "label": "Sterowane wyjścia",
             "description": "Steruje wyjściami termostatu.",
             "options": {
               "heat": "Ogrzewanie",
@@ -1777,8 +1777,8 @@
             "description": "Gdy kontrola pracy jest ustawiona na kodowane tryby, wartości są zapisywane pod adresem trybu pracy i zawsze określają, które tryby będą dostępne w Home Assistant. Puste pola wyłączają dany tryb."
           },
           "mode_feedback": {
-            "title": "Odczyt trybu pracy",
-            "description": "Wybierz, w jaki sposób ma być odczytywany tryb pracy. Jest to niezależne od stanu pracy."
+            "title": "Synchronizacja trybu pracy",
+            "description": "Wybierz, czy tryb pracy ma być synchronizowany z PLC w obu kierunkach. Jest to niezależne od stanu pracy."
           },
           "action_feedback": {
             "title": "Stany pracy",
@@ -1787,7 +1787,7 @@
         }
       },
       "entity_sync": {
-        "label": "Sterowniki",
+        "label": "Zapis do PLC",
         "fields": {
           "source_entity": {
             "label": "Encja źródłowa",
