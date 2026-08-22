@@ -2569,3 +2569,62 @@ console.log(JSON.stringify({{
         key in value["toDirect"]
         for key in ("climate_mode_control", "climate_action_feedback")
     )
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_climate_guided_visibility_validation_and_selector_icons() -> None:
+    """Execute Climate visibility, save validation, and selector rendering."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
+{source}
+const visibility=values=>{{const result=CLIMATE_EDITOR_VISIBILITY(values);return {{fields:[...result.fields],sections:[...result.sections]}};}};
+const direct=visibility({{control_mode:"direct",direct_function:"heat",direct_feedback:"inferred",mode_control:"setpoint",action_feedback:"plc"}});
+const inferred=visibility({{control_mode:"setpoint",mode_control:"setpoint",action_feedback:"inferred"}});
+const plc=visibility({{control_mode:"setpoint",mode_control:"coded",action_feedback:"plc"}});
+const panel=Object.create(S7PlcConfigurationPanel.prototype);
+panel.fieldText=(_type,key,part)=>`${{key}}.${{part}}`;panel.escape=value=>String(value);panel.t=key=>key;
+const falseMarkup=panel.field(["preset_mode_bidirectional","climate-selector",true,["false","true"]],{{preset_mode_bidirectional:false}},"climates");
+const trueMarkup=panel.field(["preset_mode_bidirectional","climate-selector",true,["false","true"]],{{preset_mode_bidirectional:true}},"climates");
+const makeForm=selected=>{{const elements={{}};for(const [key,kind] of FIELDS.climates)elements[key]={{type:kind==="checkbox"?"checkbox":kind==="number"?"number":"text",value:"",checked:false}};Object.assign(elements.current_temperature_address,{{value:"DB1,REAL0"}});Object.assign(elements.heating_output_address,{{value:"Q0.0"}});Object.assign(elements.target_temperature_address,{{value:"DB1,REAL4"}});Object.assign(elements.preset_mode_address,{{value:"DB1,BYTE8"}});Object.assign(elements.preset_mode_bidirectional,{{value:selected.bidirectional}});return {{elements,dataset:{{climateChanged:"control_mode"}},reportValidity:()=>true,querySelector:selector=>{{const name=selector.match(/name=\"([^\"]+)/)?.[1];return name?{{value:selected[name]}}:null;}}}};}};
+const original={{uid:"kept",control_mode:"setpoint",current_temperature_address:"DB1,REAL0",target_temperature_address:"DB1,REAL4",hvac_status_address:"DB1,BYTE8"}};
+const directEntity=panel.formEntity(makeForm({{control_mode:"direct",climate_direct_function:"heat",climate_direct_feedback:"inferred",climate_mode_control:"setpoint",climate_action_feedback:"plc",bidirectional:"false"}}),original,"climates");
+let statusError="";try{{panel.formEntity(makeForm({{control_mode:"setpoint",climate_direct_function:"heat",climate_direct_feedback:"inferred",climate_mode_control:"setpoint",climate_action_feedback:"plc",bidirectional:"true"}}),{{current_temperature_address:"DB1,REAL0",target_temperature_address:"DB1,REAL4"}},"climates");}}catch(error){{statusError=error.message;}}
+const booleanFalse=panel.formEntity(makeForm({{control_mode:"setpoint",climate_direct_function:"heat",climate_direct_feedback:"inferred",climate_mode_control:"coded",climate_action_feedback:"inferred",bidirectional:"false"}}),{{}},"climates").preset_mode_bidirectional;
+const booleanTrue=panel.formEntity(makeForm({{control_mode:"setpoint",climate_direct_function:"heat",climate_direct_feedback:"inferred",climate_mode_control:"coded",climate_action_feedback:"inferred",bidirectional:"true"}}),{{}},"climates").preset_mode_bidirectional;
+console.log(JSON.stringify({{direct,inferred,plc,falseMarkup,trueMarkup,directEntity,statusError,booleanFalse,booleanTrue}}));
+"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    status_fields = {"hvac_status_address"} | {
+        f"hvac_status_{status}_values"
+        for status in (
+            "off",
+            "heating",
+            "cooling",
+            "idle",
+            "drying",
+            "fan",
+            "preheating",
+            "defrosting",
+        )
+    }
+    assert "climate-action-feedback" not in value["direct"]["sections"]
+    assert "climate-direct-feedback" in value["direct"]["sections"]
+    assert "climate_action_feedback" not in value["direct"]["fields"]
+    assert status_fields.isdisjoint(value["direct"]["fields"])
+    assert "climate-action-feedback" in value["inferred"]["sections"]
+    assert status_fields.isdisjoint(value["inferred"]["fields"])
+    assert status_fields <= set(value["plc"]["fields"])
+    assert "climate-mode-feedback" in value["plc"]["sections"]
+    assert "hvac_status_address" not in value["directEntity"]
+    assert value["directEntity"]["uid"] == "kept"
+    assert value["statusError"] == "errors.climate_status_required_error"
+    assert "mdi:history" in value["falseMarkup"]
+    assert "mdi:sync" in value["trueMarkup"]
+    assert "mdi:undefined" not in value["falseMarkup"] + value["trueMarkup"]
+    assert value["booleanFalse"] is False
+    assert value["booleanTrue"] is True
