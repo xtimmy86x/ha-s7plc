@@ -563,8 +563,8 @@
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_heat_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_auto_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste).",
-          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste).",
-          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste).",
+          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste).",
+          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste).",
           "hvac_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
@@ -676,8 +676,8 @@
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_heat_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_auto_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste).",
-          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste).",
-          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste).",
+          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste).",
+          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste).",
           "hvac_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
@@ -1566,13 +1566,13 @@
         "fields": {
           "control_mode": {
             "label": "Typ",
-            "description": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i aktualny stan.",
+            "description": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i opcjonalny stan.",
             "options": {
               "direct": "Kontroler",
               "setpoint": "Klient"
             },
             "descriptions": {
-              "direct": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i aktualny stan.",
+              "direct": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i opcjonalny stan.",
               "setpoint": "PLC zarządza całym procesem regulacji. Home Assistant pełni tylko rolę klienta."
             }
           },
@@ -1642,11 +1642,11 @@
           },
           "preset_mode_dry_value": {
             "label": "Wartość trybu (osuszanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste)."
           },
           "preset_mode_fan_only_value": {
             "label": "Wartość trybu (wentylowanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste)."
           },
           "hvac_status_address": {
             "label": "Adres odczytu stanów",
