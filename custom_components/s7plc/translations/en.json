@@ -1853,7 +1853,7 @@
       "duplicate_status_value": "The same value can't be assigned to two different HVAC statuses.",
       "cover_commands_required_error": "Open / Close requires both command addresses.",
       "cover_position_required_error": "Position control requires a position state address.",
-      "cover_endstops_required_error": "End-stop feedback requires at least the fully-open or fully-closed address.",
+      "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed end-stop addresses.",
       "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
       "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
       "cover_stop_required_error": "Enabled stop requires a stop command address."

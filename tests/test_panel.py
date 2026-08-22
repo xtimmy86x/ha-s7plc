@@ -2201,7 +2201,8 @@ console.log(JSON.stringify({{
     assert result["traditional"]["cover_control_mode"] == "traditional"
     assert result["position"]["cover_control_mode"] == "position"
     assert result["timed"] == "timed"
-    assert result["endstops"] == result["legacyEndstop"] == "endstops"
+    assert result["endstops"] == "endstops"
+    assert result["legacyEndstop"] == "timed"
     assert result["statusWins"] == "status"
     assert result["bits"] == "bits"
     assert result["traditional"]["cover_stop_enabled"] == "disabled"
@@ -2292,12 +2293,12 @@ console.log(JSON.stringify({{
     assert "tilt_command_address" not in result["disabled"]["tilt"]
     assert "invert_tilt" not in result["disabled"]["tilt"]
 
-    assert result["endstops"]["opening"]["opening_state_address"] == "DB1,X0.2"
-    assert "closing_state_address" not in result["endstops"]["opening"]
-    assert result["endstops"]["closing"]["closing_state_address"] == "DB1,X0.3"
-    assert "opening_state_address" not in result["endstops"]["closing"]
-    assert result["endstops"]["opening"]["use_state_topics"] is False
-    assert result["endstops"]["closing"]["use_state_topics"] is False
+    # Addresses alone do not enable backend end-stop mode. Timed cleanup removes
+    # stale end-stop addresses and persists the explicit false mode flag.
+    for entity in result["endstops"].values():
+        assert "opening_state_address" not in entity
+        assert "closing_state_address" not in entity
+        assert entity["use_state_topics"] is False
 
     traditional = result["switched"]["traditional"]
     for key in (
@@ -2331,6 +2332,75 @@ console.log(JSON.stringify({{
     ):
         assert key not in position
     assert result["hasVirtual"] is False
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_cover_endstop_mode_round_trip_matches_backend_validation() -> None:
+    """End-stop mode is explicit and, like the backend, requires both inputs."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+const error=(original,overrides={{}})=>{{try{{save(original,overrides);return null;}}catch(err){{return err.message;}}}};
+const commands={{open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1"}};
+const both={{...commands,opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}};
+const persisted={{...both,use_state_topics:true}};
+const stale={{...both,use_state_topics:false}};
+const legacy={{...commands,opening_state_address:"DB1,X0.2",use_state_topics:true}};
+console.log(JSON.stringify({{
+  inferred:{{persisted:infer(persisted),stale:infer(stale),legacy:infer(legacy)}},
+  roundTrip:save(persisted),
+  created:save(commands,{{cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}}),
+  timedStale:save(stale),
+  timedFromEndstops:save(persisted,{{cover_position_feedback:"timed"}}),
+  endstopsFromTimed:save(stale,{{cover_position_feedback:"endstops"}}),
+  missing:{{opening:error(commands,{{cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2"}}),closing:error(commands,{{cover_position_feedback:"endstops",closing_state_address:"DB1,X0.3"}}),legacy:error(legacy)}}
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    assert result["inferred"]["persisted"]["cover_position_feedback"] == "endstops"
+    assert result["inferred"]["legacy"]["cover_position_feedback"] == "endstops"
+    assert result["inferred"]["stale"]["cover_position_feedback"] == "timed"
+    for key in ("roundTrip", "created", "endstopsFromTimed"):
+        assert result[key]["use_state_topics"] is True
+        assert result[key]["opening_state_address"] == "DB1,X0.2"
+        assert result[key]["closing_state_address"] == "DB1,X0.3"
+    for key in ("timedStale", "timedFromEndstops"):
+        assert result[key]["use_state_topics"] is False
+        assert "opening_state_address" not in result[key]
+        assert "closing_state_address" not in result[key]
+    assert set(result["missing"].values()) == {
+        "errors.cover_endstops_required_error"
+    }
+
+
+def test_cover_endstop_panel_validation_matches_config_builder() -> None:
+    """Guard against either side relaxing the two-address requirement."""
+    panel = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    backend = Path("custom_components/s7plc/config_validation.py").read_text(
+        encoding="utf-8"
+    )
+    assert "(!entity.opening_state_address||!entity.closing_state_address)" in panel
+    assert "if use_state_topics:" in backend
+    assert "if not opening_state or not closing_state:" in backend
 
 
 def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:

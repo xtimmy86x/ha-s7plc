@@ -1853,7 +1853,7 @@
       "duplicate_status_value": "Lo stesso valore non può essere assegnato a due stati HVAC diversi.",
       "cover_commands_required_error": "Apri / Chiudi richiede entrambi gli indirizzi di comando.",
       "cover_position_required_error": "Il controllo a posizione richiede un indirizzo di stato posizione.",
-      "cover_endstops_required_error": "Il feedback a finecorsa richiede almeno l'indirizzo di completamente aperto o quello di completamente chiuso.",
+      "cover_endstops_required_error": "Il feedback a finecorsa richiede gli indirizzi di finecorsa completamente aperto e completamente chiuso.",
       "cover_status_required_error": "Il feedback con stato PLC unico richiede un indirizzo di stato cover.",
       "cover_tilt_required_error": "L’inclinazione abilitata richiede un indirizzo di stato inclinazione.",
       "cover_stop_required_error": "L’arresto abilitato richiede un indirizzo del comando di arresto."
