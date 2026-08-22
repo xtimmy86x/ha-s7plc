@@ -41,6 +41,104 @@ def test_panel_displays_integration_version() -> None:
     assert 'class="integration-version"' in source
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_cards_use_type_specific_main_address_without_duplicate_chips() -> None:
+    """Card summaries share the backend-compatible main-address precedence."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = rf"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+global.document = {{createElement:()=>{{
+  let value="";
+  return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}}}};
+}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key==="common.entity"?"Entity":key;
+panel.bt=key=>key;
+panel.fieldText=(type,key)=>key;
+panel.type="covers";
+panel.entries=[];
+panel.selectedIndices=new Set();
+const render=(type,items)=>{{
+  panel.type=type;
+  const html=panel.entityCards({{entities:{{[type]:items}}}});
+  return [...html.matchAll(/<div class="details"><b>(.*?)<\/b><code>(.*?)<\/code><div>(.*?)<\/div><\/div>/g)]
+    .map(match=>({{title:match[1],address:match[2],chips:match[3]}}));
+}};
+console.log(JSON.stringify({{
+  named:render("covers",[{{name:"Kitchen blind",open_command_address:"DB1,X0.0"}}]),
+  traditional:render("covers",[{{open_command_address:"DB1,X0.1",close_command_address:"DB1,X0.2"}}]),
+  position:render("covers",[{{position_state_address:"DB1,BYTE2",position_command_address:"DB1,BYTE3"}}]),
+  mixed:render("covers",[{{position_state_address:"DB1,BYTE4",open_command_address:"DB1,X0.4"}}]),
+  missing:render("covers",[{{close_command_address:"DB1,X0.5"}}]),
+  unchanged:{{
+    sensor:render("sensors",[{{address:"DB2,REAL0"}}]),
+    switch:render("switches",[{{state_address:"DB2,X4.0",command_address:"DB2,X4.1"}}]),
+    climate:render("climates",[{{current_temperature_address:"DB2,REAL6"}}]),
+    sync:render("entity_sync",[{{source_entity:"sensor.source",address:"DB2,X10.0"}}])
+  }},
+  escaped:render("covers",[
+    {{name:"<configured & name>",open_command_address:"DB<1>&X0",close_command_address:"<chip & value>"}},
+    {{position_state_address:"<DB & position>"}}
+  ])
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    assert result["named"][0]["title"] == "Kitchen blind"
+    assert result["named"][0]["address"] == "DB1,X0.0"
+    assert "DB1,X0.0" not in result["named"][0]["chips"]
+    assert result["traditional"][0]["title"] == "DB1,X0.1"
+    assert result["traditional"][0]["address"] == "DB1,X0.1"
+    assert "DB1,X0.1" not in result["traditional"][0]["chips"]
+    assert result["position"][0]["title"] == "DB1,BYTE2"
+    assert result["position"][0]["address"] == "DB1,BYTE2"
+    assert "DB1,BYTE2" not in result["position"][0]["chips"]
+    assert result["mixed"][0]["title"] == "DB1,BYTE4"
+    assert result["mixed"][0]["address"] == "DB1,BYTE4"
+    assert "DB1,BYTE4" not in result["mixed"][0]["chips"]
+    assert result["missing"][0]["title"] == "Entity 1"
+    assert result["missing"][0]["address"] == "—"
+
+    assert result["unchanged"] == {
+        "sensor": [{"title": "DB2,REAL0", "address": "DB2,REAL0", "chips": ""}],
+        "switch": [
+            {
+                "title": "DB2,X4.0",
+                "address": "DB2,X4.0",
+                "chips": "<span>command_address: DB2,X4.1</span>",
+            }
+        ],
+        "climate": [
+            {"title": "DB2,REAL6", "address": "DB2,REAL6", "chips": ""}
+        ],
+        "sync": [
+            {
+                "title": "DB2,X10.0",
+                "address": "DB2,X10.0",
+                "chips": "<span>source_entity: sensor.source</span>",
+            }
+        ],
+    }
+    assert result["escaped"] == [
+        {
+            "title": "&lt;configured &amp; name&gt;",
+            "address": "DB&lt;1&gt;&amp;X0",
+            "chips": "<span>close_command_address: &lt;chip &amp; value&gt;</span>",
+        },
+        {
+            "title": "&lt;DB &amp; position&gt;",
+            "address": "&lt;DB &amp; position&gt;",
+            "chips": "",
+        },
+    ]
+
+
 def test_connection_badge_opens_read_only_connection_details() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
