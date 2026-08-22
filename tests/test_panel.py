@@ -1151,7 +1151,15 @@ def test_allowed_fields_match_panel_javascript_catalog() -> None:
     fields_block = re.search(r"const FIELDS = \{(.*?)\n\};", source, re.DOTALL).group(1)
     common_block = re.search(r"const COMMON = \[(.*?)\n\];", source, re.DOTALL).group(1)
     common = re.findall(r'\["([a-z_]+)"', common_block)
-    ui_only = {"cover_control_mode", "cover_position_feedback", "cover_movement_feedback", "cover_stop_enabled", "cover_tilt_enabled", "control_behavior", "light_mode"}  # virtual UI fields
+    ui_only = {
+        "cover_control_mode",
+        "cover_position_feedback",
+        "cover_movement_feedback",
+        "cover_stop_enabled",
+        "cover_tilt_enabled",
+        "control_behavior",
+        "light_mode",
+    }  # virtual UI fields
     for line in fields_block.strip().splitlines():
         entity_type, spec = line.split(":", 1)
         keys = set(
@@ -1546,6 +1554,10 @@ def test_config_flow_translations_cover_every_visible_panel_field() -> None:
                     "control_mode",
                     "control_behavior",
                     "light_mode",
+                    "climate_direct_function",
+                    "climate_direct_feedback",
+                    "climate_mode_control",
+                    "climate_action_feedback",
                 }
                 if mode:
                     visible_keys -= set(hidden[entity_type][mode])
@@ -1572,10 +1584,10 @@ def test_panel_keeps_climate_preset_values_without_preset_mode_address() -> None
         '"preset_mode_fan_only_value"]'
     ) in source
     assert (
-        "if(!form.elements.preset_mode_address?.value.trim())"
-        "{hidden=[...hidden,'preset_mode_bidirectional'];}"
-    ) in source
-    assert "hidden=[...hidden,...CLIMATE_PRESET_VALUE_FIELDS]" not in source
+        "if(!entity.preset_mode_address)delete entity.preset_mode_bidirectional"
+        in source
+    )
+    assert "...CLIMATE_PRESET_VALUE_FIELDS" in source
     assert "CLIMATE_PRESET_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
@@ -1584,10 +1596,8 @@ def test_panel_preserves_climate_status_values_without_status_address() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "CLIMATE_STATUS_VALUE_FIELDS" in source
-    assert (
-        "if(!form.elements.hvac_status_address?.value.trim())"
-        "{hidden=[...hidden,...CLIMATE_STATUS_VALUE_FIELDS];}"
-    ) in source
+    assert "delete entity.hvac_status_address" in source
+    assert "...CLIMATE_STATUS_VALUE_FIELDS" in source
     assert "CLIMATE_STATUS_VALUE_FIELDS.forEach(k=>delete entity[k])" not in source
 
 
@@ -1905,13 +1915,23 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
 
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]" in source
-    assert "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
+    assert (
+        "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
+        in source
+    )
+    assert (
+        "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
+    )
+
 
 def test_panel_tilt_fields_follow_explicit_virtual_toggle() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt']" in source
-    assert 'ui.cover_tilt_enabled===false' in source
+    assert (
+        "if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt']"
+        in source
+    )
+    assert "ui.cover_tilt_enabled===false" in source
+
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_bool_addresses_use_bool_placeholder() -> None:
@@ -2092,8 +2112,12 @@ process.stdout.write(JSON.stringify({
 
 def test_panel_close_command_address_required_for_traditional() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "ui.cover_control_mode==='traditional'&&(!entity.open_command_address||!entity.close_command_address)" in source
+    assert (
+        "ui.cover_control_mode==='traditional'&&(!entity.open_command_address||!entity.close_command_address)"
+        in source
+    )
     assert "errors.cover_commands_required_error" in source
+
 
 def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
     """Regression test: a checkbox field's label/description span is a
@@ -2141,7 +2165,16 @@ console.log(JSON.stringify(FIELDS));
     english = json.loads(
         Path("custom_components/s7plc/translations/en.json").read_text(encoding="utf-8")
     )["config_panel"]
-    technical_kinds = {"text", "number", "checkbox", "select", "control", "light", "cover-selector"}
+    technical_kinds = {
+        "text",
+        "number",
+        "checkbox",
+        "select",
+        "control",
+        "light",
+        "cover-selector",
+        "climate-selector",
+    }
     for entity_type, definitions in fields.items():
         for definition in definitions:
             assert len(definition) <= 4
@@ -2167,12 +2200,23 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
     for path in Path("custom_components/s7plc/translations").glob("*.json"):
         panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
         cover_fields = panel["entity_types"]["covers"]["fields"]
-        assert set(cover_fields["cover_control_mode"]["options"]) == {"traditional", "position"}
-        assert set(cover_fields["cover_position_feedback"]["options"]) == {"timed", "endstops"}
-        assert set(cover_fields["cover_movement_feedback"]["options"]) == {"none", "bits", "status"}
+        assert set(cover_fields["cover_control_mode"]["options"]) == {
+            "traditional",
+            "position",
+        }
+        assert set(cover_fields["cover_position_feedback"]["options"]) == {
+            "timed",
+            "endstops",
+        }
+        assert set(cover_fields["cover_movement_feedback"]["options"]) == {
+            "none",
+            "bits",
+            "status",
+        }
         assert set(
             panel["entity_types"]["climates"]["fields"]["control_mode"]["options"]
         ) == {"direct", "setpoint"}
+
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_cover_virtual_modes_and_cleanup_follow_backend_precedence() -> None:
@@ -2197,7 +2241,11 @@ console.log(JSON.stringify({{
  toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}})
 }}));
 """
-    result = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
     assert result["traditional"]["cover_control_mode"] == "traditional"
     assert result["position"]["cover_control_mode"] == "position"
     assert result["timed"] == "timed"
@@ -2211,12 +2259,30 @@ console.log(JSON.stringify({{
     assert result["position"]["cover_tilt_enabled"] == "enabled"
     traditional = result["toTraditional"]
     assert traditional["uid"] == "kept" and traditional["name"] == "Legacy"
-    assert "position_state_address" not in traditional and "tilt_command_address" not in traditional
-    assert "cover_status_address" not in traditional and "stop_command_address" not in traditional
+    assert (
+        "position_state_address" not in traditional
+        and "tilt_command_address" not in traditional
+    )
+    assert (
+        "cover_status_address" not in traditional
+        and "stop_command_address" not in traditional
+    )
     assert traditional["use_state_topics"] is False
     position = result["toPosition"]
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
-    for key in ("open_command_address", "close_command_address", "opening_state_address", "closing_state_address", "operate_time", "use_state_topics", "cover_opening_address", "stop_command_address", "tilt_state_address", "cover_mode", "feedback_mode"):
+    for key in (
+        "open_command_address",
+        "close_command_address",
+        "opening_state_address",
+        "closing_state_address",
+        "operate_time",
+        "use_state_topics",
+        "cover_opening_address",
+        "stop_command_address",
+        "tilt_state_address",
+        "cover_mode",
+        "feedback_mode",
+    ):
         assert key not in position
 
 
@@ -2387,9 +2453,7 @@ console.log(JSON.stringify({{
         assert result[key]["use_state_topics"] is False
         assert "opening_state_address" not in result[key]
         assert "closing_state_address" not in result[key]
-    assert set(result["missing"].values()) == {
-        "errors.cover_endstops_required_error"
-    }
+    assert set(result["missing"].values()) == {"errors.cover_endstops_required_error"}
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:
@@ -2405,20 +2469,103 @@ def test_cover_endstop_panel_validation_matches_config_builder() -> None:
 
 def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    ordered = ["cover-control", "cover-position-feedback", "cover-movement-feedback", "addresses", "cover-stop", "cover-tilt", "ha"]
-    positions = [source.index(f"'{key}'", source.index("if(type==='covers')return")) for key in ordered]
+    ordered = [
+        "cover-control",
+        "cover-position-feedback",
+        "cover-movement-feedback",
+        "addresses",
+        "cover-stop",
+        "cover-tilt",
+        "ha",
+    ]
+    positions = [
+        source.index(f"'{key}'", source.index("if(type==='covers')return"))
+        for key in ordered
+    ]
     assert positions == sorted(positions)
     assert "this.toYaml(raw)" in source
     assert "COVER_UI_FROM_ENTITY(raw)" not in source
 
 
 def test_cover_translation_modes_have_language_parity() -> None:
-    paths = [Path("custom_components/s7plc/strings.json"), *Path("custom_components/s7plc/translations").glob("*.json")]
-    panels = [json.loads(path.read_text(encoding="utf-8"))["config_panel"] for path in paths]
-    expected_fields = {"cover_control_mode", "cover_position_feedback", "cover_movement_feedback", "cover_stop_enabled", "cover_tilt_enabled"}
-    expected_errors = {"cover_commands_required_error", "cover_position_required_error", "cover_endstops_required_error", "cover_status_required_error", "cover_tilt_required_error", "cover_stop_required_error"}
+    paths = [
+        Path("custom_components/s7plc/strings.json"),
+        *Path("custom_components/s7plc/translations").glob("*.json"),
+    ]
+    panels = [
+        json.loads(path.read_text(encoding="utf-8"))["config_panel"] for path in paths
+    ]
+    expected_fields = {
+        "cover_control_mode",
+        "cover_position_feedback",
+        "cover_movement_feedback",
+        "cover_stop_enabled",
+        "cover_tilt_enabled",
+    }
+    expected_errors = {
+        "cover_commands_required_error",
+        "cover_position_required_error",
+        "cover_endstops_required_error",
+        "cover_status_required_error",
+        "cover_tilt_required_error",
+        "cover_stop_required_error",
+    }
     for panel in panels:
         cover = panel["entity_types"]["covers"]
         assert expected_fields <= cover["fields"].keys()
-        assert set(cover["modes"]) == {"control", "position_feedback", "movement_feedback", "stop", "tilt"}
+        assert set(cover["modes"]) == {
+            "control",
+            "position_feedback",
+            "movement_feedback",
+            "stop",
+            "tilt",
+        }
         assert expected_errors <= panel["errors"].keys()
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_climate_guided_inference_and_cleanup_are_backward_compatible() -> None:
+    """Execute Climate projections and intentional cleanup in JavaScript."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
+{source}
+const infer=CLIMATE_UI_FROM_ENTITY, clean=CLEAN_CLIMATE_ENTITY;
+const mappings={{preset_mode_off_value:null,hvac_status_off_values:"",hvac_status_heating_values:"7"}};
+console.log(JSON.stringify({{
+ heat:infer({{heating_output_address:"Q0.0"}}),
+ cool:infer({{cooling_output_address:"Q0.1"}}),
+ both:infer({{heating_output_address:"Q0.0",cooling_output_address:"Q0.1"}}),
+ partial:clean({{uid:"kept",control_mode:"direct",heating_output_address:"Q0.0",heating_action_address:"I0.0"}},infer({{heating_output_address:"Q0.0",heating_action_address:"I0.0"}})),
+ combinations:[{{}},{{on_off_address:"Q0.0"}},{{preset_mode_address:"DB1,B0"}},{{preset_mode_address:"DB1,B0",on_off_address:"Q0.0"}}].map(infer).map(x=>x.climate_mode_control),
+ sameAddress:clean({{uid:"kept",control_mode:"setpoint",target_temperature_address:"DB1,R0",preset_mode_address:"DB1,B4",hvac_status_address:"DB1,B4",preset_mode_bidirectional:true,...mappings}},{{...infer({{preset_mode_address:"DB1,B4",hvac_status_address:"DB1,B4"}}),control_mode:"setpoint"}}),
+ disableStatus:clean({{control_mode:"setpoint",target_temperature_address:"DB1,R0",hvac_status_address:"DB1,B4",...mappings}},{{...infer({{hvac_status_address:"DB1,B4"}}),control_mode:"setpoint",climate_action_feedback:"inferred"}},["climate_action_feedback"]),
+ disableCoded:clean({{control_mode:"setpoint",target_temperature_address:"DB1,R0",preset_mode_address:"DB1,B4",preset_mode_bidirectional:true,...mappings}},{{...infer({{preset_mode_address:"DB1,B4"}}),control_mode:"setpoint",climate_mode_control:"setpoint"}},["climate_mode_control"]),
+ toDirect:clean({{uid:"kept",control_mode:"setpoint",target_temperature_address:"DB1,R0",preset_mode_address:"DB1,B4",hvac_status_address:"DB1,B4",...mappings}},{{...infer({{}}),control_mode:"direct"}},["control_mode"])
+}}));
+"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value["heat"]["climate_direct_function"] == "heat"
+    assert value["cool"]["climate_direct_function"] == "cool"
+    assert value["both"]["climate_direct_function"] == "heat_cool"
+    assert value["partial"]["heating_action_address"] == "I0.0"
+    assert value["combinations"] == ["setpoint", "on_off", "coded", "coded_on_off"]
+    assert (
+        value["sameAddress"]["preset_mode_address"]
+        == value["sameAddress"]["hvac_status_address"]
+    )
+    assert value["sameAddress"]["preset_mode_bidirectional"] is True
+    assert value["sameAddress"]["uid"] == "kept"
+    assert "hvac_status_address" not in value["disableStatus"]
+    assert value["disableStatus"]["hvac_status_off_values"] == ""
+    assert "preset_mode_address" not in value["disableCoded"]
+    assert value["disableCoded"]["preset_mode_off_value"] is None
+    assert value["toDirect"]["uid"] == "kept"
+    assert not any(
+        key in value["toDirect"]
+        for key in ("climate_mode_control", "climate_action_feedback")
+    )

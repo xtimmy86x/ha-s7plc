@@ -1229,8 +1229,8 @@
         "label": "Przełączniki",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Sposób sterowania",
+            "description": "Sposób sterowania"
           },
           "state_address": {
             "label": "Adres odczytu",
@@ -1282,11 +1282,11 @@
             "description": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
           },
           "opening_state_address": {
-            "label": "Fully-open end stop",
+            "label": "Krańcówka pełnego otwarcia",
             "description": "Opcjonalny adres odczytu aktualnego stanu (otwarta)."
           },
           "closing_state_address": {
-            "label": "Fully-closed end stop",
+            "label": "Krańcówka pełnego zamknięcia",
             "description": "Opcjonalny adres odczytu aktualnego stanu (zamknięta)."
           },
           "cover_opening_address": {
@@ -1346,88 +1346,88 @@
             "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
           },
           "cover_control_mode": {
-            "label": "Control type",
-            "description": "Choose how the PLC controls the cover.",
+            "label": "Typ sterowania",
+            "description": "Wybierz sposób sterowania osłoną przez PLC.",
             "options": {
-              "traditional": "Open / Close",
-              "position": "Position 0–100%"
+              "traditional": "Otwórz / Zamknij",
+              "position": "Pozycja 0–100%"
             },
             "descriptions": {
-              "traditional": "Two discrete open and close commands.",
-              "position": "Numeric position feedback and command."
+              "traditional": "Dwa oddzielne polecenia otwierania i zamykania.",
+              "position": "Liczbowe sprzężenie zwrotne i polecenie pozycji."
             }
           },
           "cover_position_feedback": {
-            "label": "Position feedback",
-            "description": "Choose how terminal position is determined.",
+            "label": "Sprzężenie zwrotne pozycji",
+            "description": "Wybierz sposób określania pozycji krańcowej.",
             "options": {
-              "timed": "Timed",
-              "endstops": "End stops"
+              "timed": "Czasowe",
+              "endstops": "Krańcówki"
             },
             "descriptions": {
-              "timed": "Estimate position using operating time.",
-              "endstops": "Read fully-open and fully-closed limit switches."
+              "timed": "Oszacuj pozycję na podstawie czasu pracy.",
+              "endstops": "Odczytuj krańcówki pełnego otwarcia i zamknięcia."
             }
           },
           "cover_movement_feedback": {
-            "label": "Movement feedback",
-            "description": "Choose how current movement is reported.",
+            "label": "Sprzężenie zwrotne ruchu",
+            "description": "Wybierz sposób zgłaszania bieżącego ruchu.",
             "options": {
-              "none": "None / Estimated",
-              "bits": "Separate bits",
-              "status": "Single PLC status"
+              "none": "Brak / Szacowane",
+              "bits": "Oddzielne bity",
+              "status": "Pojedynczy stan PLC"
             },
             "descriptions": {
-              "none": "Use internal estimation, or position only.",
-              "bits": "Read separate opening, closing, and stopped bits.",
-              "status": "Match one PLC status value."
+              "none": "Użyj wewnętrznego oszacowania lub tylko pozycji.",
+              "bits": "Odczytuj oddzielne bity otwierania, zamykania i zatrzymania.",
+              "status": "Dopasuj jedną wartość stanu PLC."
             }
           },
           "cover_stop_enabled": {
-            "label": "Stop command",
-            "description": "Enable a dedicated PLC stop command.",
+            "label": "Polecenie zatrzymania",
+            "description": "Włącz oddzielne polecenie zatrzymania PLC.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Wyłączone",
+              "enabled": "Włączone"
             },
             "descriptions": {
-              "disabled": "Use the position-cover fallback.",
-              "enabled": "Pulse a dedicated stop address."
+              "disabled": "Użyj zastępczego zatrzymania osłony pozycyjnej.",
+              "enabled": "Wyślij impuls na oddzielny adres zatrzymania."
             }
           },
           "cover_tilt_enabled": {
-            "label": "Tilt",
-            "description": "Enable optional tilt positioning.",
+            "label": "Przechylenie",
+            "description": "Włącz opcjonalne pozycjonowanie przechylenia.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Wyłączone",
+              "enabled": "Włączone"
             },
             "descriptions": {
-              "disabled": "Do not configure tilt.",
-              "enabled": "Read and command tilt position."
+              "disabled": "Nie konfiguruj przechylenia.",
+              "enabled": "Odczytuj i steruj pozycją przechylenia."
             }
           }
         },
         "modes": {
           "control": {
-            "title": "Control type",
-            "description": "Select the control model before entering PLC addresses."
+            "title": "Typ sterowania",
+            "description": "Wybierz model sterowania przed wprowadzeniem adresów PLC."
           },
           "position_feedback": {
-            "title": "Position feedback",
-            "description": "Choose timed estimation or physical end stops."
+            "title": "Sprzężenie zwrotne pozycji",
+            "description": "Wybierz oszacowanie czasowe lub fizyczne krańcówki."
           },
           "movement_feedback": {
-            "title": "Movement feedback",
-            "description": "Keep movement indication independent from terminal position."
+            "title": "Sprzężenie zwrotne ruchu",
+            "description": "Utrzymuj wskazanie ruchu niezależnie od pozycji krańcowej."
           },
           "stop": {
-            "title": "Stop",
-            "description": "Optionally configure a dedicated stop command for position covers."
+            "title": "Zatrzymanie",
+            "description": "Opcjonalnie skonfiguruj oddzielne polecenie zatrzymania dla osłon pozycyjnych."
           },
           "tilt": {
-            "title": "Tilt",
-            "description": "Optional tilt control for position covers."
+            "title": "Przechylenie",
+            "description": "Opcjonalne sterowanie przechyleniem osłon pozycyjnych."
           }
         }
       },
@@ -1435,8 +1435,8 @@
         "label": "Światła",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Sposób sterowania",
+            "description": "Sposób sterowania"
           },
           "light_mode": {
             "label": "Typ światła",
@@ -1565,11 +1565,15 @@
         "label": "Termostaty",
         "fields": {
           "control_mode": {
-            "label": "Tryb sterowania",
-            "description": "Tryb sterowania",
+            "label": "Typ sterowania",
+            "description": "Home Assistant reguluje temperaturę i steruje wyjściami ogrzewania/chłodzenia PLC.",
             "options": {
-              "direct": "Kontroler",
-              "setpoint": "Klient"
+              "direct": "Wyjścia bezpośrednie",
+              "setpoint": "Wartość zadana PLC"
+            },
+            "descriptions": {
+              "direct": "Home Assistant reguluje temperaturę i steruje wyjściami ogrzewania/chłodzenia PLC.",
+              "setpoint": "PLC reguluje temperaturę, a Home Assistant odczytuje i zapisuje wartość zadaną."
             }
           },
           "current_temperature_address": {
@@ -1601,8 +1605,16 @@
             "description": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem."
           },
           "preset_mode_bidirectional": {
-            "label": "Odczytuj tryb HVAC ze sterownika PLC",
-            "description": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb."
+            "label": "Odczyt zwrotny trybu HVAC",
+            "description": "Zachowaj ostatni tryb HVAC zadany przez Home Assistant.",
+            "options": {
+              "false": "Zachowaj ostatni zadany tryb",
+              "true": "Odczytaj bieżący tryb z PLC"
+            },
+            "descriptions": {
+              "false": "Zachowaj ostatni tryb HVAC zadany przez Home Assistant.",
+              "true": "Odczytaj wybrany tryb HVAC z adresu trybu; nie jest to stan pracy ogrzewania/chłodzenia."
+            }
           },
           "on_off_address": {
             "label": "Adres wł./wył.",
@@ -1683,6 +1695,94 @@
           "temp_step": {
             "label": "Krok",
             "description": "Krok regulacji temperatury zadanej (°C)."
+          },
+          "climate_direct_function": {
+            "label": "Ogrzewanie i chłodzenie",
+            "description": "Steruj wyjściem ogrzewania.",
+            "options": {
+              "heat": "Ogrzewanie",
+              "cool": "Chłodzenie",
+              "heat_cool": "Ogrzewanie i chłodzenie"
+            },
+            "descriptions": {
+              "heat": "Steruj wyjściem ogrzewania.",
+              "cool": "Steruj wyjściem chłodzenia.",
+              "heat_cool": "Steruj oddzielnymi wyjściami ogrzewania i chłodzenia."
+            }
+          },
+          "climate_direct_feedback": {
+            "label": "Informacja zwrotna działania",
+            "description": "Określ aktywność na podstawie poleceń termostatu.",
+            "options": {
+              "inferred": "Określana przez Home Assistant",
+              "plc": "Oddzielne bity informacji zwrotnej PLC"
+            },
+            "descriptions": {
+              "inferred": "Określ aktywność na podstawie poleceń termostatu.",
+              "plc": "Odczytaj z PLC opcjonalne bity informacji zwrotnej ogrzewania i chłodzenia."
+            }
+          },
+          "climate_mode_control": {
+            "label": "Sposób sterowania trybem",
+            "description": "Zapisuj tylko wartość zadaną temperatury.",
+            "options": {
+              "setpoint": "Tylko wartość zadana",
+              "on_off": "Wartość zadana + oddzielne Wł./Wył.",
+              "coded": "Kodowane tryby HVAC",
+              "coded_on_off": "Kodowane tryby + oddzielne Wł./Wył."
+            },
+            "descriptions": {
+              "setpoint": "Zapisuj tylko wartość zadaną temperatury.",
+              "on_off": "Zapisuj wartość zadaną i oddzielny bit zasilania.",
+              "coded": "Zapisuj żądane tryby HVAC w PLC jako wartości liczbowe.",
+              "coded_on_off": "Zapisuj kodowane tryby HVAC i oddzielny bit zasilania."
+            }
+          },
+          "climate_action_feedback": {
+            "label": "Źródło stanu pracy",
+            "description": "Określ rzeczywisty stan pracy na podstawie bieżącej i docelowej temperatury.",
+            "options": {
+              "inferred": "Określ na podstawie temperatur",
+              "plc": "Odczytaj kodowany stan z PLC"
+            },
+            "descriptions": {
+              "inferred": "Określ rzeczywisty stan pracy na podstawie bieżącej i docelowej temperatury.",
+              "plc": "Odczytaj rzeczywiste działanie ogrzewania, chłodzenia lub bezczynności z kodowanej wartości PLC."
+            }
+          }
+        },
+        "sections": {
+          "control": {
+            "title": "Typ sterowania",
+            "description": "Wybierz, gdzie ma być wykonywana regulacja temperatury."
+          },
+          "temperature": {
+            "title": "Temperatura",
+            "description": "Skonfiguruj mierzoną temperaturę, limity i wartość zadaną."
+          },
+          "direct_function": {
+            "title": "Funkcja sterowania bezpośredniego",
+            "description": "Wybierz, którymi wyjściami steruje Home Assistant."
+          },
+          "direct_feedback": {
+            "title": "Informacja o działaniu bezpośrednim",
+            "description": "Wybierz sposób wykrywania rzeczywistej aktywności ogrzewania i chłodzenia."
+          },
+          "mode_control": {
+            "title": "Polecenia trybu HVAC",
+            "description": "Wybierz sposób wysyłania przez Home Assistant poleceń wartości zadanej, trybu i zasilania."
+          },
+          "available_modes": {
+            "title": "Dostępne tryby HVAC",
+            "description": "Puste wartości wyłączają dany tryb. Gdy sterowanie kodowane jest włączone, wartości są zapisywane pod adresem trybu i zawsze określają, które tryby udostępnia Home Assistant."
+          },
+          "mode_feedback": {
+            "title": "Odczyt trybu HVAC",
+            "description": "Wybierz, czy wybrany tryb HVAC ma być zapamiętany, czy odczytywany zwrotnie z PLC. Jest to niezależne od stanu pracy."
+          },
+          "action_feedback": {
+            "title": "Informacja o stanie pracy",
+            "description": "Wybierz, jak Home Assistant określa rzeczywiste ogrzewanie, chłodzenie, bezczynność i inne działania robocze."
           }
         }
       },
@@ -1851,12 +1951,18 @@
       "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",
       "duplicate_preset_value": "Ta sama wartość nie może być przypisana do dwóch różnych trybów HVAC.",
       "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC.",
-      "cover_commands_required_error": "Open / Close requires both command addresses.",
-      "cover_position_required_error": "Position control requires a position state address.",
-      "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed end-stop addresses.",
-      "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
-      "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
-      "cover_stop_required_error": "Enabled stop requires a stop command address."
+      "cover_commands_required_error": "Otwórz / Zamknij wymaga obu adresów poleceń.",
+      "cover_position_required_error": "Sterowanie pozycją wymaga adresu stanu pozycji.",
+      "cover_endstops_required_error": "Sprzężenie zwrotne krańcówek wymaga adresów pełnego otwarcia i zamknięcia.",
+      "cover_status_required_error": "Sprzężenie zwrotne pojedynczego stanu PLC wymaga adresu stanu osłony.",
+      "cover_tilt_required_error": "Włączone przechylenie wymaga adresu stanu przechylenia.",
+      "cover_stop_required_error": "Włączone zatrzymanie wymaga adresu polecenia zatrzymania.",
+      "climate_current_temperature_required_error": "Wprowadź adres bieżącej temperatury.",
+      "climate_heating_output_required_error": "Wprowadź adres wyjścia ogrzewania dla wybranej funkcji.",
+      "climate_cooling_output_required_error": "Wprowadź adres wyjścia chłodzenia dla wybranej funkcji.",
+      "climate_preset_mode_required_error": "Wprowadź adres kodowanego trybu HVAC.",
+      "climate_on_off_required_error": "Wprowadź oddzielny adres Wł./Wył.",
+      "climate_status_required_error": "Wprowadź adres stanu pracy PLC."
     },
     "editor": {
       "configuration_yaml": "Zaawansowany YAML",

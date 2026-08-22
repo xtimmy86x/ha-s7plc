@@ -1229,8 +1229,8 @@
         "label": "Spínače",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Chování ovládání",
+            "description": "Chování ovládání"
           },
           "state_address": {
             "label": "Stavová adresa",
@@ -1282,11 +1282,11 @@
             "description": "Hodnota(y) PLC znamenající, že kryt je zastaven (nehýbe se), čtená z výše uvedené adresy stavu. Jedno nebo více celých čísel oddělených čárkami. Ponechte prázdné pro přeskočení tohoto stavu."
           },
           "opening_state_address": {
-            "label": "Fully-open end stop",
+            "label": "Koncový spínač zcela otevřeno",
             "description": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená."
           },
           "closing_state_address": {
-            "label": "Fully-closed end stop",
+            "label": "Koncový spínač zcela zavřeno",
             "description": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená."
           },
           "cover_opening_address": {
@@ -1346,88 +1346,88 @@
             "description": "Třída zařízení Home Assistant pro upřesnění UI/chování (např. shutter, blind, garage)."
           },
           "cover_control_mode": {
-            "label": "Control type",
-            "description": "Choose how the PLC controls the cover.",
+            "label": "Typ řízení",
+            "description": "Zvolte, jak PLC ovládá kryt.",
             "options": {
-              "traditional": "Open / Close",
-              "position": "Position 0–100%"
+              "traditional": "Otevřít / Zavřít",
+              "position": "Pozice 0–100 %"
             },
             "descriptions": {
-              "traditional": "Two discrete open and close commands.",
-              "position": "Numeric position feedback and command."
+              "traditional": "Dva samostatné příkazy pro otevření a zavření.",
+              "position": "Číselná zpětná vazba a příkaz pozice."
             }
           },
           "cover_position_feedback": {
-            "label": "Position feedback",
-            "description": "Choose how terminal position is determined.",
+            "label": "Zpětná vazba pozice",
+            "description": "Zvolte způsob určení koncové pozice.",
             "options": {
-              "timed": "Timed",
-              "endstops": "End stops"
+              "timed": "Časovaná",
+              "endstops": "Koncové spínače"
             },
             "descriptions": {
-              "timed": "Estimate position using operating time.",
-              "endstops": "Read fully-open and fully-closed limit switches."
+              "timed": "Odhadnout pozici podle doby chodu.",
+              "endstops": "Číst koncové spínače zcela otevřeno a zcela zavřeno."
             }
           },
           "cover_movement_feedback": {
-            "label": "Movement feedback",
-            "description": "Choose how current movement is reported.",
+            "label": "Zpětná vazba pohybu",
+            "description": "Zvolte způsob hlášení aktuálního pohybu.",
             "options": {
-              "none": "None / Estimated",
-              "bits": "Separate bits",
-              "status": "Single PLC status"
+              "none": "Žádná / Odhadovaná",
+              "bits": "Samostatné bity",
+              "status": "Jeden stav PLC"
             },
             "descriptions": {
-              "none": "Use internal estimation, or position only.",
-              "bits": "Read separate opening, closing, and stopped bits.",
-              "status": "Match one PLC status value."
+              "none": "Použít interní odhad nebo pouze pozici.",
+              "bits": "Číst samostatné bity otevírání, zavírání a zastavení.",
+              "status": "Porovnat jednu stavovou hodnotu PLC."
             }
           },
           "cover_stop_enabled": {
-            "label": "Stop command",
-            "description": "Enable a dedicated PLC stop command.",
+            "label": "Příkaz zastavení",
+            "description": "Povolit samostatný příkaz PLC pro zastavení.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Zakázáno",
+              "enabled": "Povoleno"
             },
             "descriptions": {
-              "disabled": "Use the position-cover fallback.",
-              "enabled": "Pulse a dedicated stop address."
+              "disabled": "Použít náhradní způsob zastavení pozičního krytu.",
+              "enabled": "Impulzně aktivovat samostatnou adresu zastavení."
             }
           },
           "cover_tilt_enabled": {
-            "label": "Tilt",
-            "description": "Enable optional tilt positioning.",
+            "label": "Naklopení",
+            "description": "Povolit volitelné nastavení naklopení.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Zakázáno",
+              "enabled": "Povoleno"
             },
             "descriptions": {
-              "disabled": "Do not configure tilt.",
-              "enabled": "Read and command tilt position."
+              "disabled": "Nenastavovat naklopení.",
+              "enabled": "Číst a řídit pozici naklopení."
             }
           }
         },
         "modes": {
           "control": {
-            "title": "Control type",
-            "description": "Select the control model before entering PLC addresses."
+            "title": "Typ řízení",
+            "description": "Před zadáním adres PLC vyberte model řízení."
           },
           "position_feedback": {
-            "title": "Position feedback",
-            "description": "Choose timed estimation or physical end stops."
+            "title": "Zpětná vazba pozice",
+            "description": "Zvolte časovaný odhad nebo fyzické koncové spínače."
           },
           "movement_feedback": {
-            "title": "Movement feedback",
-            "description": "Keep movement indication independent from terminal position."
+            "title": "Zpětná vazba pohybu",
+            "description": "Udržujte indikaci pohybu nezávislou na koncové pozici."
           },
           "stop": {
-            "title": "Stop",
-            "description": "Optionally configure a dedicated stop command for position covers."
+            "title": "Zastavení",
+            "description": "Volitelně nastavte samostatný příkaz zastavení pro poziční kryty."
           },
           "tilt": {
-            "title": "Tilt",
-            "description": "Optional tilt control for position covers."
+            "title": "Naklopení",
+            "description": "Volitelné řízení naklopení pro poziční kryty."
           }
         }
       },
@@ -1435,8 +1435,8 @@
         "label": "Světla",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Chování ovládání",
+            "description": "Chování ovládání"
           },
           "light_mode": {
             "label": "Typ světla",
@@ -1565,11 +1565,15 @@
         "label": "Klimatizace",
         "fields": {
           "control_mode": {
-            "label": "Režim ovládání",
-            "description": "Režim ovládání",
+            "label": "Typ řízení",
+            "description": "Home Assistant reguluje teplotu a ovládá výstupy topení/chlazení PLC.",
             "options": {
               "direct": "Přímé výstupy",
-              "setpoint": "Požadovaná hodnota"
+              "setpoint": "Nastavení PLC"
+            },
+            "descriptions": {
+              "direct": "Home Assistant reguluje teplotu a ovládá výstupy topení/chlazení PLC.",
+              "setpoint": "PLC reguluje teplotu, zatímco Home Assistant čte a zapisuje její nastavenou hodnotu."
             }
           },
           "current_temperature_address": {
@@ -1601,8 +1605,16 @@
             "description": "Volitelná adresa PLC pro zápis režimu HVAC pomocí hodnoty nastavené níže pro každý režim. Užitečné, pokud PLC potřebuje povolit/zakázat regulaci klimatizace. Ve výchozím nastavení pouze pro zápis; povolením preset_mode_bidirectional ji lze také číst zpět."
           },
           "preset_mode_bidirectional": {
-            "label": "Číst režim HVAC z PLC",
-            "description": "Také čte preset_mode_address zpět a použije ji jako aktuální režim HVAC. Ve výchozím nastavení vypnuto kvůli zpětné kompatibilitě: některá PLC považují tuto adresu čistě za příkaz a mohou ji resetovat nebo upravit nezávisle na požadovaném režimu, což by při zpětném čtení mohlo vést k nesprávnému hlášení režimu."
+            "label": "Zpětné čtení režimu HVAC",
+            "description": "Zachovat poslední režim HVAC přikázaný službou Home Assistant.",
+            "options": {
+              "false": "Zachovat poslední přikázaný režim",
+              "true": "Číst aktuální režim z PLC"
+            },
+            "descriptions": {
+              "false": "Zachovat poslední režim HVAC přikázaný službou Home Assistant.",
+              "true": "Číst vybraný režim HVAC zpět z adresy režimu; nejedná se o provozní stav topení/chlazení."
+            }
           },
           "on_off_address": {
             "label": "Adresa zap./vyp.",
@@ -1683,6 +1695,94 @@
           "temp_step": {
             "label": "Krok teploty",
             "description": "Krok nastavení teploty (°C)."
+          },
+          "climate_direct_function": {
+            "label": "Topení a chlazení",
+            "description": "Ovládat výstup topení.",
+            "options": {
+              "heat": "Topení",
+              "cool": "Chlazení",
+              "heat_cool": "Topení a chlazení"
+            },
+            "descriptions": {
+              "heat": "Ovládat výstup topení.",
+              "cool": "Ovládat výstup chlazení.",
+              "heat_cool": "Ovládat samostatné výstupy topení a chlazení."
+            }
+          },
+          "climate_direct_feedback": {
+            "label": "Zpětná vazba akce",
+            "description": "Odvodit aktivitu z příkazů termostatu.",
+            "options": {
+              "inferred": "Odvozeno službou Home Assistant",
+              "plc": "Samostatné bity zpětné vazby PLC"
+            },
+            "descriptions": {
+              "inferred": "Odvodit aktivitu z příkazů termostatu.",
+              "plc": "Číst z PLC volitelné bity zpětné vazby topení a chlazení."
+            }
+          },
+          "climate_mode_control": {
+            "label": "Způsob příkazu režimu",
+            "description": "Zapisovat pouze nastavenou teplotu.",
+            "options": {
+              "setpoint": "Pouze nastavená hodnota",
+              "on_off": "Nastavená hodnota + samostatné Zap/Vyp",
+              "coded": "Kódované režimy HVAC",
+              "coded_on_off": "Kódované režimy + samostatné Zap/Vyp"
+            },
+            "descriptions": {
+              "setpoint": "Zapisovat pouze nastavenou teplotu.",
+              "on_off": "Zapisovat nastavenou hodnotu a samostatný bit napájení.",
+              "coded": "Zapisovat požadované režimy HVAC do PLC jako číselné hodnoty.",
+              "coded_on_off": "Zapisovat kódované režimy HVAC a samostatný bit napájení."
+            }
+          },
+          "climate_action_feedback": {
+            "label": "Zdroj provozního stavu",
+            "description": "Odvodit skutečný provoz z aktuální a cílové teploty.",
+            "options": {
+              "inferred": "Odvodit z teplot",
+              "plc": "Číst kódovaný stav z PLC"
+            },
+            "descriptions": {
+              "inferred": "Odvodit skutečný provoz z aktuální a cílové teploty.",
+              "plc": "Číst skutečnou akci topení, chlazení nebo nečinnosti z kódované hodnoty PLC."
+            }
+          }
+        },
+        "sections": {
+          "control": {
+            "title": "Typ řízení",
+            "description": "Zvolte, kde bude probíhat regulace teploty."
+          },
+          "temperature": {
+            "title": "Teplota",
+            "description": "Nakonfigurujte měřenou teplotu, limity a nastavenou hodnotu."
+          },
+          "direct_function": {
+            "title": "Funkce přímého řízení",
+            "description": "Zvolte, které výstupy bude Home Assistant ovládat."
+          },
+          "direct_feedback": {
+            "title": "Zpětná vazba přímé činnosti",
+            "description": "Zvolte způsob zjišťování skutečné aktivity topení a chlazení."
+          },
+          "mode_control": {
+            "title": "Příkazy režimu HVAC",
+            "description": "Zvolte, jak Home Assistant odesílá příkazy nastavené hodnoty, režimu a napájení."
+          },
+          "available_modes": {
+            "title": "Dostupné režimy HVAC",
+            "description": "Prázdné hodnoty daný režim zakážou. Při povoleném kódovaném řízení se hodnoty zapisují na adresu režimu a vždy určují, které režimy Home Assistant nabízí."
+          },
+          "mode_feedback": {
+            "title": "Zpětná vazba režimu HVAC",
+            "description": "Zvolte, zda se vybraný režim HVAC zapamatuje, nebo se bude číst zpět z PLC. Toto nastavení je oddělené od provozního stavu."
+          },
+          "action_feedback": {
+            "title": "Zpětná vazba provozního stavu",
+            "description": "Zvolte, jak Home Assistant určuje skutečné topení, chlazení, nečinnost a další provozní akce."
           }
         }
       },
@@ -1851,12 +1951,18 @@
       "invalid_integer": "Zadejte celé číslo (desetinná čísla nejsou povolena).",
       "duplicate_preset_value": "Stejnou hodnotu nelze přiřadit dvěma různým režimům HVAC.",
       "duplicate_status_value": "Stejnou hodnotu nelze přiřadit dvěma různým stavům HVAC.",
-      "cover_commands_required_error": "Open / Close requires both command addresses.",
-      "cover_position_required_error": "Position control requires a position state address.",
-      "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed end-stop addresses.",
-      "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
-      "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
-      "cover_stop_required_error": "Enabled stop requires a stop command address."
+      "cover_commands_required_error": "Ovládání Otevřít / Zavřít vyžaduje obě příkazové adresy.",
+      "cover_position_required_error": "Řízení pozice vyžaduje adresu stavu pozice.",
+      "cover_endstops_required_error": "Zpětná vazba koncových spínačů vyžaduje adresy zcela otevřeno i zcela zavřeno.",
+      "cover_status_required_error": "Zpětná vazba jedním stavem PLC vyžaduje adresu stavu krytu.",
+      "cover_tilt_required_error": "Povolené naklopení vyžaduje adresu stavu naklopení.",
+      "cover_stop_required_error": "Povolené zastavení vyžaduje adresu příkazu zastavení.",
+      "climate_current_temperature_required_error": "Zadejte adresu aktuální teploty.",
+      "climate_heating_output_required_error": "Zadejte adresu výstupu topení pro vybranou funkci.",
+      "climate_cooling_output_required_error": "Zadejte adresu výstupu chlazení pro vybranou funkci.",
+      "climate_preset_mode_required_error": "Zadejte adresu kódovaného režimu HVAC.",
+      "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
+      "climate_status_required_error": "Zadejte adresu provozního stavu PLC."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

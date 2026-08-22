@@ -52,11 +52,27 @@ The editor groups fields into PLC connection/data sources, entity-specific
 behavior, and Home Assistant details. The cover editor dynamically shows only
 fields compatible with the selected control type, position feedback, movement
 feedback, stop command, and (for position covers) tilt. These guided choices are
-derived from existing configuration keys and do not add YAML properties. Fields
-that do not apply to the chosen climate control mode are hidden automatically.
-Climate preset mappings
-appear only when a preset mode address is configured, while HVAC status mappings
-appear only when an HVAC status address is configured.
+derived from existing configuration keys and do not add YAML properties.
+
+The Climate editor uses the same guided, card-based approach. It separates
+direct Home Assistant regulation from PLC setpoint regulation, then guides the
+choice of heating/cooling outputs, optional direct-action bits, setpoint power
+and coded-mode commands, and operating-status feedback. Existing entities are
+projected onto these choices from their stored addresses; the choices themselves
+are never written to YAML.
+
+**HVAC mode command/readback** and **operating status** are deliberately separate:
+
+- Mode mappings decide which requested modes Home Assistant exposes and, when a
+  coded mode address is configured, which number it writes. Optional mode
+  readback reads the selected mode from that same address.
+- Operating-status feedback reports what the equipment is actually doing, such
+  as heating, cooling, idle, drying, or defrosting. It can be inferred from
+  temperatures or read from its own coded PLC status address.
+
+The two PLC addresses may be identical when that matches the PLC program, but
+their meanings remain independent. Hidden legacy mappings are retained when
+feedback is temporarily disabled, including explicit empty and disabled values.
 
 Saving updates the selected config entry and Home Assistant reloads the
 integration automatically. The page then refreshes its entity cards and live
@@ -64,10 +80,10 @@ states.
 
 ## Visual Editor
 
-The visual editor is recommended for most changes because it supplies the same
-labels, help text, choices, and defaults as the integration options flow. It
-also performs browser-side checks for required fields and rejects duplicate
-climate preset/status mappings.
+The visual editor is recommended for most changes because it supplies clear
+labels, help text, choices, and historical defaults. It performs only simple
+browser-side required-field checks; the shared backend validator remains
+authoritative for PLC addresses and duplicate Climate preset/status mappings.
 
 PLC address fields use the integration's S7 address rules. Examples include
 `DB1,X0.0`, `DB1,REAL4`, and `DB1,S20.32`. Invalid or incompatible addresses are

@@ -1565,11 +1565,15 @@
         "label": "Climates",
         "fields": {
           "control_mode": {
-            "label": "Control mode",
-            "description": "Control mode",
+            "label": "Control type",
+            "description": "Home Assistant regulates temperature and controls PLC heating/cooling outputs.",
             "options": {
               "direct": "Direct outputs",
-              "setpoint": "Setpoint"
+              "setpoint": "PLC setpoint"
+            },
+            "descriptions": {
+              "direct": "Home Assistant regulates temperature and controls PLC heating/cooling outputs.",
+              "setpoint": "The PLC regulates temperature while Home Assistant reads and writes its setpoint."
             }
           },
           "current_temperature_address": {
@@ -1601,8 +1605,16 @@
             "description": "Optional PLC address to write the HVAC mode, using the value configured below for each mode. Write-only by default; enable HVAC mode feedback to also read it back."
           },
           "preset_mode_bidirectional": {
-            "label": "Read HVAC mode from PLC",
-            "description": "Read the HVAC mode address from the PLC and use a recognized value as the current HVAC mode. Disabled by default because some PLCs reset or modify command addresses independently, which could misreport the mode."
+            "label": "HVAC mode readback",
+            "description": "Keep the last HVAC mode commanded by Home Assistant.",
+            "options": {
+              "false": "Keep last commanded mode",
+              "true": "Read current mode from PLC"
+            },
+            "descriptions": {
+              "false": "Keep the last HVAC mode commanded by Home Assistant.",
+              "true": "Read back the selected HVAC mode from the mode address; this is not heating/cooling operating status."
+            }
           },
           "on_off_address": {
             "label": "On/off address",
@@ -1683,6 +1695,94 @@
           "temp_step": {
             "label": "Temperature step",
             "description": "Temperature adjustment step (°C)."
+          },
+          "climate_direct_function": {
+            "label": "Heating and cooling",
+            "description": "Control a heating output.",
+            "options": {
+              "heat": "Heat",
+              "cool": "Cool",
+              "heat_cool": "Heat and cool"
+            },
+            "descriptions": {
+              "heat": "Control a heating output.",
+              "cool": "Control a cooling output.",
+              "heat_cool": "Control separate heating and cooling outputs."
+            }
+          },
+          "climate_direct_feedback": {
+            "label": "Action feedback",
+            "description": "Infer activity from thermostat commands.",
+            "options": {
+              "inferred": "Inferred by Home Assistant",
+              "plc": "Separate PLC feedback bits"
+            },
+            "descriptions": {
+              "inferred": "Infer activity from thermostat commands.",
+              "plc": "Read optional heating and cooling feedback bits from the PLC."
+            }
+          },
+          "climate_mode_control": {
+            "label": "Mode command method",
+            "description": "Write only the temperature setpoint.",
+            "options": {
+              "setpoint": "Setpoint only",
+              "on_off": "Setpoint + separate On/Off",
+              "coded": "Coded HVAC modes",
+              "coded_on_off": "Coded modes + separate On/Off"
+            },
+            "descriptions": {
+              "setpoint": "Write only the temperature setpoint.",
+              "on_off": "Write the setpoint and a separate power bit.",
+              "coded": "Write numeric requested HVAC modes to the PLC.",
+              "coded_on_off": "Write coded HVAC modes and a separate power bit."
+            }
+          },
+          "climate_action_feedback": {
+            "label": "Operating-status source",
+            "description": "Infer actual operation from current and target temperatures.",
+            "options": {
+              "inferred": "Infer from temperatures",
+              "plc": "Read coded status from PLC"
+            },
+            "descriptions": {
+              "inferred": "Infer actual operation from current and target temperatures.",
+              "plc": "Read the actual heating, cooling, or idle action from a coded PLC value."
+            }
+          }
+        },
+        "sections": {
+          "control": {
+            "title": "Control type",
+            "description": "Choose where temperature regulation runs."
+          },
+          "temperature": {
+            "title": "Temperature",
+            "description": "Configure measured temperature, limits, and setpoint."
+          },
+          "direct_function": {
+            "title": "Direct-control function",
+            "description": "Choose which outputs Home Assistant controls."
+          },
+          "direct_feedback": {
+            "title": "Direct action feedback",
+            "description": "Choose how actual heating and cooling activity is detected."
+          },
+          "mode_control": {
+            "title": "HVAC mode commands",
+            "description": "Choose how Home Assistant sends setpoint, mode, and power commands."
+          },
+          "available_modes": {
+            "title": "Available HVAC modes",
+            "description": "Empty values disable that mode. Values are written to the mode address when coded control is enabled, and always determine which modes Home Assistant exposes."
+          },
+          "mode_feedback": {
+            "title": "HVAC mode feedback",
+            "description": "Choose whether the selected HVAC mode is remembered or read back from the PLC. This is separate from operating status."
+          },
+          "action_feedback": {
+            "title": "Operating-status feedback",
+            "description": "Choose how Home Assistant determines actual heating, cooling, idle, and other operating actions."
           }
         }
       },
@@ -1856,7 +1956,13 @@
       "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed end-stop addresses.",
       "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
       "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
-      "cover_stop_required_error": "Enabled stop requires a stop command address."
+      "cover_stop_required_error": "Enabled stop requires a stop command address.",
+      "climate_current_temperature_required_error": "Enter the current temperature address.",
+      "climate_heating_output_required_error": "Enter the heating output address for the selected function.",
+      "climate_cooling_output_required_error": "Enter the cooling output address for the selected function.",
+      "climate_preset_mode_required_error": "Enter the coded HVAC mode address.",
+      "climate_on_off_required_error": "Enter the separate On/Off address.",
+      "climate_status_required_error": "Enter the PLC operating-status address."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

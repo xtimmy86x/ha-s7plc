@@ -1229,8 +1229,8 @@
         "label": "Schalter",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Steuerungsverhalten",
+            "description": "Steuerungsverhalten"
           },
           "state_address": {
             "label": "Zustandsvariable",
@@ -1282,11 +1282,11 @@
             "description": "SPS-Wert(e) für 'Abdeckung gestoppt' (keine Bewegung), gelesen von der obigen Statusadresse. Eine oder mehrere ganze Zahlen, durch Kommas getrennt. Leer lassen, um diesen Status zu überspringen."
           },
           "opening_state_address": {
-            "label": "Fully-open end stop",
+            "label": "Endschalter vollständig offen",
             "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist (optional)."
           },
           "closing_state_address": {
-            "label": "Fully-closed end stop",
+            "label": "Endschalter vollständig geschlossen",
             "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist (optional)."
           },
           "cover_opening_address": {
@@ -1346,88 +1346,88 @@
             "description": "Home Assistant Geräteklasse zur Verfeinerung der UI/des Verhaltens (z. B. shutter, blind, garage)."
           },
           "cover_control_mode": {
-            "label": "Control type",
-            "description": "Choose how the PLC controls the cover.",
+            "label": "Steuerungstyp",
+            "description": "Wählen Sie aus, wie die SPS die Abdeckung steuert.",
             "options": {
-              "traditional": "Open / Close",
-              "position": "Position 0–100%"
+              "traditional": "Öffnen / Schließen",
+              "position": "Position 0–100 %"
             },
             "descriptions": {
-              "traditional": "Two discrete open and close commands.",
-              "position": "Numeric position feedback and command."
+              "traditional": "Zwei separate Befehle zum Öffnen und Schließen.",
+              "position": "Numerische Positionsrückmeldung und -befehl."
             }
           },
           "cover_position_feedback": {
-            "label": "Position feedback",
-            "description": "Choose how terminal position is determined.",
+            "label": "Positionsrückmeldung",
+            "description": "Wählen Sie aus, wie die Endposition bestimmt wird.",
             "options": {
-              "timed": "Timed",
-              "endstops": "End stops"
+              "timed": "Zeitgesteuert",
+              "endstops": "Endschalter"
             },
             "descriptions": {
-              "timed": "Estimate position using operating time.",
-              "endstops": "Read fully-open and fully-closed limit switches."
+              "timed": "Position anhand der Laufzeit schätzen.",
+              "endstops": "Endschalter für vollständig offen und geschlossen lesen."
             }
           },
           "cover_movement_feedback": {
-            "label": "Movement feedback",
-            "description": "Choose how current movement is reported.",
+            "label": "Bewegungsrückmeldung",
+            "description": "Wählen Sie aus, wie die aktuelle Bewegung gemeldet wird.",
             "options": {
-              "none": "None / Estimated",
-              "bits": "Separate bits",
-              "status": "Single PLC status"
+              "none": "Keine / Geschätzt",
+              "bits": "Separate Bits",
+              "status": "Einzelner SPS-Status"
             },
             "descriptions": {
-              "none": "Use internal estimation, or position only.",
-              "bits": "Read separate opening, closing, and stopped bits.",
-              "status": "Match one PLC status value."
+              "none": "Interne Schätzung oder nur die Position verwenden.",
+              "bits": "Separate Bits für Öffnen, Schließen und Gestoppt lesen.",
+              "status": "Einen SPS-Statuswert abgleichen."
             }
           },
           "cover_stop_enabled": {
-            "label": "Stop command",
-            "description": "Enable a dedicated PLC stop command.",
+            "label": "Stoppbefehl",
+            "description": "Einen separaten SPS-Stoppbefehl aktivieren.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Deaktiviert",
+              "enabled": "Aktiviert"
             },
             "descriptions": {
-              "disabled": "Use the position-cover fallback.",
-              "enabled": "Pulse a dedicated stop address."
+              "disabled": "Die Ersatzfunktion der Positionsabdeckung verwenden.",
+              "enabled": "Eine separate Stoppadresse impulsartig ansteuern."
             }
           },
           "cover_tilt_enabled": {
-            "label": "Tilt",
-            "description": "Enable optional tilt positioning.",
+            "label": "Neigung",
+            "description": "Optionale Neigungspositionierung aktivieren.",
             "options": {
-              "disabled": "Disabled",
-              "enabled": "Enabled"
+              "disabled": "Deaktiviert",
+              "enabled": "Aktiviert"
             },
             "descriptions": {
-              "disabled": "Do not configure tilt.",
-              "enabled": "Read and command tilt position."
+              "disabled": "Keine Neigung konfigurieren.",
+              "enabled": "Neigungsposition lesen und steuern."
             }
           }
         },
         "modes": {
           "control": {
-            "title": "Control type",
-            "description": "Select the control model before entering PLC addresses."
+            "title": "Steuerungstyp",
+            "description": "Wählen Sie das Steuerungsmodell aus, bevor Sie SPS-Adressen eingeben."
           },
           "position_feedback": {
-            "title": "Position feedback",
-            "description": "Choose timed estimation or physical end stops."
+            "title": "Positionsrückmeldung",
+            "description": "Wählen Sie zwischen Zeitschätzung und physischen Endschaltern."
           },
           "movement_feedback": {
-            "title": "Movement feedback",
-            "description": "Keep movement indication independent from terminal position."
+            "title": "Bewegungsrückmeldung",
+            "description": "Die Bewegungsanzeige von der Endposition unabhängig halten."
           },
           "stop": {
-            "title": "Stop",
-            "description": "Optionally configure a dedicated stop command for position covers."
+            "title": "Stopp",
+            "description": "Optional einen separaten Stoppbefehl für Positionsabdeckungen konfigurieren."
           },
           "tilt": {
-            "title": "Tilt",
-            "description": "Optional tilt control for position covers."
+            "title": "Neigung",
+            "description": "Optionale Neigungssteuerung für Positionsabdeckungen."
           }
         }
       },
@@ -1435,8 +1435,8 @@
         "label": "Lichter",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Steuerungsverhalten",
+            "description": "Steuerungsverhalten"
           },
           "light_mode": {
             "label": "Lichttyp",
@@ -1565,11 +1565,15 @@
         "label": "Klima",
         "fields": {
           "control_mode": {
-            "label": "Steuerungsmodus",
-            "description": "Steuerungsmodus",
+            "label": "Steuerungstyp",
+            "description": "Home Assistant regelt die Temperatur und steuert die Heiz-/Kühlausgänge der SPS.",
             "options": {
               "direct": "Direkte Ausgänge",
-              "setpoint": "Sollwert"
+              "setpoint": "SPS-Sollwert"
+            },
+            "descriptions": {
+              "direct": "Home Assistant regelt die Temperatur und steuert die Heiz-/Kühlausgänge der SPS.",
+              "setpoint": "Die SPS regelt die Temperatur, während Home Assistant den Sollwert liest und schreibt."
             }
           },
           "current_temperature_address": {
@@ -1601,8 +1605,16 @@
             "description": "Optionale SPS-Adresse zum Schreiben des HVAC-Modus, wobei der unten für jeden Modus konfigurierte Wert verwendet wird. Nützlich, wenn die SPS die Klimasteuerung aktivieren/deaktivieren muss. Standardmäßig nur zum Schreiben; aktivieren Sie preset_mode_bidirectional, um sie auch zurückzulesen."
           },
           "preset_mode_bidirectional": {
-            "label": "HVAC-Modus aus SPS lesen",
-            "description": "Liest preset_mode_address auch zurück und verwendet sie als aktuellen HVAC-Modus. Standardmäßig deaktiviert, aus Gründen der Abwärtskompatibilität: Einige SPS behandeln diese Adresse ausschließlich als Befehl und können sie unabhängig vom angeforderten Modus zurücksetzen oder ändern, was beim Zurücklesen zu einer falschen Modusanzeige führen könnte."
+            "label": "HVAC-Modusrückmeldung",
+            "description": "Den zuletzt von Home Assistant angeforderten HVAC-Modus beibehalten.",
+            "options": {
+              "false": "Letzten angeforderten Modus beibehalten",
+              "true": "Aktuellen Modus aus der SPS lesen"
+            },
+            "descriptions": {
+              "false": "Den zuletzt von Home Assistant angeforderten HVAC-Modus beibehalten.",
+              "true": "Den ausgewählten HVAC-Modus von der Modusadresse zurücklesen; dies ist nicht der Betriebsstatus für Heizen/Kühlen."
+            }
           },
           "on_off_address": {
             "label": "Ein/Aus-Adresse",
@@ -1683,6 +1695,94 @@
           "temp_step": {
             "label": "Temperaturschritt",
             "description": "Temperaturanpassungsschritt (°C)."
+          },
+          "climate_direct_function": {
+            "label": "Heizen und Kühlen",
+            "description": "Einen Heizungsausgang steuern.",
+            "options": {
+              "heat": "Heizen",
+              "cool": "Kühlen",
+              "heat_cool": "Heizen und Kühlen"
+            },
+            "descriptions": {
+              "heat": "Einen Heizungsausgang steuern.",
+              "cool": "Einen Kühlungsausgang steuern.",
+              "heat_cool": "Separate Heizungs- und Kühlungsausgänge steuern."
+            }
+          },
+          "climate_direct_feedback": {
+            "label": "Aktionsrückmeldung",
+            "description": "Aktivität aus den Thermostatbefehlen ableiten.",
+            "options": {
+              "inferred": "Von Home Assistant abgeleitet",
+              "plc": "Separate SPS-Rückmeldebits"
+            },
+            "descriptions": {
+              "inferred": "Aktivität aus den Thermostatbefehlen ableiten.",
+              "plc": "Optionale Rückmeldebits für Heizen und Kühlen aus der SPS lesen."
+            }
+          },
+          "climate_mode_control": {
+            "label": "Methode für Modusbefehle",
+            "description": "Nur den Temperatursollwert schreiben.",
+            "options": {
+              "setpoint": "Nur Sollwert",
+              "on_off": "Sollwert + separates Ein/Aus",
+              "coded": "Codierte HVAC-Modi",
+              "coded_on_off": "Codierte Modi + separates Ein/Aus"
+            },
+            "descriptions": {
+              "setpoint": "Nur den Temperatursollwert schreiben.",
+              "on_off": "Den Sollwert und ein separates Einschaltbit schreiben.",
+              "coded": "Die angeforderten HVAC-Modi als Zahlenwerte in die SPS schreiben.",
+              "coded_on_off": "Codierte HVAC-Modi und ein separates Einschaltbit schreiben."
+            }
+          },
+          "climate_action_feedback": {
+            "label": "Quelle des Betriebsstatus",
+            "description": "Den tatsächlichen Betrieb aus Ist- und Zieltemperatur ableiten.",
+            "options": {
+              "inferred": "Aus Temperaturen ableiten",
+              "plc": "Codierten Status aus der SPS lesen"
+            },
+            "descriptions": {
+              "inferred": "Den tatsächlichen Betrieb aus Ist- und Zieltemperatur ableiten.",
+              "plc": "Die tatsächliche Aktion Heizen, Kühlen oder Leerlauf aus einem codierten SPS-Wert lesen."
+            }
+          }
+        },
+        "sections": {
+          "control": {
+            "title": "Regelungsart",
+            "description": "Wählen Sie aus, wo die Temperaturregelung ausgeführt wird."
+          },
+          "temperature": {
+            "title": "Temperatur",
+            "description": "Konfigurieren Sie die gemessene Temperatur, Grenzwerte und den Sollwert."
+          },
+          "direct_function": {
+            "title": "Direktregelungsfunktion",
+            "description": "Wählen Sie aus, welche Ausgänge Home Assistant steuert."
+          },
+          "direct_feedback": {
+            "title": "Direkte Aktionsrückmeldung",
+            "description": "Wählen Sie aus, wie die tatsächliche Heiz- und Kühlaktivität erkannt wird."
+          },
+          "mode_control": {
+            "title": "HVAC-Modusbefehle",
+            "description": "Wählen Sie aus, wie Home Assistant Sollwert-, Modus- und Einschaltbefehle sendet."
+          },
+          "available_modes": {
+            "title": "Verfügbare HVAC-Modi",
+            "description": "Leere Werte deaktivieren den jeweiligen Modus. Bei aktivierter codierter Steuerung werden die Werte an die Modusadresse geschrieben und bestimmen immer, welche Modi Home Assistant anbietet."
+          },
+          "mode_feedback": {
+            "title": "HVAC-Modusrückmeldung",
+            "description": "Wählen Sie aus, ob der gewählte HVAC-Modus gespeichert oder aus der SPS zurückgelesen wird. Dies ist vom Betriebsstatus getrennt."
+          },
+          "action_feedback": {
+            "title": "Betriebsstatus-Rückmeldung",
+            "description": "Wählen Sie aus, wie Home Assistant tatsächliches Heizen, Kühlen, Leerlauf und andere Betriebsaktionen bestimmt."
           }
         }
       },
@@ -1749,7 +1849,7 @@
           "label": "Lokales TSAP"
         },
         "remote_tsap": {
-          "label": "Remote TSAP"
+          "label": "Entfernte TSAP"
         },
         "scan_interval": {
           "label": "Scan-Intervall (s)"
@@ -1851,12 +1951,18 @@
       "invalid_integer": "Geben Sie eine ganze Zahl ein (Dezimalzahlen sind nicht zulässig).",
       "duplicate_preset_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Modi zugewiesen werden.",
       "duplicate_status_value": "Derselbe Wert kann nicht zwei verschiedenen HVAC-Status zugewiesen werden.",
-      "cover_commands_required_error": "Open / Close requires both command addresses.",
-      "cover_position_required_error": "Position control requires a position state address.",
-      "cover_endstops_required_error": "End-stop feedback requires both the fully-open and fully-closed end-stop addresses.",
-      "cover_status_required_error": "Single PLC status feedback requires a cover status address.",
-      "cover_tilt_required_error": "Enabled tilt requires a tilt state address.",
-      "cover_stop_required_error": "Enabled stop requires a stop command address."
+      "cover_commands_required_error": "Öffnen / Schließen erfordert beide Befehlsadressen.",
+      "cover_position_required_error": "Die Positionssteuerung erfordert eine Positionszustandsadresse.",
+      "cover_endstops_required_error": "Die Endschalterrückmeldung erfordert die Adressen für vollständig offen und geschlossen.",
+      "cover_status_required_error": "Die Rückmeldung über einen einzelnen SPS-Status erfordert eine Abdeckungsstatusadresse.",
+      "cover_tilt_required_error": "Aktivierte Neigung erfordert eine Neigungszustandsadresse.",
+      "cover_stop_required_error": "Aktivierter Stopp erfordert eine Stoppbefehlsadresse.",
+      "climate_current_temperature_required_error": "Geben Sie die Adresse der aktuellen Temperatur ein.",
+      "climate_heating_output_required_error": "Geben Sie die Adresse des Heizungsausgangs für die ausgewählte Funktion ein.",
+      "climate_cooling_output_required_error": "Geben Sie die Adresse des Kühlungsausgangs für die ausgewählte Funktion ein.",
+      "climate_preset_mode_required_error": "Geben Sie die Adresse für den codierten HVAC-Modus ein.",
+      "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
+      "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

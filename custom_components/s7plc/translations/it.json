@@ -1229,8 +1229,8 @@
         "label": "Interruttori",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Comportamento controllo",
+            "description": "Comportamento controllo"
           },
           "state_address": {
             "label": "Indirizzo stato",
@@ -1435,8 +1435,8 @@
         "label": "Luci",
         "fields": {
           "control_behavior": {
-            "label": "Control Behavior",
-            "description": "Control Behavior"
+            "label": "Comportamento controllo",
+            "description": "Comportamento controllo"
           },
           "light_mode": {
             "label": "Tipo di luce",
@@ -1556,7 +1556,7 @@
             "description": "Indirizzo del PLC su cui scrivere i valori di testo (opzionale). Se omesso, viene usato l'indirizzo di stato."
           },
           "pattern": {
-            "label": "Pattern (regex)",
+            "label": "Espressione regolare (regex)",
             "description": "Pattern regex opzionale per validare l'input del testo."
           }
         }
@@ -1565,11 +1565,15 @@
         "label": "Climatizzazione",
         "fields": {
           "control_mode": {
-            "label": "Modalità di controllo",
-            "description": "Modalità di controllo",
+            "label": "Tipo di controllo",
+            "description": "Home Assistant regola la temperatura e controlla le uscite di riscaldamento/raffreddamento del PLC.",
             "options": {
               "direct": "Uscite dirette",
-              "setpoint": "Setpoint"
+              "setpoint": "Setpoint PLC"
+            },
+            "descriptions": {
+              "direct": "Home Assistant regola la temperatura e controlla le uscite di riscaldamento/raffreddamento del PLC.",
+              "setpoint": "Il PLC regola la temperatura mentre Home Assistant legge e scrive il setpoint."
             }
           },
           "current_temperature_address": {
@@ -1601,8 +1605,16 @@
             "description": "Indirizzo PLC opzionale per scrivere la modalità HVAC, usando il valore configurato di seguito per ciascuna modalità. Utile se il PLC deve abilitare/disabilitare il controllo climatico. Di sola scrittura per impostazione predefinita; abilita la lettura bidirezionale per usarlo anche come feedback."
           },
           "preset_mode_bidirectional": {
-            "label": "Lettura bidirezionale della modalità HVAC",
-            "description": "Legge anche l’indirizzo della modalità HVAC e lo usa come modalità corrente. Disattivato per impostazione predefinita per compatibilità con le versioni precedenti: alcuni PLC trattano questo indirizzo esclusivamente come un comando e potrebbero azzerarlo o modificarlo indipendentemente dalla modalità richiesta, il che potrebbe segnalare la modalità in modo errato se letto."
+            "label": "Lettura modalità HVAC",
+            "description": "Mantieni l'ultima modalità HVAC comandata da Home Assistant.",
+            "options": {
+              "false": "Mantieni l'ultima modalità comandata",
+              "true": "Leggi la modalità corrente dal PLC"
+            },
+            "descriptions": {
+              "false": "Mantieni l'ultima modalità HVAC comandata da Home Assistant.",
+              "true": "Leggi la modalità HVAC selezionata dall'indirizzo della modalità; non si tratta dello stato operativo di riscaldamento/raffreddamento."
+            }
           },
           "on_off_address": {
             "label": "Indirizzo on/off",
@@ -1683,6 +1695,94 @@
           "temp_step": {
             "label": "Passo temperatura",
             "description": "Passo di regolazione della temperatura (°C)."
+          },
+          "climate_direct_function": {
+            "label": "Riscaldamento e raffreddamento",
+            "description": "Controlla un'uscita di riscaldamento.",
+            "options": {
+              "heat": "Riscaldamento",
+              "cool": "Raffreddamento",
+              "heat_cool": "Riscaldamento e raffreddamento"
+            },
+            "descriptions": {
+              "heat": "Controlla un'uscita di riscaldamento.",
+              "cool": "Controlla un'uscita di raffreddamento.",
+              "heat_cool": "Controlla uscite separate di riscaldamento e raffreddamento."
+            }
+          },
+          "climate_direct_feedback": {
+            "label": "Feedback azione",
+            "description": "Deduce l'attività dai comandi del termostato.",
+            "options": {
+              "inferred": "Dedotto da Home Assistant",
+              "plc": "Bit di feedback PLC separati"
+            },
+            "descriptions": {
+              "inferred": "Deduce l'attività dai comandi del termostato.",
+              "plc": "Legge dal PLC i bit di feedback opzionali di riscaldamento e raffreddamento."
+            }
+          },
+          "climate_mode_control": {
+            "label": "Metodo di comando modalità",
+            "description": "Scrive solo il setpoint della temperatura.",
+            "options": {
+              "setpoint": "Solo setpoint",
+              "on_off": "Setpoint + On/Off separato",
+              "coded": "Modalità HVAC codificate",
+              "coded_on_off": "Modalità codificate + On/Off separato"
+            },
+            "descriptions": {
+              "setpoint": "Scrive solo il setpoint della temperatura.",
+              "on_off": "Scrive il setpoint e un bit di alimentazione separato.",
+              "coded": "Scrive nel PLC le modalità HVAC richieste come valori numerici.",
+              "coded_on_off": "Scrive le modalità HVAC codificate e un bit di alimentazione separato."
+            }
+          },
+          "climate_action_feedback": {
+            "label": "Origine stato operativo",
+            "description": "Deduce il funzionamento effettivo dalle temperature corrente e target.",
+            "options": {
+              "inferred": "Deduci dalle temperature",
+              "plc": "Leggi lo stato codificato dal PLC"
+            },
+            "descriptions": {
+              "inferred": "Deduce il funzionamento effettivo dalle temperature corrente e target.",
+              "plc": "Legge l'azione effettiva di riscaldamento, raffreddamento o inattività da un valore PLC codificato."
+            }
+          }
+        },
+        "sections": {
+          "control": {
+            "title": "Tipo di controllo",
+            "description": "Scegli dove viene eseguita la regolazione della temperatura."
+          },
+          "temperature": {
+            "title": "Temperatura",
+            "description": "Configura la temperatura misurata, i limiti e il setpoint."
+          },
+          "direct_function": {
+            "title": "Funzione di controllo diretto",
+            "description": "Scegli quali uscite controlla Home Assistant."
+          },
+          "direct_feedback": {
+            "title": "Feedback azione diretta",
+            "description": "Scegli come rilevare l'attività effettiva di riscaldamento e raffreddamento."
+          },
+          "mode_control": {
+            "title": "Comandi modalità HVAC",
+            "description": "Scegli come Home Assistant invia i comandi di setpoint, modalità e alimentazione."
+          },
+          "available_modes": {
+            "title": "Modalità HVAC disponibili",
+            "description": "I valori vuoti disabilitano la modalità. Quando il controllo codificato è abilitato, i valori vengono scritti nell'indirizzo della modalità e determinano sempre quali modalità espone Home Assistant."
+          },
+          "mode_feedback": {
+            "title": "Feedback modalità HVAC",
+            "description": "Scegli se memorizzare la modalità HVAC selezionata o rileggerla dal PLC. Questa impostazione è separata dallo stato operativo."
+          },
+          "action_feedback": {
+            "title": "Feedback stato operativo",
+            "description": "Scegli come Home Assistant determina le azioni effettive di riscaldamento, raffreddamento, inattività e gli altri stati operativi."
           }
         }
       },
@@ -1856,7 +1956,13 @@
       "cover_endstops_required_error": "Il feedback a finecorsa richiede gli indirizzi di finecorsa completamente aperto e completamente chiuso.",
       "cover_status_required_error": "Il feedback con stato PLC unico richiede un indirizzo di stato cover.",
       "cover_tilt_required_error": "L’inclinazione abilitata richiede un indirizzo di stato inclinazione.",
-      "cover_stop_required_error": "L’arresto abilitato richiede un indirizzo del comando di arresto."
+      "cover_stop_required_error": "L’arresto abilitato richiede un indirizzo del comando di arresto.",
+      "climate_current_temperature_required_error": "Inserisci l'indirizzo della temperatura corrente.",
+      "climate_heating_output_required_error": "Inserisci l'indirizzo dell'uscita di riscaldamento per la funzione selezionata.",
+      "climate_cooling_output_required_error": "Inserisci l'indirizzo dell'uscita di raffreddamento per la funzione selezionata.",
+      "climate_preset_mode_required_error": "Inserisci l'indirizzo della modalità HVAC codificata.",
+      "climate_on_off_required_error": "Inserisci l'indirizzo On/Off separato.",
+      "climate_status_required_error": "Inserisci l'indirizzo dello stato operativo del PLC."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
