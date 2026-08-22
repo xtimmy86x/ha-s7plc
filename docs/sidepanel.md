@@ -1,12 +1,13 @@
 # S7 PLC Side Panel
 
 > [!IMPORTANT]
-> Starting with version **7.0.0**, the config flow for entity management will be
-> deprecated and entities can be configured only from this side panel.
+> Entity management through the legacy Entity Options Flow was removed in
+> version **7.0.0**. The **S7 PLC Side Panel** is now the only supported
+> interface for managing entities.
 
 The integration registers a native **S7 PLC** page in the Home Assistant
-sidebar. It is the quickest way to inspect and maintain PLC entities without
-stepping through the integration options flow for each change.
+sidebar. It is the current interface for adding, editing, deleting, importing,
+and exporting PLC entities.
 
 ## Availability and Access
 
@@ -130,8 +131,9 @@ Use **Export YAML** to download the document currently shown in the editor, or
 **Import YAML** to load a `.yaml`/`.yml` file into the editor. Importing a file
 does not change Home Assistant until **Save changes** is selected. Because a
 save replaces all entity lists, export a backup before making bulk changes.
-Existing unique IDs in exported files are retained so restored entities keep
-their Home Assistant identity; missing or duplicate IDs are safely regenerated.
+Valid UIDs are retained when restoring to the same Config Entry. When importing
+into another Config Entry, or when UIDs are missing or duplicated, safe UIDs are
+generated. The YAML document backs up entities only, not connection settings.
 
 ## Deleting Entities
 
@@ -141,14 +143,15 @@ might need to restore it; see [Export and Import](configuration.md#export-and-im
 
 ## Side Panel vs. Integration Options
 
-The side panel is the recommended interface for routine entity creation and
-maintenance, and becomes the only supported entity-configuration interface in
-version 7.0.0. On releases before 7.0.0, you can continue to use
-**Settings → Devices & Services → S7 PLC → Configure** for:
+The initial Config Flow still adds a PLC, and **Settings → Devices & Services
+→ S7 PLC → Configure** still opens the Options Flow for connection settings.
+Neither is an entity editor in version 7.0.0.
 
-- PLC host, Rack/Slot or TSAP, timeout, retry, and performance settings;
-- bulk configuration import and export;
-- the classic guided entity workflows.
-
-Both interfaces operate on the same configuration. A change made in one is
-visible in the other after the integration reloads.
+| Function | Interface |
+|----------|-----------|
+| Add a PLC | Initial Config Flow |
+| Modify the connection | Integration **Configure** / Options Flow |
+| Add or modify entities | Side Panel |
+| Delete entities | Side Panel |
+| Back up and restore entities | Side Panel YAML |
+| Connection diagnostics and status | Side Panel |

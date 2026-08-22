@@ -64,7 +64,7 @@ Direct + lightweight custom component using `pys7`.
 - Network connectivity between Home Assistant and PLC
 
 > ℹ️ For S7-1200/1500: Ensure data blocks have **Optimized block access disabled** if using absolute addressing.
-> ℹ️ For Logo! 8 (0BA8+): use Rack/Slot connection (`rack: 0`, `slot: 2`). For Logo! 0BA7 and older: use TSAP connection (see [addressing docs](docs/addressing.md#logo-0ba7-and-older)).
+> ℹ️ For Logo! 8 (0BA8+): use Rack/Slot connection (`rack: 0`, `slot: 2`). For Logo! 0BA7 and older: use TSAP connection (see [addressing docs](docs/addressing.md#logo-0ba7-and-older-legacy)).
 
 ### Installation
 
@@ -83,22 +83,30 @@ Direct + lightweight custom component using `pys7`.
 ### Basic Setup
 
 > [!IMPORTANT]
-> Starting with version **7.0.0**, the config flow for entity management will be
-> deprecated. From that version onward, entities can be configured only through
-> the **S7 PLC side panel**.
+> Entity management through the legacy Entity Options Flow was removed in
+> version **7.0.0**. The initial Config Flow and the connection Options Flow
+> remain available; entities are managed only through the **S7 PLC Side Panel**.
 
-1. Go to **Settings → Devices & Services** → **Add Integration**
-2. Search for **"S7 PLC"**
-3. Choose connection type:
+1. Install the integration and restart Home Assistant.
+2. Go to **Settings → Devices & Services** → **Add Integration**.
+3. Search for and add **S7 PLC**.
+4. Choose connection type:
    - **Rack/Slot** (default): Standard connection for most PLCs and Logo! 8
    - **TSAP**: For specific configurations, Logo! 0BA7 and older, or legacy systems
-4. Enter PLC connection details:
+5. Enter the PLC connection details and let the Config Flow verify the connection:
    - Host, Port
    - Rack/Slot (typically `0/1` for S7-1200/1500, `0/2` for S7-300/400 and Logo! 8)
    - or Local/Remote TSAP for TSAP mode (e.g. `10.00` / `10.01` for Logo! 0BA7)
-5. Configure timeout and retry settings for your network
-6. Add entities through the **S7 PLC side panel**. On releases before 7.0.0,
-   **Configure** → **Add items** is also available.
+6. Configure timeout and retry settings for your network.
+7. Open **S7 PLC** from the Home Assistant sidebar, then add and manage entities
+   in the Side Panel.
+
+### Changing the Connection
+
+**Settings → Devices & Services → S7 PLC → Configure** opens the Options
+Flow exclusively for connection settings: name, host and port, Rack/Slot or
+TSAP, pyS7 connection type, global scan interval, timeout, retry and backoff,
+optimized reads, write batching, and metrics. It does not manage entities.
 
 ---
 
