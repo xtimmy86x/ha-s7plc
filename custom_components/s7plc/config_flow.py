@@ -1062,7 +1062,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_create_entry(title="", data=self._options)
 
-    # ====== STEP 0: choose action (main menu) ======
+    # Open connection settings immediately when the options flow starts.
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Open the PLC connection form directly."""
         return await self.async_step_connection(user_input)

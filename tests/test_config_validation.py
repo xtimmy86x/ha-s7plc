@@ -117,3 +117,55 @@ def test_build_entity_item_rejects_invalid_climate_control_mode() -> None:
 
     assert item is None
     assert errors == {"base": "invalid_control_mode"}
+
+
+@pytest.mark.parametrize(
+    ("value_multiplier", "expected"),
+    [("0.25", 0.25), ("1,5", 1.5)],
+)
+def test_build_sensor_normalizes_value_multiplier(
+    value_multiplier: str, expected: float
+) -> None:
+    item, errors = build_entity_item(
+        "sensors",
+        {"address": "DB1,REAL0", "value_multiplier": value_multiplier},
+        options={},
+    )
+
+    assert errors == {}
+    assert item is not None
+    assert item["value_multiplier"] == pytest.approx(expected)
+
+
+def test_build_number_clamps_limits_to_plc_type_range() -> None:
+    item, errors = build_entity_item(
+        "numbers",
+        {
+            "address": "DB1,I2",
+            "min_value": -99999,
+            "max_value": 99999,
+            "step": 1,
+        },
+        options={},
+    )
+
+    assert errors == {}
+    assert item is not None
+    assert item["min_value"] == -32768.0
+    assert item["max_value"] == 32767.0
+
+
+def test_build_climate_setpoint_rejects_decimal_preset_value() -> None:
+    item, errors = build_entity_item(
+        CONF_CLIMATES,
+        {
+            CONF_CLIMATE_CONTROL_MODE: CONTROL_MODE_SETPOINT,
+            "current_temperature_address": "DB1,REAL0",
+            "target_temperature_address": "DB1,REAL4",
+            "preset_mode_heat_value": "2.7",
+        },
+        options={},
+    )
+
+    assert item is None
+    assert errors == {"base": "invalid_integer"}
