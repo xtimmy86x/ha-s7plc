@@ -214,7 +214,7 @@
           "max_value": "Wartość wyjściowa maks.",
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
-          "real_precision": "Miejsca dziesiętne",
+          "real_precision": "Miejsca dziesiętne REAL",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
@@ -230,7 +230,7 @@
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia.",
           "state_class": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk.",
-          "real_precision": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1).",
+          "real_precision": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -443,7 +443,7 @@
           "scale_raw_max": "Wartość wejściowa maks.",
           "min_value": "Limit dolny",
           "max_value": "Limit górny",
-          "real_precision": "Miejsca dziesiętne",
+          "real_precision": "Miejsca dziesiętne REAL",
           "scan_interval": "Interwał skanowania (s)",
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
@@ -460,7 +460,7 @@
           "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
-          "real_precision": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1).",
+          "real_precision": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC.",
           "add_another": "Nie zamykaj okna konfiguracji po zapisie, aby dodać kolejną encje."
         }
@@ -556,7 +556,7 @@
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
-          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje temperaturę zadaną i tryb pracy w obu kierunkach, domyślnie włączone.",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje tryb pracy w obu kierunkach, domyślnie wyłączone.",
           "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
@@ -669,7 +669,7 @@
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
-          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje temperaturę zadaną i tryb pracy w obu kierunkach, domyślnie włączone.",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje tryb pracy w obu kierunkach, domyślnie wyłączone.",
           "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
@@ -740,7 +740,7 @@
           "max_value": "Wartość wyjściowa maks.",
           "unit_of_measurement": "Jednostka miary",
           "state_class": "Klasa stanu",
-          "real_precision": "Miejsca dziesiętne",
+          "real_precision": "Miejsca dziesiętne REAL",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
@@ -755,7 +755,7 @@
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
           "unit_of_measurement": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia.",
           "state_class": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk.",
-          "real_precision": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1).",
+          "real_precision": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
@@ -955,7 +955,7 @@
           "scale_raw_max": "Wartość wejściowa maks.",
           "min_value": "Limit dolny",
           "max_value": "Limit górny",
-          "real_precision": "Miejsca dziesiętne",
+          "real_precision": "Miejsca dziesiętne REAL",
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
@@ -971,7 +971,7 @@
           "scale_raw_max": "Maksymalna wartość wejściowa skalowania liniowego.",
           "min_value": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie.",
           "max_value": "Maksymalna wartość wyjściowa skalowania liniowego.",
-          "real_precision": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1).",
+          "real_precision": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1).",
           "scan_interval": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         }
       },
@@ -1203,8 +1203,8 @@
             "description": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
           },
           "real_precision": {
-            "label": "Miejsca dziesiętne",
-            "description": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1)."
+            "label": "Miejsca dziesiętne REAL",
+            "description": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1)."
           }
         }
       },
@@ -1539,8 +1539,8 @@
             "description": "Maksymalna wartość wejściowa skalowania liniowego."
           },
           "real_precision": {
-            "label": "Miejsca dziesiętne",
-            "description": "Liczba miejsc po przecinku. Pozostaw puste, aby użyć wartości domyślnej (1)."
+            "label": "Miejsca dziesiętne REAL",
+            "description": "Liczba miejsc po przecinku dla wartości REAL. Pozostaw puste, aby użyć wartości domyślnej (1)."
           }
         }
       },
@@ -1566,13 +1566,13 @@
         "fields": {
           "control_mode": {
             "label": "Typ",
-            "description": "Home Assistant zarządza i steruje całym procesem regulacji. PLC dostarcza tylko odczyt temperatury.",
+            "description": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i aktualny stan.",
             "options": {
               "direct": "Kontroler",
               "setpoint": "Klient"
             },
             "descriptions": {
-              "direct": "Home Assistant zarządza i steruje całym procesem regulacji. PLC dostarcza tylko odczyt temperatury.",
+              "direct": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i aktualny stan.",
               "setpoint": "PLC zarządza całym procesem regulacji. Home Assistant pełni tylko rolę klienta."
             }
           },
@@ -1622,31 +1622,31 @@
           },
           "preset_mode_off_value": {
             "label": "Wartość trybu (wył.)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres."
           },
           "preset_mode_heat_value": {
             "label": "Wartość trybu (grzanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
           },
           "preset_mode_cool_value": {
             "label": "Wartość trybu (chłodzenie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
           },
           "preset_mode_heat_cool_value": {
             "label": "Wartość trybu (grzanie/chłodzenie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu."
           },
           "preset_mode_auto_value": {
             "label": "Wartość trybu (auto)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste)."
           },
           "preset_mode_dry_value": {
             "label": "Wartość trybu (osuszanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste)."
           },
           "preset_mode_fan_only_value": {
             "label": "Wartość trybu (wentylowanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste)."
           },
           "hvac_status_address": {
             "label": "Adres odczytu stanów",
@@ -1761,8 +1761,8 @@
             "description": "Konfiguracja parametrów dla temperatury."
           },
           "direct_function": {
-            "title": "Tryby pracy",
-            "description": "Wybierz jeden z dostępnych trybów pracy kontrolera."
+            "title": "Wyjścia",
+            "description": "Wybierz jeden z dostępnych trybów dla wyjść (ogrzewanie, chłodzenie, ogrzewanie/chłodzenie)."
           },
           "direct_feedback": {
             "title": "Stany pracy",
@@ -1818,7 +1818,7 @@
         },
         "pulse": {
           "title": "Sterowanie impulsowe",
-          "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest (zał./wył.) zamiast zmiany jego stanu."
+          "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest impuls (zał./wył.) zamiast zmiany stanu na przeciwny."
         }
       }
     },
