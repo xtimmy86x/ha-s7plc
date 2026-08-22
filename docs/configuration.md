@@ -64,7 +64,7 @@ TSAP (Transport Service Access Point) is an alternative addressing mode that may
 - For S7-300/400 CPUs: often `Local: 01.00`, `Remote: 01.02` or `Remote: 01.01`
 - Check your PLC hardware configuration or consult your system documentation for the correct TSAP values
 
-**Note:** You can change the connection type later by editing the integration configuration.
+**Note:** The connection type is fixed after setup. The Options Flow lets you edit the parameters for the configured Rack/Slot or TSAP mode, but it cannot switch between the two modes.
 
 ## Timeout & Retry Settings
 
@@ -250,9 +250,11 @@ Setpoint control mode: the PLC manages heating/cooling autonomously; Home Assist
 
 The entity exposes a `climate_type` attribute set to **"Setpoint Control"**.
 
-Preset-mode values must be unique, and a status code cannot be assigned to two
-different statuses. The Side Panel rejects ambiguous
-mappings before saving.
+Preset-mode values must be unique only when a **Preset Mode Address** is configured
+and **Bidirectional Preset Mode** is enabled. In write-only configurations, the
+same PLC value may be assigned to multiple modes. A status code cannot be assigned
+to two different HVAC statuses. The Side Panel rejects ambiguous mappings before
+saving.
 
 #### Entity Sync
 
@@ -286,7 +288,7 @@ Need to move your configuration to another Home Assistant instance or keep a bac
 
 The exported file contains every configured entity grouped by type (`sensors`,
 `binary_sensors`, `switches`, `covers`, `buttons`, `lights`, `numbers`, `texts`,
-`climates`, and `entity_syncs`) together with addresses, limits, scan intervals,
+`climates`, and `entity_sync`) together with addresses, limits, scan intervals,
 and other entity metadata.
 
 ### Importing an Entity Backup
