@@ -10,30 +10,30 @@
         }
       },
       "rack_slot": {
-        "title": "Połączenie PLC S7 (Rack/Slot)",
-        "description": "Wprowadź parametry połączenia z PLC używając Rack/Slot. Test połączenia zostanie wykonany przed zapisaniem.",
+        "title": "Połączenie PLC S7 (Kaseta/Gniazdo)",
+        "description": "Wprowadź parametry połączenia z PLC używając Kaseta/Gniazdo. Test połączenia zostanie wykonany przed zapisaniem.",
         "data": {
           "name": "Nazwa",
           "host": "Host",
           "port": "Port",
-          "rack": "Rack",
-          "slot": "Slot",
+          "rack": "Kaseta",
+          "slot": "Gniazdo",
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał odpytywania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
-          "max_retries": "Liczba prób",
+          "max_retries": "Liczba prób komunikacji",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
-          "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów",
-          "enable_metrics": "Włącz metryki wydajności"
+          "optimize_read": "Optymalizacja odczytów wsadowych",
+          "enable_write_batching": "Grupowanie zapisów",
+          "enable_metrics": "Metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC używana w nazwach encji.",
           "host": "Adres IP lub nazwa hosta PLC.",
           "port": "Port ISO-on-TCP, zazwyczaj 102.",
-          "rack": "CPU rack (zwykle 0).",
-          "slot": "CPU slot (1 dla S7-1200/1500).",
+          "rack": "Kaseta CPU (zwykle 0).",
+          "slot": "Gniazdo CPU (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
           "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
           "operation_timeout": "Maksymalny czas w (s) dla pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
@@ -57,12 +57,12 @@
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał odpytywania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
-          "max_retries": "Liczba prób",
+          "max_retries": "Liczba prób komunikacji",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
-          "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów",
-          "enable_metrics": "Włącz metryki wydajności"
+          "optimize_read": "Optymalizacja odczytów wsadowych",
+          "enable_write_batching": "Grupowanie zapisów",
+          "enable_metrics": "Metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC używana w nazwach encji.",
@@ -128,7 +128,7 @@
           "sensors": "Sensor",
           "binary_sensors": "Sensor binarny",
           "switches": "Przełącznik",
-          "covers": "Roleta/Osłona",
+          "covers": "Osłona",
           "buttons": "Przycisk",
           "lights": "Światło",
           "numbers": "Liczba",
@@ -138,8 +138,8 @@
         }
       },
       "covers": {
-        "title": "Dodaj roletę/osłonę",
-        "description": "Wybierz typ rolety/osłony.",
+        "title": "Dodaj osłonę",
+        "description": "Wybierz typ osłony.",
         "menu_options": {
           "covers_traditional": "Standardowa (otwórz/zamknij)",
           "covers_position": "Zaawansowana z pozycją (0-100)"
@@ -170,24 +170,24 @@
           "name": "Nazwa",
           "host": "Host",
           "port": "Port",
-          "rack": "CPU rack (zwykle 0).",
-          "slot": "CPU slot (1 dla S7-1200/1500).",
+          "rack": "Kaseta",
+          "slot": "Gniazdo",
           "pys7_connection_type": "Typ połączenia",
           "scan_interval": "Interwał skanowania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
-          "max_retries": "Liczba prób",
+          "max_retries": "Liczba prób komunikacji",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
           "retry_backoff_max": "Maksymalne opóźnienie przy kolejnych próbach (s)",
-          "optimize_read": "Optymalizuj odczyty wsadowe",
-          "enable_write_batching": "Włącz grupowanie zapisów",
-          "enable_metrics": "Włącz metryki wydajności"
+          "optimize_read": "Optymalizacja odczytów wsadowych",
+          "enable_write_batching": "Grupowanie zapisów",
+          "enable_metrics": "Metryki wydajności"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC używana w nazwach encji.",
           "host": "Adres IP lub nazwa hosta PLC.",
           "port": "Port ISO-on-TCP, zazwyczaj 102.",
-          "rack": "CPU rack (zwykle 0).",
-          "slot": "CPU slot (1 dla S7-1200/1500).",
+          "rack": "Kaseta CPU (zwykle 0).",
+          "slot": "Gniazdo CPU (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
           "scan_interval": "Interwał skanowania PLC w (s), można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
           "operation_timeout": "Maksymalny czas w (s) dla pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
@@ -284,8 +284,8 @@
         }
       },
       "covers_traditional": {
-        "title": "Dodaj standardową osłonę/roletę (otwórz/zamknij)",
-        "description": "Utwórz osłonę/roletę z dedykowanymi adresami zapisu położenia (otwórz/zamknij) i opcjonalnym odczytem stanu (otwarta/zamknięta).",
+        "title": "Dodaj standardową osłonę (otwórz/zamknij)",
+        "description": "Utwórz osłonę z dedykowanymi adresami zapisu położenia (otwórz/zamknij) i opcjonalnym odczytem stanu (otwarta/zamknięta).",
         "data": {
           "open_command_address": "Adres zapisu otwórz",
           "close_command_address": "Adres zapisu zamknij",
@@ -316,13 +316,13 @@
           "cover_opening_address": "Opcjonalny adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
           "cover_closing_address": "Opcjonalny adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
           "cover_stopped_address": "Opcjonalny adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
-          "cover_status_address": "Opcjonalny adres raportujący stan w czasie rzeczywistym (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad boolowskimi adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), gdy skonfigurowane.",
+          "cover_status_address": "Opcjonalny adres odczytu stanów (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana).",
           "cover_status_open_values": "Wartość(-i) oznaczające, że roleta jest całkowicie otwarta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Po dopasowaniu roleta zostanie zgłoszona jako otwarta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closed_values": "Wartość(-i) oznaczające, że roleta jest całkowicie zamknięta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Po dopasowaniu roleta zostanie zgłoszona jako zamknięta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_opening_values": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closing_values": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_stopped_values": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
-          "operate_time": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej.",
+          "operate_time": "Maksymalny czas, przez jaki wyjście sterujące pozostaje aktywne. Rzeczywisty stan ruchu z (adresu stanów, lub z adresów stanu otwarta/zamknięta/otwieranie/zamykanie/zatrzymania) zatrzymuje roletę od razu, gdy potwierdzi zakończenie ruchu, ten czas działa tylko wtedy, gdy adres stanów lub adresy stanu nie są skonfigurowane, albo nigdy nie potwierdzone.",
           "use_state_topics": "Włącz, aby używać adresów stanu (otwarta/zamknięta) dla określenia położenia. Gdy wyłączone, położenie będzie wynikać z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -332,12 +332,12 @@
         }
       },
       "covers_position": {
-        "title": "Dodaj zaawansowaną osłonę/roletę z pozycją (0-100)",
-        "description": "Utwórz osłonę/roletę z pozycją (0-100). Pozycja (0-zamknięta, pozycja >= 1 - otwarta).",
+        "title": "Dodaj zaawansowaną osłonę z pozycją (0-100)",
+        "description": "Utwórz osłonę z pozycją (0-100). Pozycja (0-zamknięta, pozycja >= 1 - otwarta).",
         "data": {
           "position_state_address": "Adres odczytu pozycji",
           "position_command_address": "Adres zapisu pozycji",
-          "stop_command_address": "Adres zapisu zatrzymaj",
+          "stop_command_address": "Adres zapisu stop",
           "stop_pulse_duration": "Długość impulsu (s)",
           "tilt_state_address": "Adres odczytu przechylenia",
           "tilt_command_address": "Adres zapisu przechylenia",
@@ -356,11 +356,11 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "position_state_address": "Adres odczytu pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres zapisu nowej pozycji osłony/rolety (0-100). Jeśli brak, użyty zostanie adres odczytu.",
-          "stop_command_address": "Opcjonalny adres zapisu komendy (zatrzymaj). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę.",
-          "stop_pulse_duration": "Długość impulsu dla adresu zapisu zatrzymaj (0.1-60s), domyślnie (0.5s).",
-          "tilt_state_address": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/zatrzymaj).",
+          "position_state_address": "Adres odczytu pozycji osłony (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres zapisu nowej pozycji osłony (0-100). Jeśli brak, użyty zostanie adres odczytu.",
+          "stop_command_address": "Opcjonalny adres zapisu komendy (stop). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę.",
+          "stop_pulse_duration": "Długość impulsu dla adresu zapisu stop (0.1-60s), domyślnie (0.5s).",
+          "tilt_state_address": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/stop).",
           "tilt_command_address": "Opcjonalny adres zapisu przechylenia. Jeśli pominięty, używany jest adres odczytu przechylenia.",
           "invert_tilt": "Odwraca skalę przechylenia (0 staje się 100 i odwrotnie) dla siłowników podłączonych w drugą stronę.",
           "cover_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego roleta nie będzie raportować stanu (otwieranie/zamykanie/zatrzymana).",
@@ -413,7 +413,7 @@
           "add_another": "Dodaj kolejną encje po zapisaniu"
         },
         "data_description": {
-          "state_address": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)",
+          "state_address": "Adres odczytu stanu (np. Q0.0, DB1,X0.1).",
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -526,7 +526,7 @@
           "current_temperature_address": "Adres odczytu temperatury",
           "target_temperature_address": "Adres zapisu temperatury zadanej",
           "preset_mode_address": "Adres trybu HVAC",
-          "preset_mode_bidirectional": "Odczytuj tryb HVAC ze sterownika PLC",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja",
           "on_off_address": "Adres wł./wył.",
           "preset_mode_off_value": "Wartość trybu (wył.)",
           "preset_mode_heat_value": "Wartość trybu (grzanie)",
@@ -556,15 +556,15 @@
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
-          "preset_mode_bidirectional": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb.",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje tryb pracy w obu kierunkach, domyślnie wyłączone.",
           "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_heat_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_auto_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste).",
-          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste).",
-          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste).",
+          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste).",
+          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste).",
           "hvac_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
@@ -640,7 +640,7 @@
           "current_temperature_address": "Adres temperatury aktualnej",
           "target_temperature_address": "Adres temperatury zadanej",
           "preset_mode_address": "Adres trybu HVAC",
-          "preset_mode_bidirectional": "Odczytuj tryb HVAC ze sterownika PLC",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja",
           "on_off_address": "Adres wł./wył.",
           "preset_mode_off_value": "Wartość trybu (wył.)",
           "preset_mode_heat_value": "Wartość trybu (grzanie)",
@@ -669,15 +669,15 @@
           "current_temperature_address": "Adres odczytu temperatury aktualnej (np. DB1,REAL0, DB2,INT4).",
           "target_temperature_address": "Adres zapisu temperatury zadanej (np. DB1,REAL4, DB2,INT8).",
           "preset_mode_address": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem.",
-          "preset_mode_bidirectional": "Odczytuje również preset_mode_address i używa go jako bieżącego trybu HVAC. Domyślnie wyłączone dla zachowania kompatybilności wstecznej: niektóre PLC traktują ten adres wyłącznie jako komendę i mogą go resetować lub modyfikować niezależnie od żądanego trybu, co przy odczycie mogłoby błędnie zgłaszać tryb.",
+          "preset_mode_bidirectional": "Dwukierunkowa komunikacja synchronizuje tryb pracy w obu kierunkach, domyślnie wyłączone.",
           "on_off_address": "Opcjonalny adres (wł./wył.), dla urządzeń bez własnego trybu pracy (wył.), np. (nagrzewnica/chłodnica). Zapisuje (fałsz/0), gdy tryb pracy zostanie ustawiony na (wył.), oraz (prawda/1) dla każdego innego trybu. Odczytywany również z powrotem, aby odzwierciedlić rzeczywisty stan.",
           "preset_mode_off_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wył., np. 0). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu. Jeśli skonfigurowano adres (wł./wył.), ta wartość jest ignorowana dla trybu (wył.), tryb pozostaje dostępny i jest przełączany przez ten adres.",
           "preset_mode_heat_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie, np. 1). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (chłodzenie, np. 2). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_heat_cool_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (grzanie/chłodzenie, np. 3). Pozostaw puste, aby ukryć ten tryb z listy trybów termostatu.",
           "preset_mode_auto_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (auto np. 6) starszy odpowiednik trybu (grzanie/chłodzenie), domyślnie (puste).",
-          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste).",
-          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste).",
+          "preset_mode_dry_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste).",
+          "preset_mode_fan_only_value": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste).",
           "hvac_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego stan zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
           "hvac_status_off_values": "Wartość(-i) oznaczające (wył.), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 0 lub 0,10). Pozostaw puste, aby pominąć ten stan.",
           "hvac_status_heating_values": "Wartość(-i) oznaczające (grzanie), odczytywane z adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 1,11). Pozostaw puste, aby pominąć ten stan.",
@@ -804,7 +804,7 @@
         }
       },
       "edit_cover": {
-        "title": "Edytuj standardową osłonę/roletę (otwórz/zamknij)",
+        "title": "Edytuj standardową osłonę (otwórz/zamknij)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "open_command_address": "Adres zapisu otwórz",
@@ -835,13 +835,13 @@
           "cover_opening_address": "Opcjonalny adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
           "cover_closing_address": "Opcjonalny adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
           "cover_stopped_address": "Opcjonalny adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta).",
-          "cover_status_address": "Opcjonalny adres raportujący stan w czasie rzeczywistym (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad boolowskimi adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), gdy skonfigurowane.",
+          "cover_status_address": "Opcjonalny adres odczytu stanów (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana).",
           "cover_status_open_values": "Wartość(-i) oznaczające, że roleta jest całkowicie otwarta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Po dopasowaniu roleta zostanie zgłoszona jako otwarta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closed_values": "Wartość(-i) oznaczające, że roleta jest całkowicie zamknięta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Po dopasowaniu roleta zostanie zgłoszona jako zamknięta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_opening_values": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan.",
           "cover_status_closing_values": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
           "cover_status_stopped_values": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan.",
-          "operate_time": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej.",
+          "operate_time": "Maksymalny czas, przez jaki wyjście sterujące pozostaje aktywne. Rzeczywisty stan ruchu z (adresu stanów, lub z adresów stanu otwarta/zamknięta/otwieranie/zamykanie/zatrzymania) zatrzymuje roletę od razu, gdy potwierdzi zakończenie ruchu, ten czas działa tylko wtedy, gdy adres stanów lub adresy stanu nie są skonfigurowane, albo nigdy nie potwierdzone.",
           "use_state_topics": "Włącz, aby używać adresów stanu (otwarta/zamknięta) dla określenia położenia. Gdy wyłączone, położenie będzie wynikać z czasu otwarcia/zamknięcia.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -850,12 +850,12 @@
         }
       },
       "edit_cover_position": {
-        "title": "Edytuj zaawansowaną osłonę/roletę z pozycją (0-100)",
+        "title": "Edytuj zaawansowaną osłonę z pozycją (0-100)",
         "description": "Zaktualizuj parametry dla tej encji.",
         "data": {
           "position_state_address": "Adres odczytu pozycji",
           "position_command_address": "Adres zapisu pozycji",
-          "stop_command_address": "Adres zapisu zatrzymaj",
+          "stop_command_address": "Adres zapisu stop",
           "stop_pulse_duration": "Długość impulsu (s)",
           "tilt_state_address": "Adres odczytu przechylenia",
           "tilt_command_address": "Adres zapisu przechylenia",
@@ -873,11 +873,11 @@
           "invert_position": "Odwróć pozycję"
         },
         "data_description": {
-          "position_state_address": "Adres odczytu pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4).",
-          "position_command_address": "Adres zapisu nowej pozycji osłony/rolety (0-100). Jeśli brak, użyty zostanie adres odczytu.",
-          "stop_command_address": "Opcjonalny adres zapisu komendy (zatrzymaj). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę.",
-          "stop_pulse_duration": "Długość impulsu dla adresu zapisu zatrzymaj (0.1-60s), domyślnie (0.5s).",
-          "tilt_state_address": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/zatrzymaj).",
+          "position_state_address": "Adres odczytu pozycji osłony (0-100, np. DB1,B0, DB2,W4).",
+          "position_command_address": "Adres zapisu nowej pozycji osłony (0-100). Jeśli brak, użyty zostanie adres odczytu.",
+          "stop_command_address": "Opcjonalny adres zapisu komendy (stop). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę.",
+          "stop_pulse_duration": "Długość impulsu dla adresu zapisu stop (0.1-60s), domyślnie (0.5s).",
+          "tilt_state_address": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/stop).",
           "tilt_command_address": "Opcjonalny adres zapisu przechylenia. Jeśli pominięty, używany jest adres odczytu przechylenia.",
           "invert_tilt": "Odwraca skalę przechylenia (0 staje się 100 i odwrotnie) dla siłowników podłączonych w drugą stronę.",
           "cover_status_address": "Opcjonalny adres odczytu stanów w czasie rzeczywistym, porównywany z wartościami skonfigurowanymi poniżej. Bez niego roleta nie będzie raportować stanu (otwieranie/zamykanie/zatrzymana).",
@@ -926,7 +926,7 @@
           "scan_interval": "Interwał skanowania (s)"
         },
         "data_description": {
-          "state_address": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)",
+          "state_address": "Adres odczytu stanu (np. Q0.0, DB1,X0.1).",
           "command_address": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu.",
           "name": "Opcjonalna własna nazwa.",
           "area": "Obszar przypisania encji.",
@@ -1107,12 +1107,12 @@
       "no_plc": "Nie skonfigurowano PLC",
       "no_plc_help": "Najpierw dodaj integrację Siemens S7 w Urządzenia i usługi.",
       "title": "Konfiguracja S7 PLC",
-      "subtitle": "Konfiguruj encje wizualnie lub użyj YAML w opcjach zaawansowanych.",
+      "subtitle": "Wizualny konfigurator z zaawansowanym trybem YAML.",
       "entities": "encji",
       "connected": "Połączono",
       "disconnected": "Rozłączono",
       "unknown": "Nieznany",
-      "reload_help": "Zmiany są stosowane przez automatyczne przeładowanie integracji.",
+      "reload_help": "Zmiany są automatycznie stosowane przez przeładowanie integracji.",
       "empty": "Brak encji",
       "empty_help": "Użyj „Dodaj”, aby utworzyć pierwszą encję.",
       "entity": "Encja",
@@ -1142,7 +1142,7 @@
     },
     "sections": {
       "plc_connection": {
-        "title": "Połączenie PLC",
+        "title": "Połączenie",
         "description": "Adresy i źródła danych"
       },
       "behavior": {
@@ -1154,12 +1154,12 @@
         "description": "Nazwa, obszar i częstotliwość aktualizacji"
       },
       "command_behavior": {
-        "title": "Zachowanie polecenia",
-        "description": "Jak Home Assistant steruje wyjściem PLC"
+        "title": "Sterowanie",
+        "description": "Wybierz typ sterowania przed wprowadzeniem adresów."
       },
       "options": {
         "title": "Opcje",
-        "description": "Ustawienia wybranego zachowania i tryb sterowania"
+        "description": "Ustawienia wybranego sposobu i typu sterowania"
       }
     },
     "entity_types": {
@@ -1229,8 +1229,8 @@
         "label": "Przełączniki",
         "fields": {
           "control_behavior": {
-            "label": "Sposób sterowania",
-            "description": "Sposób sterowania"
+            "label": "Sterowanie",
+            "description": "Sterowanie"
           },
           "state_address": {
             "label": "Adres odczytu",
@@ -1247,7 +1247,7 @@
         }
       },
       "covers": {
-        "label": "Rolety/Osłony",
+        "label": "Osłony",
         "fields": {
           "open_command_address": {
             "label": "Adres zapisu otwórz",
@@ -1259,7 +1259,7 @@
           },
           "cover_status_address": {
             "label": "Adres odczytu stanów",
-            "description": "Opcjonalny adres raportujący stan w czasie rzeczywistym (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad boolowskimi adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), gdy skonfigurowane."
+            "description": "Opcjonalny adres odczytu stanów (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana)."
           },
           "cover_status_open_values": {
             "label": "Wartość(-i) stanu (otwarta)",
@@ -1282,11 +1282,11 @@
             "description": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
           },
           "opening_state_address": {
-            "label": "Krańcówka pełnego otwarcia",
+            "label": "Adres stanu otwarta",
             "description": "Opcjonalny adres odczytu aktualnego stanu (otwarta)."
           },
           "closing_state_address": {
-            "label": "Krańcówka pełnego zamknięcia",
+            "label": "Adres stanu zamknięta",
             "description": "Opcjonalny adres odczytu aktualnego stanu (zamknięta)."
           },
           "cover_opening_address": {
@@ -1310,16 +1310,16 @@
             "description": "Adres zapisu nowej pozycji osłony/rolety (0-100). Jeśli brak, użyty zostanie adres odczytu."
           },
           "stop_command_address": {
-            "label": "Adres zapisu zatrzymaj",
-            "description": "Opcjonalny adres zapisu komendy (zatrzymaj). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę."
+            "label": "Adres zapisu stop",
+            "description": "Opcjonalny adres zapisu komendy (stop). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę."
           },
           "stop_pulse_duration": {
             "label": "Długość impulsu (s)",
-            "description": "Długość impulsu dla adresu zapisu zatrzymaj (0.1-60s), domyślnie (0.5s)."
+            "description": "Długość impulsu dla adresu zapisu stop (0.1-60s), domyślnie (0.5s)."
           },
           "tilt_state_address": {
             "label": "Adres odczytu przechylenia",
-            "description": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/zatrzymaj)."
+            "description": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/stop)."
           },
           "tilt_command_address": {
             "label": "Adres zapisu przechylenia",
@@ -1346,88 +1346,88 @@
             "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
           },
           "cover_control_mode": {
-            "label": "Typ sterowania",
-            "description": "Wybierz sposób sterowania osłoną przez PLC.",
+            "label": "Sterowanie",
+            "description": "Wybierz typ sterowania przed wprowadzeniem adresów.",
             "options": {
               "traditional": "Otwórz / Zamknij",
               "position": "Pozycja 0–100%"
             },
             "descriptions": {
-              "traditional": "Dwa oddzielne polecenia otwierania i zamykania.",
-              "position": "Liczbowe sprzężenie zwrotne i polecenie pozycji."
+              "traditional": "Proste sterowanie otwórz i zamknij.",
+              "position": "Zaawansowane sterowanie z pozycją."
             }
           },
           "cover_position_feedback": {
-            "label": "Sprzężenie zwrotne pozycji",
-            "description": "Wybierz sposób określania pozycji krańcowej.",
+            "label": "Pozycja",
+            "description": "Wybierz sposób identyfikacji pozycji otwarta/zamknięta.",
             "options": {
-              "timed": "Czasowe",
+              "timed": "Czas",
               "endstops": "Krańcówki"
             },
             "descriptions": {
-              "timed": "Oszacuj pozycję na podstawie czasu pracy.",
-              "endstops": "Odczytuj krańcówki pełnego otwarcia i zamknięcia."
+              "timed": "Szacowanie pozycji na podstawie czasu.",
+              "endstops": "Odczyt z adresów stanu otwarta i zamknięta."
             }
           },
           "cover_movement_feedback": {
-            "label": "Sprzężenie zwrotne ruchu",
-            "description": "Wybierz sposób zgłaszania bieżącego ruchu.",
+            "label": "Ruch",
+            "description": "Wybierz sposób identyfikacji ruchu.",
             "options": {
               "none": "Brak / Szacowane",
               "bits": "Oddzielne bity",
-              "status": "Pojedynczy stan PLC"
+              "status": "Odczyt stanu"
             },
             "descriptions": {
-              "none": "Użyj wewnętrznego oszacowania lub tylko pozycji.",
-              "bits": "Odczytuj oddzielne bity otwierania, zamykania i zatrzymania.",
-              "status": "Dopasuj jedną wartość stanu PLC."
+              "none": "Wewnętrzne szacowanie lub sama pozycja.",
+              "bits": "Odczyt stanów otwieranie, zamykanie i zatrzymania.",
+              "status": "Odczyt stanu w czasie rzeczywistym."
             }
           },
           "cover_stop_enabled": {
-            "label": "Polecenie zatrzymania",
-            "description": "Włącz oddzielne polecenie zatrzymania PLC.",
+            "label": "Stop",
+            "description": "Dedykowany adres zapisu komendy stop.",
             "options": {
               "disabled": "Wyłączone",
               "enabled": "Włączone"
             },
             "descriptions": {
-              "disabled": "Użyj zastępczego zatrzymania osłony pozycyjnej.",
-              "enabled": "Wyślij impuls na oddzielny adres zatrzymania."
+              "disabled": "Zatrzymanie nastąpi poprzez ponowny zapis pozycji.",
+              "enabled": "Zatrzymanie nastąpi poprzez wysłanie impulsu na dedykowany adres zapisu stop."
             }
           },
           "cover_tilt_enabled": {
             "label": "Przechylenie",
-            "description": "Włącz opcjonalne pozycjonowanie przechylenia.",
+            "description": "Włącz opcjonalne sterowanie przechyleniem.",
             "options": {
               "disabled": "Wyłączone",
               "enabled": "Włączone"
             },
             "descriptions": {
-              "disabled": "Nie konfiguruj przechylenia.",
-              "enabled": "Odczytuj i steruj pozycją przechylenia."
+              "disabled": "Brak sterowania przechyleniem.",
+              "enabled": "Pełne sterowanie przechyleniem."
             }
           }
         },
         "modes": {
           "control": {
-            "title": "Typ sterowania",
-            "description": "Wybierz model sterowania przed wprowadzeniem adresów PLC."
+            "title": "Sterowanie",
+            "description": "Wybierz typ sterowania przed wprowadzeniem adresów."
           },
           "position_feedback": {
-            "title": "Sprzężenie zwrotne pozycji",
-            "description": "Wybierz oszacowanie czasowe lub fizyczne krańcówki."
+            "title": "Pozycja",
+            "description": "Wybierz sposób identyfikacji pozycji, czas lub krańcówki."
           },
           "movement_feedback": {
-            "title": "Sprzężenie zwrotne ruchu",
-            "description": "Utrzymuj wskazanie ruchu niezależnie od pozycji krańcowej."
+            "title": "Ruch",
+            "description": "Wybierz sposób identyfikacji ruchu niezależny od krańcówek."
           },
           "stop": {
-            "title": "Zatrzymanie",
-            "description": "Opcjonalnie skonfiguruj oddzielne polecenie zatrzymania dla osłon pozycyjnych."
+            "title": "Stop",
+            "description": "Opcjonalne sterowanie dedykowanym przyciskiem stop."
           },
           "tilt": {
             "title": "Przechylenie",
-            "description": "Opcjonalne sterowanie przechyleniem osłon pozycyjnych."
+            "description": "Włącz opcjonalne sterowanie przechyleniem."
           }
         }
       },
@@ -1435,8 +1435,8 @@
         "label": "Światła",
         "fields": {
           "control_behavior": {
-            "label": "Sposób sterowania",
-            "description": "Sposób sterowania"
+            "label": "Sterowanie",
+            "description": "Sterowanie"
           },
           "light_mode": {
             "label": "Typ światła",
@@ -1444,7 +1444,7 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)"
+            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)."
           },
           "command_address": {
             "label": "Adres zapisu",
@@ -1469,15 +1469,15 @@
         },
         "mode": {
           "title": "Typ światła",
-          "description": "Wybierz sterowanie włącz/wyłącz lub jasnością",
+          "description": "Wybierz typ zainstalowanego światła.",
           "options": {
             "on_off": {
-              "title": "Włącz/Wyłącz",
-              "description": "Tylko włączanie i wyłączanie"
+              "title": "Włącz / Wyłącz",
+              "description": "Tylko włączanie i wyłączanie."
             },
             "dimmable": {
-              "title": "Ściemnialne",
-              "description": "Włączanie, wyłączanie i regulacja jasności"
+              "title": "Włącz / Wyłącz ze ściemnianiem",
+              "description": "Włączanie, wyłączanie i regulacja jasności."
             }
           }
         }
@@ -1565,15 +1565,15 @@
         "label": "Termostaty",
         "fields": {
           "control_mode": {
-            "label": "Typ sterowania",
-            "description": "Home Assistant reguluje temperaturę i steruje wyjściami ogrzewania/chłodzenia PLC.",
+            "label": "Typ",
+            "description": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i opcjonalny stan.",
             "options": {
-              "direct": "Wyjścia bezpośrednie",
-              "setpoint": "Wartość zadana PLC"
+              "direct": "Kontroler",
+              "setpoint": "Klient"
             },
             "descriptions": {
-              "direct": "Home Assistant reguluje temperaturę i steruje wyjściami ogrzewania/chłodzenia PLC.",
-              "setpoint": "PLC reguluje temperaturę, a Home Assistant odczytuje i zapisuje wartość zadaną."
+              "direct": "Home Assistant zarządza i steruje całym procesem regulacji i kontrolą wyjść. PLC dostarcza odczyt temperatury i opcjonalny stan.",
+              "setpoint": "PLC zarządza całym procesem regulacji. Home Assistant pełni tylko rolę klienta."
             }
           },
           "current_temperature_address": {
@@ -1601,19 +1601,19 @@
             "description": "Opcjonalny adres odczytu stanu (chłodzenie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej."
           },
           "preset_mode_address": {
-            "label": "Adres trybu HVAC",
-            "description": "Opcjonalny adres PLC do zapisu trybu HVAC, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu; włącz preset_mode_bidirectional, aby również odczytywać go z powrotem."
+            "label": "Adres trybu pracy",
+            "description": "Opcjonalny adres PLC do zapisu trybu pracy, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu, włącz dwukierunkową komunikację, aby również odczytywać go z powrotem."
           },
           "preset_mode_bidirectional": {
-            "label": "Odczyt zwrotny trybu HVAC",
-            "description": "Zachowaj ostatni tryb HVAC zadany przez Home Assistant.",
+            "label": "Synchronizacja",
+            "description": "Tryb pracy nie będzie synchronizowany z PLC, będzie tylko do niego wysyłany.",
             "options": {
-              "false": "Zachowaj ostatni zadany tryb",
-              "true": "Odczytaj bieżący tryb z PLC"
+              "false": "Wyłączona",
+              "true": "Włączona"
             },
             "descriptions": {
-              "false": "Zachowaj ostatni tryb HVAC zadany przez Home Assistant.",
-              "true": "Odczytaj wybrany tryb HVAC z adresu trybu; nie jest to stan pracy ogrzewania/chłodzenia."
+              "false": "Wybrany tryb jest zapisywany do PLC, ale nie jest odczytywany z powrotem — Home Assistant zachowuje ostatnio ustawiony tryb.",
+              "true": "Tryb pracy będzie synchronizowany z PLC w obu kierunkach."
             }
           },
           "on_off_address": {
@@ -1642,11 +1642,11 @@
           },
           "preset_mode_dry_value": {
             "label": "Wartość trybu (osuszanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie np. 4), domyślnie (puste)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (osuszanie, np. 4) — tylko osuszanie powietrza, bez kontroli temperatury, domyślnie (puste)."
           },
           "preset_mode_fan_only_value": {
             "label": "Wartość trybu (wentylowanie)",
-            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie np. 5), domyślnie (puste)."
+            "description": "Wartość zapisywana, gdy tryb zostanie ustawiony na (wentylowanie, np. 5) — tylko obieg powietrza, bez grzania i chłodzenia, domyślnie (puste)."
           },
           "hvac_status_address": {
             "label": "Adres odczytu stanów",
@@ -1697,97 +1697,97 @@
             "description": "Krok regulacji temperatury zadanej (°C)."
           },
           "climate_direct_function": {
-            "label": "Ogrzewanie i chłodzenie",
-            "description": "Steruj wyjściem ogrzewania.",
+            "label": "Sterowane wyjścia",
+            "description": "Steruje wyjściami termostatu.",
             "options": {
               "heat": "Ogrzewanie",
               "cool": "Chłodzenie",
-              "heat_cool": "Ogrzewanie i chłodzenie"
+              "heat_cool": "Ogrzewanie / Chłodzenie"
             },
             "descriptions": {
-              "heat": "Steruj wyjściem ogrzewania.",
-              "cool": "Steruj wyjściem chłodzenia.",
-              "heat_cool": "Steruj oddzielnymi wyjściami ogrzewania i chłodzenia."
+              "heat": "Steruje wyjściem ogrzewania.",
+              "cool": "Steruje wyjściem chłodzenia.",
+              "heat_cool": "Steruje wyjściami ogrzewania i chłodzenia."
             }
           },
           "climate_direct_feedback": {
-            "label": "Informacja zwrotna działania",
-            "description": "Określ aktywność na podstawie poleceń termostatu.",
+            "label": "Sposób odczytu",
+            "description": "Aktualny stan pracy zostanie ustalony na podstawie wybranej opcji.",
             "options": {
-              "inferred": "Określana przez Home Assistant",
-              "plc": "Oddzielne bity informacji zwrotnej PLC"
+              "inferred": "Na podstawie trybu",
+              "plc": "Bezpośredni odczyt z PLC"
             },
             "descriptions": {
-              "inferred": "Określ aktywność na podstawie poleceń termostatu.",
-              "plc": "Odczytaj z PLC opcjonalne bity informacji zwrotnej ogrzewania i chłodzenia."
+              "inferred": "Aktualny stan pracy zostanie ustalony na podstawie aktualnego trybu.",
+              "plc": "Aktualny stan pracy zostanie odczytany bezpośrednio z PLC."
             }
           },
           "climate_mode_control": {
-            "label": "Sposób sterowania trybem",
-            "description": "Zapisuj tylko wartość zadaną temperatury.",
+            "label": "Sposób kontroli",
+            "description": "Wykorzystuje tylko wartość zadaną temperatury.",
             "options": {
-              "setpoint": "Tylko wartość zadana",
-              "on_off": "Wartość zadana + oddzielne Wł./Wył.",
-              "coded": "Kodowane tryby HVAC",
-              "coded_on_off": "Kodowane tryby + oddzielne Wł./Wył."
+              "setpoint": "Temperaturowy",
+              "on_off": "Temperaturowy i Wł./Wył.",
+              "coded": "Kodowane tryby",
+              "coded_on_off": "Kodowane tryby i Wł./Wył."
             },
             "descriptions": {
-              "setpoint": "Zapisuj tylko wartość zadaną temperatury.",
-              "on_off": "Zapisuj wartość zadaną i oddzielny bit zasilania.",
-              "coded": "Zapisuj żądane tryby HVAC w PLC jako wartości liczbowe.",
-              "coded_on_off": "Zapisuj kodowane tryby HVAC i oddzielny bit zasilania."
+              "setpoint": "Wykorzystuje tylko wartość zadaną temperatury.",
+              "on_off": "Wykorzystuje wartość zadaną temperatury i adres (wł./wył.) dla zasilania.",
+              "coded": "Wykorzystuje tryby pracy jako wartości liczbowe.",
+              "coded_on_off": "Wykorzystuje tryby pracy jako wartości liczbowe i adres (wł./wył.) dla zasilania."
             }
           },
           "climate_action_feedback": {
-            "label": "Źródło stanu pracy",
-            "description": "Określ rzeczywisty stan pracy na podstawie bieżącej i docelowej temperatury.",
+            "label": "Sposób odczytu",
+            "description": "Aktualny stan pracy zostanie ustalony na podstawie wybranej opcji.",
             "options": {
-              "inferred": "Określ na podstawie temperatur",
-              "plc": "Odczytaj kodowany stan z PLC"
+              "inferred": "Na podstawie temperatur",
+              "plc": "Bezpośredni odczyt z PLC"
             },
             "descriptions": {
-              "inferred": "Określ rzeczywisty stan pracy na podstawie bieżącej i docelowej temperatury.",
-              "plc": "Odczytaj rzeczywiste działanie ogrzewania, chłodzenia lub bezczynności z kodowanej wartości PLC."
+              "inferred": "Aktualny stan pracy zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
+              "plc": "Aktualny stan pracy zostanie odczytany bezpośrednio z PLC."
             }
           }
         },
         "sections": {
           "control": {
-            "title": "Typ sterowania",
-            "description": "Wybierz, gdzie ma być wykonywana regulacja temperatury."
+            "title": "Sterowanie",
+            "description": "Wybierz typ sterowania termostatem."
           },
           "temperature": {
             "title": "Temperatura",
-            "description": "Skonfiguruj mierzoną temperaturę, limity i wartość zadaną."
+            "description": "Konfiguracja parametrów dla temperatury."
           },
           "direct_function": {
-            "title": "Funkcja sterowania bezpośredniego",
-            "description": "Wybierz, którymi wyjściami steruje Home Assistant."
+            "title": "Wyjścia",
+            "description": "Wybierz jeden z dostępnych trybów dla wyjść (ogrzewanie, chłodzenie, ogrzewanie/chłodzenie)."
           },
           "direct_feedback": {
-            "title": "Informacja o działaniu bezpośrednim",
-            "description": "Wybierz sposób wykrywania rzeczywistej aktywności ogrzewania i chłodzenia."
+            "title": "Stany pracy",
+            "description": "Wybierz sposób wykrywania aktualnego stanu pracy kontrolera."
           },
           "mode_control": {
-            "title": "Polecenia trybu HVAC",
-            "description": "Wybierz sposób wysyłania przez Home Assistant poleceń wartości zadanej, trybu i zasilania."
+            "title": "Kontrola pracy",
+            "description": "Wybierz sposób kontroli temperatury zadanej, trybu pracy i zasilania."
           },
           "available_modes": {
-            "title": "Dostępne tryby HVAC",
-            "description": "Puste wartości wyłączają dany tryb. Gdy sterowanie kodowane jest włączone, wartości są zapisywane pod adresem trybu i zawsze określają, które tryby udostępnia Home Assistant."
+            "title": "Tryby pracy",
+            "description": "Gdy kontrola pracy jest ustawiona na kodowane tryby, wartości są zapisywane pod adresem trybu pracy i zawsze określają, które tryby będą dostępne w Home Assistant. Puste pola wyłączają dany tryb."
           },
           "mode_feedback": {
-            "title": "Odczyt trybu HVAC",
-            "description": "Wybierz, czy wybrany tryb HVAC ma być zapamiętany, czy odczytywany zwrotnie z PLC. Jest to niezależne od stanu pracy."
+            "title": "Synchronizacja trybu pracy",
+            "description": "Wybierz, czy tryb pracy ma być synchronizowany z PLC w obu kierunkach. Jest to niezależne od stanu pracy."
           },
           "action_feedback": {
-            "title": "Informacja o stanie pracy",
-            "description": "Wybierz, jak Home Assistant określa rzeczywiste ogrzewanie, chłodzenie, bezczynność i inne działania robocze."
+            "title": "Stany pracy",
+            "description": "Wybierz, jak Home Assistant rozpoznaje aktualny stan pracy."
           }
         }
       },
       "entity_sync": {
-        "label": "Zapisujące do PLC",
+        "label": "Zapis do PLC",
         "fields": {
           "source_entity": {
             "label": "Encja źródłowa",
@@ -1805,29 +1805,29 @@
       }
     },
     "control_behavior": {
-      "label": "Sposób sterowania",
+      "label": "Sterowanie",
       "sync_requires_different": "Wymaga różnych adresów stanu i polecenia.",
       "options": {
         "direct": {
           "title": "Sterowanie bezpośrednie",
-          "description": "Home Assistant zapisuje adres polecenia i odczytuje adres stanu. Stan i polecenie pozostają niezależne."
+          "description": "W sterowaniu bezpośrednim adres zapisu i stanu działają niezależnie od siebie."
         },
         "sync": {
-          "title": "Synchronizuj polecenie ze stanem",
-          "description": "Gdy stan PLC zmieni się zewnętrznie, wartość odczytana z adresu stanu jest również zapisywana pod adresem polecenia."
+          "title": "Sterowanie synchronizacji stanu",
+          "description": "W sterowaniu synchronizacją stanu adres zapisu aktualizowany jest z adresu stanu."
         },
         "pulse": {
           "title": "Sterowanie impulsowe",
-          "description": "Wysyła impuls czasowy na adres polecenia zamiast utrzymywać wartość WŁ./WYŁ."
+          "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest impuls (zał./wył.) zamiast zmiany stanu na przeciwny."
         }
       }
     },
     "connection_details": {
-      "title": "Szczegóły połączenia",
-      "help": "Pokaż szczegóły połączenia",
-      "description": "Parametry połączenia tego PLC tylko do odczytu.",
+      "title": "Parametry",
+      "help": "Szczegóły parametrów połączenia",
+      "description": "Parametry połączenia.",
       "sections": {
-        "connection": "Połączenie PLC",
+        "connection": "Połączenie",
         "performance": "Komunikacja i wydajność",
         "retry": "Ponowne łączenie",
         "other": "Inne parametry"
@@ -1840,10 +1840,10 @@
           "label": "Profil połączenia S7"
         },
         "rack": {
-          "label": "CPU rack (zwykle 0)."
+          "label": "CPU rack"
         },
         "slot": {
-          "label": "CPU slot (1 dla S7-1200/1500)."
+          "label": "CPU slot"
         },
         "local_tsap": {
           "label": "Lokalny TSAP"
@@ -1891,29 +1891,29 @@
       "last_24_hours": "Ostatnie 24 godziny",
       "loading": "Ładowanie historii połączenia…",
       "timeline_label": "Stany połączenia PLC w ciągu ostatnich 24 godzin",
-      "hours_ago": "24 godz. temu",
+      "hours_ago": "24g temu",
       "now": "Teraz",
       "connected": "Połączono",
       "disconnected": "Rozłączono",
       "unknown": "Nieznany",
       "percentage": "Dostępność",
-      "current_uptime": "Bieżący czas działania",
+      "current_uptime": "Czas pracy",
       "disconnections": "Rozłączenia",
       "unknown_time": "Nieznany czas",
       "last_disconnection": "Ostatnie rozłączenie",
-      "percentage_note": "Dostępność nie obejmuje nieznanych okresów.",
-      "history_unavailable": "Dane historyczne są niedostępne; bieżący stan jest nadal widoczny powyżej.",
+      "percentage_note": "Dostępność nie obejmuje nieznanych okresów czasu.",
+      "history_unavailable": "Dane historyczne są niedostępne, bieżący stan jest widoczny powyżej.",
       "day_short": "d",
       "hour_short": "g",
       "minute_short": "min",
-      "current_downtime": "Bieżący czas rozłączenia"
+      "current_downtime": "Czas rozłączenia"
     },
     "actions": {
       "add": "Dodaj",
       "edit": "Edytuj",
       "delete": "Usuń",
       "cancel": "Anuluj",
-      "save": "Zapisz zmiany",
+      "save": "Zapisz",
       "close": "Zamknij",
       "delete_confirm": "Usunąć tę encję? Tej operacji nie można cofnąć.",
       "delete_title": "Usuń encję",
@@ -1923,9 +1923,9 @@
     },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",
-      "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu rolety/osłony.",
+      "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu osłony.",
       "climate_required_error": "Wprowadź adres temperatury docelowej.",
-      "brightness_state_required_error": "Wprowadź adres stanu jasności dla światła ściemnialnego.",
+      "brightness_state_required_error": "Wprowadź adres odczytu jasności.",
       "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
       "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
       "configuration_download_error": "Nie można pobrać kopii zapasowej.",
@@ -1951,37 +1951,37 @@
       "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",
       "duplicate_preset_value": "Ta sama wartość nie może być przypisana do dwóch różnych trybów HVAC.",
       "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC.",
-      "cover_commands_required_error": "Otwórz / Zamknij wymaga obu adresów poleceń.",
-      "cover_position_required_error": "Sterowanie pozycją wymaga adresu stanu pozycji.",
-      "cover_endstops_required_error": "Sprzężenie zwrotne krańcówek wymaga adresów pełnego otwarcia i zamknięcia.",
-      "cover_status_required_error": "Sprzężenie zwrotne pojedynczego stanu PLC wymaga adresu stanu osłony.",
-      "cover_tilt_required_error": "Włączone przechylenie wymaga adresu stanu przechylenia.",
-      "cover_stop_required_error": "Włączone zatrzymanie wymaga adresu polecenia zatrzymania.",
-      "climate_current_temperature_required_error": "Wprowadź adres bieżącej temperatury.",
-      "climate_heating_output_required_error": "Wprowadź adres wyjścia ogrzewania dla wybranej funkcji.",
+      "cover_commands_required_error": "Sterowanie (Otwórz / Zamknij) wymaga obu adresów zapisu (otwórz/zamknij).",
+      "cover_position_required_error": "Sterowanie pozycją wymaga adresu odczytu pozycji.",
+      "cover_endstops_required_error": "Identyfikacja ruchu krańcówkami wymaga adresów stanu otwarta i zamknięta.",
+      "cover_status_required_error": "Identyfikacja ruchu w czasie rzeczywistym wymaga adresu odczytu stanów.",
+      "cover_tilt_required_error": "Włączone przechylenie wymaga adresu odczytu przechylenia.",
+      "cover_stop_required_error": "Włączone stop wymaga adresu zapisu stop.",
+      "climate_current_temperature_required_error": "Wprowadź adres odczytu temperatury.",
+      "climate_heating_output_required_error": "Wprowadź adres wyjścia grzania dla wybranej funkcji.",
       "climate_cooling_output_required_error": "Wprowadź adres wyjścia chłodzenia dla wybranej funkcji.",
-      "climate_preset_mode_required_error": "Wprowadź adres kodowanego trybu HVAC.",
-      "climate_on_off_required_error": "Wprowadź oddzielny adres Wł./Wył.",
-      "climate_status_required_error": "Wprowadź adres stanu pracy PLC."
+      "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
+      "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
+      "climate_status_required_error": "Wprowadź adres odczytu stanów PLC."
     },
     "editor": {
-      "configuration_yaml": "Zaawansowany YAML",
+      "configuration_yaml": "Konfiguracja YAML",
       "configuration_yaml_title": "Zaawansowana konfiguracja YAML",
-      "configuration_yaml_warning": "Edytuj jednocześnie wszystkie encje tego PLC. Zapis zastępuje pełną konfigurację encji. Najpierw wyeksportuj kopię zapasową.",
+      "configuration_yaml_warning": "Jednoczesna edycja konfiguracji wszystkich encji tego PLC. Zapis zastąpi pełną konfigurację. Przed edycją najpierw wyeksportuj kopię zapasową obecnej konfiguracji.",
       "import_yaml": "Importuj YAML",
-      "export_current_yaml": "Eksportuj bieżący YAML",
+      "export_current_yaml": "Eksportuj YAML",
       "download_backup": "Pobierz kopię zapasową",
       "editor_mode": "Tryb edytora",
       "visual_editor": "Edytor wizualny",
-      "guided": "Prosty i prowadzony",
-      "advanced": "Sterowanie zaawansowane",
+      "guided": "Tryb prosty",
+      "advanced": "Tryb zaawansowany",
       "yaml_warning": "Tryb zaawansowany pozwala ręcznie edytować wszystkie pola. Użyj mapowania YAML dla pojedynczej encji.",
       "yaml_label": "Konfiguracja YAML",
       "new_entity": "Nowa encja",
       "edit_entity": "Edytuj encję",
-      "configure_new": "Skonfiguruj nową encję",
-      "update_configuration": "Zaktualizuj konfigurację",
-      "save_help": "Pola są zapisywane bezpośrednio w konfiguracji PLC."
+      "configure_new": "Konfigurator nowej encji",
+      "update_configuration": "Konfigurator edytowanej encji",
+      "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC."
     }
   }
 }
