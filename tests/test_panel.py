@@ -1497,78 +1497,81 @@ def test_panel_translates_backend_validation_errors() -> None:
     ]
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_config_flow_translations_cover_every_visible_panel_field() -> None:
-    """Every panel field has the config flow's label and help in every locale."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    prefix = source.split("class S7PlcConfigurationPanel", 1)[0]
-    script = (
-        "const vm=require('vm');"
-        "const context={};vm.createContext(context);"
-        "vm.runInContext(process.argv[1] + "
-        "'\\nglobalThis.result={FIELDS,MODE_HIDDEN};',context);"
-        "process.stdout.write(JSON.stringify(context.result));"
-    )
-    result = subprocess.run(
-        ["node", "-e", script, prefix],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    panel_config = json.loads(result.stdout)
-    fields = panel_config["FIELDS"]
-    hidden = panel_config["MODE_HIDDEN"]
-    steps = {
-        "sensors": [("sensors", None)],
-        "binary_sensors": [("binary_sensors", None)],
-        "switches": [("switches", None)],
-        "covers": [
-            ("covers_traditional", "traditional"),
-            ("covers_position", "position"),
-        ],
-        "lights": [("lights", None)],
-        "buttons": [("buttons", None)],
-        "numbers": [("numbers", None)],
-        "texts": [("texts", None)],
-        "climates": [
-            ("climates_direct", "direct"),
-            ("climates_setpoint", "setpoint"),
-        ],
-        "entity_sync": [("entity_sync", None)],
-    }
+def _translation_paths() -> list[Path]:
+    return [
+        Path("custom_components/s7plc/strings.json"),
+        *sorted(Path("custom_components/s7plc/translations").glob("*.json")),
+    ]
 
-    for language in ("en", "it", "cs", "de", "pl"):
-        translation_path = Path(f"custom_components/s7plc/translations/{language}.json")
-        flow_steps = json.loads(translation_path.read_text(encoding="utf-8"))[
-            "options"
-        ]["step"]
-        for entity_type, entity_steps in steps.items():
-            all_keys = {field[0] for field in fields[entity_type]}
-            for step, mode in entity_steps:
-                visible_keys = all_keys - {
-                    "cover_control_mode",
-                    "cover_position_feedback",
-                    "cover_movement_feedback",
-                    "cover_stop_enabled",
-                    "cover_tilt_enabled",
-                    "control_mode",
-                    "control_behavior",
-                    "light_mode",
-                    "climate_direct_function",
-                    "climate_direct_feedback",
-                    "climate_mode_control",
-                    "climate_action_feedback",
-                }
-                if mode:
-                    visible_keys -= set(hidden[entity_type][mode])
-                labels = flow_steps[step]["data"]
-                descriptions = flow_steps[step]["data_description"]
-                assert visible_keys <= labels.keys(), (language, step, "data")
-                assert visible_keys <= descriptions.keys(), (
-                    language,
-                    step,
-                    "data_description",
-                )
+
+def test_translation_files_have_full_key_parity_and_english_alignment() -> None:
+    paths = _translation_paths()
+    translations = [
+        json.loads(path.read_text(encoding="utf-8")) for path in paths
+    ]
+    expected_shape = _translation_shape(translations[0])
+    assert all(_translation_shape(item) == expected_shape for item in translations)
+    english = translations[paths.index(Path("custom_components/s7plc/translations/en.json"))]
+    assert translations[0] == english
+
+
+def test_options_translations_only_contain_the_live_connection_flow() -> None:
+    legacy_steps = {
+        "init", "setup_connection", "setup_entities", "manage_configuration",
+        "add", "edit", "remove", "import", "export", "sensors",
+        "binary_sensors", "switches", "covers", "covers_traditional",
+        "covers_position", "lights", "buttons", "numbers", "texts",
+        "climates", "climates_direct", "climates_setpoint", "entity_sync",
+        "edit_sensor", "edit_binary_sensor", "edit_switch", "edit_cover",
+        "edit_cover_position", "edit_light", "edit_button", "edit_number",
+        "edit_text", "edit_climate_direct", "edit_climate_setpoint",
+        "edit_writer",
+    }
+    for path in _translation_paths():
+        options = json.loads(path.read_text(encoding="utf-8"))["options"]
+        assert set(options["step"]) == {"connection"}
+        assert not legacy_steps & options["step"].keys()
+        assert "menu_options" not in options
+        assert set(options["error"]) == {"cannot_connect", "already_configured"}
+
+
+def test_panel_backend_validation_errors_have_autonomous_translations() -> None:
+    validation_source = Path(
+        "custom_components/s7plc/config_validation.py"
+    ).read_text(encoding="utf-8")
+    marker = 'errors["base"] = "'
+    returned_marker = '{"base": "'
+    produced_errors = {
+        line.split(marker, 1)[1].split('"', 1)[0]
+        for line in validation_source.splitlines()
+        if marker in line
+    } | {
+        line.split(returned_marker, 1)[1].split('"', 1)[0]
+        for line in validation_source.splitlines()
+        if returned_marker in line
+    }
+    # The panel's fixed climate selector cannot submit an unknown control mode.
+    produced_errors.discard("invalid_control_mode")
+    assert produced_errors
+    for path in _translation_paths():
+        panel_errors = json.loads(path.read_text(encoding="utf-8"))["config_panel"][
+            "errors"
+        ]
+        assert produced_errors <= panel_errors.keys()
+
+
+def test_options_connection_errors_produced_by_backend_are_translated() -> None:
+    source = Path("custom_components/s7plc/config_flow.py").read_text(encoding="utf-8")
+    options_flow = source[source.index("class S7PLCOptionsFlow"):]
+    produced_errors = {
+        key
+        for key in ("cannot_connect", "already_configured")
+        if f'errors["base"] = "{key}"' in options_flow
+    }
+    assert produced_errors == {"cannot_connect", "already_configured"}
+    for path in _translation_paths():
+        errors = json.loads(path.read_text(encoding="utf-8"))["options"]["error"]
+        assert produced_errors <= errors.keys()
 
 
 def test_panel_keeps_climate_preset_values_without_preset_mode_address() -> None:
