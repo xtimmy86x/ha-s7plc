@@ -994,10 +994,10 @@ _SETPOINT_CLIMATE = {
         ),
     ],
 )
-async def test_panel_and_config_flow_share_semantic_validation(
+async def test_panel_and_backend_share_semantic_validation(
     monkeypatch, editor, entity_type, entity, accepted
 ) -> None:
-    """Equivalent Config Flow and panel inputs must have the same outcome."""
+    """Equivalent panel and backend inputs must have the same outcome."""
     try:
         built_item, _errors = build_entity_item(entity_type, entity, options={})
     except ValueError:
