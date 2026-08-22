@@ -42,6 +42,38 @@ def test_panel_displays_integration_version() -> None:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_panel_registration_is_idempotent() -> None:
+    """Repeated resource loads reuse the existing custom element registration."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r"""
+const vm = require("vm");
+const definitions = new Map();
+const customElements = {
+    get: name => definitions.get(name),
+    define: (name, element) => {
+        if (definitions.has(name)) throw new Error(`duplicate definition: ${name}`);
+        definitions.set(name, element);
+    },
+};
+for (let load = 0; load < 2; load++) {
+    const context = {HTMLElement: class {}, customElements};
+    vm.createContext(context);
+    vm.runInContext(process.argv[1], context);
+}
+process.stdout.write(String(definitions.size));
+"""
+
+    result = subprocess.run(
+        ["node", "-e", script, source],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout == "1"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_entity_cards_use_type_specific_main_address_without_duplicate_chips() -> None:
     """Card summaries share the backend-compatible main-address precedence."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
