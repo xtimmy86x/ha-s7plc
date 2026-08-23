@@ -1397,7 +1397,7 @@
           },
           "cover_tilt_enabled": {
             "label": "Funkcja",
-            "description": "Opcjonalna funkcja sterowaniem przechyleniem osłony.",
+            "description": "Opcjonalna funkcja sterowania przechyleniem osłony.",
             "options": {
               "disabled": "Wyłączona",
               "enabled": "Włączona"
@@ -1427,7 +1427,7 @@
           },
           "tilt": {
             "title": "Przechylenie",
-            "description": "Opcjonalna funkcja sterowaniem przechyleniem osłony."
+            "description": "Opcjonalna funkcja sterowania przechyleniem osłony."
           }
         }
       },
@@ -1606,7 +1606,7 @@
           },
           "preset_mode_bidirectional": {
             "label": "Metoda",
-            "description": "Metoda synchronizacji trybu pracy z PLC. Niezależne od stanu pracy.",
+            "description": "Metoda synchronizacji trybu pracy z PLC. Niezależnie od stanu pracy.",
             "options": {
               "false": "Jednokierunkowa",
               "true": "Dwukierunkowa"
@@ -1778,7 +1778,7 @@
           },
           "mode_feedback": {
             "title": "Synchronizacja trybu pracy",
-            "description": "Wybierz metodę synchronizacji trybu pracy z PLC. Niezależne od stanu pracy."
+            "description": "Wybierz metodę synchronizacji trybu pracy z PLC. Niezależnie od stanu pracy."
           },
           "action_feedback": {
             "title": "Stany pracy",
