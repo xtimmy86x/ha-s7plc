@@ -2976,9 +2976,13 @@ const failed=new S7PlcConfigurationPanel();failed._viewMode='sections';failed.se
 failed.t=key=>key;failed.bt=(key,values={{}})=>`${{key}} ${{values.count}}`;failed.entryId='entry';
 let failedCalls=0,failedReloads=0;failed._hass={{callWS:async()=>{{failedCalls++;if(failedCalls===2)throw Error('PLC offline');}}}};
 failed.load=async()=>{{failedReloads++;}};failed.removeGroupedSelection();const failedDialog=dialogs.at(-1);await failedDialog.primary.onclick();
+await failedDialog.primary.onclick();const failureAfterSecondClick={{calls:failedCalls,reloads:failedReloads,open:failedDialog.open}};
+failedDialog.secondary.onclick();
 console.log(JSON.stringify({{grouped,markup:{{global:markup.includes('data-batch-delete-global'),sectionBatch:markup.includes('data-batch-delete=')}},
   bulk:{{hidden:bulkButton.hidden,text:bulkSpan.textContent}},calls,reloads,states,dialogs:dialogs.length,selection:[...panel.selectedIndices],
-  failure:{{calls:failedCalls,reloads:failedReloads,selection:[...failed.selectedIndices],open:failedDialog.open,error:failedDialog.alert.textContent,shown:failedDialog.alert.style.display}}}}));
+  failure:{{calls:failedCalls,reloads:failedReloads,selection:[...failed.selectedIndices],openBeforeClose:failureAfterSecondClick.open,
+    openAfterClose:failedDialog.open,error:failedDialog.alert.textContent,shown:failedDialog.alert.style.display,
+    deleteDisabled:failedDialog.primary.disabled,secondaryDisabled:failedDialog.secondary.disabled,afterSecondClick:failureAfterSecondClick}}}}));
 """
     result = json.loads(
         subprocess.run(
@@ -3009,9 +3013,13 @@ console.log(JSON.stringify({{grouped,markup:{{global:markup.includes('data-batch
         "calls": 2,
         "reloads": 1,
         "selection": [],
-        "open": True,
+        "openBeforeClose": True,
+        "openAfterClose": False,
         "error": "errors.delete_entities_error PLC offline",
         "shown": "block",
+        "deleteDisabled": True,
+        "secondaryDisabled": False,
+        "afterSecondClick": {"calls": 2, "reloads": 1, "open": True},
     }
 
 

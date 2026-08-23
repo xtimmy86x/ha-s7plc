@@ -360,13 +360,14 @@ class S7PlcConfigurationPanel extends HTMLElement {
     document.body.appendChild(dialog);dialog.addEventListener('closed',()=>dialog.remove());
     dialog.querySelector('[slot=secondaryAction]').onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
     const deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
+    let operationFinished=false;
     deleteButton.onclick=async()=>{
-      if(this._batchDeleteLoading)return;
-      this._batchDeleteLoading=true;deleteButton.disabled=true;
+      if(this._batchDeleteLoading||operationFinished)return;
+      this._batchDeleteLoading=true;operationFinished=true;deleteButton.disabled=true;
       let failure=null;
       try{for(const entityType of TYPES)for(const index of grouped[entityType]||[])await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:entityType,index});}
       catch(err){failure=err;alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
-      finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;deleteButton.disabled=false;}}
+      finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;}}
       if(!failure)dialog.open=false;
     };
   }
