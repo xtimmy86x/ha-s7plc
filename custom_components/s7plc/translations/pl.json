@@ -1028,6 +1028,7 @@
       "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
       "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
       "configuration_download_error": "Nie można pobrać kopii zapasowej.",
+      "delete_entities_error": "Nie udało się usunąć niektórych encji. Konfiguracja została ponownie wczytana.",
       "invalid_address": "Nieprawidłowy format adresu.",
       "duplicate_entry": "Ta encja już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",

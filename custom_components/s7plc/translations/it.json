@@ -1028,6 +1028,7 @@
       "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
       "configuration_load_error": "Impossibile caricare la configurazione YAML.",
       "configuration_download_error": "Impossibile scaricare la copia di sicurezza.",
+      "delete_entities_error": "Non è stato possibile eliminare alcune entità. La configurazione è stata ricaricata.",
       "invalid_address": "Formato indirizzo non valido.",
       "duplicate_entry": "Questo elemento è già presente.",
       "duplicate_addresses_in_import": "L'importazione contiene indirizzi duplicati nello stesso tipo di entità.",

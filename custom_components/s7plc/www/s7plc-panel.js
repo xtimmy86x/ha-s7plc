@@ -1,6 +1,18 @@
 const TYPES = ["sensors", "binary_sensors", "switches", "covers", "lights", "buttons", "numbers", "texts", "climates", "entity_sync"];
 const VIEW_MODE_STORAGE_KEY = "s7plc-panel-view-mode";
 const VIEW_MODES = new Set(["tabs", "sections"]);
+const GROUP_SELECTED_INDICES = selection => {
+  const grouped={};
+  for(const key of selection){
+    if(typeof key!=="string")continue;
+    const match=key.match(/^([^:]+):(\d+)$/);
+    if(!match||!TYPES.includes(match[1]))continue;
+    const index=Number(match[2]);
+    if(!Number.isSafeInteger(index)||index<0)continue;
+    (grouped[match[1]]??=new Set()).add(index);
+  }
+  return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[...indices].sort((a,b)=>b-a)]));
+};
 // Translation JSON served by the integration is the canonical source. This
 // deliberately small dictionary is only for a total translation-loading failure.
 // The sidepanel uses its own translation namespace so it remains independent
@@ -220,7 +232,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   }
   layoutToggle(){const sections=this._viewMode==="sections",label=this.t(`layout.${sections?"switch_to_tabs":"switch_to_sections"}`);return `<button type="button" class="layout-toggle icon-btn" title="${label}" aria-label="${label}" data-layout-toggle><ha-icon icon="mdi:${sections?'tab':'view-sequential'}"></ha-icon><ha-tooltip>${label}</ha-tooltip></button>`;}
   renderTabsView(entry,type){return `<nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`entity_types.${t}.label`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`entity_types.${type}.label`)}</h2><p>${this.t('common.reload_help')}</p></div><div class="toolbar-actions">${this.layoutToggle()}<button class="batch-delete danger" data-batch-delete="${type}" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" data-add="${type}"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('actions.add')}</button></div></div><div class="cards">${this.entityCards(entry,type)}</div></main>`;}
-  _renderSectionsView(entry){return `<div class="sections-toolbar"><div><h2>${this.t('layout.all_entities')}</h2><p>${this.t('common.reload_help')}</p></div>${this.layoutToggle()}</div><main class="entity-sections">${TYPES.map(type=>{const expanded=this.expandedSections.has(type),label=this.t(`entity_types.${type}.label`),toggle=this.t(`layout.${expanded?'collapse_section':'expand_section'}`);return `<section class="entity-section" data-section-type="${type}"><div class="entity-section-header"><button type="button" class="section-toggle" data-section-toggle="${type}" title="${toggle}" aria-label="${toggle}: ${label}" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-${expanded?'up':'down'}"></ha-icon><span class="section-platform"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></span><span><b>${label}</b><small>${entry.entities[type].length} ${this.t(entry.entities[type].length===1?'common.entity':'common.entities')}</small></span></button><div class="section-actions"><button class="batch-delete danger" data-batch-delete="${type}" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" data-add="${type}"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('actions.add')}</button></div></div>${expanded?`<div class="cards">${this.entityCards(entry,type)}</div>`:''}</section>`;}).join('')}</main>`;}
+  _renderSectionsView(entry){const deleteLabel=this.bt('delete_selected');return `<div class="sections-toolbar"><div><h2>${this.t('layout.all_entities')}</h2><p>${this.t('common.reload_help')}</p></div><div class="toolbar-actions">${this.layoutToggle()}<button class="batch-delete danger" data-batch-delete-global hidden title="${deleteLabel}" aria-label="${deleteLabel}"><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button></div></div><main class="entity-sections">${TYPES.map(type=>{const expanded=this.expandedSections.has(type),label=this.t(`entity_types.${type}.label`),toggle=this.t(`layout.${expanded?'collapse_section':'expand_section'}`);return `<section class="entity-section" data-section-type="${type}"><div class="entity-section-header"><button type="button" class="section-toggle" data-section-toggle="${type}" title="${toggle}" aria-label="${toggle}: ${label}" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-${expanded?'up':'down'}"></ha-icon><span class="section-platform"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></span><span><b>${label}</b><small>${entry.entities[type].length} ${this.t(entry.entities[type].length===1?'common.entity':'common.entities')}</small></span></button><div class="section-actions"><button class="primary" data-add="${type}"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('actions.add')}</button></div></div>${expanded?`<div class="cards">${this.entityCards(entry,type)}</div>`:''}</section>`;}).join('')}</main>`;}
   render() {
     const entry=this.entries.find(e=>e.entry_id===this.entryId);
     if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}</div>${this.banner()}<div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('common.no_plc')}</h2><p>${this.t('common.no_plc_help')}</p></div></div>`;this.syncMenuButtons();return;}
@@ -232,14 +244,16 @@ class S7PlcConfigurationPanel extends HTMLElement {
     this.querySelectorAll('[data-section-toggle]').forEach(b=>b.onclick=()=>{const type=b.dataset.sectionToggle;if(this.expandedSections.has(type))this.expandedSections.delete(type);else this.expandedSections.add(type);this.render();});
     this.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>this.openEditor(null,b.dataset.add));
     this.querySelectorAll('[data-batch-delete]').forEach(b=>b.onclick=()=>this.remove(this.selectedIndicesFor(b.dataset.batchDelete),b.dataset.batchDelete));
+    const globalDelete=this.querySelector('[data-batch-delete-global]');if(globalDelete)globalDelete.onclick=()=>this.removeGroupedSelection();
     this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const type=input.dataset.entityType,index=Number(input.dataset.select),key=this.selectionKey(type,index);if(input.checked)this.selectedIndices.add(key);else this.selectedIndices.delete(key);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
     this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit),b.dataset.entityType));
     this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)],b.dataset.entityType));
     this.querySelectorAll('[data-config-yaml]').forEach(button=>button.onclick=()=>this.openConfigurationEditor());this.querySelector('.connection-badge').onclick=()=>this.openConnectionDetails(entry);this.updateBulkAction();this.syncMenuButtons();
   }
   selectedIndicesFor(type){return [...this.selectedIndices].filter(value=>this._viewMode==="sections"?String(value).startsWith(`${type}:`):true).map(value=>this._viewMode==="sections"?Number(String(value).split(':')[1]):Number(value));}
+  groupedSelectedIndices(){return GROUP_SELECTED_INDICES(this.selectedIndices);}
   entityCards(entry,type=this.type||TYPES[0]){const items=entry.entities[type];if(!items.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('common.empty')}</h3><p>${this.t('common.empty_help')}</p></div>`;return items.map((item,i)=>{const entityId=entry.entity_ids?.[type]?.[i],selected=this.selectedFor(type,i),main=MAIN_ENTITY_ADDRESS(item,type);return `<article class="${selected?'selected':''}"><label class="entity-select" title="${this.bt('select_entity')}"><input type="checkbox" data-select="${i}" data-entity-type="${type}" aria-label="${this.bt('select_entity')}" ${selected?'checked':''}><span></span></label><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div><div class="details"><b>${this.escape(item.name||main||`${this.t('common.entity')} ${i+1}`)}</b><code>${this.escape(main||'—')}</code><div>${this.chips(item,type)}</div></div>${entityId?`<span class="state-badge" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<button data-edit="${i}" data-entity-type="${type}" class="icon-btn" title="${this.t('actions.edit')}" aria-label="${this.t('actions.edit')}"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-delete="${i}" data-entity-type="${type}" class="icon-btn danger" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete"></ha-icon></button></article>`;}).join('');}
-  updateBulkAction(){this.querySelectorAll('[data-batch-delete]').forEach(button=>{const count=this.selectedIndicesFor(button.dataset.batchDelete).length;button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;});}
+  updateBulkAction(){if(this._viewMode==="sections"){const button=this.querySelector('[data-batch-delete-global]');if(!button)return;const count=Object.values(this.groupedSelectedIndices()).reduce((total,indices)=>total+indices.length,0);button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;return;}this.querySelectorAll('[data-batch-delete]').forEach(button=>{const count=this.selectedIndicesFor(button.dataset.batchDelete).length;button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;});}
   // Riepilogo compatto della card: niente booleani falsi, niente indirizzo duplicato,
   // ✓ per i flag attivi e valori "pretty" per device/state class.
   chips(item,type){
@@ -335,6 +349,25 @@ class S7PlcConfigurationPanel extends HTMLElement {
       for(const index of sorted)await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:type,index});
       this.selectedIndices.clear();
       this._loaded=false;await this.load();
+    };
+  }
+  removeGroupedSelection(){
+    const grouped=this.groupedSelectedIndices(),count=Object.values(grouped).reduce((total,indices)=>total+indices.length,0);
+    if(!count||this._batchDeleteLoading)return;
+    const dialog=document.createElement('ha-dialog');
+    dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
+    dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${this.bt('delete_selected_confirm',{count})}</div><ha-alert alert-type="error" style="display:none;margin:12px 24px"></ha-alert><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
+    document.body.appendChild(dialog);dialog.addEventListener('closed',()=>dialog.remove());
+    dialog.querySelector('[slot=secondaryAction]').onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
+    const deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
+    deleteButton.onclick=async()=>{
+      if(this._batchDeleteLoading)return;
+      this._batchDeleteLoading=true;deleteButton.disabled=true;
+      let failure=null;
+      try{for(const entityType of TYPES)for(const index of grouped[entityType]||[])await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:entityType,index});}
+      catch(err){failure=err;alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
+      finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;deleteButton.disabled=false;}}
+      if(!failure)dialog.open=false;
     };
   }
   icon(t){return({sensors:'gauge',binary_sensors:'checkbox-marked-circle',switches:'toggle-switch',covers:'window-shutter',lights:'lightbulb',buttons:'gesture-tap-button',numbers:'numeric',texts:'form-textbox',climates:'thermostat',entity_sync:'sync'})[t];} escape(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;}

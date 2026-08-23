@@ -2941,6 +2941,96 @@ console.log(JSON.stringify({{defaultMode,stored,invalid,inaccessible,rendered,
     }
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_sections_batch_delete_groups_and_deletes_the_global_selection() -> None:
+    """The sections toolbar deletes every valid selection with one lifecycle."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = rf"""
+global.HTMLElement = class {{}};
+global.customElements = {{get(){{}},define(){{}}}};
+const dialogs=[];
+const makeDialog=()=>{{
+  const primary={{disabled:false}},secondary={{disabled:false}},alert={{style:{{}}}};
+  return {{primary,secondary,alert,open:false,addEventListener(){{}},remove(){{}},
+    querySelector(selector){{return selector==='[slot=primaryAction]'?primary:selector==='[slot=secondaryAction]'?secondary:alert;}}}};
+}};
+global.document = {{body:{{appendChild(dialog){{dialogs.push(dialog);}}}},createElement:tag=>{{
+  if(tag==='ha-dialog')return makeDialog();
+  let value='';return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value;}}}};
+}}}};
+{source}
+const entities=Object.fromEntries(TYPES.map(type=>[type,[]]));
+entities.sensors=[{{name:'A'}},{{name:'B'}}];entities.switches=[{{name:'C'}}];
+const entry={{entities,entity_ids:{{}}}};
+const panel=new S7PlcConfigurationPanel();panel._viewMode='sections';panel.expandedSections=new Set(TYPES);
+panel.t=key=>key;panel.bt=(key,values={{}})=>key+(values.count===undefined?'':` ${{values.count}}`);panel.fieldText=()=>'';
+panel.selectedIndices=new Set(['sensors:2','switches:0','sensors:5','sensors:2','covers:1','bad','unknown:3','lights:-1','texts:1.5','buttons:2:3',4]);
+const grouped=panel.groupedSelectedIndices();const markup=panel._renderSectionsView(entry);
+const bulkSpan={{textContent:''}},bulkButton={{hidden:true,querySelector:()=>bulkSpan}};
+panel.querySelector=selector=>selector==='[data-batch-delete-global]'?bulkButton:null;panel.updateBulkAction();
+const calls=[],states=[];panel.entryId='entry';panel._hass={{callWS:async message=>{{states.push(panel.selectedIndices.size);calls.push(message);}}}};
+let reloads=0;panel.load=async()=>{{reloads++;states.push(panel.selectedIndices.size);}};
+panel.removeGroupedSelection();const dialog=dialogs.at(-1);const operation=dialog.primary.onclick();dialog.primary.onclick();await operation;
+
+const failed=new S7PlcConfigurationPanel();failed._viewMode='sections';failed.selectedIndices=new Set(['sensors:1','sensors:0','switches:0']);
+failed.t=key=>key;failed.bt=(key,values={{}})=>`${{key}} ${{values.count}}`;failed.entryId='entry';
+let failedCalls=0,failedReloads=0;failed._hass={{callWS:async()=>{{failedCalls++;if(failedCalls===2)throw Error('PLC offline');}}}};
+failed.load=async()=>{{failedReloads++;}};failed.removeGroupedSelection();const failedDialog=dialogs.at(-1);await failedDialog.primary.onclick();
+console.log(JSON.stringify({{grouped,markup:{{global:markup.includes('data-batch-delete-global'),sectionBatch:markup.includes('data-batch-delete=')}},
+  bulk:{{hidden:bulkButton.hidden,text:bulkSpan.textContent}},calls,reloads,states,dialogs:dialogs.length,selection:[...panel.selectedIndices],
+  failure:{{calls:failedCalls,reloads:failedReloads,selection:[...failed.selectedIndices],open:failedDialog.open,error:failedDialog.alert.textContent,shown:failedDialog.alert.style.display}}}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    assert result["grouped"] == {
+        "sensors": [5, 2],
+        "switches": [0],
+        "covers": [1],
+    }
+    assert result["markup"] == {"global": True, "sectionBatch": False}
+    assert result["bulk"] == {"hidden": False, "text": "delete_selected (4)"}
+    assert result["calls"] == [
+        {"type": "s7plc/config/delete_entity", "entry_id": "entry", "entity_type": "sensors", "index": 5},
+        {"type": "s7plc/config/delete_entity", "entry_id": "entry", "entity_type": "sensors", "index": 2},
+        {"type": "s7plc/config/delete_entity", "entry_id": "entry", "entity_type": "switches", "index": 0},
+        {"type": "s7plc/config/delete_entity", "entry_id": "entry", "entity_type": "covers", "index": 1},
+    ]
+    assert result["reloads"] == 1
+    assert result["states"] == [10, 10, 10, 10, 0]
+    assert result["dialogs"] == 2
+    assert result["selection"] == []
+    assert result["failure"] == {
+        "calls": 2,
+        "reloads": 1,
+        "selection": [],
+        "open": True,
+        "error": "errors.delete_entities_error PLC offline",
+        "shown": "block",
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_batch_delete_empty_selection_and_tabs_behavior() -> None:
+    """An empty global selection is inert and tabs keep category deletion."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+let dialogs=0;global.document={{body:{{appendChild(){{dialogs++;}}}},createElement:()=>({{}})}};
+{source}
+const panel=new S7PlcConfigurationPanel();panel._viewMode='sections';panel.selectedIndices=new Set();panel.removeGroupedSelection();
+panel._viewMode='tabs';panel.selectedIndices=new Set([3,1,3]);
+console.log(JSON.stringify({{dialogs,indices:panel.selectedIndicesFor('sensors')}}));
+"""
+    result = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    assert result == {"dialogs": 0, "indices": [3, 1]}
+
+
 def test_panel_layout_translations_are_available_in_every_language() -> None:
     required = {
         "switch_to_tabs",

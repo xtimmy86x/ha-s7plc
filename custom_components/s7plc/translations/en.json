@@ -1028,6 +1028,7 @@
       "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
       "configuration_load_error": "Unable to load the YAML configuration.",
       "configuration_download_error": "Unable to download the backup.",
+      "delete_entities_error": "Some entities could not be deleted. The configuration has been reloaded.",
       "invalid_address": "Invalid address format.",
       "duplicate_entry": "This item already exists.",
       "duplicate_addresses_in_import": "The import contains duplicate addresses within the same entity type.",
