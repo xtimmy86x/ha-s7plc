@@ -2942,6 +2942,50 @@ console.log(JSON.stringify({{defaultMode,stored,invalid,inaccessible,rendered,
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_panel_layout_toggle_labels_each_action_and_remains_responsive() -> None:
+    """The layout control exposes the translated action in every accessible label."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{get(){{}},define(){{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>({{
+  "layout.switch_to_sections":"Switch to all-entities view",
+  "layout.switch_to_tabs":"Switch to category view"
+}}[key]||key);
+panel._viewMode="tabs";const categories=panel.layoutToggle();
+panel._viewMode="sections";const allEntities=panel.layoutToggle();
+console.log(JSON.stringify({{categories,allEntities}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    categories = result["categories"]
+    assert '<ha-icon icon="mdi:view-sequential"></ha-icon>' in categories
+    assert '<span>Switch to all-entities view</span>' in categories
+    assert 'title="Switch to all-entities view"' in categories
+    assert 'aria-label="Switch to all-entities view"' in categories
+    assert "<ha-tooltip>Switch to all-entities view</ha-tooltip>" in categories
+
+    all_entities = result["allEntities"]
+    assert '<ha-icon icon="mdi:tab"></ha-icon>' in all_entities
+    assert '<span>Switch to category view</span>' in all_entities
+    assert 'title="Switch to category view"' in all_entities
+    assert 'aria-label="Switch to category view"' in all_entities
+    assert "<ha-tooltip>Switch to category view</ha-tooltip>" in all_entities
+
+    assert "@media(max-width:500px)" in source
+    responsive = source[source.index("@media(max-width:500px)") :]
+    responsive = responsive[: responsive.index("@media(max-width:480px)")]
+    assert ".layout-toggle span{display:none}" in responsive
+    assert ".layout-toggle{display:none}" not in responsive
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_sections_batch_delete_groups_and_deletes_the_global_selection() -> None:
     """The sections toolbar deletes every valid selection with one lifecycle."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
