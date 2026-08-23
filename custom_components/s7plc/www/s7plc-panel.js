@@ -31,7 +31,7 @@ const CLEAN_COVER_ENTITY=(source,ui)=>{const entity={...source};COVER_VIRTUAL_FI
   if(ui.cover_control_mode!=="position"||ui.cover_stop_enabled===false){delete entity.stop_command_address;delete entity.stop_pulse_duration;}if(ui.cover_control_mode!=="position"||ui.cover_tilt_enabled===false){delete entity.tilt_state_address;delete entity.tilt_command_address;delete entity.invert_tilt;}return entity;};
 const CONNECTION_WINDOW_MS = 24*60*60*1000;
 const CONNECTION_DETAIL_GROUPS = [
-  {key:"connection",icon:"mdi:lan-connect",fields:["connection_type","pys7_connection_type"]},
+  {key:"connection",icon:"mdi:lan-connect",fields:["connection_type","pys7_connection_type","pys7_version"]},
   {key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","enable_write_batching","enable_metrics"]},
   {key:"retry",icon:"mdi:reload",fields:["max_retries","retry_backoff_initial","retry_backoff_max"]}
 ];
@@ -256,7 +256,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   fieldText(type,key,part){return this.translation(`config_panel.entity_types.${type}.fields.${key}.${part}`,this.panelTranslations)??this.translation(`config_panel.common.fields.${key}.${part}`,this.panelTranslations)??key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
   flowError(key){return this.translation(`config_panel.errors.${key}`,this.panelTranslations)??key;}
   connectionDetailLabel(key){return this.translation(`config_panel.connection_details.fields.${key}.label`,this.panelTranslations)??key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
-  connectionValue(value){if(typeof value==='boolean')return this.t(`connection_details.values.${value?'yes':'no'}`);if(value===null||value===undefined||value==='')return '—';const translated=this.t(`connection_details.values.${value}`);return translated===`connection_details.values.${value}`?String(value):translated;}
+  connectionValue(value){if(value===null||value===undefined||value==='')return '—';const key=typeof value==='boolean'?(value?'yes':'no'):String(value),translated=this.translation(`config_panel.connection_details.values.${key}`,this.panelTranslations);return translated??String(value);}
   connectionState(entry){return entry.connection_entity_id?this._hass?.states?.[entry.connection_entity_id]:undefined;}
   connectionStatus(entry){return LIVE_CONNECTION_STATUS(this.connectionState(entry),entry.connected);}
   connectionBadgeAriaLabel(status){return `${this.t(`common.${status}`)} · ${this.t('connection_details.help')}`;}
@@ -266,7 +266,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   liveAvailabilityFallback(connectionState,now){const status=CONNECTION_STATE(connectionState?.state),changed=Date.parse(connectionState?.last_changed),hasDuration=(status==="connected"||status==="disconnected")&&Number.isFinite(changed);return `${hasDuration?`<dl class="availability-stats availability-stats-live"><div><dt>${this.t(`availability.${status==="connected"?'current_uptime':'current_downtime'}`)}</dt><dd>${this.formatDuration(now-changed)}</dd></div></dl>`:''}<p class="history-unavailable">${this.t('availability.history_unavailable')}</p>`;}
   async loadConnectionAvailability(dialog,entry){const container=dialog.querySelector('.availability-container'),entityId=entry.connection_entity_id,connectionState=this.connectionState(entry),now=Date.now();if(!entityId){container.innerHTML=this.liveAvailabilityFallback(connectionState,now);return;}try{const start=new Date(now-CONNECTION_WINDOW_MS).toISOString(),end=new Date(now).toISOString(),path=`history/period/${encodeURIComponent(start)}?filter_entity_id=${encodeURIComponent(entityId)}&end_time=${encodeURIComponent(end)}&minimal_response&no_attributes`;const response=await this._hass.callApi('GET',path),history=Array.isArray(response?.[0])?response[0]:[];if(!history.length)throw Error('empty history');const result=BUILD_CONNECTION_AVAILABILITY(history,now);container.innerHTML=this.availabilityMarkup(APPLY_LIVE_CONNECTION_DURATION(result,connectionState,now));}catch(err){console.debug('Unable to load S7 PLC connection history',err);container.innerHTML=this.liveAvailabilityFallback(connectionState,now);}}
   openConnectionDetails(entry){
-    const dialog=document.createElement('ha-dialog'),data=entry.data||{},{host,port}=data;
+    const dialog=document.createElement('ha-dialog'),data={...(entry.data||{}),pys7_version:entry.pys7_version},{host,port}=data;
     const groups=connectionDetailGroups(data).map(group=>`<section class="connection-detail-group"><h3><ha-icon icon="${group.icon}"></ha-icon>${this.t(`connection_details.sections.${group.key}`)}</h3><dl>${group.fields.map(({key,value})=>`<div class="connection-detail"><dt>${this.escape(this.connectionDetailLabel(key))}</dt><dd${key==='local_tsap'||key==='remote_tsap'?' class="technical-value"':''}>${this.escape(this.connectionValue(value))}</dd></div>`).join('')}</dl></section>`).join('');
     dialog.open=true;dialog.headerTitle=this.t('connection_details.title');dialog.style.setProperty('--mdc-dialog-max-width','min(560px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(480px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');
     const status=this.connectionStatus(entry);

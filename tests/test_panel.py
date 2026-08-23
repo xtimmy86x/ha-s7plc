@@ -12,14 +12,14 @@ import yaml
 
 from custom_components.s7plc.config_validation import build_entity_item
 from custom_components.s7plc.panel import (
-    async_setup_panel,
-    _entity_from_message,
+    PYS7_VERSION_DATA,
     _configuration_from_yaml,
     _configuration_yaml,
+    _entity_from_message,
     _entry_payload,
     _versioned_asset_url,
+    async_setup_panel,
 )
-
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 
@@ -177,6 +177,7 @@ def test_connection_badge_opens_read_only_connection_details() -> None:
     assert 'type="button" class="connection-badge' in source
     assert ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
     assert "connectionDetailGroups(data)" in source
+    assert "pys7_version:entry.pys7_version" in source
     assert "Object.entries(entry.data)" not in source
     assert 'class="connection-detail"' in source
     assert "openConnectionDetails(entry)" in source
@@ -233,11 +234,11 @@ const simplify=data=>connectionDetailGroups(data).map(group=>({{
 console.log(JSON.stringify({{
  rack:simplify({{future_option:42,port:102,slot:1,name:"S7 PLC",rack:0,
    enable_write_batching:true,connection_type:"rack_slot",host:"192.168.100.89",
-   pys7_connection_type:"pg",scan_interval:1,operation_timeout:5,
+    pys7_connection_type:"pg",pys7_version:"3.1.0",scan_interval:1,operation_timeout:5,
    optimize_read:true,enable_metrics:false,max_retries:3,
    retry_backoff_initial:0.5,retry_backoff_max:2,local_tsap:"ignored"}}),
  tsap:simplify({{slot:9,remote_tsap:"03.02",rack:9,connection_type:"tsap",
-   local_tsap:"01.00",pys7_connection_type:"op"}}),
+    local_tsap:"01.00",pys7_connection_type:"op",pys7_version:"3.1.0"}}),
  incomplete:simplify({{host:"plc.local",new_setting:"kept"}}),
  empty:simplify(null)
 }}));
@@ -251,7 +252,13 @@ console.log(JSON.stringify({{
     assert result["rack"] == [
         {
             "key": "connection",
-            "fields": ["connection_type", "pys7_connection_type", "rack", "slot"],
+            "fields": [
+                "connection_type",
+                "pys7_connection_type",
+                "pys7_version",
+                "rack",
+                "slot",
+            ],
         },
         {
             "key": "performance",
@@ -279,6 +286,7 @@ console.log(JSON.stringify({{
             "fields": [
                 "connection_type",
                 "pys7_connection_type",
+                "pys7_version",
                 "local_tsap",
                 "remote_tsap",
             ],
@@ -286,6 +294,32 @@ console.log(JSON.stringify({{
     ]
     assert result["incomplete"] == [{"key": "other", "fields": ["new_setting"]}]
     assert result["empty"] == []
+
+
+def test_connection_values_preserve_dotted_versions() -> None:
+    """Literal versions must not be reduced to their final dotted segment."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.panelTranslations={{config_panel:{{connection_details:{{values:{{yes:"Yes",pg:"PG profile"}}}}}}}};
+console.log(JSON.stringify([
+  panel.connectionValue("3.1.0"),
+  panel.connectionValue(true),
+  panel.connectionValue("pg")
+]));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    assert result == ["3.1.0", "Yes", "PG profile"]
 
 
 def test_connection_availability_calculations_cover_unknown_and_transitions() -> None:
@@ -854,6 +888,7 @@ async def _save_entity_handler(monkeypatch, options):
     """Set up the panel and return its registered save command and entry."""
     import custom_components.s7plc.panel as panel
 
+    monkeypatch.setattr(panel, "package_version", lambda package: "3.1.0")
     monkeypatch.setattr(panel.vol, "In", lambda values: values, raising=False)
     monkeypatch.setattr(panel.vol, "Any", lambda *values: values, raising=False)
     commands = []
@@ -902,14 +937,33 @@ async def _save_entity_handler(monkeypatch, options):
     async def register_static_paths(paths):
         return None
 
+    executor_calls = []
+
+    async def add_executor_job(func, *args):
+        executor_calls.append((func, args))
+        return func(*args)
+
     hass = SimpleNamespace(
         data={},
         config_entries=config_entries,
         http=SimpleNamespace(async_register_static_paths=register_static_paths),
+        async_add_executor_job=add_executor_job,
+        executor_calls=executor_calls,
     )
     await async_setup_panel(hass)
     hass.panel_commands = commands
     return commands[1], hass, entry, updates
+
+
+@pytest.mark.asyncio
+async def test_panel_loads_pys7_version_in_executor(monkeypatch) -> None:
+    """Load package metadata outside the event loop and expose it to the panel."""
+    _, hass, entry, _ = await _save_entity_handler(monkeypatch, {})
+
+    assert len(hass.executor_calls) == 1
+    assert hass.executor_calls[0][1] == ("pys7",)
+    assert hass.data["s7plc"][PYS7_VERSION_DATA] == "3.1.0"
+    assert _entry_payload(entry, hass)["pys7_version"] == "3.1.0"
 
 
 @pytest.mark.asyncio
@@ -1355,7 +1409,10 @@ def test_entry_payload_includes_connection_status(connected) -> None:
         runtime_data=SimpleNamespace(coordinator=coordinator),
     )
 
-    assert _entry_payload(entry)["connected"] is connected
+    payload = _entry_payload(entry)
+
+    assert payload["connected"] is connected
+    assert payload["pys7_version"] is None
 
 
 def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
@@ -1392,8 +1449,10 @@ def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
         ),
     )
 
-    payload = _entry_payload(entry, hass=object())
+    hass = SimpleNamespace(data={"s7plc": {PYS7_VERSION_DATA: "3.1.0"}})
+    payload = _entry_payload(entry, hass=hass)
 
+    assert payload["pys7_version"] == "3.1.0"
     assert payload["entity_ids"]["sensors"] == ["sensor.demo", None]
     assert payload["entity_ids"]["switches"] == []
     assert payload["connection_entity_id"] == "binary_sensor.plc_connection"

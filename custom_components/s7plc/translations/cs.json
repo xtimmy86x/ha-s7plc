@@ -935,6 +935,9 @@
         "pys7_connection_type": {
           "label": "Profil připojení S7"
         },
+        "pys7_version": {
+          "label": "Verze pyS7"
+        },
         "rack": {
           "label": "Rack"
         },
