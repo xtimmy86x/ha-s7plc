@@ -234,11 +234,11 @@ const simplify=data=>connectionDetailGroups(data).map(group=>({{
 console.log(JSON.stringify({{
  rack:simplify({{future_option:42,port:102,slot:1,name:"S7 PLC",rack:0,
    enable_write_batching:true,connection_type:"rack_slot",host:"192.168.100.89",
-    pys7_connection_type:"pg",pys7_version:"3.1.0",scan_interval:1,operation_timeout:5,
+    pys7_connection_type:"pg",pys7_version:"3.1.1",scan_interval:1,operation_timeout:5,
    optimize_read:true,enable_metrics:false,max_retries:3,
    retry_backoff_initial:0.5,retry_backoff_max:2,local_tsap:"ignored"}}),
  tsap:simplify({{slot:9,remote_tsap:"03.02",rack:9,connection_type:"tsap",
-    local_tsap:"01.00",pys7_connection_type:"op",pys7_version:"3.1.0"}}),
+    local_tsap:"01.00",pys7_connection_type:"op",pys7_version:"3.1.1"}}),
  incomplete:simplify({{host:"plc.local",new_setting:"kept"}}),
  empty:simplify(null)
 }}));
@@ -308,7 +308,7 @@ global.customElements = {{define() {{}}}};
 const panel=new S7PlcConfigurationPanel();
 panel.panelTranslations={{config_panel:{{connection_details:{{values:{{yes:"Yes",pg:"PG profile"}}}}}}}};
 console.log(JSON.stringify([
-  panel.connectionValue("3.1.0"),
+  panel.connectionValue("3.1.1"),
   panel.connectionValue(true),
   panel.connectionValue("pg")
 ]));
@@ -319,7 +319,7 @@ console.log(JSON.stringify([
         ).stdout
     )
 
-    assert result == ["3.1.0", "Yes", "PG profile"]
+    assert result == ["3.1.1", "Yes", "PG profile"]
 
 
 def test_connection_availability_calculations_cover_unknown_and_transitions() -> None:
@@ -888,7 +888,7 @@ async def _save_entity_handler(monkeypatch, options):
     """Set up the panel and return its registered save command and entry."""
     import custom_components.s7plc.panel as panel
 
-    monkeypatch.setattr(panel, "package_version", lambda package: "3.1.0")
+    monkeypatch.setattr(panel, "package_version", lambda package: "3.1.1")
     monkeypatch.setattr(panel.vol, "In", lambda values: values, raising=False)
     monkeypatch.setattr(panel.vol, "Any", lambda *values: values, raising=False)
     commands = []
@@ -962,8 +962,8 @@ async def test_panel_loads_pys7_version_in_executor(monkeypatch) -> None:
 
     assert len(hass.executor_calls) == 1
     assert hass.executor_calls[0][1] == ("pys7",)
-    assert hass.data["s7plc"][PYS7_VERSION_DATA] == "3.1.0"
-    assert _entry_payload(entry, hass)["pys7_version"] == "3.1.0"
+    assert hass.data["s7plc"][PYS7_VERSION_DATA] == "3.1.1"
+    assert _entry_payload(entry, hass)["pys7_version"] == "3.1.1"
 
 
 @pytest.mark.asyncio
@@ -1449,10 +1449,10 @@ def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
         ),
     )
 
-    hass = SimpleNamespace(data={"s7plc": {PYS7_VERSION_DATA: "3.1.0"}})
+    hass = SimpleNamespace(data={"s7plc": {PYS7_VERSION_DATA: "3.1.1"}})
     payload = _entry_payload(entry, hass=hass)
 
-    assert payload["pys7_version"] == "3.1.0"
+    assert payload["pys7_version"] == "3.1.1"
     assert payload["entity_ids"]["sensors"] == ["sensor.demo", None]
     assert payload["entity_ids"]["switches"] == []
     assert payload["connection_entity_id"] == "binary_sensor.plc_connection"
