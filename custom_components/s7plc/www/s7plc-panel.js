@@ -31,7 +31,7 @@ const CLEAN_COVER_ENTITY=(source,ui)=>{const entity={...source};COVER_VIRTUAL_FI
   if(ui.cover_control_mode!=="position"||ui.cover_stop_enabled===false){delete entity.stop_command_address;delete entity.stop_pulse_duration;}if(ui.cover_control_mode!=="position"||ui.cover_tilt_enabled===false){delete entity.tilt_state_address;delete entity.tilt_command_address;delete entity.invert_tilt;}return entity;};
 const CONNECTION_WINDOW_MS = 24*60*60*1000;
 const CONNECTION_DETAIL_GROUPS = [
-  {key:"connection",icon:"mdi:lan-connect",fields:["connection_type","pys7_connection_type","pys7_version"]},
+  {key:"connection",icon:"mdi:lan-connect",fields:["pys7_version","pys7_connection_type","connection_type"]},
   {key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","enable_write_batching","enable_metrics"]},
   {key:"retry",icon:"mdi:reload",fields:["max_retries","retry_backoff_initial","retry_backoff_max"]}
 ];

@@ -253,9 +253,9 @@ console.log(JSON.stringify({{
         {
             "key": "connection",
             "fields": [
-                "connection_type",
-                "pys7_connection_type",
                 "pys7_version",
+                "pys7_connection_type",
+                "connection_type",
                 "rack",
                 "slot",
             ],
@@ -284,9 +284,9 @@ console.log(JSON.stringify({{
         {
             "key": "connection",
             "fields": [
-                "connection_type",
-                "pys7_connection_type",
                 "pys7_version",
+                "pys7_connection_type",
+                "connection_type",
                 "local_tsap",
                 "remote_tsap",
             ],
