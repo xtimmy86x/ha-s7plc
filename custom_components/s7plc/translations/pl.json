@@ -325,8 +325,8 @@
         "label": "Przełączniki",
         "fields": {
           "control_behavior": {
-            "label": "Sterowanie",
-            "description": "Sterowanie"
+            "label": "Typ",
+            "description": "Typ sterowania"
           },
           "state_address": {
             "label": "Adres odczytu",
@@ -442,7 +442,7 @@
             "description": "Klasa urządzenia dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
           },
           "cover_control_mode": {
-            "label": "Sterowanie",
+            "label": "Typ",
             "description": "Wybierz typ sterowania przed wprowadzeniem adresów.",
             "options": {
               "traditional": "Otwórz / Zamknij",
@@ -454,37 +454,37 @@
             }
           },
           "cover_position_feedback": {
-            "label": "Pozycja",
-            "description": "Wybierz sposób identyfikacji pozycji otwarta/zamknięta.",
+            "label": "Metoda identyfikacji",
+            "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta).",
             "options": {
               "timed": "Czas",
-              "endstops": "Krańcówki"
+              "endstops": "Binarne adresy stanu"
             },
             "descriptions": {
               "timed": "Szacowanie pozycji na podstawie czasu.",
-              "endstops": "Odczyt z adresów stanu otwarta i zamknięta."
+              "endstops": "Odczyt z oddzielnych binarnych adresów stanu."
             }
           },
           "cover_movement_feedback": {
-            "label": "Ruch",
-            "description": "Wybierz sposób identyfikacji ruchu.",
+            "label": "Metoda",
+            "description": "Wybierz metodę identyfikacji ruchu osłony (otwieranie/zamykanie/zatrzymana).",
             "options": {
-              "none": "Brak / Szacowane",
-              "bits": "Oddzielne bity",
-              "status": "Odczyt stanu"
+              "none": "Brak / Szacowanie",
+              "bits": "Binarne adresy stanu",
+              "status": "Liczbowy adres stanów"
             },
             "descriptions": {
-              "none": "Wewnętrzne szacowanie lub sama pozycja.",
-              "bits": "Odczyt stanów otwieranie, zamykanie i zatrzymania.",
-              "status": "Odczyt stanu w czasie rzeczywistym."
+              "none": "Wewnętrzne szacowanie lub tylko pozycja.",
+              "bits": "Odczyt z oddzielnych binarnych adresów stanu.",
+              "status": "Odczyt z jednego liczbowego adresu stanów."
             }
           },
           "cover_stop_enabled": {
-            "label": "Stop",
-            "description": "Dedykowany adres zapisu komendy stop.",
+            "label": "Funkcja",
+            "description": "Opcjonalna funkcja sterowania dedykowanym przyciskiem stop.",
             "options": {
-              "disabled": "Wyłączone",
-              "enabled": "Włączone"
+              "disabled": "Wyłączona",
+              "enabled": "Włączona"
             },
             "descriptions": {
               "disabled": "Zatrzymanie nastąpi poprzez ponowny zapis pozycji.",
@@ -492,11 +492,11 @@
             }
           },
           "cover_tilt_enabled": {
-            "label": "Przechylenie",
-            "description": "Włącz opcjonalne sterowanie przechyleniem.",
+            "label": "Funkcja",
+            "description": "Opcjonalna funkcja sterowania przechyleniem osłony.",
             "options": {
-              "disabled": "Wyłączone",
-              "enabled": "Włączone"
+              "disabled": "Wyłączona",
+              "enabled": "Włączona"
             },
             "descriptions": {
               "disabled": "Brak sterowania przechyleniem.",
@@ -511,19 +511,19 @@
           },
           "position_feedback": {
             "title": "Pozycja",
-            "description": "Wybierz sposób identyfikacji pozycji, czas lub krańcówki."
+            "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta)."
           },
           "movement_feedback": {
             "title": "Ruch",
-            "description": "Wybierz sposób identyfikacji ruchu niezależny od krańcówek."
+            "description": "Wybierz metodę identyfikacji ruchu osłony (otwieranie/zamykanie/zatrzymana)."
           },
           "stop": {
             "title": "Stop",
-            "description": "Opcjonalne sterowanie dedykowanym przyciskiem stop."
+            "description": "Opcjonalna funkcja sterowania dedykowanym przyciskiem stop."
           },
           "tilt": {
             "title": "Przechylenie",
-            "description": "Włącz opcjonalne sterowanie przechyleniem."
+            "description": "Opcjonalna funkcja sterowania przechyleniem osłony."
           }
         }
       },
@@ -531,8 +531,8 @@
         "label": "Światła",
         "fields": {
           "control_behavior": {
-            "label": "Sterowanie",
-            "description": "Sterowanie"
+            "label": "Typ",
+            "description": "Typ sterowania"
           },
           "light_mode": {
             "label": "Typ światła",
@@ -701,14 +701,14 @@
             "description": "Opcjonalny adres PLC do zapisu trybu pracy, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu, włącz dwukierunkową komunikację, aby również odczytywać go z powrotem."
           },
           "preset_mode_bidirectional": {
-            "label": "Synchronizacja",
-            "description": "Tryb pracy nie będzie synchronizowany z PLC, będzie tylko do niego wysyłany.",
+            "label": "Metoda",
+            "description": "Metoda synchronizacji trybu pracy z PLC. Niezależnie od stanu pracy.",
             "options": {
-              "false": "Wyłączona",
-              "true": "Włączona"
+              "false": "Jednokierunkowa",
+              "true": "Dwukierunkowa"
             },
             "descriptions": {
-              "false": "Wybrany tryb jest zapisywany do PLC, ale nie jest odczytywany z powrotem — Home Assistant zachowuje ostatnio ustawiony tryb.",
+              "false": "Tryb pracy będzie zapisywany do PLC, ale nie będzie z niego odczytywany — Home Assistant zachowuje ostatnio wybrany tryb.",
               "true": "Tryb pracy będzie synchronizowany z PLC w obu kierunkach."
             }
           },
@@ -796,9 +796,9 @@
             "label": "Sterowane wyjścia",
             "description": "Steruje wyjściami termostatu.",
             "options": {
-              "heat": "Ogrzewanie",
+              "heat": "Grzanie",
               "cool": "Chłodzenie",
-              "heat_cool": "Ogrzewanie / Chłodzenie"
+              "heat_cool": "Grzanie / Chłodzenie"
             },
             "descriptions": {
               "heat": "Steruje wyjściem ogrzewania.",
@@ -819,31 +819,31 @@
             }
           },
           "climate_mode_control": {
-            "label": "Sposób kontroli",
-            "description": "Wykorzystuje tylko wartość zadaną temperatury.",
+            "label": "Metoda",
+            "description": "Wybierz metodę kontroli temperatury zadanej, trybu pracy i zasilania termostatu.",
             "options": {
-              "setpoint": "Temperaturowy",
-              "on_off": "Temperaturowy i Wł./Wył.",
+              "setpoint": "Temperatura",
+              "on_off": "Temperatura i Wł./Wył.",
               "coded": "Kodowane tryby",
               "coded_on_off": "Kodowane tryby i Wł./Wył."
             },
             "descriptions": {
               "setpoint": "Wykorzystuje tylko wartość zadaną temperatury.",
               "on_off": "Wykorzystuje wartość zadaną temperatury i adres (wł./wył.) dla zasilania.",
-              "coded": "Wykorzystuje tryby pracy jako wartości liczbowe.",
-              "coded_on_off": "Wykorzystuje tryby pracy jako wartości liczbowe i adres (wł./wył.) dla zasilania."
+              "coded": "Wykorzystuje liczbowy adres trybów pracy.",
+              "coded_on_off": "Wykorzystuje liczbowy adres trybów pracy i adres (wł./wył.) dla zasilania."
             }
           },
           "climate_action_feedback": {
-            "label": "Sposób odczytu",
-            "description": "Aktualny stan pracy zostanie ustalony na podstawie wybranej opcji.",
+            "label": "Metoda",
+            "description": "Wybierz metodę odczytu aktualnego stanu termostatu.",
             "options": {
               "inferred": "Na podstawie temperatur",
-              "plc": "Bezpośredni odczyt z PLC"
+              "plc": "Odczyt z adresu stanów"
             },
             "descriptions": {
               "inferred": "Aktualny stan pracy zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
-              "plc": "Aktualny stan pracy zostanie odczytany bezpośrednio z PLC."
+              "plc": "Aktualny stan pracy zostanie odczytany z liczbowego adresu stanów w PLC."
             }
           }
         },
@@ -858,15 +858,15 @@
           },
           "direct_function": {
             "title": "Wyjścia",
-            "description": "Wybierz jeden z dostępnych trybów dla wyjść (ogrzewanie, chłodzenie, ogrzewanie/chłodzenie)."
+            "description": "Wybierz jeden z dostępnych trybów dla wyjść (grzanie, chłodzenie, grzanie/chłodzenie)."
           },
           "direct_feedback": {
             "title": "Stany pracy",
-            "description": "Wybierz sposób wykrywania aktualnego stanu pracy kontrolera."
+            "description": "Wybierz metodę wykrywania aktualnego stanu pracy."
           },
           "mode_control": {
             "title": "Kontrola pracy",
-            "description": "Wybierz sposób kontroli temperatury zadanej, trybu pracy i zasilania."
+            "description": "Wybierz metodę kontroli temperatury zadanej, trybu pracy i zasilania."
           },
           "available_modes": {
             "title": "Tryby pracy",
@@ -874,11 +874,11 @@
           },
           "mode_feedback": {
             "title": "Synchronizacja trybu pracy",
-            "description": "Wybierz, czy tryb pracy ma być synchronizowany z PLC w obu kierunkach. Jest to niezależne od stanu pracy."
+            "description": "Wybierz metodę synchronizacji trybu pracy z PLC. Niezależnie od stanu pracy."
           },
           "action_feedback": {
             "title": "Stany pracy",
-            "description": "Wybierz, jak Home Assistant rozpoznaje aktualny stan pracy."
+            "description": "Wybierz metodę wykrywania aktualnego stanu pracy."
           }
         }
       },
@@ -901,7 +901,7 @@
       }
     },
     "control_behavior": {
-      "label": "Sterowanie",
+      "label": "Typ",
       "sync_requires_different": "Wymaga różnych adresów stanu i polecenia.",
       "options": {
         "direct": {
