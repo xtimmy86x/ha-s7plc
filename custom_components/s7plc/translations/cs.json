@@ -1081,6 +1081,13 @@
       "configure_new": "Nakonfigurujte novou entitu",
       "update_configuration": "Aktualizujte konfiguraci",
       "save_help": "Pole se ukládají přímo do konfigurace PLC."
+    },
+    "layout": {
+      "switch_to_tabs": "Přepnout na zobrazení kategorií",
+      "switch_to_sections": "Přepnout na zobrazení všech entit",
+      "expand_section": "Rozbalit sekci",
+      "collapse_section": "Sbalit sekci",
+      "all_entities": "Všechny entity"
     }
   }
 }

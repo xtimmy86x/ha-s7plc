@@ -2878,3 +2878,82 @@ console.log(JSON.stringify({{direct,inferred,plc,falseMarkup,trueMarkup,directEn
     assert "mdi:undefined" not in value["falseMarkup"] + value["trueMarkup"]
     assert value["booleanFalse"] is False
     assert value["booleanTrue"] is True
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_panel_layout_modes_persistence_and_sections_rendering() -> None:
+    """The alternate layout is presentation-only, persistent, and complete."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = rf"""
+global.HTMLElement = class {{}};
+global.customElements = {{get(){{}},define(){{}}}};
+global.localStorage = {{getItem(){{return this.value}},setItem(_key,value){{this.value=value;}}}};
+global.document = {{createElement:()=>{{
+  let value="";
+  return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}}}};
+}}}};
+{source}
+const entities=Object.fromEntries(TYPES.map(type=>[type,[]]));
+entities.sensors=[{{name:"Temperature",address:"DB1,REAL0"}},{{name:"Pressure",address:"DB1,REAL4"}}];
+entities.switches=[{{name:"Pump",state_address:"DB1,X8.0"}}];
+const entry={{entities,entity_ids:{{}},selector_options:{{}}}};
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>({{"common.entity":"Entity","common.entities":"entities","actions.add":"Add"}}[key]||key);
+panel.bt=key=>key; panel.fieldText=(type,key)=>key;
+panel.selectedIndices=new Set(); panel.expandedSections=new Set(TYPES); panel._viewMode="tabs";
+let rendered=0; panel.render=()=>rendered++;
+const defaultMode=panel.readViewMode();
+panel.setViewMode("sections");
+const stored=global.localStorage?.value??null;
+const sections=panel._renderSectionsView(entry);
+panel.expandedSections.delete("switches");
+const collapsed=panel._renderSectionsView(entry);
+global.localStorage={{getItem:()=>"invalid",setItem(_key,value){{this.value=value;}}}};
+const invalid=panel.readViewMode();
+global.localStorage={{getItem(){{throw Error("blocked")}},setItem(){{throw Error("blocked")}}}};
+const inaccessible=panel.readViewMode(); panel.setViewMode("tabs");
+console.log(JSON.stringify({{defaultMode,stored,invalid,inaccessible,rendered,
+ sectionCount:(sections.match(/data-section-type=/g)||[]).length,
+ sensorCount:sections.includes("2 entities"),empty:sections.includes('data-section-type="binary_sensors"'),
+ addSensor:sections.includes('data-add="sensors"'),expanded:sections.includes('aria-expanded="true"'),
+ collapsed:collapsed.includes('data-section-toggle="switches"')&&collapsed.includes('aria-expanded="false"')&&!collapsed.includes('data-entity-type="switches"'),
+ title:sections.includes('title="layout.collapse_section"'),aria:sections.includes('aria-label="layout.collapse_section: entity_types.sensors.label"')
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result == {
+        "defaultMode": "tabs",
+        "stored": "sections",
+        "invalid": "tabs",
+        "inaccessible": "tabs",
+        "rendered": 2,
+        "sectionCount": 10,
+        "sensorCount": True,
+        "empty": True,
+        "addSensor": True,
+        "expanded": True,
+        "collapsed": True,
+        "title": True,
+        "aria": True,
+    }
+
+
+def test_panel_layout_translations_are_available_in_every_language() -> None:
+    required = {
+        "switch_to_tabs",
+        "switch_to_sections",
+        "expand_section",
+        "collapse_section",
+        "all_entities",
+    }
+    files = [
+        Path("custom_components/s7plc/strings.json"),
+        *Path("custom_components/s7plc/translations").glob("*.json"),
+    ]
+    for path in files:
+        translations = json.loads(path.read_text(encoding="utf-8"))
+        assert required <= translations["config_panel"]["layout"].keys(), path
+        assert all(translations["config_panel"]["layout"][key] for key in required)

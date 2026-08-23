@@ -1081,6 +1081,13 @@
       "configure_new": "Configura una nuova entità",
       "update_configuration": "Aggiorna la configurazione",
       "save_help": "I campi vengono salvati direttamente nella configurazione del PLC."
+    },
+    "layout": {
+      "switch_to_tabs": "Passa alla vista per categorie",
+      "switch_to_sections": "Passa alla vista di tutte le entità",
+      "expand_section": "Espandi sezione",
+      "collapse_section": "Comprimi sezione",
+      "all_entities": "Tutte le entità"
     }
   }
 }

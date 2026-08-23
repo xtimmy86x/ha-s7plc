@@ -1081,6 +1081,13 @@
       "configure_new": "Konfigurator nowej encji",
       "update_configuration": "Konfigurator edytowanej encji",
       "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC."
+    },
+    "layout": {
+      "switch_to_tabs": "Przełącz na widok kategorii",
+      "switch_to_sections": "Przełącz na widok wszystkich encji",
+      "expand_section": "Rozwiń sekcję",
+      "collapse_section": "Zwiń sekcję",
+      "all_entities": "Wszystkie encje"
     }
   }
 }

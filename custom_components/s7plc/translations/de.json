@@ -1081,6 +1081,13 @@
       "configure_new": "Eine neue Entität konfigurieren",
       "update_configuration": "Konfiguration aktualisieren",
       "save_help": "Felder werden direkt in der SPS-Konfiguration gespeichert."
+    },
+    "layout": {
+      "switch_to_tabs": "Zur Kategorieansicht wechseln",
+      "switch_to_sections": "Zur Ansicht aller Entitäten wechseln",
+      "expand_section": "Abschnitt erweitern",
+      "collapse_section": "Abschnitt reduzieren",
+      "all_entities": "Alle Entitäten"
     }
   }
 }

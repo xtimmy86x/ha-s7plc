@@ -1081,6 +1081,13 @@
       "configure_new": "Configure a new entity",
       "update_configuration": "Update the configuration",
       "save_help": "Fields are saved directly in the PLC configuration."
+    },
+    "layout": {
+      "switch_to_tabs": "Switch to category view",
+      "switch_to_sections": "Switch to all-entities view",
+      "expand_section": "Expand section",
+      "collapse_section": "Collapse section",
+      "all_entities": "All entities"
     }
   }
 }
