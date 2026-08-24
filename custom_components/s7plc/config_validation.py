@@ -896,11 +896,26 @@ class EntityConfigBuilder:
 
         # Validate optional real-time movement status (cover_status_address
         # and its per-status value mappings)
+        status_keys = (
+            CONF_COVER_STATUS_ADDRESS,
+            CONF_COVER_STATUS_OPEN_VALUES,
+            CONF_COVER_STATUS_CLOSED_VALUES,
+            CONF_COVER_STATUS_OPENING_VALUES,
+            CONF_COVER_STATUS_CLOSING_VALUES,
+            CONF_COVER_STATUS_STOPPED_VALUES,
+        )
+        status_input = (
+            user_input if any(key in user_input for key in status_keys) else {}
+        )
         cover_status_fields, cover_status_errors = self._validate_cover_status_fields(
-            user_input if feedback_mode == "status" or not explicit_feedback else {}
+            status_input
         )
         if cover_status_errors:
             return None, cover_status_errors
+        if any(
+            cover_status_fields.get(key) for key in status_keys[1:]
+        ) and not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS):
+            return None, {"base": "cover_status_required"}
         if feedback_mode == "status" and (
             not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS)
             or not any(

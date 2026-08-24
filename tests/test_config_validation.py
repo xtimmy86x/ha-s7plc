@@ -254,6 +254,61 @@ def test_legacy_hybrid_cover_builder_preserves_independent_feedback() -> None:
     assert item["operate_time"] == 120
 
 
+@pytest.mark.parametrize(
+    ("mode", "state_fields"),
+    [
+        ("timed", {}),
+        ("opening", {"opening_state_address": "DB1,X1.0"}),
+        ("closing", {"closing_state_address": "DB1,X1.1"}),
+        (
+            "both",
+            {
+                "opening_state_address": "DB1,X1.0",
+                "closing_state_address": "DB1,X1.1",
+            },
+        ),
+    ],
+)
+def test_explicit_feedback_preserves_status_word_for_movement(
+    mode: str, state_fields: dict[str, str]
+) -> None:
+    """An explicit position source does not discard status-word movement."""
+    source = {
+        "open_command_address": "DB1,X0.0",
+        "close_command_address": "DB1,X0.1",
+        "cover_position_feedback": mode,
+        "cover_status_address": "DB1,B10",
+        "cover_status_opening_values": "2",
+        "cover_status_closing_values": "3",
+        "operate_time": 120,
+        **state_fields,
+    }
+    item, errors = build_entity_item(CONF_COVERS, source, options={})
+    assert not errors
+    assert item["cover_position_feedback"] == mode
+    assert item["cover_status_address"] == "DB1,B10"
+    assert item["cover_status_opening_values"] == "2"
+    assert item["cover_status_closing_values"] == "3"
+    assert item["operate_time"] == 120
+    for key, value in state_fields.items():
+        assert item[key] == value
+
+
+def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "cover_position_feedback": "timed",
+            "cover_status_opening_values": "2",
+        },
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "cover_status_required"}
+
+
 def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     item, errors = build_entity_item(
         CONF_COVERS,

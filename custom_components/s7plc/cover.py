@@ -269,18 +269,7 @@ async def async_setup_entry(
         # climate-style status address + per-status value mapping, same as
         # the Position cover's cover_status_address. Takes priority over
         # the boolean addresses when configured.
-        explicit_feedback = item.get(CONF_COVER_POSITION_FEEDBACK) in {
-            "timed",
-            "opening",
-            "closing",
-            "both",
-            "status",
-        }
-        cover_status_address = (
-            item.get(CONF_COVER_STATUS_ADDRESS)
-            if feedback_mode == "status" or not explicit_feedback
-            else None
-        )
+        cover_status_address = item.get(CONF_COVER_STATUS_ADDRESS)
         cover_status_topic = None
         if cover_status_address:
             cover_status_topic = f"cover:status:{cover_status_address}"
@@ -599,14 +588,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     @property
     def is_closed(self) -> bool | None:
-        if self._cover_status_address:
+        if self._feedback_mode == "status" and self._cover_status_address:
             movement = self._get_movement_status()
             if movement == "closed":
                 return True
             if movement == "open":
                 return False
-            if self._feedback_mode == "status":
-                return None
+            return None
         if self._use_state_topics:
             # Use state topics for position feedback
             closed_state = self._get_topic_state(self._closed_topic)

@@ -975,6 +975,35 @@ def test_cover_status_address_absent_from_attrs_when_unconfigured(cover_factory)
     assert "s7_cover_status_values" not in attrs
 
 
+def test_explicit_endstop_position_and_status_word_movement(
+    cover_factory, mock_coordinator
+):
+    """The end-stop remains positional while the word reports movement."""
+    cover = cover_factory(
+        opened_state="db1,x1.0",
+        opened_topic="cover:opened:db1,x1.0",
+        use_state_topics=True,
+        feedback_mode="opening",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_open_values="1",
+        cover_status_opening_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:opened:db1,x1.0": False,
+        "cover:status:db1,b10": 1,
+    }
+    assert cover.is_closed is None
+    assert cover.is_opening is False
+
+    mock_coordinator.data["cover:status:db1,b10"] = 2
+    assert cover.is_closed is None
+    assert cover.is_opening is True
+
+    mock_coordinator.data["cover:opened:db1,x1.0"] = True
+    assert cover.is_closed is False
+
+
 @pytest.mark.asyncio
 async def test_async_setup_entry_traditional_with_status_address(
     fake_hass, mock_coordinator, device_info
@@ -1017,6 +1046,39 @@ async def test_async_setup_entry_traditional_with_status_address(
     assert cover._cover_status_address == "db1,b10"
     assert cover._cover_status_values["opening"] == [1]
     assert cover._cover_status_values["closing"] == [2]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_explicit_endstop_keeps_status_movement(
+    fake_hass, mock_coordinator, device_info
+):
+    """An explicit end-stop mode still wires the movement status word."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                "cover_position_feedback": "opening",
+                "opening_state_address": "db1,x1.0",
+                "cover_status_address": "db1,b10",
+                "cover_status_opening_values": "2",
+                CONF_NAME: "Hybrid Cover",
+                CONF_UID: "uid-hybrid",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    cover = async_add_entities.call_args[0][0][0]
+    assert cover._feedback_mode == "opening"
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_status_values["opening"] == [2]
+    assert mock_coordinator.add_item.call_count == 2
 
 
 # ============================================================================
