@@ -476,11 +476,17 @@
             "description": "Scegli come viene determinata la posizione terminale.",
             "options": {
               "timed": "Temporizzato",
-              "endstops": "Finecorsa"
+              "opening": "Solo finecorsa aperto",
+              "closing": "Solo finecorsa chiuso",
+              "both": "Entrambi i finecorsa",
+              "status": "Word di stato"
             },
             "descriptions": {
               "timed": "Stima la posizione usando il tempo di manovra.",
-              "endstops": "Legge i finecorsa completamente aperto e chiuso."
+              "opening": "Legge solo il finecorsa di completa apertura.",
+              "closing": "Legge solo il finecorsa di completa chiusura.",
+              "both": "Legge entrambi i finecorsa di completa apertura e chiusura.",
+              "status": "Usa una word PLC associata agli stati aperto, chiuso, in apertura, in chiusura e fermo."
             }
           },
           "cover_movement_feedback": {
@@ -529,7 +535,7 @@
           },
           "position_feedback": {
             "title": "Feedback della posizione",
-            "description": "Scegli la stima temporizzata oppure i finecorsa fisici."
+            "description": "Scegli la stima temporizzata, uno o entrambi i finecorsa oppure una word di stato PLC associata."
           },
           "movement_feedback": {
             "title": "Feedback del movimento",
@@ -1084,7 +1090,13 @@
       "invalid_availability_mode": "Seleziona un criterio di disponibilità valido.",
       "availability_address_required": "È necessario un indirizzo BIT di disponibilità.",
       "invalid_availability_address": "Inserisci un indirizzo BIT di disponibilità valido.",
-      "availability_address_must_be_bit": "L'indirizzo di disponibilità deve essere un indirizzo BIT."
+      "availability_address_must_be_bit": "L'indirizzo di disponibilità deve essere un indirizzo BIT.",
+      "cover_endstop_open_required_error": "Il feedback del finecorsa aperto richiede l'indirizzo di completa apertura.",
+      "cover_endstop_closed_required_error": "Il feedback del finecorsa chiuso richiede l'indirizzo di completa chiusura.",
+      "cover_status_mapping_required_error": "Il feedback tramite word di stato richiede almeno un'associazione di stato.",
+      "cover_status_values_error": "Le associazioni di stato devono contenere numeri interi separati da virgole.",
+      "cover_status_duplicate_error": "Un valore di stato non può comparire in più di un'associazione.",
+      "cover_status_required": "Il feedback tramite word di stato richiede un indirizzo e almeno un'associazione."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

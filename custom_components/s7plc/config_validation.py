@@ -29,6 +29,7 @@ from .const import (
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
     CONF_COVER_OPENING_ADDRESS,
+    CONF_COVER_POSITION_FEEDBACK,
     CONF_COVER_STATUS_ADDRESS,
     CONF_COVER_STATUS_CLOSED_VALUES,
     CONF_COVER_STATUS_CLOSING_VALUES,
@@ -186,6 +187,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_COVER_STATUS_OPENING_VALUES,
         CONF_COVER_STATUS_CLOSING_VALUES,
         CONF_COVER_STATUS_STOPPED_VALUES,
+        CONF_COVER_POSITION_FEEDBACK,
         CONF_POSITION_STATE_ADDRESS,
         CONF_POSITION_COMMAND_ADDRESS,
         CONF_STOP_COMMAND_ADDRESS,
@@ -815,6 +817,23 @@ class EntityConfigBuilder:
         if close_errors:
             return None, close_errors
 
+        feedback_mode = user_input.get(CONF_COVER_POSITION_FEEDBACK)
+        if feedback_mode not in {"timed", "opening", "closing", "both", "status"}:
+            # Legacy entries did not persist a selector.  Preserve their exact
+            # shape, including configurations with only one limit switch.
+            if user_input.get(CONF_COVER_STATUS_ADDRESS):
+                feedback_mode = "status"
+            elif user_input.get(CONF_OPENING_STATE_ADDRESS) and user_input.get(
+                CONF_CLOSING_STATE_ADDRESS
+            ):
+                feedback_mode = "both"
+            elif user_input.get(CONF_OPENING_STATE_ADDRESS):
+                feedback_mode = "opening"
+            elif user_input.get(CONF_CLOSING_STATE_ADDRESS):
+                feedback_mode = "closing"
+            else:
+                feedback_mode = "timed"
+
         # Get optional state addresses
         opening_state = self._sanitize_address(
             user_input.get(CONF_OPENING_STATE_ADDRESS)
@@ -839,12 +858,11 @@ class EntityConfigBuilder:
 
         # Get other parameters
         operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
-        use_state_topics = bool(user_input.get(CONF_USE_STATE_TOPICS, False))
-
-        # If use_state_topics is enabled, both state addresses are required
-        if use_state_topics:
-            if not opening_state or not closing_state:
-                return None, {"base": "state_addresses_required"}
+        use_state_topics = feedback_mode in {"opening", "closing", "both"}
+        if feedback_mode in {"opening", "both"} and not opening_state:
+            return None, {"base": "state_addresses_required"}
+        if feedback_mode in {"closing", "both"} and not closing_state:
+            return None, {"base": "state_addresses_required"}
 
         # Validate optional state addresses if present
         for candidate in (
@@ -871,10 +889,24 @@ class EntityConfigBuilder:
         # Validate optional real-time movement status (cover_status_address
         # and its per-status value mappings)
         cover_status_fields, cover_status_errors = self._validate_cover_status_fields(
-            user_input
+            user_input if feedback_mode == "status" else {}
         )
         if cover_status_errors:
             return None, cover_status_errors
+        if feedback_mode == "status" and (
+            not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS)
+            or not any(
+                cover_status_fields.get(key)
+                for key in (
+                    CONF_COVER_STATUS_OPEN_VALUES,
+                    CONF_COVER_STATUS_CLOSED_VALUES,
+                    CONF_COVER_STATUS_OPENING_VALUES,
+                    CONF_COVER_STATUS_CLOSING_VALUES,
+                    CONF_COVER_STATUS_STOPPED_VALUES,
+                )
+            )
+        ):
+            return None, {"base": "cover_status_required"}
 
         # Build item
         item: dict[str, Any] = {
@@ -883,9 +915,9 @@ class EntityConfigBuilder:
         }
 
         # Add optional state addresses
-        if opening_state:
+        if feedback_mode in {"opening", "both"} and opening_state:
             item[CONF_OPENING_STATE_ADDRESS] = opening_state
-        if closing_state:
+        if feedback_mode in {"closing", "both"} and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
         # Add optional real-time movement status addresses
@@ -902,8 +934,11 @@ class EntityConfigBuilder:
         )
 
         # Add cover-specific fields
-        item[CONF_OPERATE_TIME] = operate_time
-        item[CONF_USE_STATE_TOPICS] = use_state_topics
+        if feedback_mode == "timed":
+            item[CONF_OPERATE_TIME] = operate_time
+        if use_state_topics:
+            item[CONF_USE_STATE_TOPICS] = True
+        item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
         item.update(cover_status_fields)
 
         # Apply scan interval

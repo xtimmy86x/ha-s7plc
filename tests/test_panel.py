@@ -2261,7 +2261,7 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert (
-        "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
+        "if(movement==='status'&&control==='position')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
         in source
     )
     assert (
@@ -2550,8 +2550,7 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
             "position",
         }
         assert set(cover_fields["cover_position_feedback"]["options"]) == {
-            "timed",
-            "endstops",
+            "timed", "opening", "closing", "both", "status",
         }
         assert set(cover_fields["cover_movement_feedback"]["options"]) == {
             "none",
@@ -2578,7 +2577,7 @@ console.log(JSON.stringify({{
  traditional:infer({{open_command_address:"Q0.0"}}),
  position:infer(mixed),
  timed:infer({{}}).cover_position_feedback,
- endstops:infer({{use_state_topics:true}}).cover_position_feedback,
+ endstops:infer({{opening_state_address:"I0.0",closing_state_address:"I0.1",use_state_topics:true}}).cover_position_feedback,
  legacyEndstop:infer({{opening_state_address:"I0.0"}}).cover_position_feedback,
  statusWins:infer(mixed).cover_movement_feedback,
  bits:infer({{cover_closing_address:"I0.1"}}).cover_movement_feedback,
@@ -2594,8 +2593,8 @@ console.log(JSON.stringify({{
     assert result["traditional"]["cover_control_mode"] == "traditional"
     assert result["position"]["cover_control_mode"] == "position"
     assert result["timed"] == "timed"
-    assert result["endstops"] == "endstops"
-    assert result["legacyEndstop"] == "timed"
+    assert result["endstops"] == "both"
+    assert result["legacyEndstop"] == "opening"
     assert result["statusWins"] == "status"
     assert result["bits"] == "bits"
     assert result["traditional"]["cover_stop_enabled"] == "disabled"
@@ -2663,7 +2662,7 @@ const save=(original,overrides={{}})=>{{
 const details={{uid:"cover-1",name:"Blind",area:"living",device_class:"blind",scan_interval:2}};
 const commands={{open_command_address:"DB1,X0.0",close_command_address:"DB1,X0.1"}};
 const timed=save({{...details}},commands);
-const endstops=save({{...details}},{{...commands,cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}});
+const endstops=save({{...details}},{{...commands,cover_position_feedback:"both",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}});
 const position=save({{...details}},{{cover_control_mode:"position",position_state_address:"DB1,BYTE0"}});
 const edited=save({{...details,...commands,use_state_topics:true,opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}},{{name:"Edited"}});
 console.log(JSON.stringify({{timed,endstops,position,edited,virtual:COVER_VIRTUAL_FIELDS}}));
@@ -2762,12 +2761,13 @@ console.log(JSON.stringify({{
     assert "tilt_command_address" not in result["disabled"]["tilt"]
     assert "invert_tilt" not in result["disabled"]["tilt"]
 
-    # Addresses alone do not enable backend end-stop mode. Timed cleanup removes
-    # stale end-stop addresses and persists the explicit false mode flag.
-    for entity in result["endstops"].values():
-        assert "opening_state_address" not in entity
-        assert "closing_state_address" not in entity
-        assert entity["use_state_topics"] is False
+    # Legacy single-end-stop configurations infer and retain their exact mode.
+    assert result["endstops"]["opening"]["opening_state_address"] == "DB1,X0.2"
+    assert "closing_state_address" not in result["endstops"]["opening"]
+    assert result["endstops"]["opening"]["use_state_topics"] is True
+    assert result["endstops"]["closing"]["closing_state_address"] == "DB1,X0.3"
+    assert "opening_state_address" not in result["endstops"]["closing"]
+    assert result["endstops"]["closing"]["use_state_topics"] is True
 
     traditional = result["switched"]["traditional"]
     for key in (
@@ -2832,11 +2832,11 @@ const legacy={{...commands,opening_state_address:"DB1,X0.2",use_state_topics:tru
 console.log(JSON.stringify({{
   inferred:{{persisted:infer(persisted),stale:infer(stale),legacy:infer(legacy)}},
   roundTrip:save(persisted),
-  created:save(commands,{{cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}}),
+  created:save(commands,{{cover_position_feedback:"both",opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}}),
   timedStale:save(stale),
   timedFromEndstops:save(persisted,{{cover_position_feedback:"timed"}}),
-  endstopsFromTimed:save(stale,{{cover_position_feedback:"endstops"}}),
-  missing:{{opening:error(commands,{{cover_position_feedback:"endstops",opening_state_address:"DB1,X0.2"}}),closing:error(commands,{{cover_position_feedback:"endstops",closing_state_address:"DB1,X0.3"}}),legacy:error(legacy)}}
+  endstopsFromTimed:save(stale,{{cover_position_feedback:"both"}}),
+  missing:{{opening:error(commands,{{cover_position_feedback:"both",opening_state_address:"DB1,X0.2"}}),closing:error(commands,{{cover_position_feedback:"both",closing_state_address:"DB1,X0.3"}}),legacy:error(legacy)}}
 }}));
 """
     result = json.loads(
@@ -2845,18 +2845,20 @@ console.log(JSON.stringify({{
         ).stdout
     )
 
-    assert result["inferred"]["persisted"]["cover_position_feedback"] == "endstops"
-    assert result["inferred"]["legacy"]["cover_position_feedback"] == "endstops"
-    assert result["inferred"]["stale"]["cover_position_feedback"] == "timed"
-    for key in ("roundTrip", "created", "endstopsFromTimed"):
+    assert result["inferred"]["persisted"]["cover_position_feedback"] == "both"
+    assert result["inferred"]["legacy"]["cover_position_feedback"] == "opening"
+    assert result["inferred"]["stale"]["cover_position_feedback"] == "both"
+    for key in ("roundTrip", "created", "endstopsFromTimed", "timedStale"):
         assert result[key]["use_state_topics"] is True
         assert result[key]["opening_state_address"] == "DB1,X0.2"
         assert result[key]["closing_state_address"] == "DB1,X0.3"
-    for key in ("timedStale", "timedFromEndstops"):
+    for key in ("timedFromEndstops",):
         assert result[key]["use_state_topics"] is False
         assert "opening_state_address" not in result[key]
         assert "closing_state_address" not in result[key]
-    assert set(result["missing"].values()) == {"errors.cover_endstops_required_error"}
+    assert result["missing"]["opening"] == "errors.cover_endstop_closed_required_error"
+    assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
+    assert result["missing"]["legacy"] is None
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:
@@ -2865,9 +2867,8 @@ def test_cover_endstop_panel_validation_matches_config_builder() -> None:
     backend = Path("custom_components/s7plc/config_validation.py").read_text(
         encoding="utf-8"
     )
-    assert "(!entity.opening_state_address||!entity.closing_state_address)" in panel
-    assert "if use_state_topics:" in backend
-    assert "if not opening_state or not closing_state:" in backend
+    assert "['opening','both'].includes(ui.cover_position_feedback)" in panel
+    assert 'feedback_mode in {"opening", "both"}' in backend
 
 
 def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:

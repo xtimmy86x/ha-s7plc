@@ -476,11 +476,17 @@
             "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta).",
             "options": {
               "timed": "Czas",
-              "endstops": "Binarne adresy stanu"
+              "opening": "Tylko krańcówka otwarcia",
+              "closing": "Tylko krańcówka zamknięcia",
+              "both": "Obie krańcówki",
+              "status": "Słowo stanu"
             },
             "descriptions": {
               "timed": "Szacowanie pozycji na podstawie czasu.",
-              "endstops": "Odczyt z oddzielnych binarnych adresów stanu."
+              "opening": "Odczyt tylko krańcówki pełnego otwarcia.",
+              "closing": "Odczyt tylko krańcówki pełnego zamknięcia.",
+              "both": "Odczyt krańcówek pełnego otwarcia i zamknięcia.",
+              "status": "Użycie jednego słowa PLC mapowanego na stan otwarty, zamknięty, otwieranie, zamykanie i zatrzymanie."
             }
           },
           "cover_movement_feedback": {
@@ -529,7 +535,7 @@
           },
           "position_feedback": {
             "title": "Pozycja",
-            "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta)."
+            "description": "Wybierz szacowanie czasowe, jedną lub obie krańcówki albo mapowane słowo stanu PLC."
           },
           "movement_feedback": {
             "title": "Ruch",
@@ -1084,7 +1090,13 @@
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",
       "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",
-      "availability_address_must_be_bit": "Adres dostępności musi być adresem BIT."
+      "availability_address_must_be_bit": "Adres dostępności musi być adresem BIT.",
+      "cover_endstop_open_required_error": "Sprzężenie zwrotne krańcówki otwarcia wymaga adresu pełnego otwarcia.",
+      "cover_endstop_closed_required_error": "Sprzężenie zwrotne krańcówki zamknięcia wymaga adresu pełnego zamknięcia.",
+      "cover_status_mapping_required_error": "Sprzężenie zwrotne słowa stanu wymaga co najmniej jednego mapowania stanu.",
+      "cover_status_values_error": "Mapowania stanów muszą zawierać liczby całkowite oddzielone przecinkami.",
+      "cover_status_duplicate_error": "Wartość stanu nie może występować w więcej niż jednym mapowaniu.",
+      "cover_status_required": "Sprzężenie zwrotne słowa stanu wymaga adresu i co najmniej jednego mapowania."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

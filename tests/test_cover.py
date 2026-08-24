@@ -72,6 +72,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
         unique_id: str = "test_device:cover:db1,x0.0",
         operate_time: float = 15.0,
         use_state_topics: bool = False,
+        feedback_mode: str | None = None,
         cover_opening_address: str | None = None,
         cover_closing_address: str | None = None,
         cover_stopped_address: str | None = None,
@@ -99,6 +100,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
             closed_topic=closed_topic,
             operate_time=operate_time,
             use_state_topics=use_state_topics,
+            feedback_mode=feedback_mode,
             cover_opening_address=cover_opening_address,
             cover_closing_address=cover_closing_address,
             cover_stopped_address=cover_stopped_address,
@@ -437,6 +439,7 @@ def test_available_missing_state_data(cover_factory, mock_coordinator):
     cover = cover_factory(
         opened_topic="cover:opened:db1,x1.0",
         closed_topic="cover:closed:db1,x1.1",
+        feedback_mode="both",
     )
     assert cover.available is False
 
@@ -499,7 +502,7 @@ def test_movement_contract_a_status_opening_overrides_false_opening_bit(
     assert cover.is_opening is True
 
 
-def test_movement_contract_b_unknown_status_falls_back_to_true_opening_bit(
+def test_movement_contract_b_unknown_status_does_not_fall_back_to_opening_bit(
     cover_factory, mock_coordinator
 ):
     cover = cover_factory(
@@ -514,7 +517,7 @@ def test_movement_contract_b_unknown_status_falls_back_to_true_opening_bit(
         "cover:status:db1,b10": 99,
     }
 
-    assert cover.is_opening is True
+    assert cover.is_opening is False
 
 
 def test_movement_contract_c_status_closing_overrides_true_opening_bit(
@@ -819,7 +822,7 @@ def test_cover_status_absent_from_attrs_when_unconfigured(cover_factory):
 def test_cover_status_address_unmatched_falls_back_to_booleans(
     cover_factory, mock_coordinator
 ):
-    """An unmatched status word falls back to boolean movement feedback."""
+    """An unmatched status word does not fall back to incompatible bits."""
     cover = cover_factory(
         cover_opening_address="db1,b1",
         cover_opening_topic="cover:opening:db1,b1",
@@ -831,7 +834,7 @@ def test_cover_status_address_unmatched_falls_back_to_booleans(
         "cover:opening:db1,b1": True,  # boolean says opening
         "cover:status:db1,b10": 99,  # status word is not mapped
     }
-    assert cover.is_opening is True
+    assert cover.is_opening is False
 
 
 def test_cover_status_address_unmatched_falls_back_to_stopped(
@@ -916,8 +919,7 @@ def test_cover_status_address_open_value_overrides_is_closed(
 def test_cover_status_address_unmatched_falls_back_to_existing_logic(
     cover_factory, mock_coordinator
 ):
-    """When cover_status_address doesn't match open/closed, is_closed falls
-    back to the existing opened_state/closed_state or timer logic."""
+    """An opening status has no hidden timer-position fallback."""
     cover = cover_factory(
         cover_status_topic="cover:status:db1,b10",
         cover_status_address="db1,b10",
@@ -925,7 +927,7 @@ def test_cover_status_address_unmatched_falls_back_to_existing_logic(
     )
     cover._assumed_closed = True
     mock_coordinator.data = {"cover:status:db1,b10": 1}  # "opening", not open/closed
-    assert cover.is_closed is True  # falls back to _assumed_closed
+    assert cover.is_closed is None
 
 
 def test_cover_status_address_extra_state_attributes(cover_factory):
@@ -1288,7 +1290,7 @@ async def test_async_setup_entry_use_state_topics(fake_hass, mock_coordinator, d
         await async_setup_entry(fake_hass, config_entry, async_add_entities)
     
     entities = async_add_entities.call_args[0][0]
-    assert entities[0]._use_state_topics is True
+    assert entities[0]._use_state_topics is False
 
 
 # ============================================================================

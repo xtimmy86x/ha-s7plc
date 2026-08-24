@@ -476,11 +476,17 @@
             "description": "Zvolte způsob určení koncové pozice.",
             "options": {
               "timed": "Časovaná",
-              "endstops": "Koncové spínače"
+              "opening": "Pouze koncový spínač otevření",
+              "closing": "Pouze koncový spínač zavření",
+              "both": "Oba koncové spínače",
+              "status": "Stavové slovo"
             },
             "descriptions": {
               "timed": "Odhadnout pozici podle doby chodu.",
-              "endstops": "Číst koncové spínače zcela otevřeno a zcela zavřeno."
+              "opening": "Číst pouze koncový spínač úplného otevření.",
+              "closing": "Číst pouze koncový spínač úplného zavření.",
+              "both": "Číst koncové spínače úplného otevření i zavření.",
+              "status": "Použít jedno stavové slovo PLC namapované na otevření, zavření, otevírání, zavírání a zastavení."
             }
           },
           "cover_movement_feedback": {
@@ -529,7 +535,7 @@
           },
           "position_feedback": {
             "title": "Zpětná vazba pozice",
-            "description": "Zvolte časovaný odhad nebo fyzické koncové spínače."
+            "description": "Zvolte časovaný odhad, jeden či oba koncové spínače nebo namapované stavové slovo PLC."
           },
           "movement_feedback": {
             "title": "Zpětná vazba pohybu",
@@ -1084,7 +1090,13 @@
       "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
       "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",
       "invalid_availability_address": "Zadejte platnou BIT adresu dostupnosti.",
-      "availability_address_must_be_bit": "Adresa dostupnosti musí být typu BIT."
+      "availability_address_must_be_bit": "Adresa dostupnosti musí být typu BIT.",
+      "cover_endstop_open_required_error": "Zpětná vazba koncového spínače otevření vyžaduje adresu úplného otevření.",
+      "cover_endstop_closed_required_error": "Zpětná vazba koncového spínače zavření vyžaduje adresu úplného zavření.",
+      "cover_status_mapping_required_error": "Zpětná vazba stavového slova vyžaduje alespoň jedno mapování stavu.",
+      "cover_status_values_error": "Mapování stavů musí obsahovat celá čísla oddělená čárkami.",
+      "cover_status_duplicate_error": "Hodnota stavu nesmí být uvedena ve více než jednom mapování.",
+      "cover_status_required": "Zpětná vazba stavového slova vyžaduje adresu a alespoň jedno mapování."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

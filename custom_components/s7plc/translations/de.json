@@ -53,7 +53,7 @@
           "host": "Host",
           "port": "Port",
           "local_tsap": "Lokales TSAP",
-          "remote_tsap": "Remote TSAP",
+          "remote_tsap": "Entfernte TSAP",
           "pys7_connection_type": "Verbindungstyp",
           "scan_interval": "Scan-Intervall (s)",
           "operation_timeout": "Timeout (s)",
@@ -264,7 +264,7 @@
         "description": "Für diese Entität spezifische Optionen"
       },
       "ha_details": {
-        "title": "Details in Home Assistant",
+        "title": "Details in Home Assistant anzeigen",
         "description": "Name, Bereich und Aktualisierungsintervall"
       },
       "command_behavior": {
@@ -476,11 +476,17 @@
             "description": "Wählen Sie aus, wie die Endposition bestimmt wird.",
             "options": {
               "timed": "Zeitgesteuert",
-              "endstops": "Endschalter"
+              "opening": "Nur Endschalter Offen",
+              "closing": "Nur Endschalter Geschlossen",
+              "both": "Beide Endschalter",
+              "status": "Statuswort"
             },
             "descriptions": {
               "timed": "Position anhand der Laufzeit schätzen.",
-              "endstops": "Endschalter für vollständig offen und geschlossen lesen."
+              "opening": "Nur den Endschalter für vollständig geöffnet lesen.",
+              "closing": "Nur den Endschalter für vollständig geschlossen lesen.",
+              "both": "Beide Endschalter für vollständig geöffnet und geschlossen lesen.",
+              "status": "Ein SPS-Wort verwenden, das Offen, Geschlossen, Öffnen, Schließen und Gestoppt zugeordnet ist."
             }
           },
           "cover_movement_feedback": {
@@ -529,7 +535,7 @@
           },
           "position_feedback": {
             "title": "Positionsrückmeldung",
-            "description": "Wählen Sie zwischen Zeitschätzung und physischen Endschaltern."
+            "description": "Wählen Sie die zeitgesteuerte Schätzung, einen oder beide Endschalter oder ein zugeordnetes SPS-Statuswort."
           },
           "movement_feedback": {
             "title": "Bewegungsrückmeldung",
@@ -1084,7 +1090,13 @@
       "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
       "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",
       "invalid_availability_address": "Geben Sie eine gültige Verfügbarkeits-BIT-Adresse ein.",
-      "availability_address_must_be_bit": "Die Verfügbarkeitsadresse muss eine BIT-Adresse sein."
+      "availability_address_must_be_bit": "Die Verfügbarkeitsadresse muss eine BIT-Adresse sein.",
+      "cover_endstop_open_required_error": "Die Rückmeldung über den Endschalter Offen erfordert die Adresse für vollständig geöffnet.",
+      "cover_endstop_closed_required_error": "Die Rückmeldung über den Endschalter Geschlossen erfordert die Adresse für vollständig geschlossen.",
+      "cover_status_mapping_required_error": "Die Statuswort-Rückmeldung erfordert mindestens eine Zustandszuordnung.",
+      "cover_status_values_error": "Statuszuordnungen müssen durch Kommas getrennte Ganzzahlen enthalten.",
+      "cover_status_duplicate_error": "Ein Statuswert darf nicht in mehreren Zuordnungen vorkommen.",
+      "cover_status_required": "Die Statuswort-Rückmeldung erfordert eine Adresse und mindestens eine Zuordnung."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

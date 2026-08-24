@@ -476,11 +476,17 @@
             "description": "Choose how terminal position is determined.",
             "options": {
               "timed": "Timed",
-              "endstops": "End stops"
+              "opening": "Open end stop only",
+              "closing": "Closed end stop only",
+              "both": "Both end stops",
+              "status": "Status word"
             },
             "descriptions": {
               "timed": "Estimate position using operating time.",
-              "endstops": "Read fully-open and fully-closed limit switches."
+              "opening": "Read only the fully-open limit switch.",
+              "closing": "Read only the fully-closed limit switch.",
+              "both": "Read both fully-open and fully-closed limit switches.",
+              "status": "Use one PLC word mapped to open, closed, opening, closing, and stopped."
             }
           },
           "cover_movement_feedback": {
@@ -529,7 +535,7 @@
           },
           "position_feedback": {
             "title": "Position feedback",
-            "description": "Choose timed estimation or physical end stops."
+            "description": "Choose timed estimation, one or both limit switches, or a mapped PLC status word."
           },
           "movement_feedback": {
             "title": "Movement feedback",
@@ -1084,7 +1090,13 @@
       "invalid_availability_mode": "Select a valid availability policy.",
       "availability_address_required": "An availability BIT address is required.",
       "invalid_availability_address": "Enter a valid availability BIT address.",
-      "availability_address_must_be_bit": "The availability address must be a BIT address."
+      "availability_address_must_be_bit": "The availability address must be a BIT address.",
+      "cover_endstop_open_required_error": "Open-end-stop feedback requires the fully-open address.",
+      "cover_endstop_closed_required_error": "Closed-end-stop feedback requires the fully-closed address.",
+      "cover_status_mapping_required_error": "Status-word feedback requires at least one state mapping.",
+      "cover_status_values_error": "Status mappings must contain integers separated by commas.",
+      "cover_status_duplicate_error": "A status value cannot appear in more than one mapping.",
+      "cover_status_required": "Status-word feedback requires an address and at least one mapping."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
