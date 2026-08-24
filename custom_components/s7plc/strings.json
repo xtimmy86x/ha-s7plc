@@ -233,6 +233,24 @@
         "scan_interval": {
           "label": "Scan interval (s)",
           "description": "Polling frequency specific to this entity in seconds. Use decimal values for millisecond precision. If omitted, the PLC default scan interval is used."
+        },
+        "availability_mode": {
+          "label": "Availability policy",
+          "description": "Choose when Home Assistant considers this entity available.",
+          "options": {
+            "connection": "Follow PLC connection",
+            "always": "Always available",
+            "bit": "PLC availability bit"
+          },
+          "descriptions": {
+            "connection": "The entity follows the PLC connection and the availability of its required data.",
+            "always": "The entity remains available using its last known state, but commands still fail while the PLC is disconnected.",
+            "bit": "The entity is available only while the PLC is connected and the configured bit is true."
+          }
+        },
+        "availability_address": {
+          "label": "Availability BIT address",
+          "description": "BIT address that must be true while the PLC is connected."
         }
       }
     },
@@ -1062,7 +1080,11 @@
       "climate_cooling_output_required_error": "Enter the cooling output address for the selected function.",
       "climate_preset_mode_required_error": "Enter the coded HVAC mode address.",
       "climate_on_off_required_error": "Enter the separate On/Off address.",
-      "climate_status_required_error": "Enter the PLC operating-status address."
+      "climate_status_required_error": "Enter the PLC operating-status address.",
+      "invalid_availability_mode": "Select a valid availability policy.",
+      "availability_address_required": "An availability BIT address is required.",
+      "invalid_availability_address": "Enter a valid availability BIT address.",
+      "availability_address_must_be_bit": "The availability address must be a BIT address."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

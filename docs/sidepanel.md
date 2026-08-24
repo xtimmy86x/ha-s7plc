@@ -155,3 +155,13 @@ Neither is an entity editor in version 7.0.0.
 | Delete entities | Side Panel |
 | Back up and restore entities | Side Panel YAML |
 | Connection diagnostics and status | Side Panel |
+
+## Entity availability
+
+Every configurable entity editor includes an availability policy. **Follow PLC
+connection** is the default and preserves existing behavior. **Always available**
+keeps the last state visible (which may be stale), but cannot bypass command
+connection checks. **PLC availability bit** shows a required BIT address and only
+makes the entity available when its normal data is valid, the PLC is connected,
+and the bit is true. Switching away from the bit policy removes its address.
+The same fields are supported by the visual and YAML editors.

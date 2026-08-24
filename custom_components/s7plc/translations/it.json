@@ -233,6 +233,24 @@
         "scan_interval": {
           "label": "Intervallo di scansione (s)",
           "description": "Frequenza di polling specifica per questa entità in secondi. Usa valori decimali per precisione al millisecondo. Se omesso, viene usato l'intervallo di scansione predefinito del PLC."
+        },
+        "availability_mode": {
+          "label": "Criterio di disponibilità",
+          "description": "Scegli quando Home Assistant considera disponibile questa entità.",
+          "options": {
+            "connection": "Segui la connessione PLC",
+            "always": "Sempre disponibile",
+            "bit": "Bit di disponibilità PLC"
+          },
+          "descriptions": {
+            "connection": "L'entità segue la connessione PLC e la disponibilità dei dati necessari.",
+            "always": "L'entità rimane disponibile usando l'ultimo stato noto, ma i comandi continuano a non riuscire mentre il PLC è disconnesso.",
+            "bit": "L'entità è disponibile solo mentre il PLC è connesso e il bit configurato è vero."
+          }
+        },
+        "availability_address": {
+          "label": "Indirizzo BIT di disponibilità",
+          "description": "Indirizzo BIT che deve essere vero mentre il PLC è connesso."
         }
       }
     },
@@ -1062,7 +1080,11 @@
       "climate_cooling_output_required_error": "Inserisci l'indirizzo dell'uscita di raffreddamento per la funzione selezionata.",
       "climate_preset_mode_required_error": "Inserisci l'indirizzo della modalità HVAC codificata.",
       "climate_on_off_required_error": "Inserisci l'indirizzo On/Off separato.",
-      "climate_status_required_error": "Inserisci l'indirizzo dello stato operativo del PLC."
+      "climate_status_required_error": "Inserisci l'indirizzo dello stato operativo del PLC.",
+      "invalid_availability_mode": "Seleziona un criterio di disponibilità valido.",
+      "availability_address_required": "È necessario un indirizzo BIT di disponibilità.",
+      "invalid_availability_address": "Inserisci un indirizzo BIT di disponibilità valido.",
+      "availability_address_must_be_bit": "L'indirizzo di disponibilità deve essere un indirizzo BIT."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

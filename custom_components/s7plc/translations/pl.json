@@ -233,6 +233,24 @@
         "scan_interval": {
           "label": "Interwał skanowania (s)",
           "description": "Częstotliwość odpytywania określona dla tej encji w sekundach. Użyj wartości dziesiętnych, aby uzyskać dokładność do milisekund. Jeśli pominięto, zostanie użyty domyślny interwał skanowania PLC."
+        },
+        "availability_mode": {
+          "label": "Zasada dostępności",
+          "description": "Wybierz, kiedy Home Assistant ma uznawać tę encję za dostępną.",
+          "options": {
+            "connection": "Zgodnie z połączeniem PLC",
+            "always": "Zawsze dostępna",
+            "bit": "Bit dostępności PLC"
+          },
+          "descriptions": {
+            "connection": "Dostępność encji zależy od połączenia PLC i dostępności wymaganych danych.",
+            "always": "Encja pozostaje dostępna z ostatnim znanym stanem, ale polecenia nadal kończą się niepowodzeniem, gdy PLC jest odłączony.",
+            "bit": "Encja jest dostępna tylko wtedy, gdy PLC jest połączony, a skonfigurowany bit jest aktywny."
+          }
+        },
+        "availability_address": {
+          "label": "Adres BIT dostępności",
+          "description": "Adres BIT, który musi być aktywny, gdy PLC jest połączony."
         }
       }
     },
@@ -1062,7 +1080,11 @@
       "climate_cooling_output_required_error": "Wprowadź adres wyjścia chłodzenia dla wybranej funkcji.",
       "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
-      "climate_status_required_error": "Wprowadź adres odczytu stanów PLC."
+      "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
+      "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
+      "availability_address_required": "Adres BIT dostępności jest wymagany.",
+      "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",
+      "availability_address_must_be_bit": "Adres dostępności musi być adresem BIT."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

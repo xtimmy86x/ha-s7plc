@@ -233,6 +233,24 @@
         "scan_interval": {
           "label": "Interval čtení (s)",
           "description": "Frekvence dotazování specifická pro tuto entitu v sekundách. Pro přesnost na milisekundy použijte desetinné hodnoty. Pokud není uvedena, použije se výchozí interval čtení PLC."
+        },
+        "availability_mode": {
+          "label": "Režim dostupnosti",
+          "description": "Zvolte, kdy má Home Assistant považovat tuto entitu za dostupnou.",
+          "options": {
+            "connection": "Podle připojení PLC",
+            "always": "Vždy dostupná",
+            "bit": "Bit dostupnosti PLC"
+          },
+          "descriptions": {
+            "connection": "Entita se řídí připojením PLC a dostupností požadovaných dat.",
+            "always": "Entita zůstává dostupná s posledním známým stavem, ale příkazy při odpojeném PLC nadále selhávají.",
+            "bit": "Entita je dostupná pouze tehdy, když je PLC připojeno a nakonfigurovaný bit je aktivní."
+          }
+        },
+        "availability_address": {
+          "label": "BIT adresa dostupnosti",
+          "description": "BIT adresa, která musí být aktivní, když je PLC připojeno."
         }
       }
     },
@@ -1062,7 +1080,11 @@
       "climate_cooling_output_required_error": "Zadejte adresu výstupu chlazení pro vybranou funkci.",
       "climate_preset_mode_required_error": "Zadejte adresu kódovaného režimu HVAC.",
       "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
-      "climate_status_required_error": "Zadejte adresu provozního stavu PLC."
+      "climate_status_required_error": "Zadejte adresu provozního stavu PLC.",
+      "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
+      "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",
+      "invalid_availability_address": "Zadejte platnou BIT adresu dostupnosti.",
+      "availability_address_must_be_bit": "Adresa dostupnosti musí být typu BIT."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

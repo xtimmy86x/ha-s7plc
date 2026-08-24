@@ -233,6 +233,24 @@
         "scan_interval": {
           "label": "Scan-Intervall (s)",
           "description": "Spezifische Abfragehäufigkeit für diese Entität in Sekunden. Verwenden Sie Dezimalwerte für Millisekundengenauigkeit. Wenn nicht angegeben, wird das Standard-Scan-Intervall der SPS verwendet."
+        },
+        "availability_mode": {
+          "label": "Verfügbarkeitsrichtlinie",
+          "description": "Wählen Sie, wann Home Assistant diese Entität als verfügbar betrachtet.",
+          "options": {
+            "connection": "SPS-Verbindung folgen",
+            "always": "Immer verfügbar",
+            "bit": "SPS-Verfügbarkeitsbit"
+          },
+          "descriptions": {
+            "connection": "Die Entität folgt der SPS-Verbindung und der Verfügbarkeit der benötigten Daten.",
+            "always": "Die Entität bleibt mit ihrem letzten bekannten Zustand verfügbar, Befehle schlagen jedoch weiterhin fehl, während die SPS getrennt ist.",
+            "bit": "Die Entität ist nur verfügbar, solange die SPS verbunden und das konfigurierte Bit gesetzt ist."
+          }
+        },
+        "availability_address": {
+          "label": "Verfügbarkeits-BIT-Adresse",
+          "description": "BIT-Adresse, die gesetzt sein muss, solange die SPS verbunden ist."
         }
       }
     },
@@ -1062,7 +1080,11 @@
       "climate_cooling_output_required_error": "Geben Sie die Adresse des Kühlungsausgangs für die ausgewählte Funktion ein.",
       "climate_preset_mode_required_error": "Geben Sie die Adresse für den codierten HVAC-Modus ein.",
       "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
-      "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein."
+      "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein.",
+      "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
+      "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",
+      "invalid_availability_address": "Geben Sie eine gültige Verfügbarkeits-BIT-Adresse ein.",
+      "availability_address_must_be_bit": "Die Verfügbarkeitsadresse muss eine BIT-Adresse sein."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

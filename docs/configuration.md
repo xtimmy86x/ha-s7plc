@@ -332,3 +332,25 @@ changes, use **Export YAML** in the Side Panel to create an entity backup.
 - Learn about [S7 Addressing](addressing.md)
 - Explore [Advanced Features](advanced-features.md) like State Synchronization, Entity Sync, and Performance Metrics
 - Check [Examples](examples.md) for common use cases
+
+## Per-entity availability
+
+User-configured entities may select one of three availability policies. Omitting
+`availability_mode` uses the backwards-compatible `connection` policy, which
+requires both a PLC connection and valid entity data. `always` keeps the entity
+available with its last known (and potentially stale) state even while the PLC is
+disconnected. Commands are still rejected while disconnected. `bit` additionally
+requires a BIT value read from `availability_address` to be exactly true; a cached
+true bit can never make an entity available without a PLC connection.
+
+```yaml
+name: Motor ready
+address: DB1,X0.0
+availability_mode: bit
+availability_address: DB1,X10.0
+```
+
+Availability addresses use the normal read optimizer and may deliberately be
+shared by multiple entities. They may also equal another address on the same
+entity: each internal topic retains its own meaning while the coordinator can
+coalesce the physical read.

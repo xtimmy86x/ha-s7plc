@@ -9,6 +9,44 @@ from custom_components.s7plc.config_validation import (
     build_entity_item,
     validate_entity_fields,
 )
+
+
+def test_entity_availability_policy_validation() -> None:
+    """Availability defaults are omitted and BIT policies validate their address."""
+    base = {"uid": "stable", "address": "DB1,X0.0"}
+    item, errors = build_entity_item("binary_sensors", base, options={})
+    assert not errors and "availability_mode" not in item
+
+    item, errors = build_entity_item(
+        "binary_sensors",
+        {**base, "availability_mode": "bit", "availability_address": " db1,x10.0 "},
+        options={},
+    )
+    assert not errors
+    assert item["availability_address"] == "DB1,X10.0"
+
+    for invalid in (
+        {**base, "availability_mode": "bit"},
+        {**base, "availability_mode": "bit", "availability_address": "DB1,INT10"},
+        {**base, "availability_mode": "unknown"},
+    ):
+        assert build_entity_item("binary_sensors", invalid, options={})[0] is None
+
+
+def test_non_bit_availability_clears_stale_address() -> None:
+    item, errors = build_entity_item(
+        "binary_sensors",
+        {
+            "uid": "stable",
+            "address": "DB1,X0.0",
+            "availability_mode": "always",
+            "availability_address": "DB1,X10.0",
+        },
+        options={},
+    )
+    assert not errors
+    assert item["availability_mode"] == "always"
+    assert "availability_address" not in item
 from custom_components.s7plc.const import (
     CONF_CLIMATE_CONTROL_MODE,
     CONF_CLIMATES,

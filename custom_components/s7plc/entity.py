@@ -9,10 +9,30 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .const import (
+    AVAILABILITY_MODE_ALWAYS,
+    AVAILABILITY_MODE_BIT,
+    AVAILABILITY_MODE_CONNECTION,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_MODE,
+    CONF_UID,
+)
+
 if TYPE_CHECKING:
     from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_configure_entity_availability(
+    entities: list[S7BaseEntity], items: list[dict[str, Any]]
+) -> None:
+    """Apply availability options to constructed user entities by permanent UID."""
+    by_uid = {item.get(CONF_UID): item for item in items}
+    for entity in entities:
+        item = by_uid.get(entity._attr_unique_id)
+        if item is not None:
+            await entity.async_configure_availability(item, item.get("scan_interval"))
 
 
 class S7BaseEntity(CoordinatorEntity):
@@ -51,6 +71,8 @@ class S7BaseEntity(CoordinatorEntity):
         self._attr_device_info = device_info
         self._topic = topic
         self._address = address
+        self._availability_mode = AVAILABILITY_MODE_CONNECTION
+        self._availability_topic: str | None = None
         if suggested_area_id:
             self._attr_suggested_area_id = suggested_area_id
 
@@ -65,12 +87,42 @@ class S7BaseEntity(CoordinatorEntity):
 
     @property
     def available(self) -> bool:
+        if self._availability_mode == AVAILABILITY_MODE_ALWAYS:
+            return True
         if not self.coordinator.is_connected():
             return False
+        if not self._entity_data_available():
+            return False
+        if self._availability_mode == AVAILABILITY_MODE_BIT:
+            return self._availability_bit_value() is True
+        return True
+
+    def _entity_data_available(self) -> bool:
+        """Return whether all normal state data required by this entity is valid."""
         if self._topic is None:
             return True
         data = self.coordinator.data or {}
         return (self._topic in data) and (data[self._topic] is not None)
+
+    def _availability_bit_value(self) -> Any:
+        if self._availability_topic is None:
+            return None
+        return (self.coordinator.data or {}).get(self._availability_topic)
+
+    async def async_configure_availability(
+        self, item: dict[str, Any], scan_interval: float | None = None
+    ) -> None:
+        """Apply an entity policy and register its optional internal BIT topic."""
+        self._availability_mode = item.get(
+            CONF_AVAILABILITY_MODE, AVAILABILITY_MODE_CONNECTION
+        )
+        address = item.get(CONF_AVAILABILITY_ADDRESS)
+        if self._availability_mode == AVAILABILITY_MODE_BIT and address:
+            # UID is permanent, unlike an entity's position in the options list.
+            self._availability_topic = f"availability:{item[CONF_UID]}"
+            await self.coordinator.add_item(
+                self._availability_topic, address, scan_interval
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

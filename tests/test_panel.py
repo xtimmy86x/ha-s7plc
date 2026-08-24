@@ -74,6 +74,84 @@ process.stdout.write(String(definitions.size));
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_editor_updates_availability_visibility_without_writing_value() -> None:
+    """Only BIT availability shows its address, including with a getter-only value."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r"""
+const vm = require("vm");
+let Panel;
+const availabilityInput = {
+    get value() { return "DB1,X0.0"; },
+    set required(value) { this.isRequired = value; },
+};
+const classes = new Set();
+const field = {classList: {
+    toggle: (name, force) => force ? classes.add(name) : classes.delete(name),
+}};
+const availabilityModes = ["connection", "always", "bit"].map(value => ({
+    value,
+    checked: value === "connection",
+}));
+const selectMode = value => availabilityModes.forEach(mode => mode.checked = mode.value === value);
+const form = {
+    dataset: {},
+    elements: {availability_address: availabilityInput, availability_mode: {}},
+    querySelector: selector => selector.includes(":checked")
+        ? availabilityModes.find(mode => mode.checked)
+        : field,
+    querySelectorAll: selector => selector === 'input[name="availability_mode"]'
+        ? availabilityModes
+        : [],
+};
+const button = {};
+const dialog = {
+    style: {setProperty() {}},
+    querySelector: selector => selector === "form" ? form : button,
+    querySelectorAll: () => [],
+    addEventListener() {},
+};
+const context = {
+    HTMLElement: class {},
+    customElements: {define: (_, cls) => { Panel = cls; }},
+    document: {createElement: () => dialog, body: {appendChild() {}}},
+};
+vm.createContext(context);
+vm.runInContext(process.argv[1], context);
+const panel = new Panel();
+panel.entryId = "entry";
+panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
+panel.editorSections = () => "";
+panel.openEditor(null, "sensors");
+const state = () => ({
+    hidden: field.hidden,
+    hiddenClass: classes.has("hidden-field"),
+    required: availabilityInput.isRequired,
+});
+const initial = state();
+selectMode("bit");
+availabilityModes.find(mode => mode.checked).onchange();
+const bit = state();
+selectMode("always");
+availabilityModes.find(mode => mode.checked).onchange();
+const always = state();
+process.stdout.write(JSON.stringify({initial, bit, always}));
+"""
+
+    result = subprocess.run(
+        ["node", "-e", script, source],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "initial": {"hidden": True, "hiddenClass": True, "required": False},
+        "bit": {"hidden": False, "hiddenClass": False, "required": True},
+        "always": {"hidden": True, "hiddenClass": True, "required": False},
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_entity_cards_use_type_specific_main_address_without_duplicate_chips() -> None:
     """Card summaries share the backend-compatible main-address precedence."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")

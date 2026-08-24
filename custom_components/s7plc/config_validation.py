@@ -5,10 +5,15 @@ from typing import Any
 
 from homeassistant.const import CONF_NAME
 
-from .address import get_numeric_limits, parse_tag
+from .address import DataType, get_numeric_limits, parse_tag
 from .const import (
+    AVAILABILITY_MODE_BIT,
+    AVAILABILITY_MODE_CONNECTION,
+    AVAILABILITY_MODES,
     CONF_ADDRESS,
     CONF_AREA,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_MODE,
     CONF_BINARY_SENSORS,
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
     CONF_BRIGHTNESS_SCALE,
@@ -130,7 +135,16 @@ from .helpers import parse_pulse_duration
 # Fields accepted by each entity configuration.  This catalog describes only
 # the shape of an entity; semantic and duplicate-address checks remain the
 # responsibility of ``EntityConfigBuilder``.
-_COMMON_FIELDS = frozenset({CONF_NAME, CONF_AREA, CONF_SCAN_INTERVAL, CONF_UID})
+_COMMON_FIELDS = frozenset(
+    {
+        CONF_NAME,
+        CONF_AREA,
+        CONF_SCAN_INTERVAL,
+        CONF_UID,
+        CONF_AVAILABILITY_MODE,
+        CONF_AVAILABILITY_ADDRESS,
+    }
+)
 _NUMERIC_SCALE_FIELDS = frozenset(
     {
         CONF_VALUE_MULTIPLIER,
@@ -1712,4 +1726,29 @@ def build_entity_item(
             CONF_ENTITY_SYNC: builder._build_writer_item,
         }[entity_type]
 
-    return method(entity, skip_idx=skip_idx)
+    item, errors = method(entity, skip_idx=skip_idx)
+    if errors or item is None:
+        return item, errors
+
+    mode = entity.get(CONF_AVAILABILITY_MODE) or AVAILABILITY_MODE_CONNECTION
+    if mode not in AVAILABILITY_MODES:
+        return None, {"base": "invalid_availability_mode"}
+    if mode == AVAILABILITY_MODE_BIT:
+        address = builder._sanitize_address(entity.get(CONF_AVAILABILITY_ADDRESS))
+        if not address:
+            return None, {"base": "availability_address_required"}
+        try:
+            tag = parse_tag(address)
+        except (RuntimeError, ValueError):
+            return None, {"base": "invalid_availability_address"}
+        if tag.data_type != DataType.BIT:
+            return None, {"base": "availability_address_must_be_bit"}
+        item[CONF_AVAILABILITY_MODE] = mode
+        item[CONF_AVAILABILITY_ADDRESS] = address.upper()
+    else:
+        item.pop(CONF_AVAILABILITY_ADDRESS, None)
+        if mode == AVAILABILITY_MODE_CONNECTION:
+            item.pop(CONF_AVAILABILITY_MODE, None)
+        else:
+            item[CONF_AVAILABILITY_MODE] = mode
+    return item, {}

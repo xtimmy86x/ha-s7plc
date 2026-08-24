@@ -54,7 +54,7 @@ from .const import (
     DEFAULT_OPERATE_TIME,
     DEFAULT_PULSE_DURATION,
 )
-from .entity import S7BaseEntity
+from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
@@ -293,6 +293,9 @@ async def async_setup_entry(
         )
 
     if entities:
+        await async_configure_entity_availability(
+            entities, entry.options.get(CONF_COVERS, [])
+        )
         async_add_entities(entities)
         await coord.async_request_refresh()
 
@@ -499,10 +502,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
         super()._handle_coordinator_update()
 
-    @property
-    def available(self) -> bool:
-        if not self.coordinator.is_connected():
-            return False
+    def _entity_data_available(self) -> bool:
         topics = [t for t in (self._opened_topic, self._closed_topic) if t]
         if not topics:
             return True
@@ -834,10 +834,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             return None
         return self._clamp_percent(value, self._invert_tilt)
 
-    @property
-    def available(self) -> bool:
-        if not self.coordinator.is_connected():
-            return False
+    def _entity_data_available(self) -> bool:
         data = self.coordinator.data or {}
         return self._position_topic in data and data[self._position_topic] is not None
 
