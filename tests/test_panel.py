@@ -152,6 +152,81 @@ process.stdout.write(JSON.stringify({initial, bit, always}));
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_every_editor_renders_one_availability_address_in_ha_details() -> None:
+    """Availability has one input while ordinary PLC addresses keep their section."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel = new S7PlcConfigurationPanel();
+panel.t = key => key;
+panel.fieldText = (_type, key, part) => `${{key}}.${{part}}`;
+panel.escape = value => String(value ?? "");
+panel.entries = [];
+const result = {{}};
+for (const type of TYPES) {{
+  const markup = panel.editorSections(type, panel.inferred({{}}, type));
+  const fields = [...markup.matchAll(/data-field="availability_address"/g)].length;
+  const inputs = [...markup.matchAll(/name="availability_address"/g)].length;
+  const ha = markup.match(/<section[^>]*data-section="ha"[\\s\\S]*?<\\/section>/)?.[0]\n    || markup.slice(markup.lastIndexOf('<section class="form-section"'));
+  result[type] = {{fields, inputs, inHa: ha.includes('data-field="availability_address"')}};
+}}
+const section = (type, key, sectionKey="addresses") => {{
+  const markup = panel.editorSections(type, panel.inferred({{}}, type));
+  const addresses = markup.match(new RegExp(`<section[^>]*data-section="${{sectionKey}}"[\\\\s\\\\S]*?<\\\\/section>`))?.[0]\n    || markup.split('<section class="form-section"')[1] || "";
+  return addresses.includes(`data-field="${{key}}"`);
+}};
+console.log(JSON.stringify({{result, ordinary: {{
+  sensor: section("sensors", "address"),
+  light: section("lights", "state_address"),
+  cover: section("covers", "open_command_address"),
+  climate: section("climates", "current_temperature_address", "climate-temperature"),
+}}}}));
+"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert set(value["result"]) == {
+        "sensors", "binary_sensors", "switches", "covers", "lights", "buttons",
+        "numbers", "texts", "climates", "entity_sync",
+    }
+    assert all(item == {"fields": 1, "inputs": 1, "inHa": True} for item in value["result"].values())
+    assert all(value["ordinary"].values())
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_climate_availability_visibility_is_independent_of_climate_options() -> None:
+    """Every Climate recalculation derives availability solely from its mode."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const optionChanges = [
+  {{control_mode:"direct", direct_function:"heat", direct_feedback:"inferred", mode_control:"setpoint", action_feedback:"inferred"}},
+  {{control_mode:"direct", direct_function:"cool", direct_feedback:"plc", mode_control:"coded", action_feedback:"plc"}},
+  {{control_mode:"direct", direct_function:"heat_cool", direct_feedback:"inferred", mode_control:"on_off", action_feedback:"inferred"}},
+  {{control_mode:"setpoint", direct_function:"heat", direct_feedback:"plc", mode_control:"coded_on_off", action_feedback:"plc"}},
+];
+const visible = (availability_mode, options) => CLIMATE_EDITOR_VISIBILITY({{...options, availability_mode}}).fields.has("availability_address");
+console.log(JSON.stringify(Object.fromEntries(["connection", "always", "bit"].map(mode => [mode, optionChanges.map(options => visible(mode, options))]))));
+"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value == {
+        "connection": [False] * 4,
+        "always": [False] * 4,
+        "bit": [True] * 4,
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_entity_cards_use_type_specific_main_address_without_duplicate_chips() -> None:
     """Card summaries share the backend-compatible main-address precedence."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
