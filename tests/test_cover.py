@@ -9,13 +9,15 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
 
-from custom_components.s7plc.cover import S7Cover, async_setup_entry
+from custom_components.s7plc.cover import (S7Cover, _traditional_feedback_mode, async_setup_entry)
 from custom_components.s7plc.const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
     CONF_COVER_OPENING_ADDRESS,
     CONF_COVER_STOPPED_ADDRESS,
+    CONF_COVER_POSITION_FEEDBACK,
+    CONF_COVER_STATUS_ADDRESS,
     CONF_COVERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -25,6 +27,26 @@ from custom_components.s7plc.const import (
     DEFAULT_OPERATE_TIME,
 )
 from conftest import DummyCoordinator
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({CONF_COVER_POSITION_FEEDBACK: mode}, mode)
+        for mode in ("timed", "opening", "closing", "both", "status")
+    ]
+    + [
+        ({CONF_USE_STATE_TOPICS: False, CONF_OPENING_STATE_ADDRESS: "open"}, "timed"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_OPENING_STATE_ADDRESS: "open"}, "opening"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_CLOSING_STATE_ADDRESS: "closed"}, "closing"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_OPENING_STATE_ADDRESS: "open", CONF_CLOSING_STATE_ADDRESS: "closed"}, "both"),
+        ({CONF_USE_STATE_TOPICS: True}, "timed"),
+        ({CONF_OPENING_STATE_ADDRESS: "open", CONF_COVER_STATUS_ADDRESS: "word"}, "opening"),
+        ({CONF_COVER_STATUS_ADDRESS: "word"}, "timed"),
+    ],
+)
+def test_traditional_feedback_mode_legacy_and_explicit_precedence(item, expected):
+    assert _traditional_feedback_mode(item) == expected
 
 
 # ============================================================================
@@ -2456,3 +2478,47 @@ async def test_position_cover_setup_with_tilt(fake_hass, mock_coordinator, devic
     assert cover._tilt_command_address == "db1,b3"
     assert cover._invert_tilt is True
     assert cover._attr_supported_features & CoverEntityFeature.SET_TILT_POSITION
+
+
+def test_legacy_hybrid_uses_endstop_position_and_status_word_movement(
+    cover_factory, mock_coordinator
+):
+    """The legacy status word complements rather than replaces an end-stop."""
+    cover = cover_factory(
+        opened_state="DB1,X1.0",
+        opened_topic="cover:opened:DB1,X1.0",
+        use_state_topics=True,
+        feedback_mode="opening",
+        cover_status_address="DB1,B10",
+        cover_status_topic="cover:status:DB1,B10",
+        cover_status_opening_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:opened:DB1,X1.0": True,
+        "cover:status:DB1,B10": 2,
+    }
+    assert cover.is_closed is False
+    assert cover.is_opening is True
+
+    mock_coordinator.data["cover:opened:DB1,X1.0"] = False
+    assert cover.is_closed is None
+
+
+def test_explicit_status_is_authoritative_without_endstop_fallback(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        opened_state="DB1,X1.0",
+        opened_topic="cover:opened:DB1,X1.0",
+        use_state_topics=False,
+        feedback_mode="status",
+        cover_status_address="DB1,B10",
+        cover_status_topic="cover:status:DB1,B10",
+        cover_status_open_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opened:DB1,X1.0": True,
+        "cover:status:DB1,B10": 99,
+    }
+    assert cover.is_closed is None
+    assert cover.is_opening is False

@@ -46,6 +46,7 @@ from .const import (
     CONF_TILT_COMMAND_ADDRESS,
     CONF_TILT_STATE_ADDRESS,
     CONF_UID,
+    CONF_USE_STATE_TOPICS,
     DEFAULT_COVER_STATUS_CLOSED_VALUES,
     DEFAULT_COVER_STATUS_CLOSING_VALUES,
     DEFAULT_COVER_STATUS_OPEN_VALUES,
@@ -71,8 +72,22 @@ def _traditional_feedback_mode(item: dict[str, Any]) -> str:
     mode = item.get(CONF_COVER_POSITION_FEEDBACK)
     if mode in {"timed", "opening", "closing", "both", "status"}:
         return mode
-    if item.get(CONF_COVER_STATUS_ADDRESS):
-        return "status"
+    # Before the selector existed, ``use_state_topics`` was authoritative.
+    # A status word was independent movement feedback, not position feedback.
+    use_state_topics = item.get(CONF_USE_STATE_TOPICS)
+    if use_state_topics is False:
+        return "timed"
+    if use_state_topics is True:
+        if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(
+            CONF_CLOSING_STATE_ADDRESS
+        ):
+            return "both"
+        if item.get(CONF_OPENING_STATE_ADDRESS):
+            return "opening"
+        if item.get(CONF_CLOSING_STATE_ADDRESS):
+            return "closing"
+        # Do not claim feedback which the configuration cannot provide.
+        return "timed"
     if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(CONF_CLOSING_STATE_ADDRESS):
         return "both"
     if item.get(CONF_OPENING_STATE_ADDRESS):
@@ -254,8 +269,17 @@ async def async_setup_entry(
         # climate-style status address + per-status value mapping, same as
         # the Position cover's cover_status_address. Takes priority over
         # the boolean addresses when configured.
+        explicit_feedback = item.get(CONF_COVER_POSITION_FEEDBACK) in {
+            "timed",
+            "opening",
+            "closing",
+            "both",
+            "status",
+        }
         cover_status_address = (
-            item.get(CONF_COVER_STATUS_ADDRESS) if feedback_mode == "status" else None
+            item.get(CONF_COVER_STATUS_ADDRESS)
+            if feedback_mode == "status" or not explicit_feedback
+            else None
         )
         cover_status_topic = None
         if cover_status_address:
@@ -466,8 +490,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     def _get_feedback_movement(self) -> str | None:
         """Return movement reported by configured PLC feedback."""
-        if self._feedback_mode == "status":
-            return self._get_movement_status()
+        if self._cover_status_address:
+            status_movement = self._get_movement_status()
+            if status_movement is not None:
+                return status_movement
+            if self._feedback_mode == "status":
+                return None
 
         if self._cover_stopped_address and self._get_topic_state(
             self._cover_stopped_topic
@@ -577,7 +605,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 return True
             if movement == "open":
                 return False
-            return None
+            if self._feedback_mode == "status":
+                return None
         if self._use_state_topics:
             # Use state topics for position feedback
             closed_state = self._get_topic_state(self._closed_topic)

@@ -2764,10 +2764,10 @@ console.log(JSON.stringify({{
     # Legacy single-end-stop configurations infer and retain their exact mode.
     assert result["endstops"]["opening"]["opening_state_address"] == "DB1,X0.2"
     assert "closing_state_address" not in result["endstops"]["opening"]
-    assert result["endstops"]["opening"]["use_state_topics"] is True
+    assert "use_state_topics" not in result["endstops"]["opening"]
     assert result["endstops"]["closing"]["closing_state_address"] == "DB1,X0.3"
     assert "opening_state_address" not in result["endstops"]["closing"]
-    assert result["endstops"]["closing"]["use_state_topics"] is True
+    assert "use_state_topics" not in result["endstops"]["closing"]
 
     traditional = result["switched"]["traditional"]
     for key in (
@@ -2820,7 +2820,7 @@ const makeForm=(original,overrides={{}})=>{{
     const checkbox=kind==="checkbox";
     elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
   }}
-  return {{elements,reportValidity:()=>true}};
+  return {{elements,dataset:{{coverFeedbackChanged:Object.prototype.hasOwnProperty.call(overrides,"cover_position_feedback")?"true":""}},reportValidity:()=>true}};
 }};
 const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
 const error=(original,overrides={{}})=>{{try{{save(original,overrides);return null;}}catch(err){{return err.message;}}}};
@@ -2847,11 +2847,14 @@ console.log(JSON.stringify({{
 
     assert result["inferred"]["persisted"]["cover_position_feedback"] == "both"
     assert result["inferred"]["legacy"]["cover_position_feedback"] == "opening"
-    assert result["inferred"]["stale"]["cover_position_feedback"] == "both"
-    for key in ("roundTrip", "created", "endstopsFromTimed", "timedStale"):
+    assert result["inferred"]["stale"]["cover_position_feedback"] == "timed"
+    for key in ("roundTrip", "created", "endstopsFromTimed"):
         assert result[key]["use_state_topics"] is True
         assert result[key]["opening_state_address"] == "DB1,X0.2"
         assert result[key]["closing_state_address"] == "DB1,X0.3"
+    assert result["timedStale"]["use_state_topics"] is False
+    assert result["timedStale"]["opening_state_address"] == "DB1,X0.2"
+    assert result["timedStale"]["closing_state_address"] == "DB1,X0.3"
     for key in ("timedFromEndstops",):
         assert result[key]["use_state_topics"] is False
         assert "opening_state_address" not in result[key]
