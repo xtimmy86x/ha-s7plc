@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.s7plc.cover import (S7Cover, _traditional_feedback_mode, async_setup_entry)
 from custom_components.s7plc.const import (
@@ -3499,3 +3500,52 @@ async def test_toggle_new_target_after_halt_confirmation_pending_waits_for_fresh
     # opening-halt and would have pressed instead.
     mock_coordinator.write_batched.assert_not_called()
     assert cover._toggle_pending_goal is None
+
+
+@pytest.mark.asyncio
+async def test_toggle_halt_confirmation_not_set_when_rising_edge_write_fails(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 6: self._toggle_awaiting_halt_confirmation must
+    only be set once the rising edge has actually reached the PLC. If
+    write_batched(open_command_address, True) itself fails - connection
+    down, PLC unreachable, etc. - the physical relay almost certainly
+    never received the pulse, so the flag must stay False. Otherwise the
+    entity would believe a halt was sent when it wasn't, and could get
+    stuck forever waiting for a "stopped" confirmation that will never
+    arrive."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+    mock_coordinator.write_batched.side_effect = HomeAssistantError("write failed")
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_stop_cover()
+
+    assert cover._toggle_awaiting_halt_confirmation is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_halt_confirmation_stays_set_when_later_pulse_step_fails(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 6, the mirror case: once the rising edge write
+    succeeds, the relay may already have physically reacted, so
+    self._toggle_awaiting_halt_confirmation must stay True even if a later
+    step of the same pulse (the falling edge write, here) then fails -
+    real "stopped" feedback is still required before movement state can
+    be trusted again."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+    mock_coordinator.write_batched.side_effect = [
+        None,  # rising edge (True) succeeds
+        HomeAssistantError("write failed"),  # falling edge (False) fails
+    ]
+
+    with pytest.raises(HomeAssistantError):
+        await cover.async_stop_cover()
+
+    assert cover._toggle_awaiting_halt_confirmation is True

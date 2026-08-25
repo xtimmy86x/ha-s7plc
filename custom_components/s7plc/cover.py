@@ -801,14 +801,33 @@ class S7Cover(S7BaseEntity, CoverEntity):
             return position
         return "stopped" if movement == "stopped" else "unknown"
 
-    async def _pulse_toggle(self) -> None:
+    async def _pulse_toggle(self, *, halt: bool = False) -> None:
         """Single-button mode: one pulse on open_command_address is all the
         PLC's step-by-step relay needs - it advances the physical cycle by
         itself. No local optimistic state to maintain beyond
         _last_toggle_direction (set by callers when the resulting direction
-        is deterministically known)."""
+        is deterministically known).
+
+        halt=True marks this pulse as specifically intended to interrupt
+        an existing movement (as opposed to a deterministic press from a
+        known settled/stopped state, which never leaves movement feedback
+        ambiguous). self._toggle_awaiting_halt_confirmation is set only
+        once the rising edge has actually reached the PLC - i.e. only
+        after write_batched(..., True) has succeeded - never before: a
+        connection failure or a failed write means the physical relay
+        almost certainly never received the pulse, so the entity must not
+        believe a halt was sent when it wasn't (it could then get stuck
+        waiting forever for a "stopped" confirmation that will never
+        arrive). Once set, it is deliberately never cleared here even if
+        the falling edge write or the coordinator refresh afterward
+        fails: the relay may already have reacted to the rising edge, so
+        real feedback is still required before movement state can be
+        trusted again - see _toggle_state/_handle_coordinator_update.
+        """
         await self._ensure_connected()
         await self.coordinator.write_batched(self._open_command_address, True)
+        if halt:
+            self._toggle_awaiting_halt_confirmation = True
         await asyncio.sleep(self._toggle_pulse_duration)
         await self.coordinator.write_batched(self._open_command_address, False)
         await self.coordinator.async_request_refresh()
@@ -908,8 +927,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             if self._toggle_awaiting_halt_confirmation:
                 return
             if state in ("opening", "closing"):
-                self._toggle_awaiting_halt_confirmation = True
-                await self._pulse_toggle()
+                await self._pulse_toggle(halt=True)
             return
 
         # A new explicit open/close request always supersedes whatever an
@@ -962,8 +980,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
         # Moving the wrong way: halt it, then continue toward the goal
         # once real "stopped" feedback confirms the halt succeeded.
-        self._toggle_awaiting_halt_confirmation = True
-        await self._pulse_toggle()
+        await self._pulse_toggle(halt=True)
         if generation != self._toggle_command_generation:
             # A newer explicit command arrived while this pulse was in
             # flight - it's already waiting on self._toggle_lock (having
