@@ -310,6 +310,13 @@ def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
 
 
 def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
+    """Plain traditional covers (no toggle_mode) keep the pre-existing
+    coupling: a status word chosen for position feedback is authoritative
+    for movement too, so separately configured movement bits are still
+    discarded - unlike toggle_mode, which treats the two as independent
+    sources (see test_toggle_mode_keeps_movement_bits_with_status_position
+    below). Changing traditional-cover semantics is out of scope for the
+    toggle_mode PR (#117 review round 4)."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -328,3 +335,201 @@ def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
     assert "cover_opening_address" not in item
+
+
+def test_toggle_mode_keeps_movement_bits_with_status_position() -> None:
+    """toggle_mode itself keeps the independent-source model: a status word
+    chosen for position feedback does not discard separately configured
+    movement bits (contrast with the plain-traditional test above)."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_position_feedback": "status",
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "1",
+            "cover_status_closed_values": "2",
+            "cover_opening_address": "DB1,X2.0",
+            "cover_closing_address": "DB1,X2.1",
+        },
+        options={},
+    )
+    assert not errors
+    assert item["cover_opening_address"] == "DB1,X2.0"
+    assert item["cover_closing_address"] == "DB1,X2.1"
+
+
+_TOGGLE_COVER_BASE = {
+    "open_command_address": "DB1,X0.0",
+    "toggle_mode": True,
+    "cover_status_address": "DB1,B10",
+    "cover_status_open_values": "0",
+    "cover_status_closed_values": "1",
+    "cover_status_opening_values": "2",
+    "cover_status_closing_values": "3",
+    "cover_status_stopped_values": "4",
+}
+
+
+def test_cover_toggle_pulse_duration_defaults_and_persists() -> None:
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 1.5},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 1.5
+
+
+def test_cover_toggle_pulse_duration_absent_when_not_toggle_mode() -> None:
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "toggle_pulse_duration": 2.0,
+        },
+        options={},
+    )
+    assert not errors
+    assert "toggle_pulse_duration" not in item
+
+
+def test_cover_toggle_mode_key_only_persisted_when_true() -> None:
+    """PR #117 review round 7, point 8: don't change every existing
+    traditional cover's persisted shape just because toggle_mode exists -
+    only write the key when the feature is actually enabled, matching
+    every other optional cover field."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {"open_command_address": "DB1,X0.0", "close_command_address": "DB1,X0.1"},
+        options={},
+    )
+    assert not errors
+    assert "toggle_mode" not in item
+
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item["toggle_mode"] is True
+
+
+def test_toggle_mode_requires_real_feedback() -> None:
+    """toggle_mode can't fall back to a simulated timer like the
+    two-address mode does - it needs both motion and settled-state
+    feedback, whether via a status word or the boolean alternatives."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {"open_command_address": "DB1,X0.0", "toggle_mode": True},
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "toggle_mode_requires_feedback"}
+
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item is not None
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+            "use_state_topics": True,
+            "opening_state_address": "DB1,X1.2",
+            "closing_state_address": "DB1,X1.3",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None
+
+
+def test_toggle_mode_with_status_address_requires_stopped_mapping() -> None:
+    """A status-word toggle_mode setup must map "stopped" explicitly, so a
+    genuine mid-travel stop can be told apart from a missing/unmatched
+    status value (maintainer review point 2)."""
+    without_stopped = {
+        k: v for k, v in _TOGGLE_COVER_BASE.items() if k != "cover_status_stopped_values"
+    }
+    item, errors = build_entity_item(CONF_COVERS, without_stopped, options={})
+    assert item is None
+    assert errors == {"base": "toggle_mode_requires_stopped_mapping"}
+
+    # The bit-based alternative (no cover_status_address) is unaffected.
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+            "use_state_topics": True,
+            "opening_state_address": "DB1,X1.2",
+            "closing_state_address": "DB1,X1.3",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None
+
+
+def test_toggle_mode_stopped_mapping_not_required_when_status_is_position_only() -> None:
+    """PR #117 review round 3, point 3: the "stopped" mapping requirement
+    must be tied to whether the status word is the *selected motion
+    source*, not merely to cover_status_address's presence. Here the status
+    word only carries open/closed (position), while opening/closing/
+    stopped come from bits (movement) - status has no need for a "stopped"
+    value since it never drives motion detection."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "0",
+            "cover_status_closed_values": "1",
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None
+    assert "cover_status_stopped_values" not in item
+
+
+def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:
+    """toggle_pulse_duration goes through the same parse_pulse_duration()
+    helper as switches/lights (0.1-60s range, falls back to the default on
+    invalid input) instead of a bare float(...) conversion - maintainer
+    review point 3."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": "not-a-number"},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5  # DEFAULT_PULSE_DURATION
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 999},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5  # out of 0.1-60s range
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 2.34},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 2.3  # rounded to 1 decimal

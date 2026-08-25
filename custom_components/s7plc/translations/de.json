@@ -366,7 +366,9 @@
         "fields": {
           "open_command_address": {
             "label": "Befehlsvariable öffnen",
-            "description": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0)."
+            "description": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0).",
+            "label_toggle": "Befehlsadresse (Ein-Taster)",
+            "description_toggle": "SPS-Adresse des einzelnen Impulsbefehls für Öffnen, Stoppen und Schließen der Abdeckung."
           },
           "close_command_address": {
             "label": "Befehlsvariable schließen",
@@ -374,7 +376,7 @@
           },
           "cover_status_address": {
             "label": "Statusadresse Abdeckung",
-            "description": "Optionale SPS-Adresse, die die Bewegung in Echtzeit meldet (öffnet/schließt/gestoppt), abgeglichen mit den unten konfigurierten Werten. Hat Vorrang vor den booleschen Statusadressen für Öffnen/Schließen/Gestoppt oben, wenn konfiguriert."
+            "description": "SPS-Adresse mit dem Status der Abdeckung, abgeglichen mit den unten konfigurierten Werten. Je nach den ausgewählten Feedback-Quellen für Position und Bewegung kann sie die eingeschwungene Position offen/geschlossen, den Bewegungszustand oder beides liefern."
           },
           "cover_status_open_values": {
             "label": "Statuswert(e) Offen",
@@ -398,23 +400,23 @@
           },
           "opening_state_address": {
             "label": "Endschalter vollständig offen",
-            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist (optional)."
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist."
           },
           "closing_state_address": {
             "label": "Endschalter vollständig geschlossen",
-            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist (optional)."
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist."
           },
           "cover_opening_address": {
             "label": "Statusadresse Öffnen",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
           },
           "cover_closing_address": {
             "label": "Statusadresse Schließen",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade schließt. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade schließt. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
           },
           "cover_stopped_address": {
             "label": "Statusadresse Gestoppt",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung gestoppt ist (keine Bewegung)."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung gestoppt ist (keine Bewegung)."
           },
           "position_state_address": {
             "label": "Positionszustandsadresse",
@@ -431,6 +433,10 @@
           "stop_pulse_duration": {
             "label": "Stopp-Pulsdauer (s)",
             "description": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms)."
+          },
+          "toggle_pulse_duration": {
+            "label": "Umschalt-Pulsdauer (s)",
+            "description": "Dauer des einzelnen Relaisimpulses im Umschaltmodus, in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms)."
           },
           "tilt_state_address": {
             "label": "Neigungs-Zustandsadresse",
@@ -465,11 +471,13 @@
             "description": "Wählen Sie aus, wie die SPS die Abdeckung steuert.",
             "options": {
               "traditional": "Öffnen / Schließen",
-              "position": "Position 0–100 %"
+              "position": "Position 0–100 %",
+              "toggle": "Ein-Taster"
             },
             "descriptions": {
               "traditional": "Zwei separate Befehle zum Öffnen und Schließen.",
-              "position": "Numerische Positionsrückmeldung und -befehl."
+              "position": "Numerische Positionsrückmeldung und -befehl.",
+              "toggle": "Eine einzige Befehlsadresse schaltet sequenziell (öffnen/stopp/schließen/stopp)."
             }
           },
           "cover_position_feedback": {
@@ -1088,6 +1096,8 @@
       "climate_preset_mode_required_error": "Geben Sie die Adresse für den codierten HVAC-Modus ein.",
       "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
       "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein.",
+      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt zwei echte Feedback-Quellen: eine eingeschwungene Position (beide Endlagenadressen oder eine Statusadresse, die auf offen und geschlossen abgebildet ist) und einen Bewegungszustand (Öffnen/Schließen-Bits oder eine Statusadresse, die auf Öffnen, Schließen und Gestoppt abgebildet ist).",
+      "toggle_mode_requires_stopped_mapping": "Der Ein-Tasten-Modus mit einer Statusadresse benötigt außerdem einen zugeordneten Stopp-Wert, damit ein echter Zwischenstopp von fehlendem oder unpassendem Feedback unterschieden werden kann.",
       "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
       "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",
       "invalid_availability_address": "Geben Sie eine gültige Verfügbarkeits-BIT-Adresse ein.",

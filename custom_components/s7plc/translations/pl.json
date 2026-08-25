@@ -366,7 +366,9 @@
         "fields": {
           "open_command_address": {
             "label": "Adres zapisu otwórz",
-            "description": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0)."
+            "description": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0).",
+            "label_toggle": "Adres komendy jednego przycisku",
+            "description_toggle": "Adres PLC pojedynczej komendy impulsowej używanej do otwierania, zatrzymywania i zamykania osłony."
           },
           "close_command_address": {
             "label": "Adres zapisu zamknij",
@@ -374,7 +376,7 @@
           },
           "cover_status_address": {
             "label": "Adres odczytu stanów",
-            "description": "Opcjonalny adres odczytu stanów (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana)."
+            "description": "Adres PLC zawierający stan osłony, porównywany z wartościami skonfigurowanymi poniżej. W zależności od wybranych źródeł sprzężenia zwrotnego pozycji i ruchu, może dostarczać ustaloną pozycję otwarta/zamknięta, stan ruchu albo oba jednocześnie."
           },
           "cover_status_open_values": {
             "label": "Wartość(-i) stanu (otwarta)",
@@ -398,23 +400,23 @@
           },
           "opening_state_address": {
             "label": "Adres stanu otwarta",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (otwarta)."
+            "description": "Adres odczytu aktualnego stanu (otwarta)."
           },
           "closing_state_address": {
             "label": "Adres stanu zamknięta",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zamknięta)."
           },
           "cover_opening_address": {
             "label": "Adres stanu otwieranie",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "cover_closing_address": {
             "label": "Adres stanu zamykanie",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "cover_stopped_address": {
             "label": "Adres stanu zatrzymana",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "position_state_address": {
             "label": "Adres odczytu pozycji",
@@ -431,6 +433,10 @@
           "stop_pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu dla adresu zapisu stop (0.1-60s), domyślnie (0.5s)."
+          },
+          "toggle_pulse_duration": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu dla adresu zapisu otwórz w trybie jednego przycisku (0.1-60s), domyślnie (0.5s)."
           },
           "tilt_state_address": {
             "label": "Adres odczytu przechylenia",
@@ -465,11 +471,13 @@
             "description": "Wybierz typ sterowania przed wprowadzeniem adresów.",
             "options": {
               "traditional": "Otwórz / Zamknij",
-              "position": "Pozycja 0–100%"
+              "position": "Pozycja 0–100%",
+              "toggle": "Jeden przycisk"
             },
             "descriptions": {
               "traditional": "Proste sterowanie otwórz i zamknij.",
-              "position": "Zaawansowane sterowanie z pozycją."
+              "position": "Zaawansowane sterowanie z pozycją.",
+              "toggle": "Proste sterowanie sekwencyjne jednym przyciskiem (otwórz/stop/zamknij/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1088,6 +1096,8 @@
       "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
       "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
+      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga dwóch rzeczywistych źródeł sprzężenia zwrotnego: ustalonej pozycji (obu adresów krańcówek albo adresu stanów zmapowanego na otwarta i zamknięta) oraz stanu ruchu (bitów otwierania/zamykania albo adresu stanów zmapowanego na otwieranie, zamykanie i zatrzymanie).",
+      "toggle_mode_requires_stopped_mapping": "Tryb jednego przycisku z adresem stanów wymaga też zmapowanej wartości zatrzymania, aby odróżnić realne zatrzymanie w trakcie ruchu od brakującego lub niedopasowanego stanu z PLC.",
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",
       "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",

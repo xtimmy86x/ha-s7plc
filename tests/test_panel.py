@@ -2259,11 +2259,13 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
 
 
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
+    """cover_status_open/closed_values and cover_status_opening/closing/
+    stopped_values are scoped to whichever selector (position_feedback vs
+    movement_feedback) is actually "status" - independently, not tied
+    together as one all-or-nothing set."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert (
-        "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
-        in source
-    )
+    assert "if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS" in source
+    assert "if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS" in source
     assert "if(movement==='status'&&control==='position')" not in source
     assert (
         "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
@@ -2457,12 +2459,155 @@ process.stdout.write(JSON.stringify({
 
 
 def test_panel_close_command_address_required_for_traditional() -> None:
+    """open_command_address is required for both traditional and toggle
+    (a toggle cover only ever has one command address); close_command_address
+    is required for traditional only - toggle's single relay has no use for
+    it."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert (
-        "ui.cover_control_mode==='traditional'&&(!entity.open_command_address||!entity.close_command_address)"
+        "(ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle')"
+        "&&!entity.open_command_address"
+        in source
+    )
+    assert (
+        "ui.cover_control_mode==='traditional'&&!entity.close_command_address"
         in source
     )
     assert "errors.cover_commands_required_error" in source
+
+
+def test_panel_hides_close_and_operate_time_in_toggle_control_mode() -> None:
+    """toggle is a third cover_control_mode choice (alongside
+    traditional/position), not a separate checkbox layered onto
+    traditional. Selecting it pulses open_command_address for a fixed
+    short duration instead of using close_command_address or the
+    timer-based operate_time, so neither field is shown for that mode."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "control==='position'?['position_state_address','position_command_address',"
+        "'invert_position']:control==='toggle'?['open_command_address']:"
+        "['open_command_address','close_command_address']"
+    ) in source
+    assert "if(control==='traditional')visible.add('operate_time')" in source
+
+
+def test_panel_toggle_pulse_duration_has_its_own_options_section() -> None:
+    """toggle_pulse_duration gets a dedicated "Opcje"/Options section, the
+    same treatment switches/lights already give their own pulse_duration
+    field, rather than being folded into the "Adresy PLC" section the way
+    stop_pulse_duration is for position covers."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    assert '["toggle_pulse_duration","number"]' in covers_line
+
+    assert (
+        "section('cog-outline',this.t('sections.options.title'),"
+        "this.t('sections.options.description'),"
+        "byKeys(['toggle_pulse_duration']),'cover-options')"
+    ) in source
+
+    # syncMode(): visible only in toggle mode, both the field and the
+    # section that wraps it.
+    assert "if(control==='toggle')visible.add('toggle_pulse_duration');" in source
+    assert "'stop_pulse_duration','toggle_pulse_duration'];" in source
+    assert (
+        "form.querySelector('[data-section=\"cover-options\"]')"
+        ".classList.toggle('hidden-field',control!=='toggle');"
+    ) in source
+
+    # CLEAN_COVER_ENTITY: dropped whenever leaving toggle mode.
+    assert (
+        "if(ui.cover_control_mode!==\"toggle\")delete entity.toggle_pulse_duration;"
+    ) in source
+
+
+def test_panel_exposes_toggle_as_a_control_mode_choice() -> None:
+    """toggle is presented as a third cover_control_mode choice (radio
+    card, same section as traditional/position - "Sterowanie") rather
+    than a separate checkbox buried in the connection/addresses section.
+    The underlying toggle_mode boolean the backend reads is derived from
+    that choice, not from a dedicated form field, and cleared on save
+    when a different mode is picked."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    assert '"toggle_mode"' not in covers_line, (
+        "toggle_mode should no longer be its own FIELDS.covers entry"
+    )
+    assert (
+        '["cover_control_mode","cover-selector",true,'
+        '["traditional","position","toggle"]]'
+    ) in source
+
+    # COVER_UI_FROM_ENTITY infers the "toggle" radio choice from the
+    # stored toggle_mode flag when reopening an existing item.
+    assert (
+        'const control=entity.position_state_address?"position":'
+        'entity.toggle_mode?"toggle":"traditional";'
+    ) in source
+
+    # On save: toggle_mode is derived from the selected control mode
+    # (not read from its own form field), and close_command_address is
+    # cleared for toggle covers (single-button, open_command_address only).
+    assert "entity.toggle_mode=ui.cover_control_mode==='toggle';" in source
+    assert (
+        "if(ui.cover_control_mode==='toggle'){delete entity.close_command_address;}"
+    ) in source
+
+    # CLEAN_COVER_ENTITY treats toggle like traditional for field
+    # governance (it still uses open/close-style addressing, not position).
+    assert (
+        'const isTraditionalLike=ui.cover_control_mode==="traditional"'
+        '||ui.cover_control_mode==="toggle";'
+    ) in source
+
+
+def _leaf_string_values(value):
+    if isinstance(value, dict):
+        for child in value.values():
+            yield from _leaf_string_values(child)
+    elif isinstance(value, str):
+        yield value
+
+
+def test_panel_avoids_the_word_toggle_in_user_facing_text() -> None:
+    """PR #117 review round 7, point 7: keep toggle_mode as the internal
+    key name, but never surface the literal word "toggle" in text a
+    normal user actually reads - use "single button"/"single-button"
+    wording instead (see label_toggle/description_toggle, the cover mode
+    choice label, and the toggle_mode_requires_* error texts)."""
+    paths = [
+        Path("custom_components/s7plc/strings.json"),
+        *sorted(Path("custom_components/s7plc/translations").glob("*.json")),
+    ]
+    for path in paths:
+        panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
+        for text in _leaf_string_values(panel):
+            assert "toggle" not in text.lower(), f"{path}: {text!r}"
+
+
+def test_toggle_mode_error_texts_describe_actual_mixed_requirement() -> None:
+    """PR #117 review round 7, point 6: toggle_mode_requires_feedback used
+    to describe only the two pure "all-status" / "all-bits" combinations,
+    but _build_cover_item accepts mixed sources too (e.g. a status word
+    for movement paired with boolean endstops for the settled position).
+    The English text must describe the real requirement instead of a
+    fixed value count that no longer matches the implementation."""
+    english = json.loads(
+        Path("custom_components/s7plc/translations/en.json").read_text(
+            encoding="utf-8"
+        )
+    )["config_panel"]
+    errors = english["errors"]
+    assert "all 4 status values" not in errors["toggle_mode_requires_feedback"]
+    assert "position" in errors["toggle_mode_requires_feedback"]
+    assert "movement" in errors["toggle_mode_requires_feedback"]
 
 
 def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
@@ -2549,6 +2694,7 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
         assert set(cover_fields["cover_control_mode"]["options"]) == {
             "traditional",
             "position",
+            "toggle",
         }
         assert set(cover_fields["cover_position_feedback"]["options"]) == {
             "timed", "opening", "closing", "both", "status",
@@ -2585,7 +2731,9 @@ console.log(JSON.stringify({{
  toTraditional:clean(mixed,{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"none",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  traditionalTimedStatus:clean({{uid:"timed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_opening_values:"1",cover_status_closing_values:"2"}},{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  traditionalEndstopStatus:clean({{uid:"endstop",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",cover_status_address:"DB1,B10",cover_status_open_values:"3",cover_status_stopped_values:"4"}},{{cover_control_mode:"traditional",cover_position_feedback:"opening",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
- toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}})
+ toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ toggleStatusPositionBitsMovement:clean({{uid:"mixed",open_command_address:"Q0.0",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"toggle",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ traditionalStatusPositionBitsMovement:clean({{uid:"mixed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"traditional",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}})
 }}));
 """
     result = json.loads(
@@ -2623,9 +2771,34 @@ console.log(JSON.stringify({{
     endstop_status = result["traditionalEndstopStatus"]
     assert endstop_status["opening_state_address"] == "I0.0"
     assert endstop_status["cover_status_address"] == "DB1,B10"
+    # Plain traditional covers keep the pre-existing coupling: movement
+    # feedback being "status" makes the whole cover_status_address+value
+    # set authoritative together, regardless of position feedback - so
+    # cover_status_open_values (nominally a *position* value field) still
+    # survives here even though position feedback is "opening", not
+    # "status". This is the pre-existing, unsplit behavior - see
+    # toggleStatusPositionBitsMovement below for toggle_mode's independent
+    # (split) scoping instead (PR #117 review round 4, point 1).
     assert endstop_status["cover_status_open_values"] == "3"
     assert endstop_status["cover_status_stopped_values"] == "4"
     assert endstop_status["cover_position_feedback"] == "opening"
+    # toggle_mode: position=status + movement=bits keeps BOTH sources -
+    # neither one silently discards the other (PR #117 review round 3,
+    # point 2).
+    toggle_mixed = result["toggleStatusPositionBitsMovement"]
+    assert toggle_mixed["cover_status_address"] == "DB1,B10"
+    assert toggle_mixed["cover_status_open_values"] == "1"
+    assert toggle_mixed["cover_status_closed_values"] == "2"
+    assert toggle_mixed["cover_opening_address"] == "I0.0"
+    assert toggle_mixed["cover_closing_address"] == "I0.1"
+    # Plain traditional: the same combination still can't keep both - the
+    # old exclusive switch treats movement_feedback=="bits" as authoritative
+    # over the whole status word, so cover_status_address (and its
+    # position-feedback value fields) get dropped too, not just kept-but-
+    # unused (round 4, point 1 - the preserved, intentional limitation).
+    traditional_mixed = result["traditionalStatusPositionBitsMovement"]
+    assert "cover_status_address" not in traditional_mixed
+    assert "cover_status_open_values" not in traditional_mixed
     position = result["toPosition"]
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
     for key in (

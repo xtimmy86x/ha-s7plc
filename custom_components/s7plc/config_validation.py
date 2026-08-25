@@ -97,6 +97,8 @@ from .const import (
     CONF_TEXTS,
     CONF_TILT_COMMAND_ADDRESS,
     CONF_TILT_STATE_ADDRESS,
+    CONF_TOGGLE_MODE,
+    CONF_TOGGLE_PULSE_DURATION,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
@@ -130,6 +132,7 @@ from .const import (
     DEFAULT_PRESET_MODE_OFF_VALUE,
     DEFAULT_PULSE_DURATION,
     DEFAULT_TEMP_STEP,
+    DEFAULT_TOGGLE_MODE,
 )
 from .helpers import parse_pulse_duration
 
@@ -197,6 +200,8 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_INVERT_TILT,
         CONF_OPERATE_TIME,
         CONF_USE_STATE_TOPICS,
+        CONF_TOGGLE_MODE,
+        CONF_TOGGLE_PULSE_DURATION,
         CONF_INVERT_POSITION,
         CONF_DEVICE_CLASS,
     },
@@ -811,11 +816,19 @@ class EntityConfigBuilder:
         if open_errors:
             return None, open_errors
 
-        close_command, close_errors = self._validate_address_field(
-            user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
-        )
-        if close_errors:
-            return None, close_errors
+        toggle_mode = bool(user_input.get(CONF_TOGGLE_MODE, DEFAULT_TOGGLE_MODE))
+
+        # In toggle_mode, open_command_address is the single PLC pulse
+        # output; close_command_address has no meaning and is ignored even
+        # if supplied (a cover is either two-address or toggle, not both).
+        if toggle_mode:
+            close_command = None
+        else:
+            close_command, close_errors = self._validate_address_field(
+                user_input.get(CONF_CLOSE_COMMAND_ADDRESS)
+            )
+            if close_errors:
+                return None, close_errors
 
         feedback_mode = user_input.get(CONF_COVER_POSITION_FEEDBACK)
         explicit_feedback = feedback_mode in {
@@ -931,11 +944,49 @@ class EntityConfigBuilder:
         ):
             return None, {"base": "cover_status_required"}
 
+        if toggle_mode:
+            # toggle_mode's correctness depends entirely on knowing the
+            # PLC's real state - it can't fall back to a simulated timer
+            # like the two-address mode does. Require two independent
+            # feedback sources: motion (is_opening/is_closing) and settled
+            # state (is_closed), each satisfiable via cover_status_address
+            # alone or via the boolean/end-stop alternatives.
+            # The status word is the selected *motion* source only when it
+            # has opening+closing values mapped - matches S7Cover's runtime
+            # _toggle_movement() priority (status wins over bits only when
+            # it actually carries motion values), so this validation stays
+            # tied to the source the entity will really use, not merely to
+            # cover_status_address's presence.
+            status_is_motion_source = bool(
+                cover_status_fields.get(CONF_COVER_STATUS_OPENING_VALUES)
+                and cover_status_fields.get(CONF_COVER_STATUS_CLOSING_VALUES)
+            )
+            has_motion_feedback = status_is_motion_source or bool(
+                cover_opening_addr and cover_closing_addr
+            )
+            has_settled_feedback = bool(
+                cover_status_fields.get(CONF_COVER_STATUS_OPEN_VALUES)
+                and cover_status_fields.get(CONF_COVER_STATUS_CLOSED_VALUES)
+            ) or bool(use_state_topics and opening_state and closing_state)
+            if not (has_motion_feedback and has_settled_feedback):
+                return None, {"base": "toggle_mode_requires_feedback"}
+            # A status-word setup must also map "stopped" explicitly, so a
+            # genuine mid-travel stop can be told apart from a missing or
+            # unmatched status value (see S7Cover._toggle_state) - but only
+            # when the status word is actually the selected motion source;
+            # a status word used purely for position (with bits driving
+            # motion) has no need to also carry a "stopped" mapping.
+            if status_is_motion_source and not cover_status_fields.get(
+                CONF_COVER_STATUS_STOPPED_VALUES
+            ):
+                return None, {"base": "toggle_mode_requires_stopped_mapping"}
+
         # Build item
         item: dict[str, Any] = {
             CONF_OPEN_COMMAND_ADDRESS: open_command,
-            CONF_CLOSE_COMMAND_ADDRESS: close_command,
         }
+        if close_command:
+            item[CONF_CLOSE_COMMAND_ADDRESS] = close_command
 
         # Add optional state addresses
         if (
@@ -947,12 +998,19 @@ class EntityConfigBuilder:
         ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
-        # Add optional real-time movement status addresses
-        if feedback_mode != "status" and cover_opening_addr:
+        # Add optional real-time movement status addresses. toggle_mode
+        # treats position and movement feedback as independent sources, so
+        # a status word chosen for position does not discard separately
+        # configured movement bits there; plain traditional covers keep the
+        # pre-existing coupling (status word supplies both, stale bit
+        # fields are dropped) since their runtime still implements that
+        # precedence - out of this PR's scope to change.
+        keep_movement_bits = toggle_mode or feedback_mode != "status"
+        if keep_movement_bits and cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if feedback_mode != "status" and cover_closing_addr:
+        if keep_movement_bits and cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if feedback_mode != "status" and cover_stopped_addr:
+        if keep_movement_bits and cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields
@@ -967,6 +1025,11 @@ class EntityConfigBuilder:
             item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
         elif CONF_USE_STATE_TOPICS in user_input:
             item[CONF_USE_STATE_TOPICS] = bool(user_input[CONF_USE_STATE_TOPICS])
+        if toggle_mode:
+            item[CONF_TOGGLE_MODE] = True
+            item[CONF_TOGGLE_PULSE_DURATION] = parse_pulse_duration(
+                user_input.get(CONF_TOGGLE_PULSE_DURATION)
+            )
         item.update(cover_status_fields)
 
         # Apply scan interval

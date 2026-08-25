@@ -366,7 +366,9 @@
         "fields": {
           "open_command_address": {
             "label": "Adresa příkazu otevřít",
-            "description": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0)."
+            "description": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
+            "label_toggle": "Adresa příkazu jednoho tlačítka",
+            "description_toggle": "Adresa PLC jediného impulzního příkazu použitého pro otevírání, zastavení a zavírání krytu."
           },
           "close_command_address": {
             "label": "Adresa příkazu zavřít",
@@ -374,7 +376,7 @@
           },
           "cover_status_address": {
             "label": "Adresa stavu krytu",
-            "description": "Volitelná adresa PLC hlásící pohyb v reálném čase (otevírání/zavírání/zastaveno), porovnávaná s hodnotami nastavenými níže. Má přednost před booleovskými adresami stavu otevírání/zavírání/zastavení výše, pokud je nastavena."
+            "description": "Adresa PLC obsahující stav krytu, porovnávaná s hodnotami nastavenými níže. V závislosti na vybraných zdrojích zpětné vazby polohy a pohybu může poskytovat ustálenou polohu otevřeno/zavřeno, stav pohybu, nebo obojí."
           },
           "cover_status_open_values": {
             "label": "Hodnota(y) stavu Otevřeno",
@@ -398,23 +400,23 @@
           },
           "opening_state_address": {
             "label": "Koncový spínač zcela otevřeno",
-            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená."
+            "description": "Adresa v PLC, která signalizuje, že je krytina otevřená."
           },
           "closing_state_address": {
             "label": "Koncový spínač zcela zavřeno",
-            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená."
+            "description": "Adresa v PLC, která signalizuje, že je krytina zavřená."
           },
           "cover_opening_address": {
             "label": "Adresa stavu Otevírání",
-            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+            "description": "Booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
           },
           "cover_closing_address": {
             "label": "Adresa stavu Zavírání",
-            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě zavírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+            "description": "Booleovská adresa PLC signalizující, že se kryt právě zavírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
           },
           "cover_stopped_address": {
             "label": "Adresa stavu Zastaveno",
-            "description": "Volitelná booleovská adresa PLC signalizující, že kryt je zastaven (nehýbe se)."
+            "description": "Booleovská adresa PLC signalizující, že kryt je zastaven (nehýbe se)."
           },
           "position_state_address": {
             "label": "Adresa stavu pozice",
@@ -431,6 +433,10 @@
           "stop_pulse_duration": {
             "label": "Délka pulzu zastavení (s)",
             "description": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms)."
+          },
+          "toggle_pulse_duration": {
+            "label": "Délka pulzu přepínače (s)",
+            "description": "Délka pulzu jediného relé v přepínacím režimu, v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms)."
           },
           "tilt_state_address": {
             "label": "Adresa stavu naklopení",
@@ -465,11 +471,13 @@
             "description": "Zvolte, jak PLC ovládá kryt.",
             "options": {
               "traditional": "Otevřít / Zavřít",
-              "position": "Pozice 0–100 %"
+              "position": "Pozice 0–100 %",
+              "toggle": "Jedno tlačítko"
             },
             "descriptions": {
               "traditional": "Dva samostatné příkazy pro otevření a zavření.",
-              "position": "Číselná zpětná vazba a příkaz pozice."
+              "position": "Číselná zpětná vazba a příkaz pozice.",
+              "toggle": "Jedna adresa příkazu cyklicky přepíná (otevřít/stop/zavřít/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1088,6 +1096,8 @@
       "climate_preset_mode_required_error": "Zadejte adresu kódovaného režimu HVAC.",
       "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
       "climate_status_required_error": "Zadejte adresu provozního stavu PLC.",
+      "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje dva reálné zdroje zpětné vazby: ustálenou polohu (obě adresy koncových spínačů, nebo adresu stavu namapovanou na otevřeno a zavřeno) a stav pohybu (bity otevírání/zavírání, nebo adresu stavu namapovanou na otevírání, zavírání a zastavení).",
+      "toggle_mode_requires_stopped_mapping": "Režim jednoho tlačítka s adresou stavu vyžaduje také namapovanou hodnotu zastavení, aby bylo možné odlišit skutečné zastavení uprostřed pohybu od chybějící nebo neodpovídající zpětné vazby.",
       "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
       "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",
       "invalid_availability_address": "Zadejte platnou BIT adresu dostupnosti.",

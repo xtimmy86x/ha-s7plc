@@ -407,6 +407,15 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
         self.hass = getattr(coordinator, "hass", None)
         self._ha_state_calls = 0
 
+    @property
+    def name(self):
+        """Mirror real HA's Entity.name: falls back to _attr_name."""
+        return getattr(self, "_attr_name", None)
+
+    @name.setter
+    def name(self, value):
+        self._attr_name = value
+
     def async_write_ha_state(self):
         self._ha_state_calls += 1
 
