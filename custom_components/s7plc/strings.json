@@ -252,7 +252,8 @@
           "label": "Availability BIT address",
           "description": "BIT address that must be true while the PLC is connected."
         }
-      }
+      },
+      "datatype_time": "TIME — duration in seconds"
     },
     "sections": {
       "plc_connection": {
@@ -1096,7 +1097,8 @@
       "cover_status_mapping_required_error": "Status-word feedback requires at least one state mapping.",
       "cover_status_values_error": "Status mappings must contain integers separated by commas.",
       "cover_status_duplicate_error": "A status value cannot appear in more than one mapping.",
-      "cover_status_required": "Status-word feedback requires an address and at least one mapping."
+      "cover_status_required": "Status-word feedback requires an address and at least one mapping.",
+      "time_unsupported_for_entity": "TIME is supported only for sensor and number entities."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

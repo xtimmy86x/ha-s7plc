@@ -961,7 +961,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         return tag
 
     async def write_batched(
-        self, address: str, value: bool | int | float | str
+        self, address: str, value: bool | int | float | str | timedelta
     ) -> None:
         """Write value to PLC with optional automatic batching.
 
@@ -1224,7 +1224,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._drop_connection()
             raise RuntimeError(f"Unexpected error reading {address}: {err}") from err
 
-    async def write(self, address: str, value: bool | int | float | str) -> bool:
+    async def write(
+        self, address: str, value: bool | int | float | str | timedelta
+    ) -> bool:
         """Write value to PLC with automatic type handling.
 
         Automatically determines the appropriate conversion based on the PLC
@@ -1247,9 +1249,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _prepare_payload(
         self,
         tag: S7Tag,
-        value: bool | int | float | str,
+        value: bool | int | float | str | timedelta,
         address: str = "",
-    ) -> bool | int | float | str:
+    ) -> bool | int | float | str | timedelta:
         """Validate and convert a Python value to the appropriate PLC payload.
 
         Args:
@@ -1270,6 +1272,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"got {type(value).__name__}"
                 )
             return bool(value)
+
+        if tag.data_type == getattr(DataType, "TIME", None):
+            if not isinstance(value, timedelta):
+                raise ValueError(
+                    f"TIME address {address} requires timedelta value, "
+                    f"got {type(value).__name__}"
+                )
+            return value
 
         if tag.data_type in (DataType.STRING, DataType.WSTRING):
             if not isinstance(value, str):
@@ -1305,8 +1315,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if tag.data_type == DataType.CHAR:
             raise ValueError(
-                f"CHAR arrays not supported for write at {address}, "
-                "use STRING instead"
+                f"CHAR arrays not supported for write at {address}, use STRING instead"
             )
 
         raise ValueError(
@@ -1314,7 +1323,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     async def write_multi(
-        self, writes: list[tuple[str, bool | int | float | str]]
+        self, writes: list[tuple[str, bool | int | float | str | timedelta]]
     ) -> dict[str, bool]:
         """Write multiple values to PLC in a single batch operation.
 

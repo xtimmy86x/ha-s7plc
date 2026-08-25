@@ -252,7 +252,8 @@
           "label": "Indirizzo BIT di disponibilità",
           "description": "Indirizzo BIT che deve essere vero mentre il PLC è connesso."
         }
-      }
+      },
+      "datatype_time": "TIME — durata in secondi"
     },
     "sections": {
       "plc_connection": {
@@ -1096,7 +1097,8 @@
       "cover_status_mapping_required_error": "Il feedback tramite word di stato richiede almeno un'associazione di stato.",
       "cover_status_values_error": "Le associazioni di stato devono contenere numeri interi separati da virgole.",
       "cover_status_duplicate_error": "Un valore di stato non può comparire in più di un'associazione.",
-      "cover_status_required": "Il feedback tramite word di stato richiede un indirizzo e almeno un'associazione."
+      "cover_status_required": "Il feedback tramite word di stato richiede un indirizzo e almeno un'associazione.",
+      "time_unsupported_for_entity": "TIME è supportato solo per le entità sensor e number."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

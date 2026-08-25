@@ -1757,6 +1757,18 @@ def build_entity_item(
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Validate and normalize one entity using the appropriate builder."""
     validate_entity_fields(entity_type, entity)
+    if entity_type not in (CONF_SENSORS, CONF_NUMBERS):
+        for key, value in entity.items():
+            if "address" not in key or not isinstance(value, str) or not value.strip():
+                continue
+            try:
+                if parse_tag(value.strip()).data_type == getattr(
+                    DataType, "TIME", None
+                ):
+                    return None, {"base": "time_unsupported_for_entity"}
+            except (RuntimeError, ValueError):
+                # The platform-specific builder supplies the established error.
+                pass
     builder = EntityConfigBuilder(options)
 
     if entity_type == CONF_COVERS:

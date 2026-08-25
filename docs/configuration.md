@@ -361,3 +361,25 @@ Availability addresses use the normal read optimizer and may deliberately be
 shared by multiple entities. They may also equal another address on the same
 entity: each internal topic retains its own meaning while the coordinator can
 coalesce the physical read.
+
+### Siemens `TIME` durations
+
+The Siemens `TIME` datatype is supported for **sensor** and **number** entities.
+It is a signed 32-bit duration stored by the PLC in milliseconds, while Home
+Assistant always displays and configures it in seconds. It must not be confused
+with Home Assistant's time-of-day entity.
+
+* Reads divide the PLC value by 1000: `TIME#1500ms` is `1.5 s`, `TIME#1s` is
+  `1.0 s`, and `TIME#-250ms` is `-0.25 s`.
+* Number writes multiply seconds by 1000 and round to the nearest millisecond:
+  `2.345 s` is written as `2345 ms`.
+* Negative durations are supported. The complete range is
+  `-2147483.648 s` through `2147483.647 s`, with native `0.001 s` resolution.
+* `min_value`, `max_value`, and `step` on a `TIME` number are expressed in
+  seconds. When omitted, the signed TIME range and a `0.001 s` step are used.
+* `value_multiplier`, when configured, is applied after conversion to seconds
+  on reads and reversed before conversion to milliseconds on writes.
+
+Use an address such as `DB1,TIME0`. `TIME` is not accepted for other entity
+platforms. Other Siemens temporal datatypes, including `LTIME` and time-of-day
+variants, are not supported.

@@ -18,7 +18,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .address import DataType, parse_tag
+from .address import DataType, is_time_data_type, parse_tag, time_to_seconds
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -388,7 +388,6 @@ async def async_setup_entry(
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
-
     _address_attr_name = "s7_state_address"
 
     def __init__(
@@ -448,13 +447,23 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 
         self._custom_unit = unit_of_measurement if unit_of_measurement else None
 
+        try:
+            self._is_time = is_time_data_type(parse_tag(address).data_type)
+        except (RuntimeError, ValueError):
+            self._is_time = False
+
         # Check if this is a string or char sensor
         is_string_or_char = self._is_string_or_char_sensor()
 
-        sensor_device_class = None
+        sensor_device_class = SensorDeviceClass.DURATION if self._is_time else None
+
+        if self._is_time:
+            self._attr_device_class = SensorDeviceClass.DURATION
+            self._attr_native_unit_of_measurement = "s"
+            self._attr_suggested_display_precision = 3
 
         # Don't set device_class or state_class for string/char sensors
-        if not is_string_or_char and device_class:
+        if not self._is_time and not is_string_or_char and device_class:
             try:
                 sensor_device_class = SensorDeviceClass(device_class)
             except ValueError:
@@ -466,7 +475,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                     self._attr_native_unit_of_measurement = unit
 
         # Override with custom unit if provided
-        if self._custom_unit:
+        if self._custom_unit and not self._is_time:
             self._attr_native_unit_of_measurement = self._custom_unit
 
         # Set state_class: user config takes precedence,
@@ -511,6 +520,12 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             return value
         if isinstance(value, bool):
             return value
+        if self._is_time:
+            try:
+                value = time_to_seconds(value)
+            except (TypeError, ValueError):
+                _LOGGER.warning("Invalid TIME value for %s: %r", self._topic, value)
+                return None
         # Resolve numeric value once
         if isinstance(value, numbers.Number):
             numeric_value: float | None = float(value)

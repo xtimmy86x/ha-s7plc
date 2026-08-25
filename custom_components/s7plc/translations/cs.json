@@ -252,7 +252,8 @@
           "label": "BIT adresa dostupnosti",
           "description": "BIT adresa, která musí být aktivní, když je PLC připojeno."
         }
-      }
+      },
+      "datatype_time": "TIME — doba trvání v sekundách"
     },
     "sections": {
       "plc_connection": {
@@ -1096,7 +1097,8 @@
       "cover_status_mapping_required_error": "Zpětná vazba stavového slova vyžaduje alespoň jedno mapování stavu.",
       "cover_status_values_error": "Mapování stavů musí obsahovat celá čísla oddělená čárkami.",
       "cover_status_duplicate_error": "Hodnota stavu nesmí být uvedena ve více než jednom mapování.",
-      "cover_status_required": "Zpětná vazba stavového slova vyžaduje adresu a alespoň jedno mapování."
+      "cover_status_required": "Zpětná vazba stavového slova vyžaduje adresu a alespoň jedno mapování.",
+      "time_unsupported_for_entity": "TIME je podporován pouze pro entity sensor a number."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

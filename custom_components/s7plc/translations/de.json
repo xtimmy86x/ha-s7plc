@@ -252,7 +252,8 @@
           "label": "Verfügbarkeits-BIT-Adresse",
           "description": "BIT-Adresse, die gesetzt sein muss, solange die SPS verbunden ist."
         }
-      }
+      },
+      "datatype_time": "TIME — Dauer in Sekunden"
     },
     "sections": {
       "plc_connection": {
@@ -1096,7 +1097,8 @@
       "cover_status_mapping_required_error": "Die Statuswort-Rückmeldung erfordert mindestens eine Zustandszuordnung.",
       "cover_status_values_error": "Statuszuordnungen müssen durch Kommas getrennte Ganzzahlen enthalten.",
       "cover_status_duplicate_error": "Ein Statuswert darf nicht in mehreren Zuordnungen vorkommen.",
-      "cover_status_required": "Die Statuswort-Rückmeldung erfordert eine Adresse und mindestens eine Zuordnung."
+      "cover_status_required": "Die Statuswort-Rückmeldung erfordert eine Adresse und mindestens eine Zuordnung.",
+      "time_unsupported_for_entity": "TIME wird nur für Sensor- und Number-Entitäten unterstützt."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

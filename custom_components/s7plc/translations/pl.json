@@ -252,7 +252,8 @@
           "label": "Adres BIT dostępności",
           "description": "Adres BIT, który musi być aktywny, gdy PLC jest połączony."
         }
-      }
+      },
+      "datatype_time": "TIME — czas trwania w sekundach"
     },
     "sections": {
       "plc_connection": {
@@ -1096,7 +1097,8 @@
       "cover_status_mapping_required_error": "Sprzężenie zwrotne słowa stanu wymaga co najmniej jednego mapowania stanu.",
       "cover_status_values_error": "Mapowania stanów muszą zawierać liczby całkowite oddzielone przecinkami.",
       "cover_status_duplicate_error": "Wartość stanu nie może występować w więcej niż jednym mapowaniu.",
-      "cover_status_required": "Sprzężenie zwrotne słowa stanu wymaga adresu i co najmniej jednego mapowania."
+      "cover_status_required": "Sprzężenie zwrotne słowa stanu wymaga adresu i co najmniej jednego mapowania.",
+      "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

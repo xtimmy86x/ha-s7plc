@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
@@ -9,7 +10,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .address import get_numeric_limits, parse_tag
+from .address import (
+    get_numeric_limits,
+    is_time_data_type,
+    parse_tag,
+    seconds_to_time,
+    time_to_seconds,
+)
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -133,6 +140,10 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+        try:
+            self._is_time = is_time_data_type(parse_tag(address).data_type)
+        except (RuntimeError, ValueError):
+            self._is_time = False
 
         # Parse value_multiplier with defensive validation
         self._value_multiplier: float | None = None
@@ -163,7 +174,10 @@ class S7Number(S7BaseEntity, NumberEntity):
                 )
 
         # Set device_class if provided
-        if device_class:
+        if self._is_time:
+            self._attr_device_class = "duration"
+            self._attr_native_unit_of_measurement = "s"
+        elif device_class:
             self._attr_device_class = device_class
 
             # Derive unit from device_class if not explicitly provided
@@ -175,7 +189,7 @@ class S7Number(S7BaseEntity, NumberEntity):
                         self._attr_native_unit_of_measurement = unit
 
         # Override with custom unit if provided
-        if unit_of_measurement:
+        if unit_of_measurement and not self._is_time:
             self._attr_native_unit_of_measurement = unit_of_measurement
 
         # Always initialize native attributes to avoid AttributeError
@@ -217,6 +231,8 @@ class S7Number(S7BaseEntity, NumberEntity):
 
         if step is not None:
             self._attr_native_step = float(step)
+        elif self._is_time:
+            self._attr_native_step = 0.001
 
         # Scale min/max/step by multiplier so the UI works in display units.
         # The PLC raw value is always divided back when writing.
@@ -241,6 +257,12 @@ class S7Number(S7BaseEntity, NumberEntity):
         value = (self.coordinator.data or {}).get(self._topic)
         if value is None:
             return value
+        if self._is_time:
+            try:
+                value = time_to_seconds(value)
+            except (TypeError, ValueError):
+                _LOGGER.warning("Invalid TIME value for %s: %r", self._topic, value)
+                return None
         # Linear scaling takes precedence over multiplier
         if self._scale_params is not None:
             try:
@@ -260,7 +282,11 @@ class S7Number(S7BaseEntity, NumberEntity):
         if not self._command_address:
             raise HomeAssistantError("No command address configured for this entity.")
 
-        # Convert display-unit value back to PLC raw value
+        if self._is_time and not math.isfinite(float(value)):
+            raise HomeAssistantError("TIME/number value must be finite.")
+
+        # Convert display-unit value back to PLC raw value. TIME scaling and
+        # multipliers operate in HA seconds; conversion to pyS7 timedelta is last.
         if self._scale_params is not None:
             rn, rx, sn, sx = self._scale_params
             plc_value = inverse_scale_value(float(value), rn, rx, sn, sx)
@@ -268,6 +294,12 @@ class S7Number(S7BaseEntity, NumberEntity):
             plc_value = float(value) / self._value_multiplier
         else:
             plc_value = float(value)
+
+        if self._is_time:
+            try:
+                plc_value = seconds_to_time(plc_value)
+            except (TypeError, ValueError) as err:
+                raise HomeAssistantError(str(err)) from err
 
         await self.coordinator.write_batched(self._command_address, plc_value)
         await self.coordinator.async_request_refresh()
