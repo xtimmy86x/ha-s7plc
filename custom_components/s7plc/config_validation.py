@@ -1025,8 +1025,8 @@ class EntityConfigBuilder:
             item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
         elif CONF_USE_STATE_TOPICS in user_input:
             item[CONF_USE_STATE_TOPICS] = bool(user_input[CONF_USE_STATE_TOPICS])
-        item[CONF_TOGGLE_MODE] = toggle_mode
         if toggle_mode:
+            item[CONF_TOGGLE_MODE] = True
             item[CONF_TOGGLE_PULSE_DURATION] = parse_pulse_duration(
                 user_input.get(CONF_TOGGLE_PULSE_DURATION)
             )

@@ -365,7 +365,9 @@
         "fields": {
           "open_command_address": {
             "label": "Indirizzo comando apertura",
-            "description": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0)."
+            "description": "Indirizzo PLC per attivare l'apertura (es. Q0.0, DB1,X0.0).",
+            "label_toggle": "Indirizzo comando pulsante singolo",
+            "description_toggle": "Indirizzo PLC del comando a impulso singolo usato per aprire, fermare e chiudere la copertura."
           },
           "close_command_address": {
             "label": "Indirizzo comando chiusura",
@@ -373,7 +375,7 @@
           },
           "cover_status_address": {
             "label": "Indirizzo stato cover",
-            "description": "Indirizzo PLC opzionale che riporta il movimento in tempo reale (apertura/chiusura/fermo), confrontato con i valori configurati sotto. Ha la priorità sugli indirizzi booleani di stato apertura/chiusura/fermo sopra, quando configurato."
+            "description": "Indirizzo PLC contenente lo stato della copertura, confrontato con i valori configurati sotto. A seconda delle sorgenti di feedback di posizione e movimento selezionate, può fornire la posizione stabile aperta/chiusa, lo stato di movimento, o entrambi."
           },
           "cover_status_open_values": {
             "label": "Valore/i stato aperto",
@@ -432,8 +434,8 @@
             "description": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500 ms)."
           },
           "toggle_pulse_duration": {
-            "label": "Durata impulso toggle (s)",
-            "description": "Durata dell'impulso del singolo relè in modalità toggle, in secondi (supporta decimali, es. 0.5 per 500 ms)."
+            "label": "Durata impulso pulsante singolo (s)",
+            "description": "Durata dell'impulso del singolo relè in modalità a pulsante singolo, in secondi (supporta decimali, es. 0.5 per 500 ms)."
           },
           "tilt_state_address": {
             "label": "Indirizzo stato inclinazione",
@@ -1093,7 +1095,7 @@
       "climate_preset_mode_required_error": "Inserisci l'indirizzo della modalità HVAC codificata.",
       "climate_on_off_required_error": "Inserisci l'indirizzo On/Off separato.",
       "climate_status_required_error": "Inserisci l'indirizzo dello stato operativo del PLC.",
-      "toggle_mode_requires_feedback": "La modalità pulsante singolo richiede un feedback reale per funzionare correttamente: un indirizzo di stato configurato con tutti e 4 i valori di stato, oppure un indirizzo di apertura e un indirizzo di chiusura per il movimento insieme a entrambi gli indirizzi di finecorsa/posizione per lo stato stabile.",
+      "toggle_mode_requires_feedback": "La modalità a pulsante singolo richiede due sorgenti di feedback reali: una posizione stabile (entrambi gli indirizzi di finecorsa, oppure un indirizzo di stato mappato su aperto e chiuso) e uno stato di movimento (bit di apertura/chiusura, oppure un indirizzo di stato mappato su apertura, chiusura e fermo).",
       "toggle_mode_requires_stopped_mapping": "La modalità pulsante singolo con un indirizzo di stato richiede anche un valore di arresto mappato, per distinguere un arresto reale a metà corsa da un feedback mancante o non corrispondente.",
       "invalid_availability_mode": "Seleziona un criterio di disponibilità valido.",
       "availability_address_required": "È necessario un indirizzo BIT di disponibilità.",

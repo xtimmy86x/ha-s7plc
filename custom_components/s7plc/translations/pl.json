@@ -365,7 +365,9 @@
         "fields": {
           "open_command_address": {
             "label": "Adres zapisu otwórz",
-            "description": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0)."
+            "description": "Adres wyzwalający otwieranie (np. Q0.0, DB1,X0.0).",
+            "label_toggle": "Adres komendy jednego przycisku",
+            "description_toggle": "Adres PLC pojedynczej komendy impulsowej używanej do otwierania, zatrzymywania i zamykania osłony."
           },
           "close_command_address": {
             "label": "Adres zapisu zamknij",
@@ -373,7 +375,7 @@
           },
           "cover_status_address": {
             "label": "Adres odczytu stanów",
-            "description": "Opcjonalny adres odczytu stanów (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana), porównywany z wartościami skonfigurowanymi poniżej. Ma priorytet nad adresami stanu (otwarta/zamknięta/otwieranie/zamykanie/zatrzymana)."
+            "description": "Adres PLC zawierający stan osłony, porównywany z wartościami skonfigurowanymi poniżej. W zależności od wybranych źródeł sprzężenia zwrotnego pozycji i ruchu, może dostarczać ustaloną pozycję otwarta/zamknięta, stan ruchu albo oba jednocześnie."
           },
           "cover_status_open_values": {
             "label": "Wartość(-i) stanu (otwarta)",
@@ -1093,7 +1095,7 @@
       "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
       "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
-      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga adresu stanów ze wszystkimi 4 wartościami stanu, albo binarnych adresów otwórz i zamknij razem z binarnymi adresami stanu otwarta i zamknięta.",
+      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga dwóch rzeczywistych źródeł sprzężenia zwrotnego: ustalonej pozycji (obu adresów krańcówek albo adresu stanów zmapowanego na otwarta i zamknięta) oraz stanu ruchu (bitów otwierania/zamykania albo adresu stanów zmapowanego na otwieranie, zamykanie i zatrzymanie).",
       "toggle_mode_requires_stopped_mapping": "Tryb jednego przycisku z adresem stanów wymaga też zmapowanej wartości zatrzymania, aby odróżnić realne zatrzymanie w trakcie ruchu od brakującego lub niedopasowanego stanu z PLC.",
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",

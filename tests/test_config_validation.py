@@ -400,6 +400,24 @@ def test_cover_toggle_pulse_duration_absent_when_not_toggle_mode() -> None:
     assert "toggle_pulse_duration" not in item
 
 
+def test_cover_toggle_mode_key_only_persisted_when_true() -> None:
+    """PR #117 review round 7, point 8: don't change every existing
+    traditional cover's persisted shape just because toggle_mode exists -
+    only write the key when the feature is actually enabled, matching
+    every other optional cover field."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {"open_command_address": "DB1,X0.0", "close_command_address": "DB1,X0.1"},
+        options={},
+    )
+    assert not errors
+    assert "toggle_mode" not in item
+
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item["toggle_mode"] is True
+
+
 def test_toggle_mode_requires_real_feedback() -> None:
     """toggle_mode can't fall back to a simulated timer like the
     two-address mode does - it needs both motion and settled-state

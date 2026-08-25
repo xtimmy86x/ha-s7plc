@@ -365,7 +365,9 @@
         "fields": {
           "open_command_address": {
             "label": "Open command address",
-            "description": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0)."
+            "description": "PLC address to trigger opening (e.g., Q0.0, DB1,X0.0).",
+            "label_toggle": "Single-button command address",
+            "description_toggle": "PLC address of the single pulse command used for opening, stopping and closing the cover."
           },
           "close_command_address": {
             "label": "Close command address",
@@ -373,7 +375,7 @@
           },
           "cover_status_address": {
             "label": "Cover status address",
-            "description": "Optional PLC address reporting real-time movement (opening/closing/stopped), matched against the value(s) configured below. Takes priority over the boolean opening/closing/stopped status addresses above when configured."
+            "description": "PLC address containing the cover status, matched against the value(s) configured below. Depending on the selected position and movement feedback sources, it can supply the settled open/closed position, the movement state, or both."
           },
           "cover_status_open_values": {
             "label": "Open status value(s)",
@@ -432,8 +434,8 @@
             "description": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms)."
           },
           "toggle_pulse_duration": {
-            "label": "Toggle pulse duration (s)",
-            "description": "Duration in seconds for the single relay pulse in toggle mode (supports decimals, e.g., 0.5 for 500ms)."
+            "label": "Single-button pulse duration (s)",
+            "description": "Duration in seconds for the single relay pulse in single-button mode (supports decimals, e.g., 0.5 for 500ms)."
           },
           "tilt_state_address": {
             "label": "Tilt state address",
@@ -469,7 +471,7 @@
             "options": {
               "traditional": "Open / Close",
               "position": "Position 0–100%",
-              "toggle": "Toggle (single button)"
+              "toggle": "Single button"
             },
             "descriptions": {
               "traditional": "Two discrete open and close commands.",
@@ -1093,8 +1095,8 @@
       "climate_preset_mode_required_error": "Enter the coded HVAC mode address.",
       "climate_on_off_required_error": "Enter the separate On/Off address.",
       "climate_status_required_error": "Enter the PLC operating-status address.",
-      "toggle_mode_requires_feedback": "Toggle mode needs real feedback to work correctly: either a status address configured with all 4 status values, or an opening address plus a closing address for movement together with both position/end-stop addresses for the settled state.",
-      "toggle_mode_requires_stopped_mapping": "Toggle mode with a status address also needs a stopped value mapped, so a genuine mid-travel stop can be told apart from missing or unmatched feedback.",
+      "toggle_mode_requires_feedback": "Single-button mode requires two real feedback sources: a settled position (both end-stop addresses, or a status address mapped to open and closed) and a movement state (opening/closing bit addresses, or a status address mapped to opening, closing and stopped).",
+      "toggle_mode_requires_stopped_mapping": "Single-button mode with a status address also needs a stopped value mapped, so a genuine mid-travel stop can be told apart from missing or unmatched feedback.",
       "invalid_availability_mode": "Select a valid availability policy.",
       "availability_address_required": "An availability BIT address is required.",
       "invalid_availability_address": "Enter a valid availability BIT address.",

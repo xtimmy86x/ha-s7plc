@@ -365,7 +365,9 @@
         "fields": {
           "open_command_address": {
             "label": "Adresa příkazu otevřít",
-            "description": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0)."
+            "description": "Adresa PLC pro spuštění otevírání (např. Q0.0, DB1,X0.0).",
+            "label_toggle": "Adresa příkazu jednoho tlačítka",
+            "description_toggle": "Adresa PLC jediného impulzního příkazu použitého pro otevírání, zastavení a zavírání krytu."
           },
           "close_command_address": {
             "label": "Adresa příkazu zavřít",
@@ -373,7 +375,7 @@
           },
           "cover_status_address": {
             "label": "Adresa stavu krytu",
-            "description": "Volitelná adresa PLC hlásící pohyb v reálném čase (otevírání/zavírání/zastaveno), porovnávaná s hodnotami nastavenými níže. Má přednost před booleovskými adresami stavu otevírání/zavírání/zastavení výše, pokud je nastavena."
+            "description": "Adresa PLC obsahující stav krytu, porovnávaná s hodnotami nastavenými níže. V závislosti na vybraných zdrojích zpětné vazby polohy a pohybu může poskytovat ustálenou polohu otevřeno/zavřeno, stav pohybu, nebo obojí."
           },
           "cover_status_open_values": {
             "label": "Hodnota(y) stavu Otevřeno",
@@ -1093,7 +1095,7 @@
       "climate_preset_mode_required_error": "Zadejte adresu kódovaného režimu HVAC.",
       "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
       "climate_status_required_error": "Zadejte adresu provozního stavu PLC.",
-      "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje reálnou zpětnou vazbu, aby fungoval správně: adresu stavu se všemi 4 hodnotami stavu, nebo adresu otevírání a adresu zavírání pro pohyb spolu s oběma adresami koncových spínačů/polohy pro ustálený stav.",
+      "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje dva reálné zdroje zpětné vazby: ustálenou polohu (obě adresy koncových spínačů, nebo adresu stavu namapovanou na otevřeno a zavřeno) a stav pohybu (bity otevírání/zavírání, nebo adresu stavu namapovanou na otevírání, zavírání a zastavení).",
       "toggle_mode_requires_stopped_mapping": "Režim jednoho tlačítka s adresou stavu vyžaduje také namapovanou hodnotu zastavení, aby bylo možné odlišit skutečné zastavení uprostřed pohybu od chybějící nebo neodpovídající zpětné vazby.",
       "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
       "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",

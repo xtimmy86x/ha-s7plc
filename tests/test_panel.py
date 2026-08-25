@@ -2568,6 +2568,48 @@ def test_panel_exposes_toggle_as_a_control_mode_choice() -> None:
     ) in source
 
 
+def _leaf_string_values(value):
+    if isinstance(value, dict):
+        for child in value.values():
+            yield from _leaf_string_values(child)
+    elif isinstance(value, str):
+        yield value
+
+
+def test_panel_avoids_the_word_toggle_in_user_facing_text() -> None:
+    """PR #117 review round 7, point 7: keep toggle_mode as the internal
+    key name, but never surface the literal word "toggle" in text a
+    normal user actually reads - use "single button"/"single-button"
+    wording instead (see label_toggle/description_toggle, the cover mode
+    choice label, and the toggle_mode_requires_* error texts)."""
+    paths = [
+        Path("custom_components/s7plc/strings.json"),
+        *sorted(Path("custom_components/s7plc/translations").glob("*.json")),
+    ]
+    for path in paths:
+        panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
+        for text in _leaf_string_values(panel):
+            assert "toggle" not in text.lower(), f"{path}: {text!r}"
+
+
+def test_toggle_mode_error_texts_describe_actual_mixed_requirement() -> None:
+    """PR #117 review round 7, point 6: toggle_mode_requires_feedback used
+    to describe only the two pure "all-status" / "all-bits" combinations,
+    but _build_cover_item accepts mixed sources too (e.g. a status word
+    for movement paired with boolean endstops for the settled position).
+    The English text must describe the real requirement instead of a
+    fixed value count that no longer matches the implementation."""
+    english = json.loads(
+        Path("custom_components/s7plc/translations/en.json").read_text(
+            encoding="utf-8"
+        )
+    )["config_panel"]
+    errors = english["errors"]
+    assert "all 4 status values" not in errors["toggle_mode_requires_feedback"]
+    assert "position" in errors["toggle_mode_requires_feedback"]
+    assert "movement" in errors["toggle_mode_requires_feedback"]
+
+
 def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
     """Regression test: a checkbox field's label/description span is a
     flex child of .check (display:flex, justify-content:space-between).

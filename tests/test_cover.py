@@ -488,6 +488,17 @@ def test_extra_state_attributes_basic(cover_factory):
     assert attrs["cover_type"] == "open/close"
 
 
+def test_extra_state_attributes_omits_toggle_mode_when_not_toggle(cover_factory):
+    """PR #117 review round 7, point 8: a plain traditional cover's state
+    attributes shouldn't gain a new toggle_mode:false attribute just
+    because the feature exists - only expose it when actually enabled."""
+    cover = cover_factory()
+
+    attrs = cover.extra_state_attributes
+    assert "toggle_mode" not in attrs
+    assert "s7_toggle_last_direction" not in attrs
+
+
 def test_extra_state_attributes_with_state_topics(cover_factory):
     """Test extra state attributes with state topics."""
     cover = cover_factory(
@@ -2707,6 +2718,17 @@ def test_toggle_mode_supported_features_is_full(cover_factory):
     assert cover._attr_supported_features == (
         CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
     )
+
+
+def test_toggle_mode_extra_state_attributes_exposes_toggle_mode(
+    cover_factory, mock_coordinator
+):
+    """Mirror of test_extra_state_attributes_omits_toggle_mode_when_not_toggle:
+    a real toggle_mode cover does get the attribute, and its value."""
+    cover = _status_cover(cover_factory)
+    attrs = cover.extra_state_attributes
+    assert attrs["toggle_mode"] is True
+    assert attrs["s7_toggle_last_direction"] == "unknown"
 
 
 @pytest.mark.asyncio

@@ -365,7 +365,9 @@
         "fields": {
           "open_command_address": {
             "label": "Befehlsvariable öffnen",
-            "description": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0)."
+            "description": "SPS-Adresse zum Auslösen des Öffnens (z. B. Q0.0, DB1,X0.0).",
+            "label_toggle": "Befehlsadresse (Ein-Taster)",
+            "description_toggle": "SPS-Adresse des einzelnen Impulsbefehls für Öffnen, Stoppen und Schließen der Abdeckung."
           },
           "close_command_address": {
             "label": "Befehlsvariable schließen",
@@ -373,7 +375,7 @@
           },
           "cover_status_address": {
             "label": "Statusadresse Abdeckung",
-            "description": "Optionale SPS-Adresse, die die Bewegung in Echtzeit meldet (öffnet/schließt/gestoppt), abgeglichen mit den unten konfigurierten Werten. Hat Vorrang vor den booleschen Statusadressen für Öffnen/Schließen/Gestoppt oben, wenn konfiguriert."
+            "description": "SPS-Adresse mit dem Status der Abdeckung, abgeglichen mit den unten konfigurierten Werten. Je nach den ausgewählten Feedback-Quellen für Position und Bewegung kann sie die eingeschwungene Position offen/geschlossen, den Bewegungszustand oder beides liefern."
           },
           "cover_status_open_values": {
             "label": "Statuswert(e) Offen",
@@ -1093,7 +1095,7 @@
       "climate_preset_mode_required_error": "Geben Sie die Adresse für den codierten HVAC-Modus ein.",
       "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
       "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein.",
-      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: entweder eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse für die Bewegung zusammen mit beiden Endlagen-/Positionsadressen für den eingeschwungenen Zustand.",
+      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt zwei echte Feedback-Quellen: eine eingeschwungene Position (beide Endlagenadressen oder eine Statusadresse, die auf offen und geschlossen abgebildet ist) und einen Bewegungszustand (Öffnen/Schließen-Bits oder eine Statusadresse, die auf Öffnen, Schließen und Gestoppt abgebildet ist).",
       "toggle_mode_requires_stopped_mapping": "Der Ein-Tasten-Modus mit einer Statusadresse benötigt außerdem einen zugeordneten Stopp-Wert, damit ein echter Zwischenstopp von fehlendem oder unpassendem Feedback unterschieden werden kann.",
       "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
       "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",

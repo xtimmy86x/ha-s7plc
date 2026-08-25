@@ -1084,8 +1084,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if self._cover_status_address:
             attrs["s7_cover_status_address"] = self._cover_status_address.upper()
             attrs["s7_cover_status_values"] = self._cover_status_values
-        attrs["toggle_mode"] = self._toggle_mode
         if self._toggle_mode:
+            attrs["toggle_mode"] = True
             attrs["s7_toggle_last_direction"] = self._last_toggle_direction or "unknown"
 
         return attrs
