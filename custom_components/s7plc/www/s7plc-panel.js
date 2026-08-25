@@ -346,31 +346,33 @@ class S7PlcConfigurationPanel extends HTMLElement {
     return section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),fields.filter(isAddress))+section('tune-variant',this.t('sections.behavior.title'),this.t('sections.behavior.description'),fields.filter(f=>!isAddress(f)&&!isIdentity(f)))+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),fields.filter(isIdentity));}
   openEditor(index=null,type=this.type||TYPES[0]){const entry=this.entries.find(e=>e.entry_id===this.entryId),raw=index===null?{}:entry.entities[type][index],initial=this.inferred(raw,type),dialog=document.createElement('ha-dialog');dialog.open=true;dialog.headerTitle=index===null?this.t('editor.new_entity'):this.t('editor.edit_entity');dialog.style.setProperty('--mdc-dialog-max-width','min(940px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(940px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body"><div class="editor-intro"><span class="editor-type-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></span><div><span class="eyebrow">${this.t(`entity_types.${type}.label`)}</span><h3>${index===null?this.t('editor.configure_new'):this.t('editor.update_configuration')}</h3><p>${this.t('editor.save_help')}</p></div></div><div class="mode-tabs" role="tablist" aria-label="${this.t('editor.editor_mode')}"><button class="active" data-mode="visual" role="tab"><ha-icon icon="mdi:form-select"></ha-icon><span>${this.t('editor.visual_editor')}<small>${this.t('editor.guided')}</small></span></button><button data-mode="yaml" role="tab"><ha-icon icon="mdi:code-braces"></ha-icon><span>YAML<small>${this.t('editor.advanced')}</small></span></button></div><form class="visual-form">${this.editorSections(type,initial)}</form><div class="yaml-editor" style="display:none"><ha-alert alert-type="warning">${this.t('editor.yaml_warning')}</ha-alert><textarea spellcheck="false" aria-label="${this.t('editor.yaml_label')}">${this.escape(this.toYaml(raw))}</textarea></div><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent">${this.t('actions.save')}</ha-button></ha-dialog-footer>`;document.body.appendChild(dialog);
     const form=dialog.querySelector('form');
-    const syncMode=()=>{if(type==='covers'){const control=form.elements.cover_control_mode.value,positionFeedback=form.elements.cover_position_feedback.value,movement=form.elements.cover_movement_feedback.value,stop=form.elements.cover_stop_enabled.value==='enabled',tilt=form.elements.cover_tilt_enabled.value==='enabled',isTraditionalLike=control==='traditional'||control==='toggle';const visible=new Set(control==='position'?['position_state_address','position_command_address','invert_position']:control==='toggle'?['open_command_address']:['open_command_address','close_command_address']);if(control==='traditional')visible.add('operate_time');if(isTraditionalLike&&['opening','both'].includes(positionFeedback))visible.add('opening_state_address');if(isTraditionalLike&&['closing','both'].includes(positionFeedback))visible.add('closing_state_address');const positionStatus=isTraditionalLike&&positionFeedback==='status',movementStatus=movement==='status';if(positionStatus||movementStatus)visible.add('cover_status_address');if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(k=>visible.add(k));if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(k=>visible.add(k));if(movement==='bits'&&isTraditionalLike)['cover_opening_address','cover_closing_address','cover_stopped_address'].forEach(k=>visible.add(k));if(control==='position'&&stop)['stop_command_address','stop_pulse_duration'].forEach(k=>visible.add(k));if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt'].forEach(k=>visible.add(k));if(control==='toggle')visible.add('toggle_pulse_duration');const governed=[...COVER_TRADITIONAL_FIELDS,...COVER_POSITION_FIELDS,'cover_status_address',...COVER_STATUS_VALUE_FIELDS,'stop_command_address','stop_pulse_duration','toggle_pulse_duration'];governed.forEach(k=>form.querySelector(`[data-field="${k}"]`)?.classList.toggle('hidden-field',!visible.has(k)));form.querySelector('[data-section="cover-position-feedback"]').classList.toggle('hidden-field',control==='position');form.querySelector('[data-section="cover-stop"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-tilt"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-options"]').classList.toggle('hidden-field',control!=='toggle');
-      // Plain traditional covers keep the original coupled restriction:
-      // a status word claimed by position feedback hides the movement
-      // "status" option outright (and resets an already-selected one),
-      // since their runtime can't compose the two independently. toggle
-      // covers leave both freely selectable - see CLEAN_COVER_ENTITY.
-      if(control==='traditional'){const statusMovement=form.querySelector('input[name="cover_movement_feedback"][value="status"]');statusMovement.closest('.control-card').classList.toggle('hidden-field',positionFeedback==='status');if(positionFeedback==='status'&&statusMovement.checked)form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;}
-      // Position covers have no movement bits to read (cover_opening/
-      // closing/stopped_address only exist for traditional/toggle) - hide
-      // the "Bits" movement card and fall back to "None" if it was
-      // somehow already selected, restoring the pre-refactor behavior.
-      const bitsMovement=form.querySelector('input[name="cover_movement_feedback"][value="bits"]');
-      bitsMovement.closest('.control-card').classList.toggle('hidden-field',control==='position');
-      if(control==='position'&&bitsMovement.checked)form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;
-      // Single-button mode can only ever use the feedback sources the
-      // backend actually accepts for it (see toggle_mode_requires_feedback):
-      // a settled position needs both endstops or a status word, a
-      // movement state needs bits or a status word - never "timed"/a
-      // single endstop/"none". Hide the choices that can never be valid
-      // and fall back to a valid one if one was somehow already selected.
+    const syncMode=()=>{if(type==='covers'){const control=form.elements.cover_control_mode.value,stop=form.elements.cover_stop_enabled.value==='enabled',tilt=form.elements.cover_tilt_enabled.value==='enabled',isTraditionalLike=control==='traditional'||control==='toggle';
+      // Normalize any feedback selection the current control mode can
+      // never accept BEFORE reading the effective positionFeedback/
+      // movement below - checked=true alone doesn't fire a change event,
+      // so a stale read here would leave visibility/required state out
+      // of sync with the just-corrected selection until some other field
+      // happens to be touched.
+      if(control==='toggle'){
+        if(['timed','opening','closing'].includes(form.elements.cover_position_feedback.value))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
+        if(form.elements.cover_movement_feedback.value==='none')form.querySelector('input[name="cover_movement_feedback"][value="bits"]').checked=true;
+      }
+      if(control==='position'&&form.elements.cover_movement_feedback.value==='bits')form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;
+      // Plain traditional covers keep the original coupled restriction: a
+      // status word claimed by position feedback can't also serve
+      // movement, since their runtime can't compose the two
+      // independently (toggle covers leave both freely selectable - see
+      // CLEAN_COVER_ENTITY).
+      if(control==='traditional'&&form.elements.cover_position_feedback.value==='status'&&form.elements.cover_movement_feedback.value==='status')form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;
+      const positionFeedback=form.elements.cover_position_feedback.value,movement=form.elements.cover_movement_feedback.value;
+      const visible=new Set(control==='position'?['position_state_address','position_command_address','invert_position']:control==='toggle'?['open_command_address']:['open_command_address','close_command_address']);if(control==='traditional')visible.add('operate_time');if(isTraditionalLike&&['opening','both'].includes(positionFeedback))visible.add('opening_state_address');if(isTraditionalLike&&['closing','both'].includes(positionFeedback))visible.add('closing_state_address');const positionStatus=isTraditionalLike&&positionFeedback==='status',movementStatus=movement==='status';if(positionStatus||movementStatus)visible.add('cover_status_address');if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(k=>visible.add(k));if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(k=>visible.add(k));if(movement==='bits'&&isTraditionalLike)['cover_opening_address','cover_closing_address','cover_stopped_address'].forEach(k=>visible.add(k));if(control==='position'&&stop)['stop_command_address','stop_pulse_duration'].forEach(k=>visible.add(k));if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt'].forEach(k=>visible.add(k));if(control==='toggle')visible.add('toggle_pulse_duration');const governed=[...COVER_TRADITIONAL_FIELDS,...COVER_POSITION_FIELDS,'cover_status_address',...COVER_STATUS_VALUE_FIELDS,'stop_command_address','stop_pulse_duration','toggle_pulse_duration'];governed.forEach(k=>form.querySelector(`[data-field="${k}"]`)?.classList.toggle('hidden-field',!visible.has(k)));form.querySelector('[data-section="cover-position-feedback"]').classList.toggle('hidden-field',control==='position');form.querySelector('[data-section="cover-stop"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-tilt"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-options"]').classList.toggle('hidden-field',control!=='toggle');
+      // Hide the control-card choices this control mode can never use -
+      // the matching value was already normalized above if it happened
+      // to be selected.
+      form.querySelector('input[name="cover_movement_feedback"][value="status"]').closest('.control-card').classList.toggle('hidden-field',control==='traditional'&&positionFeedback==='status');
+      form.querySelector('input[name="cover_movement_feedback"][value="bits"]').closest('.control-card').classList.toggle('hidden-field',control==='position');
       ['timed','opening','closing'].forEach(v=>form.querySelector(`input[name="cover_position_feedback"][value="${v}"]`).closest('.control-card').classList.toggle('hidden-field',control==='toggle'));
-      if(control==='toggle'&&['timed','opening','closing'].includes(positionFeedback))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
-      const noneMovement=form.querySelector('input[name="cover_movement_feedback"][value="none"]');
-      noneMovement.closest('.control-card').classList.toggle('hidden-field',control==='toggle');
-      if(control==='toggle'&&movement==='none')form.querySelector('input[name="cover_movement_feedback"][value="bits"]').checked=true;
+      form.querySelector('input[name="cover_movement_feedback"][value="none"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle');
       // open_command_address is a two-way open/close command everywhere
       // except single-button mode, where it's the single step-by-step
       // pulse input - swap its label/description to match what it
@@ -381,17 +383,19 @@ class S7PlcConfigurationPanel extends HTMLElement {
         const openAddressHelp=openAddressField.querySelector('small');
         if(openAddressHelp)openAddressHelp.textContent=this.fieldText(type,'open_command_address',control==='toggle'?'description_toggle':'description');
       }
-      // Mark fields the backend actually requires for the current mode as
-      // required in the UI too, instead of only surfacing that after Save
-      // - see formEntity()'s matching validation for the same conditions.
-      const setRequired=(key,isRequired,showBadge=isRequired)=>{const el=form.querySelector(`[data-field="${key}"]`);if(!el)return;const input=el.querySelector('input,select');if(input)input.required=isRequired;const badge=el.querySelector('em');if(badge)badge.hidden=!showBadge;};
+      // Mark fields the backend unconditionally requires for the current
+      // mode as required in the UI too, instead of only surfacing that
+      // after Save - see formEntity()'s matching validation for the same
+      // conditions. The status-value fields are deliberately left alone
+      // here: the backend only requires *at least one* of each group, not
+      // every field individually, so a "Required" badge on all of them
+      // would promise a stronger constraint than formEntity() enforces.
+      const setRequired=(key,isRequired)=>{const el=form.querySelector(`[data-field="${key}"]`);if(!el)return;const input=el.querySelector('input,select');if(input)input.required=isRequired;const badge=el.querySelector('em');if(badge)badge.hidden=!isRequired;};
       setRequired('open_command_address',isTraditionalLike);
       setRequired('close_command_address',control==='traditional');
       setRequired('opening_state_address',isTraditionalLike&&['opening','both'].includes(positionFeedback));
       setRequired('closing_state_address',isTraditionalLike&&['closing','both'].includes(positionFeedback));
       setRequired('cover_status_address',positionStatus||movementStatus);
-      COVER_STATUS_POSITION_VALUE_FIELDS.forEach(k=>setRequired(k,false,positionStatus));
-      COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(k=>setRequired(k,false,movementStatus));
       return;}if(type==='climates'){const value=name=>form.querySelector(`input[name="${name}"]:checked`)?.value,{fields,sections}=CLIMATE_EDITOR_VISIBILITY({control_mode:value('control_mode'),direct_function:value('climate_direct_function'),direct_feedback:value('climate_direct_feedback'),mode_control:value('climate_mode_control'),action_feedback:value('climate_action_feedback'),availability_mode:value('availability_mode')});form.querySelectorAll('[data-field]').forEach(field=>field.classList.toggle('hidden-field',!fields.has(field.dataset.field)));form.querySelectorAll('[data-section]').forEach(section=>section.classList.toggle('hidden-field',!sections.has(section.dataset.section)));return;}const sel=form.elements.control_mode;if(!sel)return;const hidden=MODE_HIDDEN[type]?.[sel.value]||[];form.querySelectorAll('[data-field]').forEach(l=>l.classList.toggle('hidden-field',hidden.includes(l.dataset.field)));};
     const updateControlBehavior=()=>{if(type!=='switches'&&type!=='lights')return;const state=form.elements.state_address.value.trim(),command=form.elements.command_address.value.trim(),sync=form.querySelector('input[name="control_behavior"][value="sync"]'),canSync=Boolean(command)&&command!==state;sync.disabled=!canSync;sync.closest('.control-card').classList.toggle('disabled',!canSync);if(!canSync&&sync.checked)form.querySelector('input[name="control_behavior"][value="direct"]').checked=true;const selected=form.querySelector('input[name="control_behavior"]:checked')?.value||'direct';form.querySelector('[data-field="pulse_duration"]').classList.toggle('hidden-field',selected!=='pulse');updateOptionsSection();};
     const updateOptionsSection=()=>{const section=form.querySelector('[data-section="options"]');if(section)section.classList.toggle('hidden-field',![...section.querySelectorAll('[data-field]')].some(field=>!field.classList.contains('hidden-field')));};
