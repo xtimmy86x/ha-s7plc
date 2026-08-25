@@ -145,8 +145,14 @@ A brightness-controlled light entity using `ColorMode.BRIGHTNESS`. A dimmer ligh
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Open Command Address**: Address to command cover open
 - **Close Command Address**: Address to command cover close
-- **Opening State Address**: Address to read opening state (optional, reuses command address if blank)
-- **Closing State Address**: Address to read closing state (optional, reuses command address if blank)
+- **Position Feedback**: Choose timed estimation, only the fully-open limit
+  switch, only the fully-closed limit switch, both limit switches, or a mapped
+  PLC status word. The selected limit-switch fields are required for the
+  corresponding single/both mode.
+- **Movement Feedback**: Optionally report opening, closing, and stopped state
+  from individual BIT addresses or from the same mapped PLC status word.
+- **Status Word Values**: Map distinct integer values to open, closed, opening,
+  closing, and stopped states when status-word feedback is selected.
 - **Operate Time**: Time in seconds to automatically reset command outputs (default: 60s)
 
 #### Cover (Position-Based)
@@ -314,9 +320,10 @@ You can edit the connection settings at any time:
 
 1. Open the integration from **Settings → Devices & Services**.
 2. Click **Configure** to open the connection Options Flow.
-3. Modify the name, host and port, Rack/Slot or TSAP, pyS7 connection type,
-   global scan interval, timeout, retry/backoff, optimized reads, write batching,
-   or metrics as needed.
+3. Modify the name, host and port, the Rack/Slot or TSAP parameters for the
+   connection method selected during setup, pyS7 connection type, global scan
+   interval, timeout, retry/backoff, optimized reads, write batching, or metrics
+   as needed. The Rack/Slot ↔ TSAP method itself cannot be changed here.
 4. The integration will test the new connection before saving.
 
 ## Upgrading from 6.5.x

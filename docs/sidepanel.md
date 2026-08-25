@@ -35,6 +35,10 @@ items. Each card includes:
 - the current Home Assistant state, when the entity is available;
 - buttons to edit or delete the item.
 
+Use the labelled layout switcher to choose between **tabs**, which focus on one
+entity type at a time, and **all-entity sections**, which place every type in
+expandable sections on one page. The selected layout is retained in the browser.
+
 The internal entity UID is deliberately not displayed or edited in the normal
 summary. It is preserved by the backend when an entity is updated, including
 updates made in YAML mode, so changing an address does not create a new Home

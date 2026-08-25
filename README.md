@@ -105,8 +105,11 @@ Direct + lightweight custom component using `pys7`.
 
 **Settings → Devices & Services → S7 PLC → Configure** opens the Options
 Flow exclusively for connection settings: name, host and port, Rack/Slot or
-TSAP, pyS7 connection type, global scan interval, timeout, retry and backoff,
+TSAP parameters for the connection method selected during setup, pyS7 connection
+type, global scan interval, timeout, retry and backoff,
 optimized reads, write batching, and metrics. It does not manage entities.
+The Rack/Slot ↔ TSAP connection method itself cannot be changed later; create a
+new integration entry to use the other method.
 
 ---
 
@@ -276,7 +279,37 @@ pre-commit run --files <file1> [<file2> ...]
 
 ## Releases
 
-See [Releases](https://github.com/xtimmy86x/ha-s7plc/releases) for changelogs and downloads.
+### 7.0.0
+
+Version 7.0.0 makes the native **S7 PLC Side Panel** the primary workspace for
+managing connections and entities. It provides selectable tabbed and expandable
+all-entity layouts, guided simplified modes for switches, on/off and dimmable
+lights, traditional and position covers, and direct or setpoint climates, plus
+Advanced YAML import/export. The previous entity Options Flow has been removed;
+the remaining Options Flow edits connection parameters only. Its Rack/Slot or
+TSAP method remains fixed after initial setup.
+
+Traditional covers can now derive position from a single open or closed limit
+switch, both limit switches, timed estimation, or mapped status-word values.
+Movement feedback can likewise use individual bits or a status word. Entities
+also gain configurable availability policies: follow the PLC connection and
+required data, remain available with the last known state, or require a PLC BIT.
+The panel's connection detail view now provides clearer diagnostics, including
+the active pyS7 version and communication settings.
+
+Existing 6.5.x config entries, entity definitions, and UIDs remain compatible;
+there is no destructive data migration and no need to recreate entities. After
+upgrading and restarting Home Assistant, use the Side Panel instead of the old
+entity Options Flow. As always, exporting an entity backup before a major
+upgrade is recommended. The integration now requires **`pys7==3.1.1`**.
+
+**Breaking change / user action:** entity editing in the legacy Options Flow is
+no longer available. No configuration conversion is required, but entity
+changes must now be made in the Side Panel. To change between Rack/Slot and TSAP,
+create a new integration entry.
+
+See [Releases](https://github.com/xtimmy86x/ha-s7plc/releases) for downloads and
+earlier release notes.
 
 ---
 
