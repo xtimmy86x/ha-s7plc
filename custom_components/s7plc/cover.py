@@ -429,6 +429,18 @@ class S7Cover(S7BaseEntity, CoverEntity):
         # between _toggle_pending_goal being cleared and the scheduled
         # task actually executing; see _toggle_press.
         self._toggle_command_generation = 0
+        # True from the moment a halt pulse is sent until real PLC feedback
+        # confirms "stopped" - answers "can the current movement feedback
+        # still be trusted?", independent of which command is latest
+        # (_toggle_command_generation). While true, no command may make a
+        # physical decision from movement feedback, since it could still be
+        # the stale pre-halt reading even though the relay has physically
+        # already stopped: stop_cover sends no further pulse, and
+        # open/close instead just register themselves as the latest
+        # _toggle_pending_goal and wait. Cleared only by
+        # _handle_coordinator_update (or the immediate post-pulse check in
+        # _toggle_step) once fresh feedback actually shows "stopped".
+        self._toggle_awaiting_halt_confirmation = False
         # Toggle mode still advertises the full OPEN|CLOSE|STOP set, same as
         # a normal cover - Home Assistant's service layer checks
         # supported_features before ever calling async_open_cover/
@@ -612,25 +624,33 @@ class S7Cover(S7BaseEntity, CoverEntity):
             state = self._toggle_state()
             if state in ("opening", "closing"):
                 self._last_toggle_direction = state
-            elif (
-                state == "stopped"
-                and self._toggle_pending_goal is not None
-                and not self._toggle_lock.locked()
-            ):
-                # A halt pulse issued by _toggle_step is now confirmed by
-                # real feedback - continue toward the originally requested
-                # open/close target, fully feedback-driven (no fixed delay
-                # between the two pulses). The lock check skips this while
-                # the halt itself is still in flight; _toggle_step already
-                # handles that case synchronously once its own pulse
-                # completes.
-                pending, self._toggle_pending_goal = self._toggle_pending_goal, None
-                self.hass.async_create_task(
-                    self._toggle_press(
-                        pending,
-                        generation=self._toggle_command_generation,
+            elif state == "stopped":
+                # Real feedback now confirms the cover is genuinely
+                # stopped - movement feedback can be trusted again, so any
+                # command that was refusing to act on it (see
+                # _toggle_step) is now free to.
+                self._toggle_awaiting_halt_confirmation = False
+                if (
+                    self._toggle_pending_goal is not None
+                    and not self._toggle_lock.locked()
+                ):
+                    # A halt pulse issued by _toggle_step is now confirmed
+                    # by real feedback - continue toward the latest
+                    # requested open/close target, fully feedback-driven
+                    # (no fixed delay between the two pulses). The lock
+                    # check skips this while a pulse is still in flight;
+                    # _toggle_step already handles that case synchronously
+                    # once its own pulse completes.
+                    pending, self._toggle_pending_goal = (
+                        self._toggle_pending_goal,
+                        None,
                     )
-                )
+                    self.hass.async_create_task(
+                        self._toggle_press(
+                            pending,
+                            generation=self._toggle_command_generation,
+                        )
+                    )
 
         super()._handle_coordinator_update()
 
@@ -839,20 +859,25 @@ class S7Cover(S7BaseEntity, CoverEntity):
         stale feedback: it always cancels any pending automatic
         continuation (an explicit stop means the user does not want the
         cover to keep moving toward a previously requested target), and if
-        a halt pulse was already in flight for that continuation (pending
-        goal was set), a fresh pulse is *not* sent even if the still-stale
-        pre-halt reading says the cover is moving - that stale reading is
-        exactly what the halt pulse was issued to correct, and pressing
-        again on top of it could resume movement the halt already stopped.
-        Only presses when the cover is moving *and* no halt is already in
-        flight for it.
+        a halt pulse has already been sent and real feedback hasn't yet
+        confirmed "stopped" (self._toggle_awaiting_halt_confirmation), a
+        fresh pulse is *not* sent even if the still-stale pre-halt reading
+        says the cover is moving - the relay may already be physically
+        stopped, and pressing again on top of a stale reading could resume
+        the movement the halt already stopped. Only presses when the cover
+        is moving *and* no halt confirmation is already pending.
 
         "open"/"close" first cancel any previous pending continuation -
         every new explicit command represents the caller's latest desired
         target and must fully supersede whatever an earlier call queued,
         even if this new call turns out to be a no-op action-wise (e.g.
         the cover already happens to be moving the newly requested way).
-        They then only press when the result is deterministic:
+        If a halt confirmation is already pending (same reasoning as
+        "stop" above - movement feedback can't be trusted yet), the call
+        only registers itself as the new pending goal and returns without
+        making any physical decision; the goal is evaluated for real once
+        _handle_coordinator_update sees genuine "stopped" feedback.
+        Otherwise they press when the result is deterministic:
         - already at the goal (open/opening, or closed/closing respectively)
           -> no-op, never stop an already-correct movement just because the
           service was called again
@@ -879,15 +904,26 @@ class S7Cover(S7BaseEntity, CoverEntity):
         """
         state = self._toggle_state()
         if target == "stop":
-            had_pending_continuation = self._toggle_pending_goal is not None
             self._toggle_pending_goal = None
-            if not had_pending_continuation and state in ("opening", "closing"):
+            if self._toggle_awaiting_halt_confirmation:
+                return
+            if state in ("opening", "closing"):
+                self._toggle_awaiting_halt_confirmation = True
                 await self._pulse_toggle()
             return
 
         # A new explicit open/close request always supersedes whatever an
         # earlier call queued for later - see the docstring above.
         self._toggle_pending_goal = None
+
+        if self._toggle_awaiting_halt_confirmation:
+            # A halt pulse is already in flight (issued by this call or a
+            # superseded one) and real feedback hasn't confirmed "stopped"
+            # yet - register this as the latest desired target and wait;
+            # deciding now would mean trusting feedback that might already
+            # be stale.
+            self._toggle_pending_goal = target
+            return
 
         goal_settled, goal_moving, opposite_settled, reverses_from = (
             ("open", "opening", "closed", "closing")
@@ -926,16 +962,22 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
         # Moving the wrong way: halt it, then continue toward the goal
         # once real "stopped" feedback confirms the halt succeeded.
+        self._toggle_awaiting_halt_confirmation = True
         await self._pulse_toggle()
         if generation != self._toggle_command_generation:
             # A newer explicit command arrived while this pulse was in
             # flight - it's already waiting on self._toggle_lock (having
             # bumped the counter before trying to acquire it). Don't
             # continue toward this call's now-stale goal; the newer
-            # command will run next and decide the correct action once it
-            # acquires the lock, based on fresh state.
+            # command will run next, see
+            # self._toggle_awaiting_halt_confirmation still set, and
+            # correctly register itself as the pending goal instead of
+            # acting on feedback that might still be stale.
             return
         if self._toggle_state() == "stopped":
+            # Real feedback already confirms the halt succeeded (no need
+            # to wait for another coordinator update).
+            self._toggle_awaiting_halt_confirmation = False
             await self._toggle_step(target, generation)
         else:
             self._toggle_pending_goal = target

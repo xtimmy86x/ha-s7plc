@@ -2909,13 +2909,20 @@ async def test_toggle_close_from_stopped_after_closing_refuses(
 
 @pytest.mark.asyncio
 async def test_toggle_stop_presses_while_moving(cover_factory, mock_coordinator, monkeypatch):
+    """Each case starts from a fresh cover: once a stop press has been
+    issued, self._toggle_awaiting_halt_confirmation stays set until real
+    "stopped" feedback confirms it (see
+    test_toggle_stop_ignores_stale_pre_halt_feedback), so reusing the same
+    instance across both directions without a real confirmation in
+    between would incorrectly suppress the second press."""
     monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
-    cover = _status_cover(cover_factory)
 
+    cover = _status_cover(cover_factory)
     mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
     await cover.async_stop_cover()
     mock_coordinator.write_batched.assert_any_call("db1,x0.0", True)
 
+    cover = _status_cover(cover_factory)
     mock_coordinator.write_batched.reset_mock()
     mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
     await cover.async_stop_cover()
@@ -3177,33 +3184,46 @@ async def test_toggle_stop_cancels_pending_continuation(
 async def test_toggle_new_explicit_command_cancels_stale_pending_goal(
     cover_factory, mock_coordinator, monkeypatch
 ):
-    """closing -> open_cover (halts, queues a pending "open" continuation)
-    -> close_cover, before fresh "stopped" feedback arrives. The stale
-    coordinator data still says "closing", so close_cover sees the cover
-    already moving the requested way and presses nothing - but the earlier
-    "open" continuation must not survive to fire later once real "stopped"
-    feedback does arrive, since the caller's latest request was close."""
+    """opening -> close_cover (halts, queues a pending "close" continuation
+    that *would* succeed on confirmation - reversing from an opening-halt
+    correctly reaches "closing" - and starts awaiting real halt
+    confirmation) -> open_cover, before fresh "stopped" feedback arrives.
+    Movement feedback can't be trusted yet (still stale pre-halt data), so
+    open_cover must not make a physical decision from it - it just
+    registers itself as the new latest desired target, superseding
+    "close". Once real "stopped" feedback finally arrives, the
+    continuation must evaluate against "open" (the caller's latest
+    request) - which reversing from an opening-halt can *not* reach, so it
+    correctly refuses rather than pressing. If the stale "close" goal had
+    survived instead, this same confirmation would have pressed - the
+    absence of a press is exactly what proves the supersession worked."""
     monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
     cover = _status_cover(cover_factory)
-    cover._last_toggle_direction = "closing"
-    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+    cover._last_toggle_direction = "opening"
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
 
-    await cover.async_open_cover()
-    assert cover._toggle_pending_goal == "open"
+    await cover.async_close_cover()
+    assert cover._toggle_pending_goal == "close"
+    assert cover._toggle_awaiting_halt_confirmation is True
 
     mock_coordinator.write_batched.reset_mock()
-    await cover.async_close_cover()  # still stale "closing" data
+    await cover.async_open_cover()  # still stale "opening" data
 
-    assert cover._toggle_pending_goal is None
-    mock_coordinator.write_batched.assert_not_called()  # already "achieving" close
+    assert cover._toggle_pending_goal == "open"  # latest request wins
+    mock_coordinator.write_batched.assert_not_called()  # no decision on stale data
 
-    # Real "stopped" feedback now arrives - must NOT resume toward "open".
+    # Real "stopped" feedback now arrives - must evaluate against "open",
+    # the latest request, not the superseded (and now reachable) "close".
     tasks: list = []
     monkeypatch.setattr(cover.hass, "async_create_task", tasks.append)
     mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
     cover._handle_coordinator_update()
 
-    assert tasks == []
+    assert len(tasks) == 1
+    await tasks[0]
+    mock_coordinator.write_batched.assert_not_called()  # "open" unreachable - refuses
+    assert cover._toggle_pending_goal is None
+    assert cover._last_toggle_direction == "opening"  # unchanged
 
 
 @pytest.mark.asyncio
@@ -3384,3 +3404,98 @@ async def test_toggle_immediate_continuation_aborts_if_superseded_during_pulse(
     assert calls.count(("db1,x0.0", True)) == 1  # only the halt pulse
     assert cover._last_toggle_direction == "closing"  # unchanged, not "opening"
     assert cover._toggle_pending_goal is None  # no stale deferred goal either
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_after_halt_confirmation_still_pending_sends_no_second_pulse(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 5 - the exact sequence from review:
+
+    closing -> open_cover starts a halt pulse -> stop_cover arrives
+    (bumping the generation counter) while that pulse is still in flight
+    -> the halt pulse completes but the coordinator still reports the
+    stale pre-halt "closing" value (real confirmation hasn't arrived yet).
+
+    open_cover's own generation check aborts it (already covered by
+    test_toggle_immediate_continuation_aborts_if_superseded_during_pulse
+    above). The new case here: stop_cover must not trust that still-stale
+    "closing" reading either - self._toggle_awaiting_halt_confirmation,
+    not just the generation counter, is what tells it a halt was already
+    sent and real feedback is still pending. Only one physical pulse
+    should occur in the whole sequence, and the cover simply remains
+    stopped once real confirmation finally arrives."""
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    async def fake_sleep(_duration):
+        # A newer explicit command bumps the generation counter while
+        # this pulse is in flight - exactly what stop_cover does as its
+        # first action, before it even tries to acquire the lock
+        # open_cover currently holds. Feedback is deliberately left
+        # stale here - real confirmation has not arrived yet.
+        cover._toggle_command_generation += 1
+
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", fake_sleep)
+
+    await cover.async_open_cover()  # halts, then aborts (superseded)
+    assert cover._toggle_awaiting_halt_confirmation is True
+
+    mock_coordinator.write_batched.reset_mock()
+    await cover.async_stop_cover()  # data still stale "closing"
+
+    mock_coordinator.write_batched.assert_not_called()  # no second pulse
+    assert cover._toggle_pending_goal is None
+
+    # Later, real "stopped" feedback finally arrives - nothing further
+    # happens, the cover simply remains stopped.
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+    cover._handle_coordinator_update()
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._toggle_awaiting_halt_confirmation is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_new_target_after_halt_confirmation_pending_waits_for_fresh_feedback(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 5, the open/close equivalent of the stop_cover
+    case above: a newer explicit open_cover/close_cover call arrives while
+    an earlier command's own halt pulse is still in flight. It must
+    become the latest desired target without making any physical decision
+    on the still-stale feedback, and once real "stopped" feedback finally
+    arrives, that latest target - not the original, now-superseded one -
+    is what actually gets evaluated."""
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "opening"
+    mock_coordinator.data = {"cover:status:db1,b10": 2}  # opening
+
+    async def fake_sleep(_duration):
+        cover._toggle_command_generation += 1  # newer command "arrives"
+
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", fake_sleep)
+
+    await cover.async_close_cover()  # halts (opening != close's goal), then aborts
+    assert cover._toggle_awaiting_halt_confirmation is True
+
+    mock_coordinator.write_batched.reset_mock()
+    await cover.async_open_cover()  # data still stale "opening"
+
+    assert cover._toggle_pending_goal == "open"  # latest request retained
+    mock_coordinator.write_batched.assert_not_called()
+
+    tasks: list = []
+    monkeypatch.setattr(cover.hass, "async_create_task", tasks.append)
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+    cover._handle_coordinator_update()
+    assert len(tasks) == 1
+    await tasks[0]
+
+    # target="open" from stopped-after-opening is direction-ambiguous
+    # (reversing only ever reaches "closing") - refuses, no press. That
+    # absence of a press proves the *latest* target ("open") was what got
+    # evaluated: the superseded "close" goal was still reachable from an
+    # opening-halt and would have pressed instead.
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._toggle_pending_goal is None
