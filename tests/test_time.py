@@ -221,7 +221,10 @@ def test_time_configuration_only_sensor_and_number():
         assert errors == {"base": "time_unsupported_for_entity"}
 
 
-def test_side_panel_offers_time_only_for_supported_entities():
+def test_side_panel_does_not_suggest_time_addresses():
     source = Path("custom_components/s7plc/www/s7plc-panel.js").read_text()
-    assert 'const TIME_ENTITY_TYPES = new Set(["sensors", "numbers"]);' in source
-    assert 'value="DB1,TIME0"' in source
+    assert "TIME_ENTITY_TYPES" not in source
+    assert "timeList" not in source
+    assert "timeOptions" not in source
+    assert "address-types" not in source
+    assert 'value="DB1,TIME0"' not in source
