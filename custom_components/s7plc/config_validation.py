@@ -951,10 +951,19 @@ class EntityConfigBuilder:
             # feedback sources: motion (is_opening/is_closing) and settled
             # state (is_closed), each satisfiable via cover_status_address
             # alone or via the boolean/end-stop alternatives.
-            has_motion_feedback = bool(
+            # The status word is the selected *motion* source only when it
+            # has opening+closing values mapped - matches S7Cover's runtime
+            # _toggle_movement() priority (status wins over bits only when
+            # it actually carries motion values), so this validation stays
+            # tied to the source the entity will really use, not merely to
+            # cover_status_address's presence.
+            status_is_motion_source = bool(
                 cover_status_fields.get(CONF_COVER_STATUS_OPENING_VALUES)
                 and cover_status_fields.get(CONF_COVER_STATUS_CLOSING_VALUES)
-            ) or bool(cover_opening_addr and cover_closing_addr)
+            )
+            has_motion_feedback = status_is_motion_source or bool(
+                cover_opening_addr and cover_closing_addr
+            )
             has_settled_feedback = bool(
                 cover_status_fields.get(CONF_COVER_STATUS_OPEN_VALUES)
                 and cover_status_fields.get(CONF_COVER_STATUS_CLOSED_VALUES)
@@ -963,10 +972,13 @@ class EntityConfigBuilder:
                 return None, {"base": "toggle_mode_requires_feedback"}
             # A status-word setup must also map "stopped" explicitly, so a
             # genuine mid-travel stop can be told apart from a missing or
-            # unmatched status value (see S7Cover._toggle_state).
-            if cover_status_fields.get(
-                CONF_COVER_STATUS_ADDRESS
-            ) and not cover_status_fields.get(CONF_COVER_STATUS_STOPPED_VALUES):
+            # unmatched status value (see S7Cover._toggle_state) - but only
+            # when the status word is actually the selected motion source;
+            # a status word used purely for position (with bits driving
+            # motion) has no need to also carry a "stopped" mapping.
+            if status_is_motion_source and not cover_status_fields.get(
+                CONF_COVER_STATUS_STOPPED_VALUES
+            ):
                 return None, {"base": "toggle_mode_requires_stopped_mapping"}
 
         # Build item
@@ -986,12 +998,15 @@ class EntityConfigBuilder:
         ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
-        # Add optional real-time movement status addresses
-        if feedback_mode != "status" and cover_opening_addr:
+        # Add optional real-time movement status addresses - independent of
+        # position feedback (including "status"), so a status word chosen
+        # for position does not silently discard separately configured
+        # movement bits.
+        if cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if feedback_mode != "status" and cover_closing_addr:
+        if cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if feedback_mode != "status" and cover_stopped_addr:
+        if cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields

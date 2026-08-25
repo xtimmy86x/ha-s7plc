@@ -235,20 +235,15 @@ async def async_setup_entry(
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
         # Optional: real-time movement status, read independently of the
-        # opened/closed end-stops above. Each is a separate boolean address,
-        # not a multi-value status word.
-        # Position feedback has precedence over optional movement bits.  A
-        # status word supplies both kinds of feedback, so stale bit fields are
-        # deliberately ignored in that mode.
-        cover_opening_address = (
-            None if feedback_mode == "status" else item.get(CONF_COVER_OPENING_ADDRESS)
-        )
-        cover_closing_address = (
-            None if feedback_mode == "status" else item.get(CONF_COVER_CLOSING_ADDRESS)
-        )
-        cover_stopped_address = (
-            None if feedback_mode == "status" else item.get(CONF_COVER_STOPPED_ADDRESS)
-        )
+        # opened/closed end-stops above and of position feedback - each is a
+        # separate boolean address, not a multi-value status word. The user
+        # decides which sources to wire up, so a status word chosen for
+        # position feedback does not silently discard separately configured
+        # movement bits (or vice versa); see _toggle_movement/_toggle_position
+        # for how S7Cover composes both independently in toggle_mode.
+        cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
+        cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
+        cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
 
         cover_opening_topic = None
         cover_closing_topic = None
@@ -414,6 +409,14 @@ class S7Cover(S7BaseEntity, CoverEntity):
         # before continuing toward the originally requested target - see
         # _toggle_step/_handle_coordinator_update.
         self._toggle_pending_goal: str | None = None
+        # Bumped by every explicit open/close/stop call. A deferred
+        # continuation captures the value at scheduling time and re-checks
+        # it once it actually acquires the lock, so a newer explicit
+        # command that arrives after the continuation was scheduled (but
+        # before it ran) still supersedes it - closes the race window
+        # between _toggle_pending_goal being cleared and the scheduled
+        # task actually executing; see _toggle_press.
+        self._toggle_command_generation = 0
         # Toggle mode still advertises the full OPEN|CLOSE|STOP set, same as
         # a normal cover - Home Assistant's service layer checks
         # supported_features before ever calling async_open_cover/
@@ -610,7 +613,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 # handles that case synchronously once its own pulse
                 # completes.
                 pending, self._toggle_pending_goal = self._toggle_pending_goal, None
-                self.hass.async_create_task(self._toggle_press(pending))
+                self.hass.async_create_task(
+                    self._toggle_press(
+                        pending,
+                        expected_generation=self._toggle_command_generation,
+                    )
+                )
 
         super()._handle_coordinator_update()
 
@@ -773,12 +781,33 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._open_command_address, False)
         await self.coordinator.async_request_refresh()
 
-    async def _toggle_press(self, target: str) -> None:
+    async def _toggle_press(
+        self, target: str, *, expected_generation: int | None = None
+    ) -> None:
         """Entry point for a HA service call (target is "open"/"close"/
         "stop"): serializes against overlapping presses - including the
         automatic continuation _handle_coordinator_update may schedule -
-        then delegates the actual decision to _toggle_step."""
+        then delegates the actual decision to _toggle_step.
+
+        expected_generation is set only by the deferred-continuation path
+        in _handle_coordinator_update, which captures
+        self._toggle_command_generation at scheduling time. Every explicit
+        open/close/stop call bumps that counter first (see
+        async_open_cover/async_close_cover/async_stop_cover), so if a newer
+        explicit command arrived between scheduling and this call actually
+        acquiring the lock, the generation check catches it and the stale
+        continuation aborts without pressing - closing the race window
+        where _toggle_pending_goal was already cleared before the
+        continuation ran, so a plain "is there a pending goal" check
+        wouldn't see it. Explicit calls never pass this, so they always
+        run.
+        """
         async with self._toggle_lock:
+            if (
+                expected_generation is not None
+                and expected_generation != self._toggle_command_generation
+            ):
+                return
             await self._toggle_step(target)
         self.async_write_ha_state()
 
@@ -893,6 +922,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs) -> None:
         if self._toggle_mode:
+            self._toggle_command_generation += 1
             await self._toggle_press("open")
             return
         await self._ensure_connected()
@@ -910,6 +940,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs) -> None:
         if self._toggle_mode:
+            self._toggle_command_generation += 1
             await self._toggle_press("close")
             return
         await self._ensure_connected()
@@ -928,6 +959,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
         if self._toggle_mode:
+            self._toggle_command_generation += 1
             await self._toggle_press("stop")
             return
         await self._ensure_connected()

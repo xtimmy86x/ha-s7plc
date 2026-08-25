@@ -1085,6 +1085,50 @@ async def test_async_setup_entry_explicit_endstop_keeps_status_movement(
     assert mock_coordinator.add_item.call_count == 2
 
 
+@pytest.mark.asyncio
+async def test_async_setup_entry_position_status_with_movement_bits(
+    fake_hass, mock_coordinator, device_info
+):
+    """Integration-level regression for PR #117 review round 3, point 1:
+    position feedback = status word (open/closed only) and movement
+    feedback = boolean bits must both survive the real async_setup_entry()
+    path, not just direct S7Cover construction - the movement-bit addresses
+    used to be silently discarded there whenever feedback_mode=="status"."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                "toggle_mode": True,
+                "cover_position_feedback": "status",
+                CONF_COVER_STATUS_ADDRESS: "db1,b10",
+                "cover_status_open_values": "0",
+                "cover_status_closed_values": "1",
+                CONF_COVER_OPENING_ADDRESS: "db1,x2.0",
+                CONF_COVER_CLOSING_ADDRESS: "db1,x2.1",
+                CONF_NAME: "Mixed Feedback Cover",
+                CONF_UID: "uid-mixed",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    cover = async_add_entities.call_args[0][0][0]
+    assert cover._feedback_mode == "status"
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_opening_address == "db1,x2.0"
+    assert cover._cover_closing_address == "db1,x2.1"
+    add_item_topics = {c.args[0] for c in mock_coordinator.add_item.call_args_list}
+    assert "cover:status:db1,b10" in add_item_topics
+    assert "cover:opening:db1,x2.0" in add_item_topics
+    assert "cover:closing:db1,x2.1" in add_item_topics
+
+
 # ============================================================================
 # async_setup_entry Tests
 # ============================================================================
@@ -3260,3 +3304,47 @@ def test_toggle_state_composes_status_position_with_bits_movement(
         "cover:closing:db1,b2": False,
     }
     assert cover._toggle_state() == "closed"
+
+
+@pytest.mark.asyncio
+async def test_toggle_scheduled_continuation_aborts_if_superseded_before_it_runs(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 3, point 4: closes the race window between
+    _toggle_pending_goal being cleared (to schedule the continuation task)
+    and that task actually acquiring the lock and pressing. If a newer
+    explicit command (here stop_cover) runs to completion in that window -
+    finding no pending goal to cancel, since it was already consumed - the
+    stale scheduled continuation must still notice it has been superseded
+    once it finally runs, and must not press."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()  # halts, queues pending continuation "open"
+    assert cover._toggle_pending_goal == "open"
+
+    # Real "stopped" feedback arrives - _handle_coordinator_update clears
+    # the pending goal and schedules the continuation, but capture the
+    # scheduled coroutine instead of letting it run yet (simulating the
+    # race: the task exists but hasn't acquired the lock).
+    tasks: list = []
+    monkeypatch.setattr(cover.hass, "async_create_task", tasks.append)
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # now genuinely stopped
+    cover._handle_coordinator_update()
+    assert len(tasks) == 1
+    assert cover._toggle_pending_goal is None  # already consumed
+
+    # Before the scheduled continuation runs, a newer explicit command
+    # arrives and completes - it can't see the (already-cleared) pending
+    # goal, but it does bump the generation counter.
+    mock_coordinator.write_batched.reset_mock()
+    await cover.async_stop_cover()
+    mock_coordinator.write_batched.assert_not_called()  # already stopped
+
+    # Now let the stale scheduled continuation actually run - it must
+    # detect it was superseded and press nothing.
+    await tasks[0]
+    mock_coordinator.write_batched.assert_not_called()
+    assert cover._last_toggle_direction == "closing"  # unchanged, not "opening"

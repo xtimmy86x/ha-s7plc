@@ -2259,11 +2259,13 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
 
 
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
+    """cover_status_open/closed_values and cover_status_opening/closing/
+    stopped_values are scoped to whichever selector (position_feedback vs
+    movement_feedback) is actually "status" - independently, not tied
+    together as one all-or-nothing set."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert (
-        "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
-        in source
-    )
+    assert "if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS" in source
+    assert "if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS" in source
     assert "if(movement==='status'&&control==='position')" not in source
     assert (
         "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
@@ -2687,7 +2689,8 @@ console.log(JSON.stringify({{
  toTraditional:clean(mixed,{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"none",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  traditionalTimedStatus:clean({{uid:"timed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_opening_values:"1",cover_status_closing_values:"2"}},{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  traditionalEndstopStatus:clean({{uid:"endstop",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",cover_status_address:"DB1,B10",cover_status_open_values:"3",cover_status_stopped_values:"4"}},{{cover_control_mode:"traditional",cover_position_feedback:"opening",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
- toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}})
+ toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ positionStatusMovementBits:clean({{uid:"mixed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"traditional",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}})
 }}));
 """
     result = json.loads(
@@ -2725,9 +2728,20 @@ console.log(JSON.stringify({{
     endstop_status = result["traditionalEndstopStatus"]
     assert endstop_status["opening_state_address"] == "I0.0"
     assert endstop_status["cover_status_address"] == "DB1,B10"
-    assert endstop_status["cover_status_open_values"] == "3"
+    # cover_status_open_values is a *position* value field, but position
+    # feedback here is "opening" (end-stops), not "status" - only movement
+    # feedback is "status", so only the movement value fields survive.
+    assert "cover_status_open_values" not in endstop_status
     assert endstop_status["cover_status_stopped_values"] == "4"
     assert endstop_status["cover_position_feedback"] == "opening"
+    # PR #117 review round 3, point 2: position=status + movement=bits must
+    # keep BOTH sources - neither one silently discards the other.
+    mixed_status_bits = result["positionStatusMovementBits"]
+    assert mixed_status_bits["cover_status_address"] == "DB1,B10"
+    assert mixed_status_bits["cover_status_open_values"] == "1"
+    assert mixed_status_bits["cover_status_closed_values"] == "2"
+    assert mixed_status_bits["cover_opening_address"] == "I0.0"
+    assert mixed_status_bits["cover_closing_address"] == "I0.1"
     position = result["toPosition"]
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
     for key in (

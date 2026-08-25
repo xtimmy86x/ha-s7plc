@@ -309,7 +309,13 @@ def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
     assert errors == {"base": "cover_status_required"}
 
 
-def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
+def test_explicit_status_builder_removes_incompatible_position_feedback_only() -> None:
+    """Position feedback ("status" here) still governs the end-stop address
+    exclusive to the *other* explicit modes (opening_state_address belongs
+    to "opening"/"both"), but movement bits (cover_opening_address) are
+    independent of position feedback and must be kept regardless - a status
+    word chosen for position must not silently discard separately
+    configured movement bits (maintainer review of #109/PR #117)."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -327,7 +333,7 @@ def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     assert not errors
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
-    assert "cover_opening_address" not in item
+    assert item["cover_opening_address"] == "DB1,X2.0"
 
 
 _TOGGLE_COVER_BASE = {
@@ -430,6 +436,31 @@ def test_toggle_mode_with_status_address_requires_stopped_mapping() -> None:
     )
     assert not errors
     assert item is not None
+
+
+def test_toggle_mode_stopped_mapping_not_required_when_status_is_position_only() -> None:
+    """PR #117 review round 3, point 3: the "stopped" mapping requirement
+    must be tied to whether the status word is the *selected motion
+    source*, not merely to cover_status_address's presence. Here the status
+    word only carries open/closed (position), while opening/closing/
+    stopped come from bits (movement) - status has no need for a "stopped"
+    value since it never drives motion detection."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "0",
+            "cover_status_closed_values": "1",
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None
+    assert "cover_status_stopped_values" not in item
 
 
 def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:
