@@ -2261,9 +2261,10 @@ def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert (
-        "if(movement==='status'&&control==='position')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
+        "if(movement==='status')['cover_status_address',...COVER_STATUS_VALUE_FIELDS]"
         in source
     )
+    assert "if(movement==='status'&&control==='position')" not in source
     assert (
         "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
     )
@@ -2582,6 +2583,8 @@ console.log(JSON.stringify({{
  statusWins:infer(mixed).cover_movement_feedback,
  bits:infer({{cover_closing_address:"I0.1"}}).cover_movement_feedback,
  toTraditional:clean(mixed,{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"none",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ traditionalTimedStatus:clean({{uid:"timed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_opening_values:"1",cover_status_closing_values:"2"}},{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ traditionalEndstopStatus:clean({{uid:"endstop",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",cover_status_address:"DB1,B10",cover_status_open_values:"3",cover_status_stopped_values:"4"}},{{cover_control_mode:"traditional",cover_position_feedback:"opening",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}})
 }}));
 """
@@ -2612,6 +2615,17 @@ console.log(JSON.stringify({{
         and "stop_command_address" not in traditional
     )
     assert traditional["use_state_topics"] is False
+    timed_status = result["traditionalTimedStatus"]
+    assert timed_status["cover_status_address"] == "DB1,B10"
+    assert timed_status["cover_status_opening_values"] == "1"
+    assert timed_status["cover_status_closing_values"] == "2"
+    assert timed_status["cover_position_feedback"] == "timed"
+    endstop_status = result["traditionalEndstopStatus"]
+    assert endstop_status["opening_state_address"] == "I0.0"
+    assert endstop_status["cover_status_address"] == "DB1,B10"
+    assert endstop_status["cover_status_open_values"] == "3"
+    assert endstop_status["cover_status_stopped_values"] == "4"
+    assert endstop_status["cover_position_feedback"] == "opening"
     position = result["toPosition"]
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
     for key in (
