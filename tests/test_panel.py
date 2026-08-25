@@ -2690,7 +2690,8 @@ console.log(JSON.stringify({{
  traditionalTimedStatus:clean({{uid:"timed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_opening_values:"1",cover_status_closing_values:"2"}},{{cover_control_mode:"traditional",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  traditionalEndstopStatus:clean({{uid:"endstop",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",cover_status_address:"DB1,B10",cover_status_open_values:"3",cover_status_stopped_values:"4"}},{{cover_control_mode:"traditional",cover_position_feedback:"opening",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
  toPosition:clean({{uid:"kept",position_state_address:"DB1,B0",open_command_address:"Q0.0",close_command_address:"Q0.1",opening_state_address:"I0.0",closing_state_address:"I0.1",operate_time:20,use_state_topics:true,cover_opening_address:"I0.2",cover_status_address:"DB1,B10",cover_status_open_values:"1",stop_command_address:"Q0.2",tilt_state_address:"DB1,B2",feedback_mode:"status",cover_mode:"position"}},{{cover_control_mode:"position",cover_position_feedback:"timed",cover_movement_feedback:"status",cover_stop_enabled:false,cover_tilt_enabled:false}}),
- positionStatusMovementBits:clean({{uid:"mixed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"traditional",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}})
+ toggleStatusPositionBitsMovement:clean({{uid:"mixed",open_command_address:"Q0.0",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"toggle",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}}),
+ traditionalStatusPositionBitsMovement:clean({{uid:"mixed",open_command_address:"Q0.0",close_command_address:"Q0.1",cover_status_address:"DB1,B10",cover_status_open_values:"1",cover_status_closed_values:"2",cover_opening_address:"I0.0",cover_closing_address:"I0.1"}},{{cover_control_mode:"traditional",cover_position_feedback:"status",cover_movement_feedback:"bits",cover_stop_enabled:false,cover_tilt_enabled:false}})
 }}));
 """
     result = json.loads(
@@ -2728,20 +2729,34 @@ console.log(JSON.stringify({{
     endstop_status = result["traditionalEndstopStatus"]
     assert endstop_status["opening_state_address"] == "I0.0"
     assert endstop_status["cover_status_address"] == "DB1,B10"
-    # cover_status_open_values is a *position* value field, but position
-    # feedback here is "opening" (end-stops), not "status" - only movement
-    # feedback is "status", so only the movement value fields survive.
-    assert "cover_status_open_values" not in endstop_status
+    # Plain traditional covers keep the pre-existing coupling: movement
+    # feedback being "status" makes the whole cover_status_address+value
+    # set authoritative together, regardless of position feedback - so
+    # cover_status_open_values (nominally a *position* value field) still
+    # survives here even though position feedback is "opening", not
+    # "status". This is the pre-existing, unsplit behavior - see
+    # toggleStatusPositionBitsMovement below for toggle_mode's independent
+    # (split) scoping instead (PR #117 review round 4, point 1).
+    assert endstop_status["cover_status_open_values"] == "3"
     assert endstop_status["cover_status_stopped_values"] == "4"
     assert endstop_status["cover_position_feedback"] == "opening"
-    # PR #117 review round 3, point 2: position=status + movement=bits must
-    # keep BOTH sources - neither one silently discards the other.
-    mixed_status_bits = result["positionStatusMovementBits"]
-    assert mixed_status_bits["cover_status_address"] == "DB1,B10"
-    assert mixed_status_bits["cover_status_open_values"] == "1"
-    assert mixed_status_bits["cover_status_closed_values"] == "2"
-    assert mixed_status_bits["cover_opening_address"] == "I0.0"
-    assert mixed_status_bits["cover_closing_address"] == "I0.1"
+    # toggle_mode: position=status + movement=bits keeps BOTH sources -
+    # neither one silently discards the other (PR #117 review round 3,
+    # point 2).
+    toggle_mixed = result["toggleStatusPositionBitsMovement"]
+    assert toggle_mixed["cover_status_address"] == "DB1,B10"
+    assert toggle_mixed["cover_status_open_values"] == "1"
+    assert toggle_mixed["cover_status_closed_values"] == "2"
+    assert toggle_mixed["cover_opening_address"] == "I0.0"
+    assert toggle_mixed["cover_closing_address"] == "I0.1"
+    # Plain traditional: the same combination still can't keep both - the
+    # old exclusive switch treats movement_feedback=="bits" as authoritative
+    # over the whole status word, so cover_status_address (and its
+    # position-feedback value fields) get dropped too, not just kept-but-
+    # unused (round 4, point 1 - the preserved, intentional limitation).
+    traditional_mixed = result["traditionalStatusPositionBitsMovement"]
+    assert "cover_status_address" not in traditional_mixed
+    assert "cover_status_open_values" not in traditional_mixed
     position = result["toPosition"]
     assert position["uid"] == "kept" and position["cover_status_address"] == "DB1,B10"
     for key in (

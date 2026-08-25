@@ -998,15 +998,19 @@ class EntityConfigBuilder:
         ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
-        # Add optional real-time movement status addresses - independent of
-        # position feedback (including "status"), so a status word chosen
-        # for position does not silently discard separately configured
-        # movement bits.
-        if cover_opening_addr:
+        # Add optional real-time movement status addresses. toggle_mode
+        # treats position and movement feedback as independent sources, so
+        # a status word chosen for position does not discard separately
+        # configured movement bits there; plain traditional covers keep the
+        # pre-existing coupling (status word supplies both, stale bit
+        # fields are dropped) since their runtime still implements that
+        # precedence - out of this PR's scope to change.
+        keep_movement_bits = toggle_mode or feedback_mode != "status"
+        if keep_movement_bits and cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if cover_closing_addr:
+        if keep_movement_bits and cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if cover_stopped_addr:
+        if keep_movement_bits and cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields

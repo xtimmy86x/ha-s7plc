@@ -309,13 +309,14 @@ def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
     assert errors == {"base": "cover_status_required"}
 
 
-def test_explicit_status_builder_removes_incompatible_position_feedback_only() -> None:
-    """Position feedback ("status" here) still governs the end-stop address
-    exclusive to the *other* explicit modes (opening_state_address belongs
-    to "opening"/"both"), but movement bits (cover_opening_address) are
-    independent of position feedback and must be kept regardless - a status
-    word chosen for position must not silently discard separately
-    configured movement bits (maintainer review of #109/PR #117)."""
+def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
+    """Plain traditional covers (no toggle_mode) keep the pre-existing
+    coupling: a status word chosen for position feedback is authoritative
+    for movement too, so separately configured movement bits are still
+    discarded - unlike toggle_mode, which treats the two as independent
+    sources (see test_toggle_mode_keeps_movement_bits_with_status_position
+    below). Changing traditional-cover semantics is out of scope for the
+    toggle_mode PR (#117 review round 4)."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -333,7 +334,30 @@ def test_explicit_status_builder_removes_incompatible_position_feedback_only() -
     assert not errors
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
+    assert "cover_opening_address" not in item
+
+
+def test_toggle_mode_keeps_movement_bits_with_status_position() -> None:
+    """toggle_mode itself keeps the independent-source model: a status word
+    chosen for position feedback does not discard separately configured
+    movement bits (contrast with the plain-traditional test above)."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_position_feedback": "status",
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "1",
+            "cover_status_closed_values": "2",
+            "cover_opening_address": "DB1,X2.0",
+            "cover_closing_address": "DB1,X2.1",
+        },
+        options={},
+    )
+    assert not errors
     assert item["cover_opening_address"] == "DB1,X2.0"
+    assert item["cover_closing_address"] == "DB1,X2.1"
 
 
 _TOGGLE_COVER_BASE = {

@@ -3348,3 +3348,39 @@ async def test_toggle_scheduled_continuation_aborts_if_superseded_before_it_runs
     await tasks[0]
     mock_coordinator.write_batched.assert_not_called()
     assert cover._last_toggle_direction == "closing"  # unchanged, not "opening"
+
+
+@pytest.mark.asyncio
+async def test_toggle_immediate_continuation_aborts_if_superseded_during_pulse(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """PR #117 review round 4, point 2: a newer explicit command can arrive
+    (and start waiting on self._toggle_lock, having already bumped the
+    generation counter) while an earlier command's own halt pulse is still
+    in flight - awaiting asyncio.sleep inside _pulse_toggle. Once that
+    pulse completes and real feedback shows "stopped", the earlier
+    command's *immediate* recursive continuation (inside _toggle_step,
+    not the deferred task from _handle_coordinator_update) must notice the
+    generation changed and must not press toward its own now-stale goal,
+    even though it never released self._toggle_lock in between."""
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    async def fake_sleep(_duration):
+        # While this pulse is "in flight", real feedback confirms the halt
+        # succeeded, and a newer explicit command bumps the generation
+        # counter - exactly what the real async_stop_cover does as its
+        # first action, before it even tries to acquire the lock that
+        # open_cover currently holds.
+        mock_coordinator.data = {"cover:status:db1,b10": 4}  # now stopped
+        cover._toggle_command_generation += 1
+
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", fake_sleep)
+
+    await cover.async_open_cover()
+
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert calls.count(("db1,x0.0", True)) == 1  # only the halt pulse
+    assert cover._last_toggle_direction == "closing"  # unchanged, not "opening"
+    assert cover._toggle_pending_goal is None  # no stale deferred goal either

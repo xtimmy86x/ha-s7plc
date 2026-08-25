@@ -235,15 +235,27 @@ async def async_setup_entry(
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
         # Optional: real-time movement status, read independently of the
-        # opened/closed end-stops above and of position feedback - each is a
-        # separate boolean address, not a multi-value status word. The user
-        # decides which sources to wire up, so a status word chosen for
-        # position feedback does not silently discard separately configured
-        # movement bits (or vice versa); see _toggle_movement/_toggle_position
-        # for how S7Cover composes both independently in toggle_mode.
-        cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
-        cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
-        cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
+        # opened/closed end-stops above. Each is a separate boolean address,
+        # not a multi-value status word.
+        # toggle_mode treats position and movement feedback as fully
+        # independent sources - a status word chosen for position must not
+        # discard separately configured movement bits; see
+        # _toggle_movement/_toggle_position for how S7Cover composes both.
+        # Plain traditional covers keep the pre-existing coupling (a status
+        # word supplies both kinds of feedback, so stale bit fields are
+        # ignored) since their runtime (_get_feedback_movement) still
+        # implements that precedence - changing it is out of this PR's
+        # scope.
+        keep_movement_bits = toggle_mode or feedback_mode != "status"
+        cover_opening_address = (
+            item.get(CONF_COVER_OPENING_ADDRESS) if keep_movement_bits else None
+        )
+        cover_closing_address = (
+            item.get(CONF_COVER_CLOSING_ADDRESS) if keep_movement_bits else None
+        )
+        cover_stopped_address = (
+            item.get(CONF_COVER_STOPPED_ADDRESS) if keep_movement_bits else None
+        )
 
         cover_opening_topic = None
         cover_closing_topic = None
@@ -616,7 +628,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 self.hass.async_create_task(
                     self._toggle_press(
                         pending,
-                        expected_generation=self._toggle_command_generation,
+                        generation=self._toggle_command_generation,
                     )
                 )
 
@@ -781,37 +793,34 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.write_batched(self._open_command_address, False)
         await self.coordinator.async_request_refresh()
 
-    async def _toggle_press(
-        self, target: str, *, expected_generation: int | None = None
-    ) -> None:
+    async def _toggle_press(self, target: str, *, generation: int) -> None:
         """Entry point for a HA service call (target is "open"/"close"/
         "stop"): serializes against overlapping presses - including the
         automatic continuation _handle_coordinator_update may schedule -
         then delegates the actual decision to _toggle_step.
 
-        expected_generation is set only by the deferred-continuation path
-        in _handle_coordinator_update, which captures
-        self._toggle_command_generation at scheduling time. Every explicit
-        open/close/stop call bumps that counter first (see
-        async_open_cover/async_close_cover/async_stop_cover), so if a newer
-        explicit command arrived between scheduling and this call actually
-        acquiring the lock, the generation check catches it and the stale
-        continuation aborts without pressing - closing the race window
-        where _toggle_pending_goal was already cleared before the
-        continuation ran, so a plain "is there a pending goal" check
-        wouldn't see it. Explicit calls never pass this, so they always
-        run.
+        generation is the value of self._toggle_command_generation this
+        call represents: every explicit open/close/stop call bumps that
+        counter first and passes the new value (see async_open_cover/
+        async_close_cover/async_stop_cover); a deferred continuation
+        scheduled by _handle_coordinator_update captures the counter's
+        value at scheduling time instead. Checked once here after
+        acquiring the lock, and re-checked inside _toggle_step before any
+        immediate recursive continuation - if a newer explicit command has
+        bumped the counter in either window (even one that arrived after
+        _toggle_pending_goal was already cleared, or one that's still
+        waiting on this very lock while this call's own pulse is in
+        flight), this call - or its continuation - is stale and must not
+        press. The latest explicit command always wins, never interrupting
+        a pulse already in progress.
         """
         async with self._toggle_lock:
-            if (
-                expected_generation is not None
-                and expected_generation != self._toggle_command_generation
-            ):
+            if generation != self._toggle_command_generation:
                 return
-            await self._toggle_step(target)
+            await self._toggle_step(target, generation)
         self.async_write_ha_state()
 
-    async def _toggle_step(self, target: str) -> None:
+    async def _toggle_step(self, target: str, generation: int) -> None:
         """Single-button mode: translate a request (target is "open"/
         "close"/"stop") into the correct physical press, or a no-op, for
         the single relay - never a blind alias. The physical cycle only
@@ -821,7 +830,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
         note in const.py (CONF_TOGGLE_MODE) for the full state table.
         Must run under self._toggle_lock (see _toggle_press) - it recurses
         into itself directly (not through _toggle_press) when it can
-        already confirm completion without waiting for another update.
+        already confirm completion without waiting for another update;
+        generation is threaded through that recursion so it can detect a
+        newer explicit command that arrived (and is now waiting on the
+        lock) while this call's own pulse was in flight.
 
         "stop" is always safe *by design*, but not by blindly trusting
         stale feedback: it always cancels any pending automatic
@@ -915,15 +927,23 @@ class S7Cover(S7BaseEntity, CoverEntity):
         # Moving the wrong way: halt it, then continue toward the goal
         # once real "stopped" feedback confirms the halt succeeded.
         await self._pulse_toggle()
+        if generation != self._toggle_command_generation:
+            # A newer explicit command arrived while this pulse was in
+            # flight - it's already waiting on self._toggle_lock (having
+            # bumped the counter before trying to acquire it). Don't
+            # continue toward this call's now-stale goal; the newer
+            # command will run next and decide the correct action once it
+            # acquires the lock, based on fresh state.
+            return
         if self._toggle_state() == "stopped":
-            await self._toggle_step(target)
+            await self._toggle_step(target, generation)
         else:
             self._toggle_pending_goal = target
 
     async def async_open_cover(self, **kwargs) -> None:
         if self._toggle_mode:
             self._toggle_command_generation += 1
-            await self._toggle_press("open")
+            await self._toggle_press("open", generation=self._toggle_command_generation)
             return
         await self._ensure_connected()
         await self._stop_operation("close")
@@ -941,7 +961,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
     async def async_close_cover(self, **kwargs) -> None:
         if self._toggle_mode:
             self._toggle_command_generation += 1
-            await self._toggle_press("close")
+            await self._toggle_press(
+                "close", generation=self._toggle_command_generation
+            )
             return
         await self._ensure_connected()
         await self._stop_operation("open")
@@ -960,7 +982,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         """Stop the cover movement."""
         if self._toggle_mode:
             self._toggle_command_generation += 1
-            await self._toggle_press("stop")
+            await self._toggle_press("stop", generation=self._toggle_command_generation)
             return
         await self._ensure_connected()
 
