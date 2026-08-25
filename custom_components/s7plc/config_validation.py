@@ -5,10 +5,15 @@ from typing import Any
 
 from homeassistant.const import CONF_NAME
 
-from .address import get_numeric_limits, parse_tag
+from .address import DataType, get_numeric_limits, parse_tag
 from .const import (
+    AVAILABILITY_MODE_BIT,
+    AVAILABILITY_MODE_CONNECTION,
+    AVAILABILITY_MODES,
     CONF_ADDRESS,
     CONF_AREA,
+    CONF_AVAILABILITY_ADDRESS,
+    CONF_AVAILABILITY_MODE,
     CONF_BINARY_SENSORS,
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
     CONF_BRIGHTNESS_SCALE,
@@ -24,6 +29,7 @@ from .const import (
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
     CONF_COVER_OPENING_ADDRESS,
+    CONF_COVER_POSITION_FEEDBACK,
     CONF_COVER_STATUS_ADDRESS,
     CONF_COVER_STATUS_CLOSED_VALUES,
     CONF_COVER_STATUS_CLOSING_VALUES,
@@ -130,7 +136,16 @@ from .helpers import parse_pulse_duration
 # Fields accepted by each entity configuration.  This catalog describes only
 # the shape of an entity; semantic and duplicate-address checks remain the
 # responsibility of ``EntityConfigBuilder``.
-_COMMON_FIELDS = frozenset({CONF_NAME, CONF_AREA, CONF_SCAN_INTERVAL, CONF_UID})
+_COMMON_FIELDS = frozenset(
+    {
+        CONF_NAME,
+        CONF_AREA,
+        CONF_SCAN_INTERVAL,
+        CONF_UID,
+        CONF_AVAILABILITY_MODE,
+        CONF_AVAILABILITY_ADDRESS,
+    }
+)
 _NUMERIC_SCALE_FIELDS = frozenset(
     {
         CONF_VALUE_MULTIPLIER,
@@ -172,6 +187,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_COVER_STATUS_OPENING_VALUES,
         CONF_COVER_STATUS_CLOSING_VALUES,
         CONF_COVER_STATUS_STOPPED_VALUES,
+        CONF_COVER_POSITION_FEEDBACK,
         CONF_POSITION_STATE_ADDRESS,
         CONF_POSITION_COMMAND_ADDRESS,
         CONF_STOP_COMMAND_ADDRESS,
@@ -801,6 +817,31 @@ class EntityConfigBuilder:
         if close_errors:
             return None, close_errors
 
+        feedback_mode = user_input.get(CONF_COVER_POSITION_FEEDBACK)
+        explicit_feedback = feedback_mode in {
+            "timed",
+            "opening",
+            "closing",
+            "both",
+            "status",
+        }
+        if not explicit_feedback:
+            # Legacy entries did not persist a selector.  Preserve their exact
+            # shape, including configurations with only one limit switch.
+            use_state_topics = user_input.get(CONF_USE_STATE_TOPICS)
+            if use_state_topics is False:
+                feedback_mode = "timed"
+            elif user_input.get(CONF_OPENING_STATE_ADDRESS) and user_input.get(
+                CONF_CLOSING_STATE_ADDRESS
+            ):
+                feedback_mode = "both"
+            elif user_input.get(CONF_OPENING_STATE_ADDRESS):
+                feedback_mode = "opening"
+            elif user_input.get(CONF_CLOSING_STATE_ADDRESS):
+                feedback_mode = "closing"
+            else:
+                feedback_mode = "timed"
+
         # Get optional state addresses
         opening_state = self._sanitize_address(
             user_input.get(CONF_OPENING_STATE_ADDRESS)
@@ -825,12 +866,11 @@ class EntityConfigBuilder:
 
         # Get other parameters
         operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
-        use_state_topics = bool(user_input.get(CONF_USE_STATE_TOPICS, False))
-
-        # If use_state_topics is enabled, both state addresses are required
-        if use_state_topics:
-            if not opening_state or not closing_state:
-                return None, {"base": "state_addresses_required"}
+        use_state_topics = feedback_mode in {"opening", "closing", "both"}
+        if feedback_mode in {"opening", "both"} and not opening_state:
+            return None, {"base": "state_addresses_required"}
+        if feedback_mode in {"closing", "both"} and not closing_state:
+            return None, {"base": "state_addresses_required"}
 
         # Validate optional state addresses if present
         for candidate in (
@@ -856,11 +896,40 @@ class EntityConfigBuilder:
 
         # Validate optional real-time movement status (cover_status_address
         # and its per-status value mappings)
+        status_keys = (
+            CONF_COVER_STATUS_ADDRESS,
+            CONF_COVER_STATUS_OPEN_VALUES,
+            CONF_COVER_STATUS_CLOSED_VALUES,
+            CONF_COVER_STATUS_OPENING_VALUES,
+            CONF_COVER_STATUS_CLOSING_VALUES,
+            CONF_COVER_STATUS_STOPPED_VALUES,
+        )
+        status_input = (
+            user_input if any(key in user_input for key in status_keys) else {}
+        )
         cover_status_fields, cover_status_errors = self._validate_cover_status_fields(
-            user_input
+            status_input
         )
         if cover_status_errors:
             return None, cover_status_errors
+        if any(
+            cover_status_fields.get(key) for key in status_keys[1:]
+        ) and not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS):
+            return None, {"base": "cover_status_required"}
+        if feedback_mode == "status" and (
+            not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS)
+            or not any(
+                cover_status_fields.get(key)
+                for key in (
+                    CONF_COVER_STATUS_OPEN_VALUES,
+                    CONF_COVER_STATUS_CLOSED_VALUES,
+                    CONF_COVER_STATUS_OPENING_VALUES,
+                    CONF_COVER_STATUS_CLOSING_VALUES,
+                    CONF_COVER_STATUS_STOPPED_VALUES,
+                )
+            )
+        ):
+            return None, {"base": "cover_status_required"}
 
         # Build item
         item: dict[str, Any] = {
@@ -869,17 +938,21 @@ class EntityConfigBuilder:
         }
 
         # Add optional state addresses
-        if opening_state:
+        if (
+            feedback_mode in {"opening", "both"} or not explicit_feedback
+        ) and opening_state:
             item[CONF_OPENING_STATE_ADDRESS] = opening_state
-        if closing_state:
+        if (
+            feedback_mode in {"closing", "both"} or not explicit_feedback
+        ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
         # Add optional real-time movement status addresses
-        if cover_opening_addr:
+        if feedback_mode != "status" and cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if cover_closing_addr:
+        if feedback_mode != "status" and cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if cover_stopped_addr:
+        if feedback_mode != "status" and cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields
@@ -889,7 +962,11 @@ class EntityConfigBuilder:
 
         # Add cover-specific fields
         item[CONF_OPERATE_TIME] = operate_time
-        item[CONF_USE_STATE_TOPICS] = use_state_topics
+        if explicit_feedback:
+            item[CONF_USE_STATE_TOPICS] = use_state_topics
+            item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
+        elif CONF_USE_STATE_TOPICS in user_input:
+            item[CONF_USE_STATE_TOPICS] = bool(user_input[CONF_USE_STATE_TOPICS])
         item.update(cover_status_fields)
 
         # Apply scan interval
@@ -1712,4 +1789,29 @@ def build_entity_item(
             CONF_ENTITY_SYNC: builder._build_writer_item,
         }[entity_type]
 
-    return method(entity, skip_idx=skip_idx)
+    item, errors = method(entity, skip_idx=skip_idx)
+    if errors or item is None:
+        return item, errors
+
+    mode = entity.get(CONF_AVAILABILITY_MODE) or AVAILABILITY_MODE_CONNECTION
+    if mode not in AVAILABILITY_MODES:
+        return None, {"base": "invalid_availability_mode"}
+    if mode == AVAILABILITY_MODE_BIT:
+        address = builder._sanitize_address(entity.get(CONF_AVAILABILITY_ADDRESS))
+        if not address:
+            return None, {"base": "availability_address_required"}
+        try:
+            tag = parse_tag(address)
+        except (RuntimeError, ValueError):
+            return None, {"base": "invalid_availability_address"}
+        if tag.data_type != DataType.BIT:
+            return None, {"base": "availability_address_must_be_bit"}
+        item[CONF_AVAILABILITY_MODE] = mode
+        item[CONF_AVAILABILITY_ADDRESS] = address.upper()
+    else:
+        item.pop(CONF_AVAILABILITY_ADDRESS, None)
+        if mode == AVAILABILITY_MODE_CONNECTION:
+            item.pop(CONF_AVAILABILITY_MODE, None)
+        else:
+            item[CONF_AVAILABILITY_MODE] = mode
+    return item, {}

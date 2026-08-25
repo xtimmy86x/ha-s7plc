@@ -706,3 +706,34 @@ async def test_button_setup_entry_pulse_parsing(mock_coordinator, fake_hass, dum
     assert pulses[0] == 2.0
     assert pulses[1] == 0.3
     assert pulses[2] == DEFAULT_PULSE_DURATION
+@pytest.mark.asyncio
+async def test_central_availability_policies(mock_coordinator) -> None:
+    """Always and BIT policies are applied without bypassing PLC state checks."""
+    entity = S7BaseEntity(
+        mock_coordinator,
+        name="Policy",
+        unique_id="policy-uid",
+        device_info={},
+        topic="sensor:state",
+    )
+    mock_coordinator.data = {}
+    mock_coordinator.set_connected(False)
+    await entity.async_configure_availability(
+        {"uid": entity._attr_unique_id, "availability_mode": "always"}
+    )
+    assert entity.available
+
+    await entity.async_configure_availability(
+        {
+            "uid": entity._attr_unique_id,
+            "availability_mode": "bit",
+            "availability_address": "DB1,X10.0",
+        }
+    )
+    mock_coordinator.data[entity._availability_topic] = True
+    assert not entity.available
+    mock_coordinator.set_connected(True)
+    mock_coordinator.data[entity._topic] = True
+    assert entity.available
+    mock_coordinator.data[entity._availability_topic] = False
+    assert not entity.available

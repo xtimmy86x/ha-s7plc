@@ -297,7 +297,7 @@ Common issues and solutions for the S7 PLC integration.
 **Solutions**:
 
 1. **Verify metrics are enabled**:
-   - Go to **Settings → Devices & Services → S7 PLC → Configure → Edit Connection**
+   - Go to **Settings → Devices & Services → S7 PLC → Configure**
    - Confirm the **"Enable performance metrics"** checkbox is checked
    - Save and let the integration reload
 
@@ -321,16 +321,15 @@ Common issues and solutions for the S7 PLC integration.
 1. Verify PLC connectivity (see [Connection Issues](#connection-issues))
 2. Wait for the first successful connection — sensors will become available automatically
 
-### Import Fails with Error
+### Import YAML Fails with Error
 
-**Symptoms**: JSON import shows validation error.
+**Symptoms**: **Import YAML** or **Save changes** shows a validation error.
 
 **Solutions**:
 
-1. **Check JSON syntax**:
-   - Use a JSON validator (jsonlint.com)
-   - Ensure all brackets and quotes are balanced
-   - Check for trailing commas
+1. **Check YAML syntax** in **Advanced YAML**:
+   - Check indentation and list markers
+   - Start from a fresh **Export YAML** backup when possible
 
 2. **Verify required fields**:
    - Each entity needs `address` field
@@ -340,9 +339,10 @@ Common issues and solutions for the S7 PLC integration.
    - Numeric fields (scan_interval, min, max) should be numbers not strings
    - Boolean fields should be true/false not "true"/"false"
 
-4. **Start fresh**:
-   - Export current configuration to see correct format
-   - Modify exported JSON rather than writing from scratch
+4. **Review before saving**:
+   - **Import YAML** only loads the file into the editor
+   - Correct the reported entity and select **Save changes** again; validation
+     is atomic, so an invalid entity leaves the current configuration unchanged
 
 ### Entities Not Appearing
 

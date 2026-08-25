@@ -19,7 +19,7 @@ from .const import (
     CONF_TEXTS,
     CONF_UID,
 )
-from .entity import S7BaseEntity
+from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,6 +91,7 @@ async def async_setup_entry(
             )
         )
 
+    await async_configure_entity_availability(entities, texts)
     async_add_entities(entities)
 
 

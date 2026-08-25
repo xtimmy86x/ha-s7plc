@@ -9,13 +9,15 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.const import CONF_NAME
 
-from custom_components.s7plc.cover import S7Cover, async_setup_entry
+from custom_components.s7plc.cover import (S7Cover, _traditional_feedback_mode, async_setup_entry)
 from custom_components.s7plc.const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
     CONF_COVER_OPENING_ADDRESS,
     CONF_COVER_STOPPED_ADDRESS,
+    CONF_COVER_POSITION_FEEDBACK,
+    CONF_COVER_STATUS_ADDRESS,
     CONF_COVERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -25,6 +27,26 @@ from custom_components.s7plc.const import (
     DEFAULT_OPERATE_TIME,
 )
 from conftest import DummyCoordinator
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({CONF_COVER_POSITION_FEEDBACK: mode}, mode)
+        for mode in ("timed", "opening", "closing", "both", "status")
+    ]
+    + [
+        ({CONF_USE_STATE_TOPICS: False, CONF_OPENING_STATE_ADDRESS: "open"}, "timed"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_OPENING_STATE_ADDRESS: "open"}, "opening"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_CLOSING_STATE_ADDRESS: "closed"}, "closing"),
+        ({CONF_USE_STATE_TOPICS: True, CONF_OPENING_STATE_ADDRESS: "open", CONF_CLOSING_STATE_ADDRESS: "closed"}, "both"),
+        ({CONF_USE_STATE_TOPICS: True}, "timed"),
+        ({CONF_OPENING_STATE_ADDRESS: "open", CONF_COVER_STATUS_ADDRESS: "word"}, "opening"),
+        ({CONF_COVER_STATUS_ADDRESS: "word"}, "timed"),
+    ],
+)
+def test_traditional_feedback_mode_legacy_and_explicit_precedence(item, expected):
+    assert _traditional_feedback_mode(item) == expected
 
 
 # ============================================================================
@@ -72,6 +94,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
         unique_id: str = "test_device:cover:db1,x0.0",
         operate_time: float = 15.0,
         use_state_topics: bool = False,
+        feedback_mode: str | None = None,
         cover_opening_address: str | None = None,
         cover_closing_address: str | None = None,
         cover_stopped_address: str | None = None,
@@ -99,6 +122,7 @@ def cover_factory(mock_coordinator, device_info, fake_hass):
             closed_topic=closed_topic,
             operate_time=operate_time,
             use_state_topics=use_state_topics,
+            feedback_mode=feedback_mode,
             cover_opening_address=cover_opening_address,
             cover_closing_address=cover_closing_address,
             cover_stopped_address=cover_stopped_address,
@@ -437,6 +461,7 @@ def test_available_missing_state_data(cover_factory, mock_coordinator):
     cover = cover_factory(
         opened_topic="cover:opened:db1,x1.0",
         closed_topic="cover:closed:db1,x1.1",
+        feedback_mode="both",
     )
     assert cover.available is False
 
@@ -499,7 +524,7 @@ def test_movement_contract_a_status_opening_overrides_false_opening_bit(
     assert cover.is_opening is True
 
 
-def test_movement_contract_b_unknown_status_falls_back_to_true_opening_bit(
+def test_movement_contract_b_unknown_status_does_not_fall_back_to_opening_bit(
     cover_factory, mock_coordinator
 ):
     cover = cover_factory(
@@ -514,7 +539,7 @@ def test_movement_contract_b_unknown_status_falls_back_to_true_opening_bit(
         "cover:status:db1,b10": 99,
     }
 
-    assert cover.is_opening is True
+    assert cover.is_opening is False
 
 
 def test_movement_contract_c_status_closing_overrides_true_opening_bit(
@@ -819,7 +844,7 @@ def test_cover_status_absent_from_attrs_when_unconfigured(cover_factory):
 def test_cover_status_address_unmatched_falls_back_to_booleans(
     cover_factory, mock_coordinator
 ):
-    """An unmatched status word falls back to boolean movement feedback."""
+    """An unmatched status word does not fall back to incompatible bits."""
     cover = cover_factory(
         cover_opening_address="db1,b1",
         cover_opening_topic="cover:opening:db1,b1",
@@ -831,7 +856,7 @@ def test_cover_status_address_unmatched_falls_back_to_booleans(
         "cover:opening:db1,b1": True,  # boolean says opening
         "cover:status:db1,b10": 99,  # status word is not mapped
     }
-    assert cover.is_opening is True
+    assert cover.is_opening is False
 
 
 def test_cover_status_address_unmatched_falls_back_to_stopped(
@@ -916,8 +941,7 @@ def test_cover_status_address_open_value_overrides_is_closed(
 def test_cover_status_address_unmatched_falls_back_to_existing_logic(
     cover_factory, mock_coordinator
 ):
-    """When cover_status_address doesn't match open/closed, is_closed falls
-    back to the existing opened_state/closed_state or timer logic."""
+    """An opening status has no hidden timer-position fallback."""
     cover = cover_factory(
         cover_status_topic="cover:status:db1,b10",
         cover_status_address="db1,b10",
@@ -925,7 +949,7 @@ def test_cover_status_address_unmatched_falls_back_to_existing_logic(
     )
     cover._assumed_closed = True
     mock_coordinator.data = {"cover:status:db1,b10": 1}  # "opening", not open/closed
-    assert cover.is_closed is True  # falls back to _assumed_closed
+    assert cover.is_closed is None
 
 
 def test_cover_status_address_extra_state_attributes(cover_factory):
@@ -949,6 +973,35 @@ def test_cover_status_address_absent_from_attrs_when_unconfigured(cover_factory)
     attrs = cover.extra_state_attributes
     assert "s7_cover_status_address" not in attrs
     assert "s7_cover_status_values" not in attrs
+
+
+def test_explicit_endstop_position_and_status_word_movement(
+    cover_factory, mock_coordinator
+):
+    """The end-stop remains positional while the word reports movement."""
+    cover = cover_factory(
+        opened_state="db1,x1.0",
+        opened_topic="cover:opened:db1,x1.0",
+        use_state_topics=True,
+        feedback_mode="opening",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_open_values="1",
+        cover_status_opening_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:opened:db1,x1.0": False,
+        "cover:status:db1,b10": 1,
+    }
+    assert cover.is_closed is None
+    assert cover.is_opening is False
+
+    mock_coordinator.data["cover:status:db1,b10"] = 2
+    assert cover.is_closed is None
+    assert cover.is_opening is True
+
+    mock_coordinator.data["cover:opened:db1,x1.0"] = True
+    assert cover.is_closed is False
 
 
 @pytest.mark.asyncio
@@ -993,6 +1046,39 @@ async def test_async_setup_entry_traditional_with_status_address(
     assert cover._cover_status_address == "db1,b10"
     assert cover._cover_status_values["opening"] == [1]
     assert cover._cover_status_values["closing"] == [2]
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_explicit_endstop_keeps_status_movement(
+    fake_hass, mock_coordinator, device_info
+):
+    """An explicit end-stop mode still wires the movement status word."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                "cover_position_feedback": "opening",
+                "opening_state_address": "db1,x1.0",
+                "cover_status_address": "db1,b10",
+                "cover_status_opening_values": "2",
+                CONF_NAME: "Hybrid Cover",
+                CONF_UID: "uid-hybrid",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    cover = async_add_entities.call_args[0][0][0]
+    assert cover._feedback_mode == "opening"
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_status_values["opening"] == [2]
+    assert mock_coordinator.add_item.call_count == 2
 
 
 # ============================================================================
@@ -1288,7 +1374,7 @@ async def test_async_setup_entry_use_state_topics(fake_hass, mock_coordinator, d
         await async_setup_entry(fake_hass, config_entry, async_add_entities)
     
     entities = async_add_entities.call_args[0][0]
-    assert entities[0]._use_state_topics is True
+    assert entities[0]._use_state_topics is False
 
 
 # ============================================================================
@@ -2454,3 +2540,47 @@ async def test_position_cover_setup_with_tilt(fake_hass, mock_coordinator, devic
     assert cover._tilt_command_address == "db1,b3"
     assert cover._invert_tilt is True
     assert cover._attr_supported_features & CoverEntityFeature.SET_TILT_POSITION
+
+
+def test_legacy_hybrid_uses_endstop_position_and_status_word_movement(
+    cover_factory, mock_coordinator
+):
+    """The legacy status word complements rather than replaces an end-stop."""
+    cover = cover_factory(
+        opened_state="DB1,X1.0",
+        opened_topic="cover:opened:DB1,X1.0",
+        use_state_topics=True,
+        feedback_mode="opening",
+        cover_status_address="DB1,B10",
+        cover_status_topic="cover:status:DB1,B10",
+        cover_status_opening_values="2",
+    )
+    mock_coordinator.data = {
+        "cover:opened:DB1,X1.0": True,
+        "cover:status:DB1,B10": 2,
+    }
+    assert cover.is_closed is False
+    assert cover.is_opening is True
+
+    mock_coordinator.data["cover:opened:DB1,X1.0"] = False
+    assert cover.is_closed is None
+
+
+def test_explicit_status_is_authoritative_without_endstop_fallback(
+    cover_factory, mock_coordinator
+):
+    cover = cover_factory(
+        opened_state="DB1,X1.0",
+        opened_topic="cover:opened:DB1,X1.0",
+        use_state_topics=False,
+        feedback_mode="status",
+        cover_status_address="DB1,B10",
+        cover_status_topic="cover:status:DB1,B10",
+        cover_status_open_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:opened:DB1,X1.0": True,
+        "cover:status:DB1,B10": 99,
+    }
+    assert cover.is_closed is None
+    assert cover.is_opening is False

@@ -74,7 +74,7 @@ from .const import (
     DEFAULT_PRESET_MODE_OFF_VALUE,
     DEFAULT_TEMP_STEP,
 )
-from .entity import S7BaseEntity
+from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
@@ -314,6 +314,9 @@ async def async_setup_entry(
             )
 
     if entities:
+        await async_configure_entity_availability(
+            entities, entry.options.get(CONF_CLIMATES, [])
+        )
         async_add_entities(entities)
         await coord.async_request_refresh()
 
@@ -410,11 +413,8 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
                 except (ValueError, TypeError):
                     pass
 
-    @property
-    def available(self) -> bool:
+    def _entity_data_available(self) -> bool:
         """Return True if entity is available."""
-        if not self.coordinator.is_connected():
-            return False
         # Check if current temperature reading is available
         data = self.coordinator.data or {}
         temp_topic = f"{self._topic}:current_temp"
@@ -772,11 +772,8 @@ class S7ClimateSetpointControl(
                 # Invalid mode, keep default
                 pass
 
-    @property
-    def available(self) -> bool:
+    def _entity_data_available(self) -> bool:
         """Return True if entity is available."""
-        if not self.coordinator.is_connected():
-            return False
         # Check if current temperature reading is available
         data = self.coordinator.data or {}
         temp_topic = f"{self._topic}:current_temp"

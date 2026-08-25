@@ -8,18 +8,17 @@ Practical examples and use cases for the S7 PLC integration.
 
 ### Adding a Light Entity (On/Off)
 
-1. After the integration is installed, open it from **Settings → Devices & Services**.
-2. Click **Configure** and choose **Add items**.
-3. Select **Light**, then choose **Light (On/Off)** and enter:
+1. Open the **S7 PLC Side Panel** from the sidebar and select the PLC.
+2. Open the **Lights** tab, choose **Add**, select **Light (On/Off)**, and enter:
    - **State Address**: `DB1,X0.0` (reads actual lamp status)
    - **Command Address**: `DB1,X0.1` (sends on/off commands)
    - **Name**: "Workshop Main Light"
    - **Sync State**: Enable if physical switches exist
-4. Save to create the entity or enable **Add another** to keep adding more.
+3. Select **Save changes** to create the entity.
 
 ### Adding a Dimmer Light Entity
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Light**, then choose **Dimmer Light** and enter:
    - **State Address**: `DB5,X0.0` (reads boolean on/off state from PLC)
    - **Command Address**: `DB5,X0.1` (writes boolean on/off command to PLC)
@@ -33,7 +32,7 @@ The dimmer light entity provides a brightness slider in Home Assistant. The inte
 
 ### Adding a Number Entity
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Number** and configure:
    - **Address**: `DB10,I0` (signed INT for temperature setpoint, -32768 to 32767)
    - **Command Address**: Leave blank (uses same address for read/write)
@@ -47,7 +46,7 @@ Note: Use `DB10,I0` for signed INT or `DB10,W0` for unsigned WORD. Any limits th
 
 ### Adding a Binary Sensor
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Binary Sensor** and configure:
    - **Address**: `DB5,X2.3` (door contact)
    - **Device Class**: door
@@ -56,7 +55,7 @@ Note: Use `DB10,I0` for signed INT or `DB10,W0` for unsigned WORD. Any limits th
 
 ### Adding a Sensor
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Sensor** and configure:
    - **Address**: `DB20,R100` (REAL for temperature)
    - **Device Class**: temperature
@@ -67,7 +66,7 @@ Note: Use `DB10,I0` for signed INT or `DB10,W0` for unsigned WORD. Any limits th
 
 ### Adding a Button Entity
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Button** and configure:
    - **Address**: `DB3,X10.5` (pulse output for reset)
    - **Pulse Time**: 1.0 (1 second pulse)
@@ -78,7 +77,7 @@ When pressed in Home Assistant, the button sends a 1-second pulse to the PLC add
 
 ### Adding a Text Entity
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Text** and configure:
    - **Address**: `DB15,S0.20` (STRING with max 20 characters, ASCII)
    - **Command Address**: Leave blank (uses same address)
@@ -90,7 +89,7 @@ The text entity allows reading and writing STRING/WSTRING values from the PLC. M
 
 ### Adding a WString Text Entity (Unicode)
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Text** and configure:
    - **Address**: `DB20,WS0.30` (WSTRING with max 30 characters, Unicode UTF-16)
    - **Command Address**: Leave blank (uses same address)
@@ -101,10 +100,9 @@ The text entity allows reading and writing STRING/WSTRING values from the PLC. M
 
 ### Removing an Entity
 
-1. Open the integration from **Settings → Devices & Services** and click **Configure**.
-2. Choose **Remove items**.
-3. Select the entities to remove from the dropdown list.
-4. Submit; the integration reloads to apply the changes.
+1. Open the **S7 PLC Side Panel** and select the PLC and entity-type tab.
+2. Use the delete button on an entity card, or select multiple cards for batch deletion.
+3. Confirm the deletion; the integration reloads automatically.
 
 ## Practical Use Cases
 
@@ -168,7 +166,7 @@ Light 3: State=DB2,X0.2, Command=DB2,X1.2, Sync=Yes
 ...
 ```
 
-Use **Add another** button to quickly configure all 8 lights in one session. The form is pre-filled with the values from the previous entry, so you only need to change the address and name each time.
+Use **Add** in the Lights tab for each light, changing the address and name as needed.
 
 ### Weather Data to PLC
 
@@ -298,25 +296,24 @@ Scan Interval: 10.0 (10 seconds)
 
 ## Export/Import Example
 
-### Exporting Your Configuration
+### Exporting Your Entity Configuration
 
-1. Configure several entities through the UI
-2. Open integration options and select **Export items**
-3. Download the JSON file
-4. Store it in version control or backup location
+1. Open **Advanced YAML** in the Side Panel for the source PLC.
+2. Select **Export YAML** and store the downloaded entity backup safely.
 
-### Importing to a New Instance
+### Importing to Another Config Entry
 
-1. Install the integration on the new Home Assistant instance
-2. Complete the initial PLC connection setup
-3. Select **Import items** from integration options
-4. Paste the exported JSON
-5. All entities are created automatically
+1. Install the integration and complete the initial PLC connection Config Flow.
+2. Open **Advanced YAML** in the Side Panel for the target PLC.
+3. Select **Import YAML** and choose the backup file.
+4. Review the editor. Home Assistant is unchanged until you select **Save changes**.
+5. Save only when ready: the complete entity lists are replaced atomically, while
+   non-entity options are preserved. Invalid entities prevent the entire save.
 
-This is perfect for:
-- Moving between development and production environments
-- Deploying identical configurations to multiple sites
-- Recovering after system failures
+Valid UIDs are retained when restoring to the same Config Entry. For another
+Config Entry, or for missing or duplicate UIDs, the integration generates safe
+UIDs. This YAML backup contains entities only and does not restore the PLC
+connection.
 
 ## Advanced Patterns
 
@@ -368,7 +365,7 @@ Name: Fill Valve Command Writer
 
 Direct control mode allows Home Assistant to manage heating and cooling outputs while reading the current temperature from the PLC.
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Climate**, then choose **Climate (Direct Control)** and configure:
    - **Current Temperature Address**: `DB20,REAL0` (current room temperature)
    - **Heating Output Address**: `Q0.0` (relay for heating)
@@ -393,7 +390,7 @@ This mode is ideal when you want Home Assistant to handle the thermostat logic.
 
 Setpoint control mode allows the PLC to manage heating and cooling autonomously, while Home Assistant only sets the target temperature.
 
-1. Open the integration and choose **Add items**.
+1. Open the **S7 PLC Side Panel**, select the PLC and appropriate entity tab, then choose **Add**.
 2. Select **Climate**, then choose **Climate (Setpoint Control)** and configure:
    - **Current Temperature Address**: `DB20,REAL0` (current room temperature)
    - **Target Temperature Address**: `DB20,REAL4` (setpoint for PLC)

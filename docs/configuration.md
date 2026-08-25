@@ -2,7 +2,7 @@
 
 This guide covers the complete configuration process for the S7 PLC integration.
 
-## Initial Setup
+## Connection Configuration
 
 Configuration is handled entirely through the Home Assistant UI. After installing the component, add the integration and enter the PLC connection details.
 
@@ -13,7 +13,8 @@ Configuration is handled entirely through the Home Assistant UI. After installin
 3. Choose your connection type: **Rack/Slot** or **TSAP** (see below for details).
 4. Pick one of the auto-discovered PLC hosts or type the PLC `host` manually.
 5. Fill in connection parameters when prompted.
-6. Once the integration is added, open it and choose **Configure** to manage entities.
+6. Let the initial Config Flow verify the connection and create the PLC entry.
+7. Open **S7 PLC** from the sidebar to manage entities.
 
 After the first S7 PLC entry is loaded, administrators also get an **S7 PLC** item
 in the Home Assistant sidebar. This is the recommended workspace for day-to-day
@@ -63,7 +64,7 @@ TSAP (Transport Service Access Point) is an alternative addressing mode that may
 - For S7-300/400 CPUs: often `Local: 01.00`, `Remote: 01.02` or `Remote: 01.01`
 - Check your PLC hardware configuration or consult your system documentation for the correct TSAP values
 
-**Note:** You can change the connection type later by editing the integration configuration.
+**Note:** The connection type is fixed after setup. The Options Flow lets you edit the parameters for the configured Rack/Slot or TSAP mode, but it cannot switch between the two modes.
 
 ## Timeout & Retry Settings
 
@@ -94,37 +95,23 @@ Use the following guidelines based on the typical round-trip latency between Hom
 
 Values outside these ranges are supported, but increasing them further may delay error reporting and entity updates. Lower values improve responsiveness but can cause frequent reconnects on congested networks.
 
-## Managing Entities
+## Entity Configuration
 
 > [!IMPORTANT]
-> The config flow for entity management will be deprecated starting with version
-> **7.0.0**. From that version onward, the **S7 PLC side panel** is the only
-> supported interface for configuring entities. Instructions for the integration
-> options flow in this guide apply only to releases before 7.0.0.
+> Entity management through the legacy Entity Options Flow was removed in
+> version **7.0.0**. The **S7 PLC Side Panel** is the only supported interface
+> for adding, editing, deleting, importing, and exporting entities.
 
-There are two supported management interfaces:
-
-- **S7 PLC side panel (recommended):** open **S7 PLC** in the Home Assistant
-  sidebar to add, inspect, edit, or delete entities. It is available to
-  administrators and supports both visual and YAML editing.
-- **Integration options flow:** open **Settings → Devices & Services → S7 PLC
-  → Configure**. This remains useful for connection settings, import/export,
-  and the guided add/remove flows.
-
-Both interfaces update the same config entry. Do not edit Home Assistant's
-internal config-entry storage manually.
+Open **S7 PLC** in the Home Assistant sidebar. The Side Panel is available to
+administrators and supports visual forms and **Advanced YAML**. **Configure**
+opens the connection Options Flow and does not manage entities. Do not edit Home
+Assistant's internal config-entry storage manually.
 
 ### Adding Entities
 
-Use the **S7 PLC side panel** on version 7.0.0 and later. On earlier releases,
-you can open the integration and choose **Configure** → **Add items**.
-
-1. Select **Add** in the appropriate entity-type tab in the side panel, or select
-   **Add items** in the pre-7.0.0 options flow.
-2. Select the entity type (`light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `climate`, `Entity Sync`).
-3. Fill in the form fields based on entity type (see below for details).
-4. Use **Add another** to chain the creation of multiple entities. The next form will be pre-filled with the values from the previous entry, so you only need to change what's different (e.g., address and name).
-5. Click **Send** to persist the last entry.
+1. Open the Side Panel and select the PLC and entity-type tab.
+2. Select **Add** and complete the visual editor, or use its YAML mode.
+3. Review the fields described below and select **Save changes**.
 
 ### Entity Type Details
 
@@ -263,9 +250,11 @@ Setpoint control mode: the PLC manages heating/cooling autonomously; Home Assist
 
 The entity exposes a `climate_type` attribute set to **"Setpoint Control"**.
 
-Preset-mode values must be unique, and a status code cannot be assigned to two
-different statuses. Both the options flow and side panel reject ambiguous
-mappings before saving.
+Preset-mode values must be unique only when a **Preset Mode Address** is configured
+and **Bidirectional Preset Mode** is enabled. In write-only configurations, the
+same PLC value may be assigned to multiple modes. A status code cannot be assigned
+to two different HVAC statuses. The Side Panel rejects ambiguous mappings before
+saving.
 
 #### Entity Sync
 
@@ -279,59 +268,89 @@ Every entity lets you override the **scan interval** just for that tag. Leave th
 
 ### Editing Entities
 
-1. Open the integration and choose **Configure** → **Remove items**.
-2. Select an entity from the list (entities are organized by type and sorted alphabetically).
-3. The form will be pre-filled with current values.
-4. Modify as needed and save.
+Open the Side Panel, select the PLC and entity-type tab, and use the edit button
+on the entity card. Modify the pre-filled values and select **Save changes**.
 
 ### Removing Entities
 
-1. Open the integration and choose **Configure** → **Remove items**.
-2. Select the entities to remove and submit.
-3. The integration reloads automatically to apply changes.
+In the Side Panel, use an entity card's delete button, or select multiple cards
+and use the batch delete action. Confirm the deletion; the integration reloads
+automatically.
 
 ## Export and Import
 
-### Exporting Configuration
+### Exporting an Entity Backup
 
 Need to move your configuration to another Home Assistant instance or keep a backup?
 
-1. Open the integration options and choose **Export items**.
-2. The dialog shows the JSON payload and offers a download link (active for 5 minutes).
-3. Save the file to your device.
+1. Open **Advanced YAML** in the Side Panel.
+2. Select **Export YAML** to download the entity backup.
 
-The exported file contains every configured entity grouped by type (`sensor`, `binary_sensor`, `switch`, `cover`, `button`, `light`, `number`, `text`, `entity_sync`) together with their addresses, limits, scan intervals, and other metadata.
+The exported file contains every configured entity grouped by type (`sensors`,
+`binary_sensors`, `switches`, `covers`, `buttons`, `lights`, `numbers`, `texts`,
+`climates`, and `entity_sync`) together with addresses, limits, scan intervals,
+and other entity metadata.
 
-### Importing Configuration
+### Importing an Entity Backup
 
 To restore a backup:
 
-1. Select **Import items** from the integration options.
-2. Paste the exported JSON.
-3. The integration validates the structure before applying it.
-4. On success, all configured items are replaced with the contents of the file.
+1. Open **Advanced YAML** for the target PLC and select **Import YAML**.
+2. Choose the `.yaml` or `.yml` backup. This only loads it into the editor.
+3. Review it, then select **Save changes** to apply it.
 
 **Important Notes:**
-- **The import replaces ALL entity categories**, not just the ones in the JSON
-- Any category not included in the import JSON will be cleared (set to empty)
-- To keep existing entities in a category, you must include them in the import
-- Other integration options (connection settings) remain intact
-- Always export your current configuration before importing to avoid data loss
-- Review the payload carefully before submitting
-
-**Example:** If you import `{"numbers": []}`, ALL categories (sensors, switches, lights, etc.) will be cleared, not just numbers.
+- Saving the complete configuration replaces every entity list atomically. If
+  any entity is invalid, nothing is saved.
+- Options unrelated to entity lists, including connection settings, are preserved.
+- A backup contains entities only; it does not include or restore connection settings.
+- Valid UIDs are retained when a backup is restored to the same Config Entry.
+  When importing into another Config Entry, or when UIDs are missing or
+  duplicated, safe UIDs are generated.
 
 ## Connection Management
 
 You can edit the connection settings at any time:
 
 1. Open the integration from **Settings → Devices & Services**.
-2. Click **Configure** → **Edit Connection**.
-3. Modify host, port, rack/slot or TSAP values as needed.
+2. Click **Configure** to open the connection Options Flow.
+3. Modify the name, host and port, Rack/Slot or TSAP, pyS7 connection type,
+   global scan interval, timeout, retry/backoff, optimized reads, write batching,
+   or metrics as needed.
 4. The integration will test the new connection before saving.
+
+## Upgrading from 6.5.x
+
+Existing configurations are retained and require no manual migration. Entity
+data and UIDs remain unchanged, and the entity format stored in
+`ConfigEntry.options` has not changed. After upgrading, manage entities in the
+Side Panel; **Configure** continues to edit connection settings. Before major
+changes, use **Export YAML** in the Side Panel to create an entity backup.
 
 ## Next Steps
 
 - Learn about [S7 Addressing](addressing.md)
 - Explore [Advanced Features](advanced-features.md) like State Synchronization, Entity Sync, and Performance Metrics
 - Check [Examples](examples.md) for common use cases
+
+## Per-entity availability
+
+User-configured entities may select one of three availability policies. Omitting
+`availability_mode` uses the backwards-compatible `connection` policy, which
+requires both a PLC connection and valid entity data. `always` keeps the entity
+available with its last known (and potentially stale) state even while the PLC is
+disconnected. Commands are still rejected while disconnected. `bit` additionally
+requires a BIT value read from `availability_address` to be exactly true; a cached
+true bit can never make an entity available without a PLC connection.
+
+```yaml
+name: Motor ready
+address: DB1,X0.0
+availability_mode: bit
+availability_address: DB1,X10.0
+```
+
+Availability addresses use the normal read optimizer and may deliberately be
+shared by multiple entities. They may also equal another address on the same
+entity: each internal topic retains its own meaning while the coordinator can
+coalesce the physical read.

@@ -51,6 +51,14 @@ OPTION_KEYS = (
 )
 
 CONF_ADDRESS = "address"
+CONF_AVAILABILITY_MODE = "availability_mode"
+CONF_AVAILABILITY_ADDRESS = "availability_address"
+AVAILABILITY_MODE_ALWAYS = "always"
+AVAILABILITY_MODE_CONNECTION = "connection"
+AVAILABILITY_MODE_BIT = "bit"
+AVAILABILITY_MODES = frozenset(
+    {AVAILABILITY_MODE_ALWAYS, AVAILABILITY_MODE_CONNECTION, AVAILABILITY_MODE_BIT}
+)
 CONF_AREA = "area"
 # Permanent per-item identity, assigned once at creation and never derived
 # from any editable field. unique_id is built from this, not from addresses,
@@ -89,6 +97,7 @@ CONF_OPENING_STATE_ADDRESS = "opening_state_address"
 CONF_CLOSING_STATE_ADDRESS = "closing_state_address"
 CONF_OPERATE_TIME = "operate_time"
 CONF_USE_STATE_TOPICS = "use_state_topics"
+CONF_COVER_POSITION_FEEDBACK = "cover_position_feedback"
 CONF_POSITION_STATE_ADDRESS = "position_state_address"
 CONF_POSITION_COMMAND_ADDRESS = "position_command_address"
 CONF_INVERT_POSITION = "invert_position"

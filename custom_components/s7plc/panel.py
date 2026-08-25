@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Hashable
+from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -19,6 +20,7 @@ PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
 BACKUP_METADATA_KEY = "s7plc"
 BACKUP_FORMAT_VERSION = 1
+PYS7_VERSION_DATA = "_pys7_version"
 
 
 class ConfigurationValidationError(ValueError):
@@ -240,6 +242,11 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
         "entry_id": entry.entry_id,
         "title": entry.title,
         "data": dict(entry.data),
+        "pys7_version": (
+            hass.data.get(DOMAIN, {}).get(PYS7_VERSION_DATA)
+            if hass is not None
+            else None
+        ),
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
         "selector_options": _selector_options(),
@@ -258,6 +265,10 @@ async def async_setup_panel(hass: Any) -> None:
     from homeassistant.components import panel_custom, websocket_api
     from homeassistant.components.http import StaticPathConfig
     from homeassistant.loader import async_get_integration
+
+    hass.data[DOMAIN][PYS7_VERSION_DATA] = await hass.async_add_executor_job(
+        package_version, "pys7"
+    )
 
     asset_url = "/s7plc_static/s7plc-panel.js"
     asset_path = Path(__file__).parent / "www" / "s7plc-panel.js"

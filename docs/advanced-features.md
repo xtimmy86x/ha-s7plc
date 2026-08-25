@@ -50,8 +50,8 @@ Disable `sync_state` (default) when:
 
 To enable sync state for a switch or light:
 
-1. Open the integration from **Settings → Devices & Services**
-2. Click **Configure** and choose **Add items** (for new entities) or **Edit** (for existing ones)
+1. Open the **S7 PLC Side Panel** from the sidebar.
+2. Select the PLC and add a new entity or edit an existing entity card.
 3. Select `switch` or `light` as the entity type
 4. Enter the `state_address` (the PLC address to read the actual state)
 5. Enter the `command_address` (the PLC address to write commands) — **must be a different address from `state_address`**. If the two addresses are the same (or `command_address` is omitted), the configuration form will reject `sync_state` with a `sync_same_address` error.
@@ -118,8 +118,8 @@ Disable `pulse_command` (default) when:
 
 To enable pulse command mode for a switch or light:
 
-1. Open the integration from **Settings → Devices & Services**
-2. Click **Configure** and choose **Add items** (for new entities) or **Edit** (for existing ones)
+1. Open the **S7 PLC Side Panel** from the sidebar.
+2. Select the PLC and add a new entity or edit an existing entity card.
 3. Select `switch` or `light` as the entity type
 4. Enter the `state_address` (the PLC address to read the actual state)
 5. Enter the `command_address` (the PLC address to write commands)
@@ -199,8 +199,8 @@ Entity Syncs appear as sensor entities in Home Assistant showing the last succes
 
 To create an entity sync:
 
-1. Open the integration from **Settings → Devices & Services**
-2. Click **Configure** and choose **Add items**
+1. Open the **S7 PLC Side Panel** from the sidebar.
+2. Select the PLC and choose **Add** on the **Entity Sync** tab.
 3. Select **Entity Sync** as the entity type
 4. Configure the following fields:
    - **Address**: The PLC address where values will be written (e.g., `DB1,R0` for a REAL, `DB1,W0` for an INT)
@@ -358,14 +358,6 @@ Combine a `number` entity (for PLC → HA data flow) with an `entity_sync` (for 
 
 ---
 
-## Form Pre-Fill on "Add Another"
-
-When adding multiple entities of the same type, checking **"Add another"** in the entity creation form now **pre-fills the next form with the values from the previous entry**. This lets you modify only what's different (e.g., address and name) without re-entering shared fields like device class, area, or scan interval.
-
-This applies to all entity types: sensors, binary sensors, switches, covers (traditional and position), buttons, lights (on/off and dimmer), numbers, texts, climates (direct and setpoint), and entity sync.
-
----
-
 ## Performance Metrics
 
 The integration can optionally expose **14 diagnostic sensors** that report real-time connection health and communication statistics from the underlying `pyS7` library. These sensors appear under the **Diagnostic** section of the device page and require no manual entity configuration.
@@ -375,7 +367,7 @@ The integration can optionally expose **14 diagnostic sensors** that report real
 Metrics are **disabled by default**. To enable them:
 
 1. During initial setup, check **"Enable performance metrics"** on the connection configuration step.
-2. For an existing integration, go to **Settings → Devices & Services → S7 PLC → Configure → Edit Connection** and enable the option.
+2. For an existing integration, go to **Settings → Devices & Services → S7 PLC → Configure** and enable the option in the connection Options Flow.
 3. The integration reloads and creates the 14 diagnostic sensors automatically.
 
 ### Available Sensors

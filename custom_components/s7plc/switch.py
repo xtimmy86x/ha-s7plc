@@ -20,7 +20,7 @@ from .const import (
     CONF_UID,
     DEFAULT_PULSE_DURATION,
 )
-from .entity import S7BoolSyncEntity
+from .entity import S7BoolSyncEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
 PARALLEL_UPDATES = 1
@@ -65,6 +65,9 @@ async def async_setup_entry(
         )
 
     if entities:
+        await async_configure_entity_availability(
+            entities, entry.options.get(CONF_SWITCHES, [])
+        )
         async_add_entities(entities)
         await coord.async_request_refresh()
 

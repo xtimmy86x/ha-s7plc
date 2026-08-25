@@ -23,6 +23,7 @@ from .const import (
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
     CONF_COVER_OPENING_ADDRESS,
+    CONF_COVER_POSITION_FEEDBACK,
     CONF_COVER_STATUS_ADDRESS,
     CONF_COVER_STATUS_CLOSED_VALUES,
     CONF_COVER_STATUS_CLOSING_VALUES,
@@ -54,7 +55,7 @@ from .const import (
     DEFAULT_OPERATE_TIME,
     DEFAULT_PULSE_DURATION,
 )
-from .entity import S7BaseEntity
+from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
@@ -64,6 +65,36 @@ from .helpers import (
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
+
+
+def _traditional_feedback_mode(item: dict[str, Any]) -> str:
+    """Return the persisted mode, or infer the legacy feedback shape."""
+    mode = item.get(CONF_COVER_POSITION_FEEDBACK)
+    if mode in {"timed", "opening", "closing", "both", "status"}:
+        return mode
+    # Before the selector existed, ``use_state_topics`` was authoritative.
+    # A status word was independent movement feedback, not position feedback.
+    use_state_topics = item.get(CONF_USE_STATE_TOPICS)
+    if use_state_topics is False:
+        return "timed"
+    if use_state_topics is True:
+        if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(
+            CONF_CLOSING_STATE_ADDRESS
+        ):
+            return "both"
+        if item.get(CONF_OPENING_STATE_ADDRESS):
+            return "opening"
+        if item.get(CONF_CLOSING_STATE_ADDRESS):
+            return "closing"
+        # Do not claim feedback which the configuration cannot provide.
+        return "timed"
+    if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(CONF_CLOSING_STATE_ADDRESS):
+        return "both"
+    if item.get(CONF_OPENING_STATE_ADDRESS):
+        return "opening"
+    if item.get(CONF_CLOSING_STATE_ADDRESS):
+        return "closing"
+    return "timed"
 
 
 async def async_setup_entry(
@@ -171,10 +202,18 @@ async def async_setup_entry(
             _LOGGER.debug("Skipping cover with missing close command address")
             continue
 
-        # State addresses are for end-stop sensors (optional)
-        # If not provided, we use operate_time logic
-        opened_state = item.get(CONF_OPENING_STATE_ADDRESS)  # Finecorsa aperto
-        closed_state = item.get(CONF_CLOSING_STATE_ADDRESS)  # Finecorsa chiuso
+        feedback_mode = _traditional_feedback_mode(item)
+        # Only feedback belonging to the selected mode may affect the entity.
+        opened_state = (
+            item.get(CONF_OPENING_STATE_ADDRESS)
+            if feedback_mode in {"opening", "both"}
+            else None
+        )
+        closed_state = (
+            item.get(CONF_CLOSING_STATE_ADDRESS)
+            if feedback_mode in {"closing", "both"}
+            else None
+        )
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
         opened_topic = None
@@ -191,9 +230,18 @@ async def async_setup_entry(
         # Optional: real-time movement status, read independently of the
         # opened/closed end-stops above. Each is a separate boolean address,
         # not a multi-value status word.
-        cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
-        cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
-        cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
+        # Position feedback has precedence over optional movement bits.  A
+        # status word supplies both kinds of feedback, so stale bit fields are
+        # deliberately ignored in that mode.
+        cover_opening_address = (
+            None if feedback_mode == "status" else item.get(CONF_COVER_OPENING_ADDRESS)
+        )
+        cover_closing_address = (
+            None if feedback_mode == "status" else item.get(CONF_COVER_CLOSING_ADDRESS)
+        )
+        cover_stopped_address = (
+            None if feedback_mode == "status" else item.get(CONF_COVER_STOPPED_ADDRESS)
+        )
 
         cover_opening_topic = None
         cover_closing_topic = None
@@ -258,7 +306,7 @@ async def async_setup_entry(
             if operate_time < 0:
                 operate_time = float(DEFAULT_OPERATE_TIME)
 
-        use_state_topics = bool(item.get(CONF_USE_STATE_TOPICS, False))
+        use_state_topics = feedback_mode in {"opening", "closing", "both"}
 
         entities.append(
             S7Cover(
@@ -276,6 +324,7 @@ async def async_setup_entry(
                 use_state_topics,
                 device_class,
                 area,
+                feedback_mode=feedback_mode,
                 cover_opening_address=cover_opening_address,
                 cover_closing_address=cover_closing_address,
                 cover_stopped_address=cover_stopped_address,
@@ -293,6 +342,9 @@ async def async_setup_entry(
         )
 
     if entities:
+        await async_configure_entity_availability(
+            entities, entry.options.get(CONF_COVERS, [])
+        )
         async_add_entities(entities)
         await coord.async_request_refresh()
 
@@ -318,6 +370,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         use_state_topics: bool,
         device_class: str | None = None,
         suggested_area_id: str | None = None,
+        feedback_mode: str | None = None,
         cover_opening_address: str | None = None,
         cover_closing_address: str | None = None,
         cover_stopped_address: str | None = None,
@@ -337,7 +390,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             name=name,
             unique_id=unique_id,
             device_info=device_info,
-            topic=opened_topic or closed_topic,
+            topic=cover_status_topic or opened_topic or closed_topic,
             suggested_area_id=suggested_area_id,
         )
         self._open_command_address = open_command
@@ -351,6 +404,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._closed_topic = closed_topic
         self._operate_time = max(float(operate_time), 0.0)
         self._use_state_topics = use_state_topics
+        self._feedback_mode = feedback_mode or (
+            "both"
+            if use_state_topics
+            else "status" if cover_status_address else "timed"
+        )
         self._reset_handles: dict[str, Callable[[], None]] = {}
         self._is_opening = False
         self._is_closing = False
@@ -421,9 +479,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     def _get_feedback_movement(self) -> str | None:
         """Return movement reported by configured PLC feedback."""
-        status = self._get_movement_status()
-        if status is not None:
-            return status
+        if self._cover_status_address:
+            status_movement = self._get_movement_status()
+            if status_movement is not None:
+                return status_movement
+            if self._feedback_mode == "status":
+                return None
 
         if self._cover_stopped_address and self._get_topic_state(
             self._cover_stopped_topic
@@ -456,6 +517,10 @@ class S7Cover(S7BaseEntity, CoverEntity):
         feedback = self._get_feedback_movement()
         if feedback is not None:
             return feedback
+        if self._feedback_mode == "status":
+            # A selected status word is authoritative.  Missing/unknown data
+            # must not silently fall back to command timers.
+            return None
 
         if self._is_opening:
             return "opening"
@@ -499,11 +564,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
         super()._handle_coordinator_update()
 
-    @property
-    def available(self) -> bool:
-        if not self.coordinator.is_connected():
-            return False
-        topics = [t for t in (self._opened_topic, self._closed_topic) if t]
+    def _entity_data_available(self) -> bool:
+        if self._feedback_mode == "status":
+            topics = [self._cover_status_topic] if self._cover_status_topic else []
+        elif self._feedback_mode in {"opening", "closing", "both"}:
+            topics = [t for t in (self._opened_topic, self._closed_topic) if t]
+        else:
+            topics = []
         if not topics:
             return True
         data = self.coordinator.data or {}
@@ -521,12 +588,13 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     @property
     def is_closed(self) -> bool | None:
-        if self._cover_status_address:
+        if self._feedback_mode == "status" and self._cover_status_address:
             movement = self._get_movement_status()
             if movement == "closed":
                 return True
             if movement == "open":
                 return False
+            return None
         if self._use_state_topics:
             # Use state topics for position feedback
             closed_state = self._get_topic_state(self._closed_topic)
@@ -834,10 +902,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             return None
         return self._clamp_percent(value, self._invert_tilt)
 
-    @property
-    def available(self) -> bool:
-        if not self.coordinator.is_connected():
-            return False
+    def _entity_data_available(self) -> bool:
         data = self.coordinator.data or {}
         return self._position_topic in data and data[self._position_topic] is not None
 

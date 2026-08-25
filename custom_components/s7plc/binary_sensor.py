@@ -20,7 +20,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_UID,
 )
-from .entity import S7BaseEntity
+from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
 
 # Coordinator is used to centralize data updates
@@ -66,6 +66,9 @@ async def async_setup_entry(
             )
         )
 
+    await async_configure_entity_availability(
+        entities, entry.options.get(CONF_BINARY_SENSORS, [])
+    )
     async_add_entities(entities)
     await coord.async_request_refresh()
 
