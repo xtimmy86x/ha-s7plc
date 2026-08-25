@@ -3119,3 +3119,144 @@ async def test_toggle_stop_cancels_pending_continuation(
 
     assert cover._toggle_pending_goal is None
     mock_coordinator.write_batched.assert_not_called()  # nothing moving - no-op
+
+
+# ---------------------------------------------------------------------------
+# PR #117 review round 2: a pending continuation must always represent the
+# latest requested target, stop_cover must never act on stale pre-halt
+# feedback, and _toggle_state() must compose independently selected
+# position/movement feedback sources.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_toggle_new_explicit_command_cancels_stale_pending_goal(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """closing -> open_cover (halts, queues a pending "open" continuation)
+    -> close_cover, before fresh "stopped" feedback arrives. The stale
+    coordinator data still says "closing", so close_cover sees the cover
+    already moving the requested way and presses nothing - but the earlier
+    "open" continuation must not survive to fire later once real "stopped"
+    feedback does arrive, since the caller's latest request was close."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+    assert cover._toggle_pending_goal == "open"
+
+    mock_coordinator.write_batched.reset_mock()
+    await cover.async_close_cover()  # still stale "closing" data
+
+    assert cover._toggle_pending_goal is None
+    mock_coordinator.write_batched.assert_not_called()  # already "achieving" close
+
+    # Real "stopped" feedback now arrives - must NOT resume toward "open".
+    tasks: list = []
+    monkeypatch.setattr(cover.hass, "async_create_task", tasks.append)
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+    cover._handle_coordinator_update()
+
+    assert tasks == []
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_ignores_stale_pre_halt_feedback(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """closing -> open_cover halts (queues a pending continuation) ->
+    stop_cover, before fresh feedback confirms the halt. The coordinator
+    still reports the stale pre-halt "closing" value, but a pulse was
+    already sent - pressing again on top of stale data could resume the
+    movement the halt just stopped, so stop_cover must not press."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+    assert cover._toggle_pending_goal == "open"
+
+    mock_coordinator.write_batched.reset_mock()
+    await cover.async_stop_cover()  # data still stale "closing"
+
+    assert cover._toggle_pending_goal is None
+    mock_coordinator.write_batched.assert_not_called()
+
+
+def test_toggle_state_composes_status_movement_with_endstop_position(
+    cover_factory, mock_coordinator
+):
+    """Position feedback = end-stops, movement feedback = status word
+    (mapped only for opening/closing/stopped, not open/closed) - the two
+    are independently selectable, so the status word's motion reading
+    must be honored even though it isn't the position source."""
+    cover = cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        feedback_mode="both",
+        use_state_topics=True,
+        opened_state="db1,b3",
+        closed_state="db1,b4",
+        opened_topic="cover:opened:db1,b3",
+        closed_topic="cover:closed:db1,b4",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_opening_values="2",
+        cover_status_closing_values="3",
+        cover_status_stopped_values="4",
+    )
+    # Moving (per status word); end-stops both false (in transit).
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 2,
+        "cover:opened:db1,b3": False,
+        "cover:closed:db1,b4": False,
+    }
+    assert cover._toggle_state() == "opening"
+
+    # Settled open (per end-stop); status word is unmapped/idle at rest.
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 0,  # not in any configured mapping
+        "cover:opened:db1,b3": True,
+        "cover:closed:db1,b4": False,
+    }
+    assert cover._toggle_state() == "open"
+
+
+def test_toggle_state_composes_status_position_with_bits_movement(
+    cover_factory, mock_coordinator
+):
+    """The inverse combination: position feedback = status word (mapped
+    only for open/closed), movement feedback = boolean bits. The bits'
+    motion reading must be honored even though the status word is the
+    position source, not the movement source."""
+    cover = cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        feedback_mode="status",
+        cover_status_address="db1,b10",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_open_values="0",
+        cover_status_closed_values="1",
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_closing_address="db1,b2",
+        cover_closing_topic="cover:closing:db1,b2",
+    )
+    # Moving (per bits); status word idle/unmapped mid-travel.
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 99,
+        "cover:opening:db1,b1": True,
+        "cover:closing:db1,b2": False,
+    }
+    assert cover._toggle_state() == "opening"
+
+    # Settled closed (per status word); bits both false (not moving).
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 1,
+        "cover:opening:db1,b1": False,
+        "cover:closing:db1,b2": False,
+    }
+    assert cover._toggle_state() == "closed"

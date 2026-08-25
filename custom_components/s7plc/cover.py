@@ -669,46 +669,97 @@ class S7Cover(S7BaseEntity, CoverEntity):
             # Return last known/assumed position
             return self._assumed_closed
 
+    def _toggle_movement(self) -> str | None:
+        """toggle_mode-only: "opening"/"closing"/"stopped", from whichever
+        movement source is actually configured (status word if it has
+        opening/closing/stopped values mapped, else the boolean bits),
+        checked independently of the position feedback selector
+        (_feedback_mode) below - the two are independently selectable in
+        the config panel, so a status word mapped only for open/closed
+        must not block a separately configured set of movement bits, and
+        vice versa. Deliberately self-contained rather than reusing
+        _get_feedback_movement()/_get_effective_movement(): those couple
+        movement to _feedback_mode=="status" for the traditional-cover
+        code path, which is exactly the coupling toggle_mode must not
+        have. Returns None when no configured source produces a
+        movement-specific reading."""
+        if self._cover_status_address:
+            status = self._get_movement_status()
+            if status in ("opening", "closing", "stopped"):
+                return status
+        if self._cover_stopped_address and self._get_topic_state(
+            self._cover_stopped_topic
+        ):
+            return "stopped"
+        opening = (
+            self._get_topic_state(self._cover_opening_topic)
+            if self._cover_opening_address
+            else None
+        )
+        closing = (
+            self._get_topic_state(self._cover_closing_topic)
+            if self._cover_closing_address
+            else None
+        )
+        if opening is True and closing is True:
+            return None
+        if opening is True:
+            return "opening"
+        if closing is True:
+            return "closing"
+        if opening is not None or closing is not None:
+            return "stopped"
+        return None
+
+    def _toggle_position(self) -> str | None:
+        """toggle_mode-only: "open"/"closed", from whichever position
+        feedback source is selected (_feedback_mode): the status word only
+        when it's explicitly the chosen position source, otherwise the
+        end-stops - independent of whatever movement source
+        _toggle_movement() above resolves. Returns None when the selected
+        source has no usable reading yet."""
+        if self._feedback_mode == "status" and self._cover_status_address:
+            status = self._get_movement_status()
+            if status == "closed":
+                return "closed"
+            if status == "open":
+                return "open"
+            return None
+        if self._use_state_topics:
+            opened = self._get_topic_state(self._opened_topic)
+            closed = self._get_topic_state(self._closed_topic)
+            if closed is True and opened is not True:
+                return "closed"
+            if opened is True and closed is not True:
+                return "open"
+        return None
+
     def _toggle_state(self) -> str:
         """Effective toggle-cycle state: "closed"/"opening"/"open"/
         "closing"/"stopped", or "unknown". toggle_mode only.
 
-        "unknown" means no usable PLC feedback has been received yet (e.g.
-        right after a Home Assistant restart) or the status value doesn't
-        match any configured mapping. It must stay distinct from a genuine
-        "stopped" reading: toggle_mode's command decisions depend entirely
-        on knowing the real state, so a caller can never treat "no data
-        yet" the same as "confirmed mid-travel stop" - see _toggle_step.
+        Composes the two independently configurable feedback sources -
+        _toggle_movement() for opening/closing/stopped, _toggle_position()
+        for open/closed - rather than assuming a single status word (or a
+        single boolean setup) drives both. "unknown" means neither source
+        has a usable reading yet (e.g. right after a Home Assistant
+        restart, or an unmatched status value): it must stay distinct from
+        a genuine "stopped" reading, since toggle_mode's command decisions
+        depend entirely on knowing the real state - see _toggle_step.
 
-        With cover_status_address configured, read it directly:
-        _get_movement_status() already returns exactly this label (or None
-        if unmatched/no data yet). is_closed is deliberately NOT used for
-        this path - its cover_status_address branch only resolves
-        "open"/"closed" and otherwise falls through to the operate-time/
-        _assumed_closed timer fallback, which toggle_mode never updates and
-        would misreport "unknown" as a frozen, stale position.
-
-        Without cover_status_address (boolean feedback instead), compose
-        from is_opening/is_closing (which read cover_opening_address/
-        cover_closing_address) and is_closed's use_state_topics branch
-        (which correctly returns None when neither end-stop is set) -
-        config-flow validation requires this combination for toggle_mode.
-        A "stopped" conclusion still requires real data (at least one
-        movement/end-stop topic reporting a value); otherwise it's
-        "unknown".
+        Movement wins when it reports actual motion (opening/closing),
+        since that's the more specific/current reading. Otherwise a
+        resolved position (open/closed) wins over a bare "stopped" from
+        movement, since a settled endpoint is more informative than
+        "stopped somewhere mid-travel".
         """
-        if self._cover_status_address:
-            return self._get_movement_status() or "unknown"
-        if self.is_opening:
-            return "opening"
-        if self.is_closing:
-            return "closing"
-        closed = self.is_closed
-        if closed is True:
-            return "closed"
-        if closed is False:
-            return "open"
-        return "stopped" if self._get_feedback_movement() == "stopped" else "unknown"
+        movement = self._toggle_movement()
+        if movement in ("opening", "closing"):
+            return movement
+        position = self._toggle_position()
+        if position is not None:
+            return position
+        return "stopped" if movement == "stopped" else "unknown"
 
     async def _pulse_toggle(self) -> None:
         """Single-button mode: one pulse on open_command_address is all the
@@ -743,12 +794,24 @@ class S7Cover(S7BaseEntity, CoverEntity):
         into itself directly (not through _toggle_press) when it can
         already confirm completion without waiting for another update.
 
-        "stop" is always safe: press while moving (halts), no-op otherwise.
-        It also cancels any pending automatic continuation below - an
-        explicit stop means the user does not want the cover to keep
-        moving toward a previously requested target.
+        "stop" is always safe *by design*, but not by blindly trusting
+        stale feedback: it always cancels any pending automatic
+        continuation (an explicit stop means the user does not want the
+        cover to keep moving toward a previously requested target), and if
+        a halt pulse was already in flight for that continuation (pending
+        goal was set), a fresh pulse is *not* sent even if the still-stale
+        pre-halt reading says the cover is moving - that stale reading is
+        exactly what the halt pulse was issued to correct, and pressing
+        again on top of it could resume movement the halt already stopped.
+        Only presses when the cover is moving *and* no halt is already in
+        flight for it.
 
-        "open"/"close" only press when the result is deterministic:
+        "open"/"close" first cancel any previous pending continuation -
+        every new explicit command represents the caller's latest desired
+        target and must fully supersede whatever an earlier call queued,
+        even if this new call turns out to be a no-op action-wise (e.g.
+        the cover already happens to be moving the newly requested way).
+        They then only press when the result is deterministic:
         - already at the goal (open/opening, or closed/closing respectively)
           -> no-op, never stop an already-correct movement just because the
           service was called again
@@ -775,10 +838,15 @@ class S7Cover(S7BaseEntity, CoverEntity):
         """
         state = self._toggle_state()
         if target == "stop":
+            had_pending_continuation = self._toggle_pending_goal is not None
             self._toggle_pending_goal = None
-            if state in ("opening", "closing"):
+            if not had_pending_continuation and state in ("opening", "closing"):
                 await self._pulse_toggle()
             return
+
+        # A new explicit open/close request always supersedes whatever an
+        # earlier call queued for later - see the docstring above.
+        self._toggle_pending_goal = None
 
         goal_settled, goal_moving, opposite_settled, reverses_from = (
             ("open", "opening", "closed", "closing")
