@@ -328,3 +328,75 @@ def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
     assert "cover_opening_address" not in item
+
+
+_TOGGLE_COVER_BASE = {
+    "open_command_address": "DB1,X0.0",
+    "toggle_mode": True,
+    "cover_status_address": "DB1,B10",
+    "cover_status_open_values": "0",
+    "cover_status_closed_values": "1",
+    "cover_status_opening_values": "2",
+    "cover_status_closing_values": "3",
+}
+
+
+def test_cover_toggle_pulse_duration_defaults_and_persists() -> None:
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 1.5},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 1.5
+
+
+def test_cover_toggle_pulse_duration_absent_when_not_toggle_mode() -> None:
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "close_command_address": "DB1,X0.1",
+            "toggle_pulse_duration": 2.0,
+        },
+        options={},
+    )
+    assert not errors
+    assert "toggle_pulse_duration" not in item
+
+
+def test_toggle_mode_requires_real_feedback() -> None:
+    """toggle_mode can't fall back to a simulated timer like the
+    two-address mode does - it needs both motion and settled-state
+    feedback, whether via a status word or the boolean alternatives."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {"open_command_address": "DB1,X0.0", "toggle_mode": True},
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "toggle_mode_requires_feedback"}
+
+    item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
+    assert not errors
+    assert item is not None
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+            "use_state_topics": True,
+            "opening_state_address": "DB1,X1.2",
+            "closing_state_address": "DB1,X1.3",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None

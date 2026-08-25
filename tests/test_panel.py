@@ -2457,12 +2457,113 @@ process.stdout.write(JSON.stringify({
 
 
 def test_panel_close_command_address_required_for_traditional() -> None:
+    """open_command_address is required for both traditional and toggle
+    (a toggle cover only ever has one command address); close_command_address
+    is required for traditional only - toggle's single relay has no use for
+    it."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert (
-        "ui.cover_control_mode==='traditional'&&(!entity.open_command_address||!entity.close_command_address)"
+        "(ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle')"
+        "&&!entity.open_command_address"
+        in source
+    )
+    assert (
+        "ui.cover_control_mode==='traditional'&&!entity.close_command_address"
         in source
     )
     assert "errors.cover_commands_required_error" in source
+
+
+def test_panel_hides_close_and_operate_time_in_toggle_control_mode() -> None:
+    """toggle is a third cover_control_mode choice (alongside
+    traditional/position), not a separate checkbox layered onto
+    traditional. Selecting it pulses open_command_address for a fixed
+    short duration instead of using close_command_address or the
+    timer-based operate_time, so neither field is shown for that mode."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        "control==='position'?['position_state_address','position_command_address',"
+        "'invert_position']:control==='toggle'?['open_command_address']:"
+        "['open_command_address','close_command_address']"
+    ) in source
+    assert "if(control==='traditional')visible.add('operate_time')" in source
+
+
+def test_panel_toggle_pulse_duration_has_its_own_options_section() -> None:
+    """toggle_pulse_duration gets a dedicated "Opcje"/Options section, the
+    same treatment switches/lights already give their own pulse_duration
+    field, rather than being folded into the "Adresy PLC" section the way
+    stop_pulse_duration is for position covers."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    assert '["toggle_pulse_duration","number"]' in covers_line
+
+    assert (
+        "section('cog-outline',this.t('sections.options.title'),"
+        "this.t('sections.options.description'),"
+        "byKeys(['toggle_pulse_duration']),'cover-options')"
+    ) in source
+
+    # syncMode(): visible only in toggle mode, both the field and the
+    # section that wraps it.
+    assert "if(control==='toggle')visible.add('toggle_pulse_duration');" in source
+    assert "'stop_pulse_duration','toggle_pulse_duration'];" in source
+    assert (
+        "form.querySelector('[data-section=\"cover-options\"]')"
+        ".classList.toggle('hidden-field',control!=='toggle');"
+    ) in source
+
+    # CLEAN_COVER_ENTITY: dropped whenever leaving toggle mode.
+    assert (
+        "if(ui.cover_control_mode!==\"toggle\")delete entity.toggle_pulse_duration;"
+    ) in source
+
+
+def test_panel_exposes_toggle_as_a_control_mode_choice() -> None:
+    """toggle is presented as a third cover_control_mode choice (radio
+    card, same section as traditional/position - "Sterowanie") rather
+    than a separate checkbox buried in the connection/addresses section.
+    The underlying toggle_mode boolean the backend reads is derived from
+    that choice, not from a dedicated form field, and cleared on save
+    when a different mode is picked."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    covers_line = next(
+        line for line in source.splitlines() if line.strip().startswith("covers:[")
+    )
+    assert '"toggle_mode"' not in covers_line, (
+        "toggle_mode should no longer be its own FIELDS.covers entry"
+    )
+    assert (
+        '["cover_control_mode","cover-selector",true,'
+        '["traditional","position","toggle"]]'
+    ) in source
+
+    # COVER_UI_FROM_ENTITY infers the "toggle" radio choice from the
+    # stored toggle_mode flag when reopening an existing item.
+    assert (
+        'const control=entity.position_state_address?"position":'
+        'entity.toggle_mode?"toggle":"traditional";'
+    ) in source
+
+    # On save: toggle_mode is derived from the selected control mode
+    # (not read from its own form field), and close_command_address is
+    # cleared for toggle covers (single-button, open_command_address only).
+    assert "entity.toggle_mode=ui.cover_control_mode==='toggle';" in source
+    assert (
+        "if(ui.cover_control_mode==='toggle'){delete entity.close_command_address;}"
+    ) in source
+
+    # CLEAN_COVER_ENTITY treats toggle like traditional for field
+    # governance (it still uses open/close-style addressing, not position).
+    assert (
+        'const isTraditionalLike=ui.cover_control_mode==="traditional"'
+        '||ui.cover_control_mode==="toggle";'
+    ) in source
 
 
 def test_panel_checkbox_label_can_shrink_to_fit_the_dialog() -> None:
@@ -2549,6 +2650,7 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
         assert set(cover_fields["cover_control_mode"]["options"]) == {
             "traditional",
             "position",
+            "toggle",
         }
         assert set(cover_fields["cover_position_feedback"]["options"]) == {
             "timed", "opening", "closing", "both", "status",

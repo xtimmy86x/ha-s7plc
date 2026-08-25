@@ -431,6 +431,10 @@
             "label": "Stopp-Pulsdauer (s)",
             "description": "Dauer des Stopp-Pulses in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms)."
           },
+          "toggle_pulse_duration": {
+            "label": "Umschalt-Pulsdauer (s)",
+            "description": "Dauer des einzelnen Relaisimpulses im Umschaltmodus, in Sekunden (unterstützt Dezimalzahlen, z.B. 0,5 für 500ms)."
+          },
           "tilt_state_address": {
             "label": "Neigungs-Zustandsadresse",
             "description": "Optionale SPS-Adresse zum Lesen der aktuellen Neigungsposition (0-100). Aktiviert die Neigungssteuerung (öffnen/schließen/setzen/stoppen) für diese Abdeckung."
@@ -464,11 +468,13 @@
             "description": "Wählen Sie aus, wie die SPS die Abdeckung steuert.",
             "options": {
               "traditional": "Öffnen / Schließen",
-              "position": "Position 0–100 %"
+              "position": "Position 0–100 %",
+              "toggle": "Ein-Taster"
             },
             "descriptions": {
               "traditional": "Zwei separate Befehle zum Öffnen und Schließen.",
-              "position": "Numerische Positionsrückmeldung und -befehl."
+              "position": "Numerische Positionsrückmeldung und -befehl.",
+              "toggle": "Eine einzige Befehlsadresse schaltet sequenziell (öffnen/stopp/schließen/stopp)."
             }
           },
           "cover_position_feedback": {
@@ -1087,6 +1093,7 @@
       "climate_preset_mode_required_error": "Geben Sie die Adresse für den codierten HVAC-Modus ein.",
       "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
       "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein.",
+      "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: entweder eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse für die Bewegung zusammen mit beiden Endlagen-/Positionsadressen für den eingeschwungenen Zustand.",
       "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
       "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",
       "invalid_availability_address": "Geben Sie eine gültige Verfügbarkeits-BIT-Adresse ein.",

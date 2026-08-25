@@ -45,6 +45,8 @@ from .const import (
     CONF_STOP_PULSE_DURATION,
     CONF_TILT_COMMAND_ADDRESS,
     CONF_TILT_STATE_ADDRESS,
+    CONF_TOGGLE_MODE,
+    CONF_TOGGLE_PULSE_DURATION,
     CONF_UID,
     CONF_USE_STATE_TOPICS,
     DEFAULT_COVER_STATUS_CLOSED_VALUES,
@@ -54,6 +56,7 @@ from .const import (
     DEFAULT_COVER_STATUS_STOPPED_VALUES,
     DEFAULT_OPERATE_TIME,
     DEFAULT_PULSE_DURATION,
+    DEFAULT_TOGGLE_MODE,
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
@@ -193,12 +196,16 @@ async def async_setup_entry(
         # Traditional open/close cover.
         open_command = item.get(CONF_OPEN_COMMAND_ADDRESS)
         close_command = item.get(CONF_CLOSE_COMMAND_ADDRESS)
+        toggle_mode = bool(item.get(CONF_TOGGLE_MODE, DEFAULT_TOGGLE_MODE))
+        toggle_pulse_duration = item.get(
+            CONF_TOGGLE_PULSE_DURATION, DEFAULT_PULSE_DURATION
+        )
 
         if not open_command:
             _LOGGER.debug("Skipping cover with missing open command address")
             continue
 
-        if not close_command:
+        if not close_command and not toggle_mode:
             _LOGGER.debug("Skipping cover with missing close command address")
             continue
 
@@ -338,6 +345,8 @@ async def async_setup_entry(
                 cover_status_opening_values=cover_status_opening_values,
                 cover_status_closing_values=cover_status_closing_values,
                 cover_status_stopped_values=cover_status_stopped_values,
+                toggle_mode=toggle_mode,
+                toggle_pulse_duration=toggle_pulse_duration,
             )
         )
 
@@ -384,6 +393,8 @@ class S7Cover(S7BaseEntity, CoverEntity):
         cover_status_opening_values: str = DEFAULT_COVER_STATUS_OPENING_VALUES,
         cover_status_closing_values: str = DEFAULT_COVER_STATUS_CLOSING_VALUES,
         cover_status_stopped_values: str = DEFAULT_COVER_STATUS_STOPPED_VALUES,
+        toggle_mode: bool = DEFAULT_TOGGLE_MODE,
+        toggle_pulse_duration: float = DEFAULT_PULSE_DURATION,
     ) -> None:
         super().__init__(
             coordinator,
@@ -395,6 +406,17 @@ class S7Cover(S7BaseEntity, CoverEntity):
         )
         self._open_command_address = open_command
         self._close_command_address = close_command
+        self._toggle_mode = toggle_mode
+        self._toggle_pulse_duration = toggle_pulse_duration
+        self._last_toggle_direction: str | None = None
+        # Toggle mode still advertises the full OPEN|CLOSE|STOP set, same as
+        # a normal cover - Home Assistant's service layer checks
+        # supported_features before ever calling async_open_cover/
+        # async_close_cover/async_stop_cover, so advertising only OPEN would
+        # make HA silently reject close_cover/stop_cover/toggle calls before
+        # they reach this entity at all. Each of the three methods below
+        # translates its own request into the correct physical press (or a
+        # no-op/refusal) for the single-button relay - see _toggle_press.
         self._attr_supported_features = (
             CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
         )
@@ -562,6 +584,15 @@ class S7Cover(S7BaseEntity, CoverEntity):
             self._ha_movement_feedback_seen = False
             self.hass.async_create_task(self._complete_operation(completion_direction))
 
+        # Remember the last real direction of travel so a subsequent
+        # "stopped" reading knows which way another toggle press would
+        # reverse to (see _toggle_state/_toggle_press). Must never be
+        # cleared on "stopped" - it needs to survive the transition.
+        if self._toggle_mode:
+            state = self._toggle_state()
+            if state in ("opening", "closing"):
+                self._last_toggle_direction = state
+
         super()._handle_coordinator_update()
 
     def _entity_data_available(self) -> bool:
@@ -619,7 +650,116 @@ class S7Cover(S7BaseEntity, CoverEntity):
             # Return last known/assumed position
             return self._assumed_closed
 
+    def _toggle_state(self) -> str:
+        """Effective toggle-cycle state: "closed"/"opening"/"open"/
+        "closing"/"stopped". toggle_mode only.
+
+        With cover_status_address configured, read it directly:
+        _get_movement_status() already returns exactly this 5-way label (or
+        None if unmatched/no data yet, treated as "stopped" - unknown mid-
+        travel position, not a settled one). is_closed is deliberately NOT
+        used for this path - its cover_status_address branch only resolves
+        "open"/"closed" and otherwise falls through to the operate-time/
+        _assumed_closed timer fallback, which toggle_mode never updates and
+        would misreport "stopped" as a frozen, stale position.
+
+        Without cover_status_address (boolean feedback instead), compose
+        from is_opening/is_closing (which read cover_opening_address/
+        cover_closing_address) and is_closed's use_state_topics branch
+        (which correctly returns None when neither end-stop is set) -
+        config-flow validation requires this combination for toggle_mode.
+        """
+        if self._cover_status_address:
+            return self._get_movement_status() or "stopped"
+        if self.is_opening:
+            return "opening"
+        if self.is_closing:
+            return "closing"
+        closed = self.is_closed
+        if closed is True:
+            return "closed"
+        if closed is False:
+            return "open"
+        return "stopped"  # neither moving nor conclusively open/closed
+
+    async def _pulse_toggle(self) -> None:
+        """Single-button mode: one pulse on open_command_address is all the
+        PLC's step-by-step relay needs - it advances the physical cycle by
+        itself. No local optimistic state to maintain beyond
+        _last_toggle_direction (set by callers when the resulting direction
+        is deterministically known)."""
+        await self._ensure_connected()
+        await self.coordinator.write_batched(self._open_command_address, True)
+        await asyncio.sleep(self._toggle_pulse_duration)
+        await self.coordinator.write_batched(self._open_command_address, False)
+        await self.coordinator.async_request_refresh()
+
+    async def _toggle_press(self, target: str) -> None:
+        """Single-button mode: translate a HA service call (target is
+        "open"/"close"/"stop") into the correct physical press, or a no-op,
+        for the single relay - never a blind alias. The physical cycle only
+        ever advances one step per press (closed->opening->stopped->
+        closing->stopped->opening->...), so a press can only reach a given
+        target from specific states; see the module-level toggle_mode design
+        note in const.py (CONF_TOGGLE_MODE) for the full state table.
+
+        "stop" is always safe: press while moving (halts), no-op otherwise.
+
+        "open"/"close" only press when the result is deterministic:
+        - already at the goal (open/opening, or closed/closing respectively)
+          -> no-op, never stop an already-correct movement just because the
+          service was called again
+        - settled at the opposite endpoint -> press (goes straight to the
+          moving state that leads to the goal)
+        - moving the wrong way -> press (halts it; direction is left alone,
+          real feedback will set it once _handle_coordinator_update sees
+          "stopped")
+        - stopped mid-travel -> press only if _last_toggle_direction says
+          the next press reverses toward the goal; otherwise refuse and log
+          a warning, since reaching the goal from here needs two more
+          presses that first move the cover further the wrong way - not
+          something to do silently. This also applies when the direction is
+          still unknown (e.g. right after a HA restart, before the first
+          feedback update).
+        """
+        state = self._toggle_state()
+        if target == "stop":
+            if state in ("opening", "closing"):
+                await self._pulse_toggle()
+            self.async_write_ha_state()
+            return
+
+        goal_settled, goal_moving, opposite_settled, reverses_from = (
+            ("open", "opening", "closed", "closing")
+            if target == "open"
+            else ("closed", "closing", "open", "opening")
+        )
+        if state in (goal_settled, goal_moving):
+            pass  # already achieving the goal - no-op
+        elif state == opposite_settled:
+            await self._pulse_toggle()
+            self._last_toggle_direction = goal_moving
+        elif state == "stopped" and self._last_toggle_direction == reverses_from:
+            await self._pulse_toggle()  # reverses toward the goal
+            self._last_toggle_direction = goal_moving
+        elif state == "stopped":
+            _LOGGER.warning(
+                "Cover %s: cannot %s from a stopped, direction-ambiguous"
+                " state without first moving the wrong way - refusing to"
+                " press. Wait for feedback or press again once the"
+                " direction is known.",
+                self.name,
+                target,
+            )
+        else:
+            # Moving the wrong way: halt it, don't claim a direction.
+            await self._pulse_toggle()
+        self.async_write_ha_state()
+
     async def async_open_cover(self, **kwargs) -> None:
+        if self._toggle_mode:
+            await self._toggle_press("open")
+            return
         await self._ensure_connected()
         await self._stop_operation("close")
         await self.coordinator.write_batched(self._open_command_address, True)
@@ -634,6 +774,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_close_cover(self, **kwargs) -> None:
+        if self._toggle_mode:
+            await self._toggle_press("close")
+            return
         await self._ensure_connected()
         await self._stop_operation("open")
         await self.coordinator.write_batched(self._close_command_address, True)
@@ -649,6 +792,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover movement."""
+        if self._toggle_mode:
+            await self._toggle_press("stop")
+            return
         await self._ensure_connected()
 
         await self._stop_operation("open")
@@ -690,6 +836,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if self._cover_status_address:
             attrs["s7_cover_status_address"] = self._cover_status_address.upper()
             attrs["s7_cover_status_values"] = self._cover_status_values
+        attrs["toggle_mode"] = self._toggle_mode
+        if self._toggle_mode:
+            attrs["s7_toggle_last_direction"] = self._last_toggle_direction or "unknown"
 
         return attrs
 

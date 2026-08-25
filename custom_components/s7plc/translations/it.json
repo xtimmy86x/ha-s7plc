@@ -431,6 +431,10 @@
             "label": "Durata impulso stop (s)",
             "description": "Durata dell'impulso di stop in secondi (supporta decimali, es. 0.5 per 500 ms)."
           },
+          "toggle_pulse_duration": {
+            "label": "Durata impulso toggle (s)",
+            "description": "Durata dell'impulso del singolo relè in modalità toggle, in secondi (supporta decimali, es. 0.5 per 500 ms)."
+          },
           "tilt_state_address": {
             "label": "Indirizzo stato inclinazione",
             "description": "Indirizzo PLC opzionale per leggere la posizione attuale dell'inclinazione (0-100). Abilita il controllo dell'inclinazione (apri/chiudi/imposta/ferma inclinazione) per questa cover."
@@ -464,11 +468,13 @@
             "description": "Scegli come il PLC controlla la cover.",
             "options": {
               "traditional": "Apri / Chiudi",
-              "position": "Posizione 0–100%"
+              "position": "Posizione 0–100%",
+              "toggle": "Pulsante singolo"
             },
             "descriptions": {
               "traditional": "Due comandi distinti di apertura e chiusura.",
-              "position": "Feedback e comando numerico della posizione."
+              "position": "Feedback e comando numerico della posizione.",
+              "toggle": "Un solo indirizzo di comando cicla sequenzialmente (apri/stop/chiudi/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1087,6 +1093,7 @@
       "climate_preset_mode_required_error": "Inserisci l'indirizzo della modalità HVAC codificata.",
       "climate_on_off_required_error": "Inserisci l'indirizzo On/Off separato.",
       "climate_status_required_error": "Inserisci l'indirizzo dello stato operativo del PLC.",
+      "toggle_mode_requires_feedback": "La modalità pulsante singolo richiede un feedback reale per funzionare correttamente: un indirizzo di stato configurato con tutti e 4 i valori di stato, oppure un indirizzo di apertura e un indirizzo di chiusura per il movimento insieme a entrambi gli indirizzi di finecorsa/posizione per lo stato stabile.",
       "invalid_availability_mode": "Seleziona un criterio di disponibilità valido.",
       "availability_address_required": "È necessario un indirizzo BIT di disponibilità.",
       "invalid_availability_address": "Inserisci un indirizzo BIT di disponibilità valido.",

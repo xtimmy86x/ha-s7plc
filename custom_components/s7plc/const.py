@@ -114,6 +114,19 @@ CONF_COVER_OPENING_ADDRESS = "cover_opening_address"
 CONF_COVER_CLOSING_ADDRESS = "cover_closing_address"
 CONF_COVER_STOPPED_ADDRESS = "cover_stopped_address"
 
+# Single-button toggle mode: open_command_address is a single PLC pulse
+# output that cycles a step-by-step relay (closed->opening->stopped->
+# closing->stopped->opening->...). close_command_address is not used.
+# Requires real movement + settled-state feedback to be configured (see
+# S7Cover._toggle_state) - correctness depends on knowing the actual PLC
+# state, not a simulated one.
+CONF_TOGGLE_MODE = "toggle_mode"
+
+# Dedicated pulse duration for toggle_mode's single relay pulse. Independent
+# of DEFAULT_PULSE_DURATION (still the default value) so it can be tuned
+# per-cover without affecting other pulse-driven fields.
+CONF_TOGGLE_PULSE_DURATION = "toggle_pulse_duration"
+
 # Position cover: optional tilt control, symmetric to
 # position_state_address/position_command_address.
 CONF_TILT_STATE_ADDRESS = "tilt_state_address"
@@ -241,6 +254,7 @@ DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_PULSE_DURATION = 0.5  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds
 DEFAULT_USE_STATE_TOPICS = False  # use operate_time by default
+DEFAULT_TOGGLE_MODE = False
 DEFAULT_REAL_PRECISION = 1
 DEFAULT_BRIGHTNESS_SCALE = 255
 DEFAULT_MIN_TEMP = 7.0  # °C

@@ -431,6 +431,10 @@
             "label": "Délka pulzu zastavení (s)",
             "description": "Délka pulzu zastavení v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms)."
           },
+          "toggle_pulse_duration": {
+            "label": "Délka pulzu přepínače (s)",
+            "description": "Délka pulzu jediného relé v přepínacím režimu, v sekundách (podporuje desetinná čísla, např. 0,5 pro 500ms)."
+          },
           "tilt_state_address": {
             "label": "Adresa stavu naklopení",
             "description": "Volitelná adresa PLC pro čtení aktuální polohy naklopení (0-100). Povoluje ovládání naklopení (otevřít/zavřít/nastavit/zastavit naklopení) pro tento kryt."
@@ -464,11 +468,13 @@
             "description": "Zvolte, jak PLC ovládá kryt.",
             "options": {
               "traditional": "Otevřít / Zavřít",
-              "position": "Pozice 0–100 %"
+              "position": "Pozice 0–100 %",
+              "toggle": "Jedno tlačítko"
             },
             "descriptions": {
               "traditional": "Dva samostatné příkazy pro otevření a zavření.",
-              "position": "Číselná zpětná vazba a příkaz pozice."
+              "position": "Číselná zpětná vazba a příkaz pozice.",
+              "toggle": "Jedna adresa příkazu cyklicky přepíná (otevřít/stop/zavřít/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1087,6 +1093,7 @@
       "climate_preset_mode_required_error": "Zadejte adresu kódovaného režimu HVAC.",
       "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
       "climate_status_required_error": "Zadejte adresu provozního stavu PLC.",
+      "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje reálnou zpětnou vazbu, aby fungoval správně: adresu stavu se všemi 4 hodnotami stavu, nebo adresu otevírání a adresu zavírání pro pohyb spolu s oběma adresami koncových spínačů/polohy pro ustálený stav.",
       "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
       "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",
       "invalid_availability_address": "Zadejte platnou BIT adresu dostupnosti.",

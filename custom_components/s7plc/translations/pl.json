@@ -431,6 +431,10 @@
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu dla adresu zapisu stop (0.1-60s), domyślnie (0.5s)."
           },
+          "toggle_pulse_duration": {
+            "label": "Długość impulsu (s)",
+            "description": "Długość impulsu dla adresu zapisu otwórz w trybie jednego przycisku (0.1-60s), domyślnie (0.5s)."
+          },
           "tilt_state_address": {
             "label": "Adres odczytu przechylenia",
             "description": "Opcjonalny adres odczytu przechylenia (0-100). Włącza sterowanie przechyleniem (otwórz/zamknij/ustaw/stop)."
@@ -464,11 +468,13 @@
             "description": "Wybierz typ sterowania przed wprowadzeniem adresów.",
             "options": {
               "traditional": "Otwórz / Zamknij",
-              "position": "Pozycja 0–100%"
+              "position": "Pozycja 0–100%",
+              "toggle": "Jeden przycisk"
             },
             "descriptions": {
               "traditional": "Proste sterowanie otwórz i zamknij.",
-              "position": "Zaawansowane sterowanie z pozycją."
+              "position": "Zaawansowane sterowanie z pozycją.",
+              "toggle": "Proste sterowanie sekwencyjne jednym przyciskiem (otwórz/stop/zamknij/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1087,6 +1093,7 @@
       "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
       "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
+      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga adresu stanów ze wszystkimi 4 wartościami stanu, albo binarnych adresów otwórz i zamknij razem z binarnymi adresami stanu otwarta i zamknięta.",
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",
       "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",

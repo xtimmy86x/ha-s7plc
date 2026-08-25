@@ -431,6 +431,10 @@
             "label": "Stop pulse duration (s)",
             "description": "Duration in seconds for the stop pulse (supports decimals, e.g., 0.5 for 500ms)."
           },
+          "toggle_pulse_duration": {
+            "label": "Toggle pulse duration (s)",
+            "description": "Duration in seconds for the single relay pulse in toggle mode (supports decimals, e.g., 0.5 for 500ms)."
+          },
           "tilt_state_address": {
             "label": "Tilt state address",
             "description": "Optional PLC address to read the current tilt position (0-100). Enables tilt control (open/close/set/stop tilt) for this cover."
@@ -464,11 +468,13 @@
             "description": "Choose how the PLC controls the cover.",
             "options": {
               "traditional": "Open / Close",
-              "position": "Position 0–100%"
+              "position": "Position 0–100%",
+              "toggle": "Toggle (single button)"
             },
             "descriptions": {
               "traditional": "Two discrete open and close commands.",
-              "position": "Numeric position feedback and command."
+              "position": "Numeric position feedback and command.",
+              "toggle": "One command address cycles sequentially (open/stop/close/stop)."
             }
           },
           "cover_position_feedback": {
@@ -1087,6 +1093,7 @@
       "climate_preset_mode_required_error": "Enter the coded HVAC mode address.",
       "climate_on_off_required_error": "Enter the separate On/Off address.",
       "climate_status_required_error": "Enter the PLC operating-status address.",
+      "toggle_mode_requires_feedback": "Toggle mode needs real feedback to work correctly: either a status address configured with all 4 status values, or an opening address plus a closing address for movement together with both position/end-stop addresses for the settled state.",
       "invalid_availability_mode": "Select a valid availability policy.",
       "availability_address_required": "An availability BIT address is required.",
       "invalid_availability_address": "Enter a valid availability BIT address.",
