@@ -370,7 +370,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         unique_id: str,
         device_info: DeviceInfo,
         open_command: str,
-        close_command: str,
+        close_command: str | None,
         opened_state: str | None,
         closed_state: str | None,
         opened_topic: str | None,
@@ -409,6 +409,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._toggle_mode = toggle_mode
         self._toggle_pulse_duration = toggle_pulse_duration
         self._last_toggle_direction: str | None = None
+        self._toggle_lock = asyncio.Lock()
+        # Set while a halt pulse is waiting for real "stopped" feedback
+        # before continuing toward the originally requested target - see
+        # _toggle_step/_handle_coordinator_update.
+        self._toggle_pending_goal: str | None = None
         # Toggle mode still advertises the full OPEN|CLOSE|STOP set, same as
         # a normal cover - Home Assistant's service layer checks
         # supported_features before ever calling async_open_cover/
@@ -592,6 +597,20 @@ class S7Cover(S7BaseEntity, CoverEntity):
             state = self._toggle_state()
             if state in ("opening", "closing"):
                 self._last_toggle_direction = state
+            elif (
+                state == "stopped"
+                and self._toggle_pending_goal is not None
+                and not self._toggle_lock.locked()
+            ):
+                # A halt pulse issued by _toggle_step is now confirmed by
+                # real feedback - continue toward the originally requested
+                # open/close target, fully feedback-driven (no fixed delay
+                # between the two pulses). The lock check skips this while
+                # the halt itself is still in flight; _toggle_step already
+                # handles that case synchronously once its own pulse
+                # completes.
+                pending, self._toggle_pending_goal = self._toggle_pending_goal, None
+                self.hass.async_create_task(self._toggle_press(pending))
 
         super()._handle_coordinator_update()
 
@@ -652,25 +671,34 @@ class S7Cover(S7BaseEntity, CoverEntity):
 
     def _toggle_state(self) -> str:
         """Effective toggle-cycle state: "closed"/"opening"/"open"/
-        "closing"/"stopped". toggle_mode only.
+        "closing"/"stopped", or "unknown". toggle_mode only.
+
+        "unknown" means no usable PLC feedback has been received yet (e.g.
+        right after a Home Assistant restart) or the status value doesn't
+        match any configured mapping. It must stay distinct from a genuine
+        "stopped" reading: toggle_mode's command decisions depend entirely
+        on knowing the real state, so a caller can never treat "no data
+        yet" the same as "confirmed mid-travel stop" - see _toggle_step.
 
         With cover_status_address configured, read it directly:
-        _get_movement_status() already returns exactly this 5-way label (or
-        None if unmatched/no data yet, treated as "stopped" - unknown mid-
-        travel position, not a settled one). is_closed is deliberately NOT
-        used for this path - its cover_status_address branch only resolves
+        _get_movement_status() already returns exactly this label (or None
+        if unmatched/no data yet). is_closed is deliberately NOT used for
+        this path - its cover_status_address branch only resolves
         "open"/"closed" and otherwise falls through to the operate-time/
         _assumed_closed timer fallback, which toggle_mode never updates and
-        would misreport "stopped" as a frozen, stale position.
+        would misreport "unknown" as a frozen, stale position.
 
         Without cover_status_address (boolean feedback instead), compose
         from is_opening/is_closing (which read cover_opening_address/
         cover_closing_address) and is_closed's use_state_topics branch
         (which correctly returns None when neither end-stop is set) -
         config-flow validation requires this combination for toggle_mode.
+        A "stopped" conclusion still requires real data (at least one
+        movement/end-stop topic reporting a value); otherwise it's
+        "unknown".
         """
         if self._cover_status_address:
-            return self._get_movement_status() or "stopped"
+            return self._get_movement_status() or "unknown"
         if self.is_opening:
             return "opening"
         if self.is_closing:
@@ -680,7 +708,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
             return "closed"
         if closed is False:
             return "open"
-        return "stopped"  # neither moving nor conclusively open/closed
+        return "stopped" if self._get_feedback_movement() == "stopped" else "unknown"
 
     async def _pulse_toggle(self) -> None:
         """Single-button mode: one pulse on open_command_address is all the
@@ -695,15 +723,30 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await self.coordinator.async_request_refresh()
 
     async def _toggle_press(self, target: str) -> None:
-        """Single-button mode: translate a HA service call (target is
-        "open"/"close"/"stop") into the correct physical press, or a no-op,
-        for the single relay - never a blind alias. The physical cycle only
+        """Entry point for a HA service call (target is "open"/"close"/
+        "stop"): serializes against overlapping presses - including the
+        automatic continuation _handle_coordinator_update may schedule -
+        then delegates the actual decision to _toggle_step."""
+        async with self._toggle_lock:
+            await self._toggle_step(target)
+        self.async_write_ha_state()
+
+    async def _toggle_step(self, target: str) -> None:
+        """Single-button mode: translate a request (target is "open"/
+        "close"/"stop") into the correct physical press, or a no-op, for
+        the single relay - never a blind alias. The physical cycle only
         ever advances one step per press (closed->opening->stopped->
         closing->stopped->opening->...), so a press can only reach a given
         target from specific states; see the module-level toggle_mode design
         note in const.py (CONF_TOGGLE_MODE) for the full state table.
+        Must run under self._toggle_lock (see _toggle_press) - it recurses
+        into itself directly (not through _toggle_press) when it can
+        already confirm completion without waiting for another update.
 
         "stop" is always safe: press while moving (halts), no-op otherwise.
+        It also cancels any pending automatic continuation below - an
+        explicit stop means the user does not want the cover to keep
+        moving toward a previously requested target.
 
         "open"/"close" only press when the result is deterministic:
         - already at the goal (open/opening, or closed/closing respectively)
@@ -711,22 +754,30 @@ class S7Cover(S7BaseEntity, CoverEntity):
           service was called again
         - settled at the opposite endpoint -> press (goes straight to the
           moving state that leads to the goal)
-        - moving the wrong way -> press (halts it; direction is left alone,
-          real feedback will set it once _handle_coordinator_update sees
-          "stopped")
+        - moving the wrong way -> press (halts it), then continue toward
+          the goal automatically once real feedback confirms the halt
+          succeeded ("stopped", not merely "unknown") - a single
+          open_cover/close_cover call should eventually get the cover
+          moving toward its target, not just stop it. If feedback isn't
+          available immediately, the continuation is deferred and resumed
+          by _handle_coordinator_update the next time real "stopped"
+          feedback arrives - fully feedback-driven, no fixed delay between
+          the two pulses.
         - stopped mid-travel -> press only if _last_toggle_direction says
           the next press reverses toward the goal; otherwise refuse and log
           a warning, since reaching the goal from here needs two more
           presses that first move the cover further the wrong way - not
-          something to do silently. This also applies when the direction is
-          still unknown (e.g. right after a HA restart, before the first
-          feedback update).
+          something to do silently.
+        - state is "unknown" (no usable feedback yet, e.g. right after a HA
+          restart, or an unmatched status value) -> refuse the same way;
+          pressing blindly could visibly move the cover the wrong way
+          first.
         """
         state = self._toggle_state()
         if target == "stop":
+            self._toggle_pending_goal = None
             if state in ("opening", "closing"):
                 await self._pulse_toggle()
-            self.async_write_ha_state()
             return
 
         goal_settled, goal_moving, opposite_settled, reverses_from = (
@@ -735,14 +786,16 @@ class S7Cover(S7BaseEntity, CoverEntity):
             else ("closed", "closing", "open", "opening")
         )
         if state in (goal_settled, goal_moving):
-            pass  # already achieving the goal - no-op
-        elif state == opposite_settled:
+            return  # already achieving the goal - no-op
+        if state == opposite_settled:
             await self._pulse_toggle()
             self._last_toggle_direction = goal_moving
-        elif state == "stopped" and self._last_toggle_direction == reverses_from:
+            return
+        if state == "stopped" and self._last_toggle_direction == reverses_from:
             await self._pulse_toggle()  # reverses toward the goal
             self._last_toggle_direction = goal_moving
-        elif state == "stopped":
+            return
+        if state == "stopped":
             _LOGGER.warning(
                 "Cover %s: cannot %s from a stopped, direction-ambiguous"
                 " state without first moving the wrong way - refusing to"
@@ -751,10 +804,24 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 self.name,
                 target,
             )
+            return
+        if state == "unknown":
+            _LOGGER.warning(
+                "Cover %s: cannot %s - no usable PLC feedback has been"
+                " received yet - refusing to press. Wait for feedback"
+                " before issuing the command again.",
+                self.name,
+                target,
+            )
+            return
+
+        # Moving the wrong way: halt it, then continue toward the goal
+        # once real "stopped" feedback confirms the halt succeeded.
+        await self._pulse_toggle()
+        if self._toggle_state() == "stopped":
+            await self._toggle_step(target)
         else:
-            # Moving the wrong way: halt it, don't claim a direction.
-            await self._pulse_toggle()
-        self.async_write_ha_state()
+            self._toggle_pending_goal = target
 
     async def async_open_cover(self, **kwargs) -> None:
         if self._toggle_mode:

@@ -1094,6 +1094,7 @@
       "climate_on_off_required_error": "Enter the separate On/Off address.",
       "climate_status_required_error": "Enter the PLC operating-status address.",
       "toggle_mode_requires_feedback": "Toggle mode needs real feedback to work correctly: either a status address configured with all 4 status values, or an opening address plus a closing address for movement together with both position/end-stop addresses for the settled state.",
+      "toggle_mode_requires_stopped_mapping": "Toggle mode with a status address also needs a stopped value mapped, so a genuine mid-travel stop can be told apart from missing or unmatched feedback.",
       "invalid_availability_mode": "Select a valid availability policy.",
       "availability_address_required": "An availability BIT address is required.",
       "invalid_availability_address": "Enter a valid availability BIT address.",

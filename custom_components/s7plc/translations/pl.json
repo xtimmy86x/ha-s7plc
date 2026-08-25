@@ -1094,6 +1094,7 @@
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
       "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
       "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga adresu stanów ze wszystkimi 4 wartościami stanu, albo binarnych adresów otwórz i zamknij razem z binarnymi adresami stanu otwarta i zamknięta.",
+      "toggle_mode_requires_stopped_mapping": "Tryb jednego przycisku z adresem stanów wymaga też zmapowanej wartości zatrzymania, aby odróżnić realne zatrzymanie w trakcie ruchu od brakującego lub niedopasowanego stanu z PLC.",
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",
       "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",

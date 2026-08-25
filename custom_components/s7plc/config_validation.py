@@ -961,6 +961,13 @@ class EntityConfigBuilder:
             ) or bool(use_state_topics and opening_state and closing_state)
             if not (has_motion_feedback and has_settled_feedback):
                 return None, {"base": "toggle_mode_requires_feedback"}
+            # A status-word setup must also map "stopped" explicitly, so a
+            # genuine mid-travel stop can be told apart from a missing or
+            # unmatched status value (see S7Cover._toggle_state).
+            if cover_status_fields.get(
+                CONF_COVER_STATUS_ADDRESS
+            ) and not cover_status_fields.get(CONF_COVER_STATUS_STOPPED_VALUES):
+                return None, {"base": "toggle_mode_requires_stopped_mapping"}
 
         # Build item
         item: dict[str, Any] = {
@@ -1001,10 +1008,9 @@ class EntityConfigBuilder:
             item[CONF_USE_STATE_TOPICS] = bool(user_input[CONF_USE_STATE_TOPICS])
         item[CONF_TOGGLE_MODE] = toggle_mode
         if toggle_mode:
-            toggle_pulse = user_input.get(
-                CONF_TOGGLE_PULSE_DURATION, DEFAULT_PULSE_DURATION
+            item[CONF_TOGGLE_PULSE_DURATION] = parse_pulse_duration(
+                user_input.get(CONF_TOGGLE_PULSE_DURATION)
             )
-            item[CONF_TOGGLE_PULSE_DURATION] = float(toggle_pulse)
         item.update(cover_status_fields)
 
         # Apply scan interval

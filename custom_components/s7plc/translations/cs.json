@@ -1094,6 +1094,7 @@
       "climate_on_off_required_error": "Zadejte samostatnou adresu Zap/Vyp.",
       "climate_status_required_error": "Zadejte adresu provozního stavu PLC.",
       "toggle_mode_requires_feedback": "Režim jednoho tlačítka vyžaduje reálnou zpětnou vazbu, aby fungoval správně: adresu stavu se všemi 4 hodnotami stavu, nebo adresu otevírání a adresu zavírání pro pohyb spolu s oběma adresami koncových spínačů/polohy pro ustálený stav.",
+      "toggle_mode_requires_stopped_mapping": "Režim jednoho tlačítka s adresou stavu vyžaduje také namapovanou hodnotu zastavení, aby bylo možné odlišit skutečné zastavení uprostřed pohybu od chybějící nebo neodpovídající zpětné vazby.",
       "invalid_availability_mode": "Vyberte platný režim dostupnosti.",
       "availability_address_required": "Je vyžadována BIT adresa dostupnosti.",
       "invalid_availability_address": "Zadejte platnou BIT adresu dostupnosti.",

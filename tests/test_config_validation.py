@@ -338,6 +338,7 @@ _TOGGLE_COVER_BASE = {
     "cover_status_closed_values": "1",
     "cover_status_opening_values": "2",
     "cover_status_closing_values": "3",
+    "cover_status_stopped_values": "4",
 }
 
 
@@ -400,3 +401,62 @@ def test_toggle_mode_requires_real_feedback() -> None:
     )
     assert not errors
     assert item is not None
+
+
+def test_toggle_mode_with_status_address_requires_stopped_mapping() -> None:
+    """A status-word toggle_mode setup must map "stopped" explicitly, so a
+    genuine mid-travel stop can be told apart from a missing/unmatched
+    status value (maintainer review point 2)."""
+    without_stopped = {
+        k: v for k, v in _TOGGLE_COVER_BASE.items() if k != "cover_status_stopped_values"
+    }
+    item, errors = build_entity_item(CONF_COVERS, without_stopped, options={})
+    assert item is None
+    assert errors == {"base": "toggle_mode_requires_stopped_mapping"}
+
+    # The bit-based alternative (no cover_status_address) is unaffected.
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            "open_command_address": "DB1,X0.0",
+            "toggle_mode": True,
+            "cover_opening_address": "DB1,X1.0",
+            "cover_closing_address": "DB1,X1.1",
+            "use_state_topics": True,
+            "opening_state_address": "DB1,X1.2",
+            "closing_state_address": "DB1,X1.3",
+        },
+        options={},
+    )
+    assert not errors
+    assert item is not None
+
+
+def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:
+    """toggle_pulse_duration goes through the same parse_pulse_duration()
+    helper as switches/lights (0.1-60s range, falls back to the default on
+    invalid input) instead of a bare float(...) conversion - maintainer
+    review point 3."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": "not-a-number"},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5  # DEFAULT_PULSE_DURATION
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 999},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 0.5  # out of 0.1-60s range
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 2.34},
+        options={},
+    )
+    assert not errors
+    assert item["toggle_pulse_duration"] == 2.3  # rounded to 1 decimal

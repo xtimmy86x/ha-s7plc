@@ -2934,3 +2934,188 @@ async def test_pulse_toggle_uses_configured_duration(
     await cover._pulse_toggle()
 
     sleep_mock.assert_awaited_once_with(1.5)
+
+
+# ---------------------------------------------------------------------------
+# "unknown" vs "stopped" (maintainer review point 2)
+# ---------------------------------------------------------------------------
+
+
+def test_toggle_state_is_unknown_for_unmatched_status_value(
+    cover_factory, mock_coordinator
+):
+    """An unmapped/unmatched status value must not be silently treated as
+    a genuine "stopped" reading - toggle_mode's command decisions depend
+    entirely on knowing the real state."""
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 99}  # not in any mapping
+
+    assert cover._toggle_state() == "unknown"
+
+
+def test_toggle_state_is_unknown_before_first_feedback(cover_factory, mock_coordinator):
+    """Boolean feedback with no data at all yet (e.g. right after a Home
+    Assistant restart, before the coordinator's first refresh) must be
+    "unknown", not "stopped"."""
+    cover = cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_closing_address="db1,b2",
+        cover_closing_topic="cover:closing:db1,b2",
+        opened_state="db1,b3",
+        closed_state="db1,b4",
+        opened_topic="cover:opened:db1,b3",
+        closed_topic="cover:closed:db1,b4",
+        use_state_topics=True,
+    )
+    mock_coordinator.data = {}
+
+    assert cover._toggle_state() == "unknown"
+
+
+def test_toggle_state_still_infers_stopped_with_real_boolean_feedback(
+    cover_factory, mock_coordinator
+):
+    """Unchanged from before: real data (all gates reporting False, not
+    unset) still means a genuine mid-travel stop."""
+    cover = cover_factory(
+        toggle_mode=True,
+        close_command=None,
+        cover_opening_address="db1,b1",
+        cover_opening_topic="cover:opening:db1,b1",
+        cover_closing_address="db1,b2",
+        cover_closing_topic="cover:closing:db1,b2",
+        opened_state="db1,b3",
+        closed_state="db1,b4",
+        opened_topic="cover:opened:db1,b3",
+        closed_topic="cover:closed:db1,b4",
+        use_state_topics=True,
+    )
+    mock_coordinator.data = {
+        "cover:opening:db1,b1": False,
+        "cover:closing:db1,b2": False,
+        "cover:opened:db1,b3": False,
+        "cover:closed:db1,b4": False,
+    }
+
+    assert cover._toggle_state() == "stopped"
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_refuses_when_state_is_unknown(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """Unlike a stopped-but-direction-ambiguous refusal, this is "no real
+    feedback at all yet" - must still refuse rather than press blindly."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    mock_coordinator.data = {"cover:status:db1,b10": 99}  # unmatched
+
+    await cover.async_open_cover()
+
+    mock_coordinator.write_batched.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# open/close reach the requested target automatically (maintainer review
+# point 1): halting a wrong-direction move now continues toward the goal
+# once real "stopped" feedback confirms the halt succeeded, instead of
+# requiring the caller to issue a second service call.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_while_closing_defers_continuation_until_real_stop(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+
+    # Only the halt pulse fired - real feedback hasn't confirmed the stop
+    # yet (the mock data is unchanged), so the continuation is deferred.
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert calls.count(("db1,x0.0", True)) == 1
+    assert cover._toggle_pending_goal == "open"
+    assert cover._last_toggle_direction == "closing"  # not yet reversed
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_while_closing_completes_immediately_when_feedback_is_instant(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """If real "stopped" feedback is already visible right after the halt
+    pulse completes, the second pulse toward the goal fires within the
+    same service call - no need to wait for another coordinator update."""
+
+    async def instant_feedback(_duration):
+        mock_coordinator.data = {"cover:status:db1,b10": 4}  # stopped
+
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", instant_feedback)
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert calls.count(("db1,x0.0", True)) == 2  # halt pulse + continuation pulse
+    assert cover._last_toggle_direction == "opening"
+    assert cover._toggle_pending_goal is None
+
+
+@pytest.mark.asyncio
+async def test_toggle_open_while_closing_completes_via_coordinator_update(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """The deferred case: a later, independent coordinator update that
+    finally reports real "stopped" feedback triggers the continuation
+    pulse automatically, without a second explicit service call."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+    assert cover._toggle_pending_goal == "open"
+
+    tasks: list = []
+    monkeypatch.setattr(cover.hass, "async_create_task", tasks.append)
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # now genuinely stopped
+    cover._handle_coordinator_update()
+
+    assert len(tasks) == 1
+    await tasks[0]
+
+    calls = [c.args for c in mock_coordinator.write_batched.call_args_list]
+    assert calls.count(("db1,x0.0", True)) == 2
+    assert cover._last_toggle_direction == "opening"
+    assert cover._toggle_pending_goal is None
+
+
+@pytest.mark.asyncio
+async def test_toggle_stop_cancels_pending_continuation(
+    cover_factory, mock_coordinator, monkeypatch
+):
+    """An explicit stop_cover call cancels any automatic continuation -
+    the user asking to stop means the cover shouldn't keep moving toward
+    a previously requested target."""
+    monkeypatch.setattr("custom_components.s7plc.cover.asyncio.sleep", AsyncMock())
+    cover = _status_cover(cover_factory)
+    cover._last_toggle_direction = "closing"
+    mock_coordinator.data = {"cover:status:db1,b10": 3}  # closing
+
+    await cover.async_open_cover()
+    assert cover._toggle_pending_goal == "open"
+
+    mock_coordinator.write_batched.reset_mock()
+    mock_coordinator.data = {"cover:status:db1,b10": 4}  # already stopped
+    await cover.async_stop_cover()
+
+    assert cover._toggle_pending_goal is None
+    mock_coordinator.write_batched.assert_not_called()  # nothing moving - no-op

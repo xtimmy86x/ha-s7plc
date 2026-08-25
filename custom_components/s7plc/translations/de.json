@@ -1094,6 +1094,7 @@
       "climate_on_off_required_error": "Geben Sie die separate Ein/Aus-Adresse ein.",
       "climate_status_required_error": "Geben Sie die Adresse für den SPS-Betriebsstatus ein.",
       "toggle_mode_requires_feedback": "Der Ein-Tasten-Modus benötigt echtes Feedback, um korrekt zu funktionieren: entweder eine Statusadresse mit allen 4 Statuswerten, oder eine Öffnungsadresse und eine Schließadresse für die Bewegung zusammen mit beiden Endlagen-/Positionsadressen für den eingeschwungenen Zustand.",
+      "toggle_mode_requires_stopped_mapping": "Der Ein-Tasten-Modus mit einer Statusadresse benötigt außerdem einen zugeordneten Stopp-Wert, damit ein echter Zwischenstopp von fehlendem oder unpassendem Feedback unterschieden werden kann.",
       "invalid_availability_mode": "Wählen Sie eine gültige Verfügbarkeitsrichtlinie.",
       "availability_address_required": "Eine Verfügbarkeits-BIT-Adresse ist erforderlich.",
       "invalid_availability_address": "Geben Sie eine gültige Verfügbarkeits-BIT-Adresse ein.",
