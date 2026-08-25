@@ -399,23 +399,23 @@
           },
           "opening_state_address": {
             "label": "Koncový spínač zcela otevřeno",
-            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina otevřená."
+            "description": "Adresa v PLC, která signalizuje, že je krytina otevřená."
           },
           "closing_state_address": {
             "label": "Koncový spínač zcela zavřeno",
-            "description": "Volitelná adresa v PLC, která signalizuje, že je krytina zavřená."
+            "description": "Adresa v PLC, která signalizuje, že je krytina zavřená."
           },
           "cover_opening_address": {
             "label": "Adresa stavu Otevírání",
-            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+            "description": "Booleovská adresa PLC signalizující, že se kryt právě otevírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
           },
           "cover_closing_address": {
             "label": "Adresa stavu Zavírání",
-            "description": "Volitelná booleovská adresa PLC signalizující, že se kryt právě zavírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
+            "description": "Booleovská adresa PLC signalizující, že se kryt právě zavírá. Nezávislá na výše uvedených adresách koncových spínačů otevřeno/zavřeno."
           },
           "cover_stopped_address": {
             "label": "Adresa stavu Zastaveno",
-            "description": "Volitelná booleovská adresa PLC signalizující, že kryt je zastaven (nehýbe se)."
+            "description": "Booleovská adresa PLC signalizující, že kryt je zastaven (nehýbe se)."
           },
           "position_state_address": {
             "label": "Adresa stavu pozice",

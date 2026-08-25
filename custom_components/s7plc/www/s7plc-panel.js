@@ -396,6 +396,22 @@ class S7PlcConfigurationPanel extends HTMLElement {
       setRequired('opening_state_address',isTraditionalLike&&['opening','both'].includes(positionFeedback));
       setRequired('closing_state_address',isTraditionalLike&&['closing','both'].includes(positionFeedback));
       setRequired('cover_status_address',positionStatus||movementStatus);
+      // toggle_mode's validator groups these more strictly than the
+      // shared "at least one" rule above: a status word can only serve
+      // as its settled-position/movement source with EVERY one of the
+      // matching value fields present (see toggle_mode_requires_feedback/
+      // has_settled_feedback/status_is_motion_source in
+      // config_validation.py), and Bits movement needs both address bits
+      // - cover_stopped_address stays optional even there. None of this
+      // applies to plain traditional covers, whose looser "any one value"
+      // rule is already covered by cover_status_address above.
+      setRequired('cover_status_open_values',control==='toggle'&&positionStatus);
+      setRequired('cover_status_closed_values',control==='toggle'&&positionStatus);
+      setRequired('cover_status_opening_values',control==='toggle'&&movementStatus);
+      setRequired('cover_status_closing_values',control==='toggle'&&movementStatus);
+      setRequired('cover_status_stopped_values',control==='toggle'&&movementStatus);
+      setRequired('cover_opening_address',control==='toggle'&&movement==='bits');
+      setRequired('cover_closing_address',control==='toggle'&&movement==='bits');
       return;}if(type==='climates'){const value=name=>form.querySelector(`input[name="${name}"]:checked`)?.value,{fields,sections}=CLIMATE_EDITOR_VISIBILITY({control_mode:value('control_mode'),direct_function:value('climate_direct_function'),direct_feedback:value('climate_direct_feedback'),mode_control:value('climate_mode_control'),action_feedback:value('climate_action_feedback'),availability_mode:value('availability_mode')});form.querySelectorAll('[data-field]').forEach(field=>field.classList.toggle('hidden-field',!fields.has(field.dataset.field)));form.querySelectorAll('[data-section]').forEach(section=>section.classList.toggle('hidden-field',!sections.has(section.dataset.section)));return;}const sel=form.elements.control_mode;if(!sel)return;const hidden=MODE_HIDDEN[type]?.[sel.value]||[];form.querySelectorAll('[data-field]').forEach(l=>l.classList.toggle('hidden-field',hidden.includes(l.dataset.field)));};
     const updateControlBehavior=()=>{if(type!=='switches'&&type!=='lights')return;const state=form.elements.state_address.value.trim(),command=form.elements.command_address.value.trim(),sync=form.querySelector('input[name="control_behavior"][value="sync"]'),canSync=Boolean(command)&&command!==state;sync.disabled=!canSync;sync.closest('.control-card').classList.toggle('disabled',!canSync);if(!canSync&&sync.checked)form.querySelector('input[name="control_behavior"][value="direct"]').checked=true;const selected=form.querySelector('input[name="control_behavior"]:checked')?.value||'direct';form.querySelector('[data-field="pulse_duration"]').classList.toggle('hidden-field',selected!=='pulse');updateOptionsSection();};
     const updateOptionsSection=()=>{const section=form.querySelector('[data-section="options"]');if(section)section.classList.toggle('hidden-field',![...section.querySelectorAll('[data-field]')].some(field=>!field.classList.contains('hidden-field')));};

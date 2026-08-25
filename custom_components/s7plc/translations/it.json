@@ -399,23 +399,23 @@
           },
           "opening_state_address": {
             "label": "Finecorsa aperto",
-            "description": "Indirizzo PLC opzionale che indica che la cover è aperta."
+            "description": "Indirizzo PLC che indica che la cover è aperta."
           },
           "closing_state_address": {
             "label": "Finecorsa chiuso",
-            "description": "Indirizzo PLC opzionale che indica che la cover è chiusa."
+            "description": "Indirizzo PLC che indica che la cover è chiusa."
           },
           "cover_opening_address": {
             "label": "Indirizzo stato apertura",
-            "description": "Indirizzo booleano PLC opzionale che indica che la cover si sta aprendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
+            "description": "Indirizzo booleano PLC che indica che la cover si sta aprendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
           },
           "cover_closing_address": {
             "label": "Indirizzo stato chiusura",
-            "description": "Indirizzo booleano PLC opzionale che indica che la cover si sta chiudendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
+            "description": "Indirizzo booleano PLC che indica che la cover si sta chiudendo. Indipendente dagli indirizzi di finecorsa aperto/chiuso sopra."
           },
           "cover_stopped_address": {
             "label": "Indirizzo stato fermo",
-            "description": "Indirizzo booleano PLC opzionale che indica che la cover è ferma (non in movimento)."
+            "description": "Indirizzo booleano PLC che indica che la cover è ferma (non in movimento)."
           },
           "position_state_address": {
             "label": "Indirizzo stato posizione",

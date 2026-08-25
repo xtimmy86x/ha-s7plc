@@ -399,23 +399,23 @@
           },
           "opening_state_address": {
             "label": "Endschalter vollständig offen",
-            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist (optional)."
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geöffnet ist."
           },
           "closing_state_address": {
             "label": "Endschalter vollständig geschlossen",
-            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist (optional)."
+            "description": "SPS-Adresse, die anzeigt, dass die Jalousie/Raffstore geschlossen ist."
           },
           "cover_opening_address": {
             "label": "Statusadresse Öffnen",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade öffnet. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
           },
           "cover_closing_address": {
             "label": "Statusadresse Schließen",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade schließt. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung sich gerade schließt. Unabhängig von den obigen Endschalteradressen für offen/geschlossen."
           },
           "cover_stopped_address": {
             "label": "Statusadresse Gestoppt",
-            "description": "Optionale boolesche SPS-Adresse, die anzeigt, dass die Abdeckung gestoppt ist (keine Bewegung)."
+            "description": "Boolesche SPS-Adresse, die anzeigt, dass die Abdeckung gestoppt ist (keine Bewegung)."
           },
           "position_state_address": {
             "label": "Positionszustandsadresse",

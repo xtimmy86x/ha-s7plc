@@ -399,23 +399,23 @@
           },
           "opening_state_address": {
             "label": "Fully-open end stop",
-            "description": "Optional PLC address that indicates the cover is opened."
+            "description": "PLC address that indicates the cover is opened."
           },
           "closing_state_address": {
             "label": "Fully-closed end stop",
-            "description": "Optional PLC address that indicates the cover is closed."
+            "description": "PLC address that indicates the cover is closed."
           },
           "cover_opening_address": {
             "label": "Opening status address",
-            "description": "Optional boolean PLC address that indicates the cover is currently opening. Independent of the opened/closed end-stop addresses above."
+            "description": "Boolean PLC address that indicates the cover is currently opening. Independent of the opened/closed end-stop addresses above."
           },
           "cover_closing_address": {
             "label": "Closing status address",
-            "description": "Optional boolean PLC address that indicates the cover is currently closing. Independent of the opened/closed end-stop addresses above."
+            "description": "Boolean PLC address that indicates the cover is currently closing. Independent of the opened/closed end-stop addresses above."
           },
           "cover_stopped_address": {
             "label": "Stopped status address",
-            "description": "Optional boolean PLC address that indicates the cover is stopped (not moving)."
+            "description": "Boolean PLC address that indicates the cover is stopped (not moving)."
           },
           "position_state_address": {
             "label": "Position state address",

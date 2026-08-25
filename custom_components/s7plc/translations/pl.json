@@ -399,23 +399,23 @@
           },
           "opening_state_address": {
             "label": "Adres stanu otwarta",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (otwarta)."
+            "description": "Adres odczytu aktualnego stanu (otwarta)."
           },
           "closing_state_address": {
             "label": "Adres stanu zamknięta",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zamknięta)."
           },
           "cover_opening_address": {
             "label": "Adres stanu otwieranie",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (otwieranie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "cover_closing_address": {
             "label": "Adres stanu zamykanie",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zamykanie). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "cover_stopped_address": {
             "label": "Adres stanu zatrzymana",
-            "description": "Opcjonalny adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
+            "description": "Adres odczytu aktualnego stanu (zatrzymana). Niezależny od powyższych adresów krańcówek (otwarta/zamknięta)."
           },
           "position_state_address": {
             "label": "Adres odczytu pozycji",
