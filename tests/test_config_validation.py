@@ -310,13 +310,11 @@ def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
 
 
 def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
-    """Plain traditional covers (no toggle_mode) keep the pre-existing
-    coupling: a status word chosen for position feedback is authoritative
-    for movement too, so separately configured movement bits are still
-    discarded - unlike toggle_mode, which treats the two as independent
-    sources (see test_toggle_mode_keeps_movement_bits_with_status_position
-    below). Changing traditional-cover semantics is out of scope for the
-    toggle_mode PR (#117 review round 4)."""
+    """A status word chosen for position feedback still excludes the
+    end-stop bit (opening_state_address) from also being a position
+    source, but movement bits (cover_opening_address) are an independent
+    source and survive regardless of the position_feedback choice - the
+    user decides which sources to wire up."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -334,13 +332,13 @@ def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     assert not errors
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
-    assert "cover_opening_address" not in item
+    assert item["cover_opening_address"] == "DB1,X2.0"
 
 
 def test_toggle_mode_keeps_movement_bits_with_status_position() -> None:
-    """toggle_mode itself keeps the independent-source model: a status word
+    """toggle_mode keeps the independent-source model: a status word
     chosen for position feedback does not discard separately configured
-    movement bits (contrast with the plain-traditional test above)."""
+    movement bits."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -503,6 +501,147 @@ def test_toggle_mode_stopped_mapping_not_required_when_status_is_position_only()
     assert not errors
     assert item is not None
     assert "cover_status_stopped_values" not in item
+
+
+_POSITION_COVER_BASE = {
+    "position_state_address": "DB1,B0",
+}
+
+
+def test_position_cover_gets_same_feedback_selector_as_traditional() -> None:
+    """Position-mode covers accept opening_state_address/closing_state_address
+    and the movement bits, same as traditional/toggle covers."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "both",
+            "opening_state_address": "DB1,X1.0",
+            "closing_state_address": "DB1,X1.1",
+            "cover_opening_address": "DB1,X2.0",
+            "cover_closing_address": "DB1,X2.1",
+            "cover_stopped_address": "DB1,X2.2",
+        },
+        options={},
+    )
+    assert not errors
+    assert item["cover_position_feedback"] == "both"
+    assert item["opening_state_address"] == "DB1,X1.0"
+    assert item["closing_state_address"] == "DB1,X1.1"
+    assert item["cover_opening_address"] == "DB1,X2.0"
+    assert item["cover_closing_address"] == "DB1,X2.1"
+    assert item["cover_stopped_address"] == "DB1,X2.2"
+
+
+def test_position_cover_status_feedback_requires_matching_fields() -> None:
+    """cover_position_feedback="status" requires cover_status_address plus
+    at least one value mapping, same as traditional covers."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_POSITION_COVER_BASE, "cover_position_feedback": "status"},
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "cover_status_required"}
+
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "status",
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "1",
+        },
+        options={},
+    )
+    assert not errors
+    assert item["cover_position_feedback"] == "status"
+    assert item["cover_status_address"] == "DB1,B10"
+
+
+def test_position_cover_opening_closing_feedback_requires_state_address() -> None:
+    """cover_position_feedback in {"opening","closing","both"} requires the
+    matching end-stop address, same as traditional covers."""
+    # "opening" needs opening_state_address; omitting it errors even though
+    # closing_state_address (irrelevant to this mode) is present.
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "opening",
+            "closing_state_address": "DB1,X1.1",
+        },
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "state_addresses_required"}
+
+    # "closing" needs closing_state_address.
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "closing",
+            "opening_state_address": "DB1,X1.0",
+        },
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "state_addresses_required"}
+
+    # "both" needs both - only one supplied still errors.
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "both",
+            "opening_state_address": "DB1,X1.0",
+        },
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "state_addresses_required"}
+
+
+def test_position_cover_movement_bits_survive_status_position_feedback() -> None:
+    """Movement bits are an independent source and survive regardless of
+    the position_feedback choice - the user decides which sources to wire
+    up, same as traditional/toggle covers now."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "status",
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "1",
+            "cover_opening_address": "DB1,X2.0",
+            "cover_closing_address": "DB1,X2.1",
+        },
+        options={},
+    )
+    assert not errors
+    assert item["cover_opening_address"] == "DB1,X2.0"
+    assert item["cover_closing_address"] == "DB1,X2.1"
+
+
+def test_position_cover_legacy_without_selector_infers_status_from_cover_status_address() -> None:
+    """A legacy position cover with only cover_status_address (no
+    persisted selector, no end-stop addresses) is not required to also
+    have a status word, since feedback_mode infers "status" for it -
+    unlike a cover with no signal at all, which infers "timed" and needs
+    nothing."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_status_address": "DB1,B10",
+            "cover_status_open_values": "1",
+        },
+        options={},
+    )
+    assert not errors
+    assert "cover_position_feedback" not in item
+    assert item["cover_status_address"] == "DB1,B10"
 
 
 def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:

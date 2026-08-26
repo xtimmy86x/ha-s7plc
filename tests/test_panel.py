@@ -2759,7 +2759,14 @@ console.log(JSON.stringify({{
     assert result["timed"] == "timed"
     assert result["endstops"] == "both"
     assert result["legacyEndstop"] == "opening"
-    assert result["statusWins"] == "status"
+    # "mixed" is a legacy position cover with only cover_status_address (no
+    # opening/closing_state_address) - position_feedback infers "status"
+    # from it (keeps working exactly as before the selector existed - see
+    # legacyPositionFeedback). Movement then independently prefers the
+    # separately configured bits over reusing that same status word, since
+    # position mode now uses the same independent-source model toggle_mode
+    # does (position and movement never have to agree on one source).
+    assert result["statusWins"] == "bits"
     assert result["bits"] == "bits"
     assert result["traditional"]["cover_stop_enabled"] == "disabled"
     assert result["traditional"]["cover_tilt_enabled"] == "disabled"
@@ -3062,6 +3069,65 @@ console.log(JSON.stringify({{
     assert result["missing"]["opening"] == "errors.cover_endstop_closed_required_error"
     assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
     assert result["missing"]["legacy"] is None
+
+
+def test_position_cover_endstop_and_movement_bits_round_trip() -> None:
+    """Position-mode covers get the same end-stop/movement-bit feedback
+    parity as traditional/toggle: the "Pozycja" section and the "bits"
+    movement option are no longer traditional/toggle-exclusive."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:Object.prototype.hasOwnProperty.call(overrides,"cover_position_feedback")?"true":""}},reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+const error=(original,overrides={{}})=>{{try{{save(original,overrides);return null;}}catch(err){{return err.message;}}}};
+const positionBase={{position_state_address:"DB1,B0"}};
+const positionBoth={{...positionBase,opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}};
+console.log(JSON.stringify({{
+  inferred:infer(positionBoth),
+  roundTrip:save(positionBoth,{{cover_position_feedback:"both"}}),
+  bitsRoundTrip:save({{...positionBase,cover_opening_address:"DB1,X2.0",cover_closing_address:"DB1,X2.1"}},{{cover_movement_feedback:"bits"}}),
+  missing:{{opening:error(positionBase,{{cover_position_feedback:"both",opening_state_address:"DB1,X0.2"}}),closing:error(positionBase,{{cover_position_feedback:"both",closing_state_address:"DB1,X0.3"}})}}
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["inferred"]["cover_position_feedback"] == "both"
+    assert result["roundTrip"]["opening_state_address"] == "DB1,X0.2"
+    assert result["roundTrip"]["closing_state_address"] == "DB1,X0.3"
+    assert result["bitsRoundTrip"]["cover_opening_address"] == "DB1,X2.0"
+    assert result["bitsRoundTrip"]["cover_closing_address"] == "DB1,X2.1"
+    assert result["missing"]["opening"] == "errors.cover_endstop_closed_required_error"
+    assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
+
+
+def test_position_cover_feedback_section_and_bits_option_always_visible() -> None:
+    """syncMode() no longer hides the "Pozycja" section or the "bits"
+    movement-feedback option card for control==='position'."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert (
+        'form.querySelector(\'[data-section="cover-position-feedback"]\').classList.toggle(\'hidden-field\',control===\'position\')'
+        not in source
+    )
+    assert (
+        'form.querySelector(\'input[name="cover_movement_feedback"][value="bits"]\').closest(\'.control-card\').classList.toggle(\'hidden-field\',control===\'position\')'
+        not in source
+    )
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:

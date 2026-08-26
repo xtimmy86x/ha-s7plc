@@ -2174,6 +2174,7 @@ def test_position_cover_status_closed_value_overrides_is_closed(
         cover_status_topic="cover:status:db1,b10",
         cover_status_address="db1,b10",
         cover_status_closed_values="1",
+        position_feedback="status",
     )
     mock_coordinator.data = {
         "cover:position:db1,b0": 50,  # would say "not closed" on its own
@@ -2199,6 +2200,7 @@ def test_position_cover_status_open_value_overrides_is_closed(
         cover_status_topic="cover:status:db1,b10",
         cover_status_address="db1,b10",
         cover_status_open_values="1",
+        position_feedback="status",
     )
     mock_coordinator.data = {
         "cover:position:db1,b0": 0,  # would say "closed" on its own
@@ -2299,6 +2301,206 @@ async def test_position_cover_setup_with_status_address(
     assert cover._cover_status_values["closed"] == [3]
     assert cover._cover_status_values["opening"] == [1]
     assert cover._cover_status_values["closing"] == [2]
+
+
+# ============================================================================
+# End-stop/movement feedback parity (S7PositionCover) Tests
+# ============================================================================
+
+
+def test_position_cover_is_closed_uses_end_stop_bits_opening_mode(
+    fake_hass, mock_coordinator, device_info
+):
+    """position_feedback="opening": the opened end-stop bit is authoritative
+    for is_closed, even when the raw position disagrees."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        position_feedback="opening",
+        opening_state_address="db1,x1.0",
+        opening_topic="cover:opened:db1,x1.0",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 0,  # would say "closed" on its own
+        "cover:opened:db1,x1.0": True,
+    }
+    assert cover.is_closed is False
+
+
+def test_position_cover_is_closed_uses_end_stop_bits_both_mode(
+    fake_hass, mock_coordinator, device_info
+):
+    """position_feedback="both": the closed end-stop bit makes is_closed
+    True, independent of the raw position value."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        position_feedback="both",
+        opening_state_address="db1,x1.0",
+        opening_topic="cover:opened:db1,x1.0",
+        closing_state_address="db1,x1.1",
+        closing_topic="cover:closed:db1,x1.1",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 50,  # would say "not closed" on its own
+        "cover:opened:db1,x1.0": False,
+        "cover:closed:db1,x1.1": True,
+    }
+    assert cover.is_closed is True
+
+
+def test_position_cover_is_closed_ignores_status_when_feedback_timed(
+    fake_hass, mock_coordinator, device_info
+):
+    """A configured cover_status_address is not consulted for is_closed
+    unless position_feedback selects it - "timed" always falls back to the
+    raw position value."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        position_feedback="timed",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closed_values="1",
+    )
+    mock_coordinator.data = {
+        "cover:position:db1,b0": 50,  # not closed per raw position
+        "cover:status:db1,b10": 1,  # would say "closed" per status
+    }
+    assert cover.is_closed is False
+
+
+def test_position_cover_movement_bits_drive_is_opening_is_closing(
+    fake_hass, mock_coordinator, device_info
+):
+    """cover_opening_address/cover_closing_address drive is_opening/
+    is_closing independently of position_feedback, same as S7Cover."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        position_feedback="status",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closed_values="1",
+        cover_opening_address="db1,x2.0",
+        cover_opening_topic="cover:opening:db1,x2.0",
+        cover_closing_address="db1,x2.1",
+        cover_closing_topic="cover:closing:db1,x2.1",
+    )
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 0,  # unmatched - not "closed"
+        "cover:opening:db1,x2.0": True,
+        "cover:closing:db1,x2.1": False,
+    }
+    assert cover.is_opening is True
+    assert cover.is_closing is False
+
+
+def test_position_cover_movement_status_wins_over_bits(
+    fake_hass, mock_coordinator, device_info
+):
+    """When cover_status_address resolves the movement, it takes priority
+    over the boolean bits - same precedence as S7Cover."""
+    from custom_components.s7plc.cover import S7PositionCover
+
+    cover = S7PositionCover(
+        mock_coordinator,
+        "Test Cover",
+        "test_id",
+        device_info,
+        "db1,b0",
+        "db1,b1",
+        cover_status_topic="cover:status:db1,b10",
+        cover_status_address="db1,b10",
+        cover_status_closing_values="2",
+        cover_opening_address="db1,x2.0",
+        cover_opening_topic="cover:opening:db1,x2.0",
+    )
+    mock_coordinator.data = {
+        "cover:status:db1,b10": 2,  # "closing" per status
+        "cover:opening:db1,x2.0": True,  # bits disagree
+    }
+    assert cover.is_closing is True
+    assert cover.is_opening is False
+
+
+@pytest.mark.asyncio
+async def test_position_cover_setup_with_end_stop_and_movement_feedback(
+    fake_hass, mock_coordinator, device_info
+):
+    """Setup wires opening/closing_state_address and the movement bits as
+    their own coordinator topics, alongside the position topic, and passes
+    position_feedback through to the entity."""
+    from custom_components.s7plc.const import (
+        CONF_POSITION_STATE_ADDRESS,
+        CONF_POSITION_COMMAND_ADDRESS,
+        CONF_OPENING_STATE_ADDRESS,
+        CONF_CLOSING_STATE_ADDRESS,
+        CONF_COVER_OPENING_ADDRESS,
+        CONF_COVER_CLOSING_ADDRESS,
+        CONF_COVER_STOPPED_ADDRESS,
+        CONF_COVER_POSITION_FEEDBACK,
+    )
+
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_POSITION_STATE_ADDRESS: "db1,b0",
+                CONF_POSITION_COMMAND_ADDRESS: "db1,b1",
+                CONF_COVER_POSITION_FEEDBACK: "both",
+                CONF_OPENING_STATE_ADDRESS: "db1,x1.0",
+                CONF_CLOSING_STATE_ADDRESS: "db1,x1.1",
+                CONF_COVER_OPENING_ADDRESS: "db1,x2.0",
+                CONF_COVER_CLOSING_ADDRESS: "db1,x2.1",
+                CONF_COVER_STOPPED_ADDRESS: "db1,x2.2",
+                CONF_NAME: "Test Position Cover",
+                CONF_UID: "uid-1",
+            }
+        ]
+    }
+
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    # position + opening + closing + 3 movement bits = 6 topics.
+    assert mock_coordinator.add_item.call_count == 6
+    entities = async_add_entities.call_args[0][0]
+    cover = entities[0]
+    assert cover._position_feedback == "both"
+    assert cover._opening_state_address == "db1,x1.0"
+    assert cover._closing_state_address == "db1,x1.1"
+    assert cover._cover_opening_address == "db1,x2.0"
+    assert cover._cover_closing_address == "db1,x2.1"
+    assert cover._cover_stopped_address == "db1,x2.2"
 
 
 # ============================================================================

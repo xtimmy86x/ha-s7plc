@@ -100,6 +100,28 @@ def _traditional_feedback_mode(item: dict[str, Any]) -> str:
     return "timed"
 
 
+def _position_feedback_mode(item: dict[str, Any]) -> str:
+    """Same precedence as _traditional_feedback_mode, but position covers
+    predate the position_feedback selector and previously used
+    cover_status_address unconditionally for is_closed - when nothing else
+    signals an explicit choice, a configured cover_status_address infers
+    "status" instead of "timed" so existing entities keep behaving exactly
+    as before.
+    """
+    mode = item.get(CONF_COVER_POSITION_FEEDBACK)
+    if mode in {"timed", "opening", "closing", "both", "status"}:
+        return mode
+    if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(CONF_CLOSING_STATE_ADDRESS):
+        return "both"
+    if item.get(CONF_OPENING_STATE_ADDRESS):
+        return "opening"
+    if item.get(CONF_CLOSING_STATE_ADDRESS):
+        return "closing"
+    if item.get(CONF_COVER_STATUS_ADDRESS):
+        return "status"
+    return "timed"
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
@@ -122,6 +144,54 @@ async def async_setup_entry(
 
             position_topic = f"cover:position:{position_state}"
             await coord.add_item(position_topic, position_state, scan_interval)
+
+            # Optional end-stop/movement feedback, same model traditional
+            # covers use: position_feedback selects which source is
+            # authoritative for is_closed (end-stops or the status word),
+            # while the movement bits (opening/closing/stopped) feed
+            # is_opening/is_closing independently of that choice - the user
+            # decides which sources to wire up.
+            position_feedback = _position_feedback_mode(item)
+            opening_state = (
+                item.get(CONF_OPENING_STATE_ADDRESS)
+                if position_feedback in {"opening", "both"}
+                else None
+            )
+            closing_state = (
+                item.get(CONF_CLOSING_STATE_ADDRESS)
+                if position_feedback in {"closing", "both"}
+                else None
+            )
+            opening_topic = None
+            closing_topic = None
+            if opening_state:
+                opening_topic = f"cover:opened:{opening_state}"
+                await coord.add_item(opening_topic, opening_state, scan_interval)
+            if closing_state:
+                closing_topic = f"cover:closed:{closing_state}"
+                await coord.add_item(closing_topic, closing_state, scan_interval)
+
+            cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
+            cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
+            cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
+            cover_opening_topic = None
+            cover_closing_topic = None
+            cover_stopped_topic = None
+            if cover_opening_address:
+                cover_opening_topic = f"cover:opening:{cover_opening_address}"
+                await coord.add_item(
+                    cover_opening_topic, cover_opening_address, scan_interval
+                )
+            if cover_closing_address:
+                cover_closing_topic = f"cover:closing:{cover_closing_address}"
+                await coord.add_item(
+                    cover_closing_topic, cover_closing_address, scan_interval
+                )
+            if cover_stopped_address:
+                cover_stopped_topic = f"cover:stopped:{cover_stopped_address}"
+                await coord.add_item(
+                    cover_stopped_topic, cover_stopped_address, scan_interval
+                )
 
             # Optional: tilt control, symmetric to position above.
             tilt_state = item.get(CONF_TILT_STATE_ADDRESS)
@@ -189,6 +259,17 @@ async def async_setup_entry(
                     cover_status_opening_values=cover_status_opening_values,
                     cover_status_closing_values=cover_status_closing_values,
                     cover_status_stopped_values=cover_status_stopped_values,
+                    position_feedback=position_feedback,
+                    opening_state_address=opening_state,
+                    closing_state_address=closing_state,
+                    opening_topic=opening_topic,
+                    closing_topic=closing_topic,
+                    cover_opening_address=cover_opening_address,
+                    cover_closing_address=cover_closing_address,
+                    cover_stopped_address=cover_stopped_address,
+                    cover_opening_topic=cover_opening_topic,
+                    cover_closing_topic=cover_closing_topic,
+                    cover_stopped_topic=cover_stopped_topic,
                 )
             )
             continue
@@ -235,27 +316,13 @@ async def async_setup_entry(
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
         # Optional: real-time movement status, read independently of the
-        # opened/closed end-stops above. Each is a separate boolean address,
-        # not a multi-value status word.
-        # toggle_mode treats position and movement feedback as fully
-        # independent sources - a status word chosen for position must not
-        # discard separately configured movement bits; see
-        # _toggle_movement/_toggle_position for how S7Cover composes both.
-        # Plain traditional covers keep the pre-existing coupling (a status
-        # word supplies both kinds of feedback, so stale bit fields are
-        # ignored) since their runtime (_get_feedback_movement) still
-        # implements that precedence - changing it is out of this PR's
-        # scope.
-        keep_movement_bits = toggle_mode or feedback_mode != "status"
-        cover_opening_address = (
-            item.get(CONF_COVER_OPENING_ADDRESS) if keep_movement_bits else None
-        )
-        cover_closing_address = (
-            item.get(CONF_COVER_CLOSING_ADDRESS) if keep_movement_bits else None
-        )
-        cover_stopped_address = (
-            item.get(CONF_COVER_STOPPED_ADDRESS) if keep_movement_bits else None
-        )
+        # opened/closed end-stops above and of feedback_mode - the user
+        # decides which sources to wire up, so a status word chosen for
+        # position does not discard separately configured movement bits.
+        # Each is a separate boolean address, not a multi-value status word.
+        cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
+        cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
+        cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
 
         cover_opening_topic = None
         cover_closing_topic = None
@@ -1204,6 +1271,17 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         cover_status_opening_values: str = DEFAULT_COVER_STATUS_OPENING_VALUES,
         cover_status_closing_values: str = DEFAULT_COVER_STATUS_CLOSING_VALUES,
         cover_status_stopped_values: str = DEFAULT_COVER_STATUS_STOPPED_VALUES,
+        position_feedback: str = "timed",
+        opening_state_address: str | None = None,
+        closing_state_address: str | None = None,
+        opening_topic: str | None = None,
+        closing_topic: str | None = None,
+        cover_opening_address: str | None = None,
+        cover_closing_address: str | None = None,
+        cover_stopped_address: str | None = None,
+        cover_opening_topic: str | None = None,
+        cover_closing_topic: str | None = None,
+        cover_stopped_topic: str | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -1239,6 +1317,22 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             "closing": parse_mode_values(cover_status_closing_values),
             "stopped": parse_mode_values(cover_status_stopped_values),
         }
+
+        # Optional end-stop/movement feedback, same model traditional
+        # covers use (see S7Cover): position_feedback selects which single
+        # source is authoritative for is_closed; the movement bits below
+        # feed is_opening/is_closing independently of that choice.
+        self._position_feedback = position_feedback
+        self._opening_state_address = opening_state_address
+        self._closing_state_address = closing_state_address
+        self._opening_topic = opening_topic
+        self._closing_topic = closing_topic
+        self._cover_opening_address = cover_opening_address
+        self._cover_closing_address = cover_closing_address
+        self._cover_stopped_address = cover_stopped_address
+        self._cover_opening_topic = cover_opening_topic
+        self._cover_closing_topic = cover_closing_topic
+        self._cover_stopped_topic = cover_stopped_topic
 
         features = (
             CoverEntityFeature.OPEN
@@ -1313,21 +1407,48 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         """Return current tilt position (0=closed, 100=open), if configured."""
         return self._get_tilt_value()
 
+    def _get_topic_state(self, topic: str | None) -> bool | None:
+        if topic is None:
+            return None
+        data = self.coordinator.data or {}
+        if topic not in data:
+            return None
+        value = data.get(topic)
+        if value is None:
+            return None
+        return bool(value)
+
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed.
 
-        If cover_status_address is configured and the status matches
-        cover_status_open_values/cover_status_closed_values, that's
-        authoritative. Otherwise (unconfigured, or the status currently
-        reads "opening"/"closing"/"stopped"/unmatched) falls back to the
-        position value (closed when position == 0).
+        Consults exactly the source selected by position_feedback (end-stop
+        bits, the status word, or neither for "timed"), matching S7Cover's
+        precedence. Position mode always has continuous position telemetry
+        available, so whenever the preferred source doesn't resolve
+        conclusively, this falls back to the raw position value (closed
+        when position == 0) instead of reporting unknown.
         """
-        if self._cover_status_address:
+        if self._position_feedback == "status" and self._cover_status_address:
             movement = self._get_movement_status()
             if movement == "closed":
                 return True
             if movement == "open":
+                return False
+        elif self._position_feedback in ("opening", "closing", "both"):
+            opened = (
+                self._get_topic_state(self._opening_topic)
+                if self._opening_state_address
+                else None
+            )
+            closed = (
+                self._get_topic_state(self._closing_topic)
+                if self._closing_state_address
+                else None
+            )
+            if closed is True and opened is not True:
+                return True
+            if opened is True and closed is not True:
                 return False
         pos = self._get_position_value()
         if pos is None:
@@ -1352,24 +1473,54 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                 return movement
         return None
 
+    def _get_bits_movement(self) -> str | None:
+        """Return movement reported by the boolean opening/closing/stopped
+        addresses, independent of cover_status_address."""
+        if self._cover_stopped_address and self._get_topic_state(
+            self._cover_stopped_topic
+        ):
+            return "stopped"
+        opening = (
+            self._get_topic_state(self._cover_opening_topic)
+            if self._cover_opening_address
+            else None
+        )
+        closing = (
+            self._get_topic_state(self._cover_closing_topic)
+            if self._cover_closing_address
+            else None
+        )
+        if opening is True and closing is True:
+            return None
+        if opening is True:
+            return "opening"
+        if closing is True:
+            return "closing"
+        if opening is not None or closing is not None:
+            return "stopped"
+        return None
+
     @property
     def is_opening(self) -> bool:
-        """Return True when cover_status_address reports "opening".
+        """Return True when moving open.
 
-        Without cover_status_address, position alone can't distinguish
-        "moving" from "stopped mid-travel", so this stays False.
+        Prefers cover_status_address when it has a match, otherwise falls
+        back to the boolean movement bits - same priority as S7Cover.
         """
         if self._cover_status_address:
-            return self._get_movement_status() == "opening"
-        return False
+            status_movement = self._get_movement_status()
+            if status_movement is not None:
+                return status_movement == "opening"
+        return self._get_bits_movement() == "opening"
 
     @property
     def is_closing(self) -> bool:
-        """Return True when cover_status_address reports "closing". See
-        is_opening."""
+        """Return True when moving closed. See is_opening."""
         if self._cover_status_address:
-            return self._get_movement_status() == "closing"
-        return False
+            status_movement = self._get_movement_status()
+            if status_movement is not None:
+                return status_movement == "closing"
+        return self._get_bits_movement() == "closing"
 
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover (set position to 100)."""
@@ -1505,6 +1656,16 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             attrs["s7_tilt_state_address"] = self._tilt_state_address.upper()
         if self._tilt_command_address:
             attrs["s7_tilt_command_address"] = self._tilt_command_address.upper()
+        if self._opening_state_address:
+            attrs["s7_opening_state_address"] = self._opening_state_address.upper()
+        if self._closing_state_address:
+            attrs["s7_closing_state_address"] = self._closing_state_address.upper()
+        if self._cover_opening_address:
+            attrs["s7_cover_opening_address"] = self._cover_opening_address.upper()
+        if self._cover_closing_address:
+            attrs["s7_cover_closing_address"] = self._cover_closing_address.upper()
+        if self._cover_stopped_address:
+            attrs["s7_cover_stopped_address"] = self._cover_stopped_address.upper()
         if self._cover_status_address:
             attrs["s7_cover_status_address"] = self._cover_status_address.upper()
             attrs["s7_cover_status_values"] = self._cover_status_values

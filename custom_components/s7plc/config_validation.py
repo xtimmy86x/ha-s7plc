@@ -998,19 +998,15 @@ class EntityConfigBuilder:
         ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
-        # Add optional real-time movement status addresses. toggle_mode
-        # treats position and movement feedback as independent sources, so
-        # a status word chosen for position does not discard separately
-        # configured movement bits there; plain traditional covers keep the
-        # pre-existing coupling (status word supplies both, stale bit
-        # fields are dropped) since their runtime still implements that
-        # precedence - out of this PR's scope to change.
-        keep_movement_bits = toggle_mode or feedback_mode != "status"
-        if keep_movement_bits and cover_opening_addr:
+        # Add optional real-time movement status addresses, independent of
+        # feedback_mode - the user decides which sources to wire up, so a
+        # status word chosen for position does not discard separately
+        # configured movement bits.
+        if cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if keep_movement_bits and cover_closing_addr:
+        if cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if keep_movement_bits and cover_stopped_addr:
+        if cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields
@@ -1079,6 +1075,71 @@ class EntityConfigBuilder:
                 if tilt_cmd_errors:
                     return None, tilt_cmd_errors
 
+        # Same position_feedback selector traditional covers have (see
+        # _build_cover_item), so end-stop bits and the status word can both
+        # drive is_closed here too.
+        feedback_mode = user_input.get(CONF_COVER_POSITION_FEEDBACK)
+        explicit_feedback = feedback_mode in {
+            "timed",
+            "opening",
+            "closing",
+            "both",
+            "status",
+        }
+        if not explicit_feedback:
+            # Position covers predate this selector and previously used
+            # cover_status_address unconditionally for is_closed - keep
+            # inferring "status" for legacy entries that only ever had it,
+            # matching _position_feedback_mode's runtime counterpart.
+            if user_input.get(CONF_OPENING_STATE_ADDRESS) and user_input.get(
+                CONF_CLOSING_STATE_ADDRESS
+            ):
+                feedback_mode = "both"
+            elif user_input.get(CONF_OPENING_STATE_ADDRESS):
+                feedback_mode = "opening"
+            elif user_input.get(CONF_CLOSING_STATE_ADDRESS):
+                feedback_mode = "closing"
+            elif user_input.get(CONF_COVER_STATUS_ADDRESS):
+                feedback_mode = "status"
+            else:
+                feedback_mode = "timed"
+
+        opening_state = self._sanitize_address(
+            user_input.get(CONF_OPENING_STATE_ADDRESS)
+        )
+        closing_state = self._sanitize_address(
+            user_input.get(CONF_CLOSING_STATE_ADDRESS)
+        )
+
+        # Optional real-time movement status addresses, independent of
+        # feedback_mode - same model as traditional covers.
+        cover_opening_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_OPENING_ADDRESS)
+        )
+        cover_closing_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_CLOSING_ADDRESS)
+        )
+        cover_stopped_addr = self._sanitize_address(
+            user_input.get(CONF_COVER_STOPPED_ADDRESS)
+        )
+
+        if feedback_mode in {"opening", "both"} and not opening_state:
+            return None, {"base": "state_addresses_required"}
+        if feedback_mode in {"closing", "both"} and not closing_state:
+            return None, {"base": "state_addresses_required"}
+
+        for candidate in (
+            opening_state,
+            closing_state,
+            cover_opening_addr,
+            cover_closing_addr,
+            cover_stopped_addr,
+        ):
+            if candidate:
+                _, addr_errors = self._validate_address_field(candidate)
+                if addr_errors:
+                    return None, addr_errors
+
         # Check for duplicates
         if self._has_duplicate(
             CONF_COVERS,
@@ -1095,6 +1156,32 @@ class EntityConfigBuilder:
         )
         if cover_status_errors:
             return None, cover_status_errors
+        status_keys = (
+            CONF_COVER_STATUS_ADDRESS,
+            CONF_COVER_STATUS_OPEN_VALUES,
+            CONF_COVER_STATUS_CLOSED_VALUES,
+            CONF_COVER_STATUS_OPENING_VALUES,
+            CONF_COVER_STATUS_CLOSING_VALUES,
+            CONF_COVER_STATUS_STOPPED_VALUES,
+        )
+        if any(
+            cover_status_fields.get(key) for key in status_keys[1:]
+        ) and not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS):
+            return None, {"base": "cover_status_required"}
+        if feedback_mode == "status" and (
+            not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS)
+            or not any(
+                cover_status_fields.get(key)
+                for key in (
+                    CONF_COVER_STATUS_OPEN_VALUES,
+                    CONF_COVER_STATUS_CLOSED_VALUES,
+                    CONF_COVER_STATUS_OPENING_VALUES,
+                    CONF_COVER_STATUS_CLOSING_VALUES,
+                    CONF_COVER_STATUS_STOPPED_VALUES,
+                )
+            )
+        ):
+            return None, {"base": "cover_status_required"}
 
         # Build item
         item: dict[str, Any] = {
@@ -1124,6 +1211,24 @@ class EntityConfigBuilder:
                 item[CONF_TILT_COMMAND_ADDRESS] = tilt_command_addr
             if user_input.get(CONF_INVERT_TILT, False):
                 item[CONF_INVERT_TILT] = True
+
+        # Add optional end-stop/movement feedback addresses.
+        if (
+            feedback_mode in {"opening", "both"} or not explicit_feedback
+        ) and opening_state:
+            item[CONF_OPENING_STATE_ADDRESS] = opening_state
+        if (
+            feedback_mode in {"closing", "both"} or not explicit_feedback
+        ) and closing_state:
+            item[CONF_CLOSING_STATE_ADDRESS] = closing_state
+        if cover_opening_addr:
+            item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
+        if cover_closing_addr:
+            item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
+        if cover_stopped_addr:
+            item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
+        if explicit_feedback:
+            item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
 
         item.update(cover_status_fields)
 
