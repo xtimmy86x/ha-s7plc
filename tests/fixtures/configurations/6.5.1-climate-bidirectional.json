@@ -1,0 +1,31 @@
+{
+  "climates": [
+    {
+      "control_mode": "setpoint",
+      "current_temperature_address": "DB3,REAL0",
+      "target_temperature_address": "DB3,REAL4",
+      "preset_mode_address": "DB3,BYTE8",
+      "preset_mode_bidirectional": true,
+      "hvac_status_off_values": "0",
+      "hvac_status_heating_values": "1",
+      "hvac_status_cooling_values": "2",
+      "hvac_status_idle_values": "3",
+      "hvac_status_drying_values": "",
+      "hvac_status_fan_values": "",
+      "hvac_status_preheating_values": "",
+      "hvac_status_defrosting_values": "",
+      "preset_mode_off_value": 0,
+      "preset_mode_heat_value": 1,
+      "preset_mode_cool_value": 2,
+      "preset_mode_heat_cool_value": 3,
+      "preset_mode_auto_value": null,
+      "preset_mode_dry_value": null,
+      "preset_mode_fan_only_value": null,
+      "min_temp": 7.0,
+      "max_temp": 35.0,
+      "temp_step": 0.5,
+      "name": "Production office",
+      "uid": "legacy-climate-office"
+    }
+  ]
+}

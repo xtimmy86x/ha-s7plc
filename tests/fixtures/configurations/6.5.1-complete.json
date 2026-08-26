@@ -1,0 +1,71 @@
+{
+  "sensors": [
+    {
+      "address": "DB1,REAL0",
+      "name": "Room temperature",
+      "unit_of_measurement": "°C",
+      "state_class": "measurement",
+      "min_value": -20.0,
+      "max_value": 80.0,
+      "scale_raw_min": 0.0,
+      "scale_raw_max": 1000.0,
+      "real_precision": 1,
+      "uid": "legacy-sensor-temperature"
+    }
+  ],
+  "binary_sensors": [
+    {
+      "address": "DB1,X4.0",
+      "name": "Door contact",
+      "invert_state": true,
+      "uid": "legacy-binary-door"
+    }
+  ],
+  "switches": [
+    {
+      "state_address": "DB1,X4.1",
+      "command_address": "DB1,X4.2",
+      "name": "Pump",
+      "sync_state": true,
+      "pulse_command": false,
+      "uid": "legacy-switch-pump"
+    }
+  ],
+  "buttons": [
+    {
+      "address": "DB1,X4.3",
+      "name": "Reset alarm",
+      "button_pulse": 0.5,
+      "uid": "legacy-button-reset"
+    }
+  ],
+  "numbers": [
+    {
+      "address": "DB1,INT6",
+      "command_address": "DB1,INT8",
+      "name": "Fan setpoint",
+      "min_value": 0.0,
+      "max_value": 100.0,
+      "step": 1.0,
+      "unit_of_measurement": "%",
+      "uid": "legacy-number-fan"
+    }
+  ],
+  "texts": [
+    {
+      "address": "DB1,STRING10.20",
+      "command_address": "DB1,STRING32.20",
+      "name": "Batch name",
+      "pattern": "[A-Z0-9]+",
+      "uid": "legacy-text-batch"
+    }
+  ],
+  "entity_sync": [
+    {
+      "source_entity": "input_boolean.production_enabled",
+      "address": "DB1,X54.0",
+      "name": "Production enabled",
+      "uid": "legacy-sync-production"
+    }
+  ]
+}

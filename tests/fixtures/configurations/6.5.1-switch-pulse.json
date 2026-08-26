@@ -1,0 +1,13 @@
+{
+  "switches": [
+    {
+      "state_address": "DB5,X0.0",
+      "command_address": "DB5,X0.1",
+      "sync_state": false,
+      "pulse_command": true,
+      "pulse_duration": 0.8,
+      "name": "Conveyor toggle",
+      "uid": "legacy-switch-conveyor"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "covers": [
+    {
+      "position_state_address": "DB2,BYTE0",
+      "position_command_address": "DB2,BYTE2",
+      "stop_command_address": "DB2,X4.0",
+      "stop_pulse_duration": 0.7,
+      "tilt_state_address": "DB2,BYTE6",
+      "tilt_command_address": "DB2,BYTE8",
+      "invert_tilt": true,
+      "invert_position": true,
+      "name": "Office blind",
+      "device_class": "blind",
+      "uid": "legacy-cover-office"
+    }
+  ]
+}

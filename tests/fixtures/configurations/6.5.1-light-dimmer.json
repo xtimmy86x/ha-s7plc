@@ -1,0 +1,15 @@
+{
+  "lights": [
+    {
+      "state_address": "DB4,X0.0",
+      "command_address": "DB4,X0.1",
+      "sync_state": false,
+      "pulse_command": false,
+      "brightness_state_address": "DB4,WORD2",
+      "brightness_command_address": "DB4,WORD4",
+      "brightness_scale": 1000,
+      "name": "Meeting room light",
+      "uid": "legacy-light-meeting"
+    }
+  ]
+}
