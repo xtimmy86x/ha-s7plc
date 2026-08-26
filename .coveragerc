@@ -11,7 +11,11 @@ omit =
 [report]
 show_missing = True
 skip_covered = False
+precision = 2
 exclude_lines =
     pragma: no cover
     ^\s*if (?:typing\.)?TYPE_CHECKING\s*:
     ^\s*raise NotImplementedError\b
+
+[xml]
+output = coverage.xml
