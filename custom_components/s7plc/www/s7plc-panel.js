@@ -673,7 +673,7 @@ article.selected::before{opacity:1}
 .connection-detail dd{margin:0;font-size:13px;font-family:inherit;font-weight:500;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .connection-detail dd.technical-value{font-family:ui-monospace,'SF Mono',Consolas,monospace}
 @media(prefers-reduced-motion:reduce){.dialog-body *,.dialog-body *::before,.dialog-body *::after{transition:none!important;animation:none!important}}
-@media(max-width:650px){.dialog-body{max-height:66vh;padding:0 14px 16px}.editor-intro p{display:none}.form-section{padding:14px 12px}.field-grid{grid-template-columns:1fr}.control-options{grid-template-columns:1fr}.control-card{min-height:0;flex-direction:row!important}.mode-tabs button{font-size:12px}.mode-tabs button small{display:none}.availability-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-detail{gap:10px;padding:10px 12px}.connection-detail dt{white-space:normal}}`;}
+@media(max-width:650px){.dialog-body{max-height:66vh;padding:0 14px 16px}.editor-intro p{display:none}.form-section{padding:14px 12px}.field-grid{grid-template-columns:1fr}.control-options{grid-template-columns:1fr}.control-card{min-height:0;flex-direction:row!important}.control-card.compact-control-card{min-height:110px;flex-direction:column!important}.mode-tabs button{font-size:12px}.mode-tabs button small{display:none}.availability-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-detail{gap:10px;padding:10px 12px}.connection-detail dt{white-space:normal}}`;}
 }
 if (!customElements.get?.("s7plc-configuration-panel")) {
   customElements.define(

@@ -54,6 +54,18 @@ def test_compact_selector_descriptions_wrap_long_tokens() -> None:
     assert "grid-auto-rows:max-content" not in source
 
 
+def test_compact_selectors_preserve_column_layout_on_mobile() -> None:
+    """Mobile compact cards retain the layout their centering rules expect."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    mobile_styles = source.rsplit("@media(max-width:650px){", 1)[1].split("}`;}", 1)[0]
+
+    assert ".control-card{min-height:0;flex-direction:row!important}" in mobile_styles
+    assert (
+        ".control-card.compact-control-card{min-height:110px;"
+        "flex-direction:column!important}"
+    ) in mobile_styles
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_registration_is_idempotent() -> None:
     """Repeated resource loads reuse the existing custom element registration."""
