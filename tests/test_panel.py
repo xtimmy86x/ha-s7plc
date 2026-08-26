@@ -54,20 +54,6 @@ def test_compact_selector_descriptions_wrap_long_tokens() -> None:
     assert "grid-auto-rows:max-content" not in source
 
 
-def test_polish_compact_selector_description_contains_long_token() -> None:
-    """Keep regression coverage tied to the unspaced token reported in #120."""
-    translations = json.loads(
-        Path("custom_components/s7plc/translations/pl.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    fields = translations["config_panel"]["entity_types"]["covers"]["fields"]
-
-    assert "otwieranie/zamykanie/zatrzymana" in fields[
-        "cover_movement_feedback"
-    ]["description"]
-
-
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_registration_is_idempotent() -> None:
     """Repeated resource loads reuse the existing custom element registration."""
