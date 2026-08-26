@@ -41,6 +41,19 @@ def test_panel_displays_integration_version() -> None:
     assert 'class="integration-version"' in source
 
 
+def test_compact_cover_grid_rows_follow_wrapped_content() -> None:
+    """Compact cover and climate rows grow without changing card minimum height."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        ".cover-options{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));"
+        "grid-auto-rows:max-content}"
+    ) in source
+    assert (
+        ".light-options .control-card,.compact-control-card{min-height:110px;"
+    ) in source
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_registration_is_idempotent() -> None:
     """Repeated resource loads reuse the existing custom element registration."""
