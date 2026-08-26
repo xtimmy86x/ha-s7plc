@@ -1,0 +1,17 @@
+[run]
+branch = True
+source =
+    custom_components/s7plc
+omit =
+    */__pycache__/*
+    */.pytest_cache/*
+    */tests/*
+    *_generated.py
+
+[report]
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    ^\s*if (?:typing\.)?TYPE_CHECKING\s*:
+    ^\s*raise NotImplementedError\b
