@@ -41,17 +41,31 @@ def test_panel_displays_integration_version() -> None:
     assert 'class="integration-version"' in source
 
 
-def test_compact_cover_grid_rows_follow_wrapped_content() -> None:
-    """Compact cover and climate rows grow without changing card minimum height."""
+def test_compact_selector_descriptions_wrap_long_tokens() -> None:
+    """Compact cards wrap unspaced descriptions without changing their sizing."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert (
-        ".cover-options{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));"
-        "grid-auto-rows:max-content}"
-    ) in source
+    assert ".control-card small{font-size:10.5px!important;line-height:1.45;" in source
+    assert "margin-top:6px;overflow-wrap:anywhere}" in source
+    assert ".compact-control-card span{min-width:0;max-width:100%}" in source
     assert (
         ".light-options .control-card,.compact-control-card{min-height:110px;"
     ) in source
+    assert "grid-auto-rows:max-content" not in source
+
+
+def test_polish_compact_selector_description_contains_long_token() -> None:
+    """Keep regression coverage tied to the unspaced token reported in #120."""
+    translations = json.loads(
+        Path("custom_components/s7plc/translations/pl.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    fields = translations["config_panel"]["entity_types"]["covers"]["fields"]
+
+    assert "otwieranie/zamykanie/zatrzymana" in fields[
+        "cover_movement_feedback"
+    ]["description"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
