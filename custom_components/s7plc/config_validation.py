@@ -998,15 +998,23 @@ class EntityConfigBuilder:
         ) and closing_state:
             item[CONF_CLOSING_STATE_ADDRESS] = closing_state
 
-        # Add optional real-time movement status addresses, independent of
-        # feedback_mode - the user decides which sources to wire up, so a
-        # status word chosen for position does not discard separately
-        # configured movement bits.
-        if cover_opening_addr:
+        # Add optional real-time movement status addresses. toggle_mode
+        # treats position and movement feedback as independent sources
+        # (see S7Cover._toggle_movement), so a status word chosen for
+        # position does not discard separately configured movement bits
+        # there. Plain traditional covers keep the pre-existing coupling
+        # (a status word supplies both kinds of feedback, so stale bit
+        # fields are dropped) since their runtime (_get_feedback_movement)
+        # still implements that precedence - extending independence to
+        # plain traditional covers would need a matching runtime change,
+        # which is out of scope here (see position mode, which has its own
+        # independent runtime and always keeps its bits).
+        keep_movement_bits = toggle_mode or feedback_mode != "status"
+        if keep_movement_bits and cover_opening_addr:
             item[CONF_COVER_OPENING_ADDRESS] = cover_opening_addr
-        if cover_closing_addr:
+        if keep_movement_bits and cover_closing_addr:
             item[CONF_COVER_CLOSING_ADDRESS] = cover_closing_addr
-        if cover_stopped_addr:
+        if keep_movement_bits and cover_stopped_addr:
             item[CONF_COVER_STOPPED_ADDRESS] = cover_stopped_addr
 
         # Copy optional fields
@@ -1095,8 +1103,13 @@ class EntityConfigBuilder:
         if not explicit_feedback:
             # Position covers predate this selector and previously used
             # cover_status_address unconditionally for is_closed - keep
-            # inferring "status" for legacy entries that only ever had it,
-            # matching _position_feedback_mode's runtime counterpart.
+            # inferring "status" for legacy entries that only ever had it
+            # with an open/closed mapping, matching _position_feedback_mode's
+            # runtime counterpart. A status word configured only for
+            # movement (opening/closing/stopped values, no open/closed) was
+            # never a position source - is_closed must keep falling back to
+            # the raw position value for that shape, as before this
+            # selector existed.
             if user_input.get(CONF_OPENING_STATE_ADDRESS) and user_input.get(
                 CONF_CLOSING_STATE_ADDRESS
             ):
@@ -1105,7 +1118,10 @@ class EntityConfigBuilder:
                 feedback_mode = "opening"
             elif user_input.get(CONF_CLOSING_STATE_ADDRESS):
                 feedback_mode = "closing"
-            elif user_input.get(CONF_COVER_STATUS_ADDRESS):
+            elif user_input.get(CONF_COVER_STATUS_ADDRESS) and (
+                user_input.get(CONF_COVER_STATUS_OPEN_VALUES)
+                or user_input.get(CONF_COVER_STATUS_CLOSED_VALUES)
+            ):
                 feedback_mode = "status"
             else:
                 feedback_mode = "position"

@@ -104,9 +104,15 @@ def _position_feedback_mode(item: dict[str, Any]) -> str:
     """Same precedence as _traditional_feedback_mode, but position covers
     predate the position_feedback selector and previously used
     cover_status_address unconditionally for is_closed - when nothing else
-    signals an explicit choice, a configured cover_status_address infers
-    "status" instead of "position" so existing entities keep behaving
-    exactly as before.
+    signals an explicit choice, a configured cover_status_address with an
+    open or closed value mapping infers "status" so existing entities keep
+    behaving exactly as before.
+
+    A status word configured only for movement (opening/closing/stopped
+    values, no open/closed) was never a position source - it's legitimate
+    to keep it for movement_feedback alone while is_closed still falls
+    back to the raw position value, exactly as before this selector
+    existed, so that shape must not be forced into "status" here.
 
     Unlike traditional covers, position covers have a continuous 0-100
     reading of their own - "position" (not "timed") is the concept for
@@ -125,7 +131,10 @@ def _position_feedback_mode(item: dict[str, Any]) -> str:
         return "opening"
     if item.get(CONF_CLOSING_STATE_ADDRESS):
         return "closing"
-    if item.get(CONF_COVER_STATUS_ADDRESS):
+    if item.get(CONF_COVER_STATUS_ADDRESS) and (
+        item.get(CONF_COVER_STATUS_OPEN_VALUES)
+        or item.get(CONF_COVER_STATUS_CLOSED_VALUES)
+    ):
         return "status"
     return "position"
 
@@ -324,13 +333,27 @@ async def async_setup_entry(
             await coord.add_item(closed_topic, closed_state, scan_interval)
 
         # Optional: real-time movement status, read independently of the
-        # opened/closed end-stops above and of feedback_mode - the user
-        # decides which sources to wire up, so a status word chosen for
-        # position does not discard separately configured movement bits.
-        # Each is a separate boolean address, not a multi-value status word.
-        cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
-        cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
-        cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
+        # opened/closed end-stops above. Each is a separate boolean address,
+        # not a multi-value status word.
+        # toggle_mode treats position and movement feedback as fully
+        # independent sources - a status word chosen for position must not
+        # discard separately configured movement bits; see
+        # _toggle_movement/_toggle_position for how S7Cover composes both.
+        # Plain traditional covers keep the pre-existing coupling (a status
+        # word supplies both kinds of feedback, so stale bit fields are
+        # ignored) since their runtime (_get_feedback_movement) still
+        # implements that precedence - changing it is out of scope here
+        # (see position mode, which has its own independent runtime).
+        keep_movement_bits = toggle_mode or feedback_mode != "status"
+        cover_opening_address = (
+            item.get(CONF_COVER_OPENING_ADDRESS) if keep_movement_bits else None
+        )
+        cover_closing_address = (
+            item.get(CONF_COVER_CLOSING_ADDRESS) if keep_movement_bits else None
+        )
+        cover_stopped_address = (
+            item.get(CONF_COVER_STOPPED_ADDRESS) if keep_movement_bits else None
+        )
 
         cover_opening_topic = None
         cover_closing_topic = None

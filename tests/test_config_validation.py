@@ -310,11 +310,15 @@ def test_explicit_feedback_rejects_status_mapping_without_address() -> None:
 
 
 def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
-    """A status word chosen for position feedback still excludes the
-    end-stop bit (opening_state_address) from also being a position
-    source, but movement bits (cover_opening_address) are an independent
-    source and survive regardless of the position_feedback choice - the
-    user decides which sources to wire up."""
+    """Plain traditional covers (no toggle_mode) keep the pre-existing
+    coupling: a status word chosen for position feedback is authoritative
+    for movement too, so separately configured movement bits are still
+    discarded - unlike toggle_mode, which treats the two as independent
+    sources (see test_toggle_mode_keeps_movement_bits_with_status_position
+    below). Extending independence to plain traditional covers would need
+    a matching S7Cover._get_feedback_movement() runtime change, which is
+    out of scope (position mode has its own independent runtime instead -
+    see test_position_cover_movement_bits_survive_status_position_feedback)."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -332,13 +336,13 @@ def test_explicit_status_builder_removes_incompatible_feedback_only() -> None:
     assert not errors
     assert item["operate_time"] == 120
     assert "opening_state_address" not in item
-    assert item["cover_opening_address"] == "DB1,X2.0"
+    assert "cover_opening_address" not in item
 
 
 def test_toggle_mode_keeps_movement_bits_with_status_position() -> None:
-    """toggle_mode keeps the independent-source model: a status word
+    """toggle_mode itself keeps the independent-source model: a status word
     chosen for position feedback does not discard separately configured
-    movement bits."""
+    movement bits (contrast with the plain-traditional test above)."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -642,6 +646,30 @@ def test_position_cover_legacy_without_selector_infers_status_from_cover_status_
     assert not errors
     assert "cover_position_feedback" not in item
     assert item["cover_status_address"] == "DB1,B10"
+
+
+def test_position_cover_legacy_movement_only_status_infers_position_not_status() -> None:
+    """A legacy position cover whose cover_status_address is configured
+    only for movement (opening/closing/stopped values, no open/closed) was
+    never a position source - is_closed always fell back to the raw
+    position value for this shape. feedback_mode must infer "position",
+    not "status", so no open/closed mapping becomes newly required and the
+    entity keeps saving through the visual editor (PR #124 review, point 2)."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_status_address": "DB1,B10",
+            "cover_status_opening_values": "1",
+            "cover_status_closing_values": "2",
+            "cover_status_stopped_values": "3",
+        },
+        options={},
+    )
+    assert not errors
+    assert "cover_position_feedback" not in item
+    assert item["cover_status_address"] == "DB1,B10"
+    assert item["cover_status_opening_values"] == "1"
 
 
 def test_position_cover_default_feedback_is_position_not_timed() -> None:

@@ -32,7 +32,13 @@ const COVER_UI_FROM_ENTITY = entity => {
   const control=entity.position_state_address?"position":entity.toggle_mode?"toggle":"traditional";
   const isTraditionalLike=control==="traditional"||control==="toggle";
   const hasFeedbackSelector=isTraditionalLike||control==="position";
-  const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&control==="position"?"status":control==="position"?"position":"timed";
+  // A status word configured only for movement (opening/closing/stopped
+  // values, no open/closed) was never a position source - only infer
+  // "status" here when it actually has an open/closed mapping, so
+  // position_feedback correctly falls back to "position" and leaves the
+  // status word to movement_feedback alone (see COVER_STATUS_POSITION_VALUE_FIELDS).
+  const statusHasPositionMapping=entity.cover_status_open_values||entity.cover_status_closed_values;
+  const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&statusHasPositionMapping&&control==="position"?"status":control==="position"?"position":"timed";
   // Position covers have a continuous 0-100 reading of their own, so "no
   // separate source" is called "position" there, not "timed" - normalize
   // a persisted "timed" too, for entities saved while the two were

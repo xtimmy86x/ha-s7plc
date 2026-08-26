@@ -1142,17 +1142,17 @@ async def test_async_setup_entry_position_status_with_movement_bits(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_traditional_status_with_movement_bits(
+async def test_async_setup_entry_traditional_status_still_drops_movement_bits(
     fake_hass, mock_coordinator, device_info
 ):
-    """Same as test_async_setup_entry_position_status_with_movement_bits,
-    but for a PLAIN traditional cover (no toggle_mode) - the movement-bit
-    coupling to feedback_mode=="status" at the builder/persistence layer
-    was removed everywhere, not just for toggle_mode, so the addresses
-    must also survive the real async_setup_entry() path. This only covers
-    persistence - S7Cover.is_opening/is_closing still treat a configured
-    status word as authoritative once it's the position source (see
-    test_movement_contract_b), independent of this fix."""
+    """Same shape as test_async_setup_entry_position_status_with_movement_bits,
+    but for a PLAIN traditional cover (no toggle_mode) - unlike toggle_mode
+    and position mode, plain traditional covers keep the pre-existing
+    coupling all the way through the real async_setup_entry() path: a
+    status word claimed for position feedback still discards separately
+    configured movement bits, since S7Cover._get_feedback_movement() has
+    no independent fallback for them. Guards against re-introducing the
+    builder/panel/runtime inconsistency flagged in PR #124 review."""
     config_entry = MagicMock()
     config_entry.options = {
         CONF_COVERS: [
@@ -1180,12 +1180,12 @@ async def test_async_setup_entry_traditional_status_with_movement_bits(
     assert cover._toggle_mode is False
     assert cover._feedback_mode == "status"
     assert cover._cover_status_address == "db1,b10"
-    assert cover._cover_opening_address == "db1,x2.0"
-    assert cover._cover_closing_address == "db1,x2.1"
+    assert cover._cover_opening_address is None
+    assert cover._cover_closing_address is None
     add_item_topics = {c.args[0] for c in mock_coordinator.add_item.call_args_list}
     assert "cover:status:db1,b10" in add_item_topics
-    assert "cover:opening:db1,x2.0" in add_item_topics
-    assert "cover:closing:db1,x2.1" in add_item_topics
+    assert "cover:opening:db1,x2.0" not in add_item_topics
+    assert "cover:closing:db1,x2.1" not in add_item_topics
 
 
 # ============================================================================
