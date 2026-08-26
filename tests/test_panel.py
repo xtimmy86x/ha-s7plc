@@ -2710,7 +2710,7 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
             "toggle",
         }
         assert set(cover_fields["cover_position_feedback"]["options"]) == {
-            "timed", "opening", "closing", "both", "status",
+            "timed", "position", "opening", "closing", "both", "status",
         }
         assert set(cover_fields["cover_movement_feedback"]["options"]) == {
             "none",
@@ -3128,6 +3128,60 @@ def test_position_cover_feedback_section_and_bits_option_always_visible() -> Non
         'form.querySelector(\'input[name="cover_movement_feedback"][value="bits"]\').closest(\'.control-card\').classList.toggle(\'hidden-field\',control===\'position\')'
         not in source
     )
+
+
+def test_position_cover_default_feedback_uses_position_not_timed_concept() -> None:
+    """Position covers have a continuous 0-100 reading of their own, so the
+    "no separate source" concept is called "position", not "timed" - a
+    legacy entity persisted with "timed" (from before the two were split)
+    normalizes to "position" on save, and the "timed" card stays hidden
+    for position mode while "position" stays hidden everywhere else."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:Object.prototype.hasOwnProperty.call(overrides,"cover_position_feedback")?"true":""}},reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+console.log(JSON.stringify({{
+  freshPosition:infer({{position_state_address:"DB1,B0"}}).cover_position_feedback,
+  legacyTimedPosition:infer({{position_state_address:"DB1,B0",cover_position_feedback:"timed"}}).cover_position_feedback,
+  freshTraditional:infer({{open_command_address:"Q0.0"}}).cover_position_feedback,
+  roundTripPosition:save({{position_state_address:"DB1,B0"}},{{cover_position_feedback:"position"}}).cover_position_feedback,
+  legacySaveNormalizes:save({{position_state_address:"DB1,B0",cover_position_feedback:"timed"}}).cover_position_feedback,
+  roundTripTraditional:save({{open_command_address:"Q0.0",close_command_address:"Q0.1"}},{{cover_position_feedback:"timed"}}).cover_position_feedback
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["freshPosition"] == "position"
+    assert result["legacyTimedPosition"] == "position"
+    assert result["freshTraditional"] == "timed"
+    assert result["roundTripPosition"] == "position"
+    assert result["legacySaveNormalizes"] == "position"
+    assert result["roundTripTraditional"] == "timed"
+    assert (
+        "form.querySelector('input[name=\"cover_position_feedback\"][value=\"timed\"]')"
+        ".closest('.control-card').classList.toggle('hidden-field',"
+        "control==='toggle'||control==='position')"
+    ) in source
+    assert (
+        "form.querySelector('input[name=\"cover_position_feedback\"][value=\"position\"]')"
+        ".closest('.control-card').classList.toggle('hidden-field',control!=='position')"
+    ) in source
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:

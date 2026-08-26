@@ -628,8 +628,8 @@ def test_position_cover_legacy_without_selector_infers_status_from_cover_status_
     """A legacy position cover with only cover_status_address (no
     persisted selector, no end-stop addresses) is not required to also
     have a status word, since feedback_mode infers "status" for it -
-    unlike a cover with no signal at all, which infers "timed" and needs
-    nothing."""
+    unlike a cover with no signal at all, which infers "position" and
+    needs nothing."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {
@@ -642,6 +642,34 @@ def test_position_cover_legacy_without_selector_infers_status_from_cover_status_
     assert not errors
     assert "cover_position_feedback" not in item
     assert item["cover_status_address"] == "DB1,B10"
+
+
+def test_position_cover_default_feedback_is_position_not_timed() -> None:
+    """Position covers have a continuous 0-100 reading of their own, so
+    the "no separate source" concept is named "position", not "timed" -
+    "timed" only means something for traditional covers, which have no
+    live position signal to fall back on."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_POSITION_COVER_BASE, "cover_position_feedback": "position"},
+        options={},
+    )
+    assert not errors
+    assert item["cover_position_feedback"] == "position"
+
+
+def test_position_cover_legacy_timed_value_normalizes_to_position() -> None:
+    """A position cover saved with the legacy "timed" value (briefly
+    conflated with traditional covers' concept) is normalized to
+    "position" - the two behave identically at runtime, but persisting
+    "timed" going forward would be a misleading label."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {**_POSITION_COVER_BASE, "cover_position_feedback": "timed"},
+        options={},
+    )
+    assert not errors
+    assert item["cover_position_feedback"] == "position"
 
 
 def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:

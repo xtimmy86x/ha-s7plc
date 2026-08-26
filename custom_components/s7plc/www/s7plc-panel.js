@@ -32,8 +32,13 @@ const COVER_UI_FROM_ENTITY = entity => {
   const control=entity.position_state_address?"position":entity.toggle_mode?"toggle":"traditional";
   const isTraditionalLike=control==="traditional"||control==="toggle";
   const hasFeedbackSelector=isTraditionalLike||control==="position";
-  const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&control==="position"?"status":"timed";
-  const positionFeedback=hasFeedbackSelector?(entity.cover_position_feedback||legacyPositionFeedback):"timed";
+  const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&control==="position"?"status":control==="position"?"position":"timed";
+  // Position covers have a continuous 0-100 reading of their own, so "no
+  // separate source" is called "position" there, not "timed" - normalize
+  // a persisted "timed" too, for entities saved while the two were
+  // briefly conflated.
+  let positionFeedback=hasFeedbackSelector?(entity.cover_position_feedback||legacyPositionFeedback):"timed";
+  if(control==="position"&&positionFeedback==="timed")positionFeedback="position";
   const movementBitsPresent=entity.cover_opening_address||entity.cover_closing_address||entity.cover_stopped_address;
   // toggle_mode and position mode treat position and movement feedback as
   // independently selectable - a status word chosen for one purpose must
@@ -72,13 +77,17 @@ const CLEAN_COVER_ENTITY=(source,ui)=>{const entity={...source};COVER_VIRTUAL_FI
     // for is_opening/is_closing) but never had open/close command fields or
     // use_state_topics to begin with - only clear the command-only subset.
     if(isPosition)["open_command_address","close_command_address","operate_time","use_state_topics"].forEach(key=>delete entity[key]);
-    const mode=ui.cover_position_feedback;entity.cover_position_feedback=mode;if(mode==="status"){delete entity.use_state_topics;delete entity.opening_state_address;delete entity.closing_state_address;
+    // Position covers have a continuous 0-100 reading of their own, so
+    // "no separate source" is called "position" there, not "timed" -
+    // normalize a persisted "timed" too, for entities saved while the two
+    // were briefly conflated.
+    const mode=(isPosition&&ui.cover_position_feedback==="timed")?"position":ui.cover_position_feedback;entity.cover_position_feedback=mode;if(mode==="status"){delete entity.use_state_topics;delete entity.opening_state_address;delete entity.closing_state_address;
       // Plain traditional covers keep the original coupling: a status word
       // claimed by position feedback discards movement bits outright,
       // since their runtime (_get_feedback_movement) doesn't implement
       // the independent-source model toggle_mode/position use. toggle_mode
       // and position leave this to the shared scoping pass below instead.
-      if(!isToggle&&!isPosition)["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}else{if(!isToggle&&!isPosition&&ui.cover_movement_feedback!=="status")["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);if(mode==="timed"){if(!isPosition)entity.use_state_topics=false;delete entity.opening_state_address;delete entity.closing_state_address;}else{if(!isPosition)entity.use_state_topics=true;if(mode==="opening")delete entity.closing_state_address;if(mode==="closing")delete entity.opening_state_address;}}
+      if(!isToggle&&!isPosition)["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}else{if(!isToggle&&!isPosition&&ui.cover_movement_feedback!=="status")["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);if(mode==="timed"||mode==="position"){if(!isPosition)entity.use_state_topics=false;delete entity.opening_state_address;delete entity.closing_state_address;}else{if(!isPosition)entity.use_state_topics=true;if(mode==="opening")delete entity.closing_state_address;if(mode==="closing")delete entity.opening_state_address;}}
   }
   if(isToggle||isPosition){
     // Independent scoping: each selector's own value fields/movement bits
@@ -143,7 +152,7 @@ const FIELDS = {
   sensors:[["address","text",true],["device_class"],["unit_of_measurement"],["value_multiplier","number"],["min_value","number"],["max_value","number"],["scale_raw_min","number"],["scale_raw_max","number"],["state_class"],["real_precision","number"],...COMMON],
   binary_sensors:[["address","text",true],["device_class"],["invert_state","checkbox"],...COMMON],
   switches:[["control_behavior","control"],["state_address","text",true],["command_address"],["pulse_duration","number"],...COMMON],
-  covers:[["cover_control_mode","cover-selector",true,["traditional","position","toggle"]],["cover_position_feedback","cover-selector",true,["timed","opening","closing","both","status"]],["cover_movement_feedback","cover-selector",true,["none","bits","status"]],["cover_stop_enabled","cover-selector",true,["disabled","enabled"]],["cover_tilt_enabled","cover-selector",true,["disabled","enabled"]],["open_command_address"],["close_command_address"],["cover_status_address"],["cover_status_open_values"],["cover_status_closed_values"],["cover_status_opening_values"],["cover_status_closing_values"],["cover_status_stopped_values"],["opening_state_address"],["closing_state_address"],["cover_opening_address"],["cover_closing_address"],["cover_stopped_address"],["position_state_address"],["position_command_address"],["stop_command_address"],["stop_pulse_duration","number"],["toggle_pulse_duration","number"],["tilt_state_address"],["tilt_command_address"],["invert_tilt","checkbox"],["operate_time","number"],["invert_position","checkbox"],["device_class"],...COMMON],
+  covers:[["cover_control_mode","cover-selector",true,["traditional","position","toggle"]],["cover_position_feedback","cover-selector",true,["timed","position","opening","closing","both","status"]],["cover_movement_feedback","cover-selector",true,["none","bits","status"]],["cover_stop_enabled","cover-selector",true,["disabled","enabled"]],["cover_tilt_enabled","cover-selector",true,["disabled","enabled"]],["open_command_address"],["close_command_address"],["cover_status_address"],["cover_status_open_values"],["cover_status_closed_values"],["cover_status_opening_values"],["cover_status_closing_values"],["cover_status_stopped_values"],["opening_state_address"],["closing_state_address"],["cover_opening_address"],["cover_closing_address"],["cover_stopped_address"],["position_state_address"],["position_command_address"],["stop_command_address"],["stop_pulse_duration","number"],["toggle_pulse_duration","number"],["tilt_state_address"],["tilt_command_address"],["invert_tilt","checkbox"],["operate_time","number"],["invert_position","checkbox"],["device_class"],...COMMON],
   lights:[["control_behavior","control"],["light_mode","light"],["state_address","text",true],["command_address"],["brightness_state_address"],["brightness_command_address"],["pulse_duration","number"],["brightness_scale","number"],...COMMON],
   buttons:[["address","text",true],["button_pulse","number"],...COMMON.filter(x=>x[0]!=="scan_interval")],
   numbers:[["address","text",true],["command_address"],["device_class"],["unit_of_measurement"],["min_value","number"],["max_value","number"],["step","number"],["value_multiplier","number"],["scale_raw_min","number"],["scale_raw_max","number"],["real_precision","number"],...COMMON],
@@ -365,9 +374,15 @@ class S7PlcConfigurationPanel extends HTMLElement {
       // of sync with the just-corrected selection until some other field
       // happens to be touched.
       if(control==='toggle'){
-        if(['timed','opening','closing'].includes(form.elements.cover_position_feedback.value))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
+        if(['timed','position','opening','closing'].includes(form.elements.cover_position_feedback.value))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
         if(form.elements.cover_movement_feedback.value==='none')form.querySelector('input[name="cover_movement_feedback"][value="bits"]').checked=true;
       }
+      // "position" and "timed" are the same "no separate source" concept,
+      // named differently per mode since position covers have a
+      // continuous 0-100 reading of their own - swap between them so the
+      // right card is selected/visible for the current mode.
+      if(control==='position'&&form.elements.cover_position_feedback.value==='timed')form.querySelector('input[name="cover_position_feedback"][value="position"]').checked=true;
+      if(control!=='position'&&form.elements.cover_position_feedback.value==='position')form.querySelector('input[name="cover_position_feedback"][value="timed"]').checked=true;
       // Plain traditional covers keep the original coupled restriction: a
       // status word claimed by position feedback can't also serve
       // movement, since their runtime can't compose the two
@@ -380,7 +395,9 @@ class S7PlcConfigurationPanel extends HTMLElement {
       // the matching value was already normalized above if it happened
       // to be selected.
       form.querySelector('input[name="cover_movement_feedback"][value="status"]').closest('.control-card').classList.toggle('hidden-field',control==='traditional'&&positionFeedback==='status');
-      ['timed','opening','closing'].forEach(v=>form.querySelector(`input[name="cover_position_feedback"][value="${v}"]`).closest('.control-card').classList.toggle('hidden-field',control==='toggle'));
+      form.querySelector('input[name="cover_position_feedback"][value="timed"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle'||control==='position');
+      form.querySelector('input[name="cover_position_feedback"][value="position"]').closest('.control-card').classList.toggle('hidden-field',control!=='position');
+      ['opening','closing'].forEach(v=>form.querySelector(`input[name="cover_position_feedback"][value="${v}"]`).closest('.control-card').classList.toggle('hidden-field',control==='toggle'));
       form.querySelector('input[name="cover_movement_feedback"][value="none"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle');
       // open_command_address is a two-way open/close command everywhere
       // except single-button mode, where it's the single step-by-step

@@ -1077,10 +1077,16 @@ class EntityConfigBuilder:
 
         # Same position_feedback selector traditional covers have (see
         # _build_cover_item), so end-stop bits and the status word can both
-        # drive is_closed here too.
+        # drive is_closed here too. Unlike traditional covers, position
+        # covers have a continuous 0-100 reading of their own - "position"
+        # is the concept for "no separate source, just use the reported
+        # position value". "timed" is still accepted and normalized, for
+        # entities saved while the two were briefly conflated.
         feedback_mode = user_input.get(CONF_COVER_POSITION_FEEDBACK)
+        if feedback_mode == "timed":
+            feedback_mode = "position"
         explicit_feedback = feedback_mode in {
-            "timed",
+            "position",
             "opening",
             "closing",
             "both",
@@ -1102,7 +1108,7 @@ class EntityConfigBuilder:
             elif user_input.get(CONF_COVER_STATUS_ADDRESS):
                 feedback_mode = "status"
             else:
-                feedback_mode = "timed"
+                feedback_mode = "position"
 
         opening_state = self._sanitize_address(
             user_input.get(CONF_OPENING_STATE_ADDRESS)

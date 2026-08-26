@@ -105,11 +105,19 @@ def _position_feedback_mode(item: dict[str, Any]) -> str:
     predate the position_feedback selector and previously used
     cover_status_address unconditionally for is_closed - when nothing else
     signals an explicit choice, a configured cover_status_address infers
-    "status" instead of "timed" so existing entities keep behaving exactly
-    as before.
+    "status" instead of "position" so existing entities keep behaving
+    exactly as before.
+
+    Unlike traditional covers, position covers have a continuous 0-100
+    reading of their own - "position" (not "timed") is the concept for
+    "no separate feedback source configured, just use the reported
+    position value directly". "timed" is still accepted and normalized to
+    "position" for entities saved while the two were briefly conflated.
     """
     mode = item.get(CONF_COVER_POSITION_FEEDBACK)
-    if mode in {"timed", "opening", "closing", "both", "status"}:
+    if mode == "timed":
+        mode = "position"
+    if mode in {"position", "opening", "closing", "both", "status"}:
         return mode
     if item.get(CONF_OPENING_STATE_ADDRESS) and item.get(CONF_CLOSING_STATE_ADDRESS):
         return "both"
@@ -119,7 +127,7 @@ def _position_feedback_mode(item: dict[str, Any]) -> str:
         return "closing"
     if item.get(CONF_COVER_STATUS_ADDRESS):
         return "status"
-    return "timed"
+    return "position"
 
 
 async def async_setup_entry(
@@ -1271,7 +1279,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         cover_status_opening_values: str = DEFAULT_COVER_STATUS_OPENING_VALUES,
         cover_status_closing_values: str = DEFAULT_COVER_STATUS_CLOSING_VALUES,
         cover_status_stopped_values: str = DEFAULT_COVER_STATUS_STOPPED_VALUES,
-        position_feedback: str = "timed",
+        position_feedback: str = "position",
         opening_state_address: str | None = None,
         closing_state_address: str | None = None,
         opening_topic: str | None = None,

@@ -485,6 +485,7 @@
             "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta).",
             "options": {
               "timed": "Czas",
+              "position": "Wartość pozycji",
               "opening": "Tylko krańcówka otwarcia",
               "closing": "Tylko krańcówka zamknięcia",
               "both": "Obie krańcówki",
@@ -492,6 +493,7 @@
             },
             "descriptions": {
               "timed": "Szacowanie pozycji na podstawie czasu.",
+              "position": "Użycie zgłaszanej wartości pozycji bezpośrednio - bez dodatkowej informacji zwrotnej.",
               "opening": "Odczyt tylko krańcówki pełnego otwarcia.",
               "closing": "Odczyt tylko krańcówki pełnego zamknięcia.",
               "both": "Odczyt krańcówek pełnego otwarcia i zamknięcia.",

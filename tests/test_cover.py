@@ -1141,6 +1141,53 @@ async def test_async_setup_entry_position_status_with_movement_bits(
     assert "cover:closing:db1,x2.1" in add_item_topics
 
 
+@pytest.mark.asyncio
+async def test_async_setup_entry_traditional_status_with_movement_bits(
+    fake_hass, mock_coordinator, device_info
+):
+    """Same as test_async_setup_entry_position_status_with_movement_bits,
+    but for a PLAIN traditional cover (no toggle_mode) - the movement-bit
+    coupling to feedback_mode=="status" at the builder/persistence layer
+    was removed everywhere, not just for toggle_mode, so the addresses
+    must also survive the real async_setup_entry() path. This only covers
+    persistence - S7Cover.is_opening/is_closing still treat a configured
+    status word as authoritative once it's the position source (see
+    test_movement_contract_b), independent of this fix."""
+    config_entry = MagicMock()
+    config_entry.options = {
+        CONF_COVERS: [
+            {
+                CONF_OPEN_COMMAND_ADDRESS: "db1,x0.0",
+                CONF_CLOSE_COMMAND_ADDRESS: "db1,x0.1",
+                "cover_position_feedback": "status",
+                CONF_COVER_STATUS_ADDRESS: "db1,b10",
+                "cover_status_open_values": "0",
+                "cover_status_closed_values": "1",
+                CONF_COVER_OPENING_ADDRESS: "db1,x2.0",
+                CONF_COVER_CLOSING_ADDRESS: "db1,x2.1",
+                CONF_NAME: "Mixed Feedback Traditional Cover",
+                CONF_UID: "uid-mixed-traditional",
+            }
+        ]
+    }
+    async_add_entities = MagicMock()
+
+    with patch("custom_components.s7plc.cover.get_coordinator_and_device_info") as mock_get:
+        mock_get.return_value = (mock_coordinator, device_info, "test_device")
+        await async_setup_entry(fake_hass, config_entry, async_add_entities)
+
+    cover = async_add_entities.call_args[0][0][0]
+    assert cover._toggle_mode is False
+    assert cover._feedback_mode == "status"
+    assert cover._cover_status_address == "db1,b10"
+    assert cover._cover_opening_address == "db1,x2.0"
+    assert cover._cover_closing_address == "db1,x2.1"
+    add_item_topics = {c.args[0] for c in mock_coordinator.add_item.call_args_list}
+    assert "cover:status:db1,b10" in add_item_topics
+    assert "cover:opening:db1,x2.0" in add_item_topics
+    assert "cover:closing:db1,x2.1" in add_item_topics
+
+
 # ============================================================================
 # async_setup_entry Tests
 # ============================================================================
@@ -2361,11 +2408,12 @@ def test_position_cover_is_closed_uses_end_stop_bits_both_mode(
     assert cover.is_closed is True
 
 
-def test_position_cover_is_closed_ignores_status_when_feedback_timed(
+def test_position_cover_is_closed_ignores_status_when_feedback_position(
     fake_hass, mock_coordinator, device_info
 ):
     """A configured cover_status_address is not consulted for is_closed
-    unless position_feedback selects it - "timed" always falls back to the
+    unless position_feedback selects it - "position" (the default, meaning
+    "use the reported position value directly") always falls back to the
     raw position value."""
     from custom_components.s7plc.cover import S7PositionCover
 
@@ -2376,7 +2424,7 @@ def test_position_cover_is_closed_ignores_status_when_feedback_timed(
         device_info,
         "db1,b0",
         "db1,b1",
-        position_feedback="timed",
+        position_feedback="position",
         cover_status_topic="cover:status:db1,b10",
         cover_status_address="db1,b10",
         cover_status_closed_values="1",

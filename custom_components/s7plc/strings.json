@@ -485,6 +485,7 @@
             "description": "Choose how terminal position is determined.",
             "options": {
               "timed": "Timed",
+              "position": "Position value",
               "opening": "Open end stop only",
               "closing": "Closed end stop only",
               "both": "Both end stops",
@@ -492,6 +493,7 @@
             },
             "descriptions": {
               "timed": "Estimate position using operating time.",
+              "position": "Use the reported position value directly - no separate feedback needed.",
               "opening": "Read only the fully-open limit switch.",
               "closing": "Read only the fully-closed limit switch.",
               "both": "Read both fully-open and fully-closed limit switches.",

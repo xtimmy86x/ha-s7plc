@@ -485,6 +485,7 @@
             "description": "Wählen Sie aus, wie die Endposition bestimmt wird.",
             "options": {
               "timed": "Zeitgesteuert",
+              "position": "Positionswert",
               "opening": "Nur Endschalter Offen",
               "closing": "Nur Endschalter Geschlossen",
               "both": "Beide Endschalter",
@@ -492,6 +493,7 @@
             },
             "descriptions": {
               "timed": "Position anhand der Laufzeit schätzen.",
+              "position": "Den gemeldeten Positionswert direkt verwenden - keine separate Rückmeldung nötig.",
               "opening": "Nur den Endschalter für vollständig geöffnet lesen.",
               "closing": "Nur den Endschalter für vollständig geschlossen lesen.",
               "both": "Beide Endschalter für vollständig geöffnet und geschlossen lesen.",
