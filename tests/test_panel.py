@@ -2760,12 +2760,13 @@ console.log(JSON.stringify({{
     assert result["endstops"] == "both"
     assert result["legacyEndstop"] == "opening"
     # "mixed" is a legacy position cover with cover_status_address but no
-    # open/closed value mapping (and no opening/closing_state_address) -
-    # position_feedback infers "position" (the status word was never a
-    # position source without an open/closed mapping - PR #124 review,
-    # point 2), leaving movement_feedback free to claim the status word for
-    # itself instead of the separately configured bits.
-    assert result["statusWins"] == "status"
+    # value mapping at all (neither open/closed nor opening/closing/
+    # stopped), and no opening/closing_state_address - the status word
+    # isn't usable as a position or movement source without any mapping,
+    # so position_feedback infers "position" and movement_feedback prefers
+    # the separately configured bits, the only source that's actually
+    # usable here (PR #124 review, points 2 and 3).
+    assert result["statusWins"] == "bits"
     assert result["bits"] == "bits"
     assert result["traditional"]["cover_stop_enabled"] == "disabled"
     assert result["traditional"]["cover_tilt_enabled"] == "disabled"
@@ -3228,6 +3229,54 @@ console.log(JSON.stringify({{
     assert saved["cover_status_address"] == "DB1,B10"
     assert saved["cover_status_opening_values"] == "1"
     assert saved["cover_position_feedback"] == "position"
+
+
+def test_position_cover_legacy_position_only_status_saves_without_new_required_fields() -> None:
+    """Symmetric counterpart: a legacy position cover whose
+    cover_status_address only carries open/closed values (no opening/
+    closing/stopped) must keep saving through the visual editor without
+    requiring a new movement mapping - movement_feedback infers "none"
+    (not "status") for it, since the status word has no movement mapping
+    to offer; position_feedback correctly keeps claiming "status" for
+    itself (PR #124 review round 2, point 1)."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:""}},reportValidity:()=>true}};
+}};
+const legacy={{
+  position_state_address:"DB1,B0",
+  cover_status_address:"DB1,B10",
+  cover_status_open_values:"1",
+  cover_status_closed_values:"2"
+}};
+console.log(JSON.stringify({{
+  inferred:infer(legacy),
+  saved:panel.formEntity(makeForm(legacy),legacy,"covers")
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["inferred"]["cover_position_feedback"] == "status"
+    assert result["inferred"]["cover_movement_feedback"] == "none"
+    saved = result["saved"]
+    assert saved["cover_status_address"] == "DB1,B10"
+    assert saved["cover_status_open_values"] == "1"
+    assert saved["cover_position_feedback"] == "status"
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:
