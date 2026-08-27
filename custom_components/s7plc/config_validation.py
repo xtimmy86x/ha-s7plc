@@ -1190,6 +1190,15 @@ class EntityConfigBuilder:
             cover_status_fields.get(key) for key in status_keys[1:]
         ) and not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS):
             return None, {"base": "cover_status_required"}
+        # cover_position_feedback=="status" can only resolve is_closed via
+        # an open/closed value mapping - a movement-only mapping (opening/
+        # closing/stopped) is never a position source, so requiring it here
+        # would accept a config whose position source can never resolve,
+        # silently falling back to the raw position value at runtime
+        # instead of the status word the user explicitly asked for. This
+        # doesn't affect the legacy inferred shape: without an explicit
+        # selector, feedback_mode only infers "status" when an open/closed
+        # mapping is already present (see the inference above).
         if feedback_mode == "status" and (
             not cover_status_fields.get(CONF_COVER_STATUS_ADDRESS)
             or not any(
@@ -1197,9 +1206,6 @@ class EntityConfigBuilder:
                 for key in (
                     CONF_COVER_STATUS_OPEN_VALUES,
                     CONF_COVER_STATUS_CLOSED_VALUES,
-                    CONF_COVER_STATUS_OPENING_VALUES,
-                    CONF_COVER_STATUS_CLOSING_VALUES,
-                    CONF_COVER_STATUS_STOPPED_VALUES,
                 )
             )
         ):

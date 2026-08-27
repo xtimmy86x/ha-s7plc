@@ -539,7 +539,8 @@ def test_position_cover_gets_same_feedback_selector_as_traditional() -> None:
 
 def test_position_cover_status_feedback_requires_matching_fields() -> None:
     """cover_position_feedback="status" requires cover_status_address plus
-    at least one value mapping, same as traditional covers."""
+    an open/closed value mapping - that's the only mapping is_closed can
+    actually resolve through for position covers."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {**_POSITION_COVER_BASE, "cover_position_feedback": "status"},
@@ -561,6 +562,30 @@ def test_position_cover_status_feedback_requires_matching_fields() -> None:
     assert not errors
     assert item["cover_position_feedback"] == "status"
     assert item["cover_status_address"] == "DB1,B10"
+
+
+def test_position_cover_explicit_status_rejects_movement_only_mapping() -> None:
+    """An explicit cover_position_feedback="status" with only a
+    movement mapping (opening/closing/stopped, no open/closed) must be
+    rejected - is_closed can never resolve through it, so accepting it
+    would silently fall back to the raw position value at runtime instead
+    of the status word the user explicitly asked for (PR #124 review,
+    third round). Contrast with the legacy inferred shape (no explicit
+    selector), which correctly infers "position" instead - see
+    test_position_cover_legacy_movement_only_status_infers_position_not_status."""
+    item, errors = build_entity_item(
+        CONF_COVERS,
+        {
+            **_POSITION_COVER_BASE,
+            "cover_position_feedback": "status",
+            "cover_status_address": "DB1,B10",
+            "cover_status_opening_values": "1",
+            "cover_status_closing_values": "2",
+        },
+        options={},
+    )
+    assert item is None
+    assert errors == {"base": "cover_status_required"}
 
 
 def test_position_cover_opening_closing_feedback_requires_state_address() -> None:

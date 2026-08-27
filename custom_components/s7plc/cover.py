@@ -1454,7 +1454,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         """Return if the cover is closed.
 
         Consults exactly the source selected by position_feedback (end-stop
-        bits, the status word, or neither for "timed"), matching S7Cover's
+        bits, the status word, or neither for "position"), matching S7Cover's
         precedence. Position mode always has continuous position telemetry
         available, so whenever the preferred source doesn't resolve
         conclusively, this falls back to the raw position value (closed
