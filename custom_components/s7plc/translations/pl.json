@@ -675,6 +675,27 @@
           }
         }
       },
+      "selects": {
+        "label": "Listy wyboru",
+        "fields": {
+          "address": {
+            "label": "Adres stanu",
+            "description": "Adres PLC przechowujący bieżącą wartość opcji (typ całkowity, np. DB1,B0, DB2,I4)."
+          },
+          "command_address": {
+            "label": "Adres polecenia",
+            "description": "Adres PLC do zapisu wybranej wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu."
+          },
+          "options_map": {
+            "label": "Mapa opcji",
+            "description": "Każda wartość PLC odpowiada opcji wyświetlanej w Home Assistant. W YAML zapisywane jako pary 'wartość:etykieta' rozdzielone ';'.",
+            "value_label": "Wartość PLC",
+            "label_label": "Etykieta opcji",
+            "add_option": "Dodaj opcję",
+            "label_placeholder": "np. Pompa A"
+          }
+        }
+      },
       "texts": {
         "label": "Teksty",
         "fields": {
@@ -1110,7 +1131,10 @@
       "cover_status_values_error": "Mapowania stanów muszą zawierać liczby całkowite oddzielone przecinkami.",
       "cover_status_duplicate_error": "Wartość stanu nie może występować w więcej niż jednym mapowaniu.",
       "cover_status_required": "Sprzężenie zwrotne słowa stanu wymaga adresu i co najmniej jednego mapowania.",
-      "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number."
+      "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number.",
+      "invalid_options_map": "Nieprawidłowa mapa opcji. Użyj par 'wartość:etykieta' rozdzielonych ';' z unikalnymi wartościami całkowitymi i unikalnymi etykietami.",
+      "options_map_out_of_range": "Co najmniej jedna wartość opcji wykracza poza zakres typu danych PLC.",
+      "select_requires_integer_type": "Encje listy wyboru wymagają całkowitego typu danych PLC (np. Byte, Int, Word, DInt)."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

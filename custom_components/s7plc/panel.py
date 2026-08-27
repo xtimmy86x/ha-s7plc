@@ -169,6 +169,7 @@ _OPTION_DOMAINS = {
     "lights": "light",
     "buttons": "button",
     "numbers": "number",
+    "selects": "select",
     "texts": "text",
     "climates": "climate",
     "entity_sync": "sensor",

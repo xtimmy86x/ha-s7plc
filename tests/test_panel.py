@@ -216,7 +216,7 @@ console.log(JSON.stringify({{result, ordinary: {{
     )
     assert set(value["result"]) == {
         "sensors", "binary_sensors", "switches", "covers", "lights", "buttons",
-        "numbers", "texts", "climates", "entity_sync",
+        "numbers", "selects", "texts", "climates", "entity_sync",
     }
     assert all(item == {"fields": 1, "inputs": 1, "inHa": True} for item in value["result"].values())
     assert all(value["ordinary"].values())
@@ -1806,6 +1806,7 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
         "lights",
         "buttons",
         "numbers",
+        "selects",
         "texts",
         "climates",
         "entity_sync",
@@ -2690,6 +2691,7 @@ console.log(JSON.stringify(FIELDS));
         "light",
         "cover-selector",
         "climate-selector",
+        "options-map",
     }
     for entity_type, definitions in fields.items():
         for definition in definitions:
@@ -2763,7 +2765,11 @@ console.log(JSON.stringify({{
 """
     result = json.loads(
         subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
+            ["node", "-"],
+            input=script,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout
     )
     assert result["traditional"]["cover_control_mode"] == "traditional"
@@ -2952,7 +2958,11 @@ console.log(JSON.stringify({{
 """
     result = json.loads(
         subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
+            ["node", "-"],
+            input=script,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout
     )
 
@@ -3429,7 +3439,11 @@ console.log(JSON.stringify({{direct,inferred,plc,falseMarkup,trueMarkup,directEn
 """
     value = json.loads(
         subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
+            ["node", "-"],
+            input=script,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout
     )
 
@@ -3514,7 +3528,7 @@ console.log(JSON.stringify({{defaultMode,stored,invalid,inaccessible,rendered,
         "invalid": "tabs",
         "inaccessible": "tabs",
         "rendered": 2,
-        "sectionCount": 10,
+        "sectionCount": 11,
         "sensorCount": True,
         "empty": True,
         "addSensor": True,
@@ -3614,7 +3628,8 @@ console.log(JSON.stringify({{grouped,markup:{{global:markup.includes('data-batch
 """
     result = json.loads(
         subprocess.run(
-            ["node", "--input-type=module", "-e", script],
+            ["node", "--input-type=module", "-"],
+            input=script,
             check=True,
             capture_output=True,
             text=True,

@@ -65,6 +65,7 @@ from .const import (
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
+    CONF_SELECTS,
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
@@ -180,7 +181,7 @@ DEVICE_CLASS_DEFAULT_UNITS: dict[str, str | None] = {
 class RuntimeEntryData:
     """Runtime data stored for each config entry."""
 
-    coordinator: "S7Coordinator"
+    coordinator: S7Coordinator
     name: str
     host: str
     device_id: str
@@ -188,7 +189,7 @@ class RuntimeEntryData:
 
 def get_coordinator_and_device_info(
     entry: ConfigEntry,
-) -> tuple["S7Coordinator", DeviceInfo, str]:
+) -> tuple[S7Coordinator, DeviceInfo, str]:
     """Return the coordinator, device info and identifier for a config entry."""
 
     data: RuntimeEntryData = entry.runtime_data
@@ -442,6 +443,7 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
         CONF_BINARY_SENSORS,
         CONF_BUTTONS,
         CONF_NUMBERS,
+        CONF_SELECTS,
         CONF_TEXTS,
     ):
         return bool(item.get(CONF_ADDRESS))

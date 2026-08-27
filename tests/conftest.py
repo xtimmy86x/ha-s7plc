@@ -868,6 +868,22 @@ sys.modules["homeassistant.components.text"] = text
 components.text = text
 
 
+class SelectEntity:  # pragma: no cover - simple stub
+    """Minimal SelectEntity stub."""
+
+    _attr_options: list = []
+
+    @property
+    def options(self):
+        return self._attr_options
+
+
+select = ModuleType("homeassistant.components.select")
+select.SelectEntity = SelectEntity
+sys.modules["homeassistant.components.select"] = select
+components.select = select
+
+
 class SwitchEntity:  # pragma: no cover - simple stub
     """Minimal SwitchEntity stub."""
     pass

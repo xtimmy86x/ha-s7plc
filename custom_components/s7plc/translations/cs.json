@@ -675,6 +675,27 @@
           }
         }
       },
+      "selects": {
+        "label": "Výběry",
+        "fields": {
+          "address": {
+            "label": "Adresa stavu",
+            "description": "Adresa PLC s aktuální hodnotou volby (celočíselný typ, např. DB1,B0, DB2,I4)."
+          },
+          "command_address": {
+            "label": "Adresa příkazu",
+            "description": "Adresa PLC pro zápis zvolené hodnoty (volitelné). Pokud není vyplněna, použije se adresa stavu."
+          },
+          "options_map": {
+            "label": "Mapa voleb",
+            "description": "Každá hodnota PLC odpovídá volbě zobrazené v Home Assistant. V YAML se ukládá jako dvojice 'hodnota:popisek' oddělené ';'.",
+            "value_label": "Hodnota PLC",
+            "label_label": "Popisek volby",
+            "add_option": "Přidat volbu",
+            "label_placeholder": "např. Čerpadlo A"
+          }
+        }
+      },
       "texts": {
         "label": "Texty",
         "fields": {
@@ -1110,7 +1131,10 @@
       "cover_status_values_error": "Mapování stavů musí obsahovat celá čísla oddělená čárkami.",
       "cover_status_duplicate_error": "Hodnota stavu nesmí být uvedena ve více než jednom mapování.",
       "cover_status_required": "Zpětná vazba stavového slova vyžaduje adresu a alespoň jedno mapování.",
-      "time_unsupported_for_entity": "TIME je podporován pouze pro entity sensor a number."
+      "time_unsupported_for_entity": "TIME je podporován pouze pro entity sensor a number.",
+      "invalid_options_map": "Neplatná mapa voleb. Použijte dvojice 'hodnota:popisek' oddělené ';' s jedinečnými celočíselnými hodnotami a jedinečnými popisky.",
+      "options_map_out_of_range": "Jedna nebo více hodnot voleb je mimo rozsah datového typu PLC.",
+      "select_requires_integer_type": "Entity výběru vyžadují celočíselný datový typ PLC (např. Byte, Int, Word, DInt)."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

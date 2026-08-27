@@ -7,6 +7,7 @@ PLATFORMS = [
     "light",
     "button",
     "number",
+    "select",
     "text",
     "climate",
 ]
@@ -32,6 +33,7 @@ CONF_SWITCHES = "switches"
 CONF_COVERS = "covers"
 CONF_LIGHTS = "lights"
 CONF_NUMBERS = "numbers"
+CONF_SELECTS = "selects"
 CONF_BUTTONS = "buttons"
 CONF_TEXTS = "texts"
 CONF_CLIMATES = "climates"
@@ -45,6 +47,7 @@ OPTION_KEYS = (
     CONF_LIGHTS,
     CONF_BUTTONS,
     CONF_NUMBERS,
+    CONF_SELECTS,
     CONF_TEXTS,
     CONF_CLIMATES,
     CONF_ENTITY_SYNC,
@@ -76,6 +79,8 @@ CONF_PULSE_DURATION = "pulse_duration"
 CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
+# Select entities: "value:label" pairs separated by ";" (e.g. "0:Off;1:Pump A")
+CONF_OPTIONS_MAP = "options_map"
 CONF_MIN_LENGTH = "min_length"
 CONF_MAX_LENGTH = "max_length"
 CONF_PATTERN = "pattern"

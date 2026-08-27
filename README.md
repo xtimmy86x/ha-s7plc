@@ -39,7 +39,7 @@ Direct + lightweight custom component using `pys7`.
 ## Features
 
 - ⚡ **Direct PLC communication** over S7 protocol via `pys7`
-- 🧩 **Multiple entity types**: `light`, `dimmer light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `text`, `climate`, and Entity Sync
+- 🧩 **Multiple entity types**: `light`, `dimmer light`, `switch`, `cover`, `button`, `binary_sensor`, `sensor`, `number`, `select`, `text`, `climate`, and Entity Sync
 - 🔌 **Dual connection modes**: Rack/Slot or TSAP addressing
 - 🧮 **Value multipliers**: Scale raw PLC values before Home Assistant sees them
 - 🪶 **Lightweight**: Minimal overhead, no broker/services required
@@ -151,6 +151,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | **Cover** | ✅ | ✅ | Open/close commands, position control (0–100%), stop, timing |
 | **Button** | ❌ | ✅ | Pulse output with configurable duration (0.1-60s, supports decimals) |
 | **Number** | ✅ | ✅ | Min/max/step, separate read/write addresses |
+| **Select** | ✅ | ✅ | Map numeric PLC values to named options (modes, fan speeds, etc.) |
 | **Text** | ✅ | ✅ | STRING/WSTRING support, pattern validation, auto-sized limits |
 | **Climate** | ✅ | ✅ | Direct control or setpoint mode, HVAC status feedback |
 | **Entity Sync** | ❌ | ✅ | Monitor any HA entity, write to PLC on change |
@@ -203,7 +204,7 @@ A: No. Direct S7 protocol communication to PLC.
 A: Any Siemens device with ISO-on-TCP (port 102) support: S7-1200, S7-1500, S7-300, S7-400, Logo! 8 (0BA8+) via Rack/Slot, and Logo! 0BA7/0BA6/0BA5 via TSAP.
 
 **Q: Can I write values to the PLC?**  
-A: Yes. `switch`, `light`, `dimmer light`, `cover`, `button`, `number`, `text`, `climate`, and Entity Sync all support writes.
+A: Yes. `switch`, `light`, `dimmer light`, `cover`, `button`, `number`, `select`, `text`, `climate`, and Entity Sync all support writes.
 
 **Q: Do I need to know PLC programming?**  
 A: Basic knowledge helps. You need to know your data block structure and addresses.

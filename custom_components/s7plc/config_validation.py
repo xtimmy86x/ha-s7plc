@@ -65,6 +65,7 @@ from .const import (
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_OPERATE_TIME,
+    CONF_OPTIONS_MAP,
     CONF_PATTERN,
     CONF_POSITION_COMMAND_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
@@ -83,6 +84,7 @@ from .const import (
     CONF_SCALE_RAW_MAX,
     CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
+    CONF_SELECTS,
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
@@ -226,6 +228,12 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_DEVICE_CLASS,
         CONF_UNIT_OF_MEASUREMENT,
         CONF_STEP,
+    },
+    CONF_SELECTS: _COMMON_FIELDS
+    | {
+        CONF_ADDRESS,
+        CONF_COMMAND_ADDRESS,
+        CONF_OPTIONS_MAP,
     },
     CONF_TEXTS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_COMMAND_ADDRESS, CONF_PATTERN},
     CONF_CLIMATES: _COMMON_FIELDS
@@ -1450,8 +1458,6 @@ class EntityConfigBuilder:
             return None, {"base": "scale_raw_requires_min_max"}
 
         # Check if REAL or LREAL type requires min/max
-        from .address import DataType
-
         real_type = getattr(DataType, "REAL", None)
         lreal_type = getattr(DataType, "LREAL", None)
 
@@ -1502,6 +1508,79 @@ class EntityConfigBuilder:
             user_input.get(CONF_SCALE_RAW_MAX),
         )
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
+        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
+
+        return item, {}
+
+    def _build_select_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build a 'select' item from user input.
+
+        Returns (item, errors). If there is an error,
+        item is None and errors["base"] is set.
+        """
+        from .select import parse_options_map
+
+        # Validate address
+        address, errors = self._validate_address_field(user_input.get(CONF_ADDRESS))
+        if errors:
+            return None, errors
+
+        address_tag = parse_tag(address)
+
+        # Check for duplicates
+        if self._has_duplicate(CONF_SELECTS, address, skip_idx=skip_idx):
+            return None, {"base": "duplicate_entry"}
+
+        # Validate optional command address
+        command_address = None
+        if user_input.get(CONF_COMMAND_ADDRESS):
+            command_address, cmd_errors = self._validate_address_field(
+                user_input.get(CONF_COMMAND_ADDRESS)
+            )
+            if cmd_errors:
+                return None, cmd_errors
+
+        # The mapped values are integers written verbatim, so the state
+        # address must be an integer-capable numeric type.
+        limits = get_numeric_limits(address_tag.data_type)
+        non_integer_types = tuple(
+            dtype
+            for dtype in (
+                getattr(DataType, "BIT", None),
+                getattr(DataType, "REAL", None),
+                getattr(DataType, "LREAL", None),
+                getattr(DataType, "CHAR", None),
+            )
+            if dtype is not None
+        )
+        if limits is None or address_tag.data_type in non_integer_types:
+            return None, {"base": "select_requires_integer_type"}
+
+        # Parse and validate the options map
+        options_map = parse_options_map(user_input.get(CONF_OPTIONS_MAP))
+        if not options_map:
+            return None, {"base": "invalid_options_map"}
+
+        dtype_min, dtype_max = limits
+        if any(not dtype_min <= value <= dtype_max for value in options_map):
+            return None, {"base": "options_map_out_of_range"}
+
+        # Build item
+        item = self._build_base_item(address, user_input, CONF_NAME, CONF_AREA)
+
+        if command_address:
+            item[CONF_COMMAND_ADDRESS] = command_address
+
+        # Store the normalized string form; the platform re-parses it.
+        item[CONF_OPTIONS_MAP] = ";".join(
+            f"{value}:{label}" for value, label in options_map.items()
+        )
+
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
         return item, {}
@@ -1993,6 +2072,7 @@ def build_entity_item(
             CONF_LIGHTS: builder._build_light_item,
             CONF_BUTTONS: builder._build_button_item,
             CONF_NUMBERS: builder._build_number_item,
+            CONF_SELECTS: builder._build_select_item,
             CONF_TEXTS: builder._build_text_item,
             CONF_ENTITY_SYNC: builder._build_writer_item,
         }[entity_type]

@@ -675,6 +675,27 @@
           }
         }
       },
+      "selects": {
+        "label": "Auswahlen",
+        "fields": {
+          "address": {
+            "label": "Statusadresse",
+            "description": "SPS-Adresse mit dem aktuellen Optionswert (Ganzzahltyp, z. B. DB1,B0, DB2,I4)."
+          },
+          "command_address": {
+            "label": "Befehlsadresse",
+            "description": "SPS-Adresse zum Schreiben des gewählten Wertes (optional). Wenn leer, wird die Statusadresse verwendet."
+          },
+          "options_map": {
+            "label": "Optionszuordnung",
+            "description": "Jeder SPS-Wert entspricht der in Home Assistant angezeigten Option. In YAML wird dies als 'Wert:Bezeichnung'-Paare gespeichert, getrennt durch ';'.",
+            "value_label": "SPS-Wert",
+            "label_label": "Optionsbezeichnung",
+            "add_option": "Option hinzufügen",
+            "label_placeholder": "z. B. Pumpe A"
+          }
+        }
+      },
       "texts": {
         "label": "Texte",
         "fields": {
@@ -1110,7 +1131,10 @@
       "cover_status_values_error": "Statuszuordnungen müssen durch Kommas getrennte Ganzzahlen enthalten.",
       "cover_status_duplicate_error": "Ein Statuswert darf nicht in mehreren Zuordnungen vorkommen.",
       "cover_status_required": "Die Statuswort-Rückmeldung erfordert eine Adresse und mindestens eine Zuordnung.",
-      "time_unsupported_for_entity": "TIME wird nur für Sensor- und Number-Entitäten unterstützt."
+      "time_unsupported_for_entity": "TIME wird nur für Sensor- und Number-Entitäten unterstützt.",
+      "invalid_options_map": "Ungültige Optionszuordnung. Verwende 'Wert:Bezeichnung'-Paare, getrennt durch ';', mit eindeutigen Ganzzahlwerten und eindeutigen Bezeichnungen.",
+      "options_map_out_of_range": "Ein oder mehrere Optionswerte liegen außerhalb des Wertebereichs des SPS-Datentyps.",
+      "select_requires_integer_type": "Auswahl-Entitäten benötigen einen ganzzahligen SPS-Datentyp (z. B. Byte, Int, Word, DInt)."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

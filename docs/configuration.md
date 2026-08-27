@@ -203,6 +203,26 @@ Position-based covers use a 0–100% numeric range instead of separate open/clos
 - **REAL Precision**: Number of decimal places for REAL values
 - **Value Multiplier**: Scale factor applied to the raw PLC value before displaying it in Home Assistant (e.g., `0.1` to convert tenths to units, `0.001` for millivolts to volts). When set, the multiplier is automatically applied in reverse when writing: the Home Assistant value is divided by the multiplier before being sent to the PLC. Min/Max/Step are also scaled accordingly so the UI always works in display units
 
+#### Select
+
+Maps numeric PLC values to named options, so operating modes, fan speeds,
+duty/standby pump selection and similar single-choice values can be picked
+from a dropdown instead of a raw number.
+
+- **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
+- **Address**: PLC address to read the current value (must be an integer type: Byte, USInt, SInt, Word, Int, DWord, or DInt)
+- **Command Address**: PLC address to write (optional, defaults to read address)
+- **Options Map**: `value:label` pairs separated by `;`, for example:
+
+  ```
+  0:Off;1:Pump A;2:Pump B
+  ```
+
+  Each PLC value maps to the option shown in Home Assistant. Values must be
+  unique integers within the range of the PLC data type, and labels must be
+  unique. If the PLC reports a value that is not in the map, the entity state
+  becomes unknown until a mapped value is read again.
+
 #### Text
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
@@ -303,8 +323,8 @@ Need to move your configuration to another Home Assistant instance or keep a bac
 2. Select **Export YAML** to download the entity backup.
 
 The exported file contains every configured entity grouped by type (`sensors`,
-`binary_sensors`, `switches`, `covers`, `buttons`, `lights`, `numbers`, `texts`,
-`climates`, and `entity_sync`) together with addresses, limits, scan intervals,
+`binary_sensors`, `switches`, `covers`, `buttons`, `lights`, `numbers`,
+`selects`, `texts`, `climates`, and `entity_sync`) together with addresses, limits, scan intervals,
 and other entity metadata.
 
 ### Importing an Entity Backup
