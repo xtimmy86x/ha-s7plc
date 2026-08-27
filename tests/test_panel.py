@@ -2722,7 +2722,7 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
             "toggle",
         }
         assert set(cover_fields["cover_position_feedback"]["options"]) == {
-            "timed", "opening", "closing", "both", "status",
+            "timed", "position", "opening", "closing", "both", "status",
         }
         assert set(cover_fields["cover_movement_feedback"]["options"]) == {
             "none",
@@ -2771,7 +2771,14 @@ console.log(JSON.stringify({{
     assert result["timed"] == "timed"
     assert result["endstops"] == "both"
     assert result["legacyEndstop"] == "opening"
-    assert result["statusWins"] == "status"
+    # "mixed" is a legacy position cover with cover_status_address but no
+    # value mapping at all (neither open/closed nor opening/closing/
+    # stopped), and no opening/closing_state_address - the status word
+    # isn't usable as a position or movement source without any mapping,
+    # so position_feedback infers "position" and movement_feedback prefers
+    # the separately configured bits, the only source that's actually
+    # usable here (PR #124 review, points 2 and 3).
+    assert result["statusWins"] == "bits"
     assert result["bits"] == "bits"
     assert result["traditional"]["cover_stop_enabled"] == "disabled"
     assert result["traditional"]["cover_tilt_enabled"] == "disabled"
@@ -3074,6 +3081,214 @@ console.log(JSON.stringify({{
     assert result["missing"]["opening"] == "errors.cover_endstop_closed_required_error"
     assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
     assert result["missing"]["legacy"] is None
+
+
+def test_position_cover_endstop_and_movement_bits_round_trip() -> None:
+    """Position-mode covers get the same end-stop/movement-bit feedback
+    parity as traditional/toggle: the "Pozycja" section and the "bits"
+    movement option are no longer traditional/toggle-exclusive."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:Object.prototype.hasOwnProperty.call(overrides,"cover_position_feedback")?"true":""}},reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+const error=(original,overrides={{}})=>{{try{{save(original,overrides);return null;}}catch(err){{return err.message;}}}};
+const positionBase={{position_state_address:"DB1,B0"}};
+const positionBoth={{...positionBase,opening_state_address:"DB1,X0.2",closing_state_address:"DB1,X0.3"}};
+console.log(JSON.stringify({{
+  inferred:infer(positionBoth),
+  roundTrip:save(positionBoth,{{cover_position_feedback:"both"}}),
+  bitsRoundTrip:save({{...positionBase,cover_opening_address:"DB1,X2.0",cover_closing_address:"DB1,X2.1"}},{{cover_movement_feedback:"bits"}}),
+  missing:{{opening:error(positionBase,{{cover_position_feedback:"both",opening_state_address:"DB1,X0.2"}}),closing:error(positionBase,{{cover_position_feedback:"both",closing_state_address:"DB1,X0.3"}})}}
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["inferred"]["cover_position_feedback"] == "both"
+    assert result["roundTrip"]["opening_state_address"] == "DB1,X0.2"
+    assert result["roundTrip"]["closing_state_address"] == "DB1,X0.3"
+    assert result["bitsRoundTrip"]["cover_opening_address"] == "DB1,X2.0"
+    assert result["bitsRoundTrip"]["cover_closing_address"] == "DB1,X2.1"
+    assert result["missing"]["opening"] == "errors.cover_endstop_closed_required_error"
+    assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
+
+
+def test_position_cover_feedback_section_and_bits_option_always_visible() -> None:
+    """syncMode() no longer hides the "Pozycja" section or the "bits"
+    movement-feedback option card for control==='position'."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert (
+        'form.querySelector(\'[data-section="cover-position-feedback"]\').classList.toggle(\'hidden-field\',control===\'position\')'
+        not in source
+    )
+    assert (
+        'form.querySelector(\'input[name="cover_movement_feedback"][value="bits"]\').closest(\'.control-card\').classList.toggle(\'hidden-field\',control===\'position\')'
+        not in source
+    )
+
+
+def test_position_cover_default_feedback_uses_position_not_timed_concept() -> None:
+    """Position covers have a continuous 0-100 reading of their own, so the
+    "no separate source" concept is called "position", not "timed" - a
+    legacy entity persisted with "timed" (from before the two were split)
+    normalizes to "position" on save, and the "timed" card stays hidden
+    for position mode while "position" stays hidden everywhere else."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:Object.prototype.hasOwnProperty.call(overrides,"cover_position_feedback")?"true":""}},reportValidity:()=>true}};
+}};
+const save=(original,overrides={{}})=>panel.formEntity(makeForm(original,overrides),original,"covers");
+console.log(JSON.stringify({{
+  freshPosition:infer({{position_state_address:"DB1,B0"}}).cover_position_feedback,
+  legacyTimedPosition:infer({{position_state_address:"DB1,B0",cover_position_feedback:"timed"}}).cover_position_feedback,
+  freshTraditional:infer({{open_command_address:"Q0.0"}}).cover_position_feedback,
+  roundTripPosition:save({{position_state_address:"DB1,B0"}},{{cover_position_feedback:"position"}}).cover_position_feedback,
+  legacySaveNormalizes:save({{position_state_address:"DB1,B0",cover_position_feedback:"timed"}}).cover_position_feedback,
+  roundTripTraditional:save({{open_command_address:"Q0.0",close_command_address:"Q0.1"}},{{cover_position_feedback:"timed"}}).cover_position_feedback
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["freshPosition"] == "position"
+    assert result["legacyTimedPosition"] == "position"
+    assert result["freshTraditional"] == "timed"
+    assert result["roundTripPosition"] == "position"
+    assert result["legacySaveNormalizes"] == "position"
+    assert result["roundTripTraditional"] == "timed"
+    assert (
+        "form.querySelector('input[name=\"cover_position_feedback\"][value=\"timed\"]')"
+        ".closest('.control-card').classList.toggle('hidden-field',"
+        "control==='toggle'||control==='position')"
+    ) in source
+    assert (
+        "form.querySelector('input[name=\"cover_position_feedback\"][value=\"position\"]')"
+        ".closest('.control-card').classList.toggle('hidden-field',control!=='position')"
+    ) in source
+
+
+def test_position_cover_legacy_movement_only_status_saves_without_new_required_fields() -> None:
+    """A legacy position cover whose cover_status_address only carries
+    opening/closing/stopped values (no open/closed) must keep saving
+    through the visual editor without requiring a new open/closed mapping
+    - position_feedback infers "position" (not "status") for it, leaving
+    the status word to movement_feedback alone (PR #124 review, point 2)."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:""}},reportValidity:()=>true}};
+}};
+const legacy={{
+  position_state_address:"DB1,B0",
+  cover_status_address:"DB1,B10",
+  cover_status_opening_values:"1",
+  cover_status_closing_values:"2",
+  cover_status_stopped_values:"3"
+}};
+console.log(JSON.stringify({{
+  inferred:infer(legacy),
+  saved:panel.formEntity(makeForm(legacy),legacy,"covers")
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["inferred"]["cover_position_feedback"] == "position"
+    assert result["inferred"]["cover_movement_feedback"] == "status"
+    saved = result["saved"]
+    assert saved["cover_status_address"] == "DB1,B10"
+    assert saved["cover_status_opening_values"] == "1"
+    assert saved["cover_position_feedback"] == "position"
+
+
+def test_position_cover_legacy_position_only_status_saves_without_new_required_fields() -> None:
+    """Symmetric counterpart: a legacy position cover whose
+    cover_status_address only carries open/closed values (no opening/
+    closing/stopped) must keep saving through the visual editor without
+    requiring a new movement mapping - movement_feedback infers "none"
+    (not "status") for it, since the status word has no movement mapping
+    to offer; position_feedback correctly keeps claiming "status" for
+    itself (PR #124 review round 2, point 1)."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f"""
+global.HTMLElement = class {{}};
+global.customElements = {{define() {{}}}};
+{source}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>key;
+const infer=COVER_UI_FROM_ENTITY;
+const makeForm=(original,overrides={{}})=>{{
+  const initial={{...original,...infer(original),...overrides}},elements={{}};
+  for(const [key,kind] of FIELDS.covers){{
+    const checkbox=kind==="checkbox";
+    elements[key]={{type:checkbox?"checkbox":kind==="number"?"number":"text",value:String(initial[key]??""),checked:checkbox?Boolean(initial[key]):false}};
+  }}
+  return {{elements,dataset:{{coverFeedbackChanged:""}},reportValidity:()=>true}};
+}};
+const legacy={{
+  position_state_address:"DB1,B0",
+  cover_status_address:"DB1,B10",
+  cover_status_open_values:"1",
+  cover_status_closed_values:"2"
+}};
+console.log(JSON.stringify({{
+  inferred:infer(legacy),
+  saved:panel.formEntity(makeForm(legacy),legacy,"covers")
+}}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert result["inferred"]["cover_position_feedback"] == "status"
+    assert result["inferred"]["cover_movement_feedback"] == "none"
+    saved = result["saved"]
+    assert saved["cover_status_address"] == "DB1,B10"
+    assert saved["cover_status_open_values"] == "1"
+    assert saved["cover_position_feedback"] == "status"
 
 
 def test_cover_endstop_panel_validation_matches_config_builder() -> None:

@@ -485,6 +485,7 @@
             "description": "Scegli come viene determinata la posizione terminale.",
             "options": {
               "timed": "Temporizzato",
+              "position": "Valore di posizione",
               "opening": "Solo finecorsa aperto",
               "closing": "Solo finecorsa chiuso",
               "both": "Entrambi i finecorsa",
@@ -492,6 +493,7 @@
             },
             "descriptions": {
               "timed": "Stima la posizione usando il tempo di manovra.",
+              "position": "Usa direttamente il valore di posizione riportato - nessun feedback separato necessario.",
               "opening": "Legge solo il finecorsa di completa apertura.",
               "closing": "Legge solo il finecorsa di completa chiusura.",
               "both": "Legge entrambi i finecorsa di completa apertura e chiusura.",

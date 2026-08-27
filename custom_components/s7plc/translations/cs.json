@@ -485,6 +485,7 @@
             "description": "Zvolte způsob určení koncové pozice.",
             "options": {
               "timed": "Časovaná",
+              "position": "Hodnota pozice",
               "opening": "Pouze koncový spínač otevření",
               "closing": "Pouze koncový spínač zavření",
               "both": "Oba koncové spínače",
@@ -492,6 +493,7 @@
             },
             "descriptions": {
               "timed": "Odhadnout pozici podle doby chodu.",
+              "position": "Použít přímo hlášenou hodnotu pozice - není potřeba samostatná zpětná vazba.",
               "opening": "Číst pouze koncový spínač úplného otevření.",
               "closing": "Číst pouze koncový spínač úplného zavření.",
               "both": "Číst koncové spínače úplného otevření i zavření.",

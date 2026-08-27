@@ -163,6 +163,16 @@ Position-based covers use a 0–100% numeric range instead of separate open/clos
 - **Position State Address**: PLC address to read the current position (0–100)
 - **Position Command Address**: PLC address to write the target position (defaults to state address if omitted)
 - **Invert Position**: When enabled, inverts the position scale (PLC 0 = HA 100 and vice versa)
+- **Position Feedback**: Choose the reported position value (the default -
+  "closed" is the position reading 0, no separate source needed), only the
+  fully-open limit switch, only the fully-closed limit switch, both limit
+  switches, or a mapped PLC status word. The selected limit-switch fields are
+  required for the corresponding single/both mode.
+- **Movement Feedback**: Optionally report opening, closing, and stopped state
+  from individual BIT addresses or from the same mapped PLC status word,
+  independent of the Position Feedback choice.
+- **Status Word Values**: Map distinct integer values to open, closed, opening,
+  closing, and stopped states when status-word feedback is selected.
 - **Device Class**: Optional cover device class (e.g., `shutter`, `blind`, `garage`)
 
 **Stop command**: For position-based covers, the **Stop** action writes the current actual position to the target position register, effectively halting the movement at the current point
