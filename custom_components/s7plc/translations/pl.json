@@ -1164,19 +1164,19 @@
       "all_entities": "Wszystkie encje"
     },
     "address_builder": {
-      "guided": "Guided",
-      "manual": "Manual",
-      "area": "Memory area",
-      "db_number": "DB number",
-      "data_type": "Data type",
-      "offset": "Byte / element offset",
-      "bit": "Bit index",
-      "length": "String length",
-      "preview": "Address preview",
-      "configure": "Configure address",
-      "invalid": "This address cannot be represented by the guided editor. Correct it manually.",
-      "incomplete": "Complete all required address parts.",
-      "unsupported": "This area and data type combination is not supported."
+      "guided": "Kreator",
+      "manual": "Ręcznie",
+      "area": "Obszar pamięci",
+      "db_number": "Numer DB",
+      "data_type": "Typ danych",
+      "offset": "Przesunięcie bajtu / elementu",
+      "bit": "Numer bitu",
+      "length": "Długość tekstu",
+      "preview": "Podgląd adresu",
+      "configure": "Skonfiguruj adres",
+      "invalid": "Tego adresu nie można przedstawić w kreatorze. Popraw go ręcznie.",
+      "incomplete": "Uzupełnij wszystkie wymagane części adresu.",
+      "unsupported": "Ta kombinacja obszaru i typu danych nie jest obsługiwana."
     }
   }
 }

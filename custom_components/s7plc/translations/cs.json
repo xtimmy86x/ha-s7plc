@@ -1164,19 +1164,19 @@
       "all_entities": "Všechny entity"
     },
     "address_builder": {
-      "guided": "Guided",
-      "manual": "Manual",
-      "area": "Memory area",
-      "db_number": "DB number",
-      "data_type": "Data type",
-      "offset": "Byte / element offset",
-      "bit": "Bit index",
-      "length": "String length",
-      "preview": "Address preview",
-      "configure": "Configure address",
-      "invalid": "This address cannot be represented by the guided editor. Correct it manually.",
-      "incomplete": "Complete all required address parts.",
-      "unsupported": "This area and data type combination is not supported."
+      "guided": "Průvodce",
+      "manual": "Ručně",
+      "area": "Paměťová oblast",
+      "db_number": "Číslo DB",
+      "data_type": "Datový typ",
+      "offset": "Posun bajtu / prvku",
+      "bit": "Číslo bitu",
+      "length": "Délka řetězce",
+      "preview": "Náhled adresy",
+      "configure": "Nastavit adresu",
+      "invalid": "Tuto adresu nelze zobrazit v průvodci. Opravte ji ručně.",
+      "incomplete": "Vyplňte všechny povinné části adresy.",
+      "unsupported": "Tato kombinace oblasti a datového typu není podporována."
     }
   }
 }

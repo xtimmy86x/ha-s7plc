@@ -3757,3 +3757,86 @@ def test_all_visual_plc_addresses_use_reusable_builder() -> None:
     assert "if(address&&key!=='source_entity')return this.addressField" in source
     assert "this.initAddressBuilders(form,type)" in source
     assert 'name="${key}" value="${this.escape(value)}"' in source
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_address_builder_serialization_and_visibility_behaviour() -> None:
+    """Structured address helpers distinguish missing values and expose fields."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm");
+const context = {HTMLElement: class {}, customElements: {define() {}}};
+vm.createContext(context);
+vm.runInContext(process.argv[1] + `
+const values = {
+  visibility: [
+    ADDRESS_FIELD_VISIBILITY("DB", "BIT"),
+    ADDRESS_FIELD_VISIBILITY("I", "STRING"),
+    ADDRESS_FIELD_VISIBILITY("Q", "WSTRING"),
+    ADDRESS_FIELD_VISIBILITY("M", "INT"),
+  ],
+  emptyDb: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"",dataType:"INT",offset:"0"}),
+  emptyOffset: SERIALIZE_S7_ADDRESS({area:"M",dataType:"INT",offset:""}),
+  emptyBit: SERIALIZE_S7_ADDRESS({area:"M",dataType:"BIT",offset:"0",bit:""}),
+  emptyLength: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"1",dataType:"STRING",offset:"0",length:""}),
+  zeros: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"0",dataType:"BIT",offset:"0",bit:"0"}),
+};
+globalThis.result = JSON.stringify(values);`, context);
+process.stdout.write(context.result);
+'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    ).stdout)
+    assert result["visibility"] == [
+        {"dbNumber": True, "bit": True, "length": False},
+        {"dbNumber": False, "bit": False, "length": True},
+        {"dbNumber": False, "bit": False, "length": True},
+        {"dbNumber": False, "bit": False, "length": False},
+    ]
+    assert result["emptyDb"] == {"error": "incomplete"}
+    assert result["emptyOffset"] == {"error": "incomplete"}
+    assert result["emptyBit"] == {"error": "incomplete"}
+    assert result["emptyLength"] == {"error": "incomplete"}
+    assert result["zeros"] == "DB0,X0.0"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_required_address_builder_blocks_submission_and_gets_focus() -> None:
+    """Builder validity is explicit because hidden inputs cannot constrain forms."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm"); let Panel;
+const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Panel = cls}};
+vm.createContext(context); vm.runInContext(process.argv[1], context);
+let focused = 0, scrolled = 0;
+const hidden = {value: ""};
+const field = {dataset: {required: "true", addressError: "incomplete"},
+  querySelector: () => hidden, focus: () => focused++, scrollIntoView: () => scrolled++};
+const form = {querySelectorAll: () => [field]};
+const panel = new Panel();
+process.stdout.write(JSON.stringify({valid: panel.validateAddressBuilders(form), focused, scrolled}));
+'''
+    value = json.loads(subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    ).stdout)
+    assert value == {"valid": False, "focused": 1, "scrolled": 1}
+
+
+def test_italian_address_builder_is_translated() -> None:
+    translations = json.loads(
+        Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
+    )["config_panel"]["address_builder"]
+    assert translations == {
+        "guided": "Guidato",
+        "manual": "Manuale",
+        "area": "Area di memoria",
+        "db_number": "Numero DB",
+        "data_type": "Tipo di dato",
+        "offset": "Offset byte / elemento",
+        "bit": "Numero bit",
+        "length": "Lunghezza stringa",
+        "preview": "Anteprima indirizzo",
+        "configure": "Configura indirizzo",
+        "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
+        "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
+        "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
+    }
