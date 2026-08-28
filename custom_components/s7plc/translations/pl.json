@@ -244,7 +244,7 @@
           },
           "descriptions": {
             "connection": "Encja jest dostępna jeśli ustanowiono połączenie z PLC i dane są dostępne.",
-            "always": "Encja jest zawsze dostępna z ostatnim znanym stanem niezależnie od stanu PLC.",
+            "always": "Encja pozostaje dostępna z ostatnim znanym stanem, ale polecenia nadal kończą się niepowodzeniem, gdy PLC jest odłączony.",
             "bit": "Encja jest dostępna jeśli ustanowiono połączenie z PLC i bit dostępności jest aktywny."
           }
         },
@@ -349,7 +349,7 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. MB223, DB20,B223)."
+            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0)."
           },
           "command_address": {
             "label": "Adres zapisu",
@@ -452,7 +452,7 @@
           },
           "operate_time": {
             "label": "Czas ruchu (s)",
-            "description": "Czas, przez jaki osłona może się poruszać między pozycjami krańcowymi."
+            "description": "Czas, przez jaki osłona może się poruszać między pozycjami krańcowymi a po którym nastąpi reset stanu."
           },
           "use_state_topics": {
             "label": "Użyj adresów stanu (otwarta/zamknięta) dla określenia położenia",
@@ -1127,13 +1127,13 @@
       "availability_address_must_be_bit": "Adres dostępności musi być adresem BIT.",
       "cover_endstop_open_required_error": "Identyfikacja pozycji otwarta wymaga binarnego adresu stanu otwarta.",
       "cover_endstop_closed_required_error": "Identyfikacja pozycji zamknięta wymaga binarnego adresu stanu zamknięta.",
-      "cover_status_mapping_required_error": "Identyfikacja pozycji, ruchu osłony wymaga adresu odczytu stanów i co najmniej jednego mapowania wartości.",
-      "cover_status_values_error": "Wartości w mapowaniu stanów muszą być liczbami całkowitym, oddzielone przecinkiem.",
+      "cover_status_mapping_required_error": "Identyfikacja pozycji lub ruchu osłony wymaga co najmniej jednego mapowania wartości stanu.",
+      "cover_status_values_error": "Wartości w mapowaniu stanów muszą być liczbami całkowitymi oddzielonymi przecinkami.",
       "cover_status_duplicate_error": "Taka sama wartość mapowania stanu nie może występować dwa razy.",
       "cover_status_required": "Identyfikacja pozycji, ruchu osłony wymaga adresu odczytu stanów i co najmniej jednego mapowania wartości.",
       "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number.",
       "invalid_options_map": "Nieprawidłowe mapowanie, użyj par np. '0:Pump A;1:Pump B'. Wartości i tekst nie mogą się powtarzać w mapowaniu.",
-      "options_map_out_of_range": "Co najmniej jedna wartość mapowania jest nieprawidłowym typem danych.",
+      "options_map_out_of_range": "Co najmniej jedna wartość mapowania wykracza poza zakres typu danych.",
       "select_requires_integer_type": "Adres odczytu i zapisu listy musi być całkowitym typem danych (np. Byte, Int, Word, DInt)."
     },
     "editor": {
