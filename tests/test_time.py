@@ -192,7 +192,7 @@ def test_time_conversion_and_limits():
     assert seconds_to_time(2.345) == timedelta(milliseconds=2345)
 
 
-def test_time_configuration_only_sensor_and_number():
+def test_time_configuration_sensor_number_and_select():
     for entity_type in ("sensors", "numbers"):
         item, errors = build_entity_item(
             entity_type,
@@ -203,6 +203,13 @@ def test_time_configuration_only_sensor_and_number():
         )
         assert not errors
         assert item["address"] == "DB1,TIME0"
+    item, errors = build_entity_item(
+        "selects",
+        {"address": "DB1,TIME0", "options_map": "0:Off;10:Short"},
+        options={},
+    )
+    assert not errors
+    assert item["options_map"] == "0:Off;10:Short"
     unsupported_addresses = {
         "binary_sensors": "address",
         "switches": "state_address",

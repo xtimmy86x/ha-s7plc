@@ -680,7 +680,7 @@
         "fields": {
           "address": {
             "label": "State address",
-            "description": "PLC address holding the current option value (integer type, e.g., DB1,B0, DB2,I4)."
+            "description": "PLC address holding the current option value (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME). TIME values are seconds."
           },
           "command_address": {
             "label": "Command address",
@@ -688,7 +688,7 @@
           },
           "options_map": {
             "label": "Options map",
-            "description": "Each PLC value maps to the option shown in Home Assistant. In YAML this is stored as 'value:label' pairs separated by ';'.",
+            "description": "Each PLC value maps to the option shown in Home Assistant. TIME values are expressed in seconds. In YAML this is stored as 'value:label' pairs separated by ';'.",
             "value_label": "PLC value",
             "label_label": "Option label",
             "add_option": "Add option",
@@ -1131,10 +1131,11 @@
       "cover_status_values_error": "Status mappings must contain integers separated by commas.",
       "cover_status_duplicate_error": "A status value cannot appear in more than one mapping.",
       "cover_status_required": "Status-word feedback requires an address and at least one mapping.",
-      "time_unsupported_for_entity": "TIME is supported only for sensor and number entities.",
+      "time_unsupported_for_entity": "TIME is supported only for sensor, number, and select entities.",
       "invalid_options_map": "Invalid options map. Use 'value:label' pairs separated by ';' with unique integer values and unique labels.",
       "options_map_out_of_range": "One or more option values are outside the range of the PLC data type.",
-      "select_requires_integer_type": "Select entities require an integer PLC data type (e.g., Byte, Int, Word, DInt)."
+      "select_requires_integer_type": "Select entities require a discrete numeric PLC data type (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME).",
+      "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

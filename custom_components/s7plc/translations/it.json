@@ -680,7 +680,7 @@
         "fields": {
           "address": {
             "label": "Indirizzo di stato",
-            "description": "Indirizzo PLC che contiene il valore dell'opzione corrente (tipo intero, es. DB1,B0, DB2,I4)."
+            "description": "Indirizzo PLC contenente il valore dell'opzione corrente (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME). I valori TIME sono in secondi."
           },
           "command_address": {
             "label": "Indirizzo di comando",
@@ -688,7 +688,7 @@
           },
           "options_map": {
             "label": "Mappa opzioni",
-            "description": "Ogni valore PLC corrisponde all'opzione mostrata in Home Assistant. In YAML viene salvato come coppie 'valore:etichetta' separate da ';'.",
+            "description": "Ogni valore PLC corrisponde all'opzione mostrata in Home Assistant. I valori TIME sono espressi in secondi. In YAML viene memorizzato come coppie 'valore:etichetta' separate da ';'.",
             "value_label": "Valore PLC",
             "label_label": "Etichetta opzione",
             "add_option": "Aggiungi opzione",
@@ -1131,10 +1131,11 @@
       "cover_status_values_error": "Le associazioni di stato devono contenere numeri interi separati da virgole.",
       "cover_status_duplicate_error": "Un valore di stato non può comparire in più di un'associazione.",
       "cover_status_required": "Il feedback tramite word di stato richiede un indirizzo e almeno un'associazione.",
-      "time_unsupported_for_entity": "TIME è supportato solo per le entità sensor e number.",
+      "time_unsupported_for_entity": "TIME è supportato solo per le entità sensor, number e select.",
       "invalid_options_map": "Mappa opzioni non valida. Usa coppie 'valore:etichetta' separate da ';' con valori interi univoci ed etichette univoche.",
       "options_map_out_of_range": "Uno o più valori delle opzioni sono fuori dall'intervallo del tipo di dato PLC.",
-      "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC intero (es. Byte, Int, Word, DInt)."
+      "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC numerico discreto (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME).",
+      "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

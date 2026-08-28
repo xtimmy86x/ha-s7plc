@@ -1,5 +1,8 @@
 """Tests for the S7 PLC select entity."""
 
+from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 
@@ -10,7 +13,7 @@ from custom_components.s7plc.const import (
     CONF_OPTIONS_MAP,
     CONF_SELECTS,
 )
-from custom_components.s7plc.select import S7Select, parse_options_map
+from custom_components.s7plc.select import S7Select, async_setup_entry, parse_options_map
 
 # ============================================================================
 # Fixtures
@@ -86,6 +89,11 @@ def test_parse_options_map_invalid(raw):
     assert parse_options_map(raw) is None
 
 
+@pytest.mark.parametrize("raw", ["1:Line one\nLine two", "1:One;broken label"])
+def test_parse_options_map_rejects_separator_in_label(raw):
+    assert parse_options_map(raw) is None
+
+
 # ============================================================================
 # Entity behavior
 # ============================================================================
@@ -131,6 +139,30 @@ async def test_select_option_unknown_raises(pump_select):
 
 
 @pytest.mark.asyncio
+async def test_time_select_read_write_and_unmapped(mock_coordinator, device_info):
+    topic = "select:DB1,TIME0"
+    entity = S7Select(
+        mock_coordinator,
+        "Delay",
+        "delay",
+        device_info,
+        topic,
+        "DB1,TIME0",
+        "DB1,TIME4",
+        {0: "Off", 10: "Short", 60: "Long"},
+    )
+    mock_coordinator.data = {topic: timedelta(seconds=10)}
+    assert entity.current_option == "Short"
+    mock_coordinator.data = {topic: timedelta(milliseconds=10500)}
+    assert entity.current_option is None
+
+    await entity.async_select_option("Long")
+    assert ("write_batched", "DB1,TIME4", timedelta(seconds=60)) in (
+        mock_coordinator.write_calls
+    )
+
+
+@pytest.mark.asyncio
 async def test_select_option_no_command_address(mock_coordinator, device_info):
     select = S7Select(
         coordinator=mock_coordinator,
@@ -150,6 +182,48 @@ def test_select_extra_state_attributes(pump_select):
     attrs = pump_select.extra_state_attributes
     assert attrs["s7_command_address"] == "DB1,B10"
     assert attrs["options_map"] == {"0": "Off", "1": "Pump A", "2": "Pump B"}
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_uses_options_and_default_command_address(
+    fake_hass, mock_coordinator, device_info
+):
+    entry = MagicMock()
+    entry.options = {
+        CONF_SELECTS: [
+            {
+                CONF_ADDRESS: "DB1,B0",
+                CONF_OPTIONS_MAP: "0:Off;10:Manual;100:Automatic",
+                "uid": "mode-uid",
+            }
+        ]
+    }
+    add_entities = MagicMock()
+    configure_availability = AsyncMock()
+    with (
+        patch(
+            "custom_components.s7plc.select.get_coordinator_and_device_info",
+            return_value=(mock_coordinator, device_info, "device"),
+        ),
+        patch(
+            "custom_components.s7plc.select.async_configure_entity_availability",
+            configure_availability,
+        ),
+    ):
+        await async_setup_entry(fake_hass, entry, add_entities)
+
+    entities = add_entities.call_args.args[0]
+    assert len(entities) == 1
+    assert entities[0].options == ["Off", "Manual", "Automatic"]
+    assert entities[0]._command_address == "DB1,B0"
+    assert mock_coordinator.add_item_calls[0][0] == (
+        "select:DB1,B0",
+        "DB1,B0",
+        None,
+    )
+    configure_availability.assert_awaited_once_with(
+        entities, entry.options[CONF_SELECTS]
+    )
 
 
 # ============================================================================
@@ -204,11 +278,103 @@ def test_build_select_item_negative_ok_for_signed_int():
     assert item[CONF_OPTIONS_MAP] == "-1:Fault;0:Off;1:On"
 
 
+def test_build_select_item_non_consecutive_byte_mapping():
+    item, errors = _build(
+        {CONF_ADDRESS: "DB1,B0", CONF_OPTIONS_MAP: "0:Off;10:Manual;100:Automatic"}
+    )
+    assert not errors
+    assert item[CONF_OPTIONS_MAP] == "0:Off;10:Manual;100:Automatic"
+
+
 @pytest.mark.parametrize("address", ["DB1,X0.0", "DB1,R0", "DB1,LR0"])
 def test_build_select_item_rejects_non_integer_types(address):
     item, errors = _build({CONF_ADDRESS: address, CONF_OPTIONS_MAP: "0:Off;1:On"})
     assert item is None
     assert errors == {"base": "select_requires_integer_type"}
+
+
+@pytest.mark.parametrize("address", ["DB1,X10.0", "DB1,R10", "DB1,LR10"])
+def test_build_select_item_rejects_unsupported_command_type(address):
+    item, errors = _build(
+        {
+            CONF_ADDRESS: "DB1,B0",
+            CONF_COMMAND_ADDRESS: address,
+            CONF_OPTIONS_MAP: "0:Off;1:On",
+        }
+    )
+    assert item is None
+    assert errors == {"base": "select_requires_integer_type"}
+
+
+def test_build_select_item_accepts_different_fitting_integer_command_type():
+    item, errors = _build(
+        {
+            CONF_ADDRESS: "DB1,B0",
+            CONF_COMMAND_ADDRESS: "DB1,I10",
+            CONF_OPTIONS_MAP: "0:Off;1:Manual;2:Auto",
+        }
+    )
+    assert not errors
+    assert item[CONF_COMMAND_ADDRESS] == "DB1,I10"
+
+
+def test_build_select_item_rejects_command_value_out_of_range():
+    item, errors = _build(
+        {
+            CONF_ADDRESS: "DB1,W0",
+            CONF_COMMAND_ADDRESS: "DB1,B10",
+            CONF_OPTIONS_MAP: "0:Off;300:Mode A",
+        }
+    )
+    assert item is None
+    assert errors == {"base": "options_map_out_of_range"}
+
+
+def test_build_select_item_rejects_invalid_command_address():
+    item, errors = _build(
+        {
+            CONF_ADDRESS: "DB1,B0",
+            CONF_COMMAND_ADDRESS: "not an address",
+            CONF_OPTIONS_MAP: "0:Off",
+        }
+    )
+    assert item is None
+    assert errors == {"base": "invalid_address"}
+
+
+@pytest.mark.parametrize(
+    ("state", "command", "expected_error"),
+    [
+        ("DB1,TIME0", "DB1,TIME4", None),
+        ("DB1,TIME0", "DB1,D4", "select_command_type_mismatch"),
+        ("DB1,D0", "DB1,TIME4", "select_command_type_mismatch"),
+    ],
+)
+def test_build_select_item_time_command_compatibility(
+    state, command, expected_error
+):
+    item, errors = _build(
+        {
+            CONF_ADDRESS: state,
+            CONF_COMMAND_ADDRESS: command,
+            CONF_OPTIONS_MAP: "0:Off;10:Short;60:Long",
+        }
+    )
+    if expected_error:
+        assert item is None
+        assert errors == {"base": expected_error}
+    else:
+        assert not errors
+        assert item[CONF_OPTIONS_MAP] == "0:Off;10:Short;60:Long"
+
+
+@pytest.mark.parametrize("value", [-2147484, 2147484])
+def test_build_select_item_time_range(value):
+    item, errors = _build(
+        {CONF_ADDRESS: "DB1,TIME0", CONF_OPTIONS_MAP: f"{value}:Out"}
+    )
+    assert item is None
+    assert errors == {"base": "options_map_out_of_range"}
 
 
 def test_build_select_item_duplicate_address():

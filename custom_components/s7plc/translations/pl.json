@@ -680,7 +680,7 @@
         "fields": {
           "address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu (np. DB1,B0, DB2,I4)."
+            "description": "Adres odczytu (BYTE, WORD, DWORD, SINT, USINT, INT, DINT lub TIME). Wartości TIME są podawane w sekundach."
           },
           "command_address": {
             "label": "Adres zapisu",
@@ -688,7 +688,7 @@
           },
           "options_map": {
             "label": "Mapowanie",
-            "description": "Mapowanie zamienia wartości liczbowe na tekst i odwrotnie. W YAML jako options_map: '0:Pump A;1:Pump B'.",
+            "description": "Każda wartość PLC odpowiada opcji wyświetlanej w Home Assistant. Wartości TIME są wyrażone w sekundach. W YAML zapis ma postać par 'wartość:etykieta' rozdzielonych ';'.",
             "value_label": "Wartość",
             "label_label": "Tekst",
             "add_option": "Dodaj",
@@ -1131,10 +1131,11 @@
       "cover_status_values_error": "Wartości w mapowaniu stanów muszą być liczbami całkowitymi oddzielonymi przecinkami.",
       "cover_status_duplicate_error": "Taka sama wartość mapowania stanu nie może występować dwa razy.",
       "cover_status_required": "Identyfikacja pozycji lub ruchu osłony wymaga liczbowego adresu odczytu stanów i co najmniej jednego odpowiedniego mapowania wartości.",
-      "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number.",
+      "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor, number i select.",
       "invalid_options_map": "Nieprawidłowe mapowanie, użyj par np. '0:Pump A;1:Pump B'. Wartości i tekst nie mogą się powtarzać w mapowaniu.",
       "options_map_out_of_range": "Co najmniej jedna wartość mapowania wykracza poza zakres typu danych.",
-      "select_requires_integer_type": "Adres odczytu i zapisu listy musi być całkowitym typem danych (np. Byte, Int, Word, DInt)."
+      "select_requires_integer_type": "Adres odczytu i zapisu listy musi być dyskretnym typem danych PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT lub TIME).",
+      "select_command_type_mismatch": "Adres polecenia musi używać TIME wtedy i tylko wtedy, gdy adres stanu używa TIME."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

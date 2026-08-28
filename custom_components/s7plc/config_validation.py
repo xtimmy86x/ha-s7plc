@@ -5,7 +5,7 @@ from typing import Any
 
 from homeassistant.const import CONF_NAME
 
-from .address import DataType, get_numeric_limits, parse_tag
+from .address import DataType, get_numeric_limits, is_time_data_type, parse_tag
 from .const import (
     AVAILABILITY_MODE_BIT,
     AVAILABILITY_MODE_CONNECTION,
@@ -137,6 +137,28 @@ from .const import (
     DEFAULT_TOGGLE_MODE,
 )
 from .helpers import parse_pulse_duration
+
+
+def _select_value_limits(tag) -> tuple[float, float] | None:
+    """Return limits for the discrete PLC types supported by selects."""
+    supported = {
+        data_type
+        for data_type in (
+            getattr(DataType, "BYTE", None),
+            getattr(DataType, "WORD", None),
+            getattr(DataType, "DWORD", None),
+            getattr(DataType, "SINT", None),
+            getattr(DataType, "USINT", None),
+            getattr(DataType, "INT", None),
+            getattr(DataType, "DINT", None),
+            getattr(DataType, "TIME", None),
+        )
+        if data_type is not None
+    }
+    if tag.data_type not in supported:
+        return None
+    return get_numeric_limits(tag.data_type)
+
 
 # Fields accepted by each entity configuration.  This catalog describes only
 # the shape of an entity; semantic and duplicate-address checks remain the
@@ -1545,21 +1567,18 @@ class EntityConfigBuilder:
             if cmd_errors:
                 return None, cmd_errors
 
-        # The mapped values are integers written verbatim, so the state
-        # address must be an integer-capable numeric type.
-        limits = get_numeric_limits(address_tag.data_type)
-        non_integer_types = tuple(
-            dtype
-            for dtype in (
-                getattr(DataType, "BIT", None),
-                getattr(DataType, "REAL", None),
-                getattr(DataType, "LREAL", None),
-                getattr(DataType, "CHAR", None),
-            )
-            if dtype is not None
-        )
-        if limits is None or address_tag.data_type in non_integer_types:
+        limits = _select_value_limits(address_tag)
+        if limits is None:
             return None, {"base": "select_requires_integer_type"}
+
+        command_tag = parse_tag(command_address) if command_address else address_tag
+        command_limits = _select_value_limits(command_tag)
+        if command_limits is None:
+            return None, {"base": "select_requires_integer_type"}
+        if is_time_data_type(address_tag.data_type) != is_time_data_type(
+            command_tag.data_type
+        ):
+            return None, {"base": "select_command_type_mismatch"}
 
         # Parse and validate the options map
         options_map = parse_options_map(user_input.get(CONF_OPTIONS_MAP))
@@ -1568,6 +1587,9 @@ class EntityConfigBuilder:
 
         dtype_min, dtype_max = limits
         if any(not dtype_min <= value <= dtype_max for value in options_map):
+            return None, {"base": "options_map_out_of_range"}
+        command_min, command_max = command_limits
+        if any(not command_min <= value <= command_max for value in options_map):
             return None, {"base": "options_map_out_of_range"}
 
         # Build item
@@ -2032,7 +2054,7 @@ def build_entity_item(
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Validate and normalize one entity using the appropriate builder."""
     validate_entity_fields(entity_type, entity)
-    if entity_type not in (CONF_SENSORS, CONF_NUMBERS):
+    if entity_type not in (CONF_SENSORS, CONF_NUMBERS, CONF_SELECTS):
         for key, value in entity.items():
             if "address" not in key or not isinstance(value, str) or not value.strip():
                 continue

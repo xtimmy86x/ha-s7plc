@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -9,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
+from .address import is_time_data_type, parse_tag, seconds_to_time, time_to_seconds
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -129,6 +131,7 @@ class S7Select(S7BaseEntity, SelectEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+        self._is_time = is_time_data_type(parse_tag(address).data_type)
         # value -> label as configured; label -> value for writes.
         self._value_to_label = dict(options_map)
         self._label_to_value = {label: value for value, label in options_map.items()}
@@ -140,8 +143,16 @@ class S7Select(S7BaseEntity, SelectEntity):
         if value is None:
             return None
         try:
-            value = int(value)
+            if self._is_time:
+                value = time_to_seconds(value)
+            else:
+                value = int(value)
         except (TypeError, ValueError):
+            if self._is_time and isinstance(value, timedelta):
+                _LOGGER.debug(
+                    "Invalid TIME PLC value for select %s: %r", self._topic, value
+                )
+                return None
             _LOGGER.warning(
                 "Non-integer PLC value for select %s: %r", self._topic, value
             )
@@ -158,7 +169,8 @@ class S7Select(S7BaseEntity, SelectEntity):
         value = self._label_to_value.get(option)
         if value is None:
             raise HomeAssistantError(f"Unknown option: {option}")
-        await self.coordinator.write_batched(self._command_address, value)
+        payload = seconds_to_time(value) if self._is_time else value
+        await self.coordinator.write_batched(self._command_address, payload)
         await self.coordinator.async_request_refresh()
 
     @property

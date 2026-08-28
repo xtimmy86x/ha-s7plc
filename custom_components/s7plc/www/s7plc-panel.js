@@ -13,10 +13,6 @@ const GROUP_SELECTED_INDICES = selection => {
   }
   return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[...indices].sort((a,b)=>b-a)]));
 };
-// Translation JSON served by the integration is the canonical source. This
-// deliberately small dictionary is only for a total translation-loading failure.
-// The sidepanel uses its own translation namespace so it remains independent
-// from the Config and Options Flow, which are planned for deprecation in 7.0.0.
 const SUPPORTED_LANGUAGES = new Set(["en", "it", "de", "pl", "cs"]);
 const ENGLISH_EMERGENCY_FALLBACK = {
   common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required"},
@@ -378,7 +374,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
     if(omField){
       const rowsBox=omField.querySelector('.om-rows'),hidden=form.elements.options_map;
       const sync=()=>{hidden.value=[...rowsBox.querySelectorAll('.om-row')].map(r=>{const v=r.querySelector('.om-value').value.trim(),l=r.querySelector('.om-label').value.trim();return v!==''&&l!==''?`${v}:${l}`:null;}).filter(Boolean).join(';');};
-      const makeRow=(v='',l='')=>{const div=document.createElement('div');div.className='om-row';div.innerHTML=`<input type="number" step="1" class="om-value mono" required inputmode="numeric" placeholder="0"><input type="text" class="om-label" required placeholder="${this.escape(this.fieldText(type,'options_map','label_placeholder'))}"><button type="button" class="om-del" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete-outline"></ha-icon></button>`;div.querySelector('.om-value').value=v;div.querySelector('.om-label').value=l;div.querySelector('.om-del').onclick=()=>{div.remove();if(!rowsBox.children.length)rowsBox.appendChild(makeRow());sync();};div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));return div;};
+      const makeRow=(v='',l='')=>{const div=document.createElement('div');div.className='om-row';div.innerHTML=`<input type="number" step="1" class="om-value mono" required inputmode="numeric" placeholder="0"><input type="text" class="om-label" required pattern="[^;]+" placeholder="${this.escape(this.fieldText(type,'options_map','label_placeholder'))}"><button type="button" class="om-del" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete-outline"></ha-icon></button>`;div.querySelector('.om-value').value=v;div.querySelector('.om-label').value=l;div.querySelector('.om-del').onclick=()=>{div.remove();if(!rowsBox.children.length)rowsBox.appendChild(makeRow());sync();};div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));return div;};
       omField.querySelector('[data-om-add]').onclick=()=>{const r=makeRow();rowsBox.appendChild(r);r.querySelector('.om-value').focus();};
       const pairs=String(raw.options_map??'').split(';').map(chunk=>chunk.trim()).filter(Boolean).map(pair=>{const at=pair.indexOf(':');return at<0?null:[pair.slice(0,at).trim(),pair.slice(at+1).trim()];}).filter(Boolean);
       (pairs.length?pairs:[['','']]).forEach(([v,l])=>rowsBox.appendChild(makeRow(v,l)));

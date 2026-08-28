@@ -1928,6 +1928,19 @@ def test_panel_backend_validation_errors_have_autonomous_translations() -> None:
         assert produced_errors <= panel_errors.keys()
 
 
+def test_config_flow_translations_only_contain_config_flow_errors() -> None:
+    """Entity validation errors belong to the sidepanel namespace only."""
+    entity_errors = {
+        "time_unsupported_for_entity",
+        "select_requires_integer_type",
+        "select_command_type_mismatch",
+    }
+    for path in _translation_paths():
+        translations = json.loads(path.read_text(encoding="utf-8"))
+        assert not entity_errors & translations["config"]["error"].keys()
+        assert entity_errors <= translations["config_panel"]["errors"].keys()
+
+
 def test_options_connection_errors_produced_by_backend_are_translated() -> None:
     source = Path("custom_components/s7plc/config_flow.py").read_text(encoding="utf-8")
     options_flow = source[source.index("class S7PLCOptionsFlow"):]

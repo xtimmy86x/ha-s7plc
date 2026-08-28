@@ -680,7 +680,7 @@
         "fields": {
           "address": {
             "label": "Adresa stavu",
-            "description": "Adresa PLC s aktuální hodnotou volby (celočíselný typ, např. DB1,B0, DB2,I4)."
+            "description": "Adresa PLC obsahující aktuální hodnotu volby (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME). Hodnoty TIME jsou v sekundách."
           },
           "command_address": {
             "label": "Adresa příkazu",
@@ -688,7 +688,7 @@
           },
           "options_map": {
             "label": "Mapa voleb",
-            "description": "Každá hodnota PLC odpovídá volbě zobrazené v Home Assistant. V YAML se ukládá jako dvojice 'hodnota:popisek' oddělené ';'.",
+            "description": "Každá hodnota PLC odpovídá volbě zobrazené v Home Assistant. Hodnoty TIME jsou vyjádřeny v sekundách. V YAML se ukládá jako dvojice 'hodnota:popisek' oddělené ';'.",
             "value_label": "Hodnota PLC",
             "label_label": "Popisek volby",
             "add_option": "Přidat volbu",
@@ -1131,10 +1131,11 @@
       "cover_status_values_error": "Mapování stavů musí obsahovat celá čísla oddělená čárkami.",
       "cover_status_duplicate_error": "Hodnota stavu nesmí být uvedena ve více než jednom mapování.",
       "cover_status_required": "Zpětná vazba stavového slova vyžaduje adresu a alespoň jedno mapování.",
-      "time_unsupported_for_entity": "TIME je podporován pouze pro entity sensor a number.",
+      "time_unsupported_for_entity": "TIME je podporován pouze pro entity sensor, number a select.",
       "invalid_options_map": "Neplatná mapa voleb. Použijte dvojice 'hodnota:popisek' oddělené ';' s jedinečnými celočíselnými hodnotami a jedinečnými popisky.",
       "options_map_out_of_range": "Jedna nebo více hodnot voleb je mimo rozsah datového typu PLC.",
-      "select_requires_integer_type": "Entity výběru vyžadují celočíselný datový typ PLC (např. Byte, Int, Word, DInt)."
+      "select_requires_integer_type": "Entity výběru vyžadují diskrétní číselný datový typ PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME).",
+      "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

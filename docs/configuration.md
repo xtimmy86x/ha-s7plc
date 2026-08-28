@@ -210,7 +210,7 @@ duty/standby pump selection and similar single-choice values can be picked
 from a dropdown instead of a raw number.
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
-- **Address**: PLC address to read the current value (must be an integer type: Byte, USInt, SInt, Word, Int, DWord, or DInt)
+- **Address**: PLC address to read the current value (must be a discrete numeric type: BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME)
 - **Command Address**: PLC address to write (optional, defaults to read address)
 - **Options Map**: `value:label` pairs separated by `;`, for example:
 
@@ -219,8 +219,9 @@ from a dropdown instead of a raw number.
   ```
 
   Each PLC value maps to the option shown in Home Assistant. Values must be
-  unique integers within the range of the PLC data type, and labels must be
-  unique. If the PLC reports a value that is not in the map, the entity state
+  unique integers within the range of both the state and command PLC data types, and labels must be
+  unique and cannot contain `;` or newlines. TIME option values are expressed in
+  seconds, consistently with the sensor and number entities. If the PLC reports a value that is not in the map, the entity state
   becomes unknown until a mapped value is read again.
 
 #### Text
@@ -394,13 +395,15 @@ coalesce the physical read.
 
 ### Siemens `TIME` durations
 
-The Siemens `TIME` datatype is supported for **sensor** and **number** entities.
+The Siemens `TIME` datatype is supported for **sensor**, **number**, and **select** entities.
 It is a signed 32-bit duration stored by the PLC in milliseconds, while Home
 Assistant always displays and configures it in seconds. It must not be confused
 with Home Assistant's time-of-day entity.
 
 * Reads divide the PLC value by 1000: `TIME#1500ms` is `1.5 s`, `TIME#1s` is
   `1.0 s`, and `TIME#-250ms` is `-0.25 s`.
+* Select mappings also use integer seconds and require an exact match; an
+  unmapped fractional duration has no current option.
 * Number writes multiply seconds by 1000 and round to the nearest millisecond:
   `2.345 s` is written as `2345 ms`.
 * Negative durations are supported. The complete range is
@@ -410,6 +413,6 @@ with Home Assistant's time-of-day entity.
 * `value_multiplier`, when configured, is applied after conversion to seconds
   on reads and reversed before conversion to milliseconds on writes.
 
-Use an address such as `DB1,TIME0`. `TIME` is not accepted for other entity
-platforms. Other Siemens temporal datatypes, including `LTIME` and time-of-day
+Use an address such as `DB1,TIME0`. `TIME` is not accepted for entity
+platforms other than sensor, number, and select. Other Siemens temporal datatypes, including `LTIME` and time-of-day
 variants, are not supported.
