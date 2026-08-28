@@ -3821,6 +3821,22 @@ process.stdout.write(JSON.stringify({valid: panel.validateAddressBuilders(form),
     assert value == {"valid": False, "focused": 1, "scrolled": 1}
 
 
+def test_address_builder_focus_style_only_indicates_real_errors() -> None:
+    """Focusing a builder only shows an error outline for explicit errors."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert ".address-builder:focus{outline:none}" in source
+    assert (
+        '.address-builder[data-address-error]:not([data-address-error=""])'
+        "{border-color:var(--error-color)}"
+    ) in source
+    assert (
+        '.address-builder[data-address-error]:not([data-address-error=""]):focus'
+        "{outline:2px solid var(--error-color);outline-offset:2px}"
+    ) in source
+    assert ".address-builder:focus{outline:2px solid var(--error-color)" not in source
+
+
 def test_italian_address_builder_is_translated() -> None:
     translations = json.loads(
         Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
