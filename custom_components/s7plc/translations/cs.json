@@ -217,6 +217,7 @@
       "no_area": "Žádná oblast",
       "none_option": "Žádná",
       "address_example": "např. DB1,REAL0",
+      "address_example_integer": "např. DB1,W0",
       "address_example_bool": "např. DB1,X0.0",
       "address_example_string": "např. DB1,S0.254",
       "entity_example": "např. sensor.teplota_obyvaciho_pokoje",

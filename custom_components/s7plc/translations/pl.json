@@ -217,6 +217,7 @@
       "no_area": "Brak obszaru",
       "none_option": "Brak",
       "address_example": "np. DB1,REAL0",
+      "address_example_integer": "np. DB1,W0",
       "address_example_bool": "np. DB1,X0.0",
       "address_example_string": "np. DB1,S0.254",
       "entity_example": "np. sensor.temperatura_salonu",

@@ -217,6 +217,7 @@
       "no_area": "No area",
       "none_option": "None",
       "address_example": "e.g. DB1,REAL0",
+      "address_example_integer": "e.g. DB1,W0",
       "address_example_bool": "e.g. DB1,X0.0",
       "address_example_string": "e.g. DB1,S0.254",
       "entity_example": "e.g. sensor.living_room_temperature",

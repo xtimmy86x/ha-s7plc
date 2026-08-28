@@ -2511,7 +2511,7 @@ def test_panel_text_addresses_use_string_placeholder() -> None:
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_address_placeholders_match_plc_data_type() -> None:
-    """Text addresses use STRING examples while BOOL and REAL stay unchanged."""
+    """Manual address examples match the field's supported PLC data types."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     script = """
 const vm = require('vm');
@@ -2525,6 +2525,7 @@ panel.escape = value => String(value);
 panel.t = key => ({
   'common.address_example': 'REAL',
   'common.address_example_bool': 'BOOL',
+  'common.address_example_integer': 'INTEGER',
   'common.address_example_string': 'STRING'
 }[key] || key);
 const placeholder = (type, key) => panel.field([key], {}, type)
@@ -2533,6 +2534,8 @@ process.stdout.write(JSON.stringify({
   textAddress: placeholder('texts', 'address'),
   textCommandAddress: placeholder('texts', 'command_address'),
   boolAddress: placeholder('covers', 'open_command_address'),
+  selectAddress: placeholder('selects', 'address'),
+  selectCommandAddress: placeholder('selects', 'command_address'),
   genericAddress: placeholder('sensors', 'address')
 }));
 """
@@ -2547,28 +2550,39 @@ process.stdout.write(JSON.stringify({
         "textAddress": "STRING",
         "textCommandAddress": "STRING",
         "boolAddress": "BOOL",
+        "selectAddress": "INTEGER",
+        "selectCommandAddress": "INTEGER",
         "genericAddress": "REAL",
     }
 
     expected = {
-        "en": "e.g. DB1,S0.254",
-        "it": "es. DB1,S0.254",
-        "de": "z. B. DB1,S0.254",
-        "pl": "np. DB1,S0.254",
-        "cs": "např. DB1,S0.254",
+        "en": ("e.g. DB1,S0.254", "e.g. DB1,W0"),
+        "it": ("es. DB1,S0.254", "es. DB1,W0"),
+        "de": ("z. B. DB1,S0.254", "z. B. DB1,W0"),
+        "pl": ("np. DB1,S0.254", "np. DB1,W0"),
+        "cs": ("např. DB1,S0.254", "např. DB1,W0"),
     }
     strings = json.loads(
         Path("custom_components/s7plc/strings.json").read_text(encoding="utf-8")
     )
-    assert strings["config_panel"]["common"]["address_example_string"] == expected["en"]
-    for language, example in expected.items():
+    assert (
+        strings["config_panel"]["common"]["address_example_string"]
+        == expected["en"][0]
+    )
+    assert strings["config_panel"]["common"]["address_example_integer"] == expected["en"][1]
+    for language, (string_example, integer_example) in expected.items():
         translations = json.loads(
             Path(f"custom_components/s7plc/translations/{language}.json").read_text(
                 encoding="utf-8"
             )
         )
         assert (
-            translations["config_panel"]["common"]["address_example_string"] == example
+            translations["config_panel"]["common"]["address_example_string"]
+            == string_example
+        )
+        assert (
+            translations["config_panel"]["common"]["address_example_integer"]
+            == integer_example
         )
 
 
