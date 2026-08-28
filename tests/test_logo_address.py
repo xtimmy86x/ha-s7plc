@@ -5,6 +5,7 @@ import pytest
 from custom_components.s7plc.logo_address import (
     get_logo_profile,
     is_logo_address_candidate,
+    logo_profile_payload,
     logo_to_s7_address,
     parse_logo_address,
     s7_to_logo_address,
@@ -51,7 +52,11 @@ PROFILES = {
 
 @pytest.mark.parametrize(
     ("family", "area", "last", "first_address", "last_address"),
-    [(family, area, *values) for family, areas in PROFILES.items() for area, values in areas.items()],
+    [
+        (family, area, *values)
+        for family, areas in PROFILES.items()
+        for area, values in areas.items()
+    ],
 )
 def test_every_area_first_last_rejected_successor_and_reverse(
     family, area, last, first_address, last_address
@@ -66,8 +71,12 @@ def test_every_area_first_last_rejected_successor_and_reverse(
 
 @pytest.mark.parametrize("family", PROFILES)
 def test_undocumented_area_is_rejected(family):
-    unavailable = "NI" if family == "logo_0ba7" else "FAM" if family == "logo_0ba8" else "XYZ"
-    with pytest.raises(ValueError, match="address_not_convertible|invalid_logo_address"):
+    unavailable = (
+        "NI" if family == "logo_0ba7" else "FAM" if family == "logo_0ba8" else "XYZ"
+    )
+    with pytest.raises(
+        ValueError, match="address_not_convertible|invalid_logo_address"
+    ):
         parse_logo_address(f"{unavailable}1", family)
 
 
@@ -97,3 +106,48 @@ def test_manual_vm_bounds_and_reserved_reverse_mapping():
     with pytest.raises(ValueError, match="address_out_of_range"):
         logo_to_s7_address("VW850", "logo_9")
     assert s7_to_logo_address("DB1,X1027.0", "logo_0ba8") is None
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical"),
+    [
+        ("V0.0", "DB1,X0.0"),
+        ("V850.7", "DB1,X850.7"),
+        ("VB0", "DB1,BYTE0"),
+        ("VB850", "DB1,BYTE850"),
+        ("VW0", "DB1,WORD0"),
+        ("VW849", "DB1,WORD849"),
+        ("VD0", "DB1,DWORD0"),
+        ("VD847", "DB1,DWORD847"),
+    ],
+)
+def test_original_vm_boundaries_convert_in_both_directions(symbol, canonical):
+    assert logo_to_s7_address(symbol, "logo_0ba8") == canonical
+    assert s7_to_logo_address(canonical, "logo_0ba8") == symbol
+
+
+@pytest.mark.parametrize("symbol", ["V0", "V0.8", "VB0.0", "VW850", "VD848", "VB-1"])
+def test_original_vm_invalid_values_are_rejected(symbol):
+    with pytest.raises(ValueError, match="invalid_logo_address|address_out_of_range"):
+        logo_to_s7_address(symbol, "logo_0ba8")
+
+
+@pytest.mark.parametrize("value", ["V0.0", "VB0", "VW10", "VD20", "V0.8", "VW850"])
+def test_original_vm_syntax_is_a_logo_candidate_even_when_out_of_range(value):
+    assert is_logo_address_candidate(value, "logo_0ba8")
+
+
+def test_vm_payload_is_separate_and_uses_zero_based_width_aware_limits():
+    payload = logo_profile_payload("logo_0ba8")
+
+    assert [
+        (area["name"], area["first"], area["last"], area["data_type"], area["width"])
+        for area in payload["vm_areas"]
+    ] == [
+        ("V", 0, 850, "X", 1),
+        ("VB", 0, 850, "BYTE", 1),
+        ("VW", 0, 849, "WORD", 2),
+        ("VD", 0, 847, "DWORD", 4),
+    ]
+    assert payload["vm_areas"][0]["bit_min"] == 0
+    assert payload["vm_areas"][0]["bit_max"] == 7

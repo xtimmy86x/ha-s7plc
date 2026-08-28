@@ -1194,7 +1194,8 @@
       "invalid_logo_address": "Ungültige LOGO!-Adresse",
       "address_out_of_range": "Adresse außerhalb des Bereichs",
       "address_not_convertible": "Adresse kann nicht konvertiert werden",
-      "vm_manual": "VM-Speicher / erweitert manuell"
+      "vm_manual": "VM-Speicher / erweitert manuell",
+      "vm_offset": "VM-Offset"
     }
   },
   "selector": {

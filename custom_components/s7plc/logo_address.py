@@ -28,12 +28,26 @@ class LogoArea:
 
 
 @dataclass(frozen=True, slots=True)
+class LogoVmArea:
+    """One directly addressed area in the original LOGO! VM notation."""
+
+    name: str
+    first: int
+    last: int
+    data_type: str
+    width: int
+    bit_min: int | None = None
+    bit_max: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class LogoProfile:
     """Addressing capabilities for one LOGO! hardware generation."""
 
     family: str
     vm_last_byte: int
     areas: tuple[LogoArea, ...]
+    vm_areas: tuple[LogoVmArea, ...]
     documented: bool = True
 
 
@@ -78,10 +92,28 @@ _LOGO_9 = (
     LogoArea("NFAQ", 1, 32, 8392, "INT", None),
 )
 
+
+def _vm_areas(last_byte: int) -> tuple[LogoVmArea, ...]:
+    """Build zero-based VM ranges from the last addressable VM byte."""
+    return (
+        LogoVmArea("V", 0, last_byte, "X", 1, 0, 7),
+        LogoVmArea("VB", 0, last_byte, "BYTE", 1),
+        LogoVmArea("VW", 0, last_byte - 1, "WORD", 2),
+        LogoVmArea("VD", 0, last_byte - 3, "DWORD", 4),
+    )
+
+
+_VM_LAST_BYTE = 850
 _PROFILES = {
-    PLC_FAMILY_LOGO_0BA7: LogoProfile(PLC_FAMILY_LOGO_0BA7, 850, _0BA7),
-    PLC_FAMILY_LOGO_0BA8: LogoProfile(PLC_FAMILY_LOGO_0BA8, 850, _0BA8),
-    PLC_FAMILY_LOGO_9: LogoProfile(PLC_FAMILY_LOGO_9, 850, _LOGO_9),
+    PLC_FAMILY_LOGO_0BA7: LogoProfile(
+        PLC_FAMILY_LOGO_0BA7, _VM_LAST_BYTE, _0BA7, _vm_areas(_VM_LAST_BYTE)
+    ),
+    PLC_FAMILY_LOGO_0BA8: LogoProfile(
+        PLC_FAMILY_LOGO_0BA8, _VM_LAST_BYTE, _0BA8, _vm_areas(_VM_LAST_BYTE)
+    ),
+    PLC_FAMILY_LOGO_9: LogoProfile(
+        PLC_FAMILY_LOGO_9, _VM_LAST_BYTE, _LOGO_9, _vm_areas(_VM_LAST_BYTE)
+    ),
 }
 
 _LOGO_RE = re.compile(r"^(NFAI|NFAQ|NAI|NAQ|FAM|AI|AQ|AM|NI|NQ|I|Q|M)([1-9]\d*)$", re.I)
@@ -94,11 +126,13 @@ def is_logo_address_candidate(address: str, family: str) -> bool:
     This deliberately recognizes zero and out-of-range element numbers so they
     cannot fall through to pyS7's overlapping ``AI``/``AQ`` grammar.
     """
-    match = re.fullmatch(r"([A-Z]+)\d+", address.strip(), re.I)
+    match = re.fullmatch(r"([A-Z]+)-?\d+(?:\.(\d+))?", address.strip(), re.I)
     if not match:
         return False
-    prefixes = {area.name for area in get_logo_profile(family).areas}
-    return match.group(1).upper() in prefixes
+    profile = get_logo_profile(family)
+    prefixes = {area.name for area in (*profile.areas, *profile.vm_areas)}
+    prefix = match.group(1).upper()
+    return prefix in prefixes and (match.group(2) is None or prefix == "V")
 
 
 def get_logo_profile(family: str) -> LogoProfile:
@@ -173,13 +207,27 @@ def logo_to_s7_address(address: str, family: str) -> str:
 
 
 def s7_to_logo_address(address: str, family: str) -> str | None:
-    """Reverse only exact fixed-table elements; never reserved/manual bytes."""
+    """Reverse exact fixed-table elements and valid original VM addresses."""
     normalized = address.strip().upper()
     try:
         parse_tag(normalized)
     except ValueError:
         return None
-    for area in get_logo_profile(family).areas:
+    profile = get_logo_profile(family)
+    vm_match = re.fullmatch(r"DB1,(X|BYTE|WORD|DWORD)(\d+)(?:\.([0-7]))?", normalized)
+    if vm_match:
+        data_type, offset_text, bit_text = vm_match.groups()
+        offset = int(offset_text)
+        names = {"X": "V", "BYTE": "VB", "WORD": "VW", "DWORD": "VD"}
+        area = next(item for item in profile.vm_areas if item.name == names[data_type])
+        if area.first <= offset <= area.last:
+            if data_type == "X" and bit_text is not None:
+                return f"V{offset}.{bit_text}"
+            if data_type != "X" and bit_text is None:
+                return f"{area.name}{offset}"
+        if offset <= profile.vm_last_byte:
+            return None
+    for area in profile.areas:
         for number in range(area.first, area.last + 1):
             if logo_to_s7_address(f"{area.name}{number}", family).upper() == normalized:
                 return f"{area.name}{number}"

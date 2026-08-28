@@ -65,6 +65,7 @@ def test_entry_payload_always_includes_profile_for_logo_family(family):
     assert payload["plc_family"] == family
     assert payload["logo_profile"]["family"] == family
     assert payload["logo_profile"]["areas"]
+    assert payload["logo_profile"]["vm_areas"]
 
 
 def test_panel_asset_url_uses_manifest_version() -> None:
@@ -4025,6 +4026,7 @@ def test_italian_address_builder_is_translated() -> None:
         "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
         "logo_area": "Area LOGO!",
         "element_number": "Numero elemento",
+        "vm_offset": "Offset VM",
         "logo_address": "Indirizzo LOGO!",
         "internal_address": "Indirizzo interno",
         "invalid_logo_address": "Indirizzo LOGO! non valido",
@@ -4159,3 +4161,31 @@ console.log(JSON.stringify({{groups:simplify({{plc_family:"logo_9",pys7_version:
     assert not any(key == "other" for key, _fields in value["groups"])
     assert value["translated"] == "LOGO! 9"
     assert value["legacy"] == "SIMATIC S7"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_vm_helpers_and_builder_datatype_filtering() -> None:
+    """VM helpers and guided reconstruction stay aligned."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const vmAreas=[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}},{{name:"VB",first:0,last:850,data_type:"BYTE",width:1}},{{name:"VW",first:0,last:849,data_type:"WORD",width:2}},{{name:"VD",first:0,last:847,data_type:"DWORD",width:4}}];
+const profile={{family:"logo_0ba8",vm_last_byte:850,areas:[],vm_areas:vmAreas}};
+const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+const html=value=>panel.addressField("address",value,"Address","",false,"entity_sync");
+console.log(JSON.stringify({{forward:["V0.0","V850.7","VB850","VW849","VD847"].map(v=>LOGO_TO_S7(profile,v)),invalid:["V0","V0.8","VB0.0","VW850","VD848","VB-1"].map(v=>LOGO_TO_S7(profile,v).error),reverse:["DB1,X0.0","DB1,BYTE10","DB1,WORD20","DB1,DWORD30"].map(v=>S7_TO_LOGO(profile,v)?.symbol),candidates:["V0.0","V0.8","VW850","IB10","QW8","MD72","DB1,X0.0"].map(v=>LOGO_ADDRESS_CANDIDATE(profile,v)),byte:html("DB1,BYTE10"),word:html("DB1,WORD20"),dword:html("DB1,DWORD30"),bit:html("DB1,X10.3"),empty:html("")}}));"""
+    value = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert [item["canonical"] for item in value["forward"]] == [
+        "DB1,X0.0", "DB1,X850.7", "DB1,BYTE850", "DB1,WORD849", "DB1,DWORD847"
+    ]
+    assert all(value["invalid"])
+    assert value["reverse"] == ["V0.0", "VB10", "VW20", "VD30"]
+    assert value["candidates"] == [True, True, True, False, False, False, False]
+    for name, expected in (("byte", "VB"), ("word", "VW"), ("dword", "VD"), ("bit", "V")):
+        assert f'<option value="{expected}" selected>' in value[name]
+        assert "address_builder.vm_offset" in value[name]
+    assert "data-logo-bit hidden" not in value["bit"]
+    assert "data-logo-bit hidden" in value["byte"]
+    assert 'type="hidden" name="address" value=""' in value["empty"]

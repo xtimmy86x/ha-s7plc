@@ -1194,7 +1194,8 @@
       "invalid_logo_address": "Indirizzo LOGO! non valido",
       "address_out_of_range": "Indirizzo fuori intervallo",
       "address_not_convertible": "Indirizzo non convertibile",
-      "vm_manual": "Memoria VM / manuale avanzato"
+      "vm_manual": "Memoria VM / manuale avanzato",
+      "vm_offset": "Offset VM"
     }
   },
   "selector": {
