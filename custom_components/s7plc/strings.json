@@ -1162,6 +1162,21 @@
       "expand_section": "Expand section",
       "collapse_section": "Collapse section",
       "all_entities": "All entities"
+    },
+    "address_builder": {
+      "guided": "Guided",
+      "manual": "Manual",
+      "area": "Memory area",
+      "db_number": "DB number",
+      "data_type": "Data type",
+      "offset": "Byte / element offset",
+      "bit": "Bit index",
+      "length": "String length",
+      "preview": "Address preview",
+      "configure": "Configure address",
+      "invalid": "This address cannot be represented by the guided editor. Correct it manually.",
+      "incomplete": "Complete all required address parts.",
+      "unsupported": "This area and data type combination is not supported."
     }
   }
 }

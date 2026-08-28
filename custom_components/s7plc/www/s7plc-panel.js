@@ -2,199 +2,134 @@ const TYPES = ["sensors", "binary_sensors", "switches", "covers", "lights", "but
 const VIEW_MODE_STORAGE_KEY = "s7plc-panel-view-mode";
 const VIEW_MODES = new Set(["tabs", "sections"]);
 const GROUP_SELECTED_INDICES = selection => {
-  const grouped={};
-  for(const key of selection){
-    if(typeof key!=="string")continue;
-    const match=key.match(/^([^:]+):(\d+)$/);
-    if(!match||!TYPES.includes(match[1]))continue;
-    const index=Number(match[2]);
-    if(!Number.isSafeInteger(index)||index<0)continue;
-    (grouped[match[1]]??=new Set()).add(index);
-  }
-  return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[...indices].sort((a,b)=>b-a)]));
+const grouped={};
+for(const key of selection){
+if(typeof key!=="string")continue;
+const match=key.match(/^([^:]+):(\d+)$/);
+if(!match||!TYPES.includes(match[1]))continue;
+const index=Number(match[2]);
+if(!Number.isSafeInteger(index)||index<0)continue;
+(grouped[match[1]]??=new Set()).add(index);
+}
+return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[...indices].sort((a,b)=>b-a)]));
 };
 const SUPPORTED_LANGUAGES = new Set(["en", "it", "de", "pl", "cs"]);
 const ENGLISH_EMERGENCY_FALLBACK = {
-  common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required"},
-  actions:{add:"Add",edit:"Edit",delete:"Delete",cancel:"Cancel",save:"Save changes",close:"Close",select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},errors:{required_error:"Fill in all required fields."},connection_details:{title:"Connection details"},editor:{configuration_yaml:"Advanced YAML"}
+common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required"},
+actions:{add:"Add",edit:"Edit",delete:"Delete",cancel:"Cancel",save:"Save changes",close:"Close",select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},errors:{required_error:"Fill in all required fields."},connection_details:{title:"Connection details"},editor:{configuration_yaml:"Advanced YAML"}
 };
-// The control mode is deliberately virtual: the backend continues to store the
-// two established booleans, so existing YAML and config entries need no migration.
 const CONTROL_MODE_FROM_ENTITY = entity => entity.pulse_command ? "pulse" : entity.sync_state ? "sync" : "direct";
 const APPLY_CONTROL_MODE = (entity,mode) => ({...entity,sync_state:mode==="sync",pulse_command:mode==="pulse"});
-// Light and cover modes are UI-only projections of the persisted backend keys.
 const LIGHT_MODE_FROM_ENTITY = entity => entity.brightness_state_address ? "dimmable" : "on_off";
 const COVER_UI_FROM_ENTITY = entity => {
-  const control=entity.position_state_address?"position":entity.toggle_mode?"toggle":"traditional";
-  const isTraditionalLike=control==="traditional"||control==="toggle";
-  const hasFeedbackSelector=isTraditionalLike||control==="position";
-  // A status word configured only for movement (opening/closing/stopped
-  // values, no open/closed) was never a position source - only infer
-  // "status" here when it actually has an open/closed mapping, so
-  // position_feedback correctly falls back to "position" and leaves the
-  // status word to movement_feedback alone (see COVER_STATUS_POSITION_VALUE_FIELDS).
-  const statusHasPositionMapping=entity.cover_status_open_values||entity.cover_status_closed_values;
-  const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&statusHasPositionMapping&&control==="position"?"status":control==="position"?"position":"timed";
-  // Position covers have a continuous 0-100 reading of their own, so "no
-  // separate source" is called "position" there, not "timed" - normalize
-  // a persisted "timed" too, for entities saved while the two were
-  // briefly conflated.
-  let positionFeedback=hasFeedbackSelector?(entity.cover_position_feedback||legacyPositionFeedback):"timed";
-  if(control==="position"&&positionFeedback==="timed")positionFeedback="position";
-  const movementBitsPresent=entity.cover_opening_address||entity.cover_closing_address||entity.cover_stopped_address;
-  // A status word configured only for position (open/closed values, no
-  // opening/closing/stopped) was never a movement source either - mirrors
-  // statusHasPositionMapping above. toggle_mode and position mode treat
-  // position and movement feedback as independently selectable sources,
-  // so this checks the status word's own movement mapping directly
-  // instead of inferring from whatever position_feedback happened to
-  // claim. Plain traditional covers keep the original coupled inference
-  // (bits are only ever considered when position feedback isn't already
-  // "status") since their runtime doesn't implement the independent-source
-  // model.
-  const statusHasMovementMapping=entity.cover_status_opening_values||entity.cover_status_closing_values||entity.cover_status_stopped_values;
-  const movementFeedback = (control==="toggle"||control==="position")
-    ? (entity.cover_status_address&&statusHasMovementMapping?"status":movementBitsPresent?"bits":"none")
-    : (entity.cover_status_address&&!(isTraditionalLike&&positionFeedback==="status")?"status":isTraditionalLike&&positionFeedback!=="status"&&movementBitsPresent?"bits":"none");
-  return {cover_control_mode:control,cover_position_feedback:positionFeedback,cover_movement_feedback:movementFeedback,cover_stop_enabled:entity.stop_command_address?"enabled":"disabled",cover_tilt_enabled:entity.tilt_state_address||entity.tilt_command_address?"enabled":"disabled"};
+const control=entity.position_state_address?"position":entity.toggle_mode?"toggle":"traditional";
+const isTraditionalLike=control==="traditional"||control==="toggle";
+const hasFeedbackSelector=isTraditionalLike||control==="position";
+const statusHasPositionMapping=entity.cover_status_open_values||entity.cover_status_closed_values;
+const legacyPositionFeedback=entity.use_state_topics===false?"timed":entity.opening_state_address&&entity.closing_state_address?"both":entity.opening_state_address?"opening":entity.closing_state_address?"closing":entity.cover_status_address&&statusHasPositionMapping&&control==="position"?"status":control==="position"?"position":"timed";
+let positionFeedback=hasFeedbackSelector?(entity.cover_position_feedback||legacyPositionFeedback):"timed";
+if(control==="position"&&positionFeedback==="timed")positionFeedback="position";
+const movementBitsPresent=entity.cover_opening_address||entity.cover_closing_address||entity.cover_stopped_address;
+const statusHasMovementMapping=entity.cover_status_opening_values||entity.cover_status_closing_values||entity.cover_status_stopped_values;
+const movementFeedback = (control==="toggle"||control==="position")
+? (entity.cover_status_address&&statusHasMovementMapping?"status":movementBitsPresent?"bits":"none")
+: (entity.cover_status_address&&!(isTraditionalLike&&positionFeedback==="status")?"status":isTraditionalLike&&positionFeedback!=="status"&&movementBitsPresent?"bits":"none");
+return {cover_control_mode:control,cover_position_feedback:positionFeedback,cover_movement_feedback:movementFeedback,cover_stop_enabled:entity.stop_command_address?"enabled":"disabled",cover_tilt_enabled:entity.tilt_state_address||entity.tilt_command_address?"enabled":"disabled"};
 };
 const COVER_VIRTUAL_FIELDS=["cover_control_mode","cover_movement_feedback","cover_stop_enabled","cover_tilt_enabled","cover_mode","feedback_mode"];
 const COVER_TRADITIONAL_FIELDS=["open_command_address","close_command_address","opening_state_address","closing_state_address","operate_time","use_state_topics","cover_opening_address","cover_closing_address","cover_stopped_address"];
 const COVER_POSITION_FIELDS=["position_state_address","position_command_address","invert_position","tilt_state_address","tilt_command_address","invert_tilt","stop_command_address","stop_pulse_duration"];
-// cover_status_open/closed_values only feed is_closed (position), while
-// cover_status_opening/closing/stopped_values only feed movement detection -
-// each subset is scoped to whichever selector (position_feedback vs
-// movement_feedback) is actually "status", not tied together as one
-// all-or-nothing set.
 const COVER_STATUS_POSITION_VALUE_FIELDS=["cover_status_open_values","cover_status_closed_values"];
 const COVER_STATUS_MOVEMENT_VALUE_FIELDS=["cover_status_opening_values","cover_status_closing_values","cover_status_stopped_values"];
-// Keep card titles, address rows, and chip de-duplication aligned with the
-// backend's default-name address for every entity type.
 const MAIN_ENTITY_ADDRESS=(item,type)=>type==="covers"?(item.position_state_address||item.open_command_address):(item.address||item.state_address||item.current_temperature_address||item.source_entity);
 const CLEAN_COVER_ENTITY=(source,ui)=>{const entity={...source};COVER_VIRTUAL_FIELDS.forEach(key=>delete entity[key]);const isTraditionalLike=ui.cover_control_mode==="traditional"||ui.cover_control_mode==="toggle";const isToggle=ui.cover_control_mode==="toggle";const isPosition=ui.cover_control_mode==="position";if(ui.preserve_legacy&&isTraditionalLike){COVER_POSITION_FIELDS.forEach(key=>delete entity[key]);delete entity.cover_position_feedback;return entity;}
-  if(isTraditionalLike)COVER_POSITION_FIELDS.forEach(key=>delete entity[key]);
-  else if(!isPosition){COVER_TRADITIONAL_FIELDS.forEach(key=>delete entity[key]);delete entity.cover_position_feedback;}
-  if(isTraditionalLike||isPosition){
-    // Position mode gets the same feedback selectors as traditional/toggle
-    // (position_feedback for is_closed, movement bits/status independently
-    // for is_opening/is_closing) but never had open/close command fields or
-    // use_state_topics to begin with - only clear the command-only subset.
-    if(isPosition)["open_command_address","close_command_address","operate_time","use_state_topics"].forEach(key=>delete entity[key]);
-    // Position covers have a continuous 0-100 reading of their own, so
-    // "no separate source" is called "position" there, not "timed" -
-    // normalize a persisted "timed" too, for entities saved while the two
-    // were briefly conflated.
-    const mode=(isPosition&&ui.cover_position_feedback==="timed")?"position":ui.cover_position_feedback;entity.cover_position_feedback=mode;if(mode==="status"){delete entity.use_state_topics;delete entity.opening_state_address;delete entity.closing_state_address;
-      // Plain traditional covers keep the original coupling: a status word
-      // claimed by position feedback discards movement bits outright,
-      // since their runtime (_get_feedback_movement) doesn't implement
-      // the independent-source model toggle_mode/position use. toggle_mode
-      // and position leave this to the shared scoping pass below instead.
-      if(!isToggle&&!isPosition)["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}else{if(!isToggle&&!isPosition&&ui.cover_movement_feedback!=="status")["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);if(mode==="timed"||mode==="position"){if(!isPosition)entity.use_state_topics=false;delete entity.opening_state_address;delete entity.closing_state_address;}else{if(!isPosition)entity.use_state_topics=true;if(mode==="opening")delete entity.closing_state_address;if(mode==="closing")delete entity.opening_state_address;}}
-  }
-  if(isToggle||isPosition){
-    // Independent scoping: each selector's own value fields/movement bits
-    // survive based purely on whether *that* selector is "status"/"bits",
-    // never coupled to the other selector's choice.
-    const positionStatus=ui.cover_position_feedback==="status",movementStatus=ui.cover_movement_feedback==="status";
-    if(!positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(key=>delete entity[key]);
-    if(!movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(key=>delete entity[key]);
-    if(!positionStatus&&!movementStatus)delete entity.cover_status_address;
-    if(ui.cover_movement_feedback!=="bits")["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);
-  }else{
-    // Original coupled precedence for plain traditional covers: exactly
-    // one of status-word-for-movement / bits-for-movement / neither wins.
-    const traditionalStatus=isTraditionalLike&&ui.cover_position_feedback==="status";
-    if(ui.cover_movement_feedback==="none"&&!traditionalStatus){["cover_opening_address","cover_closing_address","cover_stopped_address","cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);}
-    else if(ui.cover_movement_feedback==="bits"){["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);}
-    else{["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}
-  }
-  if(ui.cover_control_mode!=="position"||ui.cover_stop_enabled===false){delete entity.stop_command_address;delete entity.stop_pulse_duration;}if(ui.cover_control_mode!=="position"||ui.cover_tilt_enabled===false){delete entity.tilt_state_address;delete entity.tilt_command_address;delete entity.invert_tilt;}if(ui.cover_control_mode!=="toggle")delete entity.toggle_pulse_duration;return entity;};
+if(isTraditionalLike)COVER_POSITION_FIELDS.forEach(key=>delete entity[key]);
+else if(!isPosition){COVER_TRADITIONAL_FIELDS.forEach(key=>delete entity[key]);delete entity.cover_position_feedback;}
+if(isTraditionalLike||isPosition){
+if(isPosition)["open_command_address","close_command_address","operate_time","use_state_topics"].forEach(key=>delete entity[key]);
+const mode=(isPosition&&ui.cover_position_feedback==="timed")?"position":ui.cover_position_feedback;entity.cover_position_feedback=mode;if(mode==="status"){delete entity.use_state_topics;delete entity.opening_state_address;delete entity.closing_state_address;
+if(!isToggle&&!isPosition)["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}else{if(!isToggle&&!isPosition&&ui.cover_movement_feedback!=="status")["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);if(mode==="timed"||mode==="position"){if(!isPosition)entity.use_state_topics=false;delete entity.opening_state_address;delete entity.closing_state_address;}else{if(!isPosition)entity.use_state_topics=true;if(mode==="opening")delete entity.closing_state_address;if(mode==="closing")delete entity.opening_state_address;}}
+}
+if(isToggle||isPosition){
+const positionStatus=ui.cover_position_feedback==="status",movementStatus=ui.cover_movement_feedback==="status";
+if(!positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(key=>delete entity[key]);
+if(!movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(key=>delete entity[key]);
+if(!positionStatus&&!movementStatus)delete entity.cover_status_address;
+if(ui.cover_movement_feedback!=="bits")["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);
+}else{
+const traditionalStatus=isTraditionalLike&&ui.cover_position_feedback==="status";
+if(ui.cover_movement_feedback==="none"&&!traditionalStatus){["cover_opening_address","cover_closing_address","cover_stopped_address","cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);}
+else if(ui.cover_movement_feedback==="bits"){["cover_status_address",...COVER_STATUS_VALUE_FIELDS].forEach(key=>delete entity[key]);}
+else{["cover_opening_address","cover_closing_address","cover_stopped_address"].forEach(key=>delete entity[key]);}
+}
+if(ui.cover_control_mode!=="position"||ui.cover_stop_enabled===false){delete entity.stop_command_address;delete entity.stop_pulse_duration;}if(ui.cover_control_mode!=="position"||ui.cover_tilt_enabled===false){delete entity.tilt_state_address;delete entity.tilt_command_address;delete entity.invert_tilt;}if(ui.cover_control_mode!=="toggle")delete entity.toggle_pulse_duration;return entity;};
 const CONNECTION_WINDOW_MS = 24*60*60*1000;
 const CONNECTION_DETAIL_GROUPS = [
-  {key:"connection",icon:"mdi:lan-connect",fields:["pys7_version","pys7_connection_type","connection_type"]},
-  {key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","enable_write_batching","enable_metrics"]},
-  {key:"retry",icon:"mdi:reload",fields:["max_retries","retry_backoff_initial","retry_backoff_max"]}
+{key:"connection",icon:"mdi:lan-connect",fields:["pys7_version","pys7_connection_type","connection_type"]},
+{key:"performance",icon:"mdi:speedometer",fields:["scan_interval","operation_timeout","optimize_read","enable_write_batching","enable_metrics"]},
+{key:"retry",icon:"mdi:reload",fields:["max_retries","retry_backoff_initial","retry_backoff_max"]}
 ];
 const CONNECTION_DETAIL_HEADER_FIELDS = new Set(["name","host","port"]);
 const CONNECTION_DETAIL_MODE_FIELDS = new Set(["rack","slot","local_tsap","remote_tsap"]);
 const connectionDetailGroups = data => {
-  const values=data&&typeof data==="object"?data:{},mode=values.connection_type==="tsap"?"tsap":"rack_slot";
-  const definitions=CONNECTION_DETAIL_GROUPS.map(group=>group.key==="connection"?{...group,fields:[...group.fields,...(mode==="tsap"?["local_tsap","remote_tsap"]:["rack","slot"])]}:group);
-  const used=new Set([...CONNECTION_DETAIL_HEADER_FIELDS,...CONNECTION_DETAIL_MODE_FIELDS]);
-  const groups=definitions.map(group=>({...group,fields:group.fields.filter(key=>Object.prototype.hasOwnProperty.call(values,key)).map(key=>{used.add(key);return {key,value:values[key]};})})).filter(group=>group.fields.length);
-  const other=Object.keys(values).filter(key=>!used.has(key)).map(key=>({key,value:values[key]}));
-  if(other.length)groups.push({key:"other",icon:"mdi:dots-horizontal",fields:other});
-  return groups;
+const values=data&&typeof data==="object"?data:{},mode=values.connection_type==="tsap"?"tsap":"rack_slot";
+const definitions=CONNECTION_DETAIL_GROUPS.map(group=>group.key==="connection"?{...group,fields:[...group.fields,...(mode==="tsap"?["local_tsap","remote_tsap"]:["rack","slot"])]}:group);
+const used=new Set([...CONNECTION_DETAIL_HEADER_FIELDS,...CONNECTION_DETAIL_MODE_FIELDS]);
+const groups=definitions.map(group=>({...group,fields:group.fields.filter(key=>Object.prototype.hasOwnProperty.call(values,key)).map(key=>{used.add(key);return {key,value:values[key]};})})).filter(group=>group.fields.length);
+const other=Object.keys(values).filter(key=>!used.has(key)).map(key=>({key,value:values[key]}));
+if(other.length)groups.push({key:"other",icon:"mdi:dots-horizontal",fields:other});
+return groups;
 };
 const CONNECTION_STATE = state => state==="on"?"connected":state==="off"?"disconnected":"unknown";
 const LIVE_CONNECTION_STATUS = (connectionState,fallback) => connectionState ? CONNECTION_STATE(connectionState.state) : fallback===true ? "connected" : fallback===false ? "disconnected" : "unknown";
 const APPLY_LIVE_CONNECTION_DURATION = (result,connectionState,now=Date.now()) => {
-  if(!connectionState)return {...result,currentDowntime:null,currentDurationState:"unknown"};
-  const liveState=CONNECTION_STATE(connectionState?.state),changed=Date.parse(connectionState?.last_changed),hasChanged=Number.isFinite(changed)&&changed<=now;
-  return {...result,currentUptime:liveState==="connected"?(hasChanged?now-changed:result.currentUptime):null,currentDowntime:liveState==="disconnected"&&hasChanged?now-changed:null,currentDurationState:liveState};
+if(!connectionState)return {...result,currentDowntime:null,currentDurationState:"unknown"};
+const liveState=CONNECTION_STATE(connectionState?.state),changed=Date.parse(connectionState?.last_changed),hasChanged=Number.isFinite(changed)&&changed<=now;
+return {...result,currentUptime:liveState==="connected"?(hasChanged?now-changed:result.currentUptime):null,currentDowntime:liveState==="disconnected"&&hasChanged?now-changed:null,currentDurationState:liveState};
 };
 const BUILD_CONNECTION_AVAILABILITY = (history,now=Date.now(),windowMs=CONNECTION_WINDOW_MS) => {
-  const start=now-windowMs,events=(history||[]).map(item=>({state:CONNECTION_STATE(item.state),time:Date.parse(item.last_changed||item.last_updated)})).filter(item=>Number.isFinite(item.time)&&item.time<=now).sort((a,b)=>a.time-b.time);
-  const compact=[];for(const event of events){const previous=compact[compact.length-1];if(previous?.time===event.time)compact[compact.length-1]=event;else if(!previous||previous.state!==event.state)compact.push(event);}
-  let state="unknown",stateSince=start,index=0;
-  while(index<compact.length&&compact[index].time<=start){state=compact[index].state;stateSince=compact[index].time;index++;}
-  const intervals=[];let cursor=start,disconnects=0,lastDisconnection=null;
-  for(;index<compact.length;index++){const event=compact[index],at=Math.max(start,event.time);if(at>cursor)intervals.push({state,start:cursor,end:at});if(state==="connected"&&event.state==="disconnected"){disconnects++;lastDisconnection={start:event.time,end:null};}if(state==="disconnected"&&event.state!=="disconnected"&&lastDisconnection&&!lastDisconnection.end)lastDisconnection.end=event.time;state=event.state;stateSince=event.time;cursor=at;}
-  if(cursor<now)intervals.push({state,start:cursor,end:now});
-  if(state==="disconnected"&&lastDisconnection&&!lastDisconnection.end)lastDisconnection.end=now;
-  const durations={connected:0,disconnected:0,unknown:0};for(const interval of intervals)durations[interval.state]+=interval.end-interval.start;
-  const determined=durations.connected+durations.disconnected;
-  return {start,now,intervals,durations,availability:determined?durations.connected/determined*100:null,disconnects,currentUptime:state==="connected"?now-stateSince:null,lastDisconnection};
+const start=now-windowMs,events=(history||[]).map(item=>({state:CONNECTION_STATE(item.state),time:Date.parse(item.last_changed||item.last_updated)})).filter(item=>Number.isFinite(item.time)&&item.time<=now).sort((a,b)=>a.time-b.time);
+const compact=[];for(const event of events){const previous=compact[compact.length-1];if(previous?.time===event.time)compact[compact.length-1]=event;else if(!previous||previous.state!==event.state)compact.push(event);}
+let state="unknown",stateSince=start,index=0;
+while(index<compact.length&&compact[index].time<=start){state=compact[index].state;stateSince=compact[index].time;index++;}
+const intervals=[];let cursor=start,disconnects=0,lastDisconnection=null;
+for(;index<compact.length;index++){const event=compact[index],at=Math.max(start,event.time);if(at>cursor)intervals.push({state,start:cursor,end:at});if(state==="connected"&&event.state==="disconnected"){disconnects++;lastDisconnection={start:event.time,end:null};}if(state==="disconnected"&&event.state!=="disconnected"&&lastDisconnection&&!lastDisconnection.end)lastDisconnection.end=event.time;state=event.state;stateSince=event.time;cursor=at;}
+if(cursor<now)intervals.push({state,start:cursor,end:now});
+if(state==="disconnected"&&lastDisconnection&&!lastDisconnection.end)lastDisconnection.end=now;
+const durations={connected:0,disconnected:0,unknown:0};for(const interval of intervals)durations[interval.state]+=interval.end-interval.start;
+const determined=durations.connected+durations.disconnected;
+return {start,now,intervals,durations,availability:determined?durations.connected/determined*100:null,disconnects,currentUptime:state==="connected"?now-stateSince:null,lastDisconnection};
 };
 const AVAILABILITY_CHOICES = ["connection","always","bit"];
 const COMMON = [
-  ["name"], ["area"], ["scan_interval","number"], ["availability_mode","climate-selector",true,AVAILABILITY_CHOICES], ["availability_address"]
+["name"], ["area"], ["scan_interval","number"], ["availability_mode","climate-selector",true,AVAILABILITY_CHOICES], ["availability_address"]
 ];
 const FIELDS = {
-  sensors:[["address","text",true],["device_class"],["unit_of_measurement"],["value_multiplier","number"],["min_value","number"],["max_value","number"],["scale_raw_min","number"],["scale_raw_max","number"],["state_class"],["real_precision","number"],...COMMON],
-  binary_sensors:[["address","text",true],["device_class"],["invert_state","checkbox"],...COMMON],
-  switches:[["control_behavior","control"],["state_address","text",true],["command_address"],["pulse_duration","number"],...COMMON],
-  covers:[["cover_control_mode","cover-selector",true,["traditional","position","toggle"]],["cover_position_feedback","cover-selector",true,["timed","position","opening","closing","both","status"]],["cover_movement_feedback","cover-selector",true,["none","bits","status"]],["cover_stop_enabled","cover-selector",true,["disabled","enabled"]],["cover_tilt_enabled","cover-selector",true,["disabled","enabled"]],["open_command_address"],["close_command_address"],["cover_status_address"],["cover_status_open_values"],["cover_status_closed_values"],["cover_status_opening_values"],["cover_status_closing_values"],["cover_status_stopped_values"],["opening_state_address"],["closing_state_address"],["cover_opening_address"],["cover_closing_address"],["cover_stopped_address"],["position_state_address"],["position_command_address"],["stop_command_address"],["stop_pulse_duration","number"],["toggle_pulse_duration","number"],["tilt_state_address"],["tilt_command_address"],["invert_tilt","checkbox"],["operate_time","number"],["invert_position","checkbox"],["device_class"],...COMMON],
-  lights:[["control_behavior","control"],["light_mode","light"],["state_address","text",true],["command_address"],["brightness_state_address"],["brightness_command_address"],["pulse_duration","number"],["brightness_scale","number"],...COMMON],
-  buttons:[["address","text",true],["button_pulse","number"],...COMMON.filter(x=>x[0]!=="scan_interval")],
-  numbers:[["address","text",true],["command_address"],["device_class"],["unit_of_measurement"],["min_value","number"],["max_value","number"],["step","number"],["value_multiplier","number"],["scale_raw_min","number"],["scale_raw_max","number"],["real_precision","number"],...COMMON],
-  selects:[["address","text",true],["command_address"],["options_map","options-map",true],...COMMON],
-  texts:[["address","text",true],["command_address"],["pattern"],...COMMON],
-  climates:[["control_mode","climate-selector",true,["direct","setpoint"]],["climate_direct_function","climate-selector",true,["heat","cool","heat_cool"]],["climate_direct_feedback","climate-selector",true,["inferred","plc"]],["climate_mode_control","climate-selector",true,["setpoint","on_off","coded","coded_on_off"]],["climate_action_feedback","climate-selector",true,["inferred","plc"]],["current_temperature_address","text",true],["target_temperature_address"],["heating_output_address"],["cooling_output_address"],["heating_action_address"],["cooling_action_address"],["preset_mode_address"],["preset_mode_bidirectional","climate-selector",true,["false","true"]],["on_off_address"],["preset_mode_off_value","number"],["preset_mode_heat_value","number"],["preset_mode_cool_value","number"],["preset_mode_heat_cool_value","number"],["preset_mode_auto_value","number"],["preset_mode_dry_value","number"],["preset_mode_fan_only_value","number"],["hvac_status_address"],["hvac_status_off_values"],["hvac_status_heating_values"],["hvac_status_cooling_values"],["hvac_status_idle_values"],["hvac_status_drying_values"],["hvac_status_fan_values"],["hvac_status_preheating_values"],["hvac_status_defrosting_values"],["min_temp","number"],["max_temp","number"],["temp_step","number"],...COMMON],
-  entity_sync:[["source_entity","text",true],["address","text",true],["invert_state","checkbox"],...COMMON.filter(x=>x[0]!=="scan_interval")]
+sensors:[["address","text",true],["device_class"],["unit_of_measurement"],["value_multiplier","number"],["min_value","number"],["max_value","number"],["scale_raw_min","number"],["scale_raw_max","number"],["state_class"],["real_precision","number"],...COMMON],
+binary_sensors:[["address","text",true],["device_class"],["invert_state","checkbox"],...COMMON],
+switches:[["control_behavior","control"],["state_address","text",true],["command_address"],["pulse_duration","number"],...COMMON],
+covers:[["cover_control_mode","cover-selector",true,["traditional","position","toggle"]],["cover_position_feedback","cover-selector",true,["timed","position","opening","closing","both","status"]],["cover_movement_feedback","cover-selector",true,["none","bits","status"]],["cover_stop_enabled","cover-selector",true,["disabled","enabled"]],["cover_tilt_enabled","cover-selector",true,["disabled","enabled"]],["open_command_address"],["close_command_address"],["cover_status_address"],["cover_status_open_values"],["cover_status_closed_values"],["cover_status_opening_values"],["cover_status_closing_values"],["cover_status_stopped_values"],["opening_state_address"],["closing_state_address"],["cover_opening_address"],["cover_closing_address"],["cover_stopped_address"],["position_state_address"],["position_command_address"],["stop_command_address"],["stop_pulse_duration","number"],["toggle_pulse_duration","number"],["tilt_state_address"],["tilt_command_address"],["invert_tilt","checkbox"],["operate_time","number"],["invert_position","checkbox"],["device_class"],...COMMON],
+lights:[["control_behavior","control"],["light_mode","light"],["state_address","text",true],["command_address"],["brightness_state_address"],["brightness_command_address"],["pulse_duration","number"],["brightness_scale","number"],...COMMON],
+buttons:[["address","text",true],["button_pulse","number"],...COMMON.filter(x=>x[0]!=="scan_interval")],
+numbers:[["address","text",true],["command_address"],["device_class"],["unit_of_measurement"],["min_value","number"],["max_value","number"],["step","number"],["value_multiplier","number"],["scale_raw_min","number"],["scale_raw_max","number"],["real_precision","number"],...COMMON],
+selects:[["address","text",true],["command_address"],["options_map","options-map",true],...COMMON],
+texts:[["address","text",true],["command_address"],["pattern"],...COMMON],
+climates:[["control_mode","climate-selector",true,["direct","setpoint"]],["climate_direct_function","climate-selector",true,["heat","cool","heat_cool"]],["climate_direct_feedback","climate-selector",true,["inferred","plc"]],["climate_mode_control","climate-selector",true,["setpoint","on_off","coded","coded_on_off"]],["climate_action_feedback","climate-selector",true,["inferred","plc"]],["current_temperature_address","text",true],["target_temperature_address"],["heating_output_address"],["cooling_output_address"],["heating_action_address"],["cooling_action_address"],["preset_mode_address"],["preset_mode_bidirectional","climate-selector",true,["false","true"]],["on_off_address"],["preset_mode_off_value","number"],["preset_mode_heat_value","number"],["preset_mode_cool_value","number"],["preset_mode_heat_cool_value","number"],["preset_mode_auto_value","number"],["preset_mode_dry_value","number"],["preset_mode_fan_only_value","number"],["hvac_status_address"],["hvac_status_off_values"],["hvac_status_heating_values"],["hvac_status_cooling_values"],["hvac_status_idle_values"],["hvac_status_drying_values"],["hvac_status_fan_values"],["hvac_status_preheating_values"],["hvac_status_defrosting_values"],["min_temp","number"],["max_temp","number"],["temp_step","number"],...COMMON],
+entity_sync:[["source_entity","text",true],["address","text",true],["invert_state","checkbox"],...COMMON.filter(x=>x[0]!=="scan_interval")]
 };
-// Campi da nascondere/rimuovere in base alla modalità selezionata (usato sia dall'editor che dal salvataggio)
 const MODE_HIDDEN = {
-  covers: {
-    position:    ["open_command_address","close_command_address","opening_state_address","closing_state_address","cover_opening_address","cover_closing_address","cover_stopped_address","operate_time","use_state_topics"],
-    traditional: ["position_state_address","position_command_address","stop_command_address","stop_pulse_duration","tilt_state_address","tilt_command_address","invert_tilt","invert_position"]
-  },
-  climates: {
-    setpoint: ["heating_output_address","cooling_output_address","heating_action_address","cooling_action_address"],
-    direct:   ["target_temperature_address","preset_mode_address","preset_mode_bidirectional","on_off_address","preset_mode_off_value","preset_mode_heat_value","preset_mode_cool_value","preset_mode_heat_cool_value","preset_mode_auto_value","preset_mode_dry_value","preset_mode_fan_only_value","hvac_status_address","hvac_status_off_values","hvac_status_heating_values","hvac_status_cooling_values","hvac_status_idle_values","hvac_status_drying_values","hvac_status_fan_values","hvac_status_preheating_values","hvac_status_defrosting_values"]
-  }
+covers: {
+position:    ["open_command_address","close_command_address","opening_state_address","closing_state_address","cover_opening_address","cover_closing_address","cover_stopped_address","operate_time","use_state_topics"],
+traditional: ["position_state_address","position_command_address","stop_command_address","stop_pulse_duration","tilt_state_address","tilt_command_address","invert_tilt","invert_position"]
+},
+climates: {
+setpoint: ["heating_output_address","cooling_output_address","heating_action_address","cooling_action_address"],
+direct:   ["target_temperature_address","preset_mode_address","preset_mode_bidirectional","on_off_address","preset_mode_off_value","preset_mode_heat_value","preset_mode_cool_value","preset_mode_heat_cool_value","preset_mode_auto_value","preset_mode_dry_value","preset_mode_fan_only_value","hvac_status_address","hvac_status_off_values","hvac_status_heating_values","hvac_status_cooling_values","hvac_status_idle_values","hvac_status_drying_values","hvac_status_fan_values","hvac_status_preheating_values","hvac_status_defrosting_values"]
+}
 };
-// Climate (setpoint mode): these values also determine which HVAC modes are
-// exposed, even when no preset_mode_address is configured.
 const CLIMATE_PRESET_VALUE_FIELDS = ["preset_mode_off_value","preset_mode_heat_value","preset_mode_cool_value","preset_mode_heat_cool_value","preset_mode_auto_value","preset_mode_dry_value","preset_mode_fan_only_value"];
-// Historical implicit defaults for the 4 "core" preset mode values, kept
-// only for legacy/never-configured climates: a key genuinely absent from
-// the item (not present at all, as opposed to explicitly null/disabled)
-// pre-fills with these instead of showing blank, so opening and saving a
-// pre-existing or brand-new climate in the panel without touching these
-// fields doesn't silently disable OFF/HEAT/COOL/HEAT_COOL.
 const CLIMATE_PRESET_CORE_DEFAULTS = {preset_mode_off_value:0,preset_mode_heat_value:1,preset_mode_cool_value:2,preset_mode_heat_cool_value:3};
-// Same idea, mirrored on the status-matching side: hvac_status_off/
-// heating/cooling_values also carry non-empty historical defaults ("0"/
-// "1"/"2"), unlike idle/drying/fan/preheating/defrosting which default to
-// "". Without this, a never-configured (or legacy) climate shows these 3
-// fields as blank while climate.py still matches status 0/1/2 against
-// them internally - confusingly making e.g. a status address report
-// "Cooling" while the panel shows the cooling field empty.
 const CLIMATE_STATUS_CORE_DEFAULTS = {hvac_status_off_values:"0",hvac_status_heating_values:"1",hvac_status_cooling_values:"2"};
-// Climate (setpoint mode): the per-status match values are meaningless
-// without hvac_status_address filled in — nothing to match them against.
 const CLIMATE_STATUS_VALUE_FIELDS = ["hvac_status_off_values","hvac_status_heating_values","hvac_status_cooling_values","hvac_status_idle_values","hvac_status_drying_values","hvac_status_fan_values","hvac_status_preheating_values","hvac_status_defrosting_values"];
 const CLIMATE_VIRTUAL_FIELDS=["climate_direct_function","climate_direct_feedback","climate_mode_control","climate_action_feedback"];
 const CLIMATE_DIRECT_FIELDS=["heating_output_address","cooling_output_address","heating_action_address","cooling_action_address"];
@@ -202,55 +137,92 @@ const CLIMATE_SETPOINT_FIELDS=["target_temperature_address","preset_mode_address
 const CLIMATE_EDITOR_VISIBILITY=ui=>{const {control_mode:control,direct_function:directFunction,direct_feedback:directFeedback,mode_control:modeControl,action_feedback:actionFeedback,availability_mode:availabilityMode}=ui,coded=modeControl?.includes("coded"),onOff=modeControl?.includes("on_off"),fields=new Set(["control_mode","current_temperature_address","min_temp","max_temp","temp_step","name","area","scan_interval","availability_mode"]),sections=new Set(["climate-control","climate-temperature","ha"]);if(availabilityMode==="bit")fields.add("availability_address");if(control==="direct"){["climate_direct_function","climate_direct_feedback"].forEach(k=>fields.add(k));["climate-direct-function","climate-direct-feedback"].forEach(k=>sections.add(k));if(directFunction!=="cool")fields.add("heating_output_address");if(directFunction!=="heat")fields.add("cooling_output_address");if(directFeedback==="plc")["heating_action_address","cooling_action_address"].forEach(k=>fields.add(k));}else{["target_temperature_address","climate_mode_control","climate_action_feedback",...CLIMATE_PRESET_VALUE_FIELDS].forEach(k=>fields.add(k));["climate-mode-control","climate-modes","climate-action-feedback"].forEach(k=>sections.add(k));if(coded){["preset_mode_address","preset_mode_bidirectional"].forEach(k=>fields.add(k));sections.add("climate-mode-feedback");}if(onOff)fields.add("on_off_address");if(actionFeedback==="plc")["hvac_status_address",...CLIMATE_STATUS_VALUE_FIELDS].forEach(k=>fields.add(k));}return {fields,sections};};
 const CLIMATE_UI_FROM_ENTITY=entity=>{const heat=Boolean(entity.heating_output_address),cool=Boolean(entity.cooling_output_address),preset=Boolean(entity.preset_mode_address),onOff=Boolean(entity.on_off_address);return {control_mode:entity.control_mode||(entity.target_temperature_address?"setpoint":"direct"),climate_direct_function:heat&&cool?"heat_cool":cool?"cool":"heat",climate_direct_feedback:entity.heating_action_address||entity.cooling_action_address?"plc":"inferred",climate_mode_control:preset&&onOff?"coded_on_off":preset?"coded":onOff?"on_off":"setpoint",climate_action_feedback:entity.hvac_status_address?"plc":"inferred"};};
 const CLEAN_CLIMATE_ENTITY=(source,ui,changed=[])=>{const entity={...source};CLIMATE_VIRTUAL_FIELDS.forEach(key=>delete entity[key]);entity.control_mode=ui.control_mode;const explicit=new Set(changed);if(explicit.has("control_mode"))(ui.control_mode==="direct"?CLIMATE_SETPOINT_FIELDS:CLIMATE_DIRECT_FIELDS).forEach(key=>delete entity[key]);if(ui.control_mode==="direct"){if(explicit.has("climate_direct_function")){if(ui.climate_direct_function==="heat")delete entity.cooling_output_address;else if(ui.climate_direct_function==="cool")delete entity.heating_output_address;}if(explicit.has("climate_direct_feedback")&&ui.climate_direct_feedback==="inferred"){delete entity.heating_action_address;delete entity.cooling_action_address;}}else{if(explicit.has("climate_mode_control")){if(!ui.climate_mode_control.includes("coded")){delete entity.preset_mode_address;delete entity.preset_mode_bidirectional;}if(!ui.climate_mode_control.includes("on_off"))delete entity.on_off_address;}if(explicit.has("climate_action_feedback")&&ui.climate_action_feedback==="inferred")delete entity.hvac_status_address;if(!entity.preset_mode_address)delete entity.preset_mode_bidirectional;}return entity;};
-// Address fields that are a single PLC bit (BOOL), not a REAL/word value —
-// shown with a BOOL-flavored placeholder/example instead of the default
-// REAL one.
 const BOOL_FIELDS = {
-  binary_sensors: [
-    "address"
-  ],
-  switches: [
-    "state_address",
-    "command_address"
-  ],
-  lights: [
-    "state_address",
-    "command_address"
-  ],
-  buttons: [
-    "address"
-  ],
-  covers: [
-    "open_command_address",
-    "close_command_address",
-    "opening_state_address",
-    "closing_state_address",
-    "cover_opening_address",
-    "cover_closing_address",
-    "cover_stopped_address",
-    "stop_command_address"
-  ],
-  climates: [
-    "heating_output_address",
-    "cooling_output_address",
-    "heating_action_address",
-    "cooling_action_address",
-    "on_off_address"
-  ]
+binary_sensors: [
+"address"
+],
+switches: [
+"state_address",
+"command_address"
+],
+lights: [
+"state_address",
+"command_address"
+],
+buttons: [
+"address"
+],
+covers: [
+"open_command_address",
+"close_command_address",
+"opening_state_address",
+"closing_state_address",
+"cover_opening_address",
+"cover_closing_address",
+"cover_stopped_address",
+"stop_command_address"
+],
+climates: [
+"heating_output_address",
+"cooling_output_address",
+"heating_action_address",
+"cooling_action_address",
+"on_off_address"
+]
 };
-// Text entity addresses point to STRING/WSTRING values rather than the
-// default REAL value used by other address fields.
 const STRING_FIELDS = {
-  texts: ["address","command_address"]
+texts: ["address","command_address"]
 };
-// Meaningless (and hidden in the editor) without cover_status_address
-// filled in first, in either cover mode — there's nothing for them to
-// match against.
+const S7_ADDRESS_TYPES = Object.freeze([
+["BIT","X","Bit (X)"],["BYTE","B","Byte (B)"],["USINT","USINT","USINT"],
+["SINT","SINT","SINT"],["CHAR","C","Char (C)"],["WORD","W","Word (W)"],
+["INT","I","Integer (I)"],["DWORD","DW","DWord (DW)"],["DINT","DI","DInt (DI)"],
+["REAL","R","Real (R)"],["LREAL","LR","LReal (LR)"],["TIME","TIME","Time (TIME)"],
+["STRING","S","String (S)"],["WSTRING","WS","WString (WS)"]
+]);
+const S7_TOKEN_TYPES = new Map([
+["X","BIT"],["B","BYTE"],["BYTE","BYTE"],["USINT","USINT"],["USI","USINT"],
+["SINT","SINT"],["SI","SINT"],["C","CHAR"],["CHAR","CHAR"],["W","WORD"],["WORD","WORD"],
+["I","INT"],["INT","INT"],["DW","DWORD"],["DWORD","DWORD"],["D","DWORD"],
+["DI","DINT"],["DINT","DINT"],["R","REAL"],["REAL","REAL"],["LR","LREAL"],["LREAL","LREAL"],
+["TIME","TIME"],["S","STRING"],["STRING","STRING"],["WS","WSTRING"],["WSTRING","WSTRING"]
+]);
+const S7_TYPE_TOKEN = Object.fromEntries(S7_ADDRESS_TYPES.map(([type,token])=>[type,token]));
+const S7_ALL_TYPES = S7_ADDRESS_TYPES.map(([type])=>type);
+const S7_INTEGER_TYPES = ["BYTE","USINT","SINT","WORD","INT","DWORD","DINT","TIME"];
+const S7_NUMERIC_TYPES = ["BYTE","USINT","SINT","WORD","INT","DWORD","DINT","REAL","LREAL","TIME"];
+const PARSE_S7_ADDRESS = value => {
+const source=String(value??''),address=source.toUpperCase();
+if(!address)return {empty:true,source};
+let area,dbNumber=null,token,start,extra,match;
+if((match=address.match(/^DB(\d+),([A-Z]+)(\d+)(?:\.(\d+))?$/))){[,dbNumber,token,start,extra]=match;area="DB";}
+else if((match=address.match(/^([IEQAM])([A-Z]+)?(\d+)(?:\.(\d+))?$/))){let prefix;[,prefix,token,start,extra]=match;area=prefix==="I"||prefix==="E"?"I":prefix==="Q"||prefix==="A"?"Q":"M";token??="X";}
+else return {error:"invalid",source};
+const dataType=S7_TOKEN_TYPES.get(token);if(!dataType)return {error:"invalid",source};
+if(dataType==="TIME"&&area!=="DB")return {error:"unsupported",source};
+if(["BIT","STRING","WSTRING"].includes(dataType)!==(extra!==undefined))return {error:"incomplete",source};
+const offset=Number(start),suffix=extra===undefined?null:Number(extra);
+if(!Number.isSafeInteger(offset)||offset<0||suffix!==null&&(!Number.isSafeInteger(suffix)||suffix<0))return {error:"invalid",source};
+if(dataType==="BIT"&&suffix>7)return {error:"invalid",source};
+return {source,area,dbNumber:dbNumber===null?null:Number(dbNumber),dataType,offset,bit:dataType==="BIT"?suffix:null,length:dataType==="STRING"||dataType==="WSTRING"?suffix:null};
+};
+const SERIALIZE_S7_ADDRESS = parts => {
+if(!parts||parts.empty)return "";
+const {area,dataType}=parts,offset=Number(parts.offset),dbNumber=Number(parts.dbNumber);
+if(!["DB","I","Q","M"].includes(area)||!S7_TYPE_TOKEN[dataType]||dataType==="TIME"&&area!=="DB")return {error:"unsupported"};
+if(!Number.isSafeInteger(offset)||offset<0||area==="DB"&&(!Number.isSafeInteger(dbNumber)||dbNumber<0))return {error:"incomplete"};
+let suffix="";if(dataType==="BIT"){const bit=Number(parts.bit);if(!Number.isInteger(bit)||bit<0||bit>7)return {error:"incomplete"};suffix=`.${bit}`;}else if(dataType==="STRING"||dataType==="WSTRING"){const length=Number(parts.length);if(!Number.isSafeInteger(length)||length<0)return {error:"incomplete"};suffix=`.${length}`;}
+const head=area==="DB"?`DB${dbNumber},`:area,token=dataType==="BIT"&&area!=="DB"?"":S7_TYPE_TOKEN[dataType];return `${head}${token}${offset}${suffix}`;
+};
+const ADDRESS_TYPES_FOR_FIELD = (entityType,key) => {
+if(BOOL_FIELDS[entityType]?.includes(key)||key==="availability_address")return ["BIT"];
+if(STRING_FIELDS[entityType]?.includes(key))return ["STRING","WSTRING"];
+if(entityType==="selects")return S7_INTEGER_TYPES;
+if(entityType==="numbers"||key.includes("temperature")||key.includes("brightness")||key.includes("position")||key.includes("tilt")||key.includes("status")||entityType==="entity_sync")return S7_NUMERIC_TYPES.filter(type=>entityType==="entity_sync"?type!=="TIME":true);
+return entityType==="sensors"?S7_ALL_TYPES:S7_ALL_TYPES.filter(type=>type!=="TIME");
+};
 const COVER_STATUS_VALUE_FIELDS = [...COVER_STATUS_POSITION_VALUE_FIELDS,...COVER_STATUS_MOVEMENT_VALUE_FIELDS];
-// Position cover: invert_tilt has nothing to invert without tilt_state_address
-// configured, so it's hidden (and stripped on save) until then.
 const COVER_TILT_INVERT_FIELDS = ["invert_tilt"];
-
 class S7PlcConfigurationPanel extends HTMLElement {
   connectedCallback(){this.selectedIndices??=new Set();this.expandedSections??=new Set(TYPES);this._viewMode??=this.readViewMode();this._statusTimer??=setInterval(()=>this.refreshConnectionStatus(),5000);}
   readViewMode(){try{const value=globalThis.localStorage?.getItem(VIEW_MODE_STORAGE_KEY);return VIEW_MODES.has(value)?value:"tabs";}catch(_err){return "tabs";}}
@@ -261,15 +233,13 @@ class S7PlcConfigurationPanel extends HTMLElement {
   set hass(value) { const previous=this.language; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadPanelTranslations().then(()=>this.render()); else this.updateStates(); this.syncMenuButtons(); }
   set panel(value) { this._panel = value; if(this._loaded&&this.entries)this.render(); }
   set narrow(value) { this._narrow = value; this.syncMenuButtons(); }
-  // Custom panels must render their own ha-menu-button: without it the HA
-  // sidebar cannot be opened on narrow (mobile) screens.
   menuButton(){return '<ha-menu-button></ha-menu-button>';}
   banner(){
-    const version=this.integrationVersion?`?v=${encodeURIComponent(this.integrationVersion)}`:'';
-    return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${version}" alt="ha-s7plc"></div>`;
+  const version=this.integrationVersion?`?v=${encodeURIComponent(this.integrationVersion)}`:'';
+  return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${version}" alt="ha-s7plc"></div>`;
   }
   panelActions(className){
-    return `<div class="${className}"><button class="config-yaml" data-config-yaml title="${this.t('editor.configuration_yaml')}" aria-label="${this.t('editor.configuration_yaml')}"><ha-icon icon="mdi:file-code-outline"></ha-icon><span>${this.t('editor.configuration_yaml')}</span></button><select data-entry-selector aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div>`;
+  return `<div class="${className}"><button class="config-yaml" data-config-yaml title="${this.t('editor.configuration_yaml')}" aria-label="${this.t('editor.configuration_yaml')}"><ha-icon icon="mdi:file-code-outline"></ha-icon><span>${this.t('editor.configuration_yaml')}</span></button><select data-entry-selector aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div>`;
   }
   syncMenuButtons(){this.querySelectorAll('ha-menu-button').forEach(b=>{b.hass=this._hass;b.narrow=this._narrow;});}
   get integrationVersion(){return this._panel?.config?.version||'';}
@@ -278,65 +248,63 @@ class S7PlcConfigurationPanel extends HTMLElement {
   t(path){return this.translation(`config_panel.${path}`,this.panelTranslations)??this.translation(path,ENGLISH_EMERGENCY_FALLBACK)??path.split('.').at(-1).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
   bt(key,values={}){const text=this.t(`actions.${key}`);return Object.entries(values).reduce((result,[name,value])=>result.replace(`{${name}}`,value),text);}
   async loadPanelTranslations(){
-    const requested=this.language, languages=requested==="en"?["en"]:[requested,"en"];
-    this.panelTranslations=null;
-    for(const language of languages){
-      try{const response=await fetch(`/s7plc_translations/${language}.json`);if(!response.ok)throw Error(`HTTP ${response.status}`);this.panelTranslations=await response.json();return;}
-      catch(err){console.warn(`Unable to load S7 PLC translations for ${language}`,err);}
-    }
+  const requested=this.language, languages=requested==="en"?["en"]:[requested,"en"];
+  this.panelTranslations=null;
+  for(const language of languages){
+  try{const response=await fetch(`/s7plc_translations/${language}.json`);if(!response.ok)throw Error(`HTTP ${response.status}`);this.panelTranslations=await response.json();return;}
+  catch(err){console.warn(`Unable to load S7 PLC translations for ${language}`,err);}
+  }
   }
   async load() {
-    if (!this._hass) return; this._loaded = true;
-    this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="loading">${this.t('common.loading')}</div>`;
-    this.syncMenuButtons();
-    try { [this.entries] = await Promise.all([this._hass.callWS({type:"s7plc/config/list"}),this.loadPanelTranslations()]); this.entryId ||= this.entries[0]?.entry_id; this.render(); }
-    catch (err) { this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><ha-alert alert-type="error">${this.escape(err.message || err)}</ha-alert>`; this.syncMenuButtons(); }
+  if (!this._hass) return; this._loaded = true;
+  this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><div class="loading">${this.t('common.loading')}</div>`;
+  this.syncMenuButtons();
+  try { [this.entries] = await Promise.all([this._hass.callWS({type:"s7plc/config/list"}),this.loadPanelTranslations()]); this.entryId ||= this.entries[0]?.entry_id; this.render(); }
+  catch (err) { this.innerHTML = `<style>${this.styles}</style><div class="menubar">${this.menuButton()}</div><ha-alert alert-type="error">${this.escape(err.message || err)}</ha-alert>`; this.syncMenuButtons(); }
   }
   async refreshConnectionStatus(){
-    if(!this._hass||!this._loaded||this._refreshingStatus)return;
-    this._refreshingStatus=true;
-    try{this.entries=await this._hass.callWS({type:"s7plc/config/list"});const entry=this.entries.find(e=>e.entry_id===this.entryId),badge=this.querySelector('.connection-badge');if(entry&&badge){const status=this.connectionStatus(entry);badge.classList.toggle('connected',status==="connected");badge.classList.toggle('unknown',status==="unknown");badge.setAttribute('aria-label',this.connectionBadgeAriaLabel(status));badge.innerHTML=this.connectionBadgeContent(status);}}
-    catch(err){console.debug("Unable to refresh S7 PLC connection status",err);}
-    finally{this._refreshingStatus=false;}
+  if(!this._hass||!this._loaded||this._refreshingStatus)return;
+  this._refreshingStatus=true;
+  try{this.entries=await this._hass.callWS({type:"s7plc/config/list"});const entry=this.entries.find(e=>e.entry_id===this.entryId),badge=this.querySelector('.connection-badge');if(entry&&badge){const status=this.connectionStatus(entry);badge.classList.toggle('connected',status==="connected");badge.classList.toggle('unknown',status==="unknown");badge.setAttribute('aria-label',this.connectionBadgeAriaLabel(status));badge.innerHTML=this.connectionBadgeContent(status);}}
+  catch(err){console.debug("Unable to refresh S7 PLC connection status",err);}
+  finally{this._refreshingStatus=false;}
   }
   layoutToggle(){const sections=this._viewMode==="sections",label=this.t(`layout.${sections?"switch_to_tabs":"switch_to_sections"}`);return `<button type="button" class="layout-toggle" title="${label}" aria-label="${label}" data-layout-toggle><ha-icon icon="mdi:${sections?'tab':'view-sequential'}"></ha-icon><span>${label}</span><ha-tooltip>${label}</ha-tooltip></button>`;}
   renderTabsView(entry,type){return `<nav>${TYPES.map(t=>`<button data-type="${t}" class="${t===type?'active':''}"><ha-icon icon="mdi:${this.icon(t)}"></ha-icon>${this.t(`entity_types.${t}.label`)} <span>${entry.entities[t].length}</span></button>`).join('')}</nav><main><div class="toolbar"><div><h2>${this.t(`entity_types.${type}.label`)}</h2><p>${this.t('common.reload_help')}</p></div><div class="toolbar-actions">${this.layoutToggle()}<button class="batch-delete danger" data-batch-delete="${type}" hidden><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button><button class="primary" data-add="${type}"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('actions.add')}</button></div></div><div class="cards">${this.entityCards(entry,type)}</div></main>`;}
   _renderSectionsView(entry){const deleteLabel=this.bt('delete_selected');return `<div class="sections-toolbar"><div><h2>${this.t('layout.all_entities')}</h2><p>${this.t('common.reload_help')}</p></div><div class="toolbar-actions">${this.layoutToggle()}<button class="batch-delete danger" data-batch-delete-global hidden title="${deleteLabel}" aria-label="${deleteLabel}"><ha-icon icon="mdi:delete-sweep"></ha-icon><span></span></button></div></div><main class="entity-sections">${TYPES.map(type=>{const expanded=this.expandedSections.has(type),label=this.t(`entity_types.${type}.label`),toggle=this.t(`layout.${expanded?'collapse_section':'expand_section'}`);return `<section class="entity-section" data-section-type="${type}"><div class="entity-section-header"><button type="button" class="section-toggle" data-section-toggle="${type}" title="${toggle}" aria-label="${toggle}: ${label}" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-${expanded?'up':'down'}"></ha-icon><span class="section-platform"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></span><span><b>${label}</b><small>${entry.entities[type].length} ${this.t(entry.entities[type].length===1?'common.entity':'common.entities')}</small></span></button><div class="section-actions"><button class="primary" data-add="${type}"><ha-icon icon="mdi:plus"></ha-icon> ${this.t('actions.add')}</button></div></div>${expanded?`<div class="cards">${this.entityCards(entry,type)}</div>`:''}</section>`;}).join('')}</main>`;}
   render() {
-    const entry=this.entries.find(e=>e.entry_id===this.entryId);
-    if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}</div>${this.banner()}<div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('common.no_plc')}</h2><p>${this.t('common.no_plc_help')}</p></div></div>`;this.syncMenuButtons();return;}
-    const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0),type=this.type||TYPES[0],status=this.connectionStatus(entry),content=this._viewMode==="sections"?this._renderSectionsView(entry):this.renderTabsView(entry,type);
-    this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}${this.panelActions('mobile-actions')}</div>${this.banner()}<div class="summary"><div class="summary-info"><ha-icon icon="mdi:memory"></ha-icon><div class="plc-details"><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${status==='connected'?'connected':status==='unknown'?'unknown':''}" title="${this.t('connection_details.help')}" aria-label="${this.connectionBadgeAriaLabel(status)}">${this.connectionBadgeContent(status)}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('common.entities')}</span></div></div>${this.panelActions('summary-actions')}</div>${content}</div>`;
-    this.querySelectorAll('[data-entry-selector]').forEach(selector=>selector.onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();});
-    this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();});
-    this.querySelector('[data-layout-toggle]').onclick=()=>this.setViewMode(this._viewMode==="tabs"?"sections":"tabs");
-    this.querySelectorAll('[data-section-toggle]').forEach(b=>b.onclick=()=>{const type=b.dataset.sectionToggle;if(this.expandedSections.has(type))this.expandedSections.delete(type);else this.expandedSections.add(type);this.render();});
-    this.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>this.openEditor(null,b.dataset.add));
-    this.querySelectorAll('[data-batch-delete]').forEach(b=>b.onclick=()=>this.remove(this.selectedIndicesFor(b.dataset.batchDelete),b.dataset.batchDelete));
-    const globalDelete=this.querySelector('[data-batch-delete-global]');if(globalDelete)globalDelete.onclick=()=>this.removeGroupedSelection();
-    this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const type=input.dataset.entityType,index=Number(input.dataset.select),key=this.selectionKey(type,index);if(input.checked)this.selectedIndices.add(key);else this.selectedIndices.delete(key);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
-    this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit),b.dataset.entityType));
-    this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)],b.dataset.entityType));
-    this.querySelectorAll('[data-config-yaml]').forEach(button=>button.onclick=()=>this.openConfigurationEditor());this.querySelector('.connection-badge').onclick=()=>this.openConnectionDetails(entry);this.updateBulkAction();this.syncMenuButtons();
+  const entry=this.entries.find(e=>e.entry_id===this.entryId);
+  if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}</div>${this.banner()}<div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('common.no_plc')}</h2><p>${this.t('common.no_plc_help')}</p></div></div>`;this.syncMenuButtons();return;}
+  const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0),type=this.type||TYPES[0],status=this.connectionStatus(entry),content=this._viewMode==="sections"?this._renderSectionsView(entry):this.renderTabsView(entry,type);
+  this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}${this.panelActions('mobile-actions')}</div>${this.banner()}<div class="summary"><div class="summary-info"><ha-icon icon="mdi:memory"></ha-icon><div class="plc-details"><span class="plc-title"><b>${this.escape(entry.title)}</b><button type="button" class="connection-badge ${status==='connected'?'connected':status==='unknown'?'unknown':''}" title="${this.t('connection_details.help')}" aria-label="${this.connectionBadgeAriaLabel(status)}">${this.connectionBadgeContent(status)}</button></span><span>${this.escape(entry.data.host||'')} · ${count} ${this.t('common.entities')}</span></div></div>${this.panelActions('summary-actions')}</div>${content}</div>`;
+  this.querySelectorAll('[data-entry-selector]').forEach(selector=>selector.onchange=e=>{this.entryId=e.target.value;this.selectedIndices.clear();this.render();});
+  this.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{this.type=b.dataset.type;this.selectedIndices.clear();this.render();});
+  this.querySelector('[data-layout-toggle]').onclick=()=>this.setViewMode(this._viewMode==="tabs"?"sections":"tabs");
+  this.querySelectorAll('[data-section-toggle]').forEach(b=>b.onclick=()=>{const type=b.dataset.sectionToggle;if(this.expandedSections.has(type))this.expandedSections.delete(type);else this.expandedSections.add(type);this.render();});
+  this.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>this.openEditor(null,b.dataset.add));
+  this.querySelectorAll('[data-batch-delete]').forEach(b=>b.onclick=()=>this.remove(this.selectedIndicesFor(b.dataset.batchDelete),b.dataset.batchDelete));
+  const globalDelete=this.querySelector('[data-batch-delete-global]');if(globalDelete)globalDelete.onclick=()=>this.removeGroupedSelection();
+  this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const type=input.dataset.entityType,index=Number(input.dataset.select),key=this.selectionKey(type,index);if(input.checked)this.selectedIndices.add(key);else this.selectedIndices.delete(key);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
+  this.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>this.openEditor(Number(b.dataset.edit),b.dataset.entityType));
+  this.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>this.remove([Number(b.dataset.delete)],b.dataset.entityType));
+  this.querySelectorAll('[data-config-yaml]').forEach(button=>button.onclick=()=>this.openConfigurationEditor());this.querySelector('.connection-badge').onclick=()=>this.openConnectionDetails(entry);this.updateBulkAction();this.syncMenuButtons();
   }
   selectedIndicesFor(type){return [...this.selectedIndices].filter(value=>this._viewMode==="sections"?String(value).startsWith(`${type}:`):true).map(value=>this._viewMode==="sections"?Number(String(value).split(':')[1]):Number(value));}
   groupedSelectedIndices(){return GROUP_SELECTED_INDICES(this.selectedIndices);}
   entityCards(entry,type=this.type||TYPES[0]){const items=entry.entities[type];if(!items.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('common.empty')}</h3><p>${this.t('common.empty_help')}</p></div>`;return items.map((item,i)=>{const entityId=entry.entity_ids?.[type]?.[i],selected=this.selectedFor(type,i),main=MAIN_ENTITY_ADDRESS(item,type);return `<article class="${selected?'selected':''}"><label class="entity-select" title="${this.bt('select_entity')}"><input type="checkbox" data-select="${i}" data-entity-type="${type}" aria-label="${this.bt('select_entity')}" ${selected?'checked':''}><span></span></label><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div><div class="details"><b>${this.escape(item.name||main||`${this.t('common.entity')} ${i+1}`)}</b><code>${this.escape(main||'—')}</code><div>${this.chips(item,type)}</div></div>${entityId?`<span class="state-badge" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<button data-edit="${i}" data-entity-type="${type}" class="icon-btn" title="${this.t('actions.edit')}" aria-label="${this.t('actions.edit')}"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-delete="${i}" data-entity-type="${type}" class="icon-btn danger" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete"></ha-icon></button></article>`;}).join('');}
   updateBulkAction(){if(this._viewMode==="sections"){const button=this.querySelector('[data-batch-delete-global]');if(!button)return;const count=Object.values(this.groupedSelectedIndices()).reduce((total,indices)=>total+indices.length,0);button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;return;}this.querySelectorAll('[data-batch-delete]').forEach(button=>{const count=this.selectedIndicesFor(button.dataset.batchDelete).length;button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;});}
-  // Riepilogo compatto della card: niente booleani falsi, niente indirizzo duplicato,
-  // ✓ per i flag attivi e valori "pretty" per device/state class.
   chips(item,type){
-    const main=MAIN_ENTITY_ADDRESS(item,type);
-    const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
-    return Object.entries(item)
-      .filter(([k,v])=>k!=='name'&&k!=='uid'&&v!==false&&v!==''&&!(typeof v==='string'&&v===main))
-      .slice(0,5)
-      .map(([k,v])=>{
-        const label=this.escape(this.fieldText(type,k,'label'));
-        if(v===true)return `<span class="chip-flag">✓ ${label}</span>`;
-        const shown=(k==='device_class'||k==='state_class')?pretty(v):String(v);
-        return `<span>${label}: ${this.escape(shown)}</span>`;
-      }).join('');
+  const main=MAIN_ENTITY_ADDRESS(item,type);
+  const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
+  return Object.entries(item)
+.filter(([k,v])=>k!=='name'&&k!=='uid'&&v!==false&&v!==''&&!(typeof v==='string'&&v===main))
+.slice(0,5)
+.map(([k,v])=>{
+  const label=this.escape(this.fieldText(type,k,'label'));
+  if(v===true)return `<span class="chip-flag">✓ ${label}</span>`;
+  const shown=(k==='device_class'||k==='state_class')?pretty(v):String(v);
+  return `<span>${label}: ${this.escape(shown)}</span>`;
+  }).join('');
   }
   stateText(entityId){const state=this._hass?.states?.[entityId];if(!state)return '—';const unit=state.attributes?.unit_of_measurement;return unit?`${state.state} ${unit}`:state.state;}
   updateStates(){this.querySelectorAll('.state-badge[data-entity-id]').forEach(el=>{const text=this.stateText(el.dataset.entityId);if(el.textContent!==text)el.textContent=text;});}
@@ -354,196 +322,162 @@ class S7PlcConfigurationPanel extends HTMLElement {
   liveAvailabilityFallback(connectionState,now){const status=CONNECTION_STATE(connectionState?.state),changed=Date.parse(connectionState?.last_changed),hasDuration=(status==="connected"||status==="disconnected")&&Number.isFinite(changed);return `${hasDuration?`<dl class="availability-stats availability-stats-live"><div><dt>${this.t(`availability.${status==="connected"?'current_uptime':'current_downtime'}`)}</dt><dd>${this.formatDuration(now-changed)}</dd></div></dl>`:''}<p class="history-unavailable">${this.t('availability.history_unavailable')}</p>`;}
   async loadConnectionAvailability(dialog,entry){const container=dialog.querySelector('.availability-container'),entityId=entry.connection_entity_id,connectionState=this.connectionState(entry),now=Date.now();if(!entityId){container.innerHTML=this.liveAvailabilityFallback(connectionState,now);return;}try{const start=new Date(now-CONNECTION_WINDOW_MS).toISOString(),end=new Date(now).toISOString(),path=`history/period/${encodeURIComponent(start)}?filter_entity_id=${encodeURIComponent(entityId)}&end_time=${encodeURIComponent(end)}&minimal_response&no_attributes`;const response=await this._hass.callApi('GET',path),history=Array.isArray(response?.[0])?response[0]:[];if(!history.length)throw Error('empty history');const result=BUILD_CONNECTION_AVAILABILITY(history,now);container.innerHTML=this.availabilityMarkup(APPLY_LIVE_CONNECTION_DURATION(result,connectionState,now));}catch(err){console.debug('Unable to load S7 PLC connection history',err);container.innerHTML=this.liveAvailabilityFallback(connectionState,now);}}
   openConnectionDetails(entry){
-    const dialog=document.createElement('ha-dialog'),data={...(entry.data||{}),pys7_version:entry.pys7_version},{host,port}=data;
-    const groups=connectionDetailGroups(data).map(group=>`<section class="connection-detail-group"><h3><ha-icon icon="${group.icon}"></ha-icon>${this.t(`connection_details.sections.${group.key}`)}</h3><dl>${group.fields.map(({key,value})=>`<div class="connection-detail"><dt>${this.escape(this.connectionDetailLabel(key))}</dt><dd${key==='local_tsap'||key==='remote_tsap'?' class="technical-value"':''}>${this.escape(this.connectionValue(value))}</dd></div>`).join('')}</dl></section>`).join('');
-    dialog.open=true;dialog.headerTitle=this.t('connection_details.title');dialog.style.setProperty('--mdc-dialog-max-width','min(560px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(480px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');
-    const status=this.connectionStatus(entry);
-    dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body connection-details"><div class="connection-head"><div class="connection-head-text"><b>${this.escape(entry.title)}</b><code>${this.escape(host??'—')}${port!==undefined&&port!==null&&port!==''?`:${this.escape(port)}`:''}</code></div><span class="connection-status ${status}">${this.t(`common.${status}`)}</span></div><p>${this.t('connection_details.description')}</p><div class="availability-container"><div class="history-loading" role="status"><span></span>${this.t('availability.loading')}</div></div><div class="connection-detail-groups">${groups}</div></div><ha-dialog-footer slot="footer"><ha-button slot="primaryAction" appearance="accent">${this.t('actions.close')}</ha-button></ha-dialog-footer>`;
-    document.body.appendChild(dialog);this.loadConnectionAvailability(dialog,entry);dialog.addEventListener('closed',()=>dialog.remove());dialog.querySelector('[slot=primaryAction]').onclick=()=>{dialog.open=false;};
+  const dialog=document.createElement('ha-dialog'),data={...(entry.data||{}),pys7_version:entry.pys7_version},{host,port}=data;
+  const groups=connectionDetailGroups(data).map(group=>`<section class="connection-detail-group"><h3><ha-icon icon="${group.icon}"></ha-icon>${this.t(`connection_details.sections.${group.key}`)}</h3><dl>${group.fields.map(({key,value})=>`<div class="connection-detail"><dt>${this.escape(this.connectionDetailLabel(key))}</dt><dd${key==='local_tsap'||key==='remote_tsap'?' class="technical-value"':''}>${this.escape(this.connectionValue(value))}</dd></div>`).join('')}</dl></section>`).join('');
+  dialog.open=true;dialog.headerTitle=this.t('connection_details.title');dialog.style.setProperty('--mdc-dialog-max-width','min(560px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(480px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');
+  const status=this.connectionStatus(entry);
+  dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body connection-details"><div class="connection-head"><div class="connection-head-text"><b>${this.escape(entry.title)}</b><code>${this.escape(host??'—')}${port!==undefined&&port!==null&&port!==''?`:${this.escape(port)}`:''}</code></div><span class="connection-status ${status}">${this.t(`common.${status}`)}</span></div><p>${this.t('connection_details.description')}</p><div class="availability-container"><div class="history-loading" role="status"><span></span>${this.t('availability.loading')}</div></div><div class="connection-detail-groups">${groups}</div></div><ha-dialog-footer slot="footer"><ha-button slot="primaryAction" appearance="accent">${this.t('actions.close')}</ha-button></ha-dialog-footer>`;
+  document.body.appendChild(dialog);this.loadConnectionAvailability(dialog,entry);dialog.addEventListener('closed',()=>dialog.remove());dialog.querySelector('[slot=primaryAction]').onclick=()=>{dialog.open=false;};
   }
-  field([key,kind='text',required=false,choices],item,type){const label=this.fieldText(type,key,'label'),description=this.fieldText(type,key,'description'),help=description?`<small>${this.escape(description)}</small>`:'',value=(key in item)?(item[key]??''):(key==='availability_mode'?'connection':(CLIMATE_PRESET_CORE_DEFAULTS[key]??CLIMATE_STATUS_CORE_DEFAULTS[key]??'')),address=key.includes('address')||key==='source_entity',boolAddress=BOOL_FIELDS[type]?.includes(key),stringAddress=STRING_FIELDS[type]?.includes(key),placeholder=address?this.t(`common.${boolAddress?'address_example_bool':stringAddress?'address_example_string':'address_example'}`):key==='name'?this.t('common.name_example'):'',presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value');if(kind==='climate-selector'){const icons={direct:'radiator',setpoint:'thermostat',heat:'fire',cool:'snowflake',heat_cool:'sun-snowflake-variant',inferred:'home-thermometer-outline',plc:'chip',on_off:'power',coded:'format-list-numbered',coded_on_off:'tune-variant',false:'history',true:'sync',connection:'lan-connect',always:'check-circle-outline',bit:'checkbox-marked-circle-outline'},option=choice=>`<label class="control-card compact-control-card"><input type="radio" name="${key}" value="${choice}" ${String(value)===choice?'checked':''}><ha-icon icon="mdi:${icons[choice]}"></ha-icon><span><b>${this.fieldText(type,key,`options.${choice}`)}</b><small>${this.fieldText(type,key,`descriptions.${choice}`)}</small></span></label>`;return `<fieldset class="control-selector climate-selector" data-field="${key}"><legend>${this.escape(label)}</legend><div class="control-options cover-options">${choices.map(option).join('')}</div></fieldset>`;}if(kind==='cover-selector'){const icons={traditional:'arrow-up-down',position:'blinds-horizontal',toggle:'gesture-tap-button',timed:'timer-outline',opening:'ray-start-arrow',closing:'ray-end-arrow',both:'ray-end',endstops:'ray-end',none:'chart-timeline-variant',bits:'checkbox-multiple-outline',status:'format-list-numbered',disabled:'toggle-switch-off-outline',enabled:'toggle-switch-outline'},option=choice=>`<label class="control-card compact-control-card"><input type="radio" name="${key}" value="${choice}" ${value===choice?'checked':''}><ha-icon icon="mdi:${icons[choice]}"></ha-icon><span><b>${this.fieldText(type,key,`options.${choice}`)}</b><small>${this.fieldText(type,key,`descriptions.${choice}`)}</small></span></label>`;return `<fieldset class="control-selector cover-selector" data-field="${key}"><legend>${this.escape(label)}</legend><div class="control-options cover-options">${choices.map(option).join('')}</div></fieldset>`;}if(kind==='light'){const option=(mode,icon,title,detail)=>`<label class="control-card" data-light-option="${mode}"><input type="radio" name="light_mode" value="${mode}" ${value===mode?'checked':''}><ha-icon icon="mdi:${icon}"></ha-icon><span><b>${this.t(title)}</b><small>${this.t(detail)}</small></span></label>`;return `<fieldset class="control-selector light-selector" data-field="light_mode"><legend>${this.t('entity_types.lights.fields.light_mode.label')}</legend><div class="control-options light-options">${option('on_off','lightbulb-outline','entity_types.lights.mode.options.on_off.title','entity_types.lights.mode.options.on_off.description')}${option('dimmable','brightness-6','entity_types.lights.mode.options.dimmable.title','entity_types.lights.mode.options.dimmable.description')}</div></fieldset>`;}if(kind==='control'){const option=(mode,icon,title,detail)=>`<label class="control-card" data-control-option="${mode}"><input type="radio" name="control_behavior" value="${mode}" ${value===mode?'checked':''}><ha-icon icon="mdi:${icon}"></ha-icon><span><b>${this.t(title)}</b><small>${this.t(detail)}</small>${mode==='sync'?`<small class="sync-disabled-help">${this.t('control_behavior.sync_requires_different')}</small>`:''}</span></label>`;return `<fieldset class="control-selector" data-field="control_behavior"><legend>${this.t('control_behavior.label')}</legend><div class="control-options">${option('direct','toggle-switch-outline','control_behavior.options.direct.title','control_behavior.options.direct.description')}${option('sync','sync','control_behavior.options.sync.title','control_behavior.options.sync.description')}${option('pulse','gesture-tap-button','control_behavior.options.pulse.title','control_behavior.options.pulse.description')}</div></fieldset>`;}if(kind==='options-map'){return `<fieldset class="options-map" data-field="${key}"><legend>${this.escape(label)}<em>${this.t('common.required')}</em></legend>${help}<div class="om-head"><span>${this.fieldText(type,key,'value_label')}</span><span>${this.fieldText(type,key,'label_label')}</span><span></span></div><div class="om-rows"></div><button type="button" class="om-add" data-om-add><ha-icon icon="mdi:plus"></ha-icon>${this.fieldText(type,key,'add_option')}</button><input type="hidden" name="${key}" value="${this.escape(value)}"></fieldset>`;}if(kind==='checkbox')return `<label class="check" data-field="${key}"><span><b>${this.escape(label)}</b>${help||`<small>${this.t('common.enabled_help')}</small>`}</span><input name="${key}" type="checkbox" ${value?'checked':''}></label>`;const caption=`<span class="field-label"><span class="label-text">${this.escape(label)}</span><em ${required?'':'hidden'}>${this.t('common.required')}</em></span>`;if(key==='source_entity'){const states=this._hass?.states||{},ids=Object.keys(states).sort();return `<label data-field="source_entity">${caption}<input name="source_entity" class="mono" list="s7plc-entity-list" value="${this.escape(value)}" placeholder="${this.t('common.entity_example')}" autocomplete="off" ${required?'required':''}><datalist id="s7plc-entity-list">${ids.map(id=>`<option value="${this.escape(id)}">${this.escape(states[id]?.attributes?.friendly_name||'')}</option>`).join('')}</datalist>${help}</label>`;}if(key==='area'){const areas=Object.values(this._hass?.areas||{}).sort((a,b)=>(a.name||'').localeCompare(b.name||''));const known=areas.some(a=>a.area_id===value);return `<label data-field="area">${caption}<select name="area"><option value="" ${value?'':'selected'}>${this.t('common.no_area')}</option>${areas.map(a=>`<option value="${this.escape(a.area_id)}" ${a.area_id===value?'selected':''}>${this.escape(a.name)}</option>`).join('')}${value&&!known?`<option value="${this.escape(value)}" selected>${this.escape(value)}</option>`:''}</select>${help}</label>`;}if(key==='device_class'||key==='state_class'){const entry=this.entries.find(e=>e.entry_id===this.entryId),opts=key==='state_class'?entry?.selector_options?.state_classes||[]:entry?.selector_options?.device_classes?.[type]||[],pretty=v=>v.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '),known=opts.includes(value);return `<label data-field="${key}">${caption}<select name="${key}"><option value="" ${value?'':'selected'}>${this.t('common.none_option')}</option>${opts.map(v=>`<option value="${this.escape(v)}" ${v===value?'selected':''}>${this.escape(pretty(v))}</option>`).join('')}${value&&!known?`<option value="${this.escape(value)}" selected>${this.escape(value)}</option>`:''}</select>${help}</label>`;}if(kind==='select')return `<label data-field="${key}">${caption}<select name="${key}" ${required?'required':''}>${choices.map(v=>`<option value="${v}" ${v===value?'selected':''}>${this.fieldText(type,key,`options.${v}`)}</option>`).join('')}</select>${help}</label>`;return `<label data-field="${key}">${caption}<input name="${key}" type="${kind}" class="${address?'mono':''}" value="${this.escape(value)}" placeholder="${placeholder}" ${kind==='number'?(presetValue?'step="1"':key==='brightness_scale'?'step="1" min="1" max="65535"':'step="any"'):''} ${required?'required':''}>${help}</label>`;}
+  addressField(key,value,label,description,required,type){const allowed=ADDRESS_TYPES_FOR_FIELD(type,key),parsed=PARSE_S7_ADDRESS(value),guided=!parsed.error&&(!parsed.dataType||allowed.includes(parsed.dataType)),option=([dataType,,text])=>allowed.includes(dataType)?`<option value="${dataType}" ${parsed.dataType===dataType?'selected':''}>${text}</option>`:'';return `<fieldset class="address-builder" data-field="${key}" data-address-builder data-required="${required?'true':'false'}"><legend><span class="label-text">${this.escape(label)}</span>${required?`<em>${this.t('common.required')}</em>`:''}</legend><input type="hidden" name="${key}" value="${this.escape(value)}" ${required?'required':''}><div class="address-modes"><button type="button" data-address-mode="guided" class="${guided?'active':''}">${this.t('address_builder.guided')}</button><button type="button" data-address-mode="manual" class="${guided?'':'active'}">${this.t('address_builder.manual')}</button></div><div class="address-guided" ${guided?'':'hidden'}><div class="address-controls"><label>${this.t('address_builder.area')}<select data-address-part="area"><option value=""></option>${["DB","I","Q","M"].map(area=>`<option value="${area}" ${parsed.area===area?'selected':''}>${area}</option>`).join('')}</select></label><label data-db-number>${this.t('address_builder.db_number')}<input type="number" min="0" step="1" data-address-part="dbNumber" value="${parsed.dbNumber??''}"></label><label>${this.t('address_builder.data_type')}<select data-address-part="dataType"><option value=""></option>${S7_ADDRESS_TYPES.map(option).join('')}</select></label><label>${this.t('address_builder.offset')}<input type="number" min="0" step="1" data-address-part="offset" value="${parsed.offset??''}"></label><label data-bit>${this.t('address_builder.bit')}<input type="number" min="0" max="7" step="1" data-address-part="bit" value="${parsed.bit??''}"></label><label data-length>${this.t('address_builder.length')}<input type="number" min="0" step="1" data-address-part="length" value="${parsed.length??''}"></label></div><div class="address-preview"><span>${this.t('address_builder.preview')}</span><code>${this.escape(value)}</code></div></div><label class="address-manual" ${guided?'hidden':''}><input type="text" class="mono" data-address-manual value="${this.escape(value)}" placeholder="${this.t(`common.${allowed.length===1&&allowed[0]==='BIT'?'address_example_bool':allowed.every(x=>['STRING','WSTRING'].includes(x))?'address_example_string':'address_example'}`)}"></label><small class="address-error" role="alert" ${parsed.error?'':'hidden'}>${this.t(`address_builder.${parsed.error||'invalid'}`)}</small>${description?`<small class="address-help">${this.escape(description)}</small>`:''}</fieldset>`;}
+  field([key,kind='text',required=false,choices],item,type){const label=this.fieldText(type,key,'label'),description=this.fieldText(type,key,'description'),help=description?`<small>${this.escape(description)}</small>`:'',value=(key in item)?(item[key]??''):(key==='availability_mode'?'connection':(CLIMATE_PRESET_CORE_DEFAULTS[key]??CLIMATE_STATUS_CORE_DEFAULTS[key]??'')),address=key.includes('address')||key==='source_entity',boolAddress=BOOL_FIELDS[type]?.includes(key),stringAddress=STRING_FIELDS[type]?.includes(key),placeholder=address?this.t(`common.${boolAddress?'address_example_bool':stringAddress?'address_example_string':'address_example'}`):key==='name'?this.t('common.name_example'):'',presetValue=key.startsWith('preset_mode_')&&key.endsWith('_value');if(address&&key!=='source_entity')return this.addressField(key,value,label,description,required,type);if(kind==='climate-selector'){const icons={direct:'radiator',setpoint:'thermostat',heat:'fire',cool:'snowflake',heat_cool:'sun-snowflake-variant',inferred:'home-thermometer-outline',plc:'chip',on_off:'power',coded:'format-list-numbered',coded_on_off:'tune-variant',false:'history',true:'sync',connection:'lan-connect',always:'check-circle-outline',bit:'checkbox-marked-circle-outline'},option=choice=>`<label class="control-card compact-control-card"><input type="radio" name="${key}" value="${choice}" ${String(value)===choice?'checked':''}><ha-icon icon="mdi:${icons[choice]}"></ha-icon><span><b>${this.fieldText(type,key,`options.${choice}`)}</b><small>${this.fieldText(type,key,`descriptions.${choice}`)}</small></span></label>`;return `<fieldset class="control-selector climate-selector" data-field="${key}"><legend>${this.escape(label)}</legend><div class="control-options cover-options">${choices.map(option).join('')}</div></fieldset>`;}if(kind==='cover-selector'){const icons={traditional:'arrow-up-down',position:'blinds-horizontal',toggle:'gesture-tap-button',timed:'timer-outline',opening:'ray-start-arrow',closing:'ray-end-arrow',both:'ray-end',endstops:'ray-end',none:'chart-timeline-variant',bits:'checkbox-multiple-outline',status:'format-list-numbered',disabled:'toggle-switch-off-outline',enabled:'toggle-switch-outline'},option=choice=>`<label class="control-card compact-control-card"><input type="radio" name="${key}" value="${choice}" ${value===choice?'checked':''}><ha-icon icon="mdi:${icons[choice]}"></ha-icon><span><b>${this.fieldText(type,key,`options.${choice}`)}</b><small>${this.fieldText(type,key,`descriptions.${choice}`)}</small></span></label>`;return `<fieldset class="control-selector cover-selector" data-field="${key}"><legend>${this.escape(label)}</legend><div class="control-options cover-options">${choices.map(option).join('')}</div></fieldset>`;}if(kind==='light'){const option=(mode,icon,title,detail)=>`<label class="control-card" data-light-option="${mode}"><input type="radio" name="light_mode" value="${mode}" ${value===mode?'checked':''}><ha-icon icon="mdi:${icon}"></ha-icon><span><b>${this.t(title)}</b><small>${this.t(detail)}</small></span></label>`;return `<fieldset class="control-selector light-selector" data-field="light_mode"><legend>${this.t('entity_types.lights.fields.light_mode.label')}</legend><div class="control-options light-options">${option('on_off','lightbulb-outline','entity_types.lights.mode.options.on_off.title','entity_types.lights.mode.options.on_off.description')}${option('dimmable','brightness-6','entity_types.lights.mode.options.dimmable.title','entity_types.lights.mode.options.dimmable.description')}</div></fieldset>`;}if(kind==='control'){const option=(mode,icon,title,detail)=>`<label class="control-card" data-control-option="${mode}"><input type="radio" name="control_behavior" value="${mode}" ${value===mode?'checked':''}><ha-icon icon="mdi:${icon}"></ha-icon><span><b>${this.t(title)}</b><small>${this.t(detail)}</small>${mode==='sync'?`<small class="sync-disabled-help">${this.t('control_behavior.sync_requires_different')}</small>`:''}</span></label>`;return `<fieldset class="control-selector" data-field="control_behavior"><legend>${this.t('control_behavior.label')}</legend><div class="control-options">${option('direct','toggle-switch-outline','control_behavior.options.direct.title','control_behavior.options.direct.description')}${option('sync','sync','control_behavior.options.sync.title','control_behavior.options.sync.description')}${option('pulse','gesture-tap-button','control_behavior.options.pulse.title','control_behavior.options.pulse.description')}</div></fieldset>`;}if(kind==='options-map'){return `<fieldset class="options-map" data-field="${key}"><legend>${this.escape(label)}<em>${this.t('common.required')}</em></legend>${help}<div class="om-head"><span>${this.fieldText(type,key,'value_label')}</span><span>${this.fieldText(type,key,'label_label')}</span><span></span></div><div class="om-rows"></div><button type="button" class="om-add" data-om-add><ha-icon icon="mdi:plus"></ha-icon>${this.fieldText(type,key,'add_option')}</button><input type="hidden" name="${key}" value="${this.escape(value)}"></fieldset>`;}if(kind==='checkbox')return `<label class="check" data-field="${key}"><span><b>${this.escape(label)}</b>${help||`<small>${this.t('common.enabled_help')}</small>`}</span><input name="${key}" type="checkbox" ${value?'checked':''}></label>`;const caption=`<span class="field-label"><span class="label-text">${this.escape(label)}</span><em ${required?'':'hidden'}>${this.t('common.required')}</em></span>`;if(key==='source_entity'){const states=this._hass?.states||{},ids=Object.keys(states).sort();return `<label data-field="source_entity">${caption}<input name="source_entity" class="mono" list="s7plc-entity-list" value="${this.escape(value)}" placeholder="${this.t('common.entity_example')}" autocomplete="off" ${required?'required':''}><datalist id="s7plc-entity-list">${ids.map(id=>`<option value="${this.escape(id)}">${this.escape(states[id]?.attributes?.friendly_name||'')}</option>`).join('')}</datalist>${help}</label>`;}if(key==='area'){const areas=Object.values(this._hass?.areas||{}).sort((a,b)=>(a.name||'').localeCompare(b.name||''));const known=areas.some(a=>a.area_id===value);return `<label data-field="area">${caption}<select name="area"><option value="" ${value?'':'selected'}>${this.t('common.no_area')}</option>${areas.map(a=>`<option value="${this.escape(a.area_id)}" ${a.area_id===value?'selected':''}>${this.escape(a.name)}</option>`).join('')}${value&&!known?`<option value="${this.escape(value)}" selected>${this.escape(value)}</option>`:''}</select>${help}</label>`;}if(key==='device_class'||key==='state_class'){const entry=this.entries.find(e=>e.entry_id===this.entryId),opts=key==='state_class'?entry?.selector_options?.state_classes||[]:entry?.selector_options?.device_classes?.[type]||[],pretty=v=>v.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '),known=opts.includes(value);return `<label data-field="${key}">${caption}<select name="${key}"><option value="" ${value?'':'selected'}>${this.t('common.none_option')}</option>${opts.map(v=>`<option value="${this.escape(v)}" ${v===value?'selected':''}>${this.escape(pretty(v))}</option>`).join('')}${value&&!known?`<option value="${this.escape(value)}" selected>${this.escape(value)}</option>`:''}</select>${help}</label>`;}if(kind==='select')return `<label data-field="${key}">${caption}<select name="${key}" ${required?'required':''}>${choices.map(v=>`<option value="${v}" ${v===value?'selected':''}>${this.fieldText(type,key,`options.${v}`)}</option>`).join('')}</select>${help}</label>`;return `<label data-field="${key}">${caption}<input name="${key}" type="${kind}" class="${address?'mono':''}" value="${this.escape(value)}" placeholder="${placeholder}" ${kind==='number'?(presetValue?'step="1"':key==='brightness_scale'?'step="1" min="1" max="65535"':'step="any"'):''} ${required?'required':''}>${help}</label>`;}
+  initAddressBuilders(form,type){form.querySelectorAll('[data-address-builder]').forEach(field=>{const hidden=field.querySelector('input[type="hidden"]'),manual=field.querySelector('[data-address-manual]'),guided=field.querySelector('.address-guided'),manualBox=field.querySelector('.address-manual'),error=field.querySelector('.address-error'),preview=field.querySelector('.address-preview code'),allowed=ADDRESS_TYPES_FOR_FIELD(type,field.dataset.field),parts=name=>field.querySelector(`[data-address-part="${name}"]`),showError=key=>{error.textContent=key?this.t(`address_builder.${key}`):'';error.hidden=!key;hidden.setCustomValidity(key?this.t(`address_builder.${key}`):'');},updateVisibility=()=>{const area=parts('area').value,dataType=parts('dataType').value;field.querySelector('[data-db-number]').hidden=area!=="DB";field.querySelector('[data-bit]').hidden=dataType!=="BIT";field.querySelector('[data-length]').hidden=!['STRING','WSTRING'].includes(dataType);},readParts=()=>Object.fromEntries(['area','dbNumber','dataType','offset','bit','length'].map(name=>[name,parts(name).value])),writeParts=parsed=>{for(const name of ['area','dbNumber','dataType','offset','bit','length'])parts(name).value=parsed[name]??'';updateVisibility();},generate=()=>{const values=readParts(),started=Object.values(values).some(value=>value!=='');if(!started&&field.dataset.required!=='true'){hidden.value='';manual.value='';preview.textContent='';showError('');return;}const result=SERIALIZE_S7_ADDRESS(values);if(typeof result==='string'){hidden.value=result;manual.value=result;preview.textContent=result;showError('');}else showError(result.error||'incomplete');};
+  field.querySelectorAll('[data-address-part]').forEach(input=>{input.addEventListener('input',generate);input.addEventListener('change',generate);});
+  field.querySelectorAll('[data-address-mode]').forEach(button=>button.onclick=()=>{if(button.dataset.addressMode==='manual'){manual.value=hidden.value;guided.hidden=true;manualBox.hidden=false;}else{const parsed=PARSE_S7_ADDRESS(manual.value);if(parsed.error||parsed.dataType&&!allowed.includes(parsed.dataType)){manualBox.hidden=false;guided.hidden=true;showError(parsed.error||'unsupported');return;}hidden.value=manual.value;writeParts(parsed);manualBox.hidden=true;guided.hidden=false;showError('');}field.querySelectorAll('[data-address-mode]').forEach(item=>item.classList.toggle('active',item===button&&!guided.hidden||item!==button&&guided.hidden));});
+  manual.addEventListener('input',()=>{hidden.value=manual.value;const parsed=PARSE_S7_ADDRESS(manual.value);showError(parsed.error||parsed.dataType&&!allowed.includes(parsed.dataType)?parsed.error||'unsupported':'');});updateVisibility();const initial=PARSE_S7_ADDRESS(hidden.value);showError(initial.error||initial.dataType&&!allowed.includes(initial.dataType)?initial.error||'unsupported':field.dataset.required==='true'&&initial.empty?'incomplete':'');
+  });}
   editorSections(type,item){const fields=FIELDS[type],byKeys=keys=>keys.map(key=>fields.find(field=>field[0]===key)).filter(Boolean),isAddress=f=>f[0]!=='availability_address'&&(f[0].includes('address')||f[0]==='source_entity'||f[0]==='cover_mode'||f[0]==='control_mode'),isIdentity=f=>['name','area','scan_interval','availability_mode','availability_address'].includes(f[0]),section=(icon,title,description,list,key='')=>list.length?`<section class="form-section" ${key?`data-section="${key}"`:''}><div class="section-head"><span class="section-icon"><ha-icon icon="mdi:${icon}"></ha-icon></span><div><b>${title}</b><small>${description}</small></div></div><div class="field-grid">${list.map(f=>this.field(f,item,type)).join('')}</div></section>`:'';
-    if(type==='covers')return section('tune-variant',this.t('entity_types.covers.modes.control.title'),this.t('entity_types.covers.modes.control.description'),byKeys(['cover_control_mode']),'cover-control')+section('map-marker-distance',this.t('entity_types.covers.modes.position_feedback.title'),this.t('entity_types.covers.modes.position_feedback.description'),byKeys(['cover_position_feedback','invert_position']),'cover-position-feedback')+section('motion-sensor',this.t('entity_types.covers.modes.movement_feedback.title'),this.t('entity_types.covers.modes.movement_feedback.description'),byKeys(['cover_movement_feedback']),'cover-movement-feedback')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['open_command_address','close_command_address','operate_time','position_state_address','position_command_address','opening_state_address','closing_state_address','cover_opening_address','cover_closing_address','cover_stopped_address','cover_status_address','cover_status_open_values','cover_status_closed_values','cover_status_opening_values','cover_status_closing_values','cover_status_stopped_values']),'addresses')+section('stop-circle-outline',this.t('entity_types.covers.modes.stop.title'),this.t('entity_types.covers.modes.stop.description'),byKeys(['cover_stop_enabled','stop_command_address','stop_pulse_duration']),'cover-stop')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['toggle_pulse_duration']),'cover-options')+section('rotate-3d-variant',this.t('entity_types.covers.modes.tilt.title'),this.t('entity_types.covers.modes.tilt.description'),byKeys(['cover_tilt_enabled','tilt_state_address','tilt_command_address','invert_tilt']),'cover-tilt')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','device_class','scan_interval','availability_mode','availability_address']),'ha');
-    if(type==='climates')return section('tune-variant',this.t('entity_types.climates.sections.control.title'),this.t('entity_types.climates.sections.control.description'),byKeys(['control_mode']),'climate-control')+section('thermometer',this.t('entity_types.climates.sections.temperature.title'),this.t('entity_types.climates.sections.temperature.description'),byKeys(['current_temperature_address','target_temperature_address','min_temp','max_temp','temp_step']),'climate-temperature')+section('radiator',this.t('entity_types.climates.sections.direct_function.title'),this.t('entity_types.climates.sections.direct_function.description'),byKeys(['climate_direct_function','heating_output_address','cooling_output_address']),'climate-direct-function')+section('motion-sensor',this.t('entity_types.climates.sections.direct_feedback.title'),this.t('entity_types.climates.sections.direct_feedback.description'),byKeys(['climate_direct_feedback','heating_action_address','cooling_action_address']),'climate-direct-feedback')+section('tune',this.t('entity_types.climates.sections.mode_control.title'),this.t('entity_types.climates.sections.mode_control.description'),byKeys(['climate_mode_control','on_off_address','preset_mode_address']),'climate-mode-control')+section('format-list-checks',this.t('entity_types.climates.sections.available_modes.title'),this.t('entity_types.climates.sections.available_modes.description'),byKeys(CLIMATE_PRESET_VALUE_FIELDS),'climate-modes')+section('sync',this.t('entity_types.climates.sections.mode_feedback.title'),this.t('entity_types.climates.sections.mode_feedback.description'),byKeys(['preset_mode_bidirectional']),'climate-mode-feedback')+section('list-status',this.t('entity_types.climates.sections.action_feedback.title'),this.t('entity_types.climates.sections.action_feedback.description'),byKeys(['climate_action_feedback','hvac_status_address',...CLIMATE_STATUS_VALUE_FIELDS]),'climate-action-feedback')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
-    if(type==='switches')return section('tune-variant',this.t('sections.command_behavior.title'),this.t('sections.command_behavior.description'),byKeys(['control_behavior']),'command')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['state_address','command_address']),'addresses')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['pulse_duration']),'options')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
-    if(type==='lights')return section('tune-variant',this.t('sections.command_behavior.title'),this.t('sections.command_behavior.description'),byKeys(['control_behavior']),'command')+section('lightbulb-outline',this.t('entity_types.lights.mode.title'),this.t('entity_types.lights.mode.description'),byKeys(['light_mode']),'light-mode')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['state_address','command_address','brightness_state_address','brightness_command_address']),'addresses')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['pulse_duration','brightness_scale']),'options')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
-    return section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),fields.filter(isAddress))+section('tune-variant',this.t('sections.behavior.title'),this.t('sections.behavior.description'),fields.filter(f=>!isAddress(f)&&!isIdentity(f)))+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),fields.filter(isIdentity));}
+  if(type==='covers')return section('tune-variant',this.t('entity_types.covers.modes.control.title'),this.t('entity_types.covers.modes.control.description'),byKeys(['cover_control_mode']),'cover-control')+section('map-marker-distance',this.t('entity_types.covers.modes.position_feedback.title'),this.t('entity_types.covers.modes.position_feedback.description'),byKeys(['cover_position_feedback','invert_position']),'cover-position-feedback')+section('motion-sensor',this.t('entity_types.covers.modes.movement_feedback.title'),this.t('entity_types.covers.modes.movement_feedback.description'),byKeys(['cover_movement_feedback']),'cover-movement-feedback')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['open_command_address','close_command_address','operate_time','position_state_address','position_command_address','opening_state_address','closing_state_address','cover_opening_address','cover_closing_address','cover_stopped_address','cover_status_address','cover_status_open_values','cover_status_closed_values','cover_status_opening_values','cover_status_closing_values','cover_status_stopped_values']),'addresses')+section('stop-circle-outline',this.t('entity_types.covers.modes.stop.title'),this.t('entity_types.covers.modes.stop.description'),byKeys(['cover_stop_enabled','stop_command_address','stop_pulse_duration']),'cover-stop')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['toggle_pulse_duration']),'cover-options')+section('rotate-3d-variant',this.t('entity_types.covers.modes.tilt.title'),this.t('entity_types.covers.modes.tilt.description'),byKeys(['cover_tilt_enabled','tilt_state_address','tilt_command_address','invert_tilt']),'cover-tilt')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','device_class','scan_interval','availability_mode','availability_address']),'ha');
+  if(type==='climates')return section('tune-variant',this.t('entity_types.climates.sections.control.title'),this.t('entity_types.climates.sections.control.description'),byKeys(['control_mode']),'climate-control')+section('thermometer',this.t('entity_types.climates.sections.temperature.title'),this.t('entity_types.climates.sections.temperature.description'),byKeys(['current_temperature_address','target_temperature_address','min_temp','max_temp','temp_step']),'climate-temperature')+section('radiator',this.t('entity_types.climates.sections.direct_function.title'),this.t('entity_types.climates.sections.direct_function.description'),byKeys(['climate_direct_function','heating_output_address','cooling_output_address']),'climate-direct-function')+section('motion-sensor',this.t('entity_types.climates.sections.direct_feedback.title'),this.t('entity_types.climates.sections.direct_feedback.description'),byKeys(['climate_direct_feedback','heating_action_address','cooling_action_address']),'climate-direct-feedback')+section('tune',this.t('entity_types.climates.sections.mode_control.title'),this.t('entity_types.climates.sections.mode_control.description'),byKeys(['climate_mode_control','on_off_address','preset_mode_address']),'climate-mode-control')+section('format-list-checks',this.t('entity_types.climates.sections.available_modes.title'),this.t('entity_types.climates.sections.available_modes.description'),byKeys(CLIMATE_PRESET_VALUE_FIELDS),'climate-modes')+section('sync',this.t('entity_types.climates.sections.mode_feedback.title'),this.t('entity_types.climates.sections.mode_feedback.description'),byKeys(['preset_mode_bidirectional']),'climate-mode-feedback')+section('list-status',this.t('entity_types.climates.sections.action_feedback.title'),this.t('entity_types.climates.sections.action_feedback.description'),byKeys(['climate_action_feedback','hvac_status_address',...CLIMATE_STATUS_VALUE_FIELDS]),'climate-action-feedback')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
+  if(type==='switches')return section('tune-variant',this.t('sections.command_behavior.title'),this.t('sections.command_behavior.description'),byKeys(['control_behavior']),'command')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['state_address','command_address']),'addresses')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['pulse_duration']),'options')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
+  if(type==='lights')return section('tune-variant',this.t('sections.command_behavior.title'),this.t('sections.command_behavior.description'),byKeys(['control_behavior']),'command')+section('lightbulb-outline',this.t('entity_types.lights.mode.title'),this.t('entity_types.lights.mode.description'),byKeys(['light_mode']),'light-mode')+section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),byKeys(['state_address','command_address','brightness_state_address','brightness_command_address']),'addresses')+section('cog-outline',this.t('sections.options.title'),this.t('sections.options.description'),byKeys(['pulse_duration','brightness_scale']),'options')+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),byKeys(['name','area','scan_interval','availability_mode','availability_address']),'ha');
+  return section('connection',this.t('sections.plc_connection.title'),this.t('sections.plc_connection.description'),fields.filter(isAddress))+section('tune-variant',this.t('sections.behavior.title'),this.t('sections.behavior.description'),fields.filter(f=>!isAddress(f)&&!isIdentity(f)))+section('card-account-details-outline',this.t('sections.ha_details.title'),this.t('sections.ha_details.description'),fields.filter(isIdentity));}
   openEditor(index=null,type=this.type||TYPES[0]){const entry=this.entries.find(e=>e.entry_id===this.entryId),raw=index===null?{}:entry.entities[type][index],initial=this.inferred(raw,type),dialog=document.createElement('ha-dialog');dialog.open=true;dialog.headerTitle=index===null?this.t('editor.new_entity'):this.t('editor.edit_entity');dialog.style.setProperty('--mdc-dialog-max-width','min(940px,95vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(940px,95vw)');dialog.style.setProperty('--dialog-content-padding','0');dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body"><div class="editor-intro"><span class="editor-type-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></span><div><span class="eyebrow">${this.t(`entity_types.${type}.label`)}</span><h3>${index===null?this.t('editor.configure_new'):this.t('editor.update_configuration')}</h3><p>${this.t('editor.save_help')}</p></div></div><div class="mode-tabs" role="tablist" aria-label="${this.t('editor.editor_mode')}"><button class="active" data-mode="visual" role="tab"><ha-icon icon="mdi:form-select"></ha-icon><span>${this.t('editor.visual_editor')}<small>${this.t('editor.guided')}</small></span></button><button data-mode="yaml" role="tab"><ha-icon icon="mdi:code-braces"></ha-icon><span>YAML<small>${this.t('editor.advanced')}</small></span></button></div><form class="visual-form">${this.editorSections(type,initial)}</form><div class="yaml-editor" style="display:none"><ha-alert alert-type="warning">${this.t('editor.yaml_warning')}</ha-alert><textarea spellcheck="false" aria-label="${this.t('editor.yaml_label')}">${this.escape(this.toYaml(raw))}</textarea></div><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent">${this.t('actions.save')}</ha-button></ha-dialog-footer>`;document.body.appendChild(dialog);
-    const form=dialog.querySelector('form');
-    const omField=type==='selects'?form.querySelector('[data-field="options_map"]'):null;
-    if(omField){
-      const rowsBox=omField.querySelector('.om-rows'),hidden=form.elements.options_map;
-      const sync=()=>{hidden.value=[...rowsBox.querySelectorAll('.om-row')].map(r=>{const v=r.querySelector('.om-value').value.trim(),l=r.querySelector('.om-label').value.trim();return v!==''&&l!==''?`${v}:${l}`:null;}).filter(Boolean).join(';');};
-      const makeRow=(v='',l='')=>{const div=document.createElement('div');div.className='om-row';div.innerHTML=`<input type="number" step="1" class="om-value mono" required inputmode="numeric" placeholder="0"><input type="text" class="om-label" required pattern="[^;]+" placeholder="${this.escape(this.fieldText(type,'options_map','label_placeholder'))}"><button type="button" class="om-del" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete-outline"></ha-icon></button>`;div.querySelector('.om-value').value=v;div.querySelector('.om-label').value=l;div.querySelector('.om-del').onclick=()=>{div.remove();if(!rowsBox.children.length)rowsBox.appendChild(makeRow());sync();};div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));return div;};
-      omField.querySelector('[data-om-add]').onclick=()=>{const r=makeRow();rowsBox.appendChild(r);r.querySelector('.om-value').focus();};
-      const pairs=String(raw.options_map??'').split(';').map(chunk=>chunk.trim()).filter(Boolean).map(pair=>{const at=pair.indexOf(':');return at<0?null:[pair.slice(0,at).trim(),pair.slice(at+1).trim()];}).filter(Boolean);
-      (pairs.length?pairs:[['','']]).forEach(([v,l])=>rowsBox.appendChild(makeRow(v,l)));
-      sync();
-    }
-    const syncMode=()=>{if(type==='covers'){const control=form.elements.cover_control_mode.value,stop=form.elements.cover_stop_enabled.value==='enabled',tilt=form.elements.cover_tilt_enabled.value==='enabled',isTraditionalLike=control==='traditional'||control==='toggle';
-      // Normalize any feedback selection the current control mode can
-      // never accept BEFORE reading the effective positionFeedback/
-      // movement below - checked=true alone doesn't fire a change event,
-      // so a stale read here would leave visibility/required state out
-      // of sync with the just-corrected selection until some other field
-      // happens to be touched.
-      if(control==='toggle'){
-        if(['timed','position','opening','closing'].includes(form.elements.cover_position_feedback.value))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
-        if(form.elements.cover_movement_feedback.value==='none')form.querySelector('input[name="cover_movement_feedback"][value="bits"]').checked=true;
-      }
-      // "position" and "timed" are the same "no separate source" concept,
-      // named differently per mode since position covers have a
-      // continuous 0-100 reading of their own - swap between them so the
-      // right card is selected/visible for the current mode.
-      if(control==='position'&&form.elements.cover_position_feedback.value==='timed')form.querySelector('input[name="cover_position_feedback"][value="position"]').checked=true;
-      if(control!=='position'&&form.elements.cover_position_feedback.value==='position')form.querySelector('input[name="cover_position_feedback"][value="timed"]').checked=true;
-      // Plain traditional covers keep the original coupled restriction: a
-      // status word claimed by position feedback can't also serve
-      // movement, since their runtime can't compose the two
-      // independently (toggle covers leave both freely selectable - see
-      // CLEAN_COVER_ENTITY).
-      if(control==='traditional'&&form.elements.cover_position_feedback.value==='status'&&form.elements.cover_movement_feedback.value==='status')form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;
-      const positionFeedback=form.elements.cover_position_feedback.value,movement=form.elements.cover_movement_feedback.value,hasFeedbackSelector=isTraditionalLike||control==='position';
-      const visible=new Set(control==='position'?['position_state_address','position_command_address','invert_position']:control==='toggle'?['open_command_address']:['open_command_address','close_command_address']);if(control==='traditional')visible.add('operate_time');if(hasFeedbackSelector&&['opening','both'].includes(positionFeedback))visible.add('opening_state_address');if(hasFeedbackSelector&&['closing','both'].includes(positionFeedback))visible.add('closing_state_address');const positionStatus=hasFeedbackSelector&&positionFeedback==='status',movementStatus=movement==='status';if(positionStatus||movementStatus)visible.add('cover_status_address');if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(k=>visible.add(k));if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(k=>visible.add(k));if(movement==='bits'&&hasFeedbackSelector)['cover_opening_address','cover_closing_address','cover_stopped_address'].forEach(k=>visible.add(k));if(control==='position'&&stop)['stop_command_address','stop_pulse_duration'].forEach(k=>visible.add(k));if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt'].forEach(k=>visible.add(k));if(control==='toggle')visible.add('toggle_pulse_duration');const governed=[...COVER_TRADITIONAL_FIELDS,...COVER_POSITION_FIELDS,'cover_status_address',...COVER_STATUS_VALUE_FIELDS,'stop_command_address','stop_pulse_duration','toggle_pulse_duration'];governed.forEach(k=>form.querySelector(`[data-field="${k}"]`)?.classList.toggle('hidden-field',!visible.has(k)));form.querySelector('[data-section="cover-stop"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-tilt"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-options"]').classList.toggle('hidden-field',control!=='toggle');
-      // Hide the control-card choices this control mode can never use -
-      // the matching value was already normalized above if it happened
-      // to be selected.
-      form.querySelector('input[name="cover_movement_feedback"][value="status"]').closest('.control-card').classList.toggle('hidden-field',control==='traditional'&&positionFeedback==='status');
-      form.querySelector('input[name="cover_position_feedback"][value="timed"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle'||control==='position');
-      form.querySelector('input[name="cover_position_feedback"][value="position"]').closest('.control-card').classList.toggle('hidden-field',control!=='position');
-      ['opening','closing'].forEach(v=>form.querySelector(`input[name="cover_position_feedback"][value="${v}"]`).closest('.control-card').classList.toggle('hidden-field',control==='toggle'));
-      form.querySelector('input[name="cover_movement_feedback"][value="none"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle');
-      // open_command_address is a two-way open/close command everywhere
-      // except single-button mode, where it's the single step-by-step
-      // pulse input - swap its label/description to match what it
-      // actually does instead of leaving the traditional-cover wording.
-      const openAddressField=form.querySelector('[data-field="open_command_address"]');
-      if(openAddressField){
-        openAddressField.querySelector('.label-text').textContent=this.fieldText(type,'open_command_address',control==='toggle'?'label_toggle':'label');
-        const openAddressHelp=openAddressField.querySelector('small');
-        if(openAddressHelp)openAddressHelp.textContent=this.fieldText(type,'open_command_address',control==='toggle'?'description_toggle':'description');
-      }
-      // Mark fields the backend unconditionally requires for the current
-      // mode as required in the UI too, instead of only surfacing that
-      // after Save - see formEntity()'s matching validation for the same
-      // conditions. The status-value fields are deliberately left alone
-      // here: the backend only requires *at least one* of each group, not
-      // every field individually, so a "Required" badge on all of them
-      // would promise a stronger constraint than formEntity() enforces.
-      const setRequired=(key,isRequired)=>{const el=form.querySelector(`[data-field="${key}"]`);if(!el)return;const input=el.querySelector('input,select');if(input)input.required=isRequired;const badge=el.querySelector('em');if(badge)badge.hidden=!isRequired;};
-      setRequired('open_command_address',isTraditionalLike);
-      setRequired('close_command_address',control==='traditional');
-      setRequired('opening_state_address',hasFeedbackSelector&&['opening','both'].includes(positionFeedback));
-      setRequired('closing_state_address',hasFeedbackSelector&&['closing','both'].includes(positionFeedback));
-      setRequired('cover_status_address',positionStatus||movementStatus);
-      // toggle_mode's validator groups these more strictly than the
-      // shared "at least one" rule above: a status word can only serve
-      // as its settled-position/movement source with EVERY one of the
-      // matching value fields present (see toggle_mode_requires_feedback/
-      // has_settled_feedback/status_is_motion_source in
-      // config_validation.py), and Bits movement needs both address bits
-      // - cover_stopped_address stays optional even there. None of this
-      // applies to plain traditional covers, whose looser "any one value"
-      // rule is already covered by cover_status_address above.
-      setRequired('cover_status_open_values',control==='toggle'&&positionStatus);
-      setRequired('cover_status_closed_values',control==='toggle'&&positionStatus);
-      setRequired('cover_status_opening_values',control==='toggle'&&movementStatus);
-      setRequired('cover_status_closing_values',control==='toggle'&&movementStatus);
-      setRequired('cover_status_stopped_values',control==='toggle'&&movementStatus);
-      setRequired('cover_opening_address',control==='toggle'&&movement==='bits');
-      setRequired('cover_closing_address',control==='toggle'&&movement==='bits');
-      return;}if(type==='climates'){const value=name=>form.querySelector(`input[name="${name}"]:checked`)?.value,{fields,sections}=CLIMATE_EDITOR_VISIBILITY({control_mode:value('control_mode'),direct_function:value('climate_direct_function'),direct_feedback:value('climate_direct_feedback'),mode_control:value('climate_mode_control'),action_feedback:value('climate_action_feedback'),availability_mode:value('availability_mode')});form.querySelectorAll('[data-field]').forEach(field=>field.classList.toggle('hidden-field',!fields.has(field.dataset.field)));form.querySelectorAll('[data-section]').forEach(section=>section.classList.toggle('hidden-field',!sections.has(section.dataset.section)));return;}const sel=form.elements.control_mode;if(!sel)return;const hidden=MODE_HIDDEN[type]?.[sel.value]||[];form.querySelectorAll('[data-field]').forEach(l=>l.classList.toggle('hidden-field',hidden.includes(l.dataset.field)));};
-    const updateControlBehavior=()=>{if(type!=='switches'&&type!=='lights')return;const state=form.elements.state_address.value.trim(),command=form.elements.command_address.value.trim(),sync=form.querySelector('input[name="control_behavior"][value="sync"]'),canSync=Boolean(command)&&command!==state;sync.disabled=!canSync;sync.closest('.control-card').classList.toggle('disabled',!canSync);if(!canSync&&sync.checked)form.querySelector('input[name="control_behavior"][value="direct"]').checked=true;const selected=form.querySelector('input[name="control_behavior"]:checked')?.value||'direct';form.querySelector('[data-field="pulse_duration"]').classList.toggle('hidden-field',selected!=='pulse');updateOptionsSection();};
-    const updateOptionsSection=()=>{const section=form.querySelector('[data-section="options"]');if(section)section.classList.toggle('hidden-field',![...section.querySelectorAll('[data-field]')].some(field=>!field.classList.contains('hidden-field')));};
-    const updateLightMode=()=>{if(type!=='lights')return;const dimmable=form.querySelector('input[name="light_mode"]:checked')?.value==='dimmable';['brightness_state_address','brightness_command_address','brightness_scale'].forEach(key=>form.querySelector(`[data-field="${key}"]`).classList.toggle('hidden-field',!dimmable));if(dimmable&&!form.elements.brightness_scale.value)form.elements.brightness_scale.value='255';updateOptionsSection();};
-    const updateAvailability=()=>{const mode=form.querySelector('input[name="availability_mode"]:checked')?.value||'connection',field=form.querySelector('[data-field="availability_address"]'),input=form.elements.availability_address,hidden=mode!=='bit';if(field){field.hidden=hidden;field.classList.toggle('hidden-field',hidden);}if(input)input.required=!hidden;};
-    const updateConditionalFields=()=>{syncMode();updateLightMode();updateControlBehavior();updateAvailability();};updateConditionalFields();['cover_control_mode','cover_position_feedback','cover_movement_feedback','cover_stop_enabled','cover_tilt_enabled','control_mode','climate_direct_function','climate_direct_feedback','climate_mode_control','climate_action_feedback'].forEach(k=>{if(form.elements[k])form.querySelectorAll(`[name="${k}"]`).forEach(input=>input.onchange=()=>{if(type==='covers'&&['cover_position_feedback','cover_movement_feedback'].includes(k))form.dataset.coverFeedbackChanged='true';if(type==='climates'){const changed=new Set((form.dataset.climateChanged||'').split(',').filter(Boolean));changed.add(k);form.dataset.climateChanged=[...changed].join(',');}updateConditionalFields();});});
-    if(form.elements.availability_mode)form.querySelectorAll('input[name="availability_mode"]').forEach(input=>input.onchange=updateConditionalFields);
-    if(form.elements.control_behavior)form.querySelectorAll('input[name="control_behavior"]').forEach(input=>input.onchange=updateControlBehavior);
-    if(form.elements.light_mode)form.querySelectorAll('input[name="light_mode"]').forEach(input=>input.onchange=updateLightMode);
-    if(form.elements.state_address)form.elements.state_address.addEventListener('input',updateControlBehavior);
-    if(form.elements.command_address)form.elements.command_address.addEventListener('input',updateControlBehavior);
-    if(form.elements.preset_mode_address)form.elements.preset_mode_address.oninput=updateConditionalFields;
-    if(form.elements.hvac_status_address)form.elements.hvac_status_address.oninput=updateConditionalFields;
-    let mode='visual';dialog.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;dialog.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===b));dialog.querySelector('.visual-form').style.display=mode==='visual'?'flex':'none';dialog.querySelector('.yaml-editor').style.display=mode==='yaml'?'block':'none';});dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};dialog.addEventListener('closed',()=>dialog.remove());dialog.querySelector('[slot=primaryAction]').onclick=async()=>{const alert=dialog.querySelector('.editor-error');try{const msg={type:"s7plc/config/save_entity",entry_id:this.entryId,entity_type:type,index};if(mode==='yaml')msg.entity_yaml=dialog.querySelector('textarea').value;else msg.entity=this.formEntity(form,raw,type);await this._hass.callWS(msg);dialog.open=false;this._loaded=false;await this.load();}catch(err){const message=err.message||String(err);alert.textContent=this.flowError(message);alert.style.display='block';alert.scrollIntoView({behavior:'smooth',block:'nearest'});}};
+  const form=dialog.querySelector('form');this.initAddressBuilders(form,type);
+  const omField=type==='selects'?form.querySelector('[data-field="options_map"]'):null;
+  if(omField){
+  const rowsBox=omField.querySelector('.om-rows'),hidden=form.elements.options_map;
+  const sync=()=>{hidden.value=[...rowsBox.querySelectorAll('.om-row')].map(r=>{const v=r.querySelector('.om-value').value.trim(),l=r.querySelector('.om-label').value.trim();return v!==''&&l!==''?`${v}:${l}`:null;}).filter(Boolean).join(';');};
+  const makeRow=(v='',l='')=>{const div=document.createElement('div');div.className='om-row';div.innerHTML=`<input type="number" step="1" class="om-value mono" required inputmode="numeric" placeholder="0"><input type="text" class="om-label" required pattern="[^;]+" placeholder="${this.escape(this.fieldText(type,'options_map','label_placeholder'))}"><button type="button" class="om-del" title="${this.t('actions.delete')}" aria-label="${this.t('actions.delete')}"><ha-icon icon="mdi:delete-outline"></ha-icon></button>`;div.querySelector('.om-value').value=v;div.querySelector('.om-label').value=l;div.querySelector('.om-del').onclick=()=>{div.remove();if(!rowsBox.children.length)rowsBox.appendChild(makeRow());sync();};div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));return div;};
+  omField.querySelector('[data-om-add]').onclick=()=>{const r=makeRow();rowsBox.appendChild(r);r.querySelector('.om-value').focus();};
+  const pairs=String(raw.options_map??'').split(';').map(chunk=>chunk.trim()).filter(Boolean).map(pair=>{const at=pair.indexOf(':');return at<0?null:[pair.slice(0,at).trim(),pair.slice(at+1).trim()];}).filter(Boolean);
+  (pairs.length?pairs:[['','']]).forEach(([v,l])=>rowsBox.appendChild(makeRow(v,l)));
+  sync();
   }
-
+  const syncMode=()=>{if(type==='covers'){const control=form.elements.cover_control_mode.value,stop=form.elements.cover_stop_enabled.value==='enabled',tilt=form.elements.cover_tilt_enabled.value==='enabled',isTraditionalLike=control==='traditional'||control==='toggle';
+  if(control==='toggle'){
+  if(['timed','position','opening','closing'].includes(form.elements.cover_position_feedback.value))form.querySelector('input[name="cover_position_feedback"][value="both"]').checked=true;
+  if(form.elements.cover_movement_feedback.value==='none')form.querySelector('input[name="cover_movement_feedback"][value="bits"]').checked=true;
+  }
+  if(control==='position'&&form.elements.cover_position_feedback.value==='timed')form.querySelector('input[name="cover_position_feedback"][value="position"]').checked=true;
+  if(control!=='position'&&form.elements.cover_position_feedback.value==='position')form.querySelector('input[name="cover_position_feedback"][value="timed"]').checked=true;
+  if(control==='traditional'&&form.elements.cover_position_feedback.value==='status'&&form.elements.cover_movement_feedback.value==='status')form.querySelector('input[name="cover_movement_feedback"][value="none"]').checked=true;
+  const positionFeedback=form.elements.cover_position_feedback.value,movement=form.elements.cover_movement_feedback.value,hasFeedbackSelector=isTraditionalLike||control==='position';
+  const visible=new Set(control==='position'?['position_state_address','position_command_address','invert_position']:control==='toggle'?['open_command_address']:['open_command_address','close_command_address']);if(control==='traditional')visible.add('operate_time');if(hasFeedbackSelector&&['opening','both'].includes(positionFeedback))visible.add('opening_state_address');if(hasFeedbackSelector&&['closing','both'].includes(positionFeedback))visible.add('closing_state_address');const positionStatus=hasFeedbackSelector&&positionFeedback==='status',movementStatus=movement==='status';if(positionStatus||movementStatus)visible.add('cover_status_address');if(positionStatus)COVER_STATUS_POSITION_VALUE_FIELDS.forEach(k=>visible.add(k));if(movementStatus)COVER_STATUS_MOVEMENT_VALUE_FIELDS.forEach(k=>visible.add(k));if(movement==='bits'&&hasFeedbackSelector)['cover_opening_address','cover_closing_address','cover_stopped_address'].forEach(k=>visible.add(k));if(control==='position'&&stop)['stop_command_address','stop_pulse_duration'].forEach(k=>visible.add(k));if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt'].forEach(k=>visible.add(k));if(control==='toggle')visible.add('toggle_pulse_duration');const governed=[...COVER_TRADITIONAL_FIELDS,...COVER_POSITION_FIELDS,'cover_status_address',...COVER_STATUS_VALUE_FIELDS,'stop_command_address','stop_pulse_duration','toggle_pulse_duration'];governed.forEach(k=>form.querySelector(`[data-field="${k}"]`)?.classList.toggle('hidden-field',!visible.has(k)));form.querySelector('[data-section="cover-stop"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-tilt"]').classList.toggle('hidden-field',control!=='position');form.querySelector('[data-section="cover-options"]').classList.toggle('hidden-field',control!=='toggle');
+  form.querySelector('input[name="cover_movement_feedback"][value="status"]').closest('.control-card').classList.toggle('hidden-field',control==='traditional'&&positionFeedback==='status');
+  form.querySelector('input[name="cover_position_feedback"][value="timed"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle'||control==='position');
+  form.querySelector('input[name="cover_position_feedback"][value="position"]').closest('.control-card').classList.toggle('hidden-field',control!=='position');
+  ['opening','closing'].forEach(v=>form.querySelector(`input[name="cover_position_feedback"][value="${v}"]`).closest('.control-card').classList.toggle('hidden-field',control==='toggle'));
+  form.querySelector('input[name="cover_movement_feedback"][value="none"]').closest('.control-card').classList.toggle('hidden-field',control==='toggle');
+  const openAddressField=form.querySelector('[data-field="open_command_address"]');
+  if(openAddressField){
+  openAddressField.querySelector('.label-text').textContent=this.fieldText(type,'open_command_address',control==='toggle'?'label_toggle':'label');
+  const openAddressHelp=openAddressField.querySelector('small');
+  if(openAddressHelp)openAddressHelp.textContent=this.fieldText(type,'open_command_address',control==='toggle'?'description_toggle':'description');
+  }
+  const setRequired=(key,isRequired)=>{const el=form.querySelector(`[data-field="${key}"]`);if(!el)return;const input=el.querySelector('input,select');if(input)input.required=isRequired;const badge=el.querySelector('em');if(badge)badge.hidden=!isRequired;};
+  setRequired('open_command_address',isTraditionalLike);
+  setRequired('close_command_address',control==='traditional');
+  setRequired('opening_state_address',hasFeedbackSelector&&['opening','both'].includes(positionFeedback));
+  setRequired('closing_state_address',hasFeedbackSelector&&['closing','both'].includes(positionFeedback));
+  setRequired('cover_status_address',positionStatus||movementStatus);
+  setRequired('cover_status_open_values',control==='toggle'&&positionStatus);
+  setRequired('cover_status_closed_values',control==='toggle'&&positionStatus);
+  setRequired('cover_status_opening_values',control==='toggle'&&movementStatus);
+  setRequired('cover_status_closing_values',control==='toggle'&&movementStatus);
+  setRequired('cover_status_stopped_values',control==='toggle'&&movementStatus);
+  setRequired('cover_opening_address',control==='toggle'&&movement==='bits');
+  setRequired('cover_closing_address',control==='toggle'&&movement==='bits');
+  return;}if(type==='climates'){const value=name=>form.querySelector(`input[name="${name}"]:checked`)?.value,{fields,sections}=CLIMATE_EDITOR_VISIBILITY({control_mode:value('control_mode'),direct_function:value('climate_direct_function'),direct_feedback:value('climate_direct_feedback'),mode_control:value('climate_mode_control'),action_feedback:value('climate_action_feedback'),availability_mode:value('availability_mode')});form.querySelectorAll('[data-field]').forEach(field=>field.classList.toggle('hidden-field',!fields.has(field.dataset.field)));form.querySelectorAll('[data-section]').forEach(section=>section.classList.toggle('hidden-field',!sections.has(section.dataset.section)));return;}const sel=form.elements.control_mode;if(!sel)return;const hidden=MODE_HIDDEN[type]?.[sel.value]||[];form.querySelectorAll('[data-field]').forEach(l=>l.classList.toggle('hidden-field',hidden.includes(l.dataset.field)));};
+  const updateControlBehavior=()=>{if(type!=='switches'&&type!=='lights')return;const state=form.elements.state_address.value.trim(),command=form.elements.command_address.value.trim(),sync=form.querySelector('input[name="control_behavior"][value="sync"]'),canSync=Boolean(command)&&command!==state;sync.disabled=!canSync;sync.closest('.control-card').classList.toggle('disabled',!canSync);if(!canSync&&sync.checked)form.querySelector('input[name="control_behavior"][value="direct"]').checked=true;const selected=form.querySelector('input[name="control_behavior"]:checked')?.value||'direct';form.querySelector('[data-field="pulse_duration"]').classList.toggle('hidden-field',selected!=='pulse');updateOptionsSection();};
+  const updateOptionsSection=()=>{const section=form.querySelector('[data-section="options"]');if(section)section.classList.toggle('hidden-field',![...section.querySelectorAll('[data-field]')].some(field=>!field.classList.contains('hidden-field')));};
+  const updateLightMode=()=>{if(type!=='lights')return;const dimmable=form.querySelector('input[name="light_mode"]:checked')?.value==='dimmable';['brightness_state_address','brightness_command_address','brightness_scale'].forEach(key=>form.querySelector(`[data-field="${key}"]`).classList.toggle('hidden-field',!dimmable));if(dimmable&&!form.elements.brightness_scale.value)form.elements.brightness_scale.value='255';updateOptionsSection();};
+  const updateAvailability=()=>{const mode=form.querySelector('input[name="availability_mode"]:checked')?.value||'connection',field=form.querySelector('[data-field="availability_address"]'),input=form.elements.availability_address,hidden=mode!=='bit';if(field){field.hidden=hidden;field.classList.toggle('hidden-field',hidden);}if(input)input.required=!hidden;};
+  const updateConditionalFields=()=>{syncMode();updateLightMode();updateControlBehavior();updateAvailability();};updateConditionalFields();['cover_control_mode','cover_position_feedback','cover_movement_feedback','cover_stop_enabled','cover_tilt_enabled','control_mode','climate_direct_function','climate_direct_feedback','climate_mode_control','climate_action_feedback'].forEach(k=>{if(form.elements[k])form.querySelectorAll(`[name="${k}"]`).forEach(input=>input.onchange=()=>{if(type==='covers'&&['cover_position_feedback','cover_movement_feedback'].includes(k))form.dataset.coverFeedbackChanged='true';if(type==='climates'){const changed=new Set((form.dataset.climateChanged||'').split(',').filter(Boolean));changed.add(k);form.dataset.climateChanged=[...changed].join(',');}updateConditionalFields();});});
+  if(form.elements.availability_mode)form.querySelectorAll('input[name="availability_mode"]').forEach(input=>input.onchange=updateConditionalFields);
+  if(form.elements.control_behavior)form.querySelectorAll('input[name="control_behavior"]').forEach(input=>input.onchange=updateControlBehavior);
+  if(form.elements.light_mode)form.querySelectorAll('input[name="light_mode"]').forEach(input=>input.onchange=updateLightMode);
+  if(form.elements.state_address)form.elements.state_address.addEventListener('input',updateControlBehavior);
+  if(form.elements.command_address)form.elements.command_address.addEventListener('input',updateControlBehavior);
+  if(form.elements.preset_mode_address)form.elements.preset_mode_address.oninput=updateConditionalFields;
+  if(form.elements.hvac_status_address)form.elements.hvac_status_address.oninput=updateConditionalFields;
+  let mode='visual';dialog.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;dialog.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===b));dialog.querySelector('.visual-form').style.display=mode==='visual'?'flex':'none';dialog.querySelector('.yaml-editor').style.display=mode==='yaml'?'block':'none';});dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};dialog.addEventListener('closed',()=>dialog.remove());dialog.querySelector('[slot=primaryAction]').onclick=async()=>{const alert=dialog.querySelector('.editor-error');try{const msg={type:"s7plc/config/save_entity",entry_id:this.entryId,entity_type:type,index};if(mode==='yaml')msg.entity_yaml=dialog.querySelector('textarea').value;else msg.entity=this.formEntity(form,raw,type);await this._hass.callWS(msg);dialog.open=false;this._loaded=false;await this.load();}catch(err){const message=err.message||String(err);alert.textContent=this.flowError(message);alert.style.display='block';alert.scrollIntoView({behavior:'smooth',block:'nearest'});}};
+  }
   formEntity(form,original,type){if(!form.reportValidity())throw Error(this.t('errors.required_error'));const entity={...original};for(const field of FIELDS[type]){const [key,,required]=field;if(key==='control_behavior'||key==='light_mode'||COVER_VIRTUAL_FIELDS.includes(key)||CLIMATE_VIRTUAL_FIELDS.includes(key))continue;const input=form.elements[key];let value=input.type==='checkbox'?input.checked:input.value.trim();if(key==='cover_mode'||key==='control_mode')continue;if(key==='preset_mode_bidirectional')value=value==='true';if(input.type==='number'&&value!=='')value=Number(value);if(type==='climates'&&!Object.prototype.hasOwnProperty.call(original,key)&&(CLIMATE_PRESET_CORE_DEFAULTS[key]===value||CLIMATE_STATUS_CORE_DEFAULTS[key]===value)){delete entity[key];continue;}const presetModeValue=key.startsWith('preset_mode_')&&key.endsWith('_value'),statusCoreValue=key in CLIMATE_STATUS_CORE_DEFAULTS;if(value===''&&!required){if(presetModeValue)entity[key]=null;else if(statusCoreValue)entity[key]='';else delete entity[key];}else entity[key]=value;}if(type==='switches'||type==='lights')Object.assign(entity,APPLY_CONTROL_MODE({},form.elements.control_behavior.value));if(type==='lights'){const lightMode=form.elements.light_mode.value;delete entity.light_mode;if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}else{if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'));if(entity.brightness_scale==null)entity.brightness_scale=255;if(entity.brightness_scale<1||entity.brightness_scale>65535)throw Error(this.t('errors.brightness_scale_error'));}}if(type==='covers'){const ui={cover_control_mode:form.elements.cover_control_mode.value,cover_position_feedback:form.elements.cover_position_feedback.value,cover_movement_feedback:form.elements.cover_movement_feedback.value,cover_stop_enabled:form.elements.cover_stop_enabled.value==='enabled',cover_tilt_enabled:form.elements.cover_tilt_enabled.value==='enabled',preserve_legacy:Boolean(original.open_command_address)&&!Object.prototype.hasOwnProperty.call(original,'cover_position_feedback')&&!(form.dataset?.coverFeedbackChanged)};entity.toggle_mode=ui.cover_control_mode==='toggle';const cleaned=CLEAN_COVER_ENTITY(entity,ui);Object.keys(entity).forEach(key=>delete entity[key]);Object.assign(entity,cleaned);if(ui.cover_control_mode==='toggle'){delete entity.close_command_address;}if((ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle')&&!entity.open_command_address)throw Error(this.t('errors.cover_commands_required_error'));if(ui.cover_control_mode==='traditional'&&!entity.close_command_address)throw Error(this.t('errors.cover_commands_required_error'));if(ui.cover_control_mode==='position'&&!entity.position_state_address)throw Error(this.t('errors.cover_position_required_error'));if((ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle'||ui.cover_control_mode==='position')&&['opening','both'].includes(ui.cover_position_feedback)&&!entity.opening_state_address)throw Error(this.t('errors.cover_endstop_open_required_error'));if((ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle'||ui.cover_control_mode==='position')&&['closing','both'].includes(ui.cover_position_feedback)&&!entity.closing_state_address)throw Error(this.t('errors.cover_endstop_closed_required_error'));const coverIsTraditionalLike=ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle'||ui.cover_control_mode==='position';if(coverIsTraditionalLike&&ui.cover_position_feedback==='status'&&!entity.cover_status_address)throw Error(this.t('errors.cover_status_required_error'));if(coverIsTraditionalLike&&ui.cover_position_feedback==='status'&&!COVER_STATUS_POSITION_VALUE_FIELDS.some(key=>entity[key]))throw Error(this.t('errors.cover_status_mapping_required_error'));if(ui.cover_movement_feedback==='status'&&!COVER_STATUS_MOVEMENT_VALUE_FIELDS.some(key=>entity[key]))throw Error(this.t('errors.cover_status_mapping_required_error'));if((coverIsTraditionalLike&&ui.cover_position_feedback==='status')||ui.cover_movement_feedback==='status'){const seen=new Set();for(const key of COVER_STATUS_VALUE_FIELDS){if(!entity[key])continue;for(const token of String(entity[key]).split(',')){if(!/^-?\d+$/.test(token.trim()))throw Error(this.t('errors.cover_status_values_error'));const value=Number(token.trim());if(seen.has(value))throw Error(this.t('errors.cover_status_duplicate_error'));seen.add(value);}}}if(ui.cover_movement_feedback==='status'&&!entity.cover_status_address)throw Error(this.t('errors.cover_status_required_error'));if(ui.cover_control_mode==='position'&&ui.cover_tilt_enabled&&!entity.tilt_state_address)throw Error(this.t('errors.cover_tilt_required_error'));if(ui.cover_control_mode==='position'&&ui.cover_stop_enabled&&!entity.stop_command_address)throw Error(this.t('errors.cover_stop_required_error'));}if(type==='climates'){const selected=name=>form.querySelector(`input[name="${name}"]:checked`)?.value,ui={control_mode:selected('control_mode'),climate_direct_function:selected('climate_direct_function'),climate_direct_feedback:selected('climate_direct_feedback'),climate_mode_control:selected('climate_mode_control'),climate_action_feedback:selected('climate_action_feedback')},cleaned=CLEAN_CLIMATE_ENTITY(entity,ui,(form.dataset.climateChanged||'').split(',').filter(Boolean));Object.keys(entity).forEach(key=>delete entity[key]);Object.assign(entity,cleaned);if(!entity.current_temperature_address)throw Error(this.t('errors.climate_current_temperature_required_error'));if(ui.control_mode==='setpoint'&&!entity.target_temperature_address)throw Error(this.t('errors.climate_required_error'));if(ui.control_mode==='direct'&&ui.climate_direct_function!=='cool'&&!entity.heating_output_address)throw Error(this.t('errors.climate_heating_output_required_error'));if(ui.control_mode==='direct'&&ui.climate_direct_function!=='heat'&&!entity.cooling_output_address)throw Error(this.t('errors.climate_cooling_output_required_error'));if(ui.control_mode==='setpoint'&&ui.climate_mode_control.includes('coded')&&!entity.preset_mode_address)throw Error(this.t('errors.climate_preset_mode_required_error'));if(ui.control_mode==='setpoint'&&ui.climate_mode_control.includes('on_off')&&!entity.on_off_address)throw Error(this.t('errors.climate_on_off_required_error'));if(ui.control_mode==='setpoint'&&ui.climate_action_feedback==='plc'&&!entity.hvac_status_address)throw Error(this.t('errors.climate_status_required_error'));}if(entity.availability_mode==='connection')delete entity.availability_mode;if(entity.availability_mode!=='bit')delete entity.availability_address;return entity;}
   toYaml(obj){return Object.entries(obj).map(([k,v])=>`${k}: ${JSON.stringify(v)}`).join('\n');}
   async openConfigurationEditor(){
-    const entry=this.entries.find(e=>e.entry_id===this.entryId),dialog=document.createElement('ha-dialog');
-    let canonical='',loadError='';
-    try{canonical=(await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId})).configuration_yaml||'';}catch(err){loadError=`${this.t('errors.configuration_load_error')} ${err.message||String(err)}`;}
-    dialog.open=true;dialog.headerTitle=this.t('editor.configuration_yaml_title');dialog.style.setProperty('--mdc-dialog-max-width','min(1000px,96vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(900px,96vw)');dialog.style.setProperty('--dialog-content-padding','0');
-    dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body configuration-editor"><ha-alert alert-type="warning">${this.t('editor.configuration_yaml_warning')}</ha-alert><div class="configuration-tools"><button id="yaml-import"><ha-icon icon="mdi:upload"></ha-icon>${this.t('editor.import_yaml')}</button><button id="yaml-export"><ha-icon icon="mdi:download"></ha-icon>${this.t('editor.export_current_yaml')}</button><button id="yaml-backup"><ha-icon icon="mdi:database-export-outline"></ha-icon>${this.t('editor.download_backup')}</button><input id="yaml-file" type="file" accept=".yaml,.yml,text/yaml,application/yaml" hidden></div><textarea spellcheck="false" aria-label="${this.t('editor.configuration_yaml')}">${this.escape(canonical)}</textarea><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent">${this.t('actions.save')}</ha-button></ha-dialog-footer>`;
-    document.body.appendChild(dialog);const textarea=dialog.querySelector('textarea'),file=dialog.querySelector('#yaml-file'),alert=dialog.querySelector('.editor-error'),saveButton=dialog.querySelector('[slot=primaryAction]'),backupButton=dialog.querySelector('#yaml-backup');
-    const showError=message=>{alert.textContent=message;alert.style.display='block';alert.scrollIntoView({behavior:'smooth',block:'nearest'});};
-    textarea.disabled=!!loadError;saveButton.disabled=!!loadError;dialog.querySelector('#yaml-import').disabled=!!loadError;dialog.querySelector('#yaml-export').disabled=!!loadError;backupButton.disabled=!!loadError;if(loadError)showError(loadError);
-    dialog.querySelector('#yaml-import').onclick=()=>file.click();file.onchange=async()=>{if(file.files[0])textarea.value=await file.files[0].text();file.value='';};
-    const download=(contents,suffix)=>{const blob=new Blob([contents],{type:'application/yaml;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${(entry.title||'s7plc').replace(/[^a-z0-9_-]+/gi,'-').toLowerCase()}-${suffix}.yaml`;link.click();URL.revokeObjectURL(url);};
-    dialog.querySelector('#yaml-export').onclick=()=>download(textarea.value,'config');
-    let backupLoading=false;backupButton.onclick=async()=>{if(backupLoading)return;backupLoading=true;backupButton.disabled=true;alert.style.display='none';try{const backup=await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId});download(backup.configuration_yaml,'backup');}catch(err){showError(`${this.t('errors.configuration_download_error')} ${err.message||String(err)}`);}finally{backupLoading=false;backupButton.disabled=false;}};
-    dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};dialog.addEventListener('closed',()=>dialog.remove());
-    let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`entity_types.${detail.entity_type}.label`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
+  const entry=this.entries.find(e=>e.entry_id===this.entryId),dialog=document.createElement('ha-dialog');
+  let canonical='',loadError='';
+  try{canonical=(await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId})).configuration_yaml||'';}catch(err){loadError=`${this.t('errors.configuration_load_error')} ${err.message||String(err)}`;}
+  dialog.open=true;dialog.headerTitle=this.t('editor.configuration_yaml_title');dialog.style.setProperty('--mdc-dialog-max-width','min(1000px,96vw)');dialog.style.setProperty('--mdc-dialog-min-width','min(900px,96vw)');dialog.style.setProperty('--dialog-content-padding','0');
+  dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body configuration-editor"><ha-alert alert-type="warning">${this.t('editor.configuration_yaml_warning')}</ha-alert><div class="configuration-tools"><button id="yaml-import"><ha-icon icon="mdi:upload"></ha-icon>${this.t('editor.import_yaml')}</button><button id="yaml-export"><ha-icon icon="mdi:download"></ha-icon>${this.t('editor.export_current_yaml')}</button><button id="yaml-backup"><ha-icon icon="mdi:database-export-outline"></ha-icon>${this.t('editor.download_backup')}</button><input id="yaml-file" type="file" accept=".yaml,.yml,text/yaml,application/yaml" hidden></div><textarea spellcheck="false" aria-label="${this.t('editor.configuration_yaml')}">${this.escape(canonical)}</textarea><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent">${this.t('actions.save')}</ha-button></ha-dialog-footer>`;
+  document.body.appendChild(dialog);const textarea=dialog.querySelector('textarea'),file=dialog.querySelector('#yaml-file'),alert=dialog.querySelector('.editor-error'),saveButton=dialog.querySelector('[slot=primaryAction]'),backupButton=dialog.querySelector('#yaml-backup');
+  const showError=message=>{alert.textContent=message;alert.style.display='block';alert.scrollIntoView({behavior:'smooth',block:'nearest'});};
+  textarea.disabled=!!loadError;saveButton.disabled=!!loadError;dialog.querySelector('#yaml-import').disabled=!!loadError;dialog.querySelector('#yaml-export').disabled=!!loadError;backupButton.disabled=!!loadError;if(loadError)showError(loadError);
+  dialog.querySelector('#yaml-import').onclick=()=>file.click();file.onchange=async()=>{if(file.files[0])textarea.value=await file.files[0].text();file.value='';};
+  const download=(contents,suffix)=>{const blob=new Blob([contents],{type:'application/yaml;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${(entry.title||'s7plc').replace(/[^a-z0-9_-]+/gi,'-').toLowerCase()}-${suffix}.yaml`;link.click();URL.revokeObjectURL(url);};
+  dialog.querySelector('#yaml-export').onclick=()=>download(textarea.value,'config');
+  let backupLoading=false;backupButton.onclick=async()=>{if(backupLoading)return;backupLoading=true;backupButton.disabled=true;alert.style.display='none';try{const backup=await this._hass.callWS({type:'s7plc/config/get_configuration',entry_id:this.entryId});download(backup.configuration_yaml,'backup');}catch(err){showError(`${this.t('errors.configuration_download_error')} ${err.message||String(err)}`);}finally{backupLoading=false;backupButton.disabled=false;}};
+  dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};dialog.addEventListener('closed',()=>dialog.remove());
+  let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`entity_types.${detail.entity_type}.label`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
   }
-  // Conferma di eliminazione con ha-dialog, coerente con lo stile di Home Assistant
   remove(indices,type=this.type||TYPES[0]){
-    const sorted=[...new Set(indices)].sort((a,b)=>b-a);
-    if(!sorted.length)return;
-    const dialog=document.createElement('ha-dialog');
-    dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
-    const confirmation=sorted.length===1?this.t('actions.delete_confirm'):this.bt('delete_selected_confirm',{count:sorted.length});
-    dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${confirmation}</div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
-    document.body.appendChild(dialog);
-    dialog.addEventListener('closed',()=>dialog.remove());
-    dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};
-    dialog.querySelector('[slot=primaryAction]').onclick=async()=>{
-      dialog.open=false;
-      for(const index of sorted)await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:type,index});
-      this.selectedIndices.clear();
-      this._loaded=false;await this.load();
-    };
+  const sorted=[...new Set(indices)].sort((a,b)=>b-a);
+  if(!sorted.length)return;
+  const dialog=document.createElement('ha-dialog');
+  dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
+  const confirmation=sorted.length===1?this.t('actions.delete_confirm'):this.bt('delete_selected_confirm',{count:sorted.length});
+  dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${confirmation}</div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
+  document.body.appendChild(dialog);
+  dialog.addEventListener('closed',()=>dialog.remove());
+  dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};
+  dialog.querySelector('[slot=primaryAction]').onclick=async()=>{
+  dialog.open=false;
+  for(const index of sorted)await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:type,index});
+  this.selectedIndices.clear();
+  this._loaded=false;await this.load();
+  };
   }
   removeGroupedSelection(){
-    const grouped=this.groupedSelectedIndices(),count=Object.values(grouped).reduce((total,indices)=>total+indices.length,0);
-    if(!count||this._batchDeleteLoading)return;
-    const dialog=document.createElement('ha-dialog');
-    dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
-    dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${this.bt('delete_selected_confirm',{count})}</div><ha-alert alert-type="error" style="display:none;margin:12px 24px"></ha-alert><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
-    document.body.appendChild(dialog);dialog.addEventListener('closed',()=>dialog.remove());
-    dialog.querySelector('[slot=secondaryAction]').onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
-    const deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
-    let operationFinished=false;
-    deleteButton.onclick=async()=>{
-      if(this._batchDeleteLoading||operationFinished)return;
-      this._batchDeleteLoading=true;operationFinished=true;deleteButton.disabled=true;
-      let failure=null;
-      try{for(const entityType of TYPES)for(const index of grouped[entityType]||[])await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:entityType,index});}
-      catch(err){failure=err;alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
-      finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;}}
-      if(!failure)dialog.open=false;
-    };
+  const grouped=this.groupedSelectedIndices(),count=Object.values(grouped).reduce((total,indices)=>total+indices.length,0);
+  if(!count||this._batchDeleteLoading)return;
+  const dialog=document.createElement('ha-dialog');
+  dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
+  dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${this.bt('delete_selected_confirm',{count})}</div><ha-alert alert-type="error" style="display:none;margin:12px 24px"></ha-alert><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
+  document.body.appendChild(dialog);dialog.addEventListener('closed',()=>dialog.remove());
+  dialog.querySelector('[slot=secondaryAction]').onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
+  const deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
+  let operationFinished=false;
+  deleteButton.onclick=async()=>{
+  if(this._batchDeleteLoading||operationFinished)return;
+  this._batchDeleteLoading=true;operationFinished=true;deleteButton.disabled=true;
+  let failure=null;
+  try{for(const entityType of TYPES)for(const index of grouped[entityType]||[])await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:entityType,index});}
+  catch(err){failure=err;alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
+  finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;}}
+  if(!failure)dialog.open=false;
+  };
   }
   icon(t){return({sensors:'gauge',binary_sensors:'checkbox-marked-circle',switches:'toggle-switch',covers:'window-shutter',lights:'lightbulb',buttons:'gesture-tap-button',numbers:'numeric',selects:'format-list-bulleted',texts:'form-textbox',climates:'thermostat',entity_sync:'sync'})[t];} escape(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;}
   get styles(){return `
-:host{display:block;background:var(--primary-background-color);min-height:100vh;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif);-webkit-font-smoothing:antialiased}
-button,input,select,textarea,ha-button{font-family:inherit}
+  :host{display:block;background:var(--primary-background-color);min-height:100vh;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif);-webkit-font-smoothing:antialiased}
+  button,input,select,textarea,ha-button{font-family:inherit}
 .page{max-width:1180px;margin:auto;padding:32px 24px 64px}
 .hero-banner{width:100%;margin:0 0 18px;border-radius:18px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
 .hero-banner img{display:block;width:100%;height:auto}
-header,.toolbar,.summary,article{display:flex;align-items:center}
+  header,.toolbar,.summary,article{display:flex;align-items:center}
 .mobile-controls{display:none}
 .mobile-actions,.summary-actions{display:flex;align-items:center;gap:10px;min-width:0}
 .integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
-ha-menu-button{color:var(--primary-text-color)}
-h2,p{margin:0}
-h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  ha-menu-button{color:var(--primary-text-color)}
+  h2,p{margin:0}
+  h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
 .toolbar p{color:var(--secondary-text-color);font-size:14px}
-select,input{box-sizing:border-box;padding:11px 13px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}
-select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}
-select:focus,input:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 16%,transparent)}
+  select,input{box-sizing:border-box;padding:11px 13px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color);color:inherit;font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}
+  select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}
+  select:focus,input:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 16%,transparent)}
 .summary{position:relative;overflow:hidden;margin:0 0 18px;padding:22px 26px;background:linear-gradient(125deg,color-mix(in srgb,var(--primary-color) 90%,black),color-mix(in srgb,var(--primary-color) 58%,var(--accent-color)));color:#fff;border-radius:20px;gap:20px;justify-content:space-between;box-shadow:0 12px 32px color-mix(in srgb,var(--primary-color) 28%,transparent)}
 .summary::before{content:'';position:absolute;inset:0;background:radial-gradient(560px 220px at 88% -30%,#ffffff2e,transparent 65%),radial-gradient(320px 180px at 6% 130%,#ffffff14,transparent 70%);pointer-events:none}
 .summary-info>ha-icon{--mdc-icon-size:26px;position:relative;display:grid;place-items:center;width:54px;height:54px;flex:0 0 auto;border-radius:16px;background:#ffffff24;box-shadow:inset 0 0 0 1px #ffffff30;backdrop-filter:blur(4px)}
@@ -573,15 +507,15 @@ select:focus,input:focus{outline:0;border-color:var(--primary-color);box-shadow:
 .connection-badge.connected::before{background:#69f0ae;box-shadow:0 0 8px #69f0aeaa;animation:s7pulse 2.4s ease-out infinite}
 .connection-badge.unknown::before{background:#b0bec5;box-shadow:0 0 8px #b0bec599}
 @keyframes s7pulse{0%{box-shadow:0 0 0 0 #69f0ae66}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
-nav{display:flex;gap:8px;overflow:auto;padding:6px 2px 20px;scrollbar-width:thin}
-button,.primary{border:0;border-radius:10px;padding:10px 13px;cursor:pointer;color:inherit;background:var(--card-background-color);font:inherit;font-size:13px}
-button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
-nav button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:99px;display:flex;align-items:center;gap:7px;padding:9px 16px;font-weight:500;transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
-nav button ha-icon{--mdc-icon-size:17px;opacity:.7}
-nav button:hover{border-color:color-mix(in srgb,var(--primary-color) 55%,var(--divider-color));transform:translateY(-1px)}
-nav button.active{background:linear-gradient(135deg,var(--primary-color),color-mix(in srgb,var(--primary-color) 72%,var(--accent-color)));color:#fff;border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--primary-color) 35%,transparent)}
-nav button.active ha-icon{opacity:1}
-nav span{margin-left:2px;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 12%,transparent)}
+  nav{display:flex;gap:8px;overflow:auto;padding:6px 2px 20px;scrollbar-width:thin}
+  button,.primary{border:0;border-radius:10px;padding:10px 13px;cursor:pointer;color:inherit;background:var(--card-background-color);font:inherit;font-size:13px}
+  button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
+  nav button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:99px;display:flex;align-items:center;gap:7px;padding:9px 16px;font-weight:500;transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
+  nav button ha-icon{--mdc-icon-size:17px;opacity:.7}
+  nav button:hover{border-color:color-mix(in srgb,var(--primary-color) 55%,var(--divider-color));transform:translateY(-1px)}
+  nav button.active{background:linear-gradient(135deg,var(--primary-color),color-mix(in srgb,var(--primary-color) 72%,var(--accent-color)));color:#fff;border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--primary-color) 35%,transparent)}
+  nav button.active ha-icon{opacity:1}
+  nav span{margin-left:2px;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 12%,transparent)}
 .toolbar{justify-content:space-between;margin:10px 0 18px;gap:12px}
 .toolbar p{font-size:13px;margin-top:5px}
 .toolbar-actions{display:flex;align-items:center;gap:8px}
@@ -592,7 +526,6 @@ nav span{margin-left:2px;font-variant-numeric:tabular-nums;font-size:11px;font-w
 .sections-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 18px}.sections-toolbar p{color:var(--secondary-text-color);font-size:13px;margin-top:5px}
 .entity-sections{display:flex;flex-direction:column;gap:16px}.entity-section{border:1px solid var(--divider-color);border-radius:18px;padding:16px;background:color-mix(in srgb,var(--secondary-background-color) 25%,transparent)}
 .entity-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.entity-section:not(:has(.cards)) .entity-section-header{margin-bottom:0}.section-toggle{display:flex;align-items:center;gap:12px;min-width:0;padding:4px;background:transparent;text-align:left}.section-toggle>ha-icon{--mdc-icon-size:20px}.section-toggle>span:last-child{min-width:0}.section-toggle b,.section-toggle small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.section-toggle small{color:var(--secondary-text-color);margin-top:3px}.section-platform{display:grid;place-items:center;width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color)}.section-platform ha-icon{--mdc-icon-size:21px}.section-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-
 .batch-delete{display:flex;align-items:center;gap:6px;border-radius:99px;padding:10px 16px;border:1px solid color-mix(in srgb,var(--error-color) 35%,var(--divider-color));background:var(--card-background-color)}
 .batch-delete[hidden]{display:none}
 .primary{background:linear-gradient(135deg,var(--primary-color),color-mix(in srgb,var(--primary-color) 72%,var(--accent-color)));color:#fff;font-weight:600;display:flex;align-items:center;gap:6px;border-radius:99px;padding:10px 18px;box-shadow:0 4px 14px color-mix(in srgb,var(--primary-color) 35%,transparent);transition:transform .15s,box-shadow .15s,filter .15s}
@@ -600,12 +533,12 @@ nav span{margin-left:2px;font-variant-numeric:tabular-nums;font-size:11px;font-w
 .primary:active{transform:translateY(0)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:12px;align-items:start}
 .cards .empty.small{grid-column:1/-1}
-article{position:relative;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:16px;margin:0;padding:15px;gap:12px;transition:border-color .15s,box-shadow .15s,transform .15s}
-article::before{content:'';position:absolute;left:-1px;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(var(--primary-color),color-mix(in srgb,var(--primary-color) 55%,var(--accent-color)));opacity:0;transition:opacity .15s}
-article:hover{border-color:color-mix(in srgb,var(--primary-color) 40%,var(--divider-color));box-shadow:0 10px 26px #00000014;transform:translateY(-2px)}
-article:hover::before{opacity:1}
-article.selected{border-color:var(--primary-color);background:color-mix(in srgb,var(--primary-color) 6%,var(--card-background-color))}
-article.selected::before{opacity:1}
+  article{position:relative;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:16px;margin:0;padding:15px;gap:12px;transition:border-color .15s,box-shadow .15s,transform .15s}
+  article::before{content:'';position:absolute;left:-1px;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(var(--primary-color),color-mix(in srgb,var(--primary-color) 55%,var(--accent-color)));opacity:0;transition:opacity .15s}
+  article:hover{border-color:color-mix(in srgb,var(--primary-color) 40%,var(--divider-color));box-shadow:0 10px 26px #00000014;transform:translateY(-2px)}
+  article:hover::before{opacity:1}
+  article.selected{border-color:var(--primary-color);background:color-mix(in srgb,var(--primary-color) 6%,var(--card-background-color))}
+  article.selected::before{opacity:1}
 .entity-select{display:grid;place-items:center;flex:0 0 auto;cursor:pointer}.entity-select input{position:absolute;opacity:0;pointer-events:none}.entity-select span{box-sizing:border-box;width:20px;height:20px;border:2px solid var(--secondary-text-color);border-radius:6px;display:grid;place-items:center;transition:border-color .15s,background .15s}.entity-select input:checked+span{border-color:var(--primary-color);background:var(--primary-color)}.entity-select input:checked+span::after{content:'✓';color:white;font-size:13px;font-weight:700;line-height:1}.entity-select input:focus-visible+span{outline:2px solid var(--primary-color);outline-offset:2px}
 .entity-icon{display:grid;place-items:center;width:44px;height:44px;flex:0 0 auto;border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary-color) 18%,transparent),color-mix(in srgb,var(--primary-color) 8%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary-color) 22%,transparent);color:var(--primary-color)}
 .entity-icon ha-icon{--mdc-icon-size:21px}
@@ -658,6 +591,7 @@ article.selected::before{opacity:1}
 .section-head small{display:block;font-size:11px;margin-top:2px}
 .section-icon{width:36px;height:36px;border-radius:11px}.section-icon ha-icon{--mdc-icon-size:19px}
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
+.address-builder{grid-column:span 1;min-width:0;margin:0;padding:10px;border:1px solid var(--divider-color)}.address-builder legend,.address-preview,.address-modes{display:flex;justify-content:space-between}.address-modes button{flex:1}.address-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px}.address-controls input,.address-controls select,.address-manual input{box-sizing:border-box}.address-error{color:var(--error-color)!important}.address-builder [hidden]{display:none!important}
 .control-selector{grid-column:1/-1;border:0;padding:0;margin:0;min-width:0}.control-selector legend{font-size:13px;font-weight:600;margin-bottom:10px;padding:0}.control-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.light-options{grid-template-columns:repeat(2,minmax(0,1fr))}
 .control-card{box-sizing:border-box;display:flex!important;flex-direction:column!important;align-items:flex-start;gap:10px!important;position:relative;min-height:172px;padding:16px!important;border:1px solid var(--divider-color);border-radius:14px;background:var(--card-background-color);cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}.control-card:hover{border-color:color-mix(in srgb,var(--primary-color) 55%,var(--divider-color))}.control-card:has(input:checked){border-color:var(--primary-color);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary-color) 18%,transparent);background:color-mix(in srgb,var(--primary-color) 5%,var(--card-background-color))}.control-card input{position:absolute;opacity:0;pointer-events:none}.control-card ha-icon{color:var(--primary-color);--mdc-icon-size:25px}.control-card span,.control-card b,.control-card small{display:block}.control-card b{font-size:13px}.control-card small{font-size:10.5px!important;line-height:1.45;margin-top:6px;overflow-wrap:anywhere}.control-card.disabled{cursor:not-allowed;opacity:.48}.sync-disabled-help{display:none!important;color:var(--error-color)!important}.control-card.disabled .sync-disabled-help{display:block!important}
 .light-options .control-card,.compact-control-card{min-height:110px;padding:12px 14px!important;gap:6px!important}.cover-options{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}.compact-control-card{align-items:center!important;text-align:center}.compact-control-card span{min-width:0;max-width:100%}.compact-control-card small{margin-top:3px}
@@ -701,35 +635,13 @@ article.selected::before{opacity:1}
 .om-add{display:flex;align-items:center;gap:6px;align-self:flex-start;padding:8px 13px;border:1px dashed var(--divider-color);border-radius:10px;background:transparent;color:var(--primary-color);cursor:pointer;font-weight:500}
 .om-add:hover{border-color:var(--primary-color);background:color-mix(in srgb,var(--primary-color) 8%,transparent)}
 .editor-error{margin-top:16px}
-.connection-details>p{color:var(--secondary-text-color);font-size:12.5px;font-weight:400;margin:12px 0 14px}
-.connection-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0 16px;border-bottom:1px solid var(--divider-color)}
-.connection-head-text{min-width:0;display:flex;flex-direction:column;gap:3px}
-.connection-head-text b{font-size:15px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.connection-head-text code{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12.5px;color:var(--secondary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.connection-status{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.03em;background:color-mix(in srgb,var(--error-color) 10%,transparent);color:var(--error-color)}
-.connection-status::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
-.connection-status.connected{background:color-mix(in srgb,#00a86b 12%,transparent);color:var(--success-color,#008755)}
-.connection-status.unknown{background:var(--secondary-background-color);color:var(--secondary-text-color)}
-.availability{margin:0 0 14px;padding:13px 14px;border:1px solid var(--divider-color);border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color) 28%,transparent)}
-.availability-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}.availability-title b{font-size:13px}.availability-title small,.timeline-labels,.availability-note{color:var(--secondary-text-color);font-size:10.5px}
-.connection-timeline{display:flex;width:100%;height:14px;overflow:hidden;border-radius:5px;background:var(--divider-color)}.timeline-segment{display:block;min-width:1px}.timeline-segment.connected{background:var(--success-color,#00a86b)}.timeline-segment.disconnected{background:var(--error-color,#db4437)}.timeline-segment.unknown{background:#8c939b}.timeline-segment:focus-visible{outline:2px solid var(--primary-color);outline-offset:-2px}
-.timeline-labels{display:flex;justify-content:space-between;margin-top:3px}.availability-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));border:0!important;border-radius:0!important;overflow:visible!important;margin:10px 0 7px!important;gap:6px}.availability-stats>div{display:block!important;padding:7px 8px!important;border:0!important;border-radius:8px;background:var(--card-background-color)!important}.availability-stats dt{white-space:normal!important;font-size:10px!important}.availability-stats dd{text-align:left!important;margin-top:3px!important;font-size:12px!important}
-.availability-stats-live{grid-template-columns:minmax(0,180px);margin:0 0 8px!important}
-.last-disconnection{display:flex;justify-content:space-between;gap:10px!important;margin:5px 0!important;font-size:11px!important}.last-disconnection span{color:var(--secondary-text-color);text-align:right}.availability-note{display:block;margin-top:6px}.history-loading,.history-unavailable{display:flex;align-items:center;gap:8px;margin:0 0 14px!important;padding:12px;border-radius:10px;background:var(--secondary-background-color);color:var(--secondary-text-color);font-size:12px!important}.history-loading span{width:12px;height:12px;border:2px solid var(--divider-color);border-top-color:var(--primary-color);border-radius:50%;animation:s7spin .8s linear infinite}@keyframes s7spin{to{transform:rotate(360deg)}}
-.connection-detail-groups{display:flex;flex-direction:column;gap:14px}.connection-detail-group h3{display:flex;align-items:center;gap:7px;margin:0 0 7px;font-size:12px;color:var(--secondary-text-color);font-weight:600}.connection-detail-group h3 ha-icon{--mdc-icon-size:16px;color:var(--primary-color)}
-.connection-details .connection-detail-group dl{margin:0;border:1px solid var(--divider-color);border-radius:14px;overflow:hidden}
-.connection-detail{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:11px 16px}
-.connection-detail+.connection-detail{border-top:1px solid var(--divider-color)}
-.connection-detail:nth-child(odd){background:color-mix(in srgb,var(--secondary-background-color) 35%,transparent)}
-.connection-detail dt{color:var(--secondary-text-color);font-size:12.5px;font-weight:400;white-space:nowrap}
-.connection-detail dd{margin:0;font-size:13px;font-family:inherit;font-weight:500;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.connection-detail dd.technical-value{font-family:ui-monospace,'SF Mono',Consolas,monospace}
+.connection-head-text code{font-family:ui-monospace,monospace}.connection-detail dd{margin:0;font-size:13px;font-family:inherit;font-weight:500}.connection-detail dd.technical-value{font-family:ui-monospace,monospace}.connection-head,.connection-detail{display:flex;justify-content:space-between;gap:12px}.connection-detail-groups{display:flex;flex-direction:column;gap:12px}.connection-detail-group dl{border:1px solid var(--divider-color);border-radius:12px}.connection-detail{padding:10px}.availability-stats{display:grid;grid-template-columns:repeat(2,1fr)}
 @media(prefers-reduced-motion:reduce){.dialog-body *,.dialog-body *::before,.dialog-body *::after{transition:none!important;animation:none!important}}
 @media(max-width:650px){.dialog-body{max-height:66vh;padding:0 14px 16px}.editor-intro p{display:none}.form-section{padding:14px 12px}.field-grid{grid-template-columns:1fr}.control-options{grid-template-columns:1fr}.control-card{min-height:0;flex-direction:row!important}.control-card.compact-control-card{min-height:110px;flex-direction:column!important}.mode-tabs button{font-size:12px}.mode-tabs button small{display:none}.availability-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-detail{gap:10px;padding:10px 12px}.connection-detail dt{white-space:normal}}`;}
-}
-if (!customElements.get?.("s7plc-configuration-panel")) {
+  }
+  if (!customElements.get?.("s7plc-configuration-panel")) {
   customElements.define(
-    "s7plc-configuration-panel",
-    S7PlcConfigurationPanel
+  "s7plc-configuration-panel",
+  S7PlcConfigurationPanel
   );
 }

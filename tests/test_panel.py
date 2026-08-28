@@ -3711,3 +3711,49 @@ def test_panel_layout_translations_are_available_in_every_language() -> None:
         translations = json.loads(path.read_text(encoding="utf-8"))
         assert required <= translations["config_panel"]["layout"].keys(), path
         assert all(translations["config_panel"]["layout"][key] for key in required)
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_guided_address_grammar_round_trips_every_supported_type() -> None:
+    """The browser grammar mirrors current pyS7 tokens and canonical forms."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    cases = [
+        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
+        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
+        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
+        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MD72",
+    ]
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify(process.argv.slice(1).map(value=>{{const parsed=PARSE_S7_ADDRESS(value);return [parsed.error,SERIALIZE_S7_ADDRESS(parsed)];}})));'''
+    result = json.loads(subprocess.run(["node", "-e", script, *cases], check=True, capture_output=True, text=True).stdout)
+    assert all(not error for error, _ in result)
+    # Aliases intentionally serialize to the builder's stable short-token spelling.
+    assert [value for _, value in result] == [
+        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
+        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
+        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
+        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MDW72",
+    ]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_guided_address_validation_and_field_restrictions() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify({{
+      badBit:PARSE_S7_ADDRESS("DB1,X0.8").error,
+      missingLength:PARSE_S7_ADDRESS("DB1,S0").error,
+      timeArea:PARSE_S7_ADDRESS("MTIME0").error,
+      malformed:PARSE_S7_ADDRESS("DB1,").error,
+      empty:PARSE_S7_ADDRESS("").empty,
+      boolean:ADDRESS_TYPES_FOR_FIELD("binary_sensors","address"),
+      text:ADDRESS_TYPES_FOR_FIELD("texts","address"),
+      select:ADDRESS_TYPES_FOR_FIELD("selects","address"),
+      optional:SERIALIZE_S7_ADDRESS({{empty:true}})
+    }}));'''
+    value = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    assert value == {"badBit":"invalid", "missingLength":"incomplete", "timeArea":"unsupported", "malformed":"invalid", "empty":True, "boolean":["BIT"], "text":["STRING","WSTRING"], "select":["BYTE","USINT","SINT","WORD","INT","DWORD","DINT","TIME"], "optional":""}
+
+
+def test_all_visual_plc_addresses_use_reusable_builder() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "if(address&&key!=='source_entity')return this.addressField" in source
+    assert "this.initAddressBuilders(form,type)" in source
+    assert 'name="${key}" value="${this.escape(value)}"' in source
