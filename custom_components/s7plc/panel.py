@@ -16,7 +16,11 @@ from .address import parse_tag
 from .config_validation import build_entity_item
 from .const import CONF_PLC_FAMILY, CONF_UID, DOMAIN, OPTION_KEYS, PLC_FAMILY_S7
 from .helpers import generate_uid
-from .logo_address import logo_profile_payload, logo_to_s7_address
+from .logo_address import (
+    is_logo_address_candidate,
+    logo_profile_payload,
+    logo_to_s7_address,
+)
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
@@ -275,10 +279,10 @@ def _canonicalize_logo_addresses(entity: dict[str, Any], family: str) -> dict[st
             continue
         if not isinstance(value, str) or not value.strip():
             continue
-        try:
+        if is_logo_address_candidate(value):
             result[key] = logo_to_s7_address(value, family)
-        except ValueError:
-            # Canonical pyS7 input remains valid advanced/manual input.
+        else:
+            # Only unambiguously pyS7 input remains valid advanced/manual input.
             parse_tag(value.strip())
     return result
 

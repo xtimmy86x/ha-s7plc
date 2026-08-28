@@ -49,44 +49,31 @@ _0BA7 = (
 )
 
 _0BA8 = (
-    LogoArea("I", 1, 64, 1024, "X", None),
-    LogoArea("AI", 1, 16, 1032, "INT", None),
-    LogoArea("Q", 1, 64, 1064, "X", None),
-    LogoArea("AQ", 1, 16, 1072, "INT", None),
-    LogoArea("M", 1, 112, 1104, "X", None),
+    LogoArea("I", 1, 24, 1024, "X", None),
+    LogoArea("AI", 1, 8, 1032, "INT", None),
+    LogoArea("Q", 1, 20, 1064, "X", None),
+    LogoArea("AQ", 1, 8, 1072, "INT", None),
+    LogoArea("M", 1, 64, 1104, "X", None),
     LogoArea("AM", 1, 64, 1118, "INT", None),
-    LogoArea("NI", 1, 128, 1246, "X", None),
-    LogoArea("NAI", 1, 64, 1262, "INT", None),
-    LogoArea("NQ", 1, 128, 1390, "X", None),
+    LogoArea("NI", 1, 64, 1246, "X", None),
+    LogoArea("NAI", 1, 32, 1262, "INT", None),
+    LogoArea("NQ", 1, 64, 1390, "X", None),
     LogoArea("NAQ", 1, 32, 1406, "INT", None),
 )
 
-# LOGO! 9 keeps each numbered area continuous while its official VM table
-# places the additional elements in a second, non-contiguous VM segment.
+# LOGO! 9 is a separate profile.  Its table rows are not extensions of 0BA8.
 _LOGO_9 = (
-    LogoArea("I", 1, 64, 1024, "X", None),
-    LogoArea("I", 65, 128, 6024, "X", None),
-    LogoArea("AI", 1, 16, 1032, "INT", None),
-    LogoArea("AI", 17, 32, 6040, "INT", None),
-    LogoArea("Q", 1, 64, 1064, "X", None),
-    # Siemens prints "6104 ... 6110.5" but labels the range "7.5 bytes".
-    # Those statements disagree; expose only the 54 bits named by the endpoints.
-    LogoArea("Q", 65, 118, 6104, "X", None),
-    LogoArea("AQ", 1, 16, 1072, "INT", None),
-    LogoArea("AQ", 17, 32, 6120, "INT", None),
-    LogoArea("M", 1, 112, 1104, "X", None),
-    LogoArea("M", 113, 240, 6184, "X", None),
-    LogoArea("AM", 1, 64, 1118, "INT", None),
-    LogoArea("AM", 65, 192, 6216, "INT", None),
+    LogoArea("I", 1, 64, 6024, "X", None),
+    LogoArea("AI", 1, 16, 6040, "INT", None),
+    LogoArea("Q", 1, 60, 6104, "X", None),
+    LogoArea("AQ", 1, 16, 6120, "INT", None),
+    LogoArea("M", 1, 128, 6184, "X", None),
+    LogoArea("AM", 1, 128, 6216, "INT", None),
     LogoArea("FAM", 1, 32, 6728, "REAL", None),
-    LogoArea("NI", 1, 128, 1246, "X", None),
-    LogoArea("NI", 129, 640, 6984, "X", None),
-    LogoArea("NAI", 1, 64, 1262, "INT", None),
-    LogoArea("NAI", 65, 192, 7112, "INT", None),
-    LogoArea("NQ", 1, 128, 1390, "X", None),
-    LogoArea("NQ", 129, 608, 7624, "X", None),
-    LogoArea("NAQ", 1, 32, 1406, "INT", None),
-    LogoArea("NAQ", 33, 160, 7752, "INT", None),
+    LogoArea("NI", 1, 512, 6984, "X", None),
+    LogoArea("NAI", 1, 128, 7112, "INT", None),
+    LogoArea("NQ", 1, 480, 7624, "X", None),
+    LogoArea("NAQ", 1, 128, 7752, "INT", None),
     LogoArea("NFAI", 1, 32, 8264, "INT", None),
     LogoArea("NFAQ", 1, 32, 8392, "INT", None),
 )
@@ -99,6 +86,15 @@ _PROFILES = {
 
 _LOGO_RE = re.compile(r"^(NFAI|NFAQ|NAI|NAQ|FAM|AI|AQ|AM|NI|NQ|I|Q|M)([1-9]\d*)$", re.I)
 _VM_RE = re.compile(r"^(V|VB|VW|VD)(\d+)(?:\.([0-7]))?$", re.I)
+
+
+def is_logo_address_candidate(address: str) -> bool:
+    """Return whether *address* has symbolic LOGO syntax, valid or not.
+
+    This deliberately recognizes zero and out-of-range element numbers so they
+    cannot fall through to pyS7's overlapping ``AI``/``AQ`` grammar.
+    """
+    return bool(re.fullmatch(r"[A-Z]+\d+", address.strip(), re.I))
 
 
 def get_logo_profile(family: str) -> LogoProfile:

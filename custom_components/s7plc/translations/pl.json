@@ -1032,6 +1032,9 @@
         },
         "retry_backoff_max": {
           "label": "Maksymalne opóźnienie przy kolejnych próbach (s)"
+        },
+        "plc_family": {
+          "label": "Rodzina PLC"
         }
       },
       "values": {
@@ -1041,7 +1044,11 @@
         "tsap": "TSAP",
         "pg": "PG (urządzenie programujące)",
         "op": "OP (panel operatorski)",
-        "s7basic": "S7 Basic"
+        "s7basic": "S7 Basic",
+        "s7": "SIMATIC S7",
+        "logo_0ba7": "LOGO! 0BA7",
+        "logo_0ba8": "LOGO! 0BA8",
+        "logo_9": "LOGO! 9"
       }
     },
     "availability": {

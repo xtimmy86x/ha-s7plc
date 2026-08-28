@@ -1,59 +1,44 @@
 # Siemens LOGO! addressing profiles
 
-## Authoritative sources
+## Official sources and interpretation
 
-The fixed mappings in `logo_address.py` are transcribed exclusively from the
-Siemens **LOGO!Soft Comfort Online Help**, section **Tools → Parameter VM
-Mapping (0BA7 and later versions only)**. The current help contains distinct
-mapping tables for LOGO! 9, LOGO! 0BA8, and LOGO! 0BA7:
+Mappings come from Siemens **LOGO!Soft Comfort Online Help**, **Tools →
+Parameter VM Mapping**, document 110001064, and its generation-specific
+variable/tag tables:
+<https://support.industry.siemens.com/cs/mdm/110001064?c=196445430283&t=1&s=Vm&lc=en-DE>.
+The LOGO! 9 output count is cross-checked against Siemens' delivery release,
+which specifies 60 outputs:
+<https://support.industry.siemens.com/cs/document/110001668/delivery-release-for-logo%21-9-basic-devices-and-logo%21-soft-comfort-v9?dti=0&lc=en-ww>.
 
-* document ID 110001064, table revision available on 2026-08-28:
-  <https://support.industry.siemens.com/cs/mdm/110001064?c=196445430283&t=1&s=Vm&lc=en-DE>
-* the earlier Siemens online-help edition, document ID 100782807, was retained
-  as a historical cross-check for 0BA7/0BA8:
-  <https://support.industry.siemens.com/cs/mdm/100782807?c=85315142923&lc=en-US>
+A VM allocation is capacity, not an element count. The converter exposes only
+numbered LOGO! elements. Unused bytes inside an allocated VM interval remain
+reserved and reverse conversion never identifies them as an element. LOGO! 9
+rows are a separate generation-specific segment, not an extension appended to
+0BA8.
 
-No forum, blog, vendor summary, or third-party mapping table is used.
+## Implemented elements and VM use
 
-## Implemented fixed areas
+| Profile | Area | Elements | VM start | Bytes used | Reserved capacity after used bytes |
+| --- | --- | ---: | ---: | ---: | --- |
+| 0BA7 | I / AI / Q / AQ / M / AM | 24 / 8 / 16 / 2 / 27 / 16 | 923 / 926 / 942 / 944 / 948 / 952 | 3 / 16 / 2 / 4 / 4 / 32 | Per Siemens 0BA7 table |
+| 0BA8 | I / AI / Q / AQ / M / AM | 24 / 8 / 20 / 8 / 64 / 64 | 1024 / 1032 / 1064 / 1072 / 1104 / 1118 | 3 / 16 / 3 / 16 / 8 / 128 | Remaining bytes up to the next official area start |
+| 0BA8 | NI / NAI / NQ / NAQ | 64 / 32 / 64 / 32 | 1246 / 1262 / 1390 / 1406 | 8 / 64 / 8 / 64 | Remaining bytes up to the next official area start |
+| LOGO! 9 | I / AI / Q / AQ / M / AM / FAM | 64 / 16 / 60 / 16 / 128 / 128 / 32 | 6024 / 6040 / 6104 / 6120 / 6184 / 6216 / 6728 | 8 / 32 / 8 / 32 / 16 / 256 / 128 | Gaps between official LOGO! 9 starts are reserved |
+| LOGO! 9 | NI / NAI / NQ / NAQ | 512 / 128 / 480 / 128 | 6984 / 7112 / 7624 / 7752 | 64 / 256 / 60 / 256 | Gaps between official LOGO! 9 starts are reserved |
+| LOGO! 9 | NFAI / NFAQ | 32 / 32 | 8264 / 8392 | 64 / 64 | Only the documented numbered ranges are exposed |
 
-| Profile | Digital elements | Integer analog elements | Float elements |
-| --- | --- | --- | --- |
-| LOGO! 0BA7 | I1-I24, Q1-Q16, M1-M27 | AI1-AI8, AQ1-AQ2, AM1-AM16 | — |
-| LOGO! 0BA8 | I1-I64, Q1-Q64, M1-M112, NI1-NI128, NQ1-NQ128 | AI1-AI16, AQ1-AQ16, AM1-AM64, NAI1-NAI64, NAQ1-NAQ32 | — |
-| LOGO! 9 | I1-I128, Q1-Q118, M1-M240, NI1-NI640, NQ1-NQ608 | AI1-AI32, AQ1-AQ32, AM1-AM192, NAI1-NAI192, NAQ1-NAQ160, NFAI1-NFAI32, NFAQ1-NFAQ32 | FAM1-FAM32 |
+Thus 0BA8 `I24` is `DB1,X1026.7`, while `I25` is rejected even though its
+allocated VM region has spare capacity. LOGO! 9 `I1` is `DB1,X6024.0`; no
+0BA8 elements are prepended. Analog values use signed pyS7 `INT`, digital
+values use `X`, and FAM uses `REAL`.
 
-LOGO! 9 uses discontinuous VM segments. For example, I1-I64 occupy bytes
-1024-1031 and I65-I128 occupy bytes 6024-6031. Each segment is represented
-explicitly; conversion never applies a formula across the reserved gap. The
-same approach is used for Q, M, AM, NI, NAI, NQ, and NAQ.
+## Manual VM mapping and limits
 
-The LOGO! 9 Q extension row is internally inconsistent: Siemens prints the
-end address as `6110.5` (54 addressable bits from byte 6104) but describes the
-range as 7.5 bytes (60 bits). To avoid inventing six mappings, only Q65-Q118,
-which are confirmed by the printed endpoints, are implemented. Q119-Q124 stay
-manual until Siemens clarifies the row.
+User-assigned function-block parameters have no universal symbolic address and
+remain manual/advanced pyS7 addresses. Raw `V`, `VB`, `VW`, and `VD` forms are
+accepted only when the complete value fits V0–V850.
 
-Digital values use canonical `DB1,X<byte>.<bit>` addresses. Fixed integer
-analog areas use canonical `DB1,INT<byte>` addresses: Siemens documents the
-visible analog range as -32768 to 32767, and `WORD` would decode negative
-two's-complement values as 32768-65535. LOGO! 9 floating analog flags use
-canonical four-byte `REAL` addresses. Explicit advanced `VW` input remains a
-raw unsigned `WORD` view.
-
-## Manual parameter VM mapping
-
-The official help documents configurable block-parameter addresses from 0 to
-850. The advanced parser therefore accepts `V<byte>.<bit>`, `VB<byte>`,
-`VW<byte>`, and `VD<byte>` only where the complete value fits in V0-V850.
-User-assigned block parameters have no universal symbolic mapping and remain in
-manual/advanced mode.
-
-## Read/write metadata
-
-The fixed I/O-to-VM overview identifies block types and byte ranges but does not
-assign read/write permissions to each fixed area. Profiles consequently expose
-`writable: null` rather than inferring permissions. The separate parameter
-settings table does document R/RW per manually selected function-block
-parameter, but those user-configured mappings are deliberately not generated
-as universal addresses.
+No undocumented LOGO! 9 area is inferred. NFAI/NFAQ are limited to the ranges
+explicitly present in Siemens' table. The apparent Q end-address/length
+rounding discrepancy is resolved using Siemens' independent statement of 60
+physical outputs; only Q1–Q60 is exposed.
