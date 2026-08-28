@@ -74,9 +74,11 @@ def test_entity_editor_requests_viewport_bounded_desktop_width() -> None:
 const vm = require("vm");
 let Panel;
 const properties = {};
+const attributes = {};
 const form = {dataset: {}, elements: {}, querySelector: () => null, querySelectorAll: () => []};
 const dialog = {
     style: {setProperty: (name, value) => properties[name] = value},
+    setAttribute: (name, value) => attributes[name] = value,
     querySelector: selector => selector === "form" ? form : {},
     querySelectorAll: () => [],
     addEventListener() {},
@@ -94,17 +96,27 @@ panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
 panel.editorSections = () => "";
 panel.initAddressBuilders = () => {};
 panel.openEditor(null, "sensors");
-process.stdout.write(JSON.stringify(properties));
+process.stdout.write(JSON.stringify({properties, attributes}));
 """
     result = subprocess.run(
         ["node", "-e", script, source], check=True, capture_output=True, text=True
     )
 
     assert json.loads(result.stdout) == {
-        "--mdc-dialog-max-width": "min(1200px,96vw)",
-        "--mdc-dialog-min-width": "min(1200px,96vw)",
-        "--dialog-content-padding": "0",
+        "attributes": {"width": "large"},
+        "properties": {
+            "--ha-dialog-width-lg": "1200px",
+            "--ha-dialog-max-width": "min(1200px,96vw)",
+            "--mdc-dialog-max-width": "min(1200px,96vw)",
+            "--mdc-dialog-min-width": "min(1200px,96vw)",
+            "--dialog-content-padding": "0",
+        },
     }
+
+    # The modern large preset is scoped to openEditor; other dialogs retain their sizes.
+    assert source.count("setAttribute('width','large')") == 1
+    assert source.count("--ha-dialog-width-lg") == 1
+    assert "min-width:1200px" not in source
 
 
 def test_address_builder_layout_is_full_width_and_responsive() -> None:
@@ -193,6 +205,7 @@ const form = {
 const button = {};
 const dialog = {
     style: {setProperty() {}},
+    setAttribute() {},
     querySelector: selector => selector === "form" ? form : button,
     querySelectorAll: () => [],
     addEventListener() {},
