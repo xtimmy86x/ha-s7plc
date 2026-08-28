@@ -6,7 +6,8 @@
         "title": "Verbindungstyp auswählen",
         "description": "Wählen Sie aus, wie Sie sich mit Ihrer S7-SPS verbinden möchten.",
         "data": {
-          "connection_type": "Verbindungstyp"
+          "connection_type": "Verbindungstyp",
+          "plc_family": "SPS-Familie"
         }
       },
       "rack_slot": {
@@ -108,7 +109,8 @@
           "retry_backoff_max": "Wiederholungs-Backoff Max (s)",
           "optimize_read": "Lesevorgänge optimieren",
           "enable_write_batching": "Schreibvorgänge bündeln aktivieren",
-          "enable_metrics": "Leistungsmetriken aktivieren"
+          "enable_metrics": "Leistungsmetriken aktivieren",
+          "plc_family": "SPS-Familie"
         },
         "data_description": {
           "name": "Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -1177,7 +1179,25 @@
       "configure": "Adresse konfigurieren",
       "invalid": "Diese Adresse kann im geführten Editor nicht dargestellt werden. Korrigiere sie manuell.",
       "incomplete": "Fülle alle erforderlichen Adressteile aus.",
-      "unsupported": "Diese Kombination aus Bereich und Datentyp wird nicht unterstützt."
+      "unsupported": "Diese Kombination aus Bereich und Datentyp wird nicht unterstützt.",
+      "logo_area": "LOGO!-Bereich",
+      "element_number": "Elementnummer",
+      "logo_address": "LOGO!-Adresse",
+      "internal_address": "Interne Adresse",
+      "invalid_logo_address": "Ungültige LOGO!-Adresse",
+      "address_out_of_range": "Adresse außerhalb des Bereichs",
+      "address_not_convertible": "Adresse kann nicht konvertiert werden",
+      "vm_manual": "VM-Speicher / erweitert manuell"
+    }
+  },
+  "selector": {
+    "plc_family": {
+      "options": {
+        "s7": "SIMATIC S7 (S7-300, S7-400, S7-1200, S7-1500)",
+        "logo_0ba7": "LOGO! 0BA7",
+        "logo_0ba8": "LOGO! 0BA8",
+        "logo_9": "LOGO! 9"
+      }
     }
   }
 }

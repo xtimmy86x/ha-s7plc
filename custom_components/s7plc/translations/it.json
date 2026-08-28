@@ -6,7 +6,8 @@
         "title": "Scegli tipo di connessione",
         "description": "Seleziona come vuoi connetterti al tuo PLC S7.",
         "data": {
-          "connection_type": "Tipo di connessione"
+          "connection_type": "Tipo di connessione",
+          "plc_family": "Famiglia PLC"
         }
       },
       "rack_slot": {
@@ -108,7 +109,8 @@
           "retry_backoff_max": "Ritardo massimo tra i tentativi (s)",
           "optimize_read": "Ottimizza le letture raggruppate",
           "enable_write_batching": "Raggruppa le scritture",
-          "enable_metrics": "Abilita le metriche delle prestazioni"
+          "enable_metrics": "Abilita le metriche delle prestazioni",
+          "plc_family": "Famiglia PLC"
         },
         "data_description": {
           "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
@@ -1177,7 +1179,25 @@
       "configure": "Configura indirizzo",
       "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
       "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
-      "unsupported": "Questa combinazione di area e tipo di dato non è supportata."
+      "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
+      "logo_area": "Area LOGO!",
+      "element_number": "Numero elemento",
+      "logo_address": "Indirizzo LOGO!",
+      "internal_address": "Indirizzo interno",
+      "invalid_logo_address": "Indirizzo LOGO! non valido",
+      "address_out_of_range": "Indirizzo fuori intervallo",
+      "address_not_convertible": "Indirizzo non convertibile",
+      "vm_manual": "Memoria VM / manuale avanzato"
+    }
+  },
+  "selector": {
+    "plc_family": {
+      "options": {
+        "s7": "SIMATIC S7 (S7-300, S7-400, S7-1200, S7-1500)",
+        "logo_0ba7": "LOGO! 0BA7",
+        "logo_0ba8": "LOGO! 0BA8",
+        "logo_9": "LOGO! 9"
+      }
     }
   }
 }

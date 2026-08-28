@@ -3944,6 +3944,14 @@ def test_italian_address_builder_is_translated() -> None:
         "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
         "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
         "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
+        "logo_area": "Area LOGO!",
+        "element_number": "Numero elemento",
+        "logo_address": "Indirizzo LOGO!",
+        "internal_address": "Indirizzo interno",
+        "invalid_logo_address": "Indirizzo LOGO! non valido",
+        "address_out_of_range": "Indirizzo fuori intervallo",
+        "address_not_convertible": "Indirizzo non convertibile",
+        "vm_manual": "Memoria VM / manuale avanzato",
     }
 
 

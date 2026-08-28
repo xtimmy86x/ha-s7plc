@@ -6,7 +6,8 @@
         "title": "Zvolte typ připojení",
         "description": "Vyberte, jak se chcete připojit k S7 PLC.",
         "data": {
-          "connection_type": "Typ připojení"
+          "connection_type": "Typ připojení",
+          "plc_family": "Rodina PLC"
         }
       },
       "rack_slot": {
@@ -108,7 +109,8 @@
           "retry_backoff_max": "Maximální prodleva při opakování (s)",
           "optimize_read": "Optimalizovat dávkové čtení",
           "enable_write_batching": "Povolit dávkové zápisy",
-          "enable_metrics": "Povolit metriky výkonu"
+          "enable_metrics": "Povolit metriky výkonu",
+          "plc_family": "Rodina PLC"
         },
         "data_description": {
           "name": "Srozumitelný název PLC (používá se v názvech entit).",
@@ -1177,7 +1179,25 @@
       "configure": "Nastavit adresu",
       "invalid": "Tuto adresu nelze zobrazit v průvodci. Opravte ji ručně.",
       "incomplete": "Vyplňte všechny povinné části adresy.",
-      "unsupported": "Tato kombinace oblasti a datového typu není podporována."
+      "unsupported": "Tato kombinace oblasti a datového typu není podporována.",
+      "logo_area": "Oblast LOGO!",
+      "element_number": "Číslo prvku",
+      "logo_address": "Adresa LOGO!",
+      "internal_address": "Interní adresa",
+      "invalid_logo_address": "Neplatná adresa LOGO!",
+      "address_out_of_range": "Adresa je mimo rozsah",
+      "address_not_convertible": "Adresu nelze převést",
+      "vm_manual": "Paměť VM / ruční pokročilé"
+    }
+  },
+  "selector": {
+    "plc_family": {
+      "options": {
+        "s7": "SIMATIC S7 (S7-300, S7-400, S7-1200, S7-1500)",
+        "logo_0ba7": "LOGO! 0BA7",
+        "logo_0ba8": "LOGO! 0BA8",
+        "logo_9": "LOGO! 9"
+      }
     }
   }
 }

@@ -6,7 +6,8 @@
         "title": "Choose Connection Type",
         "description": "Select how you want to connect to your S7 PLC.",
         "data": {
-          "connection_type": "Connection Type"
+          "connection_type": "Connection Type",
+          "plc_family": "PLC family"
         }
       },
       "rack_slot": {
@@ -108,7 +109,8 @@
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
           "enable_write_batching": "Enable write batching",
-          "enable_metrics": "Enable performance metrics"
+          "enable_metrics": "Enable performance metrics",
+          "plc_family": "PLC family"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -1177,7 +1179,25 @@
       "configure": "Configure address",
       "invalid": "This address cannot be represented by the guided editor. Correct it manually.",
       "incomplete": "Complete all required address parts.",
-      "unsupported": "This area and data type combination is not supported."
+      "unsupported": "This area and data type combination is not supported.",
+      "logo_area": "LOGO! area",
+      "element_number": "Element number",
+      "logo_address": "LOGO! address",
+      "internal_address": "Internal address",
+      "invalid_logo_address": "Invalid LOGO! address",
+      "address_out_of_range": "Address out of range",
+      "address_not_convertible": "Address cannot be converted",
+      "vm_manual": "VM memory / manual advanced"
+    }
+  },
+  "selector": {
+    "plc_family": {
+      "options": {
+        "s7": "SIMATIC S7 (S7-300, S7-400, S7-1200, S7-1500)",
+        "logo_0ba7": "LOGO! 0BA7",
+        "logo_0ba8": "LOGO! 0BA8",
+        "logo_9": "LOGO! 9"
+      }
     }
   }
 }

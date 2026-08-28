@@ -37,6 +37,7 @@ from .const import (
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
+    CONF_PLC_FAMILY,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REMOTE_TSAP,
@@ -57,6 +58,8 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DOMAIN,
+    PLC_FAMILIES,
+    PLC_FAMILY_S7,
     PYS7_CONNECTION_TYPE_OP,
     PYS7_CONNECTION_TYPE_PG,
     PYS7_CONNECTION_TYPE_S7BASIC,
@@ -382,6 +385,7 @@ def _build_connection_entry_data(
     remote_tsap: str | None,
     rack: int | None,
     slot: int | None,
+    plc_family: str = PLC_FAMILY_S7,
 ) -> dict[str, Any]:
     """Build connection entry data dict."""
     data = {
@@ -390,6 +394,7 @@ def _build_connection_entry_data(
         CONF_PORT: port,
         CONF_CONNECTION_TYPE: connection_type,
         CONF_PYS7_CONNECTION_TYPE: pys7_connection_type,
+        CONF_PLC_FAMILY: plc_family,
         CONF_SCAN_INTERVAL: scan_interval,
         CONF_OP_TIMEOUT: op_timeout,
         CONF_MAX_RETRIES: max_retries,
@@ -442,12 +447,35 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 ],
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
-                        )
+                        ),
+                        vol.Required(
+                            CONF_PLC_FAMILY, default=PLC_FAMILY_S7
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[
+                                    selector.SelectOptionDict(value=value, label=label)
+                                    for value, label in zip(
+                                        PLC_FAMILIES,
+                                        (
+                                            "SIMATIC S7",
+                                            "LOGO! 0BA7",
+                                            "LOGO! 0BA8",
+                                            "LOGO! 9",
+                                        ),
+                                        strict=True,
+                                    )
+                                ],
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
+                        ),
                     }
                 ),
             )
 
         self._connection_data[CONF_CONNECTION_TYPE] = user_input[CONF_CONNECTION_TYPE]
+        self._connection_data[CONF_PLC_FAMILY] = user_input.get(
+            CONF_PLC_FAMILY, PLC_FAMILY_S7
+        )
 
         if user_input[CONF_CONNECTION_TYPE] == CONNECTION_TYPE_RACK_SLOT:
             return await self.async_step_rack_slot()
@@ -724,6 +752,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             remote_tsap=params.remote_tsap,
             rack=params.rack,
             slot=params.slot,
+            plc_family=self._connection_data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
             enable_metrics=params.enable_metrics,
         )
 
@@ -850,6 +879,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_NAME: data.get(CONF_NAME) or self._config_entry.title or "S7 PLC",
             CONF_HOST: data.get(CONF_HOST, ""),
             **parse_defaults,
+            CONF_PLC_FAMILY: data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
         }
 
         # Build schema based on connection type
@@ -857,6 +887,21 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
             vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
             vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
+            vol.Required(
+                CONF_PLC_FAMILY, default=defaults[CONF_PLC_FAMILY]
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=value, label=label)
+                        for value, label in zip(
+                            PLC_FAMILIES,
+                            ("SIMATIC S7", "LOGO! 0BA7", "LOGO! 0BA8", "LOGO! 9"),
+                            strict=True,
+                        )
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         }
 
         if is_tsap:
@@ -1048,6 +1093,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             remote_tsap=params.remote_tsap,
             rack=params.rack,
             slot=params.slot,
+            plc_family=user_input.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
         )
 
         update_result = self.hass.config_entries.async_update_entry(
