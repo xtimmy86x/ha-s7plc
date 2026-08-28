@@ -221,7 +221,8 @@ const ADDRESS_TYPES_FOR_FIELD = (entityType,key) => {
 if(BOOL_FIELDS[entityType]?.includes(key)||key==="availability_address")return ["BIT"];
 if(STRING_FIELDS[entityType]?.includes(key))return ["STRING","WSTRING"];
 if(entityType==="selects")return S7_INTEGER_TYPES;
-if(entityType==="numbers"||key.includes("temperature")||key.includes("brightness")||key.includes("position")||key.includes("tilt")||key.includes("status")||entityType==="entity_sync")return S7_NUMERIC_TYPES.filter(type=>entityType==="entity_sync"?type!=="TIME":true);
+if(entityType==="entity_sync")return ["BIT",...S7_NUMERIC_TYPES.filter(type=>type!=="TIME")];
+if(entityType==="numbers"||key.includes("temperature")||key.includes("brightness")||key.includes("position")||key.includes("tilt")||key.includes("status"))return S7_NUMERIC_TYPES;
 return entityType==="sensors"?S7_ALL_TYPES:S7_ALL_TYPES.filter(type=>type!=="TIME");
 };
 const COVER_STATUS_VALUE_FIELDS = [...COVER_STATUS_POSITION_VALUE_FIELDS,...COVER_STATUS_MOVEMENT_VALUE_FIELDS];

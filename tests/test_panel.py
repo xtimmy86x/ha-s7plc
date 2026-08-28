@@ -3931,3 +3931,78 @@ def test_italian_address_builder_is_translated() -> None:
         "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
         "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
     }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_sync_builder_accepts_binary_and_numeric_addresses() -> None:
+    """Entity sync keeps numeric types and supports existing binary addresses."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm");
+let Panel;
+const context = {
+  HTMLElement: class {},
+  customElements: {define: (_, cls) => Panel = cls},
+};
+vm.createContext(context);
+vm.runInContext(process.argv[1], context);
+const panel = new Panel();
+panel.escape = value => String(value ?? "");
+panel.t = key => key;
+const allowed = vm.runInContext(
+  'ADDRESS_TYPES_FOR_FIELD("entity_sync", "address")', context
+);
+const addresses = ["DB1,X0.0", "I0.0", "Q1.3", "M7.1"];
+const results = addresses.map(address => {
+  const parsed = vm.runInContext(
+    `PARSE_S7_ADDRESS(${JSON.stringify(address)})`, context
+  );
+  const html = panel.addressField("address", address, "Address", "", true, "entity_sync");
+  const hidden = {value: address};
+  const field = {
+    dataset: {required: "true", addressError: ""},
+    querySelector: () => hidden,
+  };
+  const form = {querySelectorAll: () => [field]};
+  return {
+    address,
+    dataType: parsed.dataType,
+    supported: !parsed.error && allowed.includes(parsed.dataType),
+    guided: html.includes('data-address-mode="guided" class="active"'),
+    validForSave: panel.validateAddressBuilders(form),
+  };
+});
+process.stdout.write(JSON.stringify({allowed, results}));
+'''
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script, source],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+
+    assert value["allowed"] == [
+        "BIT",
+        "BYTE",
+        "USINT",
+        "SINT",
+        "WORD",
+        "INT",
+        "DWORD",
+        "DINT",
+        "REAL",
+        "LREAL",
+    ]
+    assert not {"TIME", "STRING", "WSTRING"} & set(value["allowed"])
+    assert value["results"] == [
+        {
+            "address": address,
+            "dataType": "BIT",
+            "supported": True,
+            "guided": True,
+            "validForSave": True,
+        }
+        for address in ["DB1,X0.0", "I0.0", "Q1.3", "M7.1"]
+    ]
