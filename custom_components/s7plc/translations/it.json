@@ -1162,6 +1162,21 @@
       "expand_section": "Espandi sezione",
       "collapse_section": "Comprimi sezione",
       "all_entities": "Tutte le entità"
+    },
+    "address_builder": {
+      "guided": "Guidato",
+      "manual": "Manuale",
+      "area": "Area di memoria",
+      "db_number": "Numero DB",
+      "data_type": "Tipo di dato",
+      "offset": "Offset byte / elemento",
+      "bit": "Numero bit",
+      "length": "Lunghezza stringa",
+      "preview": "Anteprima indirizzo",
+      "configure": "Configura indirizzo",
+      "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
+      "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
+      "unsupported": "Questa combinazione di area e tipo di dato non è supportata."
     }
   }
 }

@@ -67,6 +67,80 @@ def test_compact_selectors_preserve_column_layout_on_mobile() -> None:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_editor_requests_viewport_bounded_desktop_width() -> None:
+    """Only the entity editor requests the wider Home Assistant dialog size."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r"""
+const vm = require("vm");
+let Panel;
+const properties = {};
+const attributes = {};
+const form = {dataset: {}, elements: {}, querySelector: () => null, querySelectorAll: () => []};
+const dialog = {
+    style: {setProperty: (name, value) => properties[name] = value},
+    setAttribute: (name, value) => attributes[name] = value,
+    querySelector: selector => selector === "form" ? form : {},
+    querySelectorAll: () => [],
+    addEventListener() {},
+};
+const context = {
+    HTMLElement: class {},
+    customElements: {get() {}, define: (_, cls) => Panel = cls},
+    document: {createElement: tag => tag === "ha-dialog" ? dialog : {}, body: {appendChild() {}}},
+};
+vm.createContext(context);
+vm.runInContext(process.argv[1], context);
+const panel = new Panel();
+panel.entryId = "entry";
+panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
+panel.editorSections = () => "";
+panel.initAddressBuilders = () => {};
+panel.openEditor(null, "sensors");
+process.stdout.write(JSON.stringify({properties, attributes}));
+"""
+    result = subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    )
+
+    assert json.loads(result.stdout) == {
+        "attributes": {"width": "large"},
+        "properties": {
+            "--ha-dialog-width-lg": "1200px",
+            "--ha-dialog-max-width": "min(1200px,96vw)",
+            "--mdc-dialog-max-width": "min(1200px,96vw)",
+            "--mdc-dialog-min-width": "min(1200px,96vw)",
+            "--dialog-content-padding": "0",
+        },
+    }
+
+    # The modern large preset is scoped to openEditor; other dialogs retain their sizes.
+    assert source.count("setAttribute('width','large')") == 1
+    assert source.count("--ha-dialog-width-lg") == 1
+    assert "min-width:1200px" not in source
+
+
+def test_address_builder_layout_is_full_width_and_responsive() -> None:
+    """Address controls compact naturally without fixed-width overflow."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    dialog_styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
+    mobile_styles = dialog_styles.rsplit("@media(max-width:650px){", 1)[1]
+
+    assert ".address-builder{container-type:inline-size;grid-column:1/-1;min-width:0" in dialog_styles
+    assert (
+        ".address-controls{display:grid;grid-template-columns:repeat(auto-fit,"
+        "minmax(min(100%,150px),1fr));gap:10px 12px}"
+    ) in dialog_styles
+    assert (
+        "@container(min-width:850px){.address-controls{"
+        "grid-template-columns:repeat(5,minmax(0,1fr))}}"
+    ) in dialog_styles
+    assert ".field-grid{grid-template-columns:1fr}" in mobile_styles
+    assert ".address-controls{grid-template-columns:1fr}" in mobile_styles
+    assert "width:150px" not in dialog_styles
+    assert "min-width:150px" not in dialog_styles
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_registration_is_idempotent() -> None:
     """Repeated resource loads reuse the existing custom element registration."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
@@ -131,6 +205,7 @@ const form = {
 const button = {};
 const dialog = {
     style: {setProperty() {}},
+    setAttribute() {},
     querySelector: selector => selector === "form" ? form : button,
     querySelectorAll: () => [],
     addEventListener() {},
@@ -3711,3 +3786,223 @@ def test_panel_layout_translations_are_available_in_every_language() -> None:
         translations = json.loads(path.read_text(encoding="utf-8"))
         assert required <= translations["config_panel"]["layout"].keys(), path
         assert all(translations["config_panel"]["layout"][key] for key in required)
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_guided_address_grammar_round_trips_every_supported_type() -> None:
+    """The browser grammar mirrors current pyS7 tokens and canonical forms."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    cases = [
+        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
+        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
+        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
+        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MD72",
+    ]
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify(process.argv.slice(1).map(value=>{{const parsed=PARSE_S7_ADDRESS(value);return [parsed.error,SERIALIZE_S7_ADDRESS(parsed)];}})));'''
+    result = json.loads(subprocess.run(["node", "-e", script, *cases], check=True, capture_output=True, text=True).stdout)
+    assert all(not error for error, _ in result)
+    # Aliases intentionally serialize to the builder's stable short-token spelling.
+    assert [value for _, value in result] == [
+        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
+        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
+        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
+        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MDW72",
+    ]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_guided_address_validation_and_field_restrictions() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify({{
+      badBit:PARSE_S7_ADDRESS("DB1,X0.8").error,
+      missingLength:PARSE_S7_ADDRESS("DB1,S0").error,
+      timeArea:PARSE_S7_ADDRESS("MTIME0").error,
+      malformed:PARSE_S7_ADDRESS("DB1,").error,
+      empty:PARSE_S7_ADDRESS("").empty,
+      boolean:ADDRESS_TYPES_FOR_FIELD("binary_sensors","address"),
+      text:ADDRESS_TYPES_FOR_FIELD("texts","address"),
+      select:ADDRESS_TYPES_FOR_FIELD("selects","address"),
+      optional:SERIALIZE_S7_ADDRESS({{empty:true}})
+    }}));'''
+    value = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    assert value == {"badBit":"invalid", "missingLength":"incomplete", "timeArea":"unsupported", "malformed":"invalid", "empty":True, "boolean":["BIT"], "text":["STRING","WSTRING"], "select":["BYTE","USINT","SINT","WORD","INT","DWORD","DINT","TIME"], "optional":""}
+
+
+def test_all_visual_plc_addresses_use_reusable_builder() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "if(address&&key!=='source_entity')return this.addressField" in source
+    assert "this.initAddressBuilders(form,type)" in source
+    assert 'name="${key}" value="${this.escape(value)}"' in source
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_address_builder_serialization_and_visibility_behaviour() -> None:
+    """Structured address helpers distinguish missing values and expose fields."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm");
+const context = {HTMLElement: class {}, customElements: {define() {}}};
+vm.createContext(context);
+vm.runInContext(process.argv[1] + `
+const values = {
+  visibility: [
+    ADDRESS_FIELD_VISIBILITY("DB", "BIT"),
+    ADDRESS_FIELD_VISIBILITY("I", "STRING"),
+    ADDRESS_FIELD_VISIBILITY("Q", "WSTRING"),
+    ADDRESS_FIELD_VISIBILITY("M", "INT"),
+  ],
+  emptyDb: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"",dataType:"INT",offset:"0"}),
+  emptyOffset: SERIALIZE_S7_ADDRESS({area:"M",dataType:"INT",offset:""}),
+  emptyBit: SERIALIZE_S7_ADDRESS({area:"M",dataType:"BIT",offset:"0",bit:""}),
+  emptyLength: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"1",dataType:"STRING",offset:"0",length:""}),
+  zeros: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"0",dataType:"BIT",offset:"0",bit:"0"}),
+};
+globalThis.result = JSON.stringify(values);`, context);
+process.stdout.write(context.result);
+'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    ).stdout)
+    assert result["visibility"] == [
+        {"dbNumber": True, "bit": True, "length": False},
+        {"dbNumber": False, "bit": False, "length": True},
+        {"dbNumber": False, "bit": False, "length": True},
+        {"dbNumber": False, "bit": False, "length": False},
+    ]
+    assert result["emptyDb"] == {"error": "incomplete"}
+    assert result["emptyOffset"] == {"error": "incomplete"}
+    assert result["emptyBit"] == {"error": "incomplete"}
+    assert result["emptyLength"] == {"error": "incomplete"}
+    assert result["zeros"] == "DB0,X0.0"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_required_address_builder_blocks_submission_and_gets_focus() -> None:
+    """Builder validity is explicit because hidden inputs cannot constrain forms."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm"); let Panel;
+const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Panel = cls}};
+vm.createContext(context); vm.runInContext(process.argv[1], context);
+let focused = 0, scrolled = 0;
+const hidden = {value: ""};
+const field = {dataset: {required: "true", addressError: "incomplete"},
+  querySelector: () => hidden, focus: () => focused++, scrollIntoView: () => scrolled++};
+const form = {querySelectorAll: () => [field]};
+const panel = new Panel();
+process.stdout.write(JSON.stringify({valid: panel.validateAddressBuilders(form), focused, scrolled}));
+'''
+    value = json.loads(subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    ).stdout)
+    assert value == {"valid": False, "focused": 1, "scrolled": 1}
+
+
+def test_address_builder_focus_style_only_indicates_real_errors() -> None:
+    """Focusing a builder only shows an error outline for explicit errors."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert ".address-builder:focus{outline:none}" in source
+    assert (
+        '.address-builder[data-address-error]:not([data-address-error=""])'
+        "{border-color:var(--error-color)}"
+    ) in source
+    assert (
+        '.address-builder[data-address-error]:not([data-address-error=""]):focus'
+        "{outline:2px solid var(--error-color);outline-offset:2px}"
+    ) in source
+    assert ".address-builder:focus{outline:2px solid var(--error-color)" not in source
+
+
+def test_italian_address_builder_is_translated() -> None:
+    translations = json.loads(
+        Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
+    )["config_panel"]["address_builder"]
+    assert translations == {
+        "guided": "Guidato",
+        "manual": "Manuale",
+        "area": "Area di memoria",
+        "db_number": "Numero DB",
+        "data_type": "Tipo di dato",
+        "offset": "Offset byte / elemento",
+        "bit": "Numero bit",
+        "length": "Lunghezza stringa",
+        "preview": "Anteprima indirizzo",
+        "configure": "Configura indirizzo",
+        "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
+        "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
+        "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_sync_builder_accepts_binary_and_numeric_addresses() -> None:
+    """Entity sync keeps numeric types and supports existing binary addresses."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm = require("vm");
+let Panel;
+const context = {
+  HTMLElement: class {},
+  customElements: {define: (_, cls) => Panel = cls},
+};
+vm.createContext(context);
+vm.runInContext(process.argv[1], context);
+const panel = new Panel();
+panel.escape = value => String(value ?? "");
+panel.t = key => key;
+const allowed = vm.runInContext(
+  'ADDRESS_TYPES_FOR_FIELD("entity_sync", "address")', context
+);
+const addresses = ["DB1,X0.0", "I0.0", "Q1.3", "M7.1"];
+const results = addresses.map(address => {
+  const parsed = vm.runInContext(
+    `PARSE_S7_ADDRESS(${JSON.stringify(address)})`, context
+  );
+  const html = panel.addressField("address", address, "Address", "", true, "entity_sync");
+  const hidden = {value: address};
+  const field = {
+    dataset: {required: "true", addressError: ""},
+    querySelector: () => hidden,
+  };
+  const form = {querySelectorAll: () => [field]};
+  return {
+    address,
+    dataType: parsed.dataType,
+    supported: !parsed.error && allowed.includes(parsed.dataType),
+    guided: html.includes('data-address-mode="guided" class="active"'),
+    validForSave: panel.validateAddressBuilders(form),
+  };
+});
+process.stdout.write(JSON.stringify({allowed, results}));
+'''
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script, source],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+
+    assert value["allowed"] == [
+        "BIT",
+        "BYTE",
+        "USINT",
+        "SINT",
+        "WORD",
+        "INT",
+        "DWORD",
+        "DINT",
+        "REAL",
+        "LREAL",
+    ]
+    assert not {"TIME", "STRING", "WSTRING"} & set(value["allowed"])
+    assert value["results"] == [
+        {
+            "address": address,
+            "dataType": "BIT",
+            "supported": True,
+            "guided": True,
+            "validForSave": True,
+        }
+        for address in ["DB1,X0.0", "I0.0", "Q1.3", "M7.1"]
+    ]

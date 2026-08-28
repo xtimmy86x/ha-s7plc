@@ -1162,6 +1162,21 @@
       "expand_section": "Abschnitt erweitern",
       "collapse_section": "Abschnitt reduzieren",
       "all_entities": "Alle Entitäten"
+    },
+    "address_builder": {
+      "guided": "Geführt",
+      "manual": "Manuell",
+      "area": "Speicherbereich",
+      "db_number": "DB-Nummer",
+      "data_type": "Datentyp",
+      "offset": "Byte- / Element-Offset",
+      "bit": "Bitnummer",
+      "length": "Zeichenkettenlänge",
+      "preview": "Adressvorschau",
+      "configure": "Adresse konfigurieren",
+      "invalid": "Diese Adresse kann im geführten Editor nicht dargestellt werden. Korrigiere sie manuell.",
+      "incomplete": "Fülle alle erforderlichen Adressteile aus.",
+      "unsupported": "Diese Kombination aus Bereich und Datentyp wird nicht unterstützt."
     }
   }
 }

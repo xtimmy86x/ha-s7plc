@@ -1162,6 +1162,21 @@
       "expand_section": "Rozwiń sekcję",
       "collapse_section": "Zwiń sekcję",
       "all_entities": "Wszystkie encje"
+    },
+    "address_builder": {
+      "guided": "Kreator",
+      "manual": "Ręcznie",
+      "area": "Obszar pamięci",
+      "db_number": "Numer DB",
+      "data_type": "Typ danych",
+      "offset": "Przesunięcie bajtu / elementu",
+      "bit": "Numer bitu",
+      "length": "Długość tekstu",
+      "preview": "Podgląd adresu",
+      "configure": "Skonfiguruj adres",
+      "invalid": "Tego adresu nie można przedstawić w kreatorze. Popraw go ręcznie.",
+      "incomplete": "Uzupełnij wszystkie wymagane części adresu.",
+      "unsupported": "Ta kombinacja obszaru i typu danych nie jest obsługiwana."
     }
   }
 }
