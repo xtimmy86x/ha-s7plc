@@ -19,7 +19,7 @@
           "rack": "Kaseta",
           "slot": "Gniazdo",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał odpytywania (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób komunikacji",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
@@ -35,7 +35,7 @@
           "rack": "Kaseta CPU (zwykle 0).",
           "slot": "Gniazdo CPU (1 dla S7-1200/1500).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
-          "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
+          "scan_interval": "Interwał skanowania PLC w (s), można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
           "operation_timeout": "Maksymalny czas w (s) dla pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
           "max_retries": "Maksymalna liczba prób komunikacji z PLC.",
           "retry_backoff_initial": "Opóźnienie w (s) przy pierwszej próbie komunikacji z PLC.",
@@ -55,7 +55,7 @@
           "local_tsap": "Lokalny TSAP",
           "remote_tsap": "Zdalny TSAP",
           "pys7_connection_type": "Typ połączenia",
-          "scan_interval": "Interwał odpytywania (s)",
+          "scan_interval": "Interwał skanowania (s)",
           "operation_timeout": "Limit czasu operacji (s)",
           "max_retries": "Liczba prób komunikacji",
           "retry_backoff_initial": "Opóźnienie przy pierwszej próbie (s)",
@@ -71,7 +71,7 @@
           "local_tsap": "Lokalny adres TSAP (np. 01.00 lub 03.00).",
           "remote_tsap": "Zdalny adres TSAP (np. 01.01 lub 03.01).",
           "pys7_connection_type": "Typ połączenia S7 (PG – programowanie, OP – panel operatorski, S7 Basic – podstawowe połączenie).",
-          "scan_interval": "Jak często odpytywać PLC, w sekundach. Można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
+          "scan_interval": "Interwał skanowania PLC w (s), można użyć wartości dziesiętnych dla precyzji w milisekundach (0.1s = 100ms).",
           "operation_timeout": "Maksymalny czas w (s) dla pojedynczego cyklu odczytu/zapisu przed ponowną próbą.",
           "max_retries": "Maksymalna liczba prób komunikacji z PLC",
           "retry_backoff_initial": "Opóźnienie w (s) przy pierwszej próbie komunikacji z PLC.",
@@ -224,28 +224,28 @@
       "fields": {
         "area": {
           "label": "Obszar",
-          "description": "Obszar Home Assistant, do którego ma zostać przypisana ta encja."
+          "description": "Obszar przypisania encji."
         },
         "name": {
           "label": "Nazwa",
-          "description": "Opcjonalna opisowa nazwa tej encji."
+          "description": "Opcjonalna własna nazwa."
         },
         "scan_interval": {
           "label": "Interwał skanowania (s)",
-          "description": "Częstotliwość odpytywania określona dla tej encji w sekundach. Użyj wartości dziesiętnych, aby uzyskać dokładność do milisekund. Jeśli pominięto, zostanie użyty domyślny interwał skanowania PLC."
+          "description": "Interwał skanowania w (s). Pozostaw puste, aby dziedziczyć domyślne ustawienie PLC."
         },
         "availability_mode": {
           "label": "Zasada dostępności",
           "description": "Wybierz, kiedy Home Assistant ma uznawać tę encję za dostępną.",
           "options": {
-            "connection": "Zgodnie z połączeniem PLC",
+            "connection": "Połączenie z PLC",
             "always": "Zawsze dostępna",
             "bit": "Bit dostępności PLC"
           },
           "descriptions": {
-            "connection": "Dostępność encji zależy od połączenia PLC i dostępności wymaganych danych.",
-            "always": "Encja pozostaje dostępna z ostatnim znanym stanem, ale polecenia nadal kończą się niepowodzeniem, gdy PLC jest odłączony.",
-            "bit": "Encja jest dostępna tylko wtedy, gdy PLC jest połączony, a skonfigurowany bit jest aktywny."
+            "connection": "Encja jest dostępna jeśli ustanowiono połączenie z PLC i dane są dostępne.",
+            "always": "Encja jest zawsze dostępna z ostatnim znanym stanem niezależnie od stanu PLC.",
+            "bit": "Encja jest dostępna jeśli ustanowiono połączenie z PLC i bit dostępności jest aktywny."
           }
         },
         "availability_address": {
@@ -349,7 +349,7 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0)."
+            "description": "Adres odczytu stanu (np. MB223, DB20,B223)."
           },
           "command_address": {
             "label": "Adres zapisu",
@@ -380,23 +380,23 @@
           },
           "cover_status_open_values": {
             "label": "Wartość(-i) stanu (otwarta)",
-            "description": "Wartość(-i) oznaczające, że roleta jest całkowicie otwarta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Po dopasowaniu roleta zostanie zgłoszona jako otwarta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
+            "description": "Wartość(-i) oznaczające, że osłona jest całkowicie otwarta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Po dopasowaniu osłona zostanie zgłoszona jako otwarta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
           },
           "cover_status_closed_values": {
             "label": "Wartość(-i) stanu (zamknięta)",
-            "description": "Wartość(-i) oznaczające, że roleta jest całkowicie zamknięta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Po dopasowaniu roleta zostanie zgłoszona jako zamknięta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
+            "description": "Wartość(-i) oznaczające, że osłona jest całkowicie zamknięta, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Po dopasowaniu osłona zostanie zgłoszona jako zamknięta, z priorytetem nad stanem opartym na krańcówkach. Pozostaw puste, aby pominąć ten stan."
           },
           "cover_status_opening_values": {
             "label": "Wartość(-i) stanu (otwieranie)",
-            "description": "Wartość(-i) oznaczające, że roleta się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan."
+            "description": "Wartość(-i) oznaczające, że osłona się otwiera, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami (np. 1 lub 2,3). Pozostaw puste, aby pominąć ten stan."
           },
           "cover_status_closing_values": {
             "label": "Wartość(-i) stanu (zamykanie)",
-            "description": "Wartość(-i) oznaczające, że roleta się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
+            "description": "Wartość(-i) oznaczające, że osłona się zamyka, odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
           },
           "cover_status_stopped_values": {
             "label": "Wartość(-i) stanu (zatrzymana)",
-            "description": "Wartość(-i) oznaczające, że roleta jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
+            "description": "Wartość(-i) oznaczające, że osłona jest zatrzymana (bez ruchu), odczytywane z powyższego adresu stanu. Jedna lub więcej liczb całkowitych oddzielonych przecinkami. Pozostaw puste, aby pominąć ten stan."
           },
           "opening_state_address": {
             "label": "Adres stanu otwarta",
@@ -420,15 +420,15 @@
           },
           "position_state_address": {
             "label": "Adres odczytu pozycji",
-            "description": "Adres odczytu pozycji osłony/rolety (0-100, np. DB1,B0, DB2,W4)."
+            "description": "Adres odczytu pozycji osłony (0-100, np. DB1,B0, DB2,W4)."
           },
           "position_command_address": {
             "label": "Adres zapisu pozycji",
-            "description": "Adres zapisu nowej pozycji osłony/rolety (0-100). Jeśli brak, użyty zostanie adres odczytu."
+            "description": "Adres zapisu nowej pozycji osłony (0-100). Jeśli brak, użyty zostanie adres odczytu."
           },
           "stop_command_address": {
             "label": "Adres zapisu stop",
-            "description": "Opcjonalny adres zapisu komendy (stop). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę/roletę."
+            "description": "Opcjonalny adres zapisu komendy (stop). Jeśli brak, zostanie wykonany zapis aktualnego położenia aby zatrzymać osłonę."
           },
           "stop_pulse_duration": {
             "label": "Długość impulsu (s)",
@@ -451,8 +451,8 @@
             "description": "Odwraca skalę przechylenia (0 staje się 100 i odwrotnie) dla siłowników podłączonych w drugą stronę."
           },
           "operate_time": {
-            "label": "Czas otwarcia/zamknięcia (s)",
-            "description": "Maksymalny czas, przez jaki adres zapisu pozostaje aktywny, zanim integracja zresetuje wyjścia i stan ruchu. Skonfigurowane sprzężenie zwrotne może zakończyć ruch wcześniej."
+            "label": "Czas ruchu (s)",
+            "description": "Czas, przez jaki osłona może się poruszać między pozycjami krańcowymi."
           },
           "use_state_topics": {
             "label": "Użyj adresów stanu (otwarta/zamknięta) dla określenia położenia",
@@ -477,27 +477,27 @@
             "descriptions": {
               "traditional": "Proste sterowanie otwórz i zamknij.",
               "position": "Zaawansowane sterowanie z pozycją.",
-              "toggle": "Proste sterowanie sekwencyjne jednym przyciskiem (otwórz/stop/zamknij/stop)."
+              "toggle": "Sterowanie jednym przyciskiem (otwórz/stop/zamknij/stop)."
             }
           },
           "cover_position_feedback": {
-            "label": "Metoda identyfikacji",
+            "label": "Metoda",
             "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta).",
             "options": {
               "timed": "Czas",
               "position": "Wartość pozycji",
-              "opening": "Tylko krańcówka otwarcia",
-              "closing": "Tylko krańcówka zamknięcia",
-              "both": "Obie krańcówki",
-              "status": "Słowo stanu"
+              "opening": "Binarny adres stanu",
+              "closing": "Binarny adres stanu",
+              "both": "Binarne adresy stanu",
+              "status": "Liczbowy adres stanów"
             },
             "descriptions": {
               "timed": "Szacowanie pozycji na podstawie czasu.",
               "position": "Użycie zgłaszanej wartości pozycji bezpośrednio - bez dodatkowej informacji zwrotnej.",
-              "opening": "Odczyt tylko krańcówki pełnego otwarcia.",
-              "closing": "Odczyt tylko krańcówki pełnego zamknięcia.",
-              "both": "Odczyt krańcówek pełnego otwarcia i zamknięcia.",
-              "status": "Użycie jednego słowa PLC mapowanego na stan otwarty, zamknięty, otwieranie, zamykanie i zatrzymanie."
+              "opening": "Odczyt z binarnego adresu stanu (otwarta).",
+              "closing": "Odczyt z binarnego adresu stanu (zamknięta).",
+              "both": "Odczyt z binarnych adresów stanu (otwarta/zamknięta).",
+              "status": "Odczyt z liczbowego adresu stanów, wartości (otwarta/zamknięta)."
             }
           },
           "cover_movement_feedback": {
@@ -510,7 +510,7 @@
             },
             "descriptions": {
               "none": "Wewnętrzne szacowanie lub tylko pozycja.",
-              "bits": "Odczyt z oddzielnych binarnych adresów stanu.",
+              "bits": "Odczyt z binarnych adresów stanu (otwieranie/zamykanie/zatrzymana).",
               "status": "Odczyt z jednego liczbowego adresu stanów."
             }
           },
@@ -546,7 +546,7 @@
           },
           "position_feedback": {
             "title": "Pozycja",
-            "description": "Wybierz szacowanie czasowe, jedną lub obie krańcówki albo mapowane słowo stanu PLC."
+            "description": "Wybierz metodę identyfikacji pozycji osłony (otwarta/zamknięta)."
           },
           "movement_feedback": {
             "title": "Ruch",
@@ -570,8 +570,8 @@
             "description": "Typ sterowania"
           },
           "light_mode": {
-            "label": "Typ światła",
-            "description": "Typ światła"
+            "label": "Typ",
+            "description": "Typ zainstalowanego światła"
           },
           "state_address": {
             "label": "Adres odczytu",
@@ -676,22 +676,22 @@
         }
       },
       "selects": {
-        "label": "Listy wyboru",
+        "label": "Listy",
         "fields": {
           "address": {
-            "label": "Adres stanu",
-            "description": "Adres PLC przechowujący bieżącą wartość opcji (typ całkowity, np. DB1,B0, DB2,I4)."
+            "label": "Adres odczytu",
+            "description": "Adres odczytu (np. DB1,B0, DB2,I4)."
           },
           "command_address": {
-            "label": "Adres polecenia",
-            "description": "Adres PLC do zapisu wybranej wartości (opcjonalny). Jeśli pominięty, używany jest adres stanu."
+            "label": "Adres zapisu",
+            "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
           },
           "options_map": {
-            "label": "Mapa opcji",
-            "description": "Każda wartość PLC odpowiada opcji wyświetlanej w Home Assistant. W YAML zapisywane jako pary 'wartość:etykieta' rozdzielone ';'.",
-            "value_label": "Wartość PLC",
-            "label_label": "Etykieta opcji",
-            "add_option": "Dodaj opcję",
+            "label": "Mapowanie",
+            "description": "Mapowanie zamienia wartości liczbowe na tekst i odwrotnie. W YAML jako options_map: '0:Pump A;1:Pump B'.",
+            "value_label": "Wartość",
+            "label_label": "Tekst",
+            "add_option": "Dodaj",
             "label_placeholder": "np. Pompa A"
           }
         }
@@ -753,7 +753,7 @@
             "description": "Opcjonalny adres odczytu stanu (chłodzenie). Jeśli brak, stan zostanie ustalony na podstawie temperatury aktualnej i zadanej."
           },
           "preset_mode_address": {
-            "label": "Adres trybu pracy",
+            "label": "Adres trybów pracy",
             "description": "Opcjonalny adres PLC do zapisu trybu pracy, przy użyciu wartości skonfigurowanej poniżej dla każdego trybu. Przydatne, jeśli PLC musi włączać/wyłączać sterowanie klimatyzacją. Domyślnie tylko do zapisu, włącz dwukierunkową komunikację, aby również odczytywać go z powrotem."
           },
           "preset_mode_bidirectional": {
@@ -880,26 +880,26 @@
             "options": {
               "setpoint": "Temperatura",
               "on_off": "Temperatura i Wł./Wył.",
-              "coded": "Kodowane tryby",
-              "coded_on_off": "Kodowane tryby i Wł./Wył."
+              "coded": "Liczbowy adres trybów",
+              "coded_on_off": "Liczbowy adres trybów i Wł./Wył."
             },
             "descriptions": {
-              "setpoint": "Wykorzystuje tylko wartość zadaną temperatury.",
-              "on_off": "Wykorzystuje wartość zadaną temperatury i adres (wł./wył.) dla zasilania.",
-              "coded": "Wykorzystuje liczbowy adres trybów pracy.",
-              "coded_on_off": "Wykorzystuje liczbowy adres trybów pracy i adres (wł./wył.) dla zasilania."
+              "setpoint": "Kontrola z wykorzystaniem temperatury zadanej.",
+              "on_off": "Kontrola z wykorzystaniem temperatury zadanej i adresu (wł./wył.) dla zasilania.",
+              "coded": "Kontrola z wykorzystaniem liczbowego adresu trybów pracy.",
+              "coded_on_off": "Kontrola z wykorzystaniem liczbowego adresu trybów pracy i adresu (wł./wył.) dla zasilania."
             }
           },
           "climate_action_feedback": {
             "label": "Metoda",
             "description": "Wybierz metodę odczytu aktualnego stanu termostatu.",
             "options": {
-              "inferred": "Na podstawie temperatur",
-              "plc": "Odczyt z adresu stanów"
+              "inferred": "Temperatura",
+              "plc": "Liczbowy adres stanów"
             },
             "descriptions": {
-              "inferred": "Aktualny stan pracy zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
-              "plc": "Aktualny stan pracy zostanie odczytany z liczbowego adresu stanów w PLC."
+              "inferred": "Odczyt stanu zostanie ustalony na podstawie temperatury aktualnej i zadanej.",
+              "plc": "Odczyt z liczbowego adresu stanów."
             }
           }
         },
@@ -1088,7 +1088,7 @@
       "invalid_address": "Nieprawidłowy format adresu.",
       "duplicate_entry": "Ta encja już istnieje.",
       "duplicate_addresses_in_import": "Import zawiera zduplikowane adresy w tym samym typie encji.",
-      "state_addresses_required": "Gdy 'użyj adresów stanu' jest włączone, wymagane są adresy stanu (otwarta/zamknięta).",
+      "state_addresses_required": "Dla tego sterowania wymagane są adresy stanu otwarta/zamknięta.",
       "invalid_source_entity": "Wymagana jest encja źródłowa.",
       "invalid_number": "Nieprawidłowa wartość liczbowa.",
       "invalid_mode_values": "Podaj jedną lub więcej liczb całkowitych oddzielonych przecinkami (np. 2,3).",
@@ -1107,34 +1107,34 @@
       "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",
       "duplicate_preset_value": "Ta sama wartość nie może być przypisana do dwóch różnych trybów HVAC.",
       "duplicate_status_value": "Ta sama wartość nie może być przypisana do dwóch różnych stanów HVAC.",
-      "cover_commands_required_error": "Sterowanie (Otwórz / Zamknij) wymaga obu adresów zapisu (otwórz/zamknij).",
+      "cover_commands_required_error": "To sterowanie wymaga obu adresów zapisu otwórz/zamknij.",
       "cover_position_required_error": "Sterowanie pozycją wymaga adresu odczytu pozycji.",
-      "cover_endstops_required_error": "Identyfikacja ruchu krańcówkami wymaga adresów stanu otwarta i zamknięta.",
-      "cover_status_required_error": "Identyfikacja ruchu w czasie rzeczywistym wymaga adresu odczytu stanów.",
+      "cover_endstops_required_error": "Identyfikacja ruchu wymaga binarnych adresów stanu otwarta/zamknięta.",
+      "cover_status_required_error": "Identyfikacja ruchu wymaga liczbowego adresu odczytu stanów.",
       "cover_tilt_required_error": "Włączone przechylenie wymaga adresu odczytu przechylenia.",
       "cover_stop_required_error": "Włączone stop wymaga adresu zapisu stop.",
       "climate_current_temperature_required_error": "Wprowadź adres odczytu temperatury.",
       "climate_heating_output_required_error": "Wprowadź adres wyjścia grzania dla wybranej funkcji.",
       "climate_cooling_output_required_error": "Wprowadź adres wyjścia chłodzenia dla wybranej funkcji.",
-      "climate_preset_mode_required_error": "Wprowadź adres trybu HVAC.",
+      "climate_preset_mode_required_error": "Wprowadź adres trybów pracy.",
       "climate_on_off_required_error": "Wprowadź oddzielny adres wł./wył.",
-      "climate_status_required_error": "Wprowadź adres odczytu stanów PLC.",
-      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga dwóch rzeczywistych źródeł sprzężenia zwrotnego: ustalonej pozycji (obu adresów krańcówek albo adresu stanów zmapowanego na otwarta i zamknięta) oraz stanu ruchu (bitów otwierania/zamykania albo adresu stanów zmapowanego na otwieranie, zamykanie i zatrzymanie).",
+      "climate_status_required_error": "Wprowadź adres odczytu stanów.",
+      "toggle_mode_requires_feedback": "Tryb jednego przycisku wymaga identyfikacji pozycji (obu binarnych adresów stanu albo liczbowego adresu stanów zmapowanego na otwarta i zamknięta) oraz ruchu (binarnych adresów stanu otwieranie/zamykanie albo liczbowego adresu stanów zmapowanego na otwieranie/zamykanie/zatrzymana).",
       "toggle_mode_requires_stopped_mapping": "Tryb jednego przycisku z adresem stanów wymaga też zmapowanej wartości zatrzymania, aby odróżnić realne zatrzymanie w trakcie ruchu od brakującego lub niedopasowanego stanu z PLC.",
       "invalid_availability_mode": "Wybierz prawidłową zasadę dostępności.",
       "availability_address_required": "Adres BIT dostępności jest wymagany.",
       "invalid_availability_address": "Wprowadź prawidłowy adres BIT dostępności.",
       "availability_address_must_be_bit": "Adres dostępności musi być adresem BIT.",
-      "cover_endstop_open_required_error": "Sprzężenie zwrotne krańcówki otwarcia wymaga adresu pełnego otwarcia.",
-      "cover_endstop_closed_required_error": "Sprzężenie zwrotne krańcówki zamknięcia wymaga adresu pełnego zamknięcia.",
-      "cover_status_mapping_required_error": "Sprzężenie zwrotne słowa stanu wymaga co najmniej jednego mapowania stanu.",
-      "cover_status_values_error": "Mapowania stanów muszą zawierać liczby całkowite oddzielone przecinkami.",
-      "cover_status_duplicate_error": "Wartość stanu nie może występować w więcej niż jednym mapowaniu.",
-      "cover_status_required": "Sprzężenie zwrotne słowa stanu wymaga adresu i co najmniej jednego mapowania.",
+      "cover_endstop_open_required_error": "Identyfikacja pozycji otwarta wymaga binarnego adresu stanu otwarta.",
+      "cover_endstop_closed_required_error": "Identyfikacja pozycji zamknięta wymaga binarnego adresu stanu zamknięta.",
+      "cover_status_mapping_required_error": "Identyfikacja pozycji, ruchu osłony wymaga adresu odczytu stanów i co najmniej jednego mapowania wartości.",
+      "cover_status_values_error": "Wartości w mapowaniu stanów muszą być liczbami całkowitym, oddzielone przecinkiem.",
+      "cover_status_duplicate_error": "Taka sama wartość mapowania stanu nie może występować dwa razy.",
+      "cover_status_required": "Identyfikacja pozycji, ruchu osłony wymaga adresu odczytu stanów i co najmniej jednego mapowania wartości.",
       "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number.",
-      "invalid_options_map": "Nieprawidłowa mapa opcji. Użyj par 'wartość:etykieta' rozdzielonych ';' z unikalnymi wartościami całkowitymi i unikalnymi etykietami.",
-      "options_map_out_of_range": "Co najmniej jedna wartość opcji wykracza poza zakres typu danych PLC.",
-      "select_requires_integer_type": "Encje listy wyboru wymagają całkowitego typu danych PLC (np. Byte, Int, Word, DInt)."
+      "invalid_options_map": "Nieprawidłowe mapowanie, użyj par np. '0:Pump A;1:Pump B'. Wartości i tekst nie mogą się powtarzać w mapowaniu.",
+      "options_map_out_of_range": "Co najmniej jedna wartość mapowania jest nieprawidłowym typem danych.",
+      "select_requires_integer_type": "Adres odczytu i zapisu listy musi być całkowitym typem danych (np. Byte, Int, Word, DInt)."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",
@@ -1156,8 +1156,8 @@
       "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC."
     },
     "layout": {
-      "switch_to_tabs": "Przełącz na widok kategorii",
-      "switch_to_sections": "Przełącz na widok wszystkich encji",
+      "switch_to_tabs": "Przełącz na kategorie",
+      "switch_to_sections": "Przełącz na listę",
       "expand_section": "Rozwiń sekcję",
       "collapse_section": "Zwiń sekcję",
       "all_entities": "Wszystkie encje"
