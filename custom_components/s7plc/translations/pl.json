@@ -1130,7 +1130,7 @@
       "cover_status_mapping_required_error": "Identyfikacja pozycji lub ruchu osłony wymaga co najmniej jednego mapowania wartości stanu.",
       "cover_status_values_error": "Wartości w mapowaniu stanów muszą być liczbami całkowitymi oddzielonymi przecinkami.",
       "cover_status_duplicate_error": "Taka sama wartość mapowania stanu nie może występować dwa razy.",
-      "cover_status_required": "Identyfikacja pozycji, ruchu osłony wymaga adresu odczytu stanów i co najmniej jednego mapowania wartości.",
+      "cover_status_required": "Identyfikacja pozycji lub ruchu osłony wymaga liczbowego adresu odczytu stanów.",
       "time_unsupported_for_entity": "TIME jest obsługiwany tylko dla encji sensor i number.",
       "invalid_options_map": "Nieprawidłowe mapowanie, użyj par np. '0:Pump A;1:Pump B'. Wartości i tekst nie mogą się powtarzać w mapowaniu.",
       "options_map_out_of_range": "Co najmniej jedna wartość mapowania wykracza poza zakres typu danych.",
