@@ -79,12 +79,17 @@ def test_logo_9_is_not_concatenated_with_0ba8():
 
 @pytest.mark.parametrize("value", ["AI9", "I25", "Q61", "M0", "NAI129"])
 def test_logo_candidate_recognizes_invalid_or_out_of_range_symbols(value):
-    assert is_logo_address_candidate(value)
+    assert is_logo_address_candidate(value, "logo_0ba8")
 
 
 @pytest.mark.parametrize("value", ["DB1,INT200", "DB1,X100.0", "I0.0", "Q1.3", "M10.2"])
 def test_explicit_s7_is_not_a_logo_candidate(value):
-    assert not is_logo_address_candidate(value)
+    assert not is_logo_address_candidate(value, "logo_0ba8")
+
+
+@pytest.mark.parametrize("value", ["IB10", "QW8", "MD72", "XYZ1"])
+def test_logo_candidate_requires_a_prefix_from_the_selected_profile(value):
+    assert not is_logo_address_candidate(value, "logo_0ba8")
 
 
 def test_manual_vm_bounds_and_reserved_reverse_mapping():

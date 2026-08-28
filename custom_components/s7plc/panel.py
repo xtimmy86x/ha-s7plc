@@ -279,7 +279,7 @@ def _canonicalize_logo_addresses(entity: dict[str, Any], family: str) -> dict[st
             continue
         if not isinstance(value, str) or not value.strip():
             continue
-        if is_logo_address_candidate(value):
+        if is_logo_address_candidate(value, family):
             result[key] = logo_to_s7_address(value, family)
         else:
             # Only unambiguously pyS7 input remains valid advanced/manual input.

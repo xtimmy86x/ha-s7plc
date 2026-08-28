@@ -47,6 +47,26 @@ def test_logo_manual_validation_keeps_explicit_s7_address():
     ) == {"address": "DB1,INT200"}
 
 
+@pytest.mark.parametrize("address", ["IB10", "QW8", "MD72"])
+def test_logo_manual_validation_preserves_compact_pys7_addresses(address):
+    assert _canonicalize_logo_addresses(
+        {"address": address}, "logo_0ba8"
+    ) == {"address": address}
+
+
+@pytest.mark.parametrize("family", ["logo_0ba7", "logo_0ba8", "logo_9"])
+def test_entry_payload_always_includes_profile_for_logo_family(family):
+    entry = SimpleNamespace(
+        entry_id="logo", title="LOGO", data={"plc_family": family}, options={}
+    )
+
+    payload = _entry_payload(entry)
+
+    assert payload["plc_family"] == family
+    assert payload["logo_profile"]["family"] == family
+    assert payload["logo_profile"]["areas"]
+
+
 def test_panel_asset_url_uses_manifest_version() -> None:
     manifest = json.loads(
         Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
@@ -62,6 +82,20 @@ def test_panel_displays_integration_version() -> None:
 
     assert "this._panel?.config?.version" in source
     assert 'class="integration-version"' in source
+
+
+def test_connection_details_structural_styles_are_preserved() -> None:
+    """Connection details retain the cards, timeline, and row separators."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
+
+    assert ".connection-head-text{min-width:0;display:flex;flex-direction:column" in styles
+    assert ".availability-title{display:flex;" in styles
+    assert "grid-template-columns:repeat(4,minmax(0,1fr))" in styles
+    assert ".connection-detail-group h3{display:flex;align-items:center;gap:7px" in styles
+    assert ".connection-detail-group h3 ha-icon{" in styles
+    assert ".connection-details .connection-detail-group dl{margin:0;border:1px" in styles
+    assert ".connection-detail+.connection-detail{border-top:1px" in styles
 
 
 def test_compact_selector_descriptions_wrap_long_tokens() -> None:
@@ -1558,6 +1592,28 @@ async def test_save_entity_stores_canonical_builder_item(monkeypatch, editor) ->
     assert saved["name"] == "Temp"
     assert saved["address"] == "DB1,REAL0"
     assert saved["uid"] != "untrusted"
+
+
+@pytest.mark.asyncio
+async def test_save_entity_canonicalizes_logo_ui_notation(monkeypatch) -> None:
+    """The WebSocket boundary stores pyS7 syntax, never LOGO UI notation."""
+    handler, hass, entry, updates = await _save_entity_handler(monkeypatch, {})
+    entry.data["plc_family"] = "logo_0ba8"
+    connection = _Connection()
+
+    await handler(
+        hass,
+        connection,
+        {
+            "id": 1,
+            "entry_id": entry.entry_id,
+            "entity_type": "binary_sensors",
+            "entity": {"name": "Input", "address": "I1"},
+        },
+    )
+
+    assert connection.error is None
+    assert updates[0]["binary_sensors"][0]["address"] == "DB1,X1024.0"
 
 
 @pytest.mark.asyncio

@@ -88,13 +88,17 @@ _LOGO_RE = re.compile(r"^(NFAI|NFAQ|NAI|NAQ|FAM|AI|AQ|AM|NI|NQ|I|Q|M)([1-9]\d*)$
 _VM_RE = re.compile(r"^(V|VB|VW|VD)(\d+)(?:\.([0-7]))?$", re.I)
 
 
-def is_logo_address_candidate(address: str) -> bool:
+def is_logo_address_candidate(address: str, family: str) -> bool:
     """Return whether *address* has symbolic LOGO syntax, valid or not.
 
     This deliberately recognizes zero and out-of-range element numbers so they
     cannot fall through to pyS7's overlapping ``AI``/``AQ`` grammar.
     """
-    return bool(re.fullmatch(r"[A-Z]+\d+", address.strip(), re.I))
+    match = re.fullmatch(r"([A-Z]+)\d+", address.strip(), re.I)
+    if not match:
+        return False
+    prefixes = {area.name for area in get_logo_profile(family).areas}
+    return match.group(1).upper() in prefixes
 
 
 def get_logo_profile(family: str) -> LogoProfile:
