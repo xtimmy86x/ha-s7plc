@@ -67,6 +67,68 @@ def test_compact_selectors_preserve_column_layout_on_mobile() -> None:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_editor_requests_viewport_bounded_desktop_width() -> None:
+    """Only the entity editor requests the wider Home Assistant dialog size."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r"""
+const vm = require("vm");
+let Panel;
+const properties = {};
+const form = {dataset: {}, elements: {}, querySelector: () => null, querySelectorAll: () => []};
+const dialog = {
+    style: {setProperty: (name, value) => properties[name] = value},
+    querySelector: selector => selector === "form" ? form : {},
+    querySelectorAll: () => [],
+    addEventListener() {},
+};
+const context = {
+    HTMLElement: class {},
+    customElements: {get() {}, define: (_, cls) => Panel = cls},
+    document: {createElement: tag => tag === "ha-dialog" ? dialog : {}, body: {appendChild() {}}},
+};
+vm.createContext(context);
+vm.runInContext(process.argv[1], context);
+const panel = new Panel();
+panel.entryId = "entry";
+panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
+panel.editorSections = () => "";
+panel.initAddressBuilders = () => {};
+panel.openEditor(null, "sensors");
+process.stdout.write(JSON.stringify(properties));
+"""
+    result = subprocess.run(
+        ["node", "-e", script, source], check=True, capture_output=True, text=True
+    )
+
+    assert json.loads(result.stdout) == {
+        "--mdc-dialog-max-width": "min(1200px,96vw)",
+        "--mdc-dialog-min-width": "min(1200px,96vw)",
+        "--dialog-content-padding": "0",
+    }
+
+
+def test_address_builder_layout_is_full_width_and_responsive() -> None:
+    """Address controls compact naturally without fixed-width overflow."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    dialog_styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
+    mobile_styles = dialog_styles.rsplit("@media(max-width:650px){", 1)[1]
+
+    assert ".address-builder{container-type:inline-size;grid-column:1/-1;min-width:0" in dialog_styles
+    assert (
+        ".address-controls{display:grid;grid-template-columns:repeat(auto-fit,"
+        "minmax(min(100%,150px),1fr));gap:10px 12px}"
+    ) in dialog_styles
+    assert (
+        "@container(min-width:850px){.address-controls{"
+        "grid-template-columns:repeat(5,minmax(0,1fr))}}"
+    ) in dialog_styles
+    assert ".field-grid{grid-template-columns:1fr}" in mobile_styles
+    assert ".address-controls{grid-template-columns:1fr}" in mobile_styles
+    assert "width:150px" not in dialog_styles
+    assert "min-width:150px" not in dialog_styles
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_registration_is_idempotent() -> None:
     """Repeated resource loads reuse the existing custom element registration."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
