@@ -12,9 +12,15 @@ from urllib.parse import urlencode
 import voluptuous as vol
 import yaml
 
+from .address import parse_tag
 from .config_validation import build_entity_item
-from .const import CONF_UID, DOMAIN, OPTION_KEYS
+from .const import CONF_PLC_FAMILY, CONF_UID, DOMAIN, OPTION_KEYS, PLC_FAMILY_S7
 from .helpers import generate_uid
+from .logo_address import (
+    is_logo_address_candidate,
+    logo_profile_payload,
+    logo_to_s7_address,
+)
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
@@ -84,6 +90,7 @@ def _configuration_from_yaml(
     configuration_yaml: str,
     current_options: dict[str, Any],
     target_entry_id: str | None = None,
+    plc_family: str = PLC_FAMILY_S7,
 ) -> dict[str, Any]:
     """Parse and validate a complete entity configuration from YAML."""
     try:
@@ -129,7 +136,10 @@ def _configuration_from_yaml(
         for index, raw_item in enumerate(raw_items):
             if not isinstance(raw_item, dict):
                 raise ValueError(f"{entity_type}[{index}] must be a mapping")
-            item, errors = build_entity_item(entity_type, raw_item, options=result)
+            normalized_item = _canonicalize_logo_addresses(raw_item, plc_family)
+            item, errors = build_entity_item(
+                entity_type, normalized_item, options=result
+            )
             if item is None:
                 raise ConfigurationValidationError(
                     entity_type, index, errors.get("base", "invalid_configuration")
@@ -239,6 +249,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
     """Return the editable portion of a config entry."""
     runtime_data = getattr(entry, "runtime_data", None)
     coordinator = getattr(runtime_data, "coordinator", None)
+    family = entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7)
     payload = {
         "entry_id": entry.entry_id,
         "title": entry.title,
@@ -251,11 +262,33 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
         "selector_options": _selector_options(),
+        "plc_family": family,
+        "logo_profile": (
+            logo_profile_payload(family) if family != PLC_FAMILY_S7 else None
+        ),
     }
     if hass is not None:
         payload["entity_ids"] = _entity_ids_payload(hass, entry)
         payload["connection_entity_id"] = _connection_entity_id(hass, entry)
     return payload
+
+
+def _canonicalize_logo_addresses(entity: dict[str, Any], family: str) -> dict[str, Any]:
+    """Convert symbolic LOGO! values before normal entity validation."""
+    if family == PLC_FAMILY_S7:
+        return entity
+    result = dict(entity)
+    for key, value in result.items():
+        if not (key == "address" or key.endswith("_address")):
+            continue
+        if not isinstance(value, str) or not value.strip():
+            continue
+        if is_logo_address_candidate(value, family):
+            result[key] = logo_to_s7_address(value, family)
+        else:
+            # Only unambiguously pyS7 input remains valid advanced/manual input.
+            parse_tag(value.strip())
+    return result
 
 
 async def async_setup_panel(hass: Any) -> None:
@@ -357,7 +390,10 @@ async def async_setup_panel(hass: Any) -> None:
             connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
             return
         try:
-            raw_entity = _entity_from_message(msg)
+            raw_entity = _canonicalize_logo_addresses(
+                _entity_from_message(msg),
+                entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+            )
             item, errors = build_entity_item(
                 msg["entity_type"],
                 raw_entity,
@@ -432,7 +468,10 @@ async def async_setup_panel(hass: Any) -> None:
             return
         try:
             options = _configuration_from_yaml(
-                msg["configuration_yaml"], dict(entry.options), entry.entry_id
+                msg["configuration_yaml"],
+                dict(entry.options),
+                entry.entry_id,
+                entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
             )
         except ConfigurationValidationError as err:
             connection.send_error(

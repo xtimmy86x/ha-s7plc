@@ -37,6 +37,7 @@ from .const import (
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
+    CONF_PLC_FAMILY,
     CONF_PYS7_CONNECTION_TYPE,
     CONF_RACK,
     CONF_REMOTE_TSAP,
@@ -57,6 +58,11 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DOMAIN,
+    PLC_FAMILIES,
+    PLC_FAMILY_LOGO_0BA7,
+    PLC_FAMILY_LOGO_0BA8,
+    PLC_FAMILY_LOGO_9,
+    PLC_FAMILY_S7,
     PYS7_CONNECTION_TYPE_OP,
     PYS7_CONNECTION_TYPE_PG,
     PYS7_CONNECTION_TYPE_S7BASIC,
@@ -64,6 +70,35 @@ from .const import (
 from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+_PLC_FAMILY_LABELS = {
+    PLC_FAMILY_S7: "SIMATIC S7",
+    PLC_FAMILY_LOGO_0BA7: "LOGO! 0BA7",
+    PLC_FAMILY_LOGO_0BA8: "LOGO! 0BA8",
+    PLC_FAMILY_LOGO_9: "LOGO! 9",
+}
+
+
+def _compatible_plc_families(connection_type: str) -> tuple[str, ...]:
+    """Return families compatible with a fixed connection method."""
+    if connection_type == CONNECTION_TYPE_RACK_SLOT:
+        return tuple(
+            family for family in PLC_FAMILIES if family != PLC_FAMILY_LOGO_0BA7
+        )
+    return PLC_FAMILIES
+
+
+def _family_selector(families: tuple[str, ...]):
+    """Build the shared PLC family selector."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=value, label=_PLC_FAMILY_LABELS[value])
+                for value in families
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
 
 
 def _get_connection_description(
@@ -382,6 +417,7 @@ def _build_connection_entry_data(
     remote_tsap: str | None,
     rack: int | None,
     slot: int | None,
+    plc_family: str = PLC_FAMILY_S7,
 ) -> dict[str, Any]:
     """Build connection entry data dict."""
     data = {
@@ -390,6 +426,7 @@ def _build_connection_entry_data(
         CONF_PORT: port,
         CONF_CONNECTION_TYPE: connection_type,
         CONF_PYS7_CONNECTION_TYPE: pys7_connection_type,
+        CONF_PLC_FAMILY: plc_family,
         CONF_SCAN_INTERVAL: scan_interval,
         CONF_OP_TIMEOUT: op_timeout,
         CONF_MAX_RETRIES: max_retries,
@@ -442,12 +479,40 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 ],
                                 mode=selector.SelectSelectorMode.DROPDOWN,
                             )
-                        )
+                        ),
+                        vol.Required(
+                            CONF_PLC_FAMILY, default=PLC_FAMILY_S7
+                        ): _family_selector(PLC_FAMILIES),
                     }
                 ),
             )
 
-        self._connection_data[CONF_CONNECTION_TYPE] = user_input[CONF_CONNECTION_TYPE]
+        connection_type = user_input[CONF_CONNECTION_TYPE]
+        family = user_input.get(CONF_PLC_FAMILY, PLC_FAMILY_S7)
+        if family not in _compatible_plc_families(connection_type):
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            CONF_CONNECTION_TYPE, default=connection_type
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[
+                                    CONNECTION_TYPE_RACK_SLOT,
+                                    CONNECTION_TYPE_TSAP,
+                                ]
+                            )
+                        ),
+                        vol.Required(CONF_PLC_FAMILY, default=family): _family_selector(
+                            PLC_FAMILIES
+                        ),
+                    }
+                ),
+                errors={"base": "incompatible_family_connection"},
+            )
+        self._connection_data[CONF_CONNECTION_TYPE] = connection_type
+        self._connection_data[CONF_PLC_FAMILY] = family
 
         if user_input[CONF_CONNECTION_TYPE] == CONNECTION_TYPE_RACK_SLOT:
             return await self.async_step_rack_slot()
@@ -471,13 +536,17 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         )
 
+        family = self._connection_data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7)
+        default_slot = (
+            2 if family in (PLC_FAMILY_LOGO_0BA8, PLC_FAMILY_LOGO_9) else DEFAULT_SLOT
+        )
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_NAME, default="S7 PLC"): str,
                 vol.Required(CONF_HOST): host_selector,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_RACK, default=DEFAULT_RACK): int,
-                vol.Optional(CONF_SLOT, default=DEFAULT_SLOT): int,
+                vol.Optional(CONF_SLOT, default=default_slot): int,
                 vol.Optional(
                     CONF_PYS7_CONNECTION_TYPE, default=DEFAULT_PYS7_CONNECTION_TYPE
                 ): selector.SelectSelector(
@@ -558,13 +627,19 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         )
 
+        family = self._connection_data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7)
+        logo_0ba7 = family == PLC_FAMILY_LOGO_0BA7
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_NAME, default="S7 PLC"): str,
                 vol.Required(CONF_HOST): host_selector,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
-                vol.Required(CONF_LOCAL_TSAP, default="01.00"): str,
-                vol.Required(CONF_REMOTE_TSAP, default="01.01"): str,
+                vol.Required(
+                    CONF_LOCAL_TSAP, default="10.00" if logo_0ba7 else "01.00"
+                ): str,
+                vol.Required(
+                    CONF_REMOTE_TSAP, default="10.01" if logo_0ba7 else "01.01"
+                ): str,
                 vol.Optional(
                     CONF_PYS7_CONNECTION_TYPE, default=DEFAULT_PYS7_CONNECTION_TYPE
                 ): selector.SelectSelector(
@@ -724,6 +799,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             remote_tsap=params.remote_tsap,
             rack=params.rack,
             slot=params.slot,
+            plc_family=self._connection_data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
             enable_metrics=params.enable_metrics,
         )
 
@@ -850,6 +926,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_NAME: data.get(CONF_NAME) or self._config_entry.title or "S7 PLC",
             CONF_HOST: data.get(CONF_HOST, ""),
             **parse_defaults,
+            CONF_PLC_FAMILY: data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
         }
 
         # Build schema based on connection type
@@ -857,6 +934,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
             vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
             vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
+            vol.Required(
+                CONF_PLC_FAMILY, default=defaults[CONF_PLC_FAMILY]
+            ): _family_selector(_compatible_plc_families(connection_type)),
         }
 
         if is_tsap:
@@ -941,6 +1021,15 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(
                 step_id="connection",
                 data_schema=data_schema,
+                description_placeholders=description_placeholders,
+            )
+
+        family = user_input.get(CONF_PLC_FAMILY, defaults[CONF_PLC_FAMILY])
+        if family not in _compatible_plc_families(connection_type):
+            return self.async_show_form(
+                step_id="connection",
+                data_schema=data_schema,
+                errors={"base": "incompatible_family_connection"},
                 description_placeholders=description_placeholders,
             )
 
@@ -1048,6 +1137,7 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             remote_tsap=params.remote_tsap,
             rack=params.rack,
             slot=params.slot,
+            plc_family=family,
         )
 
         update_result = self.hass.config_entries.async_update_entry(

@@ -15,6 +15,7 @@ from custom_components.s7plc.panel import (
     PYS7_VERSION_DATA,
     _configuration_from_yaml,
     _configuration_yaml,
+    _canonicalize_logo_addresses,
     _entity_from_message,
     _entry_payload,
     _versioned_asset_url,
@@ -22,6 +23,49 @@ from custom_components.s7plc.panel import (
 )
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
+PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
+
+
+@pytest.mark.parametrize(
+    ("family", "bad"),
+    [
+        ("logo_0ba7", "AI9"),
+        ("logo_0ba8", "I25"),
+        ("logo_0ba8", "Q21"),
+        ("logo_9", "I65"),
+        ("logo_9", "Q61"),
+    ],
+)
+def test_logo_manual_validation_never_falls_through_to_pys7(family, bad):
+    with pytest.raises(ValueError, match="address_out_of_range"):
+        _canonicalize_logo_addresses({"address": bad}, family)
+
+
+def test_logo_manual_validation_keeps_explicit_s7_address():
+    assert _canonicalize_logo_addresses(
+        {"address": "DB1,INT200"}, "logo_0ba8"
+    ) == {"address": "DB1,INT200"}
+
+
+@pytest.mark.parametrize("address", ["IB10", "QW8", "MD72"])
+def test_logo_manual_validation_preserves_compact_pys7_addresses(address):
+    assert _canonicalize_logo_addresses(
+        {"address": address}, "logo_0ba8"
+    ) == {"address": address}
+
+
+@pytest.mark.parametrize("family", ["logo_0ba7", "logo_0ba8", "logo_9"])
+def test_entry_payload_always_includes_profile_for_logo_family(family):
+    entry = SimpleNamespace(
+        entry_id="logo", title="LOGO", data={"plc_family": family}, options={}
+    )
+
+    payload = _entry_payload(entry)
+
+    assert payload["plc_family"] == family
+    assert payload["logo_profile"]["family"] == family
+    assert payload["logo_profile"]["areas"]
+    assert payload["logo_profile"]["vm_areas"]
 
 
 def test_panel_asset_url_uses_manifest_version() -> None:
@@ -39,6 +83,20 @@ def test_panel_displays_integration_version() -> None:
 
     assert "this._panel?.config?.version" in source
     assert 'class="integration-version"' in source
+
+
+def test_connection_details_structural_styles_are_preserved() -> None:
+    """Connection details retain the cards, timeline, and row separators."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
+
+    assert ".connection-head-text{min-width:0;display:flex;flex-direction:column" in styles
+    assert ".availability-title{display:flex;" in styles
+    assert "grid-template-columns:repeat(4,minmax(0,1fr))" in styles
+    assert ".connection-detail-group h3{display:flex;align-items:center;gap:7px" in styles
+    assert ".connection-detail-group h3 ha-icon{" in styles
+    assert ".connection-details .connection-detail-group dl{margin:0;border:1px" in styles
+    assert ".connection-detail+.connection-detail{border-top:1px" in styles
 
 
 def test_compact_selector_descriptions_wrap_long_tokens() -> None:
@@ -89,7 +147,7 @@ const context = {
     document: {createElement: tag => tag === "ha-dialog" ? dialog : {}, body: {appendChild() {}}},
 };
 vm.createContext(context);
-vm.runInContext(process.argv[1], context);
+vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 const panel = new Panel();
 panel.entryId = "entry";
 panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
@@ -99,7 +157,7 @@ panel.openEditor(null, "sensors");
 process.stdout.write(JSON.stringify({properties, attributes}));
 """
     result = subprocess.run(
-        ["node", "-e", script, source], check=True, capture_output=True, text=True
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)], check=True, capture_output=True, text=True
     )
 
     assert json.loads(result.stdout) == {
@@ -157,13 +215,13 @@ const customElements = {
 for (let load = 0; load < 2; load++) {
     const context = {HTMLElement: class {}, customElements};
     vm.createContext(context);
-    vm.runInContext(process.argv[1], context);
+    vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 }
 process.stdout.write(String(definitions.size));
 """
 
     result = subprocess.run(
-        ["node", "-e", script, source],
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
         check=True,
         capture_output=True,
         text=True,
@@ -216,7 +274,7 @@ const context = {
     document: {createElement: () => dialog, body: {appendChild() {}}},
 };
 vm.createContext(context);
-vm.runInContext(process.argv[1], context);
+vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 const panel = new Panel();
 panel.entryId = "entry";
 panel.entries = [{entry_id: "entry", entities: {sensors: []}}];
@@ -238,7 +296,7 @@ process.stdout.write(JSON.stringify({initial, bit, always}));
 """
 
     result = subprocess.run(
-        ["node", "-e", script, source],
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
         check=True,
         capture_output=True,
         text=True,
@@ -258,7 +316,7 @@ def test_every_editor_renders_one_availability_address_in_ha_details() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel = new S7PlcConfigurationPanel();
 panel.t = key => key;
 panel.fieldText = (_type, key, part) => `${{key}}.${{part}}`;
@@ -304,7 +362,7 @@ def test_climate_availability_visibility_is_independent_of_climate_options() -> 
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const optionChanges = [
   {{control_mode:"direct", direct_function:"heat", direct_feedback:"inferred", mode_control:"setpoint", action_feedback:"inferred"}},
   {{control_mode:"direct", direct_function:"cool", direct_feedback:"plc", mode_control:"coded", action_feedback:"plc"}},
@@ -337,7 +395,7 @@ global.document = {{createElement:()=>{{
   let value="";
   return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}}}};
 }}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key==="common.entity"?"Entity":key;
 panel.bt=key=>key;
@@ -480,7 +538,7 @@ def test_connection_detail_groups_are_ordered_dynamic_and_lossless() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const simplify=data=>connectionDetailGroups(data).map(group=>({{
   key:group.key,fields:group.fields.map(field=>field.key)
 }}));
@@ -557,7 +615,7 @@ def test_connection_values_preserve_dotted_versions() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.panelTranslations={{config_panel:{{connection_details:{{values:{{yes:"Yes",pg:"PG profile"}}}}}}}};
 console.log(JSON.stringify([
@@ -583,7 +641,7 @@ def test_connection_availability_calculations_cover_unknown_and_transitions() ->
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const hour = 3600000, now = Date.parse("2026-08-21T12:00:00Z");
 const history = [
   {{state:"on",last_changed:"2026-08-20T14:00:00Z"}},
@@ -620,7 +678,7 @@ def test_connection_availability_does_not_invent_initial_state() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const now=Date.parse("2026-08-21T12:00:00Z"),hour=3600000;
 const result=BUILD_CONNECTION_AVAILABILITY([{{state:"on",last_changed:"2026-08-21T10:00:00Z"}}],now,24*hour);
 console.log(JSON.stringify(result));
@@ -644,7 +702,7 @@ def test_connection_duration_prefers_live_state_and_handles_edge_cases() -> None
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const hour=3600000,now=Date.parse("2026-08-21T12:00:00Z");
 const historical={{currentUptime:2*hour}};
 const apply=state=>APPLY_LIVE_CONNECTION_DURATION(historical,state,now);
@@ -679,7 +737,7 @@ def test_connection_popup_status_uses_live_sensor_before_snapshot() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 console.log(JSON.stringify([
   LIVE_CONNECTION_STATUS({{state:"on"}},false),
   LIVE_CONNECTION_STATUS({{state:"off"}},true),
@@ -723,7 +781,7 @@ def test_connection_badge_aria_label_is_localized_and_refreshed() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>({{"common.connected":"Connected","common.disconnected":"Disconnected","common.unknown":"Unknown","connection_details.help":"Show connection details"}}[key]);
 panel._loaded=true;panel.entryId="plc";panel.querySelector=()=>badge;
@@ -758,7 +816,7 @@ def test_connection_history_fallback_preserves_only_valid_live_duration() -> Non
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
 console.debug=()=>{{}};
-{source}
+{PANEL_LOADER}
 const now=Date.parse("2026-08-21T12:00:00Z");Date.now=()=>now;
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>({{
@@ -848,7 +906,7 @@ def test_panel_control_mode_mapping_preserves_backend_format() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const fixtures = [
   {{}},
   {{sync_state: true}},
@@ -1538,6 +1596,28 @@ async def test_save_entity_stores_canonical_builder_item(monkeypatch, editor) ->
 
 
 @pytest.mark.asyncio
+async def test_save_entity_canonicalizes_logo_ui_notation(monkeypatch) -> None:
+    """The WebSocket boundary stores pyS7 syntax, never LOGO UI notation."""
+    handler, hass, entry, updates = await _save_entity_handler(monkeypatch, {})
+    entry.data["plc_family"] = "logo_0ba8"
+    connection = _Connection()
+
+    await handler(
+        hass,
+        connection,
+        {
+            "id": 1,
+            "entry_id": entry.entry_id,
+            "entity_type": "binary_sensors",
+            "entity": {"name": "Input", "address": "I1"},
+        },
+    )
+
+    assert connection.error is None
+    assert updates[0]["binary_sensors"][0]["address"] == "DB1,X1024.0"
+
+
+@pytest.mark.asyncio
 async def test_save_entity_edit_preserves_uid_and_normalizes_climate(
     monkeypatch,
 ) -> None:
@@ -1847,7 +1927,7 @@ const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls},co
   fetch:async url=>{urls.push(url);const language=url.match(/\/([^/]+)\.json$/)[1];
     if(!(language in payloads))return {ok:false,status:503};
     return {ok:true,json:async()=>payloads[language]};}};
-vm.createContext(context);vm.runInContext(process.argv[1],context);
+vm.createContext(context);vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'),context);
 (async()=>{const panel=new Panel();panel._hass={locale:{language:process.argv[3]}};
   await panel.loadPanelTranslations();
   process.stdout.write(JSON.stringify({urls,title:panel.t('common.title'),
@@ -1855,7 +1935,7 @@ vm.createContext(context);vm.runInContext(process.argv[1],context);
 """
 
     result = subprocess.run(
-        ["node", "-e", script, source, json.dumps(payloads), locale],
+        ["node", "-e", script, str(PANEL_JAVASCRIPT), json.dumps(payloads), locale],
         check=True,
         capture_output=True,
         text=True,
@@ -1912,7 +1992,7 @@ def test_panel_translates_backend_validation_errors() -> None:
         "const vm=require('vm');"
         "let Panel;"
         "const context={HTMLElement:class{},customElements:{define:(_,cls)=>Panel=cls}};"
-        "vm.createContext(context);vm.runInContext(process.argv[1],context);"
+        "vm.createContext(context);vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'),context);"
         "const panel=new Panel();panel.panelTranslations=JSON.parse(process.argv[2]);"
         "process.stdout.write(JSON.stringify(process.argv.slice(3).map(key=>panel.flowError(key))));"
     )
@@ -1922,7 +2002,7 @@ def test_panel_translates_backend_validation_errors() -> None:
             "node",
             "-e",
             script,
-            source,
+            str(PANEL_JAVASCRIPT),
             json.dumps(translations),
             "invalid_address",
             "duplicate_entry",
@@ -1975,7 +2055,9 @@ def test_options_translations_only_contain_the_live_connection_flow() -> None:
         assert set(options["step"]) == {"connection"}
         assert not legacy_steps & options["step"].keys()
         assert "menu_options" not in options
-        assert set(options["error"]) == {"cannot_connect", "already_configured"}
+        assert set(options["error"]) == {
+            "cannot_connect", "already_configured", "incompatible_family_connection"
+        }
 
 
 def test_panel_backend_validation_errors_have_autonomous_translations() -> None:
@@ -2518,7 +2600,7 @@ const vm = require('vm');
 let Panel;
 const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Panel = cls}};
 vm.createContext(context);
-vm.runInContext(process.argv[1], context);
+vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 const panel = new Panel();
 panel.fieldText = () => 'Label';
 panel.escape = value => String(value);
@@ -2540,7 +2622,7 @@ process.stdout.write(JSON.stringify({
 }));
 """
     result = subprocess.run(
-        ["node", "-e", script, source],
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
         check=True,
         capture_output=True,
         text=True,
@@ -2773,7 +2855,7 @@ def test_fields_contain_only_technical_metadata_and_have_panel_text() -> None:
         pytest.skip("node is required to evaluate FIELDS")
     script = f"""
 global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 console.log(JSON.stringify(FIELDS));
 """
     fields = json.loads(
@@ -2845,7 +2927,7 @@ def test_cover_virtual_modes_and_cleanup_follow_backend_precedence() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const infer = COVER_UI_FROM_ENTITY;
 const clean = (entity, ui) => CLEAN_COVER_ENTITY(entity, ui);
 const mixed={{uid:"kept",name:"Legacy",position_state_address:"DB1,B0",open_command_address:"Q0.0",cover_status_address:"DB1,B10",cover_opening_address:"I0.0",tilt_command_address:"DB1,B2",stop_command_address:"Q0.2"}};
@@ -2964,7 +3046,7 @@ def test_cover_rendered_form_saves_without_use_state_topics_input() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 panel.fieldText=(type,key,part)=>`${{key}}.${{part}}`;
@@ -3022,7 +3104,7 @@ def test_cover_editor_radio_markup_and_form_submission_regressions() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 panel.fieldText=(type,key,part)=>`${{key}}.${{part}}`;
@@ -3141,7 +3223,7 @@ def test_cover_endstop_mode_round_trip_matches_backend_validation() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 const infer=COVER_UI_FROM_ENTITY;
@@ -3203,7 +3285,7 @@ def test_position_cover_endstop_and_movement_bits_round_trip() -> None:
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 const infer=COVER_UI_FROM_ENTITY;
@@ -3264,7 +3346,7 @@ def test_position_cover_default_feedback_uses_position_not_timed_concept() -> No
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 const infer=COVER_UI_FROM_ENTITY;
@@ -3318,7 +3400,7 @@ def test_position_cover_legacy_movement_only_status_saves_without_new_required_f
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 const infer=COVER_UI_FROM_ENTITY;
@@ -3367,7 +3449,7 @@ def test_position_cover_legacy_position_only_status_saves_without_new_required_f
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>key;
 const infer=COVER_UI_FROM_ENTITY;
@@ -3475,7 +3557,7 @@ def test_climate_guided_inference_and_cleanup_are_backward_compatible() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     script = f"""
 global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const infer=CLIMATE_UI_FROM_ENTITY, clean=CLEAN_CLIMATE_ENTITY;
 const mappings={{preset_mode_off_value:null,hvac_status_off_values:"",hvac_status_heating_values:"7"}};
 console.log(JSON.stringify({{
@@ -3522,7 +3604,7 @@ def test_climate_guided_visibility_validation_and_selector_icons() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     script = f"""
 global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
-{source}
+{PANEL_LOADER}
 const visibility=values=>{{const result=CLIMATE_EDITOR_VISIBILITY(values);return {{fields:[...result.fields],sections:[...result.sections]}};}};
 const direct=visibility({{control_mode:"direct",direct_function:"heat",direct_feedback:"inferred",mode_control:"setpoint",action_feedback:"plc"}});
 const inferred=visibility({{control_mode:"setpoint",mode_control:"setpoint",action_feedback:"inferred"}});
@@ -3591,7 +3673,7 @@ global.document = {{createElement:()=>{{
   let value="";
   return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}}}};
 }}}};
-{source}
+{PANEL_LOADER}
 const entities=Object.fromEntries(TYPES.map(type=>[type,[]]));
 entities.sensors=[{{name:"Temperature",address:"DB1,REAL0"}},{{name:"Pressure",address:"DB1,REAL4"}}];
 entities.switches=[{{name:"Pump",state_address:"DB1,X8.0"}}];
@@ -3648,7 +3730,7 @@ def test_panel_layout_toggle_labels_each_action_and_remains_responsive() -> None
     script = f"""
 global.HTMLElement = class {{}};
 global.customElements = {{get(){{}},define(){{}}}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();
 panel.t=key=>({{
   "layout.switch_to_sections":"Switch to all-entities view",
@@ -3775,7 +3857,7 @@ def test_batch_delete_empty_selection_and_tabs_behavior() -> None:
     script = f"""
 global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 let dialogs=0;global.document={{body:{{appendChild(){{dialogs++;}}}},createElement:()=>({{}})}};
-{source}
+{PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel._viewMode='sections';panel.selectedIndices=new Set();panel.removeGroupedSelection();
 panel._viewMode='tabs';panel.selectedIndices=new Set([3,1,3]);
 console.log(JSON.stringify({{dialogs,indices:panel.selectedIndicesFor('sensors')}}));
@@ -3811,7 +3893,7 @@ def test_guided_address_grammar_round_trips_every_supported_type() -> None:
         "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
         "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MD72",
     ]
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify(process.argv.slice(1).map(value=>{{const parsed=PARSE_S7_ADDRESS(value);return [parsed.error,SERIALIZE_S7_ADDRESS(parsed)];}})));'''
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}\nconsole.log(JSON.stringify(process.argv.slice(1).map(value=>{{const parsed=PARSE_S7_ADDRESS(value);return [parsed.error,SERIALIZE_S7_ADDRESS(parsed)];}})));'''
     result = json.loads(subprocess.run(["node", "-e", script, *cases], check=True, capture_output=True, text=True).stdout)
     assert all(not error for error, _ in result)
     # Aliases intentionally serialize to the builder's stable short-token spelling.
@@ -3826,7 +3908,7 @@ def test_guided_address_grammar_round_trips_every_supported_type() -> None:
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_guided_address_validation_and_field_restrictions() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{source}\nconsole.log(JSON.stringify({{
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}\nconsole.log(JSON.stringify({{
       badBit:PARSE_S7_ADDRESS("DB1,X0.8").error,
       missingLength:PARSE_S7_ADDRESS("DB1,S0").error,
       timeArea:PARSE_S7_ADDRESS("MTIME0").error,
@@ -3855,7 +3937,7 @@ def test_address_builder_serialization_and_visibility_behaviour() -> None:
 const vm = require("vm");
 const context = {HTMLElement: class {}, customElements: {define() {}}};
 vm.createContext(context);
-vm.runInContext(process.argv[1] + `
+vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8') + `
 const values = {
   visibility: [
     ADDRESS_FIELD_VISIBILITY("DB", "BIT"),
@@ -3873,7 +3955,7 @@ globalThis.result = JSON.stringify(values);`, context);
 process.stdout.write(context.result);
 '''
     result = json.loads(subprocess.run(
-        ["node", "-e", script, source], check=True, capture_output=True, text=True
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)], check=True, capture_output=True, text=True
     ).stdout)
     assert result["visibility"] == [
         {"dbNumber": True, "bit": True, "length": False},
@@ -3895,7 +3977,7 @@ def test_required_address_builder_blocks_submission_and_gets_focus() -> None:
     script = r'''
 const vm = require("vm"); let Panel;
 const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Panel = cls}};
-vm.createContext(context); vm.runInContext(process.argv[1], context);
+vm.createContext(context); vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 let focused = 0, scrolled = 0;
 const hidden = {value: ""};
 const field = {dataset: {required: "true", addressError: "incomplete"},
@@ -3905,7 +3987,7 @@ const panel = new Panel();
 process.stdout.write(JSON.stringify({valid: panel.validateAddressBuilders(form), focused, scrolled}));
 '''
     value = json.loads(subprocess.run(
-        ["node", "-e", script, source], check=True, capture_output=True, text=True
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)], check=True, capture_output=True, text=True
     ).stdout)
     assert value == {"valid": False, "focused": 1, "scrolled": 1}
 
@@ -3944,6 +4026,15 @@ def test_italian_address_builder_is_translated() -> None:
         "invalid": "Questo indirizzo non può essere rappresentato dall’editor guidato. Correggilo manualmente.",
         "incomplete": "Completa tutte le parti obbligatorie dell’indirizzo.",
         "unsupported": "Questa combinazione di area e tipo di dato non è supportata.",
+        "logo_area": "Area LOGO!",
+        "element_number": "Numero elemento",
+        "vm_offset": "Offset VM",
+        "logo_address": "Indirizzo LOGO!",
+        "internal_address": "Indirizzo interno",
+        "invalid_logo_address": "Indirizzo LOGO! non valido",
+        "address_out_of_range": "Indirizzo fuori intervallo",
+        "address_not_convertible": "Indirizzo non convertibile",
+        "not_configured": "Non configurato",
     }
 
 
@@ -3959,7 +4050,7 @@ const context = {
   customElements: {define: (_, cls) => Panel = cls},
 };
 vm.createContext(context);
-vm.runInContext(process.argv[1], context);
+vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
 const panel = new Panel();
 panel.escape = value => String(value ?? "");
 panel.t = key => key;
@@ -3990,7 +4081,7 @@ process.stdout.write(JSON.stringify({allowed, results}));
 '''
     value = json.loads(
         subprocess.run(
-            ["node", "-e", script, source],
+            ["node", "-e", script, str(PANEL_JAVASCRIPT)],
             check=True,
             capture_output=True,
             text=True,
@@ -4020,3 +4111,256 @@ process.stdout.write(JSON.stringify({allowed, results}));
         }
         for address in ["DB1,X0.0", "I0.0", "Q1.3", "M7.1"]
     ]
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_builder_profiles_preview_reverse_hidden_and_s7_fallback() -> None:
+    """Every selected entry chooses its profile while S7 markup stays unchanged."""
+    script = f'''
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const profile=(family,start,last)=>({{family,areas:[{{name:"I",first:1,last,vm_offset:start,data_type:"X"}}]}});
+const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;
+panel.entries=[
+ {{entry_id:"s7",plc_family:"s7"}},
+ {{entry_id:"a7",plc_family:"logo_0ba7",logo_profile:profile("logo_0ba7",923,24)}},
+ {{entry_id:"a8",plc_family:"logo_0ba8",logo_profile:profile("logo_0ba8",1024,24)}},
+ {{entry_id:"nine",plc_family:"logo_9",logo_profile:profile("logo_9",6024,64)}}];
+const html=id=>{{panel.entryId=id;return panel.addressField("address",id==="nine"?"DB1,X6024.0":"DB1,X1024.0","Address","",true,"sensors");}};
+const p9=panel.entries[3].logo_profile;
+console.log(JSON.stringify({{
+ s7:!html("s7").includes("data-logo-builder"),a7:html("a7").includes("data-logo-builder"),
+ a8:html("a8").includes("data-logo-builder"),nine:html("nine").includes("data-logo-builder"),
+ forward:LOGO_TO_S7(p9,"I1"),reverse:S7_TO_LOGO(p9,"DB1,X6024.0"),
+ out:LOGO_TO_S7(p9,"I65"),reserved:S7_TO_LOGO(p9,"DB1,X6032.0"),
+ markup:html("nine")
+}}));'''
+    value = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert value["s7"] and value["a7"] and value["a8"] and value["nine"]
+    assert value["forward"]["canonical"] == "DB1,X6024.0"
+    assert value["reverse"]["symbol"] == "I1"
+    assert value["out"]["error"] == "address_out_of_range"
+    assert value["reserved"] is None
+    assert 'type="hidden" name="address" value="DB1,X6024.0"' in value["markup"]
+    assert "address_builder.logo_address" in value["markup"]
+    assert "address_builder.internal_address" in value["markup"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_plc_family_connection_group_translation_and_legacy_fallback() -> None:
+    script = f'''
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.panelTranslations={{config_panel:{{connection_details:{{values:{{s7:"SIMATIC S7",logo_9:"LOGO! 9"}}}}}}}};
+const simplify=value=>connectionDetailGroups(value).map(g=>[g.key,g.fields.map(f=>f.key)]);
+console.log(JSON.stringify({{groups:simplify({{plc_family:"logo_9",pys7_version:"3.1.1",connection_type:"rack_slot",rack:0,slot:1}}),translated:panel.connectionValue("logo_9"),legacy:panel.connectionValue("s7")}}));'''
+    value = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    connection = dict(value["groups"])["connection"]
+    assert connection == ["plc_family", "pys7_version", "connection_type", "rack", "slot"]
+    assert not any(key == "other" for key, _fields in value["groups"])
+    assert value["translated"] == "LOGO! 9"
+    assert value["legacy"] == "SIMATIC S7"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_vm_helpers_and_builder_datatype_filtering() -> None:
+    """VM helpers and guided reconstruction stay aligned."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const vmAreas=[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}},{{name:"VB",first:0,last:850,data_type:"BYTE",width:1}},{{name:"VW",first:0,last:849,data_type:"WORD",width:2}},{{name:"VD",first:0,last:847,data_type:"DWORD",width:4}}];
+const profile={{family:"logo_0ba8",vm_last_byte:850,areas:[],vm_areas:vmAreas}};
+const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+const html=value=>panel.addressField("address",value,"Address","",false,"entity_sync");
+console.log(JSON.stringify({{forward:["V0.0","V850.7","VB850","VW849","VD847"].map(v=>LOGO_TO_S7(profile,v)),invalid:["V0","V0.8","VB0.0","VW850","VD848","VB-1"].map(v=>LOGO_TO_S7(profile,v).error),reverse:["DB1,X0.0","DB1,BYTE10","DB1,WORD20","DB1,DWORD30"].map(v=>S7_TO_LOGO(profile,v)?.symbol),candidates:["V0.0","V0.8","VW850","IB10","QW8","MD72","DB1,X0.0"].map(v=>LOGO_ADDRESS_CANDIDATE(profile,v)),byte:html("DB1,BYTE10"),word:html("DB1,WORD20"),dword:html("DB1,DWORD30"),bit:html("DB1,X10.3"),empty:html("")}}));"""
+    value = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert [item["canonical"] for item in value["forward"]] == [
+        "DB1,X0.0", "DB1,X850.7", "DB1,BYTE850", "DB1,WORD849", "DB1,DWORD847"
+    ]
+    assert all(value["invalid"])
+    assert value["reverse"] == ["V0.0", "VB10", "VW20", "VD30"]
+    assert value["candidates"] == [True, True, True, False, False, False, False]
+    for name, expected in (("byte", "VB"), ("word", "VW"), ("dword", "VD"), ("bit", "V")):
+        assert f'<option value="{expected}" selected>' in value[name]
+        assert "address_builder.vm_offset" in value[name]
+    assert "data-logo-bit hidden" not in value["bit"]
+    assert "data-logo-bit hidden" in value["byte"]
+    assert 'type="hidden" name="address" value=""' in value["empty"]
+
+@pytest.mark.parametrize(("source", "expected"), [
+    ("binary_sensors:\n  - address: I1\n", "DB1,X1024.0"),
+    ("switches:\n  - state_address: Q1\n    command_address: M1\n", "DB1,X1064.0"),
+    ("binary_sensors:\n  - address: V0.0\n", "DB1,X0.0"),
+    ("sensors:\n  - address: VB0\n", "DB1,BYTE0"),
+    ("sensors:\n  - address: VW0\n", "DB1,WORD0"),
+    ("sensors:\n  - address: VD0\n", "DB1,DWORD0"),
+])
+def test_complete_logo_configuration_yaml_canonicalizes_addresses(source, expected):
+    saved = _configuration_from_yaml(source, {}, plc_family="logo_0ba8")
+    entity = next(saved[key][0] for key in saved if saved[key])
+    assert expected in entity.values()
+
+
+def test_complete_configuration_yaml_preserves_canonical_and_s7_addresses():
+    canonical = _configuration_from_yaml(
+        "sensors:\n  - address: DB1,REAL0\n", {}, plc_family="logo_0ba8"
+    )
+    s7 = _configuration_from_yaml(
+        "binary_sensors:\n  - address: I1.0\n", {}, plc_family="s7"
+    )
+    assert canonical["sensors"][0]["address"] == "DB1,REAL0"
+    assert s7["binary_sensors"][0]["address"] == "I1.0"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_text_address_fields_are_manual_only_and_preserve_values():
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[{{name:"I",first:1,last:24,vm_offset:1024,data_type:"X"}}],vm_areas:[]}};
+const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+console.log(JSON.stringify(["","DB1,S0.20","DB1,WS0.20"].map(value=>panel.addressField("address",value,"Address","",true,"texts"))));'''
+    values = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    for value, markup in zip(("", "DB1,S0.20", "DB1,WS0.20"), values, strict=True):
+        assert 'data-address-mode="guided" disabled' in markup
+        assert 'data-address-mode="manual" class="active"' in markup
+        assert 'class="address-guided" hidden' in markup
+        assert f'value="{value}"' in markup
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_manual_to_guided_keeps_valid_nonconvertible_address():
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[],vm_areas:[]}};const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.entries=[{{entry_id:"logo",logo_profile:profile}}];panel.entryId="logo";
+const results=["DB1,REAL0","DB1,TIME0","IB10"].map(value=>{{const hidden={{value}},manual={{value,addEventListener(){{}},dispatchEvent(){{}}}},guided={{hidden:true}},manualBox={{hidden:false}},area={{value:"",addEventListener(){{}}}},number={{value:"1",addEventListener(){{}}}},bit={{value:"0",addEventListener(){{}}}},numberText={{textContent:""}},bitBox={{hidden:true}},logoPreview={{textContent:""}},internalPreview={{textContent:""}},error={{textContent:"",hidden:true}},buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(){{}}}}}}));const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logoPreview],["[data-internal-preview]",internalPreview],[".address-error",error]]);const field={{dataset:{{required:"false",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[]}};panel.initLogoAddressBuilders({{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:[]}});buttons[0].onclick();return {{value:hidden.value,error:error.textContent,addressError:field.dataset.addressError,guidedHidden:guided.hidden}};}});console.log(JSON.stringify(results));'''
+    results = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert results == [
+        {"value": value, "error": "", "addressError": "", "guidedHidden": True}
+        for value in ("DB1,REAL0", "DB1,TIME0", "IB10")
+    ]
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_manual_input_preserves_progress_and_resets_only_when_requested() -> None:
+    """Manual LOGO input never erases incomplete or invalid text while typing."""
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[],vm_areas:[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}},{{name:"VW",first:0,last:849,data_type:"WORD",width:2}}]}};
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.entries=[{{entry_id:"logo",logo_profile:profile}}];panel.entryId="logo";
+const listeners={{}},element=(value="")=>({{value,disabled:false,hidden:false,textContent:"",min:"",max:"",addEventListener(type,fn){{listeners[this.id+type]=fn;}},dispatchEvent(event){{listeners[this.id+event.type]?.();}}}});
+const hidden=element(),manual=element(),guided=element(),manualBox=element(),area=element(),number=element(),numberText=element(),bitBox=element(),bit=element(),logo=element(),internal=element(),error=element();manual.id="manual";area.id="area";number.id="number";bit.id="bit";
+let active="";const buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(_name,on){{if(on)active=mode;}}}}}}));
+const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logo],["[data-internal-preview]",internal],[".address-error",error]]);
+const field={{dataset:{{required:"false",logoGuided:"true",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[]}};
+panel.initLogoAddressBuilders({{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:[]}});buttons[1].onclick();
+const snapshot=()=>({{manual:manual.value,hidden:hidden.value,logo:logo.textContent,internal:internal.textContent,error:field.dataset.addressError,mode:active}});
+const type=value=>{{manual.value=value;manual.dispatchEvent(new Event("input"));return snapshot();}};
+const vm=["V","VW","VW2"].map(type),real=["D","DB","DB1,","DB1,R","DB1,REAL0"].map(type),out=[type("VW9999"),type("VW99"),type("VW2")];
+type("DB1,REAL0");buttons[0].onclick();const nonconvertible=snapshot();
+area.value="";area.dispatchEvent(new Event("change"));const reset=snapshot();
+console.log(JSON.stringify({{vm,real,out,nonconvertible,reset}}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+
+    for state, typed in zip(result["vm"], ("V", "VW", "VW2"), strict=True):
+        assert state["manual"] == typed
+        assert state["mode"] == "manual"
+    for state in result["vm"][:-1]:
+        assert state["hidden"] == ""
+        assert state["logo"] == ""
+        assert state["internal"] == ""
+        assert state["error"]
+    assert result["vm"][-1] == {
+        "manual": "VW2", "hidden": "DB1,WORD2", "logo": "VW2",
+        "internal": "DB1,WORD2", "error": "", "mode": "manual",
+    }
+    for state, typed in zip(
+        result["real"], ("D", "DB", "DB1,", "DB1,R", "DB1,REAL0"), strict=True
+    ):
+        assert state["manual"] == typed
+        assert state["mode"] == "manual"
+    for state in result["real"][:-1]:
+        assert state["hidden"] == ""
+        assert state["logo"] == ""
+        assert state["internal"] == ""
+        assert state["error"]
+    assert result["real"][-1] == {
+        "manual": "DB1,REAL0", "hidden": "DB1,REAL0", "logo": "",
+        "internal": "DB1,REAL0", "error": "", "mode": "manual",
+    }
+    assert result["out"][0] == {
+        "manual": "VW9999", "hidden": "", "logo": "VW9999",
+        "internal": "", "error": "address_out_of_range", "mode": "manual",
+    }
+    assert result["out"][-1]["hidden"] == "DB1,WORD2"
+    assert result["out"][-1]["error"] == ""
+    assert result["nonconvertible"] == {
+        "manual": "DB1,REAL0", "hidden": "DB1,REAL0", "logo": "",
+        "internal": "DB1,REAL0", "error": "", "mode": "manual",
+    }
+    assert result["reset"] == {
+        "manual": "", "hidden": "", "logo": "", "internal": "",
+        "error": "", "mode": "manual",
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_builder_empty_area_dom_events_and_validation() -> None:
+    """Empty LOGO fields stay empty and only generate after an area event."""
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[{{name:"AI",first:1,last:8,vm_offset:1032,data_type:"INT"}}],vm_areas:[{{name:"VW",first:0,last:849,data_type:"WORD",width:2}}]}};
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+function builder(required=false,initial=""){{
+ const listeners={{}},element=(value="")=>({{value,disabled:false,hidden:false,textContent:"",min:"",max:"",addEventListener(type,fn){{listeners[this.id+type]=fn;}},dispatchEvent(event){{listeners[this.id+event.type]?.();}},classList:{{toggle(){{}}}}}});
+ const hidden=element(initial),manual=element(initial),guided=element(),manualBox=element(),area=element(),number=element(),numberText=element(),bitBox=element(),bit=element(),logo=element(),internal=element(),error=element();
+ area.id="area";number.id="number";bit.id="bit";manual.id="manual";
+ const buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(){{}}}}}}));
+ const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logo],["[data-internal-preview]",internal],[".address-error",error]]);
+ const field={{dataset:{{required:String(required),logoGuided:"true",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[],focus(){{}},scrollIntoView(){{}}}};
+ const form={{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:s==="[data-address-builder]"?[field]:[]}};
+ panel.initLogoAddressBuilders(form);
+ const snapshot=()=>({{area:area.value,number:number.value,numberDisabled:number.disabled,bitDisabled:bit.disabled,hidden:hidden.value,logo:logo.textContent,internal:internal.textContent,error:field.dataset.addressError,valid:panel.validateAddressBuilders(form)}});
+ const initialState=snapshot();area.value="AI";area.dispatchEvent(new Event("change"));const selected=snapshot();area.value="";area.dispatchEvent(new Event("change"));return {{initial:initialState,selected,cleared:snapshot()}};
+}}
+const existing=builder(false,"DB1,WORD2").initial;
+const markup=panel.logoAddressField("command_address","","Command","",false,"numbers",profile);
+console.log(JSON.stringify({{optional:builder(),required:builder(true),existing,markup}}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+
+    empty = {"area": "", "number": "", "numberDisabled": True,
+             "bitDisabled": True, "hidden": "", "logo": "", "internal": ""}
+    assert result["optional"]["initial"] == {**empty, "error": "", "valid": True}
+    assert result["optional"]["selected"] == {
+        "area": "AI", "number": 1, "numberDisabled": False,
+        "bitDisabled": True, "hidden": "DB1,INT1032", "logo": "AI1",
+        "internal": "DB1,INT1032", "error": "", "valid": True,
+    }
+    assert result["optional"]["cleared"] == {**empty, "error": "", "valid": True}
+    assert result["required"]["initial"] == {
+        **empty, "error": "incomplete", "valid": False,
+    }
+    assert result["existing"]["area"] == "VW"
+    assert result["existing"]["number"] == 2
+    assert result["existing"]["logo"] == "VW2"
+    assert result["existing"]["hidden"] == "DB1,WORD2"
+    assert '<option value="" selected>address_builder.not_configured</option>' in result["markup"]
+    assert "address_builder.command_address_fallback" not in result["markup"]
+    assert "command-address-fallback" not in result["markup"]
+
+
+def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
+    saved = _configuration_from_yaml(
+        "numbers:\n  - address: DB1,WORD2\n    min_value: 0\n    max_value: 7000\n",
+        {},
+        plc_family="logo_0ba8",
+    )
+    assert saved["numbers"][0]["address"] == "DB1,WORD2"
+    assert "command_address" not in saved["numbers"][0]

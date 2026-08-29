@@ -18,6 +18,18 @@ CONF_CONNECTION_TYPE = "connection_type"
 CONF_PYS7_CONNECTION_TYPE = "pys7_connection_type"
 CONF_LOCAL_TSAP = "local_tsap"
 CONF_REMOTE_TSAP = "remote_tsap"
+CONF_PLC_FAMILY = "plc_family"
+
+PLC_FAMILY_S7 = "s7"
+PLC_FAMILY_LOGO_0BA7 = "logo_0ba7"
+PLC_FAMILY_LOGO_0BA8 = "logo_0ba8"
+PLC_FAMILY_LOGO_9 = "logo_9"
+PLC_FAMILIES = (
+    PLC_FAMILY_S7,
+    PLC_FAMILY_LOGO_0BA7,
+    PLC_FAMILY_LOGO_0BA8,
+    PLC_FAMILY_LOGO_9,
+)
 
 CONNECTION_TYPE_RACK_SLOT = "rack_slot"
 CONNECTION_TYPE_TSAP = "tsap"

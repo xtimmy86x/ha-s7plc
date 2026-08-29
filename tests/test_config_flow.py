@@ -102,6 +102,69 @@ def test_initial_config_flow_creates_connection(monkeypatch, connection_type, st
     assert result["kwargs"]["data"][const.CONF_CONNECTION_TYPE] == connection_type
 
 
+def test_initial_config_flow_persists_logo_family_and_uses_verified_defaults():
+    flow = config_flow.S7PLCConfigFlow()
+    flow.hass = HomeAssistant()
+    flow._discovered_hosts = []
+    result = run_flow(
+        flow.async_step_user(
+            {
+                const.CONF_CONNECTION_TYPE: const.CONNECTION_TYPE_RACK_SLOT,
+                const.CONF_PLC_FAMILY: const.PLC_FAMILY_LOGO_0BA8,
+            }
+        )
+    )
+    assert result["kwargs"]["step_id"] == "rack_slot"
+    schema = result["kwargs"]["data_schema"].schema
+    defaults = {key.schema: key.default for key in schema if hasattr(key, "default")}
+    assert defaults[const.CONF_RACK] == 0
+    assert defaults[const.CONF_SLOT] == 2
+
+
+def test_initial_logo_0ba7_tsap_defaults_are_verified_values():
+    flow = config_flow.S7PLCConfigFlow()
+    flow.hass = HomeAssistant()
+    flow._discovered_hosts = []
+    result = run_flow(
+        flow.async_step_user(
+            {
+                const.CONF_CONNECTION_TYPE: const.CONNECTION_TYPE_TSAP,
+                const.CONF_PLC_FAMILY: const.PLC_FAMILY_LOGO_0BA7,
+            }
+        )
+    )
+    schema = result["kwargs"]["data_schema"].schema
+    defaults = {key.schema: key.default for key in schema if hasattr(key, "default")}
+    assert defaults[const.CONF_LOCAL_TSAP] == "10.00"
+    assert defaults[const.CONF_REMOTE_TSAP] == "10.01"
+
+
+def test_initial_flow_rejects_logo_0ba7_rack_slot_combination():
+    flow = config_flow.S7PLCConfigFlow()
+    flow.hass = HomeAssistant()
+    result = run_flow(
+        flow.async_step_user(
+            {
+                const.CONF_CONNECTION_TYPE: const.CONNECTION_TYPE_RACK_SLOT,
+                const.CONF_PLC_FAMILY: const.PLC_FAMILY_LOGO_0BA7,
+            }
+        )
+    )
+    assert result["kwargs"]["step_id"] == "user"
+    assert result["kwargs"]["errors"] == {"base": "incompatible_family_connection"}
+
+
+def test_options_family_fallback_and_connection_compatible_choices():
+    legacy = config_flow.S7PLCOptionsFlow(make_config_entry(data=connection_data()))
+    legacy.hass = HomeAssistant()
+    result = run_flow(legacy.async_step_connection())
+    schema = result["kwargs"]["data_schema"].schema
+    family_marker = next(key for key in schema if key.schema == const.CONF_PLC_FAMILY)
+    assert family_marker.default == const.PLC_FAMILY_S7
+    choices = schema[family_marker].config.options
+    assert const.PLC_FAMILY_LOGO_0BA7 not in {choice["value"] for choice in choices}
+
+
 def test_initial_config_flow_connection_error(monkeypatch):
     flow = config_flow.S7PLCConfigFlow()
     flow.hass = HomeAssistant()
