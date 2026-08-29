@@ -4364,3 +4364,52 @@ def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
     )
     assert saved["numbers"][0]["address"] == "DB1,WORD2"
     assert "command_address" not in saved["numbers"][0]
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_address_modes_persist_per_plc_entity_and_field() -> None:
+    """Saved UI choices are isolated and invalid/absent preferences fall back safely."""
+    script = f'''
+const store = new Map();
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+global.localStorage={{getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
+panel.entries=[{{entry_id:"plc-a",plc_family:"s7"}},{{entry_id:"plc-b",plc_family:"s7"}}];
+const render=(entryId,identity,field,value)=>{{panel.entryId=entryId;panel._addressPreferenceContext={{entryId,type:"switches",identity}};return panel.addressField(field,value,field,"",false,"switches");}};
+const mode=html=>html.includes('data-address-mode="guided" class="active"')?"guided":"manual";
+const state={{automatic:mode(render("plc-a","entity-a","state_address","DB1,X0.0")),unparseable:mode(render("plc-a","entity-a","state_address","not-an-address"))}};
+panel._addressPreferenceContext={{entryId:"plc-a",type:"switches",identity:"entity-a"}};
+panel.writeAddressMode(panel.addressPreferenceKey("state_address"),"manual");
+panel.writeAddressMode(panel.addressPreferenceKey("command_address"),"guided");
+state.savedManual=mode(render("plc-a","entity-a","state_address","DB1,X0.0"));
+state.otherField=mode(render("plc-a","entity-a","command_address","DB1,X0.1"));
+state.otherEntity=mode(render("plc-a","entity-b","state_address","DB1,X0.0"));
+state.otherPlc=mode(render("plc-b","entity-a","state_address","DB1,X0.0"));
+store.set(ADDRESS_MODE_STORAGE_KEY,'{{"bad":"sideways"');
+state.invalidStorage=mode(render("plc-a","entity-a","state_address","DB1,X0.0"));
+store.set(ADDRESS_MODE_STORAGE_KEY,JSON.stringify({{[panel.addressPreferenceKey("state_address")]:"guided"}}));
+state.invalidNeverGuided=mode(render("plc-a","entity-a","state_address","not-an-address"));
+console.log(JSON.stringify(state));'''
+    result = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    )
+    assert json.loads(result.stdout) == {
+        "automatic": "guided",
+        "unparseable": "manual",
+        "savedManual": "manual",
+        "otherField": "guided",
+        "otherEntity": "guided",
+        "otherPlc": "guided",
+        "invalidStorage": "guided",
+        "invalidNeverGuided": "manual",
+    }
+
+
+def test_address_mode_toggle_preserves_address_value() -> None:
+    """Mode event handlers only copy the current value; they never clear or convert it."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert "manual.value=hidden.value;setMode('manual');this.writeAddressMode" in source
+    assert "hidden.value=manual.value;writeParts(parsed);setMode('guided')" in source
+    assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'manual')" in source
+    assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'guided')" in source
