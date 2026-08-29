@@ -4034,6 +4034,8 @@ def test_italian_address_builder_is_translated() -> None:
         "invalid_logo_address": "Indirizzo LOGO! non valido",
         "address_out_of_range": "Indirizzo fuori intervallo",
         "address_not_convertible": "Indirizzo non convertibile",
+        "not_configured": "Non configurato",
+        "command_address_fallback": "Se non configurato, verrà utilizzato l’indirizzo di stato.",
     }
 
 
@@ -4244,3 +4246,57 @@ const results=["DB1,REAL0","DB1,TIME0","IB10"].map(value=>{{const hidden={{value
         {"value": value, "error": "", "addressError": "", "guidedHidden": True}
         for value in ("DB1,REAL0", "DB1,TIME0", "IB10")
     ]
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_builder_empty_area_dom_events_and_validation() -> None:
+    """Empty LOGO fields stay empty and only generate after an area event."""
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[{{name:"AI",first:1,last:8,vm_offset:1032,data_type:"INT"}}],vm_areas:[{{name:"VW",first:0,last:849,data_type:"WORD",width:2}}]}};
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+function builder(required=false,initial=""){{
+ const listeners={{}},element=(value="")=>({{value,disabled:false,hidden:false,textContent:"",min:"",max:"",addEventListener(type,fn){{listeners[this.id+type]=fn;}},dispatchEvent(event){{listeners[this.id+event.type]?.();}},classList:{{toggle(){{}}}}}});
+ const hidden=element(initial),manual=element(initial),guided=element(),manualBox=element(),area=element(),number=element(),numberText=element(),bitBox=element(),bit=element(),logo=element(),internal=element(),error=element();
+ area.id="area";number.id="number";bit.id="bit";manual.id="manual";
+ const buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(){{}}}}}}));
+ const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logo],["[data-internal-preview]",internal],[".address-error",error]]);
+ const field={{dataset:{{required:String(required),logoGuided:"true",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[],focus(){{}},scrollIntoView(){{}}}};
+ const form={{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:s==="[data-address-builder]"?[field]:[]}};
+ panel.initLogoAddressBuilders(form);
+ const snapshot=()=>({{area:area.value,number:number.value,numberDisabled:number.disabled,bitDisabled:bit.disabled,hidden:hidden.value,logo:logo.textContent,internal:internal.textContent,error:field.dataset.addressError,valid:panel.validateAddressBuilders(form)}});
+ const initialState=snapshot();area.value="AI";area.dispatchEvent(new Event("change"));const selected=snapshot();area.value="";area.dispatchEvent(new Event("change"));return {{initial:initialState,selected,cleared:snapshot()}};
+}}
+const existing=builder(false,"DB1,WORD2").initial;
+const markup=panel.logoAddressField("command_address","","Command","",false,"numbers",profile);
+console.log(JSON.stringify({{optional:builder(),required:builder(true),existing,markup}}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+
+    empty = {"area": "", "number": "", "numberDisabled": True,
+             "bitDisabled": True, "hidden": "", "logo": "", "internal": ""}
+    assert result["optional"]["initial"] == {**empty, "error": "", "valid": True}
+    assert result["optional"]["selected"] == {
+        "area": "AI", "number": 1, "numberDisabled": False,
+        "bitDisabled": True, "hidden": "DB1,INT1032", "logo": "AI1",
+        "internal": "DB1,INT1032", "error": "", "valid": True,
+    }
+    assert result["optional"]["cleared"] == {**empty, "error": "", "valid": True}
+    assert result["required"]["initial"] == {
+        **empty, "error": "incomplete", "valid": False,
+    }
+    assert result["existing"]["area"] == "VW"
+    assert result["existing"]["number"] == 2
+    assert result["existing"]["logo"] == "VW2"
+    assert result["existing"]["hidden"] == "DB1,WORD2"
+    assert '<option value="" selected>address_builder.not_configured</option>' in result["markup"]
+    assert "address_builder.command_address_fallback" in result["markup"]
+
+
+def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
+    saved = _configuration_from_yaml(
+        "numbers:\n  - address: DB1,WORD2\n    min_value: 0\n    max_value: 7000\n",
+        {},
+        plc_family="logo_0ba8",
+    )
+    assert saved["numbers"][0]["address"] == "DB1,WORD2"
+    assert "command_address" not in saved["numbers"][0]

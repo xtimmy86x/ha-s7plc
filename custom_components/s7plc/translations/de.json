@@ -1196,7 +1196,9 @@
       "invalid_logo_address": "Ungültige LOGO!-Adresse",
       "address_out_of_range": "Adresse außerhalb des Bereichs",
       "address_not_convertible": "Adresse kann nicht konvertiert werden",
-      "vm_offset": "VM-Offset"
+      "vm_offset": "VM-Offset",
+      "not_configured": "Nicht konfiguriert",
+      "command_address_fallback": "Wenn nicht konfiguriert, wird die Statusadresse verwendet."
     }
   },
   "selector": {

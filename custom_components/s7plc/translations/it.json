@@ -1196,7 +1196,9 @@
       "invalid_logo_address": "Indirizzo LOGO! non valido",
       "address_out_of_range": "Indirizzo fuori intervallo",
       "address_not_convertible": "Indirizzo non convertibile",
-      "vm_offset": "Offset VM"
+      "vm_offset": "Offset VM",
+      "not_configured": "Non configurato",
+      "command_address_fallback": "Se non configurato, verrà utilizzato l’indirizzo di stato."
     }
   },
   "selector": {
