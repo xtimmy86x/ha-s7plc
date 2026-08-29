@@ -84,7 +84,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Nelze se připojit k PLC. Zkontrolujte hostitele, rack, slot, port a síť."
+      "cannot_connect": "Nelze se připojit k PLC. Zkontrolujte hostitele, rack, slot, port a síť.",
+      "incompatible_family_connection": "Vybraná rodina PLC není kompatibilní s touto metodou připojení."
     },
     "abort": {
       "already_configured": "Toto PLC je už nakonfigurováno."
@@ -132,7 +133,8 @@
     },
     "error": {
       "cannot_connect": "Nelze se připojit k PLC s poskytnutým nastavením.",
-      "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení."
+      "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení.",
+      "incompatible_family_connection": "Vybraná rodina PLC není kompatibilní s touto metodou připojení."
     }
   },
   "issues": {
@@ -1194,7 +1196,6 @@
       "invalid_logo_address": "Neplatná adresa LOGO!",
       "address_out_of_range": "Adresa je mimo rozsah",
       "address_not_convertible": "Adresu nelze převést",
-      "vm_manual": "Paměť VM / ruční pokročilé",
       "vm_offset": "Offset VM"
     }
   },

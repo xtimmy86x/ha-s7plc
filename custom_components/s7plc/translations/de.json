@@ -84,7 +84,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zur SPS nicht möglich. Überprüfen Sie Host, Rack, Slot, Port und Netzwerk."
+      "cannot_connect": "Verbindung zur SPS nicht möglich. Überprüfen Sie Host, Rack, Slot, Port und Netzwerk.",
+      "incompatible_family_connection": "Die ausgewählte SPS-Familie ist mit dieser Verbindungsmethode nicht kompatibel."
     },
     "abort": {
       "already_configured": "Diese SPS ist bereits konfiguriert."
@@ -132,7 +133,8 @@
     },
     "error": {
       "cannot_connect": "Verbindung zur SPS mit den angegebenen Einstellungen nicht möglich.",
-      "already_configured": "Ein anderer S7-SPS-Eintrag verwendet bereits diese Verbindungsparameter."
+      "already_configured": "Ein anderer S7-SPS-Eintrag verwendet bereits diese Verbindungsparameter.",
+      "incompatible_family_connection": "Die ausgewählte SPS-Familie ist mit dieser Verbindungsmethode nicht kompatibel."
     }
   },
   "issues": {
@@ -1194,7 +1196,6 @@
       "invalid_logo_address": "Ungültige LOGO!-Adresse",
       "address_out_of_range": "Adresse außerhalb des Bereichs",
       "address_not_convertible": "Adresse kann nicht konvertiert werden",
-      "vm_manual": "VM-Speicher / erweitert manuell",
       "vm_offset": "VM-Offset"
     }
   },

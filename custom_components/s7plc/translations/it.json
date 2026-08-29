@@ -84,7 +84,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete."
+      "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete.",
+      "incompatible_family_connection": "La famiglia PLC selezionata non è compatibile con questo metodo di connessione."
     },
     "abort": {
       "already_configured": "Questo PLC è già configurato."
@@ -132,7 +133,8 @@
     },
     "error": {
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
-      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione."
+      "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
+      "incompatible_family_connection": "La famiglia PLC selezionata non è compatibile con questo metodo di connessione."
     }
   },
   "issues": {
@@ -1194,7 +1196,6 @@
       "invalid_logo_address": "Indirizzo LOGO! non valido",
       "address_out_of_range": "Indirizzo fuori intervallo",
       "address_not_convertible": "Indirizzo non convertibile",
-      "vm_manual": "Memoria VM / manuale avanzato",
       "vm_offset": "Offset VM"
     }
   },

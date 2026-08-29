@@ -2055,7 +2055,9 @@ def test_options_translations_only_contain_the_live_connection_flow() -> None:
         assert set(options["step"]) == {"connection"}
         assert not legacy_steps & options["step"].keys()
         assert "menu_options" not in options
-        assert set(options["error"]) == {"cannot_connect", "already_configured"}
+        assert set(options["error"]) == {
+            "cannot_connect", "already_configured", "incompatible_family_connection"
+        }
 
 
 def test_panel_backend_validation_errors_have_autonomous_translations() -> None:
@@ -4032,7 +4034,6 @@ def test_italian_address_builder_is_translated() -> None:
         "invalid_logo_address": "Indirizzo LOGO! non valido",
         "address_out_of_range": "Indirizzo fuori intervallo",
         "address_not_convertible": "Indirizzo non convertibile",
-        "vm_manual": "Memoria VM / manuale avanzato",
     }
 
 
@@ -4189,3 +4190,57 @@ console.log(JSON.stringify({{forward:["V0.0","V850.7","VB850","VW849","VD847"].m
     assert "data-logo-bit hidden" not in value["bit"]
     assert "data-logo-bit hidden" in value["byte"]
     assert 'type="hidden" name="address" value=""' in value["empty"]
+
+@pytest.mark.parametrize(("source", "expected"), [
+    ("binary_sensors:\n  - address: I1\n", "DB1,X1024.0"),
+    ("switches:\n  - state_address: Q1\n    command_address: M1\n", "DB1,X1064.0"),
+    ("binary_sensors:\n  - address: V0.0\n", "DB1,X0.0"),
+    ("sensors:\n  - address: VB0\n", "DB1,BYTE0"),
+    ("sensors:\n  - address: VW0\n", "DB1,WORD0"),
+    ("sensors:\n  - address: VD0\n", "DB1,DWORD0"),
+])
+def test_complete_logo_configuration_yaml_canonicalizes_addresses(source, expected):
+    saved = _configuration_from_yaml(source, {}, plc_family="logo_0ba8")
+    entity = next(saved[key][0] for key in saved if saved[key])
+    assert expected in entity.values()
+
+
+def test_complete_configuration_yaml_preserves_canonical_and_s7_addresses():
+    canonical = _configuration_from_yaml(
+        "sensors:\n  - address: DB1,REAL0\n", {}, plc_family="logo_0ba8"
+    )
+    s7 = _configuration_from_yaml(
+        "binary_sensors:\n  - address: I1.0\n", {}, plc_family="s7"
+    )
+    assert canonical["sensors"][0]["address"] == "DB1,REAL0"
+    assert s7["binary_sensors"][0]["address"] == "I1.0"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_text_address_fields_are_manual_only_and_preserve_values():
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[{{name:"I",first:1,last:24,vm_offset:1024,data_type:"X"}}],vm_areas:[]}};
+const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
+console.log(JSON.stringify(["","DB1,S0.20","DB1,WS0.20"].map(value=>panel.addressField("address",value,"Address","",true,"texts"))));'''
+    values = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    for value, markup in zip(("", "DB1,S0.20", "DB1,WS0.20"), values, strict=True):
+        assert 'data-address-mode="guided" disabled' in markup
+        assert 'data-address-mode="manual" class="active"' in markup
+        assert 'class="address-guided" hidden' in markup
+        assert f'value="{value}"' in markup
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_manual_to_guided_keeps_valid_nonconvertible_address():
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[],vm_areas:[]}};const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.entries=[{{entry_id:"logo",logo_profile:profile}}];panel.entryId="logo";
+const results=["DB1,REAL0","DB1,TIME0","IB10"].map(value=>{{const hidden={{value}},manual={{value,addEventListener(){{}},dispatchEvent(){{}}}},guided={{hidden:true}},manualBox={{hidden:false}},area={{value:"",addEventListener(){{}}}},number={{value:"1",addEventListener(){{}}}},bit={{value:"0",addEventListener(){{}}}},numberText={{textContent:""}},bitBox={{hidden:true}},logoPreview={{textContent:""}},internalPreview={{textContent:""}},error={{textContent:"",hidden:true}},buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(){{}}}}}}));const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logoPreview],["[data-internal-preview]",internalPreview],[".address-error",error]]);const field={{dataset:{{required:"false",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[]}};panel.initLogoAddressBuilders({{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:[]}});buttons[0].onclick();return {{value:hidden.value,error:error.textContent,addressError:field.dataset.addressError,guidedHidden:guided.hidden}};}});console.log(JSON.stringify(results));'''
+    results = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert results == [
+        {"value": value, "error": "", "addressError": "", "guidedHidden": True}
+        for value in ("DB1,REAL0", "DB1,TIME0", "IB10")
+    ]

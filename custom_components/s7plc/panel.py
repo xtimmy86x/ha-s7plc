@@ -90,6 +90,7 @@ def _configuration_from_yaml(
     configuration_yaml: str,
     current_options: dict[str, Any],
     target_entry_id: str | None = None,
+    plc_family: str = PLC_FAMILY_S7,
 ) -> dict[str, Any]:
     """Parse and validate a complete entity configuration from YAML."""
     try:
@@ -135,7 +136,10 @@ def _configuration_from_yaml(
         for index, raw_item in enumerate(raw_items):
             if not isinstance(raw_item, dict):
                 raise ValueError(f"{entity_type}[{index}] must be a mapping")
-            item, errors = build_entity_item(entity_type, raw_item, options=result)
+            normalized_item = _canonicalize_logo_addresses(raw_item, plc_family)
+            item, errors = build_entity_item(
+                entity_type, normalized_item, options=result
+            )
             if item is None:
                 raise ConfigurationValidationError(
                     entity_type, index, errors.get("base", "invalid_configuration")
@@ -464,7 +468,10 @@ async def async_setup_panel(hass: Any) -> None:
             return
         try:
             options = _configuration_from_yaml(
-                msg["configuration_yaml"], dict(entry.options), entry.entry_id
+                msg["configuration_yaml"],
+                dict(entry.options),
+                entry.entry_id,
+                entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
             )
         except ConfigurationValidationError as err:
             connection.send_error(

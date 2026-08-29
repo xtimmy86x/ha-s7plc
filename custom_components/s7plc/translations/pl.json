@@ -84,7 +84,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Nie można połączyć się z PLC. Sprawdź host, rack, slot, port i sieć."
+      "cannot_connect": "Nie można połączyć się z PLC. Sprawdź host, rack, slot, port i sieć.",
+      "incompatible_family_connection": "Wybrana rodzina PLC nie jest zgodna z tą metodą połączenia."
     },
     "abort": {
       "already_configured": "Ten PLC jest już skonfigurowany."
@@ -132,7 +133,8 @@
     },
     "error": {
       "cannot_connect": "Nie można połączyć się z PLC przy użyciu podanych parametrów.",
-      "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia."
+      "already_configured": "Inna konfiguracja PLC używa już tych parametrów połączenia.",
+      "incompatible_family_connection": "Wybrana rodzina PLC nie jest zgodna z tą metodą połączenia."
     }
   },
   "issues": {
@@ -1194,7 +1196,6 @@
       "invalid_logo_address": "Nieprawidłowy adres LOGO!",
       "address_out_of_range": "Adres poza zakresem",
       "address_not_convertible": "Nie można przekonwertować adresu",
-      "vm_manual": "Pamięć VM / ręczny zaawansowany",
       "vm_offset": "Offset VM"
     }
   },
