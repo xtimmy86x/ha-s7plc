@@ -25,12 +25,25 @@ Direct + lightweight custom component using `pys7`.
 
 <br/>
 
-**Quick Links**  
+**Quick Links**
 [✨ Features](#features) •
 [🚀 Quick Start](#quick-start) •
 [📚 Documentation](#documentation) •
 [🧩 Entities](#supported-entities) •
-[🛠️ Troubleshooting](#troubleshooting)
+[🛠️ Troubleshooting](#troubleshooting) •
+[📊 PLC Survey](https://docs.google.com/forms/d/e/1FAIpQLSd7Yi2uho8emdZ--l2RfUXGMusEcxQVUDAXA9IMkIBbcbjIiQ/viewform?usp=publish-editor)
+
+<br/>
+
+### 📊 Help improve PLC compatibility
+
+**Which Siemens PLC are you using with ha-s7plc?**
+
+Take our short voluntary survey and help us understand which PLC models and firmware versions are actually used by the community.
+
+[**👉 Take the PLC Compatibility Survey**](https://docs.google.com/forms/d/e/1FAIpQLSd7Yi2uho8emdZ--l2RfUXGMusEcxQVUDAXA9IMkIBbcbjIiQ/viewform?usp=publish-editor)
+
+<sub>No information is collected automatically from Home Assistant or your PLC.</sub>
 
 </div>
 
