@@ -183,7 +183,12 @@ def test_address_builder_layout_is_full_width_and_responsive() -> None:
     dialog_styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
     mobile_styles = dialog_styles.rsplit("@media(max-width:650px){", 1)[1]
 
-    assert ".address-builder{container-type:inline-size;grid-column:1/-1;min-width:0" in dialog_styles
+    assert ".address-builder{grid-column:1/-1;min-width:0" in dialog_styles
+    assert ".address-builder{container-type:inline-size" not in dialog_styles
+    assert (
+        ".address-builder-layout{container-type:inline-size;box-sizing:border-box;"
+        "min-width:0;max-width:100%}"
+    ) in dialog_styles
     assert (
         ".address-controls{display:grid;grid-template-columns:repeat(auto-fit,"
         "minmax(min(100%,150px),1fr));gap:10px 12px}"
@@ -194,8 +199,48 @@ def test_address_builder_layout_is_full_width_and_responsive() -> None:
     ) in dialog_styles
     assert ".field-grid{grid-template-columns:1fr}" in mobile_styles
     assert ".address-controls{grid-template-columns:1fr}" in mobile_styles
+    assert (
+        ".address-guided,.address-controls{box-sizing:border-box;min-width:0;"
+        "max-width:100%}"
+    ) in dialog_styles
+    assert (
+        ".address-controls label{box-sizing:border-box;min-width:0;"
+        "max-width:100%}"
+    ) in dialog_styles
+    assert (
+        ".address-controls input,.address-controls select,.address-manual input"
+        "{box-sizing:border-box;width:100%;min-width:0;max-width:100%}"
+    ) in dialog_styles
     assert "width:150px" not in dialog_styles
     assert "min-width:150px" not in dialog_styles
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_address_builders_use_inner_query_container_and_hidden_controls() -> None:
+    """S7 and LOGO keep semantic fieldsets while isolating WebKit containment."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
+panel.entries=[{{entry_id:"s7",plc_family:"s7"}}];panel.entryId="s7";
+const s7=panel.addressField("address","DB1,X0.0","Address","",true,"sensors");
+const profile={{family:"logo_0ba8",areas:[{{name:"I",first:1,last:24,vm_offset:1024,data_type:"X"}}],vm_areas:[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}}]}};
+const logo=panel.logoAddressField("address","DB1,X1024.0","Address","",true,"binary_sensors",profile);
+console.log(JSON.stringify({{s7,logo}}));'''
+    markup = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    for builder in markup.values():
+        assert builder.startswith('<fieldset class="address-builder"')
+        assert "</legend><div class=\"address-builder-layout\">" in builder
+        assert builder.endswith("</div></fieldset>")
+        assert 'class="address-guided"' in builder
+    assert "data-db-number hidden" not in markup["s7"]
+    assert "data-bit hidden" not in markup["s7"]
+    assert "data-length hidden" not in markup["s7"]
+    assert "data-logo-bit hidden" in markup["logo"]
+    assert 'class="address-manual" hidden' in markup["logo"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
