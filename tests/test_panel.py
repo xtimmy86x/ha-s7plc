@@ -4035,7 +4035,6 @@ def test_italian_address_builder_is_translated() -> None:
         "address_out_of_range": "Indirizzo fuori intervallo",
         "address_not_convertible": "Indirizzo non convertibile",
         "not_configured": "Non configurato",
-        "command_address_fallback": "Se non configurato, verrà utilizzato l’indirizzo di stato.",
     }
 
 
@@ -4248,6 +4247,70 @@ const results=["DB1,REAL0","DB1,TIME0","IB10"].map(value=>{{const hidden={{value
     ]
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_manual_input_preserves_progress_and_resets_only_when_requested() -> None:
+    """Manual LOGO input never erases incomplete or invalid text while typing."""
+    script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const profile={{family:"logo_0ba8",areas:[],vm_areas:[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}},{{name:"VW",first:0,last:849,data_type:"WORD",width:2}}]}};
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.entries=[{{entry_id:"logo",logo_profile:profile}}];panel.entryId="logo";
+const listeners={{}},element=(value="")=>({{value,disabled:false,hidden:false,textContent:"",min:"",max:"",addEventListener(type,fn){{listeners[this.id+type]=fn;}},dispatchEvent(event){{listeners[this.id+event.type]?.();}}}});
+const hidden=element(),manual=element(),guided=element(),manualBox=element(),area=element(),number=element(),numberText=element(),bitBox=element(),bit=element(),logo=element(),internal=element(),error=element();manual.id="manual";area.id="area";number.id="number";bit.id="bit";
+let active="";const buttons=["guided","manual"].map(mode=>({{dataset:{{addressMode:mode}},classList:{{toggle(_name,on){{if(on)active=mode;}}}}}}));
+const map=new Map([["input[type=\\"hidden\\"]",hidden],["[data-address-manual]",manual],[".address-guided",guided],[".address-manual",manualBox],["[data-logo-area]",area],["[data-logo-number]",number],["[data-logo-number-text]",numberText],["[data-logo-bit]",bitBox],["[data-logo-bit-input]",bit],["[data-logo-preview]",logo],["[data-internal-preview]",internal],[".address-error",error]]);
+const field={{dataset:{{required:"false",logoGuided:"true",addressError:""}},querySelector:s=>map.get(s),querySelectorAll:s=>s==="[data-address-mode]"?buttons:[]}};
+panel.initLogoAddressBuilders({{querySelectorAll:s=>s==="[data-logo-builder]"?[field]:[]}});buttons[1].onclick();
+const snapshot=()=>({{manual:manual.value,hidden:hidden.value,logo:logo.textContent,internal:internal.textContent,error:field.dataset.addressError,mode:active}});
+const type=value=>{{manual.value=value;manual.dispatchEvent(new Event("input"));return snapshot();}};
+const vm=["V","VW","VW2"].map(type),real=["D","DB","DB1,","DB1,R","DB1,REAL0"].map(type),out=[type("VW9999"),type("VW99"),type("VW2")];
+type("DB1,REAL0");buttons[0].onclick();const nonconvertible=snapshot();
+area.value="";area.dispatchEvent(new Event("change"));const reset=snapshot();
+console.log(JSON.stringify({{vm,real,out,nonconvertible,reset}}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+
+    for state, typed in zip(result["vm"], ("V", "VW", "VW2"), strict=True):
+        assert state["manual"] == typed
+        assert state["mode"] == "manual"
+    for state in result["vm"][:-1]:
+        assert state["hidden"] == ""
+        assert state["logo"] == ""
+        assert state["internal"] == ""
+        assert state["error"]
+    assert result["vm"][-1] == {
+        "manual": "VW2", "hidden": "DB1,WORD2", "logo": "VW2",
+        "internal": "DB1,WORD2", "error": "", "mode": "manual",
+    }
+    for state, typed in zip(
+        result["real"], ("D", "DB", "DB1,", "DB1,R", "DB1,REAL0"), strict=True
+    ):
+        assert state["manual"] == typed
+        assert state["mode"] == "manual"
+    for state in result["real"][:-1]:
+        assert state["hidden"] == ""
+        assert state["logo"] == ""
+        assert state["internal"] == ""
+        assert state["error"]
+    assert result["real"][-1] == {
+        "manual": "DB1,REAL0", "hidden": "DB1,REAL0", "logo": "",
+        "internal": "DB1,REAL0", "error": "", "mode": "manual",
+    }
+    assert result["out"][0] == {
+        "manual": "VW9999", "hidden": "", "logo": "VW9999",
+        "internal": "", "error": "address_out_of_range", "mode": "manual",
+    }
+    assert result["out"][-1]["hidden"] == "DB1,WORD2"
+    assert result["out"][-1]["error"] == ""
+    assert result["nonconvertible"] == {
+        "manual": "DB1,REAL0", "hidden": "DB1,REAL0", "logo": "",
+        "internal": "DB1,REAL0", "error": "", "mode": "manual",
+    }
+    assert result["reset"] == {
+        "manual": "", "hidden": "", "logo": "", "internal": "",
+        "error": "", "mode": "manual",
+    }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_logo_builder_empty_area_dom_events_and_validation() -> None:
     """Empty LOGO fields stay empty and only generate after an area event."""
     script = f'''global.HTMLElement=class {{}};global.Event=class {{constructor(type){{this.type=type}}}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
@@ -4289,7 +4352,8 @@ console.log(JSON.stringify({{optional:builder(),required:builder(true),existing,
     assert result["existing"]["logo"] == "VW2"
     assert result["existing"]["hidden"] == "DB1,WORD2"
     assert '<option value="" selected>address_builder.not_configured</option>' in result["markup"]
-    assert "address_builder.command_address_fallback" in result["markup"]
+    assert "address_builder.command_address_fallback" not in result["markup"]
+    assert "command-address-fallback" not in result["markup"]
 
 
 def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:

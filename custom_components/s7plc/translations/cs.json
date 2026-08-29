@@ -1197,8 +1197,7 @@
       "address_out_of_range": "Adresa je mimo rozsah",
       "address_not_convertible": "Adresu nelze převést",
       "vm_offset": "Offset VM",
-      "not_configured": "Nenakonfigurováno",
-      "command_address_fallback": "Pokud není nakonfigurováno, použije se stavová adresa."
+      "not_configured": "Nenakonfigurováno"
     }
   },
   "selector": {

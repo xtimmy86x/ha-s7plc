@@ -1197,8 +1197,7 @@
       "address_out_of_range": "Indirizzo fuori intervallo",
       "address_not_convertible": "Indirizzo non convertibile",
       "vm_offset": "Offset VM",
-      "not_configured": "Non configurato",
-      "command_address_fallback": "Se non configurato, verrà utilizzato l’indirizzo di stato."
+      "not_configured": "Non configurato"
     }
   },
   "selector": {
