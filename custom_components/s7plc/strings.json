@@ -1086,7 +1086,8 @@
       "delete_title": "Delete entity",
       "select_entity": "Select entity",
       "delete_selected": "Delete selected",
-      "delete_selected_confirm": "Delete {count} selected entities?"
+      "delete_selected_confirm": "Delete {count} selected entities?",
+      "duplicate": "Duplicate entity"
     },
     "errors": {
       "required_error": "Fill in all required fields.",
@@ -1166,7 +1167,9 @@
       "edit_entity": "Edit entity",
       "configure_new": "Configure a new entity",
       "update_configuration": "Update the configuration",
-      "save_help": "Fields are saved directly in the PLC configuration."
+      "save_help": "Fields are saved directly in the PLC configuration.",
+      "duplicate_entity": "Duplicate entity",
+      "configure_duplicate": "Create a new entity from this configuration"
     },
     "layout": {
       "switch_to_tabs": "Switch to category view",

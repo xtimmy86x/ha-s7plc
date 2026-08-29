@@ -1086,7 +1086,8 @@
       "delete_title": "Elimina entità",
       "select_entity": "Seleziona entità",
       "delete_selected": "Elimina selezionate",
-      "delete_selected_confirm": "Eliminare le {count} entità selezionate?"
+      "delete_selected_confirm": "Eliminare le {count} entità selezionate?",
+      "duplicate": "Duplica entità"
     },
     "errors": {
       "required_error": "Compila tutti i campi obbligatori.",
@@ -1166,7 +1167,9 @@
       "edit_entity": "Modifica entità",
       "configure_new": "Configura una nuova entità",
       "update_configuration": "Aggiorna la configurazione",
-      "save_help": "I campi vengono salvati direttamente nella configurazione del PLC."
+      "save_help": "I campi vengono salvati direttamente nella configurazione del PLC.",
+      "duplicate_entity": "Duplica entità",
+      "configure_duplicate": "Crea una nuova entità da questa configurazione"
     },
     "layout": {
       "switch_to_tabs": "Passa alla vista per categorie",

@@ -1086,7 +1086,8 @@
       "delete_title": "Odstranit entitu",
       "select_entity": "Vybrat entitu",
       "delete_selected": "Odstranit vybrané",
-      "delete_selected_confirm": "Odstranit {count} vybraných entit?"
+      "delete_selected_confirm": "Odstranit {count} vybraných entit?",
+      "duplicate": "Duplikovat entitu"
     },
     "errors": {
       "required_error": "Vyplňte všechna povinná pole.",
@@ -1166,7 +1167,9 @@
       "edit_entity": "Upravit entitu",
       "configure_new": "Nakonfigurujte novou entitu",
       "update_configuration": "Aktualizujte konfiguraci",
-      "save_help": "Pole se ukládají přímo do konfigurace PLC."
+      "save_help": "Pole se ukládají přímo do konfigurace PLC.",
+      "duplicate_entity": "Duplikovat entitu",
+      "configure_duplicate": "Vytvořit novou entitu z této konfigurace"
     },
     "layout": {
       "switch_to_tabs": "Přepnout na zobrazení kategorií",

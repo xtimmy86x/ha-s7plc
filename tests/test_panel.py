@@ -4458,3 +4458,99 @@ def test_address_mode_toggle_preserves_address_value() -> None:
     assert "hidden.value=manual.value;writeParts(parsed);setMode('guided')" in source
     assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'manual')" in source
     assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'guided')" in source
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_duplicate_action_is_accessible_for_every_existing_entity_and_clicks_editor() -> (
+    None
+):
+    """Both layouts use the same cards, whose duplicate action opens create mode."""
+    script = f"""global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();
+panel.t=key=>({{"actions.duplicate":"Duplicate entity","common.entity":"Entity"}}[key]||key);
+panel.bt=key=>key;panel.escape=value=>String(value??"");panel.icon=()=>"help";panel.stateText=()=>"";panel.selectedIndices=new Set();panel._viewMode="tabs";
+panel.entries=[{{entry_id:"entry",entities:Object.fromEntries(TYPES.map(type=>[type,[{{uid:`uid-${{type}}`,name:type,address:"DB1,X0.0"}}]]))}}];panel.entryId="entry";
+const markup=Object.fromEntries(TYPES.map(type=>[type,panel.entityCards(panel.entries[0],type)]));
+let call=null;panel.openEditor=(...args)=>call=args;
+let stopped=false;const button={{dataset:{{duplicate:"0",entityType:"lights"}}}};
+button.onclick=event=>{{event.stopPropagation();panel.duplicateEntity(Number(button.dataset.duplicate),button.dataset.entityType);}};
+button.onclick({{stopPropagation:()=>stopped=true}});
+console.log(JSON.stringify({{markup,call,stopped,empty:panel.entityCards({{entities:{{sensors:[]}}}},"sensors")}}));"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    for markup in result["markup"].values():
+        assert 'type="button" data-duplicate="0"' in markup
+        assert 'icon="mdi:content-copy"' in markup
+        assert 'title="Duplicate entity"' in markup
+        assert 'aria-label="Duplicate entity"' in markup
+        assert "<ha-tooltip>Duplicate entity</ha-tooltip>" in markup
+        assert (
+            markup.index("data-edit=")
+            < markup.index("data-duplicate=")
+            < markup.index("data-delete=")
+        )
+    assert "data-duplicate" not in result["empty"]
+    assert result["stopped"] is True
+    assert result["call"][:2] == [None, "lights"]
+    assert result["call"][2]["uid"] == "uid-lights"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_duplicate_editor_deep_clones_sanitizes_and_infers_virtual_modes() -> None:
+    """A duplicate is an independent create draft with clean YAML and inferred UI state."""
+    script = r"""
+const vm=require("vm");let Panel;let dialog;let captured;
+const form={dataset:{},elements:{},querySelector:()=>null,querySelectorAll:()=>[]};
+const context={structuredClone,HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document:{createElement:()=>dialog={style:{setProperty(){}},setAttribute(){},querySelector:s=>s==='form'?form:{},querySelectorAll:()=>[],addEventListener(){},remove(){}},body:{appendChild(){}}}};
+vm.createContext(context);vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'),context);
+const panel=new Panel();panel.entryId='entry';panel.entries=[{entry_id:'entry',entities:{selects:[]}}];panel.t=k=>k;panel.escape=v=>String(v??'');panel.icon=()=>"help";panel.initAddressBuilders=()=>{};panel.editorSections=(type,item)=>(captured={type,item},'');
+const source={uid:'original-uid',name:'Copy me',address:'DB1,BYTE0',command_address:'DB1,BYTE2',options_map:{nested:[{value:1,label:'One'}]},area:'kitchen',availability_mode:'bit',availability_address:'DB1,X4.0'};
+panel.openEditor(null,'selects',source);
+captured.item.options_map.nested[0].label='Changed only in draft';
+const light=panel.inferred({state_address:'DB1,X0.0',brightness_state_address:'DB1,BYTE2'},'lights');
+const cover=panel.inferred({position_state_address:'DB1,BYTE4',stop_command_address:'DB1,X8.0'},'covers');
+const climate=panel.inferred({current_temperature_address:'DB1,REAL0',target_temperature_address:'DB1,REAL4',preset_mode_address:'DB1,BYTE8',on_off_address:'DB1,X9.0',hvac_status_address:'DB1,BYTE10'},'climates');
+console.log(JSON.stringify({draft:captured.item,source,header:dialog.headerTitle,html:dialog.innerHTML,light,cover,climate}));
+"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script, str(PANEL_JAVASCRIPT)],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+
+    assert "uid" not in result["draft"]
+    assert "original-uid" not in result["html"]
+    assert result["header"] == "editor.duplicate_entity"
+    assert result["source"]["options_map"]["nested"][0]["label"] == "One"
+    assert (
+        result["draft"]["options_map"]["nested"][0]["label"] == "Changed only in draft"
+    )
+    assert result["draft"]["area"] == "kitchen"
+    assert result["draft"]["availability_address"] == "DB1,X4.0"
+    assert result["light"]["light_mode"] == "dimmable"
+    assert result["cover"]["cover_control_mode"] == "position"
+    assert result["cover"]["cover_stop_enabled"] == "enabled"
+    assert result["climate"]["climate_mode_control"] == "coded_on_off"
+    assert result["climate"]["climate_action_feedback"] == "plc"
+
+
+def test_duplicate_translation_keys_match_all_supported_languages() -> None:
+    """Every shipped locale exposes the duplicate action and editor copy."""
+    files = [
+        Path("custom_components/s7plc/strings.json"),
+        *sorted(Path("custom_components/s7plc/translations").glob("*.json")),
+    ]
+    structures = []
+    for path in files:
+        panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
+        assert panel["actions"]["duplicate"]
+        assert panel["editor"]["duplicate_entity"]
+        assert panel["editor"]["configure_duplicate"]
+        structures.append((set(panel["actions"]), set(panel["editor"])))
+    assert all(structure == structures[0] for structure in structures[1:])

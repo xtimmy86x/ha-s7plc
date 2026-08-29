@@ -1086,7 +1086,8 @@
       "delete_title": "Usuń encję",
       "select_entity": "Wybierz encję",
       "delete_selected": "Usuń wybrane",
-      "delete_selected_confirm": "Usunąć {count} wybranych encji?"
+      "delete_selected_confirm": "Usunąć {count} wybranych encji?",
+      "duplicate": "Duplikuj encję"
     },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",
@@ -1166,7 +1167,9 @@
       "edit_entity": "Edytuj encję",
       "configure_new": "Konfigurator nowej encji",
       "update_configuration": "Konfigurator edytowanej encji",
-      "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC."
+      "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC.",
+      "duplicate_entity": "Duplikuj encję",
+      "configure_duplicate": "Utwórz nową encję na podstawie tej konfiguracji"
     },
     "layout": {
       "switch_to_tabs": "Przełącz na kategorie",
