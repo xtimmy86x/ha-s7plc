@@ -100,14 +100,14 @@ def test_connection_details_structural_styles_are_preserved() -> None:
 
 
 def test_compact_selector_descriptions_wrap_long_tokens() -> None:
-    """Compact cards wrap unspaced descriptions without changing their sizing."""
+    """Compact cards wrap unspaced descriptions at their natural height."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert ".control-card small{font-size:10.5px!important;line-height:1.45;" in source
-    assert "margin-top:6px;overflow-wrap:anywhere}" in source
+    assert ".control-card small{font-size:10.5px!important;line-height:1.4;" in source
+    assert "margin-top:4px;overflow-wrap:anywhere}" in source
     assert ".compact-control-card span{min-width:0;max-width:100%}" in source
     assert (
-        ".light-options .control-card,.compact-control-card{min-height:110px;"
+        ".light-options .control-card,.compact-control-card{min-height:0;"
     ) in source
     assert "grid-auto-rows:max-content" not in source
 
@@ -163,10 +163,10 @@ process.stdout.write(JSON.stringify({properties, attributes}));
     assert json.loads(result.stdout) == {
         "attributes": {"width": "large"},
         "properties": {
-            "--ha-dialog-width-lg": "1200px",
-            "--ha-dialog-max-width": "min(1200px,96vw)",
-            "--mdc-dialog-max-width": "min(1200px,96vw)",
-            "--mdc-dialog-min-width": "min(1200px,96vw)",
+            "--ha-dialog-width-lg": "960px",
+            "--ha-dialog-max-width": "min(960px,96vw)",
+            "--mdc-dialog-max-width": "min(960px,96vw)",
+            "--mdc-dialog-min-width": "min(960px,96vw)",
             "--dialog-content-padding": "0",
         },
     }
@@ -174,7 +174,7 @@ process.stdout.write(JSON.stringify({properties, attributes}));
     # The modern large preset is scoped to openEditor; other dialogs retain their sizes.
     assert source.count("setAttribute('width','large')") == 1
     assert source.count("--ha-dialog-width-lg") == 1
-    assert "min-width:1200px" not in source
+    assert "min-width:960px" not in source
 
 
 def test_address_builder_layout_is_full_width_and_responsive() -> None:
@@ -191,10 +191,10 @@ def test_address_builder_layout_is_full_width_and_responsive() -> None:
     ) in dialog_styles
     assert (
         ".address-controls{display:grid;grid-template-columns:repeat(auto-fit,"
-        "minmax(min(100%,150px),1fr));gap:10px 12px}"
+        "minmax(min(100%,130px),1fr));gap:8px 10px}"
     ) in dialog_styles
     assert (
-        "@container(min-width:850px){.address-controls{"
+        "@container(min-width:640px){.address-controls{"
         "grid-template-columns:repeat(5,minmax(0,1fr))}}"
     ) in dialog_styles
     assert ".field-grid{grid-template-columns:1fr}" in mobile_styles
