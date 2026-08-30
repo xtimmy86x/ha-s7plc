@@ -234,44 +234,6 @@ def test_non_numeric_datatypes_are_not_capable():
             assert not supports_value_conversion(value)
 
 
-def test_legacy_normalization_and_precedence():
-    assert normalize_value_conversion({"value_multiplier": 10}, "value") == {
-        "type": "multiplier",
-        "factor": 10,
-    }
-    scaled = normalize_value_conversion(
-        {
-            "scale_raw_min": 0,
-            "scale_raw_max": 27648,
-            "min_value": 0,
-            "max_value": 100,
-            "value_multiplier": 2,
-        },
-        "value",
-    )
-    assert scaled["type"] == "linear_scale"
-    brightness = normalize_value_conversion({"brightness_scale": 100}, "brightness")
-    assert (
-        convert_from_plc(50, brightness, ctx(direction="read", channel="brightness"))
-        == 127.5
-    )
-
-
-def test_new_and_legacy_conflict_and_no_double_conversion():
-    entity = {
-        "value_multiplier": 10,
-        "value_conversions": {"value": {"type": "multiplier", "factor": 2}},
-    }
-    with pytest.raises(ValueConversionError, match="conflict"):
-        normalize_value_conversion(entity, "value")
-    assert (
-        convert_from_plc(
-            5, normalize_value_conversion({"value_multiplier": 10}, "value"), ctx()
-        )
-        == 50
-    )
-
-
 def test_multiple_channels_are_independent():
     entity = {
         "value_conversions": {
@@ -298,19 +260,3 @@ def test_brightness_scale_rejects_noncanonical_ha_domain(override) -> None:
         validate_value_conversion(
             conversion, ConversionContext("brightness", DataType.WORD)
         )
-
-
-def test_brightness_scale_legacy_is_canonical() -> None:
-    conversion = normalize_value_conversion({"brightness_scale": 1000}, "brightness")
-    assert conversion == {
-        "type": "linear_scale",
-        "plc_min": 0,
-        "plc_max": 1000,
-        "ha_min": 0,
-        "ha_max": 255,
-        "clamp": True,
-        "rounding": "half_even",
-    }
-    validate_value_conversion(
-        conversion, ConversionContext("brightness", DataType.WORD)
-    )

@@ -298,14 +298,6 @@
             "label": "Unit of measurement",
             "description": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class."
           },
-          "min_value": {
-            "label": "Scale min",
-            "description": "Minimum displayed value after scaling."
-          },
-          "max_value": {
-            "label": "Scale max",
-            "description": "Maximum displayed value after scaling."
-          },
           "state_class": {
             "label": "State class",
             "description": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic."
@@ -635,12 +627,12 @@
             "description": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed."
           },
           "min_value": {
-            "label": "Minimum value",
-            "description": "Optional minimum bound for the value shown in Home Assistant."
+            "label": "Minimum limit",
+            "description": "Minimum value selectable in Home Assistant. It neither modifies nor converts the value read from the PLC."
           },
           "max_value": {
-            "label": "Maximum value",
-            "description": "Optional maximum bound for the value shown in Home Assistant."
+            "label": "Maximum limit",
+            "description": "Maximum value selectable in Home Assistant. It neither modifies nor converts the value read from the PLC."
           },
           "step": {
             "label": "Step",

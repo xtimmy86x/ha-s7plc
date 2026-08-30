@@ -298,14 +298,6 @@
             "label": "Unità di misura",
             "description": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla classe dispositivo."
           },
-          "min_value": {
-            "label": "Scala min",
-            "description": "Valore minimo visualizzato dopo la scalatura."
-          },
-          "max_value": {
-            "label": "Scala max",
-            "description": "Valore massimo visualizzato dopo la scalatura."
-          },
           "state_class": {
             "label": "Classe di stato",
             "description": "Classe di stato per le statistiche: “measurement” per valori istantanei, “total” per valori cumulativi che possono diminuire, “total_increasing” per contatori (es. energia, consumo acqua). Lascia vuoto per automatico."
@@ -635,12 +627,12 @@
             "description": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria."
           },
           "min_value": {
-            "label": "Valore minimo",
-            "description": "Limite minimo opzionale per il valore mostrato in Home Assistant."
+            "label": "Limite minimo",
+            "description": "Valore minimo selezionabile in Home Assistant. Non modifica né converte il valore letto dal PLC."
           },
           "max_value": {
-            "label": "Valore massimo",
-            "description": "Limite massimo opzionale per il valore mostrato in Home Assistant."
+            "label": "Limite massimo",
+            "description": "Valore massimo selezionabile in Home Assistant. Non modifica né converte il valore letto dal PLC."
           },
           "step": {
             "label": "Passo",

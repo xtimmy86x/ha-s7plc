@@ -289,8 +289,8 @@ async def test_button_press_write_failures(mock_coordinator, fake_hass, monkeypa
 # ============================================================================
 
 
-def test_number_clamps_configured_limits(mock_coordinator):
-    """Test number entity clamps limits to data type bounds."""
+def test_number_preserves_configured_ha_limits(mock_coordinator):
+    """Test number entity preserves explicit Home Assistant limits."""
     coord = mock_coordinator
 
     number_entity = S7Number(
@@ -306,8 +306,79 @@ def test_number_clamps_configured_limits(mock_coordinator):
         step=None,
     )
 
-    assert number_entity.native_min_value == 0.0  # WORD lower bound
-    assert number_entity.native_max_value == 65535.0  # WORD upper bound
+    assert number_entity.native_min_value == -99999.0
+    assert number_entity.native_max_value == 99999.0
+
+
+@pytest.mark.parametrize(
+    ("address", "datatype_min", "datatype_max"),
+    [
+        ("db1,byte0", 0.0, 255.0),
+        ("db1,word0", 0.0, 65535.0),
+        ("db1,int0", -32768.0, 32767.0),
+        ("db1,dint0", -2147483648.0, 2147483647.0),
+        ("db1,sint0", -128.0, 127.0),
+        ("db1,usint0", 0.0, 255.0),
+        ("db1,dword0", 0.0, 4294967295.0),
+        ("db1,time0", -2147483.648, 2147483.647),
+    ],
+)
+@pytest.mark.parametrize(
+    ("explicit_min", "explicit_max"),
+    [
+        (None, None),
+        (-9999999999.0, 9999999999.0),
+        (-9999999999.0, None),
+        (None, 9999999999.0),
+    ],
+)
+def test_number_runtime_combines_explicit_and_datatype_limits(
+    mock_coordinator,
+    address,
+    datatype_min,
+    datatype_max,
+    explicit_min,
+    explicit_max,
+):
+    """Integer and TIME limits fall back independently without clamping."""
+    number_entity = S7Number(
+        mock_coordinator,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic=f"number:{address}",
+        address=address,
+        command_address=address,
+        min_value=explicit_min,
+        max_value=explicit_max,
+        step=None,
+    )
+
+    assert number_entity.native_min_value == (
+        explicit_min if explicit_min is not None else datatype_min
+    )
+    assert number_entity.native_max_value == (
+        explicit_max if explicit_max is not None else datatype_max
+    )
+
+
+def test_number_limit_fallback_uses_state_address_datatype(mock_coordinator):
+    """Runtime defaults come from the state address, not the command address."""
+    number_entity = S7Number(
+        mock_coordinator,
+        name="Number",
+        unique_id="uid",
+        device_info={"identifiers": {"domain"}},
+        topic="number:db1,w0",
+        address="db1,w0",
+        command_address="db1,real4",
+        min_value=None,
+        max_value=None,
+        step=None,
+    )
+
+    assert number_entity.native_min_value == 0.0
+    assert number_entity.native_max_value == 65535.0
 
 
 @pytest.mark.asyncio
@@ -362,11 +433,17 @@ async def test_number_async_set_native_value_failure(mock_coordinator_failing, f
     assert not coord.refresh_called
 
 
-def test_number_value_multiplier_scales_native_value(mock_coordinator):
-    """native_value is PLC value * multiplier."""
+def test_number_limits_are_independent_of_linear_conversion(mock_coordinator):
+    """HA limits do not supply or alter conversion endpoints."""
     coord = mock_coordinator
-    coord.data = {"number:db1,w0": 100}
-
+    coord.data = {"number:db1,w0": 500.0}
+    conversion = {
+        "type": "linear_scale",
+        "plc_min": 0,
+        "plc_max": 1000,
+        "ha_min": -50,
+        "ha_max": 50,
+    }
     ent = S7Number(
         coord,
         name="Number",
@@ -375,267 +452,47 @@ def test_number_value_multiplier_scales_native_value(mock_coordinator):
         topic="number:db1,w0",
         address="db1,w0",
         command_address="db1,w0",
-        min_value=0,
-        max_value=1000,
+        min_value=-100,
+        max_value=100000,
         step=1,
-        value_multiplier=0.1,
+        value_conversion=conversion,
     )
-
-    assert ent.native_value == pytest.approx(10.0)  # 100 * 0.1
-    assert ent.native_min_value == pytest.approx(0.0)   # 0 * 0.1
-    assert ent.native_max_value == pytest.approx(100.0)  # 1000 * 0.1
-    assert ent._attr_native_step == pytest.approx(0.1)  # 1 * 0.1
+    assert ent.native_value == pytest.approx(0.0)
+    assert ent.native_min_value == -100
+    assert ent.native_max_value == 100000
 
 
 @pytest.mark.asyncio
-async def test_number_value_multiplier_divides_on_write(mock_coordinator, fake_hass):
-    """async_set_native_value writes display value / multiplier to PLC."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500}
-
+async def test_number_linear_scale_writes_using_conversion_endpoints(
+    mock_coordinator, fake_hass
+):
+    """Writes use plc/HA conversion endpoints rather than entity limits."""
     ent = S7Number(
-        coord,
+        mock_coordinator,
         name="Number",
         unique_id="uid",
         device_info={"identifiers": {"domain"}},
         topic="number:db1,w0",
         address="db1,w0",
         command_address="db1,w0",
-        min_value=0,
-        max_value=1000,
+        min_value=-200,
+        max_value=200,
         step=1,
-        value_multiplier=0.1,
+        value_conversion={
+            "type": "linear_scale",
+            "plc_min": 0,
+            "plc_max": 1000,
+            "ha_min": -50,
+            "ha_max": 50,
+        },
     )
     ent.hass = fake_hass
-
-    # User sets 25.0 (display units) → PLC should receive 250.0
-    await ent.async_set_native_value(25.0)
-    assert coord.write_calls[-1] == ("write_batched", "db1,w0", pytest.approx(250.0))
-
-
-def test_number_value_multiplier_in_attributes(mock_coordinator):
-    """value_multiplier appears in extra_state_attributes."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=None,
-        max_value=None,
-        step=None,
-        value_multiplier=2.0,
+    await ent.async_set_native_value(25)
+    assert mock_coordinator.write_calls[-1] == (
+        "write_batched",
+        "db1,w0",
+        pytest.approx(750),
     )
-
-    attrs = ent.extra_state_attributes
-    assert attrs.get("value_multiplier") == pytest.approx(2.0)
-
-
-def test_number_no_multiplier_unchanged(mock_coordinator):
-    """Without multiplier, native_value is the raw PLC value."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 42}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=None,
-        max_value=None,
-        step=None,
-    )
-
-    assert ent.native_value == 42
-    assert "value_multiplier" not in ent.extra_state_attributes
-
-
-# ============================================================================
-# S7Number linear-scale tests
-# ============================================================================
-
-
-def test_number_scale_params_stored(mock_coordinator):
-    """Scale parameters are parsed and stored when all four are provided."""
-    coord = mock_coordinator
-    coord.data = {}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-
-    assert ent._scale_params == (0.0, 1000.0, 0.0, 100.0)
-
-
-def test_number_scale_partial_params_ignored(mock_coordinator):
-    """Only raw range set, no display range → _scale_params stays None."""
-    coord = mock_coordinator
-    coord.data = {}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=None,
-        max_value=None,
-        step=None,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-        # min_value and max_value missing → scale does not activate
-    )
-
-    assert ent._scale_params is None
-
-
-def test_number_native_value_with_scale(mock_coordinator):
-    """native_value applies linear scaling: raw 500 in [0,1000] → 50 in [0,100]."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500.0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-
-    assert ent.native_value == pytest.approx(50.0)
-
-
-@pytest.mark.asyncio
-async def test_number_scale_inverse_on_write(mock_coordinator, fake_hass):
-    """async_set_native_value applies inverse scaling before writing to PLC."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500.0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-    ent.hass = fake_hass
-
-    # User writes 75 % → PLC should receive 750
-    await ent.async_set_native_value(75.0)
-    assert coord.write_calls[-1] == ("write_batched", "db1,w0", pytest.approx(750.0))
-
-
-def test_number_scale_takes_precedence_over_multiplier(mock_coordinator):
-    """When both scale and multiplier are set, scale wins."""
-    coord = mock_coordinator
-    coord.data = {"number:db1,w0": 500.0}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        value_multiplier=10.0,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-
-    # scale: 500/1000*100 = 50, NOT 500*10 = 5000
-    assert ent.native_value == pytest.approx(50.0)
-
-
-def test_number_scale_attributes_exposed(mock_coordinator):
-    """Scale parameters appear in extra_state_attributes."""
-    coord = mock_coordinator
-    coord.data = {}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        scale_raw_min=4000.0,
-        scale_raw_max=20000.0,
-    )
-
-    attrs = ent.extra_state_attributes
-    assert attrs["scale_raw_min"] == 4000.0
-    assert attrs["scale_raw_max"] == 20000.0
-    assert "value_multiplier" not in attrs
-
-
-def test_number_scale_ui_min_max_mapped(mock_coordinator):
-    """When scale is active, native_min/max_value equal min_value/max_value (the display range)."""
-    coord = mock_coordinator
-    coord.data = {}
-
-    ent = S7Number(
-        coord,
-        name="Number",
-        unique_id="uid",
-        device_info={"identifiers": {"domain"}},
-        topic="number:db1,w0",
-        address="db1,w0",
-        command_address="db1,w0",
-        min_value=0.0,
-        max_value=100.0,
-        step=None,
-        scale_raw_min=0.0,
-        scale_raw_max=1000.0,
-    )
-
-    assert ent.native_min_value == pytest.approx(0.0)
-    assert ent.native_max_value == pytest.approx(100.0)
-
-
-
 
 
 @pytest.mark.asyncio

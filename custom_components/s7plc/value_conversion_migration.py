@@ -16,6 +16,7 @@ from .value_conversion import ValueConversionError
 
 LEGACY_VALUE_FIELDS = ("value_multiplier", "scale_raw_min", "scale_raw_max")
 LEGACY_BRIGHTNESS_FIELDS = ("brightness_scale",)
+LEGACY_DEFAULT_BRIGHTNESS_SCALE = 255
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,17 @@ def _number(value: Any, field: str) -> int | float:
     if not math.isfinite(float(value)):
         raise ValueConversionError(f"legacy {field} must be finite")
     return value
+
+
+def _legacy_brightness_scale(value: Any) -> int:
+    """Apply the 7.x light-builder normalization to a legacy maximum."""
+    try:
+        maximum = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return LEGACY_DEFAULT_BRIGHTNESS_SCALE
+    if maximum < 1 or maximum > 65535:
+        return LEGACY_DEFAULT_BRIGHTNESS_SCALE
+    return maximum
 
 
 def _validate_new(config: Any, channel: str) -> dict[str, Any]:
@@ -144,11 +156,7 @@ def migrate_legacy_value_conversions(
         )
 
     if "brightness_scale" in result:
-        maximum = _number(result["brightness_scale"], "brightness_scale")
-        if maximum < 1:
-            # The builder historically canonicalized new input to >= 1; a raw
-            # persisted value below it is corrupt and must not be silently fixed.
-            raise ValueConversionError("legacy brightness_scale must be at least 1")
+        maximum = _legacy_brightness_scale(result["brightness_scale"])
         candidates.append(
             (
                 "brightness",

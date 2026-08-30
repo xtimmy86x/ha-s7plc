@@ -298,14 +298,6 @@
             "label": "Jednotka",
             "description": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení."
           },
-          "min_value": {
-            "label": "Zobrazené min.",
-            "description": "Minimální zobrazená hodnota po škálování."
-          },
-          "max_value": {
-            "label": "Zobrazené max.",
-            "description": "Maximální zobrazená hodnota po škálování."
-          },
           "state_class": {
             "label": "Třída stavu",
             "description": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku."
@@ -635,12 +627,12 @@
             "description": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba."
           },
           "min_value": {
-            "label": "Minimální hodnota",
-            "description": "Volitelná minimální hodnota pro rozsah v Home Assistant."
+            "label": "Minimální limit",
+            "description": "Minimální hodnota, kterou lze vybrat v Home Assistant. Nemění ani nepřevádí hodnotu načtenou z PLC."
           },
           "max_value": {
-            "label": "Maximální hodnota",
-            "description": "Volitelná maximální hodnota pro rozsah v Home Assistant."
+            "label": "Maximální limit",
+            "description": "Maximální hodnota, kterou lze vybrat v Home Assistant. Nemění ani nepřevádí hodnotu načtenou z PLC."
           },
           "step": {
             "label": "Krok",

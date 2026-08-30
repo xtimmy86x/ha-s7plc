@@ -58,8 +58,8 @@ def test_time_sensor_multiplier_applies_once(mock_coordinator):
         topic,
         "DB1,TIME0",
         "temperature",
-        2,
-        "ms",
+        unit_of_measurement="ms",
+        value_conversion={"type": "multiplier", "factor": 2},
     )
     assert entity.native_value == 3.0
     assert entity._attr_device_class == SensorDeviceClass.DURATION
@@ -178,7 +178,7 @@ async def test_time_number_multiplier_round_trip(mock_coordinator):
         None,
         None,
         None,
-        value_multiplier=2,
+        value_conversion={"type": "multiplier", "factor": 2},
     )
     assert entity.native_value == 3
     await entity.async_set_native_value(3)

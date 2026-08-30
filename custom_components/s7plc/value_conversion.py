@@ -297,42 +297,10 @@ def validate_value_conversion(
 def normalize_value_conversion(
     entity: Mapping[str, Any], channel: str, context: ConversionContext | None = None
 ) -> dict[str, Any] | None:
-    """Resolve persisted or deprecated 7.x input conversion fields."""
+    """Resolve a canonical persisted conversion for one channel."""
     conversions = entity.get("value_conversions") or {}
     configured = conversions.get(channel) if isinstance(conversions, Mapping) else None
-    legacy: dict[str, Any] | None = None
-    # TODO 8.0.0: remove legacy fields from the input/runtime boundary. Keep
-    # versioned config-entry migrations so direct upgrades remain supported.
-    if channel == "brightness" and entity.get("brightness_scale") not in (None, ""):
-        legacy = {
-            "type": "linear_scale",
-            "plc_min": 0,
-            "plc_max": entity["brightness_scale"],
-            "ha_min": 0,
-            "ha_max": 255,
-            "clamp": True,
-            "rounding": "half_even",
-        }
-    elif channel == "value":
-        scale = tuple(
-            entity.get(key)
-            for key in ("scale_raw_min", "scale_raw_max", "min_value", "max_value")
-        )
-        if all(value not in (None, "") for value in scale):
-            legacy = {
-                "type": "linear_scale",
-                "plc_min": scale[0],
-                "plc_max": scale[1],
-                "ha_min": scale[2],
-                "ha_max": scale[3],
-            }
-        elif entity.get("value_multiplier") not in (None, ""):
-            legacy = {"type": "multiplier", "factor": entity["value_multiplier"]}
-    if configured is not None and legacy is not None:
-        raise ValueConversionError(
-            f"new and legacy conversion conflict for channel '{channel}'"
-        )
-    result = dict(configured or legacy) if configured or legacy else None
+    result = dict(configured) if configured else None
     if result and context:
         validate_value_conversion(result, context)
     return result

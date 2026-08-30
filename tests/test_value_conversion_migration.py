@@ -11,6 +11,7 @@ import pytest
 from custom_components.s7plc.value_conversion import ValueConversionError
 from custom_components.s7plc.value_conversion_migration import (
     migrate_legacy_value_conversions,
+    normalize_legacy_conversion_input,
 )
 from custom_components.s7plc import async_migrate_entry
 
@@ -83,6 +84,34 @@ def test_migration_is_pure_and_idempotent(entity_type, legacy, channel, expected
     assert migrate_legacy_value_conversions(entity_type, migrated)[0] == migrated
 
 
+@pytest.mark.parametrize("legacy_maximum", [0, -1, "invalid", 65536])
+def test_input_normalization_defaults_invalid_legacy_brightness_scale(
+    legacy_maximum,
+):
+    """Invalid 7.x brightness maxima retain the old builder's safe default."""
+    normalized, report = normalize_legacy_conversion_input(
+        "lights", {"brightness_scale": legacy_maximum}
+    )
+
+    assert report.changed
+    assert "brightness_scale" not in normalized
+    assert normalized["value_conversions"]["brightness"]["plc_max"] == 255
+
+
+def test_input_normalization_converts_legacy_value_multiplier() -> None:
+    """The 7.x sensor multiplier is canonicalized at the input boundary."""
+    normalized, report = normalize_legacy_conversion_input(
+        "sensors", {"address": "DB1,REAL0", "value_multiplier": 2.5}
+    )
+
+    assert report.changed
+    assert "value_multiplier" not in normalized
+    assert normalized["value_conversions"]["value"] == {
+        "type": "multiplier",
+        "factor": 2.5,
+    }
+
+
 @pytest.mark.parametrize(
     "legacy",
     [
@@ -147,6 +176,41 @@ async def test_config_entry_migration_is_atomic_and_idempotent():
     assert entry.options["sensors"][0]["value_conversions"]["value"]["factor"] == 10
     assert await async_migrate_entry(hass, entry)
     assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("legacy_maximum", [0, -1, "invalid", 65536])
+async def test_versioned_migration_defaults_invalid_legacy_brightness_scale(
+    legacy_maximum,
+):
+    """Direct upgrades preserve the former light-builder normalization."""
+    entry = SimpleNamespace(
+        version=1,
+        entry_id="legacy-light",
+        options={
+            "lights": [
+                {
+                    "uid": "light-one",
+                    "state_address": "DB1,X0.0",
+                    "brightness_state_address": "DB1,W2",
+                    "brightness_scale": legacy_maximum,
+                }
+            ]
+        },
+    )
+
+    def update(target, **changes):
+        target.options = changes["options"]
+        target.version = changes["version"]
+
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=update)
+    )
+
+    assert await async_migrate_entry(hass, entry)
+    light = entry.options["lights"][0]
+    assert "brightness_scale" not in light
+    assert light["value_conversions"]["brightness"]["plc_max"] == 255
 
 
 @pytest.mark.asyncio

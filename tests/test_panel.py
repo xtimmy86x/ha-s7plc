@@ -4888,3 +4888,39 @@ console.log(JSON.stringify({row,summary:panel.valueConversionSummary({type:'line
     assert "ha_min:channel==='brightness'?0:number('ha_min')" in source
     assert "ha_max:channel==='brightness'?255:number('ha_max')" in source
     assert "clamp:channel==='brightness'||" in source
+def test_number_limit_copy_and_sensor_fields_are_consistent() -> None:
+    """Panel copy presents HA limits and hides meaningless sensor bounds."""
+    root = Path(__file__).parents[1]
+    catalogs = [
+        root / "custom_components/s7plc/strings.json",
+        *sorted((root / "custom_components/s7plc/translations").glob("*.json")),
+    ]
+    field_sets = []
+    for catalog in catalogs:
+        data = json.loads(catalog.read_text(encoding="utf-8"))
+        entities = data["config_panel"]["entity_types"]
+        assert "min_value" not in entities["sensors"]["fields"]
+        assert "max_value" not in entities["sensors"]["fields"]
+        number_fields = entities["numbers"]["fields"]
+        field_sets.append(set(number_fields))
+        for key in ("min_value", "max_value"):
+            copy = number_fields[key]
+            visible = f"{copy['label']} {copy['description']}".lower()
+            assert "scale" + " min" not in visible
+            assert "scale" + " max" not in visible
+            assert "scal" not in visible
+            assert "raw" not in visible
+    assert all(fields == field_sets[0] for fields in field_sets)
+
+    italian = json.loads(catalogs[4].read_text(encoding="utf-8"))
+    fields = italian["config_panel"]["entity_types"]["numbers"]["fields"]
+    assert fields["min_value"] == {
+        "label": "Limite minimo",
+        "description": "Valore minimo selezionabile in Home Assistant. Non "
+        "modifica né converte il valore letto dal PLC.",
+    }
+    assert fields["max_value"] == {
+        "label": "Limite massimo",
+        "description": "Valore massimo selezionabile in Home Assistant. Non "
+        "modifica né converte il valore letto dal PLC.",
+    }

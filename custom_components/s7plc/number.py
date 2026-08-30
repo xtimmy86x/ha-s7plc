@@ -176,27 +176,19 @@ class S7Number(S7BaseEntity, NumberEntity):
         if tag is not None:
             numeric_limits = get_numeric_limits(tag.data_type)
 
-        def _clamp(value: float | None) -> float | None:
-            if value is None:
-                return None
-            clamped = float(value)
-            if numeric_limits is not None:
-                limit_min, limit_max = numeric_limits
-                clamped = min(max(clamped, limit_min), limit_max)
-            return clamped
+        # Explicit bounds are Home Assistant entity limits, not PLC datatype or
+        # conversion endpoints. Only defaults come from the PLC datatype.
+        min_value_limit = float(min_value) if min_value is not None else None
+        max_value_limit = float(max_value) if max_value is not None else None
 
-        min_value_clamped = _clamp(min_value)
-        max_value_clamped = _clamp(max_value)
-
-        # If the user provided min/max, use them (clamped).
         # Otherwise, if available, use the native limits of the PLC data type.
-        if min_value_clamped is not None:
-            self._attr_native_min_value = min_value_clamped
+        if min_value_limit is not None:
+            self._attr_native_min_value = min_value_limit
         elif numeric_limits is not None:
             self._attr_native_min_value = float(numeric_limits[0])
 
-        if max_value_clamped is not None:
-            self._attr_native_max_value = max_value_clamped
+        if max_value_limit is not None:
+            self._attr_native_max_value = max_value_limit
         elif numeric_limits is not None:
             self._attr_native_max_value = float(numeric_limits[1])
 

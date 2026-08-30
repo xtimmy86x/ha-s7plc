@@ -298,14 +298,6 @@
             "label": "Maßeinheit",
             "description": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden."
           },
-          "min_value": {
-            "label": "Skalierung Min",
-            "description": "Minimaler angezeigter Wert nach der Skalierung."
-          },
-          "max_value": {
-            "label": "Skalierung Max",
-            "description": "Maximaler angezeigter Wert nach der Skalierung."
-          },
           "state_class": {
             "label": "Zustandsklasse",
             "description": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch."
@@ -635,12 +627,12 @@
             "description": "Benutzerdefinierte Maßeinheit (z.B. °C, V, kW). Leerlassen, falls nicht benötigt."
           },
           "min_value": {
-            "label": "Mindestwert",
-            "description": "Untergrenze für den in Home Assistant angezeigten Wert (optional)."
+            "label": "Mindestgrenze",
+            "description": "Minimaler in Home Assistant auswählbarer Wert. Er ändert oder konvertiert den vom PLC gelesenen Wert nicht."
           },
           "max_value": {
-            "label": "Maximalwert",
-            "description": "Obergrenze für den in Home Assistant angezeigten Wert (optional)."
+            "label": "Höchstgrenze",
+            "description": "Maximaler in Home Assistant auswählbarer Wert. Er ändert oder konvertiert den vom PLC gelesenen Wert nicht."
           },
           "step": {
             "label": "Schritt",

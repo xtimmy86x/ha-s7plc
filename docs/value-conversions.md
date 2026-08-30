@@ -84,6 +84,12 @@ entity_sync:
         type: logo_time_bcd
 ```
 
+For `number` entities, `min_value` and `max_value` are only the limits exposed
+by Home Assistant for selecting a value. They do not describe the PLC range and
+do not take part in the conversion. A `sensor` has no selectable value, so these
+fields are not offered for sensors. Configure every numeric mapping explicitly
+with the four `linear_scale` endpoints shown above.
+
 A multiplier reads `HA = PLC × factor` and writes `PLC = HA ÷ factor`. A linear
 scale maps the configured PLC interval to the HA interval and reverses that
 formula on writes. The `clamp` option limits the **result** to the configured

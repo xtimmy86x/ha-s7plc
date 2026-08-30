@@ -179,7 +179,88 @@ def test_build_sensor_normalizes_value_multiplier(
     }
 
 
-def test_build_number_clamps_limits_to_plc_type_range() -> None:
+def test_legacy_conversions_are_canonical_before_builders(monkeypatch) -> None:
+    """Every builder receives canonical input and never persists legacy keys."""
+    seen: list[dict[str, Any]] = []
+    sensor_builder = EntityConfigBuilder._build_sensor_item
+    light_builder = EntityConfigBuilder._build_light_item
+
+    def capture_sensor(self, user_input, **kwargs):
+        seen.append(dict(user_input))
+        return sensor_builder(self, user_input, **kwargs)
+
+    def capture_light(self, user_input, **kwargs):
+        seen.append(dict(user_input))
+        return light_builder(self, user_input, **kwargs)
+
+    monkeypatch.setattr(EntityConfigBuilder, "_build_sensor_item", capture_sensor)
+    monkeypatch.setattr(EntityConfigBuilder, "_build_light_item", capture_light)
+
+    sensor, sensor_errors = build_entity_item(
+        "sensors",
+        {"address": "DB1,REAL0", "value_multiplier": 2},
+        options={},
+    )
+    light, light_errors = build_entity_item(
+        "lights",
+        {
+            "state_address": "DB1,X0.0",
+            "brightness_state_address": "DB1,W2",
+            "brightness_scale": 1000,
+        },
+        options={},
+    )
+    canonical, canonical_errors = build_entity_item(
+        "sensors",
+        {
+            "address": "DB1,REAL4",
+            "value_conversions": {"value": {"type": "multiplier", "factor": 3}},
+        },
+        options={},
+    )
+
+    assert sensor_errors == light_errors == canonical_errors == {}
+    assert sensor["value_conversions"]["value"] == {
+        "type": "multiplier",
+        "factor": 2,
+    }
+    assert light["value_conversions"]["brightness"]["plc_max"] == 1000
+    assert canonical["value_conversions"]["value"] == {
+        "type": "multiplier",
+        "factor": 3,
+    }
+    legacy_fields = {
+        "value_multiplier",
+        "brightness_scale",
+        "scale_raw_min",
+        "scale_raw_max",
+    }
+    assert all(not legacy_fields & entity.keys() for entity in seen)
+    assert all(not legacy_fields & entity.keys() for entity in (sensor, light, canonical))
+
+
+@pytest.mark.parametrize("legacy_maximum", [0, -1, "invalid", 65536])
+def test_build_light_normalizes_invalid_legacy_brightness_scale(
+    legacy_maximum: Any,
+) -> None:
+    """The 7.x input boundary preserves the former safe default behavior."""
+    item, errors = build_entity_item(
+        "lights",
+        {
+            "state_address": "DB1,X0.0",
+            "brightness_state_address": "DB1,W2",
+            "brightness_scale": legacy_maximum,
+        },
+        options={},
+    )
+
+    assert errors == {}
+    assert item is not None
+    assert "brightness_scale" not in item
+    assert item["value_conversions"]["brightness"]["plc_max"] == 255
+
+
+def test_build_number_preserves_home_assistant_limits() -> None:
     item, errors = build_entity_item(
         "numbers",
         {
@@ -193,8 +274,98 @@ def test_build_number_clamps_limits_to_plc_type_range() -> None:
 
     assert errors == {}
     assert item is not None
-    assert item["min_value"] == -32768.0
-    assert item["max_value"] == 32767.0
+    assert item["min_value"] == -99999.0
+    assert item["max_value"] == 99999.0
+
+
+@pytest.mark.parametrize(
+    ("limits", "expected"),
+    [
+        ({}, {}),
+        ({"min_value": 10}, {"min_value": 10.0}),
+        ({"max_value": 60000}, {"max_value": 60000.0}),
+        (
+            {"min_value": -10, "max_value": 70000},
+            {"min_value": -10.0, "max_value": 70000.0},
+        ),
+    ],
+)
+def test_build_number_validates_effective_limits_without_persisting_fallbacks(
+    limits: dict[str, float], expected: dict[str, float]
+) -> None:
+    """Missing limits use datatype bounds only for effective validation."""
+    item, errors = build_entity_item(
+        "numbers", {"address": "DB1,W0", **limits}, options={}
+    )
+
+    assert errors == {}
+    assert item is not None
+    assert {key: item[key] for key in expected} == expected
+    for key in {"min_value", "max_value"} - set(expected):
+        assert key not in item
+
+
+@pytest.mark.parametrize(
+    "limits",
+    [
+        {"min_value": 70000},
+        {"max_value": -1},
+    ],
+)
+def test_build_number_rejects_single_limit_outside_effective_range(
+    limits: dict[str, float],
+) -> None:
+    """A lone explicit bound must be consistent with the datatype fallback."""
+    item, errors = build_entity_item(
+        "numbers", {"address": "DB1,W0", **limits}, options={}
+    )
+
+    assert item is None
+    assert errors == {"base": "invalid_range"}
+
+
+def test_build_number_uses_state_address_datatype_for_limit_fallback() -> None:
+    """A different command datatype cannot change state-side HA defaults."""
+    item, errors = build_entity_item(
+        "numbers",
+        {
+            "address": "DB1,W0",
+            "command_address": "DB1,REAL4",
+            "min_value": 70000,
+        },
+        options={},
+    )
+
+    assert item is None
+    assert errors == {"base": "invalid_range"}
+
+
+@pytest.mark.parametrize("data_type", ["REAL", "LREAL"])
+@pytest.mark.parametrize(
+    ("limits", "valid"),
+    [
+        ({}, False),
+        ({"min_value": -10}, False),
+        ({"max_value": 10}, False),
+        ({"min_value": -10, "max_value": 10}, True),
+    ],
+)
+def test_build_float_number_requires_both_home_assistant_limits(
+    data_type: str, limits: dict[str, float], valid: bool
+) -> None:
+    """REAL/LREAL require a practical explicit HA operating interval."""
+    item, errors = build_entity_item(
+        "numbers", {"address": f"DB1,{data_type}0", **limits}, options={}
+    )
+
+    if valid:
+        assert errors == {}
+        assert item is not None
+        assert item["min_value"] == -10.0
+        assert item["max_value"] == 10.0
+    else:
+        assert item is None
+        assert errors == {"base": "min_max_required_for_real"}
 
 
 def test_build_climate_setpoint_rejects_decimal_preset_value() -> None:

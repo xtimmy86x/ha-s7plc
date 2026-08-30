@@ -34,18 +34,15 @@ def device_info():
 
 @pytest.fixture
 def sensor_factory(mock_coordinator, device_info):
-    """Factory to create S7Sensor instances."""
+    """Factory to create S7Sensor instances with canonical conversions."""
+
     def _create_sensor(
         name="Test Sensor",
         unique_id="test-sensor",
         topic="sensor:DB1,REAL0",
         address="DB1,REAL0",
         device_class=None,
-        value_multiplier=None,
-        scale_raw_min=None,
-        scale_raw_max=None,
-        min_value=None,
-        max_value=None,
+        value_conversion: dict | None = None,
     ):
         return S7Sensor(
             mock_coordinator,
@@ -55,19 +52,15 @@ def sensor_factory(mock_coordinator, device_info):
             topic,
             address,
             device_class,
-            value_multiplier,
-            scale_raw_min=scale_raw_min,
-            scale_raw_max=scale_raw_max,
-            min_value=min_value,
-            max_value=max_value,
+            value_conversion=value_conversion,
         )
+
     return _create_sensor
 
 
 # ============================================================================
 # S7Sensor Tests
 # ============================================================================
-
 def test_sensor_basic_initialization(sensor_factory):
     """Test basic sensor initialization."""
     sensor = sensor_factory()
@@ -75,19 +68,14 @@ def test_sensor_basic_initialization(sensor_factory):
     assert sensor._attr_unique_id == "test-sensor"
     assert sensor._topic == "sensor:DB1,REAL0"
     assert sensor._address == "DB1,REAL0"
-    assert sensor._value_multiplier is None
+    assert sensor._value_conversion is None
 
 
-def test_sensor_with_value_multiplier(sensor_factory):
-    """Test sensor with value multiplier."""
-    sensor = sensor_factory(value_multiplier=10.5)
-    assert sensor._value_multiplier == 10.5
+def test_sensor_with_multiplier_conversion(sensor_factory):
+    """Test sensor with a canonical multiplier conversion."""
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 10.5})
+    assert sensor._value_conversion == {"type": "multiplier", "factor": 10.5}
 
-
-def test_sensor_with_empty_string_multiplier(sensor_factory):
-    """Test sensor with empty string multiplier."""
-    sensor = sensor_factory(value_multiplier="")
-    assert sensor._value_multiplier is None
 
 
 def test_sensor_with_device_class_temperature(sensor_factory):
@@ -161,45 +149,45 @@ def test_sensor_native_value_no_data(sensor_factory, mock_coordinator):
 
 
 def test_sensor_native_value_simple(sensor_factory, mock_coordinator):
-    """Test native_value without multiplier."""
+    """Test native_value without a conversion."""
     mock_coordinator.data = {"sensor:DB1,REAL0": 25.5}
     sensor = sensor_factory()
     assert sensor.native_value == 25.5
 
 
-def test_sensor_native_value_with_multiplier(sensor_factory, mock_coordinator):
-    """Test native_value with multiplier."""
+def test_sensor_native_value_with_multiplier_conversion(sensor_factory, mock_coordinator):
+    """Test native_value with a canonical multiplier conversion."""
     mock_coordinator.data = {"sensor:DB1,REAL0": 10.0}
-    sensor = sensor_factory(value_multiplier=2.5)
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 2.5})
     assert sensor.native_value == 25.0
 
 
 def test_sensor_native_value_boolean_unchanged(sensor_factory, mock_coordinator):
-    """Test native_value with boolean (should not apply multiplier)."""
+    """Test boolean native_value is unchanged by a numeric conversion."""
     mock_coordinator.data = {"sensor:DB1,REAL0": True}
-    sensor = sensor_factory(value_multiplier=2.5)
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 2.5})
     assert sensor.native_value is True
 
 
-def test_sensor_native_value_string_with_multiplier(sensor_factory, mock_coordinator):
+def test_sensor_native_value_string_with_multiplier_conversion(sensor_factory, mock_coordinator):
     """Test native_value with string that can be converted to float."""
     mock_coordinator.data = {"sensor:DB1,REAL0": "15.5"}
-    sensor = sensor_factory(value_multiplier=2.0)
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 2.0})
     assert sensor.native_value == 31.0
 
 
-def test_sensor_native_value_invalid_string_with_multiplier(
+def test_sensor_native_value_invalid_string_with_multiplier_conversion(
     sensor_factory, mock_coordinator
 ):
     """Test native_value with string that cannot be converted."""
     mock_coordinator.data = {"sensor:DB1,REAL0": "not_a_number"}
-    sensor = sensor_factory(value_multiplier=2.0)
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 2.0})
     # Should return original value without multiplying
     assert sensor.native_value == "not_a_number"
 
 
-def test_sensor_extra_attributes_no_multiplier(sensor_factory):
-    """Test extra_state_attributes without multiplier."""
+def test_sensor_extra_attributes_without_conversion(sensor_factory):
+    """Test extra_state_attributes without a conversion."""
     sensor = sensor_factory()
     attrs = sensor.extra_state_attributes
     assert "s7_state_address" in attrs
@@ -207,12 +195,11 @@ def test_sensor_extra_attributes_no_multiplier(sensor_factory):
     assert "value_multiplier" not in attrs
 
 
-def test_sensor_extra_attributes_with_multiplier(sensor_factory):
-    """Test extra_state_attributes with multiplier."""
-    sensor = sensor_factory(value_multiplier=3.5)
+def test_sensor_extra_attributes_with_conversion(sensor_factory):
+    """Test extra_state_attributes with a canonical conversion."""
+    sensor = sensor_factory(value_conversion={"type": "multiplier", "factor": 3.5})
     attrs = sensor.extra_state_attributes
-    assert "value_multiplier" in attrs
-    assert attrs["value_multiplier"] == 3.5
+    assert "value_multiplier" not in attrs
 
 
 # ============================================================================
@@ -220,64 +207,23 @@ def test_sensor_extra_attributes_with_multiplier(sensor_factory):
 # ============================================================================
 
 
-def test_sensor_scale_params_stored(sensor_factory):
-    """Scale parameters are parsed and stored correctly."""
-    sensor = sensor_factory(
-        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=10
-    )
-    assert sensor._scale_params == (0.0, 100.0, 0.0, 10.0)
-
-
-def test_sensor_scale_params_partial_ignored(sensor_factory):
-    """Partial scale params (only raw range, no display range) are ignored."""
-    sensor = sensor_factory(scale_raw_min=0, scale_raw_max=100)
-    assert sensor._scale_params is None
-
-
-def test_sensor_native_value_with_scale(sensor_factory, mock_coordinator):
-    """Scale maps PLC 4000 → 0 % and 20000 → 100 %."""
-    mock_coordinator.data = {"sensor:DB1,REAL0": 12000.0}
-    sensor = sensor_factory(
-        scale_raw_min=4000, scale_raw_max=20000, min_value=0, max_value=100
-    )
-    assert sensor.native_value == pytest.approx(50.0)
-
-
-def test_sensor_scale_takes_precedence_over_multiplier(
+def test_sensor_linear_scale_uses_only_conversion_endpoints(
     sensor_factory, mock_coordinator
 ):
-    """When both are set, scale wins over value_multiplier."""
-    mock_coordinator.data = {"sensor:DB1,REAL0": 50.0}
+    """Sensor conversion is defined exclusively by the canonical endpoint map."""
+    mock_coordinator.data = {"sensor:DB1,REAL0": 12000.0}
     sensor = sensor_factory(
-        value_multiplier=10,
-        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=1,
+        value_conversion={
+            "type": "linear_scale",
+            "plc_min": 4000,
+            "plc_max": 20000,
+            "ha_min": 0,
+            "ha_max": 100,
+        }
     )
-    # scale: 50 / 100 = 0.5, NOT 50 * 10 = 500
-    assert sensor.native_value == pytest.approx(0.5)
-
-
-def test_sensor_extra_attributes_scale_params(sensor_factory):
-    """Scale parameters are exposed in extra_state_attributes."""
-    sensor = sensor_factory(
-        scale_raw_min=4000, scale_raw_max=20000, min_value=0, max_value=100
-    )
-    attrs = sensor.extra_state_attributes
-    assert attrs["scale_raw_min"] == 4000.0
-    assert attrs["scale_raw_max"] == 20000.0
-    assert attrs["min_value"] == 0.0
-    assert attrs["max_value"] == 100.0
-    assert "value_multiplier" not in attrs
-
-
-def test_sensor_extra_attributes_scale_hides_multiplier(sensor_factory):
-    """When scale is active, value_multiplier is not in attributes."""
-    sensor = sensor_factory(
-        value_multiplier=5,
-        scale_raw_min=0, scale_raw_max=100, min_value=0, max_value=10,
-    )
-    attrs = sensor.extra_state_attributes
-    assert "scale_raw_min" in attrs
-    assert "value_multiplier" not in attrs
+    assert sensor.native_value == pytest.approx(50.0)
+    assert "min_value" not in sensor.extra_state_attributes
+    assert "max_value" not in sensor.extra_state_attributes
 
 
 def test_sensor_device_class_units_mapping():
@@ -347,7 +293,6 @@ async def test_async_setup_entry_with_sensors():
                 "address": "DB1,REAL0",
                 "name": "Temperature",
                 "device_class": "temperature",
-                "value_multiplier": None,
                 "real_precision": None,
                 "scan_interval": None,
                 "uid": "test-uid",

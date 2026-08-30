@@ -298,14 +298,6 @@
             "label": "Jednostka miary",
             "description": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
           },
-          "min_value": {
-            "label": "Wartość wyjściowa min.",
-            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
-          },
-          "max_value": {
-            "label": "Wartość wyjściowa maks.",
-            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
-          },
           "state_class": {
             "label": "Klasa stanu",
             "description": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
@@ -635,12 +627,12 @@
             "description": "Jednostka miary (np. °C, V, kW). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
           },
           "min_value": {
-            "label": "Limit dolny",
-            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
+            "label": "Dolny limit",
+            "description": "Minimalna wartość dostępna do wyboru w Home Assistant. Nie zmienia ani nie konwertuje wartości odczytanej ze sterownika PLC."
           },
           "max_value": {
-            "label": "Limit górny",
-            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
+            "label": "Górny limit",
+            "description": "Maksymalna wartość dostępna do wyboru w Home Assistant. Nie zmienia ani nie konwertuje wartości odczytanej ze sterownika PLC."
           },
           "step": {
             "label": "Krok",

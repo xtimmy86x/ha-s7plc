@@ -394,8 +394,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         unit_of_measurement: str | None = None,
         state_class: str | None = None,
         suggested_area_id: str | None = None,
-        min_value: float | None = None,
-        max_value: float | None = None,
         value_conversion: dict | None = None,
     ):
         super().__init__(
