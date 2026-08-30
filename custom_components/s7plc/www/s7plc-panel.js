@@ -14,6 +14,7 @@ lights:[{channel:'brightness',read:'brightness_state_address',write:'brightness_
 "covers":[{channel:'position',read:'position_state_address',write:'position_command_address',anchor:'position_command_address',label:'position'},{channel:'status',read:'cover_status_address',anchor:'cover_status_address',label:'cover_status'},{channel:'tilt',read:'tilt_state_address',write:'tilt_command_address',anchor:'tilt_command_address',label:'tilt'}],
 "climates":[{channel:'current_temperature',read:'current_temperature_address',anchor:'current_temperature_address',label:'current_temperature'},{channel:'target_temperature',read:'target_temperature_address',write:'target_temperature_address',anchor:'target_temperature_address',label:'target_temperature'},{channel:'preset_mode',read:'preset_mode_address',write:'preset_mode_address',anchor:'preset_mode_address',label:'preset_mode',conditionalRead:'preset_mode_bidirectional'},{channel:'hvac_status',read:'hvac_status_address',anchor:'hvac_status_address',label:'hvac_status'}]
 });
+const ENTITY_CARD_CHIP_LIMIT = 5;
 const GROUP_SELECTED_INDICES = selection => {
 const grouped={};
 for(const key of selection){
@@ -330,15 +331,31 @@ class S7PlcConfigurationPanel extends HTMLElement {
   chips(item,type){
   const main=MAIN_ENTITY_ADDRESS(item,type);
   const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
-  return Object.entries(item)
-.filter(([k,v])=>k!=='name'&&k!=='uid'&&v!==false&&v!==''&&!(typeof v==='string'&&v===main))
-.slice(0,5)
-.map(([k,v])=>{
-  const label=this.escape(this.fieldText(type,k,'label'));
-  if(v===true)return `<span class="chip-flag">✓ ${label}</span>`;
-  const shown=(k==='device_class'||k==='state_class')?pretty(v):String(v);
-  return `<span>${label}: ${this.escape(shown)}</span>`;
-  }).join('');
+  const normalized=[];
+  for(const [k,value] of Object.entries(item||{})){
+    if(k==='name'||k==='uid'||value==null||value===false||value===''||(typeof value==='string'&&value===main))continue;
+    if(k==='value_conversions'){
+      if(typeof value!=='object'||Array.isArray(value))continue;
+      const specs=VALUE_CHANNEL_SPECS[type]||[],known=new Map(specs.map((spec,index)=>[spec.channel,{spec,index}]));
+      const channels=Object.keys(value).sort((left,right)=>{
+        const a=known.get(left)?.index??Number.MAX_SAFE_INTEGER,b=known.get(right)?.index??Number.MAX_SAFE_INTEGER;
+        return a-b||left.localeCompare(right);
+      });
+      for(const channel of channels){
+        const config=value[channel];
+        if(!config||typeof config!=='object'||Array.isArray(config)||!config.type)continue;
+        const spec=known.get(channel)?.spec,label=spec?this.t(`value_conversion.titles.${spec.label}`):pretty(channel);
+        normalized.push({label,value:this.valueConversionSummary(config)});
+      }
+      continue;
+    }
+    // Nested configuration belongs in its editor, never in a compact text chip.
+    if(typeof value==='object')continue;
+    normalized.push({label:this.fieldText(type,k,'label'),value:value===true?null:(k==='device_class'||k==='state_class')?pretty(value):String(value),flag:value===true});
+  }
+  return normalized.slice(0,ENTITY_CARD_CHIP_LIMIT).map(chip=>chip.flag
+    ?`<span class="chip-flag">✓ ${this.escape(chip.label)}</span>`
+    :`<span>${this.escape(chip.label)}: ${this.escape(chip.value)}</span>`).join('');
   }
   stateText(entityId){const state=this._hass?.states?.[entityId];if(!state)return '—';const unit=state.attributes?.unit_of_measurement;return unit?`${state.state} ${unit}`:state.state;}
   updateStates(){this.querySelectorAll('.state-badge[data-entity-id]').forEach(el=>{const text=this.stateText(el.dataset.entityId);if(el.textContent!==text)el.textContent=text;});}
@@ -382,7 +399,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   validateAddressBuilders(form){const invalid=[...(form.querySelectorAll?.('[data-address-builder]')||[])].find(field=>{const value=field.querySelector('input[type="hidden"]').value,parsed=PARSE_S7_ADDRESS(value);return field.dataset.addressError||field.dataset.required==='true'&&parsed.empty||parsed.error;});if(!invalid)return true;invalid.focus?.({preventScroll:true});invalid.scrollIntoView?.({behavior:'smooth',block:'center'});return false;}
 
   checkboxValue(value){return value===true||value===1||['1','true','on','yes'].includes(String(value??'').trim().toLowerCase());}
-  valueConversionSummary(config){if(!config)return this.t('value_conversion.none');if(config.type==='multiplier')return `${this.t('value_conversion.multiplier')} × ${config.factor}`;if(config.type==='linear_scale')return `${this.t('value_conversion.scale')} ${config.plc_min}–${config.plc_max} → ${config.ha_min}–${config.ha_max}${this.checkboxValue(config.clamp)?` · ${this.t('value_conversion.clamped_summary')}`:''}`;if(config.type==='logo_time_bcd')return 'LOGO! time (BCD)';return this.t('value_conversion.expression');}
+  valueConversionSummary(config){const scalar=value=>value==null||typeof value==='object'?'—':String(value);if(!config||typeof config!=='object'||Array.isArray(config)||!config.type)return this.t('value_conversion.none');if(config.type==='multiplier')return `${this.t('value_conversion.multiplier')} × ${scalar(config.factor)}`;if(config.type==='linear_scale')return `${this.t('value_conversion.scale')} ${scalar(config.plc_min)}–${scalar(config.plc_max)} → ${scalar(config.ha_min)}–${scalar(config.ha_max)}${this.checkboxValue(config.clamp)?` · ${this.t('value_conversion.clamped_summary')}`:''}`;if(config.type==='logo_time_bcd')return 'LOGO! time (BCD)';if(config.type==='expression')return this.t('value_conversion.expression');return this.t('value_conversion.none');}
   valueConversionDirection(read,write){if(read&&write)return read.trim().toUpperCase()===write.trim().toUpperCase()?'bidirectional_same':'bidirectional_distinct';return write?'write':'read';}
   valueConversionRow(type,item,spec){const {channel}=spec,readAddress=spec.read&&(!spec.conditionalRead||item[spec.conditionalRead]===true)&&item[spec.read],writeAddress=spec.write&&(item[spec.write]||(spec.writeFallback?readAddress:'')),address=writeAddress||readAddress,dataType=PARSE_S7_ADDRESS(address).dataType,direction=this.valueConversionDirection(readAddress,writeAddress);let config=item.value_conversions?.[channel];if(!config&&channel==='value'&&item.scale_raw_min!=null&&item.scale_raw_max!=null&&item.min_value!=null&&item.max_value!=null)config={type:'linear_scale',plc_min:item.scale_raw_min,plc_max:item.scale_raw_max,ha_min:item.min_value,ha_max:item.max_value};else if(!config&&channel==='value'&&item.value_multiplier!=null)config={type:'multiplier',factor:item.value_multiplier};else if(!config&&channel==='brightness'&&item.brightness_scale!=null)config={type:'linear_scale',plc_min:0,plc_max:item.brightness_scale,ha_min:0,ha_max:255,clamp:true};const kind=config?.type||'',title=this.t(`value_conversion.titles.${spec.label}`),description=this.t(`value_conversion.directions.${direction}`),descriptionId=`vc_${channel}_direction`,field=(name,label,value,inputType='number')=>`<label data-conversion-direction="${name.startsWith('read_')?'read':name.startsWith('write_')?'write':'both'}"><span>${label}</span><input name="vc_${channel}_${name}" type="${inputType}" step="any" value="${this.escape(value??'')}"></label>`;return `<details class="value-conversion" data-value-conversion="${channel}" data-read-field="${spec.read||''}" data-write-field="${spec.write||''}" data-write-fallback="${spec.writeFallback?'true':'false'}" data-conditional-read="${spec.conditionalRead||''}" data-direction="${direction}" ${config?'open':''} ${NUMERIC_VALUE_TYPES.has(dataType)?'':'hidden'}><summary data-conversion-title="${this.escape(title)}" aria-label="${this.escape(`${title}: ${this.valueConversionSummary(config)}`)}" aria-describedby="${descriptionId}" aria-expanded="${config?'true':'false'}"><span class="conversion-heading"><strong>${title}</strong><small id="${descriptionId}" data-direction-description>${description}</small></span><b data-conversion-summary>${this.escape(this.valueConversionSummary(config))}</b><span aria-hidden="true">›</span></summary><div class="conversion-fields"><div class="conversion-directions" role="group" aria-label="${this.t('value_conversion.directions.title')}"><b>${this.t('value_conversion.directions.title')}</b><span data-direction-read>PLC → Home Assistant</span><span data-direction-write>Home Assistant → PLC</span></div><label><span>${this.t('value_conversion.type')}</span><select name="vc_${channel}_type" aria-label="${this.escape(title)}" aria-describedby="${descriptionId}"><option value="" ${kind?'':'selected'}>${this.t('value_conversion.none')}</option><option value="multiplier" ${kind==='multiplier'?'selected':''}>${this.t('value_conversion.multiplier')}</option><option value="linear_scale" ${kind==='linear_scale'?'selected':''}>${this.t('value_conversion.linear_scale')}</option><option data-logo-bcd value="logo_time_bcd" ${kind==='logo_time_bcd'?'selected':''}>LOGO! time (BCD)</option><option value="expression" ${kind==='expression'?'selected':''}>${this.t('value_conversion.expression')}</option></select></label><div data-kind="multiplier">${field('factor',this.t('value_conversion.factor'),config?.factor)}</div><div data-kind="linear_scale">${field('plc_min','PLC min',config?.plc_min)}${field('plc_max','PLC max',config?.plc_max)}${field('ha_min','HA min',config?.ha_min)}${field('ha_max','HA max',config?.ha_max)}<label class="conversion-clamp"><input name="vc_${channel}_clamp" type="checkbox" ${this.checkboxValue(config?.clamp)?'checked':''}><span><b>${this.t('value_conversion.clamp')}</b><small>${this.t('value_conversion.clamp_description')}</small></span></label></div><div data-kind="logo_time_bcd"><small>${this.t('value_conversion.logo_seconds')}</small></div><div data-kind="expression">${field('read_expression',this.t('value_conversion.read_expression'),config?.read_expression,'text')}${field('write_expression',this.t('value_conversion.write_expression'),config?.write_expression,'text')}<small data-expression-independent>${this.t('value_conversion.expressions_independent')}</small></div><small class="conversion-inverse" data-conversion-inverse>${this.t('value_conversion.inverse_automatic')}</small><div class="conversion-preview" aria-live="polite">${this.t('value_conversion.preview_help')}</div></div></details>`;}
   valueConversionAfter(type,item,key){return (VALUE_CHANNEL_SPECS[type]||[]).filter(spec=>spec.anchor===key).map(spec=>this.valueConversionRow(type,item,spec)).join('');}
@@ -601,7 +618,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .details{flex:1;min-width:0}.details>b,.details>code{display:block}
 .details>b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details code{margin:4px 0 9px;color:var(--secondary-text-color);font-size:12px;font-family:ui-monospace,'SF Mono',Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.details span{font-size:11px;background:var(--secondary-background-color);padding:4px 9px;border-radius:99px;margin:2px 4px 2px 0;display:inline-block}
+.details>div{display:flex;flex-wrap:wrap;min-width:0}.details span{font-size:11px;background:var(--secondary-background-color);padding:4px 9px;border-radius:99px;margin:2px 4px 2px 0;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details span.chip-flag{background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color);font-weight:600}
 .state-badge{flex:0 0 auto;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;background:color-mix(in srgb,var(--primary-color) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary-color) 18%,transparent);color:var(--primary-color);white-space:nowrap;font-variant-numeric:tabular-nums;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{width:38px;height:38px;padding:0;flex:0 0 auto;border-radius:99px;display:grid;place-items:center;background:transparent;transition:background .15s,transform .15s}
@@ -617,7 +634,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .empty p{color:var(--secondary-text-color)}
 .loading{padding:36px;color:var(--secondary-text-color)}
 @media(prefers-reduced-motion:reduce){.page *,.page *::before{transition:none!important;animation:none!important}}
-@media(max-width:650px){.page{padding:12px 12px 48px}.mobile-controls{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-width:0}.mobile-actions{flex:1;justify-content:flex-end}.mobile-actions select{flex:1;min-width:0}.mobile-actions .config-yaml{flex:0 0 auto}.hero-banner{margin-bottom:12px;border-radius:14px}.summary{padding:18px;border-radius:16px}.summary-actions{display:none}.summary-info{gap:14px}.details div,.toolbar p{display:none}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}.entity-section{padding:12px}.entity-section-header{align-items:flex-start}.section-actions{flex-direction:column;align-items:stretch}.section-actions .primary,.section-actions .batch-delete{padding:9px 12px}.section-toggle{min-width:0}.sections-toolbar{align-items:flex-start}.default-address-mode{align-items:flex-start;flex-direction:column}.address-mode-actions{width:100%}.address-mode-actions button{flex:1}}
+@media(max-width:650px){.page{padding:12px 12px 48px}.mobile-controls{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-width:0}.mobile-actions{flex:1;justify-content:flex-end}.mobile-actions select{flex:1;min-width:0}.mobile-actions .config-yaml{flex:0 0 auto}.hero-banner{margin-bottom:12px;border-radius:14px}.summary{padding:18px;border-radius:16px}.summary-actions{display:none}.summary-info{gap:14px}.toolbar p{display:none}.details span{white-space:normal;overflow-wrap:anywhere}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.state-badge{display:none}.entity-section{padding:12px}.entity-section-header{align-items:flex-start}.section-actions{flex-direction:column;align-items:stretch}.section-actions .primary,.section-actions .batch-delete{padding:9px 12px}.section-toggle{min-width:0}.sections-toolbar{align-items:flex-start}.default-address-mode{align-items:flex-start;flex-direction:column}.address-mode-actions{width:100%}.address-mode-actions button{flex:1}}
 @media(max-width:500px){.mobile-actions .integration-version{display:none}.mobile-actions .config-yaml span,.layout-toggle span{display:none}.layout-toggle{padding:10px 12px}}
 @media(max-width:480px){.connection-badge-details{display:none}}
 @media(min-width:651px) and (max-width:850px){.summary{padding:18px}.summary-actions{gap:7px}.summary-actions .integration-version{display:none}.summary-actions select{max-width:180px}}`;}
