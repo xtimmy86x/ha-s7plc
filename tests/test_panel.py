@@ -4618,11 +4618,28 @@ console.log(JSON.stringify(result));'''
 
 def test_address_mode_controls_are_accessible_responsive_and_translated() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    page_styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
+    dialog_styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
     assert 'data-default-address-mode="guided"' in source
-    assert 'data-apply-address-mode="guided"' in source
-    assert 'data-apply-address-mode="manual"' in source
+    assert 'button type="button" data-apply-address-mode="guided"' in source
+    assert 'button type="button" data-apply-address-mode="manual"' in source
+    assert "aria-label=\"${this.t('editor.apply_guided_all')}\"" in source
+    assert "aria-label=\"${this.t('editor.apply_manual_all')}\"" in source
     assert 'role="status" aria-live="polite"' in source
-    assert '.default-address-mode{align-items:flex-start;flex-direction:column}' in source
+    assert ".default-address-mode{" in page_styles
+    assert ".address-mode-actions button{" in page_styles
+    assert ".bulk-address-modes" not in page_styles
+    assert ".sr-only" not in page_styles
+    assert ".bulk-address-modes{" in dialog_styles
+    assert ".bulk-address-modes button{" in dialog_styles
+    assert ".sr-only{" in dialog_styles
+    assert ".address-mode-actions button,.bulk-address-modes button" not in source
+    mobile_dialog_styles = dialog_styles.split("@media(max-width:650px){", 1)[1]
+    assert ".bulk-address-modes{justify-content:flex-start}" in mobile_dialog_styles
+    assert (
+        ".default-address-mode{align-items:flex-start;flex-direction:column}"
+        in page_styles
+    )
     keys = {
         "default_address_mode", "default_address_mode_description", "use_guided",
         "use_manual", "set_all_addresses", "apply_guided_all",
