@@ -79,6 +79,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     options = deepcopy(dict(entry.options))
     totals = [0, 0, 0]
     sync_configurations = 0
+    discarded_sensor_limits = 0
     conflict_logs: list[tuple[str, str, str]] = []
     for entity_type in OPTION_KEYS:
         migrated_items = []
@@ -138,6 +139,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             totals[0] += report.multipliers
             totals[1] += report.linear_scales
             totals[2] += report.brightness_scales
+            discarded_sensor_limits += report.discarded_sensor_limits
             sync_configurations += int(sync_report.changed)
             identity = str(entity.get("uid") or entity.get("name") or index)
             conflict_logs.extend(
@@ -156,7 +158,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             identity,
             channel,
         )
-    hass.config_entries.async_update_entry(entry, options=options, version=2)
+    hass.config_entries.async_update_entry(entry, options=options, version=3)
     _LOGGER.info(
         "Migrated legacy value conversions for config entry %s: "
         "%d multipliers, %d linear scales, %d brightness scales, "
@@ -165,6 +167,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         *totals,
         sync_configurations,
     )
+    if discarded_sensor_limits:
+        _LOGGER.debug(
+            "Removed %d obsolete sensor min/max fields from config entry %s",
+            discarded_sensor_limits,
+            entry.entry_id,
+        )
     return True
 
 

@@ -113,6 +113,60 @@ def test_input_normalization_converts_legacy_value_multiplier() -> None:
 
 
 @pytest.mark.parametrize(
+    "operation", [migrate_legacy_value_conversions, normalize_legacy_conversion_input]
+)
+def test_sensor_scale_consumes_limits_but_number_scale_preserves_them(operation):
+    legacy = {
+        "scale_raw_min": 0,
+        "scale_raw_max": 27648,
+        "min_value": -20,
+        "max_value": 80,
+    }
+    sensor, sensor_report = operation("sensors", legacy)
+    number, number_report = operation("numbers", legacy)
+    assert sensor["value_conversions"]["value"] == number["value_conversions"]["value"]
+    assert (
+        not {"scale_raw_min", "scale_raw_max", "min_value", "max_value"} & sensor.keys()
+    )
+    assert not {"scale_raw_min", "scale_raw_max"} & number.keys()
+    assert number["min_value"] == -20
+    assert number["max_value"] == 80
+    assert sensor_report.discarded_sensor_limits == 2
+    assert number_report.discarded_sensor_limits == 0
+
+
+def test_isolated_sensor_limits_are_discarded_without_conversion():
+    migrated, report = migrate_legacy_value_conversions(
+        "sensors", {"address": "DB1,REAL0", "min_value": -10, "max_value": 10}
+    )
+    assert migrated == {"address": "DB1,REAL0"}
+    assert "value_conversions" not in migrated
+    assert report.discarded_sensor_limits == 2
+    number, number_report = migrate_legacy_value_conversions(
+        "numbers", {"address": "DB1,REAL0", "min_value": -10, "max_value": 10}
+    )
+    assert number["min_value"] == -10 and number["max_value"] == 10
+    assert not number_report.changed
+    assert number_report.discarded_sensor_limits == 0
+
+
+def test_single_isolated_sensor_limit_is_counted_once():
+    migrated, report = migrate_legacy_value_conversions(
+        "sensors", {"address": "DB1,REAL0", "min_value": -10}
+    )
+    assert migrated == {"address": "DB1,REAL0"}
+    assert report.discarded_sensor_limits == 1
+
+
+def test_sensor_without_limits_reports_no_discarded_limits():
+    migrated, report = migrate_legacy_value_conversions(
+        "sensors", {"address": "DB1,REAL0", "value_multiplier": 2}
+    )
+    assert migrated["value_conversions"]["value"]["factor"] == 2
+    assert report.discarded_sensor_limits == 0
+
+
+@pytest.mark.parametrize(
     "legacy",
     [
         {"scale_raw_min": 0},
@@ -171,9 +225,44 @@ async def test_config_entry_migration_is_atomic_and_idempotent():
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
     assert await async_migrate_entry(hass, entry)
     assert len(calls) == 1
-    assert entry.version == 2
+    assert entry.version == 3
     assert [item["uid"] for item in entry.options["sensors"]] == ["one", "two"]
     assert entry.options["sensors"][0]["value_conversions"]["value"]["factor"] == 10
+    assert await async_migrate_entry(hass, entry)
+    assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_previous_version_is_cleaned_for_sensors_without_changing_numbers():
+    entry = SimpleNamespace(
+        version=2,
+        entry_id="branch-upgrade",
+        options={
+            "sensors": [
+                {
+                    "address": "DB1,REAL0",
+                    "min_value": 0,
+                    "max_value": 100,
+                    "value_conversions": {"value": {"type": "multiplier", "factor": 2}},
+                }
+            ],
+            "numbers": [{"address": "DB1,INT4", "min_value": -10, "max_value": 10}],
+        },
+    )
+    calls = []
+
+    def update(target, **changes):
+        calls.append(deepcopy(changes))
+        target.options = changes["options"]
+        target.version = changes["version"]
+
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == 3
+    assert "min_value" not in entry.options["sensors"][0]
+    assert "max_value" not in entry.options["sensors"][0]
+    assert entry.options["numbers"][0]["min_value"] == -10
+    assert entry.options["numbers"][0]["max_value"] == 10
     assert await async_migrate_entry(hass, entry)
     assert len(calls) == 1
 
@@ -203,9 +292,7 @@ async def test_versioned_migration_defaults_invalid_legacy_brightness_scale(
         target.options = changes["options"]
         target.version = changes["version"]
 
-    hass = SimpleNamespace(
-        config_entries=SimpleNamespace(async_update_entry=update)
-    )
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
 
     assert await async_migrate_entry(hass, entry)
     light = entry.options["lights"][0]
@@ -256,7 +343,7 @@ async def test_config_entry_migrates_redundant_switch_and_light_sync_atomically(
 
     assert await async_migrate_entry(hass, entry)
     assert len(calls) == 1
-    assert entry.version == 2
+    assert entry.version == 3
     assert [item["uid"] for item in entry.options["switches"]] == [
         "switch-one",
         "switch-two",

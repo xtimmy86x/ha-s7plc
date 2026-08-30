@@ -1072,10 +1072,10 @@ def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
         "if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'))"
         in source
     )
-    assert "brightness_scale" not in source
-    assert "value_multiplier" not in source
-    assert "scale_raw_min" not in source
-    assert "scale_raw_max" not in source
+    assert '["brightness_scale"' not in source
+    assert '["value_multiplier"' not in source
+    assert '["scale_raw_min"' not in source
+    assert '["scale_raw_max"' not in source
     assert "['brightness_state_address','brightness_command_address'].forEach" in source
 
 
@@ -4806,7 +4806,9 @@ console.log(JSON.stringify({
  unexpected:[null,42,'bad',[],{value:null},{value:{}},{value:{type:'linear_scale',plc_min:'<b>',plc_max:{bad:true}}},{unknown_channel:{type:'multiplier',factor:'<5>'}}].map(value=>chips({value_conversions:value},'sensors')),
  ordinaryObject:chips({options:{one:'One'}} ,'selects'),
  unchanged:before===JSON.stringify(original),
- noConversion:chips({address:'DB1,REAL0',name:'Plain'},'sensors')
+ noConversion:chips({address:'DB1,REAL0',name:'Plain'},'sensors'),
+ sensorLegacy:chips({min_value:0,max_value:100,scale_raw_min:0,scale_raw_max:27648,value_multiplier:2,brightness_scale:255,value_conversions:{value:conversions.position}},'sensors'),
+ numberLimits:chips({min_value:-10,max_value:10,scale_raw_min:0,scale_raw_max:100},'numbers')
 }));'''
     result = json.loads(subprocess.run(
         ["node", "-e", script, str(PANEL_JAVASCRIPT),
@@ -4836,6 +4838,12 @@ console.log(JSON.stringify({
     assert result["ordinaryObject"] == ""
     assert result["unchanged"] is True
     assert result["noConversion"] == ""
+    assert "Min Value" not in result["sensorLegacy"]
+    assert "Max Value" not in result["sensorLegacy"]
+    assert "Scala 0–27648 → 0–100" in result["sensorLegacy"]
+    assert "Limite minimo: -10" in result["numberLimits"]
+    assert "Limite massimo: 10" in result["numberLimits"]
+    assert "Scale Raw" not in result["numberLimits"]
 
 
 def test_entity_card_conversion_chips_have_english_fallback_and_mobile_layout() -> None:

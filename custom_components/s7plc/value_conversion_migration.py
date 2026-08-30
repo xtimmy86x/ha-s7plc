@@ -27,6 +27,7 @@ class MigrationReport:
     multipliers: int = 0
     linear_scales: int = 0
     brightness_scales: int = 0
+    discarded_sensor_limits: int = 0
     conflicts: tuple[str, ...] = ()
 
 
@@ -109,6 +110,11 @@ def migrate_legacy_value_conversions(
     conversions = deepcopy(dict(conversions_raw or {}))
     conflicts: list[str] = []
     multipliers = scales = brightness_scales = 0
+    discarded_sensor_limits = (
+        sum(field in result for field in ("min_value", "max_value"))
+        if entity_type == "sensors"
+        else 0
+    )
 
     candidates: list[tuple[str, dict[str, Any], tuple[str, ...], str]] = []
     value_fields_present = [key for key in LEGACY_VALUE_FIELDS if key in result]
@@ -125,6 +131,11 @@ def migrate_legacy_value_conversions(
         values = [_number(result[key], key) for key in required]
         if values[0] == values[1] or values[2] == values[3]:
             raise ValueConversionError("legacy scale intervals must not be zero")
+        fields_to_remove = tuple(value_fields_present)
+        if entity_type == "sensors":
+            # These values supplied the HA endpoints of the old sensor scale,
+            # but are not entity limits and must not survive canonicalization.
+            fields_to_remove += ("min_value", "max_value")
         candidates.append(
             (
                 "value",
@@ -136,7 +147,7 @@ def migrate_legacy_value_conversions(
                     "ha_max": values[3],
                     "clamp": False,
                 },
-                tuple(value_fields_present),
+                fields_to_remove,
                 "linear_scale",
             )
         )
@@ -191,13 +202,25 @@ def migrate_legacy_value_conversions(
         for field in fields:
             result.pop(field, None)
 
+    # Sensor min/max had no runtime meaning unless they completed the legacy
+    # four-point scale above.  In particular, never invent a conversion from
+    # isolated limits.  Number min/max remain real Home Assistant constraints.
+    if entity_type == "sensors":
+        result.pop("min_value", None)
+        result.pop("max_value", None)
+
     if conversions:
         result["value_conversions"] = conversions
     else:
         result.pop("value_conversions", None)
     changed = result != dict(entity)
     return result, MigrationReport(
-        changed, multipliers, scales, brightness_scales, tuple(conflicts)
+        changed,
+        multipliers,
+        scales,
+        brightness_scales,
+        discarded_sensor_limits,
+        tuple(conflicts),
     )
 
 

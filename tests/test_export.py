@@ -15,6 +15,19 @@ def test_build_export_payload_preserves_uid():
     assert payload[CONF_SENSORS][0][CONF_UID] == "abc123"
 
 
+def test_export_removes_sensor_limits_but_preserves_number_limits():
+    payload = export.build_export_payload(
+        {
+            "sensors": [{"address": "DB1,REAL0", "min_value": 0, "max_value": 100}],
+            "numbers": [{"address": "DB1,INT4", "min_value": -10, "max_value": 10}],
+        }
+    )
+    assert "min_value" not in payload["sensors"][0]
+    assert "max_value" not in payload["sensors"][0]
+    assert payload["numbers"][0]["min_value"] == -10
+    assert payload["numbers"][0]["max_value"] == 10
+
+
 class _FakeHTTP:
     def __init__(self) -> None:
         self.views = []

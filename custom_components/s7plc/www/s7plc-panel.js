@@ -330,10 +330,12 @@ class S7PlcConfigurationPanel extends HTMLElement {
   updateBulkAction(){if(this._viewMode==="sections"){const button=this.querySelector('[data-batch-delete-global]');if(!button)return;const count=Object.values(this.groupedSelectedIndices()).reduce((total,indices)=>total+indices.length,0);button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;return;}this.querySelectorAll('[data-batch-delete]').forEach(button=>{const count=this.selectedIndicesFor(button.dataset.batchDelete).length;button.hidden=!count;button.querySelector('span').textContent=`${this.bt('delete_selected')} (${count})`;});}
   chips(item,type){
   const main=MAIN_ENTITY_ADDRESS(item,type);
+  const hiddenLegacy=new Set(['scale_raw_min','scale_raw_max','value_multiplier','brightness_scale']);
   const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
   const conversions=[],metadata=[];
   for(const [k,value] of Object.entries(item||{})){
     if(k==='name'||k==='uid'||value==null||value===false||value===''||(typeof value==='string'&&value===main))continue;
+    if(hiddenLegacy.has(k)||((k==='min_value'||k==='max_value')&&type!=='numbers'))continue;
     if(k==='value_conversions'){
       if(typeof value!=='object'||Array.isArray(value))continue;
       const specs=VALUE_CHANNEL_SPECS[type]||[],known=new Map(specs.map((spec,index)=>[spec.channel,{spec,index}]));

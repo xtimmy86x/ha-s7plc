@@ -34,7 +34,11 @@ def build_export_payload(options: Mapping[str, Any]) -> dict[str, list[dict[str,
         if isinstance(raw_items, list):
             for item in raw_items:
                 if isinstance(item, dict):
-                    items.append(dict(item))
+                    canonical = dict(item)
+                    if key == "sensors":
+                        canonical.pop("min_value", None)
+                        canonical.pop("max_value", None)
+                    items.append(canonical)
         payload[key] = items
     return payload
 
