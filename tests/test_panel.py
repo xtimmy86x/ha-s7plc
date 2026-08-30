@@ -4877,6 +4877,29 @@ def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
     assert "preview.textContent=select.value==='linear_scale'" in source
     assert "clamp:channel==='brightness'||Boolean(read('clamp')?.checked)" in source
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_real_precision_is_visible_only_for_real_addresses() -> None:
+    """The precision control follows REAL/LREAL address changes in the editor."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const panel=new Panel(),classes=new Set();
+const field={classList:{toggle:(name,hidden)=>hidden?classes.add(name):classes.delete(name)}};
+const form={elements:{address:{value:""},real_precision:{value:"2"}},querySelector:selector=>selector==='[data-field="real_precision"]'?field:null};
+const visible=address=>{form.elements.address.value=address;panel.syncRealPrecisionVisibility(form);return !classes.has('hidden-field');};
+console.log(JSON.stringify(["DB1,REAL0","DB1,R0","DB1,LREAL0","DB1,LR0","DB1,INT0","Q0.0","invalid",""].map(visible)));
+'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    assert result == [True, True, True, True, False, False, False, False]
+
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "this.syncRealPrecisionVisibility(form);this.syncValueConversions(form)" in source
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_entity_card_value_conversion_chips_are_safe_localized_and_bounded() -> None:
     """Conversion objects expand into translated chips before the card limit."""
