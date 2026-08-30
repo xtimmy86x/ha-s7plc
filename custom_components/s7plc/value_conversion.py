@@ -266,6 +266,13 @@ def validate_value_conversion(
         ]
         if values[0] == values[1] or (context.can_write and values[2] == values[3]):
             raise ValueConversionError("scale intervals must not be zero")
+        if context.channel == "brightness" and (
+            values[2] != 0 or values[3] != 255 or config.get("clamp") is not True
+        ):
+            raise ValueConversionError(
+                "Home Assistant brightness requires ha_min 0, ha_max 255, "
+                "and clamp true"
+            )
     elif kind == "logo_time_bcd":
         if not context.can_write or context.data_type != getattr(
             DataType, "WORD", None

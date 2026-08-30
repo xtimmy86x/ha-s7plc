@@ -4783,7 +4783,7 @@ def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
     assert ".conversion-clamp:focus-within" in source
     assert "input.type==='checkbox')input.addEventListener('change',sync)" in source
     assert "preview.textContent=select.value==='linear_scale'" in source
-    assert "clamp:Boolean(read('clamp')?.checked)" in source
+    assert "clamp:channel==='brightness'||Boolean(read('clamp')?.checked)" in source
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_entity_card_value_conversion_chips_are_safe_localized_and_bounded() -> None:
@@ -4857,3 +4857,30 @@ console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}}
     assert ".details span{white-space:normal;overflow-wrap:anywhere}" in source
     assert ".details div,.toolbar p{display:none}" not in source
     assert "normalized.slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_brightness_editor_has_fixed_ha_range() -> None:
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const it=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],it)??key;
+const spec={channel:'brightness',label:'brightness',read:'brightness_state_address',write:'brightness_command_address',writeFallback:true};
+const row=panel.valueConversionRow('lights',{brightness_state_address:'DB1,W0',brightness_command_address:'DB1,W2',value_conversions:{brightness:{type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:255,clamp:true}}},spec);
+console.log(JSON.stringify({row,summary:panel.valueConversionSummary({type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,clamp:false},'brightness')}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"], check=True,
+        capture_output=True, text=True).stdout)
+    assert 'name="vc_brightness_plc_min"' in result["row"]
+    assert 'name="vc_brightness_plc_max"' in result["row"]
+    assert 'name="vc_brightness_ha_' not in result["row"]
+    assert 'name="vc_brightness_clamp"' not in result["row"]
+    assert "Intervallo Home Assistant" in result["row"]
+    assert result["summary"] == "Scala PLC 0–1000 → HA 0–255"
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "ha_min:channel==='brightness'?0:number('ha_min')" in source
+    assert "ha_max:channel==='brightness'?255:number('ha_max')" in source
+    assert "clamp:channel==='brightness'||" in source

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from homeassistant.components.light import ColorMode, LightEntity
@@ -28,6 +29,7 @@ from .entity import S7BoolSyncEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
 from .value_conversion import (
     ConversionContext,
+    ValueConversionError,
     convert_from_plc,
     convert_to_plc,
     normalize_value_conversion,
@@ -153,11 +155,18 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             max(1, brightness_scale) if brightness_scale is not None else None
         )
         self._brightness_conversion = brightness_conversion
-        self._brightness_context = (
+        self._brightness_read_context = (
+            ConversionContext.from_address(
+                "brightness", brightness_state_address, "read"
+            )
+            if brightness_state_address
+            else None
+        )
+        self._brightness_write_context = (
             ConversionContext.from_address(
                 "brightness",
                 brightness_command_address or brightness_state_address,
-                "bidirectional",
+                "write",
             )
             if (brightness_command_address or brightness_state_address)
             else None
@@ -209,29 +218,31 @@ class S7Light(S7BoolSyncEntity, LightEntity):
 
     def _plc_to_ha_brightness(self, plc_value: int | float) -> int:
         """Convert PLC brightness value to HA 0-255 range."""
-        if self._brightness_conversion and self._brightness_context:
-            return max(
-                0,
-                min(
-                    255,
-                    round(
-                        convert_from_plc(
-                            plc_value,
-                            self._brightness_conversion,
-                            self._brightness_context,
-                        )
-                    ),
-                ),
+        if self._brightness_conversion and self._brightness_read_context:
+            value = convert_from_plc(
+                plc_value, self._brightness_conversion, self._brightness_read_context
             )
+            return max(0, min(255, round(value)))
+        if not isinstance(plc_value, (int, float)) or not math.isfinite(plc_value):
+            raise ValueConversionError("brightness must be a finite numeric value")
         if self._brightness_scale == 255:
             return max(0, min(255, int(plc_value)))
         return max(0, min(255, round(plc_value * 255 / self._brightness_scale)))
 
     def _ha_to_plc_brightness(self, ha_brightness: int) -> int | float:
         """Convert HA 0-255 brightness to PLC value range."""
-        if self._brightness_conversion and self._brightness_context:
+        if not isinstance(ha_brightness, (int, float)) or not math.isfinite(
+            ha_brightness
+        ):
+            raise ValueConversionError("brightness must be a finite numeric value")
+        # HA normally supplies this range, but this boundary is deliberately
+        # defensive so no converter ever receives a different logical domain.
+        ha_brightness = max(0, min(255, ha_brightness))
+        if self._brightness_conversion and self._brightness_write_context:
             return convert_to_plc(
-                ha_brightness, self._brightness_conversion, self._brightness_context
+                ha_brightness,
+                self._brightness_conversion,
+                self._brightness_write_context,
             )
         if self._brightness_scale == 255:
             return max(0, min(255, int(ha_brightness)))
@@ -252,7 +263,11 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         value = data.get(f"{self._topic}:brightness")
         if value is None:
             return None
-        return self._plc_to_ha_brightness(value)
+        try:
+            return self._plc_to_ha_brightness(value)
+        except (ValueConversionError, TypeError, ValueError):
+            _LOGGER.warning("Ignoring invalid PLC brightness value %r", value)
+            return None
 
     # ------------------------------------------------------------------
     # State attributes (extends parent with brightness info)

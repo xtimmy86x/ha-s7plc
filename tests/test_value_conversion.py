@@ -273,3 +273,19 @@ def test_multiple_channels_are_independent():
     }
     assert normalize_value_conversion(entity, "position")["factor"] == 2
     assert normalize_value_conversion(entity, "tilt")["factor"] == 3
+
+
+@pytest.mark.parametrize("override", [{"ha_min": 1}, {"ha_max": 100}, {"clamp": False}])
+def test_brightness_scale_rejects_noncanonical_ha_domain(override) -> None:
+    conversion = {"type": "linear_scale", "plc_min": 0, "plc_max": 1000,
+                  "ha_min": 0, "ha_max": 255, "clamp": True, **override}
+    with pytest.raises(ValueConversionError, match="brightness requires ha_min 0"):
+        validate_value_conversion(conversion, ConversionContext("brightness", DataType.WORD))
+
+
+def test_brightness_scale_legacy_is_canonical() -> None:
+    conversion = normalize_value_conversion({"brightness_scale": 1000}, "brightness")
+    assert conversion == {"type": "linear_scale", "plc_min": 0, "plc_max": 1000,
+                          "ha_min": 0, "ha_max": 255, "clamp": True,
+                          "rounding": "half_even"}
+    validate_value_conversion(conversion, ConversionContext("brightness", DataType.WORD))

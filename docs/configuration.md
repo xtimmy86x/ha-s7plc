@@ -422,3 +422,13 @@ variants, are not supported.
 Numeric PLC addresses can use centralized, per-channel conversions without
 changing address syntax. See [PLC value conversions](value-conversions.md) for
 the channel matrix, YAML schema, converter semantics and legacy compatibility.
+
+### Brightness value conversions
+
+The logical brightness exposed by every light is always 0–255. A linear
+brightness conversion lets you edit only the PLC minimum and maximum (for
+example 0–1000); its Home Assistant minimum 0, maximum 255, and clamping are
+fixed. Multiplier and custom-expression results are likewise clamped before
+being exposed to Home Assistant, while writes are clamped before conversion.
+The legacy `brightness_scale` option remains supported and is normalized to the
+same bidirectional linear conversion without applying it twice.

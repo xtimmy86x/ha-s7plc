@@ -1253,7 +1253,12 @@
       "result_clamped": "Výsledek omezen",
       "clamped_min": "Hodnota omezena na nakonfigurované minimum",
       "clamped_max": "Hodnota omezena na nakonfigurované maximum",
-      "clamped_summary": "Omezena"
+      "clamped_summary": "Omezena",
+      "ha_range": "Rozsah Home Assistant",
+      "ha_fixed_range": "0–255 (pevný)",
+      "brightness_range_description": "Jas Home Assistant vždy používá rozsah 0–255.",
+      "brightness_value_clamped": "Hodnoty jasu mimo 0–255 jsou omezeny.",
+      "brightness_incompatible": "Jas Home Assistant vždy používá rozsah 0–255."
     }
   },
   "selector": {

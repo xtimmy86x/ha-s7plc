@@ -1253,7 +1253,12 @@
       "result_clamped": "Ergebnis begrenzt",
       "clamped_min": "Wert auf das konfigurierte Minimum begrenzt",
       "clamped_max": "Wert auf das konfigurierte Maximum begrenzt",
-      "clamped_summary": "Begrenzt"
+      "clamped_summary": "Begrenzt",
+      "ha_range": "Home-Assistant-Bereich",
+      "ha_fixed_range": "0–255 (fest)",
+      "brightness_range_description": "Die Home-Assistant-Helligkeit verwendet immer den Bereich 0–255.",
+      "brightness_value_clamped": "Helligkeitswerte außerhalb 0–255 werden begrenzt.",
+      "brightness_incompatible": "Die Home-Assistant-Helligkeit verwendet immer den Bereich 0–255."
     }
   },
   "selector": {

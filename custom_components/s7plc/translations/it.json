@@ -1253,7 +1253,12 @@
       "result_clamped": "Risultato limitato",
       "clamped_min": "Valore limitato al minimo configurato",
       "clamped_max": "Valore limitato al massimo configurato",
-      "clamped_summary": "Limitata"
+      "clamped_summary": "Limitata",
+      "ha_range": "Intervallo Home Assistant",
+      "ha_fixed_range": "0–255 (fisso)",
+      "brightness_range_description": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255.",
+      "brightness_value_clamped": "I valori di luminosità fuori da 0–255 vengono limitati.",
+      "brightness_incompatible": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255."
     }
   },
   "selector": {

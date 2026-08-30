@@ -449,6 +449,7 @@ def dimmer_factory(mock_coordinator, device_info):
         brightness_state_address: str = TEST_DIMMER_BRIGHTNESS_STATE_ADDRESS,
         brightness_command_address: str = TEST_DIMMER_BRIGHTNESS_COMMAND_ADDRESS,
         brightness_scale: int = 255,
+        brightness_conversion: dict | None = None,
         name: str = "Test Dimmer",
         topic: str = TEST_DIMMER_TOPIC,
         unique_id: str = f"test_device:{TEST_DIMMER_TOPIC}",
@@ -464,6 +465,7 @@ def dimmer_factory(mock_coordinator, device_info):
             brightness_scale=brightness_scale,
             brightness_state_address=brightness_state_address,
             brightness_command_address=brightness_command_address,
+            brightness_conversion=brightness_conversion,
         )
     return _create
 
@@ -991,3 +993,33 @@ async def test_async_setup_entry_with_pulse(fake_hass, mock_coordinator, device_
 
     assert light._pulse_command is True
     assert light._pulse_duration == 1.5
+
+
+def test_brightness_conversion_runtime_invariant(dimmer_factory) -> None:
+    """All converter types remain inside HA's brightness domain."""
+    scale = {"type": "linear_scale", "plc_min": 0, "plc_max": 1000,
+             "ha_min": 0, "ha_max": 255, "clamp": True}
+    light = dimmer_factory(brightness_scale=None, brightness_state_address="db1,w0",
+                           brightness_command_address="db1,w2",
+                           brightness_conversion=scale)
+    assert [light._plc_to_ha_brightness(v) for v in (-1, 0, 500, 1000, 1001)] == [0, 0, 128, 255, 255]
+    assert [light._ha_to_plc_brightness(v) for v in (-10, 0, 128, 255, 300)] == [0, 0, 502, 1000, 1000]
+
+
+@pytest.mark.parametrize(("conversion", "value", "expected"), [
+    ({"type": "multiplier", "factor": 2}, -10, 0),
+    ({"type": "multiplier", "factor": 2}, 200, 255),
+    ({"type": "expression", "read_expression": "value - 20", "write_expression": "value"}, 10, 0),
+    ({"type": "expression", "read_expression": "value * 2", "write_expression": "value"}, 200, 255),
+])
+def test_all_brightness_converters_are_clamped(dimmer_factory, conversion, value, expected) -> None:
+    light = dimmer_factory(brightness_scale=None, brightness_conversion=conversion)
+    assert light._plc_to_ha_brightness(value) == expected
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), "invalid"])
+def test_invalid_brightness_is_not_exposed(dimmer_factory, mock_coordinator, invalid) -> None:
+    mock_coordinator.data = {f"{TEST_DIMMER_TOPIC}:brightness": invalid}
+    light = dimmer_factory(brightness_scale=None,
+                           brightness_conversion={"type": "multiplier", "factor": 1})
+    assert light.brightness is None

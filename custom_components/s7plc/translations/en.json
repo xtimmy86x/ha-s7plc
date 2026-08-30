@@ -1253,7 +1253,12 @@
       "result_clamped": "Result clamped",
       "clamped_min": "Value clamped to the configured minimum",
       "clamped_max": "Value clamped to the configured maximum",
-      "clamped_summary": "Clamped"
+      "clamped_summary": "Clamped",
+      "ha_range": "Home Assistant range",
+      "ha_fixed_range": "0–255 (fixed)",
+      "brightness_range_description": "Home Assistant brightness always uses the 0–255 range.",
+      "brightness_value_clamped": "Brightness values outside 0–255 are clamped.",
+      "brightness_incompatible": "Home Assistant brightness requires the fixed 0–255 range and mandatory clamping."
     }
   },
   "selector": {

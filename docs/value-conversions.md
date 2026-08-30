@@ -134,3 +134,33 @@ YAML import continues accepting legacy fields. New and equivalent legacy fields
 in the same entity are rejected as an explicit conflict rather than silently
 being doubled. Editing may persist the new map and remove only the legacy fields
 that it replaces; there is no destructive bulk migration.
+
+## Light brightness invariant
+
+Home Assistant light brightness always uses the logical range **0–255**. For a
+`brightness` linear scale only the PLC interval is configurable; `ha_min: 0`,
+`ha_max: 255`, and `clamp: true` are fixed and are enforced by the editor,
+configuration validation, and the light runtime. For example, a PLC range of
+0–1000 is configured as:
+
+```yaml
+value_conversions:
+  brightness:
+    type: linear_scale
+    plc_min: 0
+    plc_max: 1000
+    ha_min: 0
+    ha_max: 255
+    clamp: true
+```
+
+This maps PLC 500 to approximately HA 128 and HA 128 to approximately PLC 502.
+The invariant does not restrict the PLC range. Multiplier and expression read
+results are also rounded and clamped at the Home Assistant boundary; before a
+write, the Home Assistant input is clamped to 0–255 and only then passed to the
+configured converter. The converter's PLC result is checked against the PLC
+datatype, not against 0–255.
+
+The legacy `brightness_scale: 1000` setting is normalized to exactly the linear
+scale above. A light therefore opens and runs without migration or a second
+conversion; saving it in the visual editor stores the canonical conversion.

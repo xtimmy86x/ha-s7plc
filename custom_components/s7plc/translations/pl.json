@@ -1253,7 +1253,12 @@
       "result_clamped": "Wynik ograniczony",
       "clamped_min": "Wartość ograniczona do skonfigurowanego minimum",
       "clamped_max": "Wartość ograniczona do skonfigurowanego maksimum",
-      "clamped_summary": "Ograniczona"
+      "clamped_summary": "Ograniczona",
+      "ha_range": "Zakres Home Assistant",
+      "ha_fixed_range": "0–255 (stały)",
+      "brightness_range_description": "Jasność Home Assistant zawsze używa zakresu 0–255.",
+      "brightness_value_clamped": "Wartości jasności spoza 0–255 są ograniczane.",
+      "brightness_incompatible": "Jasność Home Assistant zawsze używa zakresu 0–255."
     }
   },
   "selector": {
