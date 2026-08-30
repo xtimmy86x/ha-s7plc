@@ -215,6 +215,35 @@ def test_address_builder_layout_is_full_width_and_responsive() -> None:
     assert "min-width:150px" not in dialog_styles
 
 
+def test_safari_form_control_normalization_is_preserved() -> None:
+    """Safari controls share dimensions without removing number spinners."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
+
+    assert ".address-controls input,.address-controls select{height:38px}" in styles
+    assert (
+        ".visual-form input,.visual-form select{width:100%;min-width:0;"
+        "background:var(--card-background-color)"
+    ) in styles
+    assert (
+        ".visual-form select{-webkit-appearance:none;-moz-appearance:none;"
+        "appearance:none;background-image:linear-gradient(45deg,transparent 50%,"
+        "var(--secondary-text-color) 50%),linear-gradient(135deg,"
+        "var(--secondary-text-color) 50%,transparent 50%)"
+    ) in styles
+    assert "background-position:calc(100% - 18px) calc(50% - 3px)," in styles
+    assert "background-size:5px 5px,5px 5px;background-repeat:no-repeat;" in styles
+    assert "padding-right:30px" in styles
+
+    # Keep native numeric steppers: height, rather than hidden chrome, is the fix.
+    assert "::-webkit-inner-spin-button" not in styles
+    assert "::-webkit-outer-spin-button" not in styles
+    select_rule = styles.split(".visual-form select{-webkit", 1)[1].split("}", 1)[0]
+    assert "linear-gradient(" in select_rule
+    assert "svg" not in select_rule.lower()
+    assert "data:" not in select_rule.lower()
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_address_builders_use_inner_query_container_and_hidden_controls() -> None:
     """S7 and LOGO keep semantic fieldsets while isolating WebKit containment."""
