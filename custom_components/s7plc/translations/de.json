@@ -1258,7 +1258,21 @@
       "ha_fixed_range": "0–255 (fest)",
       "brightness_range_description": "Die Home-Assistant-Helligkeit verwendet immer den Bereich 0–255.",
       "brightness_value_clamped": "Helligkeitswerte außerhalb 0–255 werden begrenzt.",
-      "brightness_incompatible": "Die Home-Assistant-Helligkeit verwendet immer den Bereich 0–255."
+      "brightness_incompatible": "Die Home-Assistant-Helligkeit verwendet immer den Bereich 0–255.",
+      "channels": {
+        "sensor_value": "Wert",
+        "number_value": "Wert",
+        "select_value": "Wert",
+        "sync_value": "Wert",
+        "brightness": "Helligkeit",
+        "position": "Position",
+        "tilt": "Neigung",
+        "cover_status": "Rollladenstatus",
+        "current_temperature": "Aktuelle Temperatur",
+        "target_temperature": "Zieltemperatur",
+        "preset_mode": "Voreinstellungsmodus",
+        "hvac_status": "HVAC-Status"
+      }
     }
   },
   "selector": {

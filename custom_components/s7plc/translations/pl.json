@@ -1258,7 +1258,21 @@
       "ha_fixed_range": "0–255 (stały)",
       "brightness_range_description": "Jasność Home Assistant zawsze używa zakresu 0–255.",
       "brightness_value_clamped": "Wartości jasności spoza 0–255 są ograniczane.",
-      "brightness_incompatible": "Jasność Home Assistant zawsze używa zakresu 0–255."
+      "brightness_incompatible": "Jasność Home Assistant zawsze używa zakresu 0–255.",
+      "channels": {
+        "sensor_value": "Wartość",
+        "number_value": "Wartość",
+        "select_value": "Wartość",
+        "sync_value": "Wartość",
+        "brightness": "Jasność",
+        "position": "Pozycja",
+        "tilt": "Nachylenie",
+        "cover_status": "Stan osłony",
+        "current_temperature": "Bieżąca temperatura",
+        "target_temperature": "Temperatura docelowa",
+        "preset_mode": "Tryb ustawień",
+        "hvac_status": "Stan HVAC"
+      }
     }
   },
   "selector": {

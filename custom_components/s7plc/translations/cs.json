@@ -1258,7 +1258,21 @@
       "ha_fixed_range": "0–255 (pevný)",
       "brightness_range_description": "Jas Home Assistant vždy používá rozsah 0–255.",
       "brightness_value_clamped": "Hodnoty jasu mimo 0–255 jsou omezeny.",
-      "brightness_incompatible": "Jas Home Assistant vždy používá rozsah 0–255."
+      "brightness_incompatible": "Jas Home Assistant vždy používá rozsah 0–255.",
+      "channels": {
+        "sensor_value": "Hodnota",
+        "number_value": "Hodnota",
+        "select_value": "Hodnota",
+        "sync_value": "Hodnota",
+        "brightness": "Jas",
+        "position": "Poloha",
+        "tilt": "Náklon",
+        "cover_status": "Stav krytu",
+        "current_temperature": "Aktuální teplota",
+        "target_temperature": "Cílová teplota",
+        "preset_mode": "Režim předvolby",
+        "hvac_status": "Stav HVAC"
+      }
     }
   },
   "selector": {

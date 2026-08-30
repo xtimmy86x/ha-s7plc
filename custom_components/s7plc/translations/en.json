@@ -1258,7 +1258,21 @@
       "ha_fixed_range": "0–255 (fixed)",
       "brightness_range_description": "Home Assistant brightness always uses the 0–255 range.",
       "brightness_value_clamped": "Brightness values outside 0–255 are clamped.",
-      "brightness_incompatible": "Home Assistant brightness requires the fixed 0–255 range and mandatory clamping."
+      "brightness_incompatible": "Home Assistant brightness requires the fixed 0–255 range and mandatory clamping.",
+      "channels": {
+        "sensor_value": "Value",
+        "number_value": "Value",
+        "select_value": "Value",
+        "sync_value": "Value",
+        "brightness": "Brightness",
+        "position": "Position",
+        "tilt": "Tilt",
+        "cover_status": "Cover status",
+        "current_temperature": "Current temperature",
+        "target_temperature": "Target temperature",
+        "preset_mode": "Preset mode",
+        "hvac_status": "HVAC status"
+      }
     }
   },
   "selector": {

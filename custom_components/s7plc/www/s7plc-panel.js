@@ -331,7 +331,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   chips(item,type){
   const main=MAIN_ENTITY_ADDRESS(item,type);
   const pretty=v=>String(v).split('_').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
-  const normalized=[];
+  const conversions=[],metadata=[];
   for(const [k,value] of Object.entries(item||{})){
     if(k==='name'||k==='uid'||value==null||value===false||value===''||(typeof value==='string'&&value===main))continue;
     if(k==='value_conversions'){
@@ -341,19 +341,21 @@ class S7PlcConfigurationPanel extends HTMLElement {
         const a=known.get(left)?.index??Number.MAX_SAFE_INTEGER,b=known.get(right)?.index??Number.MAX_SAFE_INTEGER;
         return a-b||left.localeCompare(right);
       });
-      for(const channel of channels){
+      const valid=channels.filter(channel=>{const config=value[channel];return config&&typeof config==='object'&&!Array.isArray(config)&&config.type;});
+      for(const channel of valid){
         const config=value[channel];
-        if(!config||typeof config!=='object'||Array.isArray(config)||!config.type)continue;
-        const spec=known.get(channel)?.spec,label=spec?this.t(`value_conversion.titles.${spec.label}`):pretty(channel);
-        normalized.push({label,value:this.valueConversionSummary(config)});
+        const spec=known.get(channel)?.spec,label=spec?this.t(`value_conversion.channels.${spec.label}`):pretty(channel),summary=this.valueConversionSummary(config,channel);
+        conversions.push({label,summary,multiple:valid.length>1});
       }
       continue;
     }
     // Nested configuration belongs in its editor, never in a compact text chip.
     if(typeof value==='object')continue;
-    normalized.push({label:this.fieldText(type,k,'label'),value:value===true?null:(k==='device_class'||k==='state_class')?pretty(value):String(value),flag:value===true});
+    metadata.push({label:this.fieldText(type,k,'label'),value:value===true?null:(k==='device_class'||k==='state_class')?pretty(value):String(value),flag:value===true});
   }
-  return normalized.slice(0,ENTITY_CARD_CHIP_LIMIT).map(chip=>chip.flag
+  return [...conversions,...metadata].slice(0,ENTITY_CARD_CHIP_LIMIT).map(chip=>chip.summary!=null
+    ?`<span class="conversion-chip" title="${this.escape(chip.multiple?`${chip.label}: ${chip.summary}`:chip.summary)}" tabindex="0">${this.escape(chip.multiple?`${chip.label} · ${chip.summary}`:chip.summary)}</span>`
+    :chip.flag
     ?`<span class="chip-flag">✓ ${this.escape(chip.label)}</span>`
     :`<span>${this.escape(chip.label)}: ${this.escape(chip.value)}</span>`).join('');
   }
@@ -619,6 +621,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .details>b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details code{margin:4px 0 9px;color:var(--secondary-text-color);font-size:12px;font-family:ui-monospace,'SF Mono',Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details>div{display:flex;flex-wrap:wrap;min-width:0}.details span{font-size:11px;background:var(--secondary-background-color);padding:4px 9px;border-radius:99px;margin:2px 4px 2px 0;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.details span.conversion-chip{box-sizing:border-box;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35}
+.details span.conversion-chip:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
 .details span.chip-flag{background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color);font-weight:600}
 .state-badge{flex:0 0 auto;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;background:color-mix(in srgb,var(--primary-color) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary-color) 18%,transparent);color:var(--primary-color);white-space:nowrap;font-variant-numeric:tabular-nums;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{width:38px;height:38px;padding:0;flex:0 0 auto;border-radius:99px;display:grid;place-items:center;background:transparent;transition:background .15s,transform .15s}

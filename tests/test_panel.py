@@ -4824,11 +4824,15 @@ console.log(JSON.stringify({
     assert "Scala 0–10 → 0–1 · Limitata" in result["clamped"]
     assert "LOGO! time (BCD)" in result["logo"]
     assert "Espressione personalizzata" in result["expression"]
-    assert "Conversione posizione" in result["multiple"]
-    assert "Conversione tilt" in result["multiple"]
-    assert result["order"].index("Conversione posizione") < result["order"].index("Conversione stato cover") < result["order"].index("Conversione tilt")
+    assert 'title="Moltiplicatore × 5" tabindex="0">Moltiplicatore × 5' in result["multiplier"]
+    assert "Conversione valore sensore:" not in result["multiplier"]
+    assert 'title="Scala 0–27648 → 0–100"' in result["scale"]
+    assert "Posizione · Scala 0–27648 → 0–100" in result["multiple"]
+    assert "Tilt · Moltiplicatore × 10" in result["multiple"]
+    assert 'title="Posizione: Scala 0–27648 → 0–100"' in result["multiple"]
+    assert result["order"].index("Posizione ·") < result["order"].index("Stato cover ·") < result["order"].index("Tilt ·")
     assert result["bounded"].count("<span") == 5
-    assert "Unknown Channel" in result["unexpected"][-1]
+    assert "Unknown Channel" not in result["unexpected"][-1]
     assert "&lt;5&gt;" in result["unexpected"][-1]
     assert "<5>" not in result["unexpected"][-1]
     assert "&lt;b&gt;" in result["unexpected"][-2]
@@ -4852,11 +4856,15 @@ console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}}
          "custom_components/s7plc/translations/en.json"],
         check=True, capture_output=True, text=True,
     ).stdout
-    assert "Synchronized value conversion: Multiplier × 5" in rendered
+    assert '>Multiplier × 5</span>' in rendered
+    assert "Synchronized value conversion:" not in rendered
+    assert 'title="Multiplier × 5"' in rendered
     assert ".details>div{display:flex;flex-wrap:wrap;min-width:0}" in source
+    assert ".details span.conversion-chip{box-sizing:border-box;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere" in source
+    assert ".details span.conversion-chip:focus-visible" in source
     assert ".details span{white-space:normal;overflow-wrap:anywhere}" in source
     assert ".details div,.toolbar p{display:none}" not in source
-    assert "normalized.slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
+    assert "[...conversions,...metadata].slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")

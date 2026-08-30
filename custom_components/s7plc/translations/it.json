@@ -1258,7 +1258,21 @@
       "ha_fixed_range": "0–255 (fisso)",
       "brightness_range_description": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255.",
       "brightness_value_clamped": "I valori di luminosità fuori da 0–255 vengono limitati.",
-      "brightness_incompatible": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255."
+      "brightness_incompatible": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255.",
+      "channels": {
+        "sensor_value": "Valore",
+        "number_value": "Valore",
+        "select_value": "Valore",
+        "sync_value": "Valore",
+        "brightness": "Luminosità",
+        "position": "Posizione",
+        "tilt": "Tilt",
+        "cover_status": "Stato cover",
+        "current_temperature": "Temperatura corrente",
+        "target_temperature": "Temperatura target",
+        "preset_mode": "Modalità preset",
+        "hvac_status": "Stato HVAC"
+      }
     }
   },
   "selector": {
