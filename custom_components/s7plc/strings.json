@@ -1223,7 +1223,31 @@
       "read_expression": "Read expression",
       "write_expression": "Write expression",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
-      "preview_help": "Preview updates locally and never writes to the PLC."
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Scale",
+      "expressions_independent": "The read and write expressions are independent.",
+      "inverse_automatic": "On read, the configured conversion is applied; on write, the inverse conversion is applied automatically.",
+      "titles": {
+        "sensor_value": "Sensor value conversion",
+        "number_value": "Number value conversion",
+        "select_value": "Select value conversion",
+        "sync_value": "Synchronized value conversion",
+        "brightness": "Brightness conversion",
+        "position": "Position conversion",
+        "tilt": "Tilt conversion",
+        "cover_status": "Cover status conversion",
+        "current_temperature": "Current temperature conversion",
+        "target_temperature": "Target temperature conversion",
+        "preset_mode": "Preset mode conversion",
+        "hvac_status": "HVAC status conversion"
+      },
+      "directions": {
+        "title": "Directions",
+        "read": "The value read from the PLC is converted before being shown in Home Assistant.",
+        "write": "The Home Assistant value is converted before being written to the PLC.",
+        "bidirectional_distinct": "Applies on read to the state address and on write to the command address.",
+        "bidirectional_same": "The conversion is applied in both directions on the same PLC address."
+      }
     }
   },
   "selector": {

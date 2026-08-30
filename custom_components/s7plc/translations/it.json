@@ -1220,10 +1220,34 @@
       "expression": "Espressione personalizzata",
       "factor": "Fattore",
       "clamp": "Limita",
-      "read_expression": "Espressione lettura",
-      "write_expression": "Espressione scrittura",
+      "read_expression": "Espressione in lettura",
+      "write_expression": "Espressione in scrittura",
       "logo_seconds": "La conversione LOGO! utilizza ore e minuti; i secondi non vengono scritti.",
-      "preview_help": "L’anteprima si aggiorna localmente e non scrive mai nel PLC."
+      "preview_help": "L’anteprima si aggiorna localmente e non scrive mai nel PLC.",
+      "scale": "Scala",
+      "expressions_independent": "Le espressioni in lettura e in scrittura sono indipendenti.",
+      "inverse_automatic": "In lettura viene applicata la conversione configurata; in scrittura viene applicata automaticamente la conversione inversa.",
+      "titles": {
+        "sensor_value": "Conversione valore sensore",
+        "number_value": "Conversione valore number",
+        "select_value": "Conversione valore select",
+        "sync_value": "Conversione valore sincronizzato",
+        "brightness": "Conversione luminosità",
+        "position": "Conversione posizione",
+        "tilt": "Conversione tilt",
+        "cover_status": "Conversione stato cover",
+        "current_temperature": "Conversione temperatura corrente",
+        "target_temperature": "Conversione temperatura target",
+        "preset_mode": "Conversione modalità preset",
+        "hvac_status": "Conversione stato HVAC"
+      },
+      "directions": {
+        "title": "Direzioni",
+        "read": "Il valore letto dal PLC viene convertito prima di essere mostrato in Home Assistant.",
+        "write": "Il valore di Home Assistant viene convertito prima della scrittura nel PLC.",
+        "bidirectional_distinct": "Si applica in lettura all’indirizzo di stato e in scrittura all’indirizzo di comando.",
+        "bidirectional_same": "La conversione viene applicata in entrambe le direzioni sullo stesso indirizzo PLC."
+      }
     }
   },
   "selector": {

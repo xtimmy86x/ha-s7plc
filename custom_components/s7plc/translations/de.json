@@ -1214,16 +1214,40 @@
     "value_conversion": {
       "title": "Value conversion",
       "type": "Conversion type",
-      "none": "None",
+      "none": "Keine",
       "multiplier": "Multiplier",
       "linear_scale": "Linear scale",
-      "expression": "Custom expression",
+      "expression": "Benutzerdefinierter Ausdruck",
       "factor": "Factor",
       "clamp": "Clamp",
-      "read_expression": "Read expression",
-      "write_expression": "Write expression",
+      "read_expression": "Leseausdruck",
+      "write_expression": "Schreibausdruck",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
-      "preview_help": "Preview updates locally and never writes to the PLC."
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Skala",
+      "expressions_independent": "Lese- und Schreibausdruck sind voneinander unabhängig.",
+      "inverse_automatic": "Beim Lesen wird die konfigurierte Umrechnung angewendet; beim Schreiben wird automatisch die inverse Umrechnung angewendet.",
+      "titles": {
+        "sensor_value": "Umrechnung des Sensorwerts",
+        "number_value": "Umrechnung des Zahlenwerts",
+        "select_value": "Umrechnung des Auswahlwerts",
+        "sync_value": "Umrechnung des synchronisierten Werts",
+        "brightness": "Helligkeitsumrechnung",
+        "position": "Positionsumrechnung",
+        "tilt": "Neigungsumrechnung",
+        "cover_status": "Umrechnung des Rollladenstatus",
+        "current_temperature": "Umrechnung der aktuellen Temperatur",
+        "target_temperature": "Umrechnung der Zieltemperatur",
+        "preset_mode": "Umrechnung des Voreinstellungsmodus",
+        "hvac_status": "Umrechnung des HVAC-Status"
+      },
+      "directions": {
+        "title": "Richtungen",
+        "read": "Der aus der SPS gelesene Wert wird umgerechnet, bevor er in Home Assistant angezeigt wird.",
+        "write": "Der Home-Assistant-Wert wird vor dem Schreiben in die SPS umgerechnet.",
+        "bidirectional_distinct": "Gilt beim Lesen für die Statusadresse und beim Schreiben für die Befehlsadresse.",
+        "bidirectional_same": "Die Umrechnung wird in beide Richtungen auf dieselbe SPS-Adresse angewendet."
+      }
     }
   },
   "selector": {

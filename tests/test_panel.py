@@ -4654,3 +4654,84 @@ def test_address_mode_controls_are_accessible_responsive_and_translated() -> Non
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
         assert keys <= translation["config_panel"]["editor"].keys()
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_value_conversion_editor_is_localized_directional_and_accessible() -> None:
+    """Every logical channel has one translated, directional conversion editor."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const it=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],it)??key;
+const specs=vm.runInContext('VALUE_CHANNEL_SPECS',context), rows={};
+const entities={
+ sensors:{address:'DB1,REAL0'},numbers:{address:'DB1,REAL0',command_address:'DB1,REAL4'},selects:{address:'DB1,BYTE0'},entity_sync:{address:'DB1,REAL0'},lights:{brightness_state_address:'DB1,BYTE0',brightness_command_address:'DB1,BYTE2'},covers:{position_state_address:'DB1,BYTE0',position_command_address:'DB1,BYTE2',cover_status_address:'DB1,BYTE4',tilt_state_address:'DB1,BYTE6',tilt_command_address:'DB1,BYTE8'},climates:{current_temperature_address:'DB1,REAL0',target_temperature_address:'DB1,REAL4',preset_mode_address:'DB1,BYTE8',preset_mode_bidirectional:true,hvac_status_address:'DB1,BYTE10'}};
+for(const [type,list] of Object.entries(specs))for(const spec of list)rows[spec.label]=panel.valueConversionRow(type,entities[type],spec);
+const summaries=[null,{type:'multiplier',factor:5},{type:'linear_scale',plc_min:0,plc_max:27648,ha_min:0,ha_max:100},{type:'expression'}].map(v=>panel.valueConversionSummary(v));
+console.log(JSON.stringify({rows,summaries,directions:['', 'DB1,REAL0', 'DB1,REAL4'].map(write=>panel.valueConversionDirection('DB1,REAL0',write))}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    expected_titles = {
+        "sensor_value": "Conversione valore sensore",
+        "number_value": "Conversione valore number",
+        "select_value": "Conversione valore select",
+        "sync_value": "Conversione valore sincronizzato",
+        "brightness": "Conversione luminosità",
+        "position": "Conversione posizione",
+        "tilt": "Conversione tilt",
+        "cover_status": "Conversione stato cover",
+        "current_temperature": "Conversione temperatura corrente",
+        "target_temperature": "Conversione temperatura target",
+        "preset_mode": "Conversione modalità preset",
+        "hvac_status": "Conversione stato HVAC",
+    }
+    assert set(result["rows"]) == set(expected_titles)
+    for channel, title in expected_titles.items():
+        assert title in result["rows"][channel]
+        assert 'aria-describedby="vc_' in result["rows"][channel]
+        assert 'aria-expanded="false"' in result["rows"][channel]
+    assert "Position" not in result["rows"]["position"]
+    assert ">None<" not in result["rows"]["position"]
+    assert result["summaries"] == [
+        "Nessuna", "Moltiplicatore × 5", "Scala 0–27648 → 0–100",
+        "Espressione personalizzata",
+    ]
+    assert all("Scale" not in value and "Custom expression" not in value
+               for value in result["summaries"])
+    assert result["directions"] == ["read", "bidirectional_same", "bidirectional_distinct"]
+    assert "Il valore letto dal PLC" in result["rows"]["sensor_value"]
+    assert "Il valore di Home Assistant" in result["rows"]["sync_value"]
+    assert "indirizzo di stato" in result["rows"]["position"]
+    assert "stesso indirizzo PLC" in result["rows"]["target_temperature"]
+    assert "data-conversion-direction=\"read\"" in result["rows"]["position"]
+    assert "data-conversion-direction=\"write\"" in result["rows"]["position"]
+
+
+def test_value_conversion_translations_and_responsive_layout_are_complete() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    required = {
+        "none", "scale", "expression", "read_expression", "write_expression",
+        "expressions_independent", "inverse_automatic", "titles", "directions",
+    }
+    titles = {
+        "sensor_value", "number_value", "select_value", "sync_value", "brightness",
+        "position", "tilt", "cover_status", "current_temperature",
+        "target_temperature", "preset_mode", "hvac_status",
+    }
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        value = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= value.keys()
+        assert set(value["titles"]) == titles
+        assert set(value["directions"]) == {"title", "read", "write", "bidirectional_distinct", "bidirectional_same"}
+    assert "VALUE_CONVERSION_SUMMARY" not in source
+    assert 'this.t(`value_conversion.titles.${spec.label}`)' in source
+    assert "@media(max-width:600px){.value-conversion summary" in source
+    assert "overflow-wrap:anywhere" in source
+    assert "grid-column:1/-1" in source
+    assert "data-conversion-inverse" in source
+    assert "['multiplier','linear_scale'].includes(kind)" in source

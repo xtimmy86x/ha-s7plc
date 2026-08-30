@@ -1214,16 +1214,40 @@
     "value_conversion": {
       "title": "Value conversion",
       "type": "Conversion type",
-      "none": "None",
+      "none": "Brak",
       "multiplier": "Multiplier",
       "linear_scale": "Linear scale",
-      "expression": "Custom expression",
+      "expression": "Wyrażenie niestandardowe",
       "factor": "Factor",
       "clamp": "Clamp",
-      "read_expression": "Read expression",
-      "write_expression": "Write expression",
+      "read_expression": "Wyrażenie odczytu",
+      "write_expression": "Wyrażenie zapisu",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
-      "preview_help": "Preview updates locally and never writes to the PLC."
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Skala",
+      "expressions_independent": "Wyrażenia odczytu i zapisu są od siebie niezależne.",
+      "inverse_automatic": "Przy odczycie stosowana jest skonfigurowana konwersja; przy zapisie automatycznie stosowana jest konwersja odwrotna.",
+      "titles": {
+        "sensor_value": "Konwersja wartości czujnika",
+        "number_value": "Konwersja wartości liczbowej",
+        "select_value": "Konwersja wartości wyboru",
+        "sync_value": "Konwersja wartości synchronizowanej",
+        "brightness": "Konwersja jasności",
+        "position": "Konwersja pozycji",
+        "tilt": "Konwersja nachylenia",
+        "cover_status": "Konwersja stanu osłony",
+        "current_temperature": "Konwersja bieżącej temperatury",
+        "target_temperature": "Konwersja temperatury docelowej",
+        "preset_mode": "Konwersja trybu ustawień",
+        "hvac_status": "Konwersja stanu HVAC"
+      },
+      "directions": {
+        "title": "Kierunki",
+        "read": "Wartość odczytana ze sterownika PLC jest konwertowana przed wyświetleniem w Home Assistant.",
+        "write": "Wartość Home Assistant jest konwertowana przed zapisaniem w sterowniku PLC.",
+        "bidirectional_distinct": "Dotyczy odczytu z adresu stanu i zapisu pod adres polecenia.",
+        "bidirectional_same": "Konwersja jest stosowana w obu kierunkach dla tego samego adresu PLC."
+      }
     }
   },
   "selector": {

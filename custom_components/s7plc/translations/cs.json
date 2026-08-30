@@ -1214,16 +1214,40 @@
     "value_conversion": {
       "title": "Value conversion",
       "type": "Conversion type",
-      "none": "None",
+      "none": "Žádná",
       "multiplier": "Multiplier",
       "linear_scale": "Linear scale",
-      "expression": "Custom expression",
+      "expression": "Vlastní výraz",
       "factor": "Factor",
       "clamp": "Clamp",
-      "read_expression": "Read expression",
-      "write_expression": "Write expression",
+      "read_expression": "Výraz pro čtení",
+      "write_expression": "Výraz pro zápis",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
-      "preview_help": "Preview updates locally and never writes to the PLC."
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Stupnice",
+      "expressions_independent": "Výrazy pro čtení a zápis jsou na sobě nezávislé.",
+      "inverse_automatic": "Při čtení se použije nastavený převod; při zápisu se automaticky použije inverzní převod.",
+      "titles": {
+        "sensor_value": "Převod hodnoty senzoru",
+        "number_value": "Převod číselné hodnoty",
+        "select_value": "Převod hodnoty výběru",
+        "sync_value": "Převod synchronizované hodnoty",
+        "brightness": "Převod jasu",
+        "position": "Převod polohy",
+        "tilt": "Převod náklonu",
+        "cover_status": "Převod stavu krytu",
+        "current_temperature": "Převod aktuální teploty",
+        "target_temperature": "Převod cílové teploty",
+        "preset_mode": "Převod režimu předvolby",
+        "hvac_status": "Převod stavu HVAC"
+      },
+      "directions": {
+        "title": "Směry",
+        "read": "Hodnota načtená z PLC se převede před zobrazením v Home Assistant.",
+        "write": "Hodnota Home Assistant se převede před zápisem do PLC.",
+        "bidirectional_distinct": "Použije se při čtení na adresu stavu a při zápisu na adresu příkazu.",
+        "bidirectional_same": "Převod se použije v obou směrech na stejné adrese PLC."
+      }
     }
   },
   "selector": {
