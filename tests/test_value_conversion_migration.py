@@ -150,6 +150,96 @@ async def test_config_entry_migration_is_atomic_and_idempotent():
 
 
 @pytest.mark.asyncio
+async def test_config_entry_migrates_redundant_switch_and_light_sync_atomically():
+    entry = SimpleNamespace(
+        version=1,
+        entry_id="legacy-sync",
+        options={
+            "switches": [
+                {
+                    "uid": "switch-one",
+                    "state_address": "DB1,X0.0",
+                    "command_address": "db1,x0.0",
+                    "sync_state": True,
+                },
+                {
+                    "uid": "switch-two",
+                    "state_address": "DB1,X0.1",
+                    "command_address": "DB1,X0.2",
+                    "sync_state": False,
+                },
+            ],
+            "lights": [
+                {
+                    "uid": "light-one",
+                    "state_address": "DB1,X1.0",
+                    "sync_state": True,
+                    "brightness_state_address": "DB1,W2",
+                    "brightness_command_address": "DB1,W4",
+                    "brightness_scale": 1000,
+                }
+            ],
+        },
+    )
+    calls = []
+
+    def update(target, **changes):
+        calls.append(deepcopy(changes))
+        target.options = changes["options"]
+        target.version = changes["version"]
+
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
+
+    assert await async_migrate_entry(hass, entry)
+    assert len(calls) == 1
+    assert entry.version == 2
+    assert [item["uid"] for item in entry.options["switches"]] == [
+        "switch-one",
+        "switch-two",
+    ]
+    switch = entry.options["switches"][0]
+    assert switch["sync_state"] is False
+    assert "command_address" not in switch
+    light = entry.options["lights"][0]
+    assert light["sync_state"] is False
+    assert "command_address" not in light
+    assert light["brightness_state_address"] == "DB1,W2"
+    assert light["brightness_command_address"] == "DB1,W4"
+    assert light["value_conversions"]["brightness"]["plc_max"] == 1000
+    assert await async_migrate_entry(hass, entry)
+    assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_sync_canonicalization_is_not_persisted_if_later_entity_fails():
+    options = {
+        "switches": [
+            {
+                "uid": "would-change",
+                "state_address": "DB1,X0.0",
+                "command_address": "DB1,X0.0",
+                "sync_state": True,
+            }
+        ],
+        "sensors": [
+            {"uid": "broken-later", "address": "DB1,REAL4", "scale_raw_min": 0}
+        ],
+    }
+    entry = SimpleNamespace(version=1, entry_id="atomic-sync", options=deepcopy(options))
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_update_entry=lambda *_args, **_kwargs: pytest.fail(
+                "partial update attempted"
+            )
+        )
+    )
+
+    assert not await async_migrate_entry(hass, entry)
+    assert entry.version == 1
+    assert entry.options == options
+
+
+@pytest.mark.asyncio
 async def test_config_entry_failure_does_not_update_any_data():
     options = {
         "sensors": [

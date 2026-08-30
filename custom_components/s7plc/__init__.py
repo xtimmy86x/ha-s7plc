@@ -13,6 +13,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
+from .config_entry_migration import canonicalize_legacy_sync_addresses
 from .config_validation import build_entity_item
 from .const import (
     CONF_BACKOFF_INITIAL,
@@ -68,12 +69,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
     options = deepcopy(dict(entry.options))
     totals = [0, 0, 0]
+    sync_configurations = 0
     conflict_logs: list[tuple[str, str, str]] = []
     try:
         for entity_type in OPTION_KEYS:
             migrated_items = []
             for index, entity in enumerate(options.get(entity_type, [])):
-                migrated, report = migrate_legacy_value_conversions(entity_type, entity)
+                canonicalized, sync_report = canonicalize_legacy_sync_addresses(
+                    entity_type, entity
+                )
+                migrated, report = migrate_legacy_value_conversions(
+                    entity_type, canonicalized
+                )
                 # Reuse normal persistence validation, but validate against a
                 # snapshot that contains already migrated siblings as well.
                 validated, errors = build_entity_item(
@@ -87,6 +94,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 totals[0] += report.multipliers
                 totals[1] += report.linear_scales
                 totals[2] += report.brightness_scales
+                sync_configurations += int(sync_report.changed)
                 identity = str(entity.get("uid") or entity.get("name") or index)
                 conflict_logs.extend(
                     (entity_type, identity, channel) for channel in report.conflicts
@@ -113,9 +121,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.config_entries.async_update_entry(entry, options=options, version=2)
     _LOGGER.info(
         "Migrated legacy value conversions for config entry %s: "
-        "%d multipliers, %d linear scales, %d brightness scales",
+        "%d multipliers, %d linear scales, %d brightness scales, "
+        "%d redundant sync configurations normalized",
         entry.entry_id,
         *totals,
+        sync_configurations,
     )
     return True
 

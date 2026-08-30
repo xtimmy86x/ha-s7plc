@@ -142,6 +142,12 @@ migration. Starting with 8.0.0, new legacy YAML input will no longer be accepted
 versioned config-entry migration remains available for direct upgrades from old
 versions.
 
+The same atomic config-entry migration also normalizes old switch and light
+configurations that have `sync_state` enabled with no command address, or with a
+command address equivalent to the state address. They are changed to direct
+mode, where the state address continues to be used for both reading state and
+sending commands. Entities do not need to be recreated.
+
 ## Light brightness invariant
 
 Home Assistant light brightness always uses the logical range **0–255**. For a
