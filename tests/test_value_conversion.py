@@ -93,9 +93,16 @@ def test_scale_clamp_and_no_clamp():
         "ha_min": 0,
         "ha_max": 10,
     }
-    assert convert_from_plc(200, {**base, "clamp": True}, ctx()) == 10
+    clamped = {**base, "clamp": True}
+    assert convert_from_plc(-10, clamped, ctx()) == 0
+    assert convert_from_plc(200, clamped, ctx()) == 10
+    assert convert_to_plc(-5, clamped, ctx()) == 0
+    assert convert_to_plc(20, clamped, ctx()) == 100
+    assert convert_from_plc(50, clamped, ctx()) == 5
+    assert convert_to_plc(5, clamped, ctx()) == 50
+    assert convert_from_plc(200, {**base, "clamp": False}, ctx()) == 20
+    assert convert_to_plc(20, {**base, "clamp": False}, ctx()) == 200
     assert convert_from_plc(200, base, ctx()) == 20
-    assert convert_to_plc(20, {**base, "clamp": True}, ctx()) == 100
 
 
 @pytest.mark.parametrize("key", ["plc", "ha"])

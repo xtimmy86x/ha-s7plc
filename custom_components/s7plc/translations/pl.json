@@ -1219,7 +1219,7 @@
       "linear_scale": "Linear scale",
       "expression": "Wyrażenie niestandardowe",
       "factor": "Factor",
-      "clamp": "Clamp",
+      "clamp": "Ogranicz wynik do skonfigurowanego zakresu",
       "read_expression": "Wyrażenie odczytu",
       "write_expression": "Wyrażenie zapisu",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
@@ -1247,7 +1247,13 @@
         "write": "Wartość Home Assistant jest konwertowana przed zapisaniem w sterowniku PLC.",
         "bidirectional_distinct": "Dotyczy odczytu z adresu stanu i zapisu pod adres polecenia.",
         "bidirectional_same": "Konwersja jest stosowana w obu kierunkach dla tego samego adresu PLC."
-      }
+      },
+      "clamp_description": "Wartości poniżej lub powyżej granic są w obu kierunkach ustawiane odpowiednio na minimum lub maksimum.",
+      "clamp_preview": "Ograniczanie jest aktywne dla wyników odczytu i zapisu; podgląd jest lokalny i nigdy nie zapisuje do PLC.",
+      "result_clamped": "Wynik ograniczony",
+      "clamped_min": "Wartość ograniczona do skonfigurowanego minimum",
+      "clamped_max": "Wartość ograniczona do skonfigurowanego maksimum",
+      "clamped_summary": "Ograniczona"
     }
   },
   "selector": {
@@ -1258,22 +1264,6 @@
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
       }
-    }
-  },
-  "value_conversion": {
-    "channels": {
-      "sensor_value": "Sensor value",
-      "number_value": "Number value",
-      "select_value": "Select value",
-      "sync_value": "Synchronized value",
-      "brightness": "Brightness",
-      "position": "Position",
-      "tilt": "Tilt",
-      "cover_status": "Cover status",
-      "current_temperature": "Current temperature",
-      "target_temperature": "Target temperature",
-      "hvac_status": "HVAC status",
-      "preset_mode": "Preset mode"
     }
   }
 }

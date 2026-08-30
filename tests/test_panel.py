@@ -4735,3 +4735,52 @@ def test_value_conversion_translations_and_responsive_layout_are_complete() -> N
     assert "grid-column:1/-1" in source
     assert "data-conversion-inverse" in source
     assert "['multiplier','linear_scale'].includes(kind)" in source
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_linear_scale_clamp_editor_presentation_and_semantics() -> None:
+    """Clamp is a responsive, accessible full-row option with strict booleans."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
+const spec={channel:'value',label:'number_value',read:'address',write:'command_address'};
+const row=clamp=>panel.valueConversionRow('numbers',{address:'DB1,REAL0',command_address:'DB1,REAL4',value_conversions:{value:{type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,...clamp}}},spec);
+console.log(JSON.stringify({truthy:row({clamp:true}),falsey:row({clamp:false}),missing:row({}),strings:['0','false','anything','1','true'].map(value=>panel.checkboxValue(value)),summaries:[true,false,undefined].map(clamp=>panel.valueConversionSummary({type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,clamp}))}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    assert 'class="conversion-clamp"' in result["truthy"]
+    assert '<input name="vc_value_clamp" type="checkbox" checked>' in result["truthy"]
+    assert "Limita il risultato all’intervallo configurato" in result["truthy"]
+    assert "I valori inferiori o superiori" in result["truthy"]
+    assert "type=\"checkbox\" checked" not in result["falsey"]
+    assert "type=\"checkbox\" checked" not in result["missing"]
+    assert result["strings"] == [False, False, False, True, True]
+    assert result["summaries"] == [
+        "Scala 0–1000 → 0–100 · Limitata",
+        "Scala 0–1000 → 0–100",
+        "Scala 0–1000 → 0–100",
+    ]
+
+
+def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
+    """Every locale includes clamp feedback and CSS covers mobile/Safari."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    required = {"clamp", "clamp_description", "clamp_preview", "result_clamped",
+                "clamped_min", "clamped_max", "clamped_summary"}
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        values = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= values.keys()
+    assert ".conversion-clamp{grid-column:1/-1" in source
+    assert "grid-template-columns:auto minmax(0,1fr)" in source
+    assert "align-items:start" in source
+    assert ".conversion-clamp input{align-self:start" in source
+    assert ".conversion-clamp:focus-within" in source
+    assert "input.type==='checkbox')input.addEventListener('change',sync)" in source
+    assert "preview.textContent=select.value==='linear_scale'" in source
+    assert "clamp:Boolean(read('clamp')?.checked)" in source

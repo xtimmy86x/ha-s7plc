@@ -86,8 +86,18 @@ entity_sync:
 
 A multiplier reads `HA = PLC × factor` and writes `PLC = HA ÷ factor`. A linear
 scale maps the configured PLC interval to the HA interval and reverses that
-formula on writes; `clamp` limits the source to its interval. Integer targets
-support `half_even` (default), `half_up`, `floor`, and `ceil` rounding.
+formula on writes. The `clamp` option limits the **result** to the configured
+range in both directions: it prevents Home Assistant values below or above the
+HA limits and PLC writes below or above the PLC limits. Values already within
+the interval are unchanged. This is especially useful for percentages, analog
+signals, and measurements that can drift slightly outside their expected scale.
+
+For a `0–1000 ↔ 0–100` scale with `clamp: true`, PLC values `1200` and `-100`
+read as `100` and `0`; Home Assistant values `120` and `-10` write as `1000`
+and `0`. The editor preview is local only and never writes to the PLC.
+
+Integer targets support `half_even` (default), `half_up`, `floor`, and `ceil`
+rounding.
 
 `logo_time_bcd` is write-only and requires WORD. It accepts `HH:MM` or
 `HH:MM:SS`, validates seconds but packs only hours/minutes (`08:30` becomes

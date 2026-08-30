@@ -1219,7 +1219,7 @@
       "linear_scale": "Linear scale",
       "expression": "Benutzerdefinierter Ausdruck",
       "factor": "Factor",
-      "clamp": "Clamp",
+      "clamp": "Ergebnis auf den konfigurierten Bereich begrenzen",
       "read_expression": "Leseausdruck",
       "write_expression": "Schreibausdruck",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
@@ -1247,7 +1247,13 @@
         "write": "Der Home-Assistant-Wert wird vor dem Schreiben in die SPS umgerechnet.",
         "bidirectional_distinct": "Gilt beim Lesen für die Statusadresse und beim Schreiben für die Befehlsadresse.",
         "bidirectional_same": "Die Umrechnung wird in beide Richtungen auf dieselbe SPS-Adresse angewendet."
-      }
+      },
+      "clamp_description": "Werte unter- oder oberhalb der Grenzen werden in beiden Richtungen auf das Minimum bzw. Maximum gesetzt.",
+      "clamp_preview": "Die Begrenzung ist für Lese- und Schreibergebnisse aktiv; die Vorschau ist lokal und schreibt nie in die SPS.",
+      "result_clamped": "Ergebnis begrenzt",
+      "clamped_min": "Wert auf das konfigurierte Minimum begrenzt",
+      "clamped_max": "Wert auf das konfigurierte Maximum begrenzt",
+      "clamped_summary": "Begrenzt"
     }
   },
   "selector": {
@@ -1258,22 +1264,6 @@
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
       }
-    }
-  },
-  "value_conversion": {
-    "channels": {
-      "sensor_value": "Sensor value",
-      "number_value": "Number value",
-      "select_value": "Select value",
-      "sync_value": "Synchronized value",
-      "brightness": "Brightness",
-      "position": "Position",
-      "tilt": "Tilt",
-      "cover_status": "Cover status",
-      "current_temperature": "Current temperature",
-      "target_temperature": "Target temperature",
-      "hvac_status": "HVAC status",
-      "preset_mode": "Preset mode"
     }
   }
 }

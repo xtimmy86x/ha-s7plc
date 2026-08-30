@@ -1219,7 +1219,7 @@
       "linear_scale": "Linear scale",
       "expression": "Vlastní výraz",
       "factor": "Factor",
-      "clamp": "Clamp",
+      "clamp": "Omezit výsledek na nakonfigurovaný rozsah",
       "read_expression": "Výraz pro čtení",
       "write_expression": "Výraz pro zápis",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
@@ -1247,7 +1247,13 @@
         "write": "Hodnota Home Assistant se převede před zápisem do PLC.",
         "bidirectional_distinct": "Použije se při čtení na adresu stavu a při zápisu na adresu příkazu.",
         "bidirectional_same": "Převod se použije v obou směrech na stejné adrese PLC."
-      }
+      },
+      "clamp_description": "Hodnoty pod nebo nad limity se v obou směrech nastaví na minimum, respektive maximum.",
+      "clamp_preview": "Omezení je aktivní pro výsledky čtení i zápisu; náhled je místní a nikdy nezapisuje do PLC.",
+      "result_clamped": "Výsledek omezen",
+      "clamped_min": "Hodnota omezena na nakonfigurované minimum",
+      "clamped_max": "Hodnota omezena na nakonfigurované maximum",
+      "clamped_summary": "Omezena"
     }
   },
   "selector": {
@@ -1258,22 +1264,6 @@
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
       }
-    }
-  },
-  "value_conversion": {
-    "channels": {
-      "sensor_value": "Sensor value",
-      "number_value": "Number value",
-      "select_value": "Select value",
-      "sync_value": "Synchronized value",
-      "brightness": "Brightness",
-      "position": "Position",
-      "tilt": "Tilt",
-      "cover_status": "Cover status",
-      "current_temperature": "Current temperature",
-      "target_temperature": "Target temperature",
-      "hvac_status": "HVAC status",
-      "preset_mode": "Preset mode"
     }
   }
 }

@@ -1219,7 +1219,7 @@
       "linear_scale": "Linear scale",
       "expression": "Custom expression",
       "factor": "Factor",
-      "clamp": "Clamp",
+      "clamp": "Clamp the result to the configured range",
       "read_expression": "Read expression",
       "write_expression": "Write expression",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
@@ -1247,7 +1247,13 @@
         "write": "The Home Assistant value is converted before being written to the PLC.",
         "bidirectional_distinct": "Applies on read to the state address and on write to the command address.",
         "bidirectional_same": "The conversion is applied in both directions on the same PLC address."
-      }
+      },
+      "clamp_description": "Values below or above the limits are brought to the minimum or maximum, respectively, in both directions.",
+      "clamp_preview": "Clamping is active for read and write results; the preview is local and never writes to the PLC.",
+      "result_clamped": "Result clamped",
+      "clamped_min": "Value clamped to the configured minimum",
+      "clamped_max": "Value clamped to the configured maximum",
+      "clamped_summary": "Clamped"
     }
   },
   "selector": {
@@ -1258,22 +1264,6 @@
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
       }
-    }
-  },
-  "value_conversion": {
-    "channels": {
-      "sensor_value": "Sensor value",
-      "number_value": "Number value",
-      "select_value": "Select value",
-      "sync_value": "Synchronized value",
-      "brightness": "Brightness",
-      "position": "Position",
-      "tilt": "Tilt",
-      "cover_status": "Cover status",
-      "current_temperature": "Current temperature",
-      "target_temperature": "Target temperature",
-      "hvac_status": "HVAC status",
-      "preset_mode": "Preset mode"
     }
   }
 }
