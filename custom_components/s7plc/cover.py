@@ -643,7 +643,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
                 status, self._status_conversion, self._status_conversion_context
             )
             status = int(status)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         for movement, values in self._cover_status_values.items():
             if status in values:
@@ -1437,7 +1437,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         """
         try:
             pct = int(value)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         pct = max(0, min(100, pct))
         if invert:
@@ -1457,7 +1457,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                 value = convert_from_plc(
                     value, self._position_conversion, self._position_conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for cover %s channel position: %s",
                     self.name,
@@ -1481,7 +1481,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                 value = convert_from_plc(
                     value, self._tilt_conversion, self._tilt_conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for cover %s channel tilt: %s",
                     self.name,
@@ -1566,7 +1566,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                 status, self._status_conversion, self._status_conversion_context
             )
             status = int(status)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         for movement, values in self._cover_status_values.items():
             if status in values:
@@ -1653,7 +1653,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                     self._position_conversion,
                     self._position_conversion_context,
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for cover %s channel position: %s",
                     self.name,
@@ -1724,7 +1724,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
                 plc_value = convert_to_plc(
                     plc_value, self._tilt_conversion, self._tilt_conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for cover %s channel tilt: %s",
                     self.name,

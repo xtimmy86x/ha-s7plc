@@ -14,7 +14,6 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .config_entry_migration import canonicalize_legacy_sync_addresses
-from .config_validation import build_entity_item
 from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
@@ -53,7 +52,12 @@ from .helpers import (
     build_expected_unique_ids,
     ensure_item_uids,
 )
-from .value_conversion import ValueConversionError
+from .value_conversion import (
+    VALUE_CHANNEL_SPECS,
+    ValueConversionError,
+    conversion_contexts,
+    validate_value_conversion,
+)
 from .value_conversion_migration import migrate_legacy_value_conversions
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,50 +68,84 @@ SERVICE_WRITE_MULTI = "write_multi"
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Atomically migrate all persisted legacy conversions before setup."""
+    """Atomically migrate only versioned legacy fields before setup.
+
+    Deliberately do not pass persisted entities through the current panel
+    builder: unrelated rules added after an entry was saved are not migration
+    rules and must not prevent a direct 7.x upgrade.
+    """
     if entry.version >= 2:
         return True
     options = deepcopy(dict(entry.options))
     totals = [0, 0, 0]
     sync_configurations = 0
     conflict_logs: list[tuple[str, str, str]] = []
-    try:
-        for entity_type in OPTION_KEYS:
-            migrated_items = []
-            for index, entity in enumerate(options.get(entity_type, [])):
+    for entity_type in OPTION_KEYS:
+        migrated_items = []
+        for index, entity in enumerate(options.get(entity_type, [])):
+            channel = (
+                "brightness"
+                if "brightness_scale" in entity
+                else (
+                    "value"
+                    if any(
+                        key in entity
+                        for key in (
+                            "value_multiplier",
+                            "scale_raw_min",
+                            "scale_raw_max",
+                        )
+                    )
+                    else "configuration"
+                )
+            )
+            try:
                 canonicalized, sync_report = canonicalize_legacy_sync_addresses(
                     entity_type, entity
                 )
                 migrated, report = migrate_legacy_value_conversions(
                     entity_type, canonicalized
                 )
-                # Reuse normal persistence validation, but validate against a
-                # snapshot that contains already migrated siblings as well.
-                validated, errors = build_entity_item(
-                    entity_type, migrated, options=options, skip_idx=index
+
+                conversions = migrated.get("value_conversions")
+                if conversions is not None:
+                    if not isinstance(conversions, dict):
+                        raise ValueConversionError(
+                            "value_conversions must be a mapping"
+                        )
+                    for channel, conversion in conversions.items():
+                        if channel not in VALUE_CHANNEL_SPECS.get(entity_type, {}):
+                            raise ValueConversionError(
+                                f"unsupported conversion channel '{channel}'"
+                            )
+                        for context in conversion_contexts(
+                            entity_type, migrated, channel
+                        ):
+                            validate_value_conversion(conversion, context)
+            except (ValueConversionError, ValueError, TypeError) as err:
+                _LOGGER.error(
+                    "Config entry %s migration failed for entity type %s "
+                    "index %d channel %s: %s",
+                    entry.entry_id,
+                    entity_type,
+                    index,
+                    channel,
+                    err,
                 )
-                if validated is None:
-                    raise ValueConversionError(errors.get("base", str(errors)))
-                # The builder intentionally reconstructs known fields. Preserve
-                # unknown persisted properties and the immutable UID verbatim.
-                migrated_items.append(migrated)
-                totals[0] += report.multipliers
-                totals[1] += report.linear_scales
-                totals[2] += report.brightness_scales
-                sync_configurations += int(sync_report.changed)
-                identity = str(entity.get("uid") or entity.get("name") or index)
-                conflict_logs.extend(
-                    (entity_type, identity, channel) for channel in report.conflicts
-                )
-            if entity_type in options:
-                options[entity_type] = migrated_items
-    except (ValueConversionError, ValueError, TypeError) as err:
-        _LOGGER.error(
-            "Failed to migrate legacy value conversions for config entry %s: %s",
-            entry.entry_id,
-            err,
-        )
-        return False
+                return False
+
+            migrated_items.append(migrated)
+            totals[0] += report.multipliers
+            totals[1] += report.linear_scales
+            totals[2] += report.brightness_scales
+            sync_configurations += int(sync_report.changed)
+            identity = str(entity.get("uid") or entity.get("name") or index)
+            conflict_logs.extend(
+                (entity_type, identity, conflict_channel)
+                for conflict_channel in report.conflicts
+            )
+        if entity_type in options:
+            options[entity_type] = migrated_items
 
     for entity_type, identity, channel in conflict_logs:
         _LOGGER.warning(

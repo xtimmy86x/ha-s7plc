@@ -225,7 +225,9 @@ async def test_sync_canonicalization_is_not_persisted_if_later_entity_fails():
             {"uid": "broken-later", "address": "DB1,REAL4", "scale_raw_min": 0}
         ],
     }
-    entry = SimpleNamespace(version=1, entry_id="atomic-sync", options=deepcopy(options))
+    entry = SimpleNamespace(
+        version=1, entry_id="atomic-sync", options=deepcopy(options)
+    )
     hass = SimpleNamespace(
         config_entries=SimpleNamespace(
             async_update_entry=lambda *_args, **_kwargs: pytest.fail(
@@ -268,3 +270,41 @@ def test_platforms_do_not_read_legacy_conversion_fields():
         assert "scale_raw_min" not in source
         assert "scale_raw_max" not in source
         assert "brightness_scale" not in source
+
+
+@pytest.mark.asyncio
+async def test_migration_does_not_revalidate_unrelated_legacy_rules():
+    """A tolerated historical sibling rule must not block conversion migration."""
+    entry = SimpleNamespace(
+        version=1,
+        entry_id="legacy-panel-rule",
+        options={
+            "switches": [
+                {
+                    "uid": "preserved",
+                    "state_address": "DB1,X0.0",
+                    "command_address": "DB1,X0.1",
+                    "sync_state": False,
+                    "sync_same_address": True,
+                    "future_compatible_field": {"keep": True},
+                }
+            ],
+            "sensors": [
+                {
+                    "uid": "converted",
+                    "address": "DB1,REAL0",
+                    "value_multiplier": 2,
+                }
+            ],
+        },
+    )
+
+    def update(target, **changes):
+        target.options = changes["options"]
+        target.version = changes["version"]
+
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
+    assert await async_migrate_entry(hass, entry)
+    assert entry.options["switches"][0]["sync_same_address"] is True
+    assert entry.options["switches"][0]["future_compatible_field"] == {"keep": True}
+    assert entry.options["sensors"][0]["value_conversions"]["value"]["factor"] == 2

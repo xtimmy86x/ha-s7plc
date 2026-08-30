@@ -215,9 +215,14 @@ def evaluate_expression(expression: str, value: Any) -> float:
             and node.func.id in _FUNCTIONS
             and not node.keywords
         ):
-            return _FUNCTIONS[node.func.id](
-                *(visit(arg, depth + 1) for arg in node.args)
-            )
+            try:
+                return _FUNCTIONS[node.func.id](
+                    *(visit(arg, depth + 1) for arg in node.args)
+                )
+            except (TypeError, ValueError, ArithmeticError) as err:
+                raise ValueConversionError(
+                    f"invalid {node.func.id}() call: {err}"
+                ) from err
         raise ValueConversionError(
             f"expression contains forbidden element: {type(node).__name__}"
         )
@@ -292,10 +297,42 @@ def validate_value_conversion(
 def normalize_value_conversion(
     entity: Mapping[str, Any], channel: str, context: ConversionContext | None = None
 ) -> dict[str, Any] | None:
-    """Return the persisted conversion for a runtime logical channel."""
+    """Resolve persisted or deprecated 7.x input conversion fields."""
     conversions = entity.get("value_conversions") or {}
     configured = conversions.get(channel) if isinstance(conversions, Mapping) else None
-    result = dict(configured) if configured else None
+    legacy: dict[str, Any] | None = None
+    # TODO 8.0.0: remove legacy fields from the input/runtime boundary. Keep
+    # versioned config-entry migrations so direct upgrades remain supported.
+    if channel == "brightness" and entity.get("brightness_scale") not in (None, ""):
+        legacy = {
+            "type": "linear_scale",
+            "plc_min": 0,
+            "plc_max": entity["brightness_scale"],
+            "ha_min": 0,
+            "ha_max": 255,
+            "clamp": True,
+            "rounding": "half_even",
+        }
+    elif channel == "value":
+        scale = tuple(
+            entity.get(key)
+            for key in ("scale_raw_min", "scale_raw_max", "min_value", "max_value")
+        )
+        if all(value not in (None, "") for value in scale):
+            legacy = {
+                "type": "linear_scale",
+                "plc_min": scale[0],
+                "plc_max": scale[1],
+                "ha_min": scale[2],
+                "ha_max": scale[3],
+            }
+        elif entity.get("value_multiplier") not in (None, ""):
+            legacy = {"type": "multiplier", "factor": entity["value_multiplier"]}
+    if configured is not None and legacy is not None:
+        raise ValueConversionError(
+            f"new and legacy conversion conflict for channel '{channel}'"
+        )
+    result = dict(configured or legacy) if configured or legacy else None
     if result and context:
         validate_value_conversion(result, context)
     return result
@@ -304,51 +341,63 @@ def normalize_value_conversion(
 def convert_from_plc(
     value: Any, config: Mapping[str, Any] | None, context: ConversionContext
 ) -> Any:
-    if not config:
-        return value
-    validate_value_conversion(config, context)
-    kind = config["type"]
-    number = _finite(value)
-    if kind == "multiplier":
-        result = number * _finite(config["factor"], "factor")
-    elif kind == "linear_scale":
-        p0, p1, h0, h1 = (
-            _finite(config[k], k) for k in ("plc_min", "plc_max", "ha_min", "ha_max")
-        )
-        if config.get("clamp"):
-            number = min(max(number, min(p0, p1)), max(p0, p1))
-        result = h0 + (number - p0) * (h1 - h0) / (p1 - p0)
-    elif kind == "expression":
-        result = evaluate_expression(config["read_expression"], number)
-    else:
-        raise ValueConversionError(f"{kind} does not support reading")
-    return _finite(result, "conversion result")
+    try:
+        if not config:
+            return value
+        validate_value_conversion(config, context)
+        kind = config["type"]
+        number = _finite(value)
+        if kind == "multiplier":
+            result = number * _finite(config["factor"], "factor")
+        elif kind == "linear_scale":
+            p0, p1, h0, h1 = (
+                _finite(config[k], k)
+                for k in ("plc_min", "plc_max", "ha_min", "ha_max")
+            )
+            if config.get("clamp"):
+                number = min(max(number, min(p0, p1)), max(p0, p1))
+            result = h0 + (number - p0) * (h1 - h0) / (p1 - p0)
+        elif kind == "expression":
+            result = evaluate_expression(config["read_expression"], number)
+        else:
+            raise ValueConversionError(f"{kind} does not support reading")
+        return _finite(result, "conversion result")
+    except ValueConversionError:
+        raise
+    except (TypeError, ValueError, ArithmeticError, KeyError) as err:
+        raise ValueConversionError(f"read conversion failed: {err}") from err
 
 
 def convert_to_plc(
     value: Any, config: Mapping[str, Any] | None, context: ConversionContext
 ) -> Any:
-    if not config:
-        return value
-    validate_value_conversion(config, context)
-    kind = config["type"]
-    if kind == "logo_time_bcd":
-        return _logo_time(value)
-    number = _finite(value)
-    if kind == "multiplier":
-        result = number / _finite(config["factor"], "factor")
-    elif kind == "linear_scale":
-        p0, p1, h0, h1 = (
-            _finite(config[k], k) for k in ("plc_min", "plc_max", "ha_min", "ha_max")
-        )
-        if config.get("clamp"):
-            number = min(max(number, min(h0, h1)), max(h0, h1))
-        result = p0 + (number - h0) * (p1 - p0) / (h1 - h0)
-    elif kind == "expression":
-        result = evaluate_expression(config["write_expression"], number)
-    else:
-        raise ValueConversionError(f"{kind} does not support writing")
-    return _plc_result(result, context, config)
+    try:
+        if not config:
+            return value
+        validate_value_conversion(config, context)
+        kind = config["type"]
+        if kind == "logo_time_bcd":
+            return _logo_time(value)
+        number = _finite(value)
+        if kind == "multiplier":
+            result = number / _finite(config["factor"], "factor")
+        elif kind == "linear_scale":
+            p0, p1, h0, h1 = (
+                _finite(config[k], k)
+                for k in ("plc_min", "plc_max", "ha_min", "ha_max")
+            )
+            if config.get("clamp"):
+                number = min(max(number, min(h0, h1)), max(h0, h1))
+            result = p0 + (number - h0) * (p1 - p0) / (h1 - h0)
+        elif kind == "expression":
+            result = evaluate_expression(config["write_expression"], number)
+        else:
+            raise ValueConversionError(f"{kind} does not support writing")
+        return _plc_result(result, context, config)
+    except ValueConversionError:
+        raise
+    except (TypeError, ValueError, ArithmeticError, KeyError) as err:
+        raise ValueConversionError(f"write conversion failed: {err}") from err
 
 
 def describe_value_conversion(config: Mapping[str, Any] | None) -> str:

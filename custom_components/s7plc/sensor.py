@@ -511,7 +511,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                 return convert_from_plc(
                     numeric_value, self._value_conversion, self._conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for sensor %s channel value: %s",
                     self.name,
@@ -645,7 +645,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                     value = convert_to_plc(
                         value, self._value_conversion, self._conversion_context
                     )
-                except ValueConversionError as err:
+                except (ValueConversionError, TypeError, ValueError) as err:
                     _LOGGER.warning(
                         "Value conversion failed for entity sync %s channel value: %s",
                         self.name,

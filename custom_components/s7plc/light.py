@@ -271,7 +271,15 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         # Write brightness before boolean on so PLC has the value ready
         if self._is_dimmer and "brightness" in kwargs:
             await self._ensure_connected()
-            plc_value = self._ha_to_plc_brightness(kwargs["brightness"])
+            try:
+                plc_value = self._ha_to_plc_brightness(kwargs["brightness"])
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for light %s channel brightness: %s",
+                    self.name,
+                    err,
+                )
+                return
             await self.coordinator.write_batched(
                 self._brightness_command_address, plc_value
             )

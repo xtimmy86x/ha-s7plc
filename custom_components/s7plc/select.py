@@ -166,7 +166,7 @@ class S7Select(S7BaseEntity, SelectEntity):
                 value = time_to_seconds(value)
             else:
                 value = int(value)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             if self._is_time and isinstance(value, timedelta):
                 _LOGGER.debug(
                     "Invalid TIME PLC value for select %s: %r", self._topic, value
@@ -192,7 +192,7 @@ class S7Select(S7BaseEntity, SelectEntity):
             value = convert_to_plc(
                 value, self._value_conversion, self._write_conversion_context
             )
-        except ValueConversionError as err:
+        except (ValueConversionError, TypeError, ValueError) as err:
             raise HomeAssistantError(f"Value conversion failed: {err}") from err
         payload = seconds_to_time(value) if self._is_time else value
         await self.coordinator.write_batched(self._command_address, payload)

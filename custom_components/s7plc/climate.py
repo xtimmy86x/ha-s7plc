@@ -460,7 +460,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
                         self._current_temperature_context,
                     )
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Climate %s value conversion failed for channel "
                     "current_temperature: %s",
@@ -862,7 +862,7 @@ class S7ClimateSetpointControl(
                         self._current_temperature_context,
                     )
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Climate %s value conversion failed for channel "
                     "current_temperature: %s",
@@ -887,7 +887,7 @@ class S7ClimateSetpointControl(
                         self._target_temperature_context,
                     )
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Climate %s value conversion failed for channel "
                     "target_temperature: %s",
@@ -931,7 +931,7 @@ class S7ClimateSetpointControl(
                         self._preset_mode_context,
                     )
                     mode = self._preset_value_to_mode.get(int(preset_value))
-                except (TypeError, ValueError):
+                except (ValueConversionError, TypeError, ValueError):
                     mode = None
                 if mode is not None:
                     return mode
@@ -969,7 +969,7 @@ class S7ClimateSetpointControl(
                         self._hvac_status_context,
                     )
                     status_value = int(status)
-                except (TypeError, ValueError):
+                except (ValueConversionError, TypeError, ValueError):
                     # A transient malformed coordinator value must not make
                     # Home Assistant fail while evaluating the entity state.
                     # Treat it like any other unrecognised PLC status instead.
@@ -1027,7 +1027,7 @@ class S7ClimateSetpointControl(
                 self._target_temperature_conversion,
                 self._target_temperature_context,
             )
-        except ValueConversionError as err:
+        except (ValueConversionError, TypeError, ValueError) as err:
             _LOGGER.warning(
                 "Climate %s value conversion failed for channel target_temperature: %s",
                 self.name,
@@ -1061,11 +1061,20 @@ class S7ClimateSetpointControl(
         if self._preset_mode_address:
             mode_value = self._preset_mode_values.get(hvac_mode)
             if mode_value is not None:
-                mode_value = convert_to_plc(
-                    mode_value,
-                    self._preset_mode_conversion,
-                    self._preset_mode_context,
-                )
+                try:
+                    mode_value = convert_to_plc(
+                        mode_value,
+                        self._preset_mode_conversion,
+                        self._preset_mode_context,
+                    )
+                except (ValueConversionError, TypeError, ValueError) as err:
+                    _LOGGER.warning(
+                        "Climate %s value conversion failed for channel "
+                        "preset_mode: %s",
+                        self.name,
+                        err,
+                    )
+                    return
                 await self.coordinator.write_batched(
                     self._preset_mode_address, mode_value
                 )

@@ -221,7 +221,7 @@ class S7Number(S7BaseEntity, NumberEntity):
                 return convert_from_plc(
                     value, self._value_conversion, self._conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 _LOGGER.warning(
                     "Value conversion failed for number %s channel value: %s",
                     self.name,
@@ -243,7 +243,7 @@ class S7Number(S7BaseEntity, NumberEntity):
                 plc_value = convert_to_plc(
                     value, self._value_conversion, self._conversion_context
                 )
-            except ValueConversionError as err:
+            except (ValueConversionError, TypeError, ValueError) as err:
                 raise HomeAssistantError(str(err)) from err
         # Convert display-unit value back to PLC raw value. TIME scaling and
         # multipliers operate in HA seconds; conversion to pyS7 timedelta is last.

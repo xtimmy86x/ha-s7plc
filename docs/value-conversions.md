@@ -142,6 +142,14 @@ migration. Starting with 8.0.0, new legacy YAML input will no longer be accepted
 versioned config-entry migration remains available for direct upgrades from old
 versions.
 
+Migration validation is intentionally limited to conversion channels and the
+addresses/datatypes needed to establish their read/write direction. Persisted
+7.x entities are not re-submitted to the current panel validator, so unrelated
+historical settings (including unknown compatible fields) cannot block an
+upgrade. All entities are prepared first and the config entry is updated only
+after every conversion succeeds; an error therefore leaves the original entry
+untouched.
+
 The same atomic config-entry migration also normalizes old switch and light
 configurations that have `sync_state` enabled with no command address, or with a
 command address equivalent to the state address. They are changed to direct
