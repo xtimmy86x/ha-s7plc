@@ -42,6 +42,13 @@ from .helpers import (
     inverse_scale_value,
     scale_value,
 )
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,6 +102,7 @@ async def async_setup_entry(
                 value_multiplier=value_multiplier,
                 scale_raw_min=scale_raw_min,
                 scale_raw_max=scale_raw_max,
+                value_conversion=normalize_value_conversion(item, "value"),
             )
         )
 
@@ -129,6 +137,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         value_multiplier: float | None = None,
         scale_raw_min: float | None = None,
         scale_raw_max: float | None = None,
+        value_conversion: dict | None = None,
     ):
         super().__init__(
             coordinator,
@@ -140,6 +149,10 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+        self._value_conversion = value_conversion
+        self._conversion_context = ConversionContext.from_address(
+            "value", command_address or address, "bidirectional"
+        )
         try:
             self._is_time = is_time_data_type(parse_tag(address).data_type)
         except (RuntimeError, ValueError):
@@ -263,6 +276,18 @@ class S7Number(S7BaseEntity, NumberEntity):
             except (TypeError, ValueError):
                 _LOGGER.warning("Invalid TIME value for %s: %r", self._topic, value)
                 return None
+        if self._value_conversion:
+            try:
+                return convert_from_plc(
+                    value, self._value_conversion, self._conversion_context
+                )
+            except ValueConversionError as err:
+                _LOGGER.warning(
+                    "Value conversion failed for number %s channel value: %s",
+                    self.name,
+                    err,
+                )
+                return None
         # Linear scaling takes precedence over multiplier
         if self._scale_params is not None:
             try:
@@ -285,9 +310,16 @@ class S7Number(S7BaseEntity, NumberEntity):
         if self._is_time and not math.isfinite(float(value)):
             raise HomeAssistantError("TIME/number value must be finite.")
 
+        if self._value_conversion:
+            try:
+                plc_value = convert_to_plc(
+                    value, self._value_conversion, self._conversion_context
+                )
+            except ValueConversionError as err:
+                raise HomeAssistantError(str(err)) from err
         # Convert display-unit value back to PLC raw value. TIME scaling and
         # multipliers operate in HA seconds; conversion to pyS7 timedelta is last.
-        if self._scale_params is not None:
+        elif self._scale_params is not None:
             rn, rx, sn, sx = self._scale_params
             plc_value = inverse_scale_value(float(value), rn, rx, sn, sx)
         elif self._value_multiplier is not None and self._value_multiplier != 0:

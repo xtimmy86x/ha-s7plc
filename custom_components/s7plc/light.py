@@ -26,6 +26,12 @@ from .const import (
 )
 from .entity import S7BoolSyncEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
+from .value_conversion import (
+    ConversionContext,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
+)
 
 PARALLEL_UPDATES = 1
 
@@ -49,6 +55,7 @@ async def async_setup_entry(
         pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
 
         brightness_scale = item.get(CONF_BRIGHTNESS_SCALE)
+        brightness_conversion = normalize_value_conversion(item, "brightness")
         brightness_state_address = item.get(CONF_BRIGHTNESS_STATE_ADDRESS)
         brightness_command_address = item.get(
             CONF_BRIGHTNESS_COMMAND_ADDRESS, brightness_state_address
@@ -66,8 +73,8 @@ async def async_setup_entry(
 
         # If dimmer, also register the brightness topic
         is_dimmer = (
-            brightness_scale is not None and brightness_state_address is not None
-        )
+            brightness_scale is not None or brightness_conversion is not None
+        ) and brightness_state_address is not None
         if is_dimmer:
             await coord.add_item(
                 f"{topic}:brightness", brightness_state_address, scan_interval
@@ -89,6 +96,7 @@ async def async_setup_entry(
                 brightness_state_address,
                 brightness_command_address,
                 area,
+                brightness_conversion,
             )
         )
 
@@ -126,6 +134,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         brightness_state_address: str | None = None,
         brightness_command_address: str | None = None,
         suggested_area_id: str | None = None,
+        brightness_conversion: dict | None = None,
     ):
         super().__init__(
             coordinator,
@@ -142,6 +151,16 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         )
         self._brightness_scale = (
             max(1, brightness_scale) if brightness_scale is not None else None
+        )
+        self._brightness_conversion = brightness_conversion
+        self._brightness_context = (
+            ConversionContext.from_address(
+                "brightness",
+                brightness_command_address or brightness_state_address,
+                "bidirectional",
+            )
+            if (brightness_command_address or brightness_state_address)
+            else None
         )
         self._brightness_state_address = brightness_state_address
         self._brightness_command_address = (
@@ -163,8 +182,8 @@ class S7Light(S7BoolSyncEntity, LightEntity):
     def _is_dimmer(self) -> bool:
         return (
             self._brightness_scale is not None
-            and self._brightness_state_address is not None
-        )
+            or self._brightness_conversion is not None
+        ) and self._brightness_state_address is not None
 
     @property
     def color_mode(self) -> ColorMode | None:
@@ -190,12 +209,30 @@ class S7Light(S7BoolSyncEntity, LightEntity):
 
     def _plc_to_ha_brightness(self, plc_value: int | float) -> int:
         """Convert PLC brightness value to HA 0-255 range."""
+        if self._brightness_conversion and self._brightness_context:
+            return max(
+                0,
+                min(
+                    255,
+                    round(
+                        convert_from_plc(
+                            plc_value,
+                            self._brightness_conversion,
+                            self._brightness_context,
+                        )
+                    ),
+                ),
+            )
         if self._brightness_scale == 255:
             return max(0, min(255, int(plc_value)))
         return max(0, min(255, round(plc_value * 255 / self._brightness_scale)))
 
     def _ha_to_plc_brightness(self, ha_brightness: int) -> int | float:
         """Convert HA 0-255 brightness to PLC value range."""
+        if self._brightness_conversion and self._brightness_context:
+            return convert_to_plc(
+                ha_brightness, self._brightness_conversion, self._brightness_context
+            )
         if self._brightness_scale == 255:
             return max(0, min(255, int(ha_brightness)))
         return max(

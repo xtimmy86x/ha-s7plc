@@ -81,6 +81,13 @@ from .helpers import (
     make_unique_topic,
     parse_mode_values,
 )
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -168,6 +175,7 @@ async def async_setup_entry(
                     max_temp,
                     temp_step,
                     area,
+                    normalize_value_conversion(item, "current_temperature"),
                 )
             )
 
@@ -310,6 +318,12 @@ async def async_setup_entry(
                     preset_mode_fan_only_value=preset_mode_fan_only_value,
                     preset_mode_bidirectional=preset_mode_bidirectional,
                     on_off_address=on_off_address,
+                    current_temperature_conversion=normalize_value_conversion(
+                        item, "current_temperature"
+                    ),
+                    target_temperature_conversion=normalize_value_conversion(
+                        item, "target_temperature"
+                    ),
                 )
             )
 
@@ -350,6 +364,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         max_temp: float,
         temp_step: float,
         suggested_area_id: str | None = None,
+        current_temperature_conversion: dict | None = None,
     ):
         """Initialize direct control climate entity."""
         super().__init__(
@@ -362,6 +377,10 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
             suggested_area_id=suggested_area_id,
         )
         self._current_temp_address = current_temp_address
+        self._current_temperature_conversion = current_temperature_conversion
+        self._current_temperature_context = ConversionContext.from_address(
+            "current_temperature", current_temp_address, "read"
+        )
         self._heating_output_address = heating_output_address
         self._cooling_output_address = cooling_output_address
         self._heating_action_address = heating_action_address
@@ -427,7 +446,22 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
-            return float(value)
+            try:
+                return float(
+                    convert_from_plc(
+                        value,
+                        self._current_temperature_conversion,
+                        self._current_temperature_context,
+                    )
+                )
+            except ValueConversionError as err:
+                _LOGGER.warning(
+                    "Climate %s value conversion failed for channel "
+                    "current_temperature: %s",
+                    self.name,
+                    err,
+                )
+                return None
         return None
 
     @property
@@ -622,6 +656,8 @@ class S7ClimateSetpointControl(
         preset_mode_fan_only_value: int | None = DEFAULT_PRESET_MODE_FAN_ONLY_VALUE,
         preset_mode_bidirectional: bool = DEFAULT_PRESET_MODE_BIDIRECTIONAL,
         on_off_address: str | None = None,
+        current_temperature_conversion: dict | None = None,
+        target_temperature_conversion: dict | None = None,
     ):
         """Initialize setpoint control climate entity."""
         super().__init__(
@@ -635,6 +671,14 @@ class S7ClimateSetpointControl(
         )
         self._current_temp_address = current_temp_address
         self._target_temp_address = target_temp_address
+        self._current_temperature_conversion = current_temperature_conversion
+        self._target_temperature_conversion = target_temperature_conversion
+        self._current_temperature_context = ConversionContext.from_address(
+            "current_temperature", current_temp_address, "read"
+        )
+        self._target_temperature_context = ConversionContext.from_address(
+            "target_temperature", target_temp_address, "bidirectional"
+        )
         self._preset_mode_address = preset_mode_address
         self._preset_mode_bidirectional = preset_mode_bidirectional
         self._hvac_status_address = hvac_status_address
@@ -786,7 +830,22 @@ class S7ClimateSetpointControl(
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
-            return float(value)
+            try:
+                return float(
+                    convert_from_plc(
+                        value,
+                        self._current_temperature_conversion,
+                        self._current_temperature_context,
+                    )
+                )
+            except ValueConversionError as err:
+                _LOGGER.warning(
+                    "Climate %s value conversion failed for channel "
+                    "current_temperature: %s",
+                    self.name,
+                    err,
+                )
+                return None
         return None
 
     @property
@@ -796,7 +855,22 @@ class S7ClimateSetpointControl(
         temp_topic = f"{self._topic}:target_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
-            return float(value)
+            try:
+                return float(
+                    convert_from_plc(
+                        value,
+                        self._target_temperature_conversion,
+                        self._target_temperature_context,
+                    )
+                )
+            except ValueConversionError as err:
+                _LOGGER.warning(
+                    "Climate %s value conversion failed for channel "
+                    "target_temperature: %s",
+                    self.name,
+                    err,
+                )
+                return None
         return None
 
     @property
@@ -913,9 +987,20 @@ class S7ClimateSetpointControl(
         temperature = max(self._attr_min_temp, min(self._attr_max_temp, temperature))
 
         # Write target temperature to PLC
-        await self.coordinator.write_batched(
-            self._target_temp_address, float(temperature)
-        )
+        try:
+            plc_temperature = convert_to_plc(
+                float(temperature),
+                self._target_temperature_conversion,
+                self._target_temperature_context,
+            )
+        except ValueConversionError as err:
+            _LOGGER.warning(
+                "Climate %s value conversion failed for channel target_temperature: %s",
+                self.name,
+                err,
+            )
+            return
+        await self.coordinator.write_batched(self._target_temp_address, plc_temperature)
 
         # If a mode is specified, set it first
         if (hvac_mode := kwargs.get(ATTR_HVAC_MODE)) is not None:

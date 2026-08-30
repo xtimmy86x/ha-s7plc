@@ -416,3 +416,9 @@ with Home Assistant's time-of-day entity.
 Use an address such as `DB1,TIME0`. `TIME` is not accepted for entity
 platforms other than sensor, number, and select. Other Siemens temporal datatypes, including `LTIME` and time-of-day
 variants, are not supported.
+
+## Value conversion
+
+Numeric PLC addresses can use centralized, per-channel conversions without
+changing address syntax. See [PLC value conversions](value-conversions.md) for
+the channel matrix, YAML schema, converter semantics and legacy compatibility.

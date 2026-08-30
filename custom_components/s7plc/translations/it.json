@@ -1148,7 +1148,8 @@
       "invalid_options_map": "Mappa opzioni non valida. Usa coppie 'valore:etichetta' separate da ';' con valori interi univoci ed etichette univoche.",
       "options_map_out_of_range": "Uno o più valori delle opzioni sono fuori dall'intervallo del tipo di dato PLC.",
       "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC numerico discreto (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME).",
-      "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME."
+      "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME.",
+      "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
@@ -1209,6 +1210,20 @@
       "address_not_convertible": "Indirizzo non convertibile",
       "vm_offset": "Offset VM",
       "not_configured": "Non configurato"
+    },
+    "value_conversion": {
+      "title": "Conversione valore",
+      "type": "Tipo di conversione",
+      "none": "Nessuna",
+      "multiplier": "Moltiplicatore",
+      "linear_scale": "Scala lineare",
+      "expression": "Espressione personalizzata",
+      "factor": "Fattore",
+      "clamp": "Limita",
+      "read_expression": "Espressione lettura",
+      "write_expression": "Espressione scrittura",
+      "logo_seconds": "La conversione LOGO! utilizza ore e minuti; i secondi non vengono scritti.",
+      "preview_help": "L’anteprima si aggiorna localmente e non scrive mai nel PLC."
     }
   },
   "selector": {

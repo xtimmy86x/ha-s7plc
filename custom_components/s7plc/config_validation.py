@@ -104,6 +104,7 @@ from .const import (
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
+    CONF_VALUE_CONVERSIONS,
     CONF_VALUE_MULTIPLIER,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
@@ -171,6 +172,7 @@ _COMMON_FIELDS = frozenset(
         CONF_UID,
         CONF_AVAILABILITY_MODE,
         CONF_AVAILABILITY_ADDRESS,
+        CONF_VALUE_CONVERSIONS,
     }
 )
 _NUMERIC_SCALE_FIELDS = frozenset(
@@ -2102,6 +2104,75 @@ def build_entity_item(
     item, errors = method(entity, skip_idx=skip_idx)
     if errors or item is None:
         return item, errors
+
+    # Keep conversions separate from address strings.  Builders deliberately
+    # enumerate legacy fields, so copy and validate this extensible map here.
+    conversions = entity.get(CONF_VALUE_CONVERSIONS)
+    if conversions:
+        from .value_conversion import (
+            ConversionContext,
+            ValueConversionError,
+            normalize_value_conversion,
+        )
+
+        channel_addresses: dict[str, tuple[str | None, str]] = {
+            CONF_SENSORS: {"value": (item.get(CONF_ADDRESS), "read")},
+            CONF_NUMBERS: {
+                "value": (
+                    item.get(CONF_COMMAND_ADDRESS) or item.get(CONF_ADDRESS),
+                    "bidirectional",
+                )
+            },
+            CONF_ENTITY_SYNC: {"value": (item.get(CONF_ADDRESS), "write")},
+            CONF_LIGHTS: {
+                "brightness": (
+                    item.get(CONF_BRIGHTNESS_COMMAND_ADDRESS)
+                    or item.get(CONF_BRIGHTNESS_STATE_ADDRESS),
+                    "bidirectional",
+                )
+            },
+            CONF_COVERS: {
+                "position": (
+                    item.get(CONF_POSITION_COMMAND_ADDRESS)
+                    or item.get(CONF_POSITION_STATE_ADDRESS),
+                    "bidirectional",
+                ),
+                "tilt": (
+                    item.get(CONF_TILT_COMMAND_ADDRESS)
+                    or item.get(CONF_TILT_STATE_ADDRESS),
+                    "bidirectional",
+                ),
+            },
+            CONF_CLIMATES: {
+                "current_temperature": (
+                    item.get(CONF_CURRENT_TEMPERATURE_ADDRESS),
+                    "read",
+                ),
+                "target_temperature": (
+                    item.get(CONF_TARGET_TEMPERATURE_ADDRESS),
+                    "bidirectional",
+                ),
+            },
+        }.get(entity_type, {})
+        if not isinstance(conversions, dict):
+            return None, {"base": "value_conversions_must_be_mapping"}
+        if unknown_channels := sorted(set(conversions) - set(channel_addresses)):
+            return None, {
+                "base": f"unsupported_conversion_channels:{','.join(unknown_channels)}"
+            }
+        try:
+            for channel, conversion in conversions.items():
+                address, direction = channel_addresses[channel]
+                if not address:
+                    raise ValueConversionError(f"channel '{channel}' has no address")
+                context = ConversionContext.from_address(channel, address, direction)
+                # Pass the original entity so legacy/new conflicts are visible.
+                normalize_value_conversion(entity, channel, context)
+            item[CONF_VALUE_CONVERSIONS] = {
+                key: dict(value) for key, value in conversions.items() if value
+            }
+        except (ValueConversionError, ValueError, TypeError) as err:
+            return None, {"base": f"invalid_value_conversion:{err}"}
 
     mode = entity.get(CONF_AVAILABILITY_MODE) or AVAILABILITY_MODE_CONNECTION
     if mode not in AVAILABILITY_MODES:

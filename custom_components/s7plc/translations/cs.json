@@ -1148,7 +1148,8 @@
       "invalid_options_map": "Neplatná mapa voleb. Použijte dvojice 'hodnota:popisek' oddělené ';' s jedinečnými celočíselnými hodnotami a jedinečnými popisky.",
       "options_map_out_of_range": "Jedna nebo více hodnot voleb je mimo rozsah datového typu PLC.",
       "select_requires_integer_type": "Entity výběru vyžadují diskrétní číselný datový typ PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME).",
-      "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME."
+      "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME.",
+      "value_conversions_must_be_mapping": "Převody hodnot musí být mapování."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1209,6 +1210,20 @@
       "address_not_convertible": "Adresu nelze převést",
       "vm_offset": "Offset VM",
       "not_configured": "Nenakonfigurováno"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "None",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Custom expression",
+      "factor": "Factor",
+      "clamp": "Clamp",
+      "read_expression": "Read expression",
+      "write_expression": "Write expression",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC."
     }
   },
   "selector": {

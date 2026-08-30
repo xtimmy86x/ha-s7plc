@@ -1148,7 +1148,8 @@
       "invalid_options_map": "Ungültige Optionszuordnung. Verwende 'Wert:Bezeichnung'-Paare, getrennt durch ';', mit eindeutigen Ganzzahlwerten und eindeutigen Bezeichnungen.",
       "options_map_out_of_range": "Ein oder mehrere Optionswerte liegen außerhalb des Wertebereichs des SPS-Datentyps.",
       "select_requires_integer_type": "Auswahl-Entitäten benötigen einen diskreten numerischen SPS-Datentyp (BYTE, WORD, DWORD, SINT, USINT, INT, DINT oder TIME).",
-      "select_command_type_mismatch": "Die Befehlsadresse muss genau dann TIME verwenden, wenn die Statusadresse TIME verwendet."
+      "select_command_type_mismatch": "Die Befehlsadresse muss genau dann TIME verwenden, wenn die Statusadresse TIME verwendet.",
+      "value_conversions_must_be_mapping": "Wertkonvertierungen müssen eine Zuordnung sein."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",
@@ -1209,6 +1210,20 @@
       "address_not_convertible": "Adresse kann nicht konvertiert werden",
       "vm_offset": "VM-Offset",
       "not_configured": "Nicht konfiguriert"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "None",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Custom expression",
+      "factor": "Factor",
+      "clamp": "Clamp",
+      "read_expression": "Read expression",
+      "write_expression": "Write expression",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC."
     }
   },
   "selector": {

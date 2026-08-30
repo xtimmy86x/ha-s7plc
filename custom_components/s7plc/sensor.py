@@ -45,6 +45,12 @@ from .helpers import (
     get_coordinator_and_device_info,
     scale_value,
 )
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    normalize_value_conversion,
+)
 
 if TYPE_CHECKING:
     from .coordinator import S7Coordinator
@@ -322,6 +328,7 @@ async def async_setup_entry(
                 scale_raw_max=scale_raw_max,
                 min_value=min_value,
                 max_value=max_value,
+                value_conversion=normalize_value_conversion(item, "value"),
             )
         )
 
@@ -377,6 +384,7 @@ async def async_setup_entry(
                 source_entity,
                 area,
                 invert_state,
+                normalize_value_conversion(item, "value"),
             )
         )
 
@@ -407,6 +415,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         scale_raw_max: float | None = None,
         min_value: float | None = None,
         max_value: float | None = None,
+        value_conversion: dict | None = None,
     ):
         super().__init__(
             coordinator,
@@ -416,6 +425,10 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             topic=topic,
             address=address,
             suggested_area_id=suggested_area_id,
+        )
+        self._value_conversion = value_conversion
+        self._conversion_context = ConversionContext.from_address(
+            "value", address, "read"
         )
 
         # Parse value_multiplier with defensive validation
@@ -539,6 +552,18 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                     value,
                 )
                 return value
+        if self._value_conversion:
+            try:
+                return convert_from_plc(
+                    numeric_value, self._value_conversion, self._conversion_context
+                )
+            except ValueConversionError as err:
+                _LOGGER.warning(
+                    "Value conversion failed for sensor %s channel value: %s",
+                    self.name,
+                    err,
+                )
+                return None
         # Linear scaling takes precedence over multiplier
         if self._scale_params is not None:
             rn, rx, sn, sx = self._scale_params
@@ -576,6 +601,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         source_entity: str,
         suggested_area_id: str | None = None,
         invert_state: bool = False,
+        value_conversion: dict | None = None,
     ) -> None:
         """Initialize the entity sync."""
         super().__init__(
@@ -589,6 +615,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         self._address = address
         self._source_entity = source_entity
         self._invert_state = invert_state
+        self._value_conversion = value_conversion
         self._last_written_value: float | None = None
         self._initial_write_pending: bool = False
         self._write_count = 0
@@ -604,6 +631,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
         # Detect if this is a binary entity sync (BIT address)
         self._is_binary = self._data_type == DataType.BIT
+        self._conversion_context = ConversionContext("value", self._data_type, "write")
 
         # State class is set to MEASUREMENT for numeric syncs,
         # but left as None for binary syncs to allow on/off states.
@@ -664,7 +692,27 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             if value is not None and self._invert_state:
                 value = not value
         else:
-            value = self._parse_numeric_value(source_state)
+            if (
+                self._value_conversion
+                and self._value_conversion.get("type") == "logo_time_bcd"
+            ):
+                value = source_state.state
+            else:
+                value = self._parse_numeric_value(source_state)
+            if value is not None and self._value_conversion:
+                try:
+                    from .value_conversion import convert_to_plc
+
+                    value = convert_to_plc(
+                        value, self._value_conversion, self._conversion_context
+                    )
+                except ValueConversionError as err:
+                    _LOGGER.warning(
+                        "Value conversion failed for entity sync %s channel value: %s",
+                        self.name,
+                        err,
+                    )
+                    value = None
 
         if value is None:
             self._error_count += 1

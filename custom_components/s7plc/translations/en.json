@@ -1148,7 +1148,8 @@
       "invalid_options_map": "Invalid options map. Use 'value:label' pairs separated by ';' with unique integer values and unique labels.",
       "options_map_out_of_range": "One or more option values are outside the range of the PLC data type.",
       "select_requires_integer_type": "Select entities require a discrete numeric PLC data type (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME).",
-      "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME."
+      "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME.",
+      "value_conversions_must_be_mapping": "Value conversions must be a mapping."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
@@ -1209,6 +1210,20 @@
       "address_not_convertible": "Address cannot be converted",
       "vm_offset": "VM offset",
       "not_configured": "Not configured"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "None",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Custom expression",
+      "factor": "Factor",
+      "clamp": "Clamp",
+      "read_expression": "Read expression",
+      "write_expression": "Write expression",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC."
     }
   },
   "selector": {
