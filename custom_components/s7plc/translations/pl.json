@@ -1236,7 +1236,17 @@
         "target_temperature": "Temperatura docelowa",
         "preset_mode": "Tryb ustawień",
         "hvac_status": "Stan HVAC"
-      }
+      },
+      "expression_help": "Użyj `value` jako wartości wejściowej. Dostępne są operatory `+`, `-`, `*`, `/`, `//`, `%` oraz funkcje `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "Wyrażenie odczytu konwertuje PLC → Home Assistant.",
+      "expression_write_direction": "Wyrażenie zapisu konwertuje Home Assistant → PLC.",
+      "expression_separate": "Skonfiguruj oba wyrażenia oddzielnie. Wyrażenie zapisu nie jest automatycznie wyprowadzane ani odwracane.",
+      "syntax_examples": "Składnia i przykłady",
+      "example_read": "Konwersja odczytu",
+      "example_write": "Odwrotna konwersja zapisu",
+      "example_clamp": "Ograniczenie wyniku",
+      "example_round": "Zaokrąglanie",
+      "expression_safety": "Szablony, atrybuty, indeksowanie, importy i wywołania funkcji innych niż wymienione są niedozwolone."
     }
   },
   "selector": {

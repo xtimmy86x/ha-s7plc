@@ -235,7 +235,7 @@ async def test_config_entry_migration_is_atomic_and_idempotent():
 @pytest.mark.asyncio
 async def test_previous_version_is_cleaned_for_sensors_without_changing_numbers():
     entry = SimpleNamespace(
-        version=2,
+        version=1,
         entry_id="branch-upgrade",
         options={
             "sensors": [

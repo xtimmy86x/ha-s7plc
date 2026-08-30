@@ -120,11 +120,29 @@ value_conversions:
     write_expression: "value * 10"
 ```
 
+The two directions are independent. `read_expression` converts **PLC → Home
+Assistant**, while `write_expression` converts **Home Assistant → PLC**. Define
+only the directions the channel actually supports. In particular, the
+integration does not derive or automatically invert a write expression from a
+read expression (or vice versa).
+
+Common expression examples are:
+
+| Purpose | Expression |
+| --- | --- |
+| Read conversion | `value / 10` |
+| Inverse write conversion | `value * 10` |
+| Limit the result | `clamp(value, 0, 100)` |
+| Round to one decimal place | `round(value, 1)` |
+
 Only arithmetic (`+ - * / // %`), unary signs, `value`, and `round`, `min`,
 `max`, `abs`, `int`, `float`, and `clamp` are accepted. The integration parses a
 bounded AST; it never uses `eval`, templates, attributes, indexing, imports or
 arbitrary calls. Non-finite results and datatype overflows abort only the
 affected operation and are logged with entity/channel context.
+
+The `clamp` function signature is `clamp(value, minimum, maximum)`: results
+below `minimum` become `minimum`, and results above `maximum` become `maximum`.
 
 ## Automatic migration of legacy conversions
 

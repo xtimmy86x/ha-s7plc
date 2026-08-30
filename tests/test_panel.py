@@ -4732,6 +4732,79 @@ def test_value_conversion_translations_and_responsive_layout_are_complete() -> N
     assert "data-conversion-inverse" in source
     assert "['multiplier','linear_scale'].includes(kind)" in source
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_expression_editor_help_examples_and_directional_fields() -> None:
+    """Expression guidance is localized, collapsed, and direction-aware."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
+const spec={channel:'value',label:'number_value',read:'address',write:'command_address'};
+const row=item=>panel.valueConversionRow('numbers',item,spec);
+console.log(JSON.stringify({
+ read:row({address:'DB1,REAL0',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
+ write:row({command_address:'DB1,REAL4',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
+ both:row({address:'DB1,REAL0',command_address:'DB1,REAL4',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
+ other:row({address:'DB1,REAL0',value_conversions:{value:{type:'multiplier',factor:10}}})
+}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    for direction in ("read", "write", "both"):
+        row = result[direction]
+        assert "Usa `value` come valore di ingresso" in row
+        assert "Sintassi ed esempi" in row
+        assert "value / 10" in row and "value * 10" in row
+        assert "clamp(value, 0, 100)" in row and "round(value, 1)" in row
+        assert '<details class="expression-examples">' in row
+        assert '<details class="expression-examples" open' not in row
+        assert 'name="vc_value_read_expression"' in row
+        assert 'name="vc_value_write_expression"' in row
+    assert 'data-direction="read"' in result["read"]
+    assert 'data-direction="write"' in result["write"]
+    assert 'data-direction="bidirectional_distinct"' in result["both"]
+    assert 'data-conversion-direction="read"' in result["read"]
+    assert 'data-conversion-direction="write"' in result["write"]
+    # Switching kinds hides the entire expression container; switching address
+    # directions only toggles ``hidden`` and therefore preserves both inputs.
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "box.hidden=box.dataset.kind!==select.value" in source
+    assert "field.hidden=wanted==='read'&&!readOk||wanted==='write'&&!writeOk" in source
+    assert "field.remove(" not in source
+
+
+def test_expression_guidance_translations_and_documentation_are_complete() -> None:
+    """Every panel locale and the repository docs expose the same guidance."""
+    required = {
+        "expression_help", "expression_read_direction",
+        "expression_write_direction", "expression_separate", "syntax_examples",
+        "example_read", "example_write", "example_clamp", "example_round",
+        "expression_safety",
+    }
+    structures = []
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        values = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= values.keys()
+        structures.append(set(values))
+        for key in required:
+            assert values[key] and "value_conversion." not in values[key]
+        assert all(token in values["expression_help"] for token in
+                   ("`value`", "`+`", "`//`", "`round`", "`clamp`"))
+    assert all(keys == structures[0] for keys in structures[1:])
+    docs = Path("docs/value-conversions.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    for formula in ("`value / 10`", "`value * 10`", "`clamp(value, 0, 100)`",
+                    "`round(value, 1)`", "`clamp(value, minimum, maximum)`"):
+        assert formula in docs
+    assert "does not derive or automatically invert" in docs
+    assert "[Value Conversions](docs/value-conversions.md)" in readme
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_linear_scale_clamp_editor_presentation_and_semantics() -> None:
     """Clamp is a responsive, accessible full-row option with strict booleans."""

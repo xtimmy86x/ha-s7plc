@@ -1236,7 +1236,17 @@
         "target_temperature": "Cílová teplota",
         "preset_mode": "Režim předvolby",
         "hvac_status": "Stav HVAC"
-      }
+      },
+      "expression_help": "Použijte `value` jako vstupní hodnotu. K dispozici jsou operátory `+`, `-`, `*`, `/`, `//`, `%` a funkce `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "Výraz pro čtení převádí PLC → Home Assistant.",
+      "expression_write_direction": "Výraz pro zápis převádí Home Assistant → PLC.",
+      "expression_separate": "Nakonfigurujte oba výrazy samostatně. Výraz pro zápis se automaticky neodvozuje ani neinvertuje.",
+      "syntax_examples": "Syntaxe a příklady",
+      "example_read": "Převod při čtení",
+      "example_write": "Inverzní převod při zápisu",
+      "example_clamp": "Omezení výsledku",
+      "example_round": "Zaokrouhlení",
+      "expression_safety": "Šablony, atributy, indexování, importy a volání jiných než uvedených funkcí nejsou povoleny."
     }
   },
   "selector": {
