@@ -4735,47 +4735,70 @@ def test_value_conversion_translations_and_responsive_layout_are_complete() -> N
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_expression_editor_help_examples_and_directional_fields() -> None:
-    """Expression guidance is localized, collapsed, and direction-aware."""
+    """Expression guidance reacts to direction and kind without replacing inputs."""
     script = r'''
 const vm=require("vm"),fs=require("fs");let Panel;
 const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
 vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
 const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
 const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
-const spec={channel:'value',label:'number_value',read:'address',write:'command_address'};
-const row=item=>panel.valueConversionRow('numbers',item,spec);
-console.log(JSON.stringify({
- read:row({address:'DB1,REAL0',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
- write:row({command_address:'DB1,REAL4',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
- both:row({address:'DB1,REAL0',command_address:'DB1,REAL4',value_conversions:{value:{type:'expression',read_expression:'value / 10',write_expression:'value * 10'}}}),
- other:row({address:'DB1,REAL0',value_conversions:{value:{type:'multiplier',factor:10}}})
-}));'''
+const node=(dataset={})=>({dataset,hidden:false,textContent:'',setAttribute(){},addEventListener(){}});
+const readField=node({conversionDirection:'read'}),writeField=node({conversionDirection:'write'});
+const readHelp=node({conversionDirection:'read'}),writeHelp=node({conversionDirection:'write'});
+const expression=node({kind:'expression'}),multiplier=node({kind:'multiplier'});
+const linear=node({kind:'linear_scale'}),bcdKind=node({kind:'logo_time_bcd'});
+const examples={open:false},summary=node({conversionTitle:'Conversion'}),summaryText=node();
+const directionDescription=node(),readDirection=node(),writeDirection=node(),bcd=node(),inverse=node();
+const readInput={value:'value / 10'},writeInput={value:'value * 10'},select={value:'expression'};
+const nodes={
+ '[data-direction-description]':directionDescription,'summary':summary,
+ '[data-direction-read]':readDirection,'[data-direction-write]':writeDirection,
+ '[data-logo-bcd]':bcd,'[data-conversion-inverse]':inverse,
+ '[data-expression-independent]':null,'[data-conversion-summary]':summaryText,
+ '.conversion-preview':null,'.expression-examples':examples,
+ '[name="vc_value_read_expression"]':readInput,
+ '[name="vc_value_write_expression"]':writeInput,
+};
+const row={dataset:{valueConversion:'value',readField:'address',writeField:'command_address',writeFallback:'false',conditionalRead:''},hidden:false,open:false,
+ querySelector:s=>nodes[s]??null,
+ querySelectorAll:s=>s==='[data-conversion-direction]'?[readField,writeField,readHelp,writeHelp]:s==='[data-kind]'?[multiplier,linear,bcdKind,expression]:[],
+};
+const form={elements:{address:{value:'DB1,REAL0'},command_address:{value:'DB1,REAL4'},vc_value_type:select},querySelectorAll:s=>s==='[data-value-conversion]'?[row]:[]};
+const snapshot=()=>({direction:row.dataset.direction,readField:readField.hidden,writeField:writeField.hidden,readHelp:readHelp.hidden,writeHelp:writeHelp.hidden,expression:expression.hidden,values:[readInput.value,writeInput.value]});
+panel.syncValueConversionKind(row,form);const both=snapshot();
+const identities=[readField,writeField,readInput,writeInput];
+form.elements.command_address.value='';panel.syncValueConversions(form);const read=snapshot();
+form.elements.address.value='';form.elements.command_address.value='DB1,REAL4';panel.syncValueConversions(form);const write=snapshot();
+form.elements.address.value='DB1,REAL0';panel.syncValueConversions(form);const restored=snapshot();
+const kinds={};for(const kind of ['', 'multiplier','linear_scale','logo_time_bcd','expression']){select.value=kind;panel.syncValueConversionKind(row,form);kinds[kind||'none']=expression.hidden;}
+console.log(JSON.stringify({both,read,write,restored,kinds,examplesOpen:examples.open,
+ sameNodes:identities.every((item,index)=>item===[readField,writeField,readInput,writeInput][index]),
+ separate:translations.value_conversion.expression_separate}));'''
     result = json.loads(subprocess.run(
         ["node", "-e", script, str(PANEL_JAVASCRIPT),
          "custom_components/s7plc/translations/it.json"],
         check=True, capture_output=True, text=True,
     ).stdout)
-    for direction in ("read", "write", "both"):
-        row = result[direction]
-        assert "Usa `value` come valore di ingresso" in row
-        assert "Sintassi ed esempi" in row
-        assert "value / 10" in row and "value * 10" in row
-        assert "clamp(value, 0, 100)" in row and "round(value, 1)" in row
-        assert '<details class="expression-examples">' in row
-        assert '<details class="expression-examples" open' not in row
-        assert 'name="vc_value_read_expression"' in row
-        assert 'name="vc_value_write_expression"' in row
-    assert 'data-direction="read"' in result["read"]
-    assert 'data-direction="write"' in result["write"]
-    assert 'data-direction="bidirectional_distinct"' in result["both"]
-    assert 'data-conversion-direction="read"' in result["read"]
-    assert 'data-conversion-direction="write"' in result["write"]
-    # Switching kinds hides the entire expression container; switching address
-    # directions only toggles ``hidden`` and therefore preserves both inputs.
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "box.hidden=box.dataset.kind!==select.value" in source
-    assert "field.hidden=wanted==='read'&&!readOk||wanted==='write'&&!writeOk" in source
-    assert "field.remove(" not in source
+    visible = {"readField": False, "writeField": False,
+               "readHelp": False, "writeHelp": False}
+    assert result["both"] | visible == result["both"]
+    assert result["both"]["direction"] == "bidirectional_distinct"
+    assert result["read"] | {"readField": False, "readHelp": False,
+                             "writeField": True, "writeHelp": True} == result["read"]
+    assert result["read"]["direction"] == "read"
+    assert result["write"] | {"readField": True, "readHelp": True,
+                              "writeField": False, "writeHelp": False} == result["write"]
+    assert result["write"]["direction"] == "write"
+    assert result["restored"]["values"] == ["value / 10", "value * 10"]
+    assert not any(result["restored"][key] for key in visible)
+    assert result["sameNodes"] is True
+    assert result["kinds"] == {
+        "none": True, "multiplier": True, "linear_scale": True,
+        "logo_time_bcd": True, "expression": False,
+    }
+    assert result["examplesOpen"] is False
+    assert "entrambe le direzioni" in result["separate"]
+    assert "non viene calcolata automaticamente" in result["separate"]
 
 
 def test_expression_guidance_translations_and_documentation_are_complete() -> None:

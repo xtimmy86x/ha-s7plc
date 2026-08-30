@@ -1240,7 +1240,7 @@
       "expression_help": "Verwenden Sie `value` als Eingangswert. Verfügbar sind die Operatoren `+`, `-`, `*`, `/`, `//`, `%` und die Funktionen `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
       "expression_read_direction": "Der Leseausdruck konvertiert PLC → Home Assistant.",
       "expression_write_direction": "Der Schreibausdruck konvertiert Home Assistant → PLC.",
-      "expression_separate": "Konfigurieren Sie beide Ausdrücke getrennt. Der Schreibausdruck wird nicht automatisch abgeleitet oder invertiert.",
+      "expression_separate": "Wenn beide Richtungen verfügbar sind, müssen die Ausdrücke getrennt konfiguriert werden. Der inverse Ausdruck wird nicht automatisch berechnet.",
       "syntax_examples": "Syntax und Beispiele",
       "example_read": "Lesekonvertierung",
       "example_write": "Inverse Schreibkonvertierung",
