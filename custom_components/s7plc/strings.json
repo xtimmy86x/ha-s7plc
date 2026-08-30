@@ -35,7 +35,7 @@
           "port": "ISO-on-TCP port, typically 102.",
           "rack": "CPU rack number (usually 0).",
           "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
-          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
+          "pys7_connection_type": "S7 connection type (PG \u2013 programming, OP \u2013 operator panel, S7 Basic \u2013 basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
@@ -71,7 +71,7 @@
           "port": "ISO-on-TCP port, typically 102.",
           "local_tsap": "Local TSAP address (e.g., 01.00 or 03.00).",
           "remote_tsap": "Remote TSAP address (e.g., 01.01 or 03.01).",
-          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
+          "pys7_connection_type": "S7 connection type (PG \u2013 programming, OP \u2013 operator panel, S7 Basic \u2013 basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
@@ -203,7 +203,7 @@
   },
   "config_panel": {
     "common": {
-      "loading": "Loading configuration…",
+      "loading": "Loading configuration\u2026",
       "no_plc": "No PLC configured",
       "no_plc_help": "First add the Siemens S7 integration from Devices & services.",
       "title": "S7 PLC configuration",
@@ -214,7 +214,7 @@
       "unknown": "Unknown",
       "reload_help": "Changes are applied by automatically reloading the integration.",
       "empty": "No entities",
-      "empty_help": "Use “Add” to create the first one.",
+      "empty_help": "Use \u201cAdd\u201d to create the first one.",
       "entity": "Entity",
       "enabled_help": "Enable this option",
       "required": "Required",
@@ -258,7 +258,7 @@
           "description": "BIT address that must be true while the PLC is connected."
         }
       },
-      "datatype_time": "TIME — duration in seconds"
+      "datatype_time": "TIME \u2014 duration in seconds"
     },
     "sections": {
       "plc_connection": {
@@ -296,7 +296,7 @@
           },
           "unit_of_measurement": {
             "label": "Unit of measurement",
-            "description": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class."
+            "description": "Custom unit of measurement (e.g., \u00b0C, RPM, bar). Leave blank to use the default unit based on device class."
           },
           "value_multiplier": {
             "label": "Value multiplier",
@@ -476,7 +476,7 @@
             "description": "Choose how the PLC controls the cover.",
             "options": {
               "traditional": "Open / Close",
-              "position": "Position 0–100%",
+              "position": "Position 0\u2013100%",
               "toggle": "Single button"
             },
             "descriptions": {
@@ -648,7 +648,7 @@
           },
           "unit_of_measurement": {
             "label": "Unit of measurement",
-            "description": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed."
+            "description": "Custom unit of measurement (e.g., \u00b0C, V, kW). Leave blank if not needed."
           },
           "min_value": {
             "label": "Minimum value",
@@ -843,15 +843,15 @@
           },
           "min_temp": {
             "label": "Minimum temperature",
-            "description": "Minimum settable temperature (°C)."
+            "description": "Minimum settable temperature (\u00b0C)."
           },
           "max_temp": {
             "label": "Maximum temperature",
-            "description": "Maximum settable temperature (°C)."
+            "description": "Maximum settable temperature (\u00b0C)."
           },
           "temp_step": {
             "label": "Temperature step",
-            "description": "Temperature adjustment step (°C)."
+            "description": "Temperature adjustment step (\u00b0C)."
           },
           "climate_direct_function": {
             "label": "Heating and cooling",
@@ -1056,7 +1056,7 @@
     "availability": {
       "title": "Connection availability",
       "last_24_hours": "Last 24 hours",
-      "loading": "Loading connection history…",
+      "loading": "Loading connection history\u2026",
       "timeline_label": "PLC connection states over the last 24 hours",
       "hours_ago": "24h ago",
       "now": "Now",
@@ -1169,7 +1169,15 @@
       "update_configuration": "Update the configuration",
       "save_help": "Fields are saved directly in the PLC configuration.",
       "duplicate_entity": "Duplicate entity",
-      "configure_duplicate": "Create a new entity from this configuration"
+      "configure_duplicate": "Create a new entity from this configuration",
+      "default_address_mode": "Default address editor mode",
+      "default_address_mode_description": "Applied to address fields without an individual preference.",
+      "use_guided": "Use the guided builder when possible",
+      "use_manual": "Use manual mode",
+      "set_all_addresses": "Set all addresses",
+      "apply_guided_all": "Apply Guided to all",
+      "apply_manual_all": "Apply Manual to all",
+      "mixed_address_mode": "Mixed mode"
     },
     "layout": {
       "switch_to_tabs": "Switch to category view",

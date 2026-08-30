@@ -1169,7 +1169,15 @@
       "update_configuration": "Aktualizujte konfiguraci",
       "save_help": "Pole se ukládají přímo do konfigurace PLC.",
       "duplicate_entity": "Duplikovat entitu",
-      "configure_duplicate": "Vytvořit novou entitu z této konfigurace"
+      "configure_duplicate": "Vytvořit novou entitu z této konfigurace",
+      "default_address_mode": "Výchozí režim editoru adres",
+      "default_address_mode_description": "Použije se na pole adres bez individuálního nastavení.",
+      "use_guided": "Použít průvodce, pokud je to možné",
+      "use_manual": "Použít ruční režim",
+      "set_all_addresses": "Nastavit všechny adresy",
+      "apply_guided_all": "Použít průvodce na vše",
+      "apply_manual_all": "Použít ruční režim na vše",
+      "mixed_address_mode": "Smíšený režim"
     },
     "layout": {
       "switch_to_tabs": "Přepnout na zobrazení kategorií",

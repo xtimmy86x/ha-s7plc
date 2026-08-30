@@ -4583,3 +4583,51 @@ def test_duplicate_translation_keys_match_all_supported_languages() -> None:
         assert panel["editor"]["configure_duplicate"]
         structures.append((set(panel["actions"]), set(panel["editor"])))
     assert all(structure == structures[0] for structure in structures[1:])
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_default_address_mode_storage_and_precedence() -> None:
+    """The global default is safe, validated, shared, and below field preferences."""
+    script = f'''
+const store=new Map();
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+global.localStorage={{getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
+panel.entries=[{{entry_id:"one",plc_family:"s7"}},{{entry_id:"two",plc_family:"s7"}}];
+const mode=html=>html.includes('data-address-mode="guided" class="active"')?"guided":"manual";
+panel.entryId="one";panel._addressPreferenceContext={{entryId:"one",type:"switches",identity:"new-draft"}};
+const result={{missing:panel.readDefaultAddressMode()}};
+store.set(DEFAULT_ADDRESS_MODE_STORAGE_KEY,"manual");result.saved=panel.readDefaultAddressMode();
+result.newManual=mode(panel.addressField("state_address","DB1,X0.0","","",false,"switches"));
+panel.writeAddressMode(panel.addressPreferenceKey("state_address"),"guided");
+result.individualWins=mode(panel.addressField("state_address","DB1,X0.0","","",false,"switches"));
+result.invalidAddress=mode(panel.addressField("command_address","invalid","","",false,"switches"));
+panel.entryId="two";result.sharedAcrossPlcs=panel.readDefaultAddressMode();
+store.set(DEFAULT_ADDRESS_MODE_STORAGE_KEY,"mixed");result.invalid=panel.readDefaultAddressMode();
+global.localStorage={{getItem(){{throw Error("denied")}},setItem(){{throw Error("denied")}}}};
+result.readException=panel.readDefaultAddressMode();result.writeException=panel.writeDefaultAddressMode("manual");
+console.log(JSON.stringify(result));'''
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    assert json.loads(result.stdout) == {
+        "missing": "guided", "saved": "manual", "newManual": "manual",
+        "individualWins": "guided", "invalidAddress": "manual",
+        "sharedAcrossPlcs": "manual", "invalid": "guided",
+        "readException": "guided", "writeException": False,
+    }
+
+
+def test_address_mode_controls_are_accessible_responsive_and_translated() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert 'data-default-address-mode="guided"' in source
+    assert 'data-apply-address-mode="guided"' in source
+    assert 'data-apply-address-mode="manual"' in source
+    assert 'role="status" aria-live="polite"' in source
+    assert '.default-address-mode{align-items:flex-start;flex-direction:column}' in source
+    keys = {
+        "default_address_mode", "default_address_mode_description", "use_guided",
+        "use_manual", "set_all_addresses", "apply_guided_all",
+        "apply_manual_all", "mixed_address_mode",
+    }
+    for language in ("en", "it", "de", "pl", "cs"):
+        translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
+        assert keys <= translation["config_panel"]["editor"].keys()

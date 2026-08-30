@@ -1169,7 +1169,15 @@
       "update_configuration": "Konfiguration aktualisieren",
       "save_help": "Felder werden direkt in der SPS-Konfiguration gespeichert.",
       "duplicate_entity": "Entität duplizieren",
-      "configure_duplicate": "Eine neue Entität aus dieser Konfiguration erstellen"
+      "configure_duplicate": "Eine neue Entität aus dieser Konfiguration erstellen",
+      "default_address_mode": "Standardmodus des Adresseditors",
+      "default_address_mode_description": "Wird auf Adressfelder ohne individuelle Einstellung angewendet.",
+      "use_guided": "Geführten Builder verwenden, wenn möglich",
+      "use_manual": "Manuellen Modus verwenden",
+      "set_all_addresses": "Alle Adressen einstellen",
+      "apply_guided_all": "Geführt auf alle anwenden",
+      "apply_manual_all": "Manuell auf alle anwenden",
+      "mixed_address_mode": "Gemischter Modus"
     },
     "layout": {
       "switch_to_tabs": "Zur Kategorieansicht wechseln",

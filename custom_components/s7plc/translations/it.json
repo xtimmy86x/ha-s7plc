@@ -1169,7 +1169,15 @@
       "update_configuration": "Aggiorna la configurazione",
       "save_help": "I campi vengono salvati direttamente nella configurazione del PLC.",
       "duplicate_entity": "Duplica entità",
-      "configure_duplicate": "Crea una nuova entità da questa configurazione"
+      "configure_duplicate": "Crea una nuova entità da questa configurazione",
+      "default_address_mode": "Modalità predefinita editor indirizzi",
+      "default_address_mode_description": "Applicata ai campi indirizzo senza una preferenza individuale.",
+      "use_guided": "Usa il costruttore guidato quando possibile",
+      "use_manual": "Usa la modalità manuale",
+      "set_all_addresses": "Imposta tutti gli indirizzi",
+      "apply_guided_all": "Applica Guidata a tutti",
+      "apply_manual_all": "Applica Manuale a tutti",
+      "mixed_address_mode": "Modalità mista"
     },
     "layout": {
       "switch_to_tabs": "Passa alla vista per categorie",

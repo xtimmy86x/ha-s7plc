@@ -1169,7 +1169,15 @@
       "update_configuration": "Konfigurator edytowanej encji",
       "save_help": "Ustawienia są zapisywane bezpośrednio w konfiguracji PLC.",
       "duplicate_entity": "Duplikuj encję",
-      "configure_duplicate": "Utwórz nową encję na podstawie tej konfiguracji"
+      "configure_duplicate": "Utwórz nową encję na podstawie tej konfiguracji",
+      "default_address_mode": "Domyślny tryb edytora adresów",
+      "default_address_mode_description": "Stosowany do pól adresowych bez indywidualnego ustawienia.",
+      "use_guided": "Użyj kreatora, gdy jest to możliwe",
+      "use_manual": "Użyj trybu ręcznego",
+      "set_all_addresses": "Ustaw wszystkie adresy",
+      "apply_guided_all": "Zastosuj tryb kreatora do wszystkich",
+      "apply_manual_all": "Zastosuj tryb ręczny do wszystkich",
+      "mixed_address_mode": "Tryb mieszany"
     },
     "layout": {
       "switch_to_tabs": "Przełącz na kategorie",
