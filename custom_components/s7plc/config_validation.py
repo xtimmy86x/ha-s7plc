@@ -2110,64 +2110,27 @@ def build_entity_item(
     conversions = entity.get(CONF_VALUE_CONVERSIONS)
     if conversions:
         from .value_conversion import (
-            ConversionContext,
+            VALUE_CHANNEL_SPECS,
             ValueConversionError,
+            conversion_contexts,
             normalize_value_conversion,
+            validate_value_conversion,
         )
 
-        channel_addresses: dict[str, tuple[str | None, str]] = {
-            CONF_SENSORS: {"value": (item.get(CONF_ADDRESS), "read")},
-            CONF_NUMBERS: {
-                "value": (
-                    item.get(CONF_COMMAND_ADDRESS) or item.get(CONF_ADDRESS),
-                    "bidirectional",
-                )
-            },
-            CONF_ENTITY_SYNC: {"value": (item.get(CONF_ADDRESS), "write")},
-            CONF_LIGHTS: {
-                "brightness": (
-                    item.get(CONF_BRIGHTNESS_COMMAND_ADDRESS)
-                    or item.get(CONF_BRIGHTNESS_STATE_ADDRESS),
-                    "bidirectional",
-                )
-            },
-            CONF_COVERS: {
-                "position": (
-                    item.get(CONF_POSITION_COMMAND_ADDRESS)
-                    or item.get(CONF_POSITION_STATE_ADDRESS),
-                    "bidirectional",
-                ),
-                "tilt": (
-                    item.get(CONF_TILT_COMMAND_ADDRESS)
-                    or item.get(CONF_TILT_STATE_ADDRESS),
-                    "bidirectional",
-                ),
-            },
-            CONF_CLIMATES: {
-                "current_temperature": (
-                    item.get(CONF_CURRENT_TEMPERATURE_ADDRESS),
-                    "read",
-                ),
-                "target_temperature": (
-                    item.get(CONF_TARGET_TEMPERATURE_ADDRESS),
-                    "bidirectional",
-                ),
-            },
-        }.get(entity_type, {})
+        channels = VALUE_CHANNEL_SPECS.get(entity_type, {})
         if not isinstance(conversions, dict):
             return None, {"base": "value_conversions_must_be_mapping"}
-        if unknown_channels := sorted(set(conversions) - set(channel_addresses)):
+        if unknown_channels := sorted(set(conversions) - set(channels)):
             return None, {
                 "base": f"unsupported_conversion_channels:{','.join(unknown_channels)}"
             }
         try:
             for channel, conversion in conversions.items():
-                address, direction = channel_addresses[channel]
-                if not address:
-                    raise ValueConversionError(f"channel '{channel}' has no address")
-                context = ConversionContext.from_address(channel, address, direction)
-                # Pass the original entity so legacy/new conflicts are visible.
-                normalize_value_conversion(entity, channel, context)
+                # Do not collapse state/command with ``or``: differing PLC
+                # datatypes must both support and validate the conversion.
+                normalized = normalize_value_conversion(entity, channel)
+                for context in conversion_contexts(entity_type, item, channel):
+                    validate_value_conversion(normalized, context)
             item[CONF_VALUE_CONVERSIONS] = {
                 key: dict(value) for key, value in conversions.items() if value
             }

@@ -1235,5 +1235,21 @@
         "logo_9": "LOGO! 9"
       }
     }
+  },
+  "value_conversion": {
+    "channels": {
+      "sensor_value": "Sensor value",
+      "number_value": "Number value",
+      "select_value": "Select value",
+      "sync_value": "Synchronized value",
+      "brightness": "Brightness",
+      "position": "Position",
+      "tilt": "Tilt",
+      "cover_status": "Cover status",
+      "current_temperature": "Current temperature",
+      "target_temperature": "Target temperature",
+      "hvac_status": "HVAC status",
+      "preset_mode": "Preset mode"
+    }
   }
 }

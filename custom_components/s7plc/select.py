@@ -22,6 +22,13 @@ from .const import (
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +100,7 @@ async def async_setup_entry(
                 command_address,
                 options_map,
                 area,
+                normalize_value_conversion(item, "value"),
             )
         )
 
@@ -120,6 +128,7 @@ class S7Select(S7BaseEntity, SelectEntity):
         command_address: str | None,
         options_map: dict[int, str],
         suggested_area_id: str | None = None,
+        value_conversion: dict | None = None,
     ):
         super().__init__(
             coordinator,
@@ -136,6 +145,13 @@ class S7Select(S7BaseEntity, SelectEntity):
         self._value_to_label = dict(options_map)
         self._label_to_value = {label: value for value, label in options_map.items()}
         self._attr_options = list(options_map.values())
+        self._value_conversion = value_conversion
+        self._read_conversion_context = ConversionContext.from_address(
+            "value", address, "read"
+        )
+        self._write_conversion_context = ConversionContext.from_address(
+            "value", command_address or address, "write"
+        )
 
     @property
     def current_option(self) -> str | None:
@@ -143,6 +159,9 @@ class S7Select(S7BaseEntity, SelectEntity):
         if value is None:
             return None
         try:
+            value = convert_from_plc(
+                value, self._value_conversion, self._read_conversion_context
+            )
             if self._is_time:
                 value = time_to_seconds(value)
             else:
@@ -169,6 +188,12 @@ class S7Select(S7BaseEntity, SelectEntity):
         value = self._label_to_value.get(option)
         if value is None:
             raise HomeAssistantError(f"Unknown option: {option}")
+        try:
+            value = convert_to_plc(
+                value, self._value_conversion, self._write_conversion_context
+            )
+        except ValueConversionError as err:
+            raise HomeAssistantError(f"Value conversion failed: {err}") from err
         payload = seconds_to_time(value) if self._is_time else value
         await self.coordinator.write_batched(self._command_address, payload)
         await self.coordinator.async_request_refresh()

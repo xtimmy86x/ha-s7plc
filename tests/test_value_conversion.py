@@ -7,6 +7,7 @@ import pytest
 from custom_components.s7plc.address import DataType
 from custom_components.s7plc.value_conversion import (
     ConversionContext,
+    VALUE_CHANNEL_SPECS,
     ValueConversionError,
     convert_from_plc,
     convert_to_plc,
@@ -16,6 +17,33 @@ from custom_components.s7plc.value_conversion import (
     supports_value_conversion,
     validate_value_conversion,
 )
+
+
+def test_complete_value_channel_catalogue() -> None:
+    """Frontend/backend contract includes every genuinely numeric channel."""
+    assert VALUE_CHANNEL_SPECS == {
+        "sensors": {"value": ("address", None)},
+        "numbers": {"value": ("address", "command_address")},
+        "selects": {"value": ("address", "command_address")},
+        "entity_sync": {"value": (None, "address")},
+        "lights": {
+            "brightness": ("brightness_state_address", "brightness_command_address")
+        },
+        "covers": {
+            "position": ("position_state_address", "position_command_address"),
+            "tilt": ("tilt_state_address", "tilt_command_address"),
+            "status": ("cover_status_address", None),
+        },
+        "climates": {
+            "current_temperature": ("current_temperature_address", None),
+            "target_temperature": (
+                "target_temperature_address",
+                "target_temperature_address",
+            ),
+            "preset_mode": ("preset_mode_address", "preset_mode_address"),
+            "hvac_status": ("hvac_status_address", None),
+        },
+    }
 
 
 def ctx(data_type=DataType.WORD, direction="bidirectional", channel="value"):

@@ -8,21 +8,32 @@ transform.
 
 ## Supported channels
 
-| Entity | Channel | Direction |
-|---|---|---|
-| Sensor | `value` | PLC → HA |
-| Number | `value` | PLC ↔ HA |
-| Entity sync | `value` | HA → PLC |
-| Dimmable light | `brightness` | PLC ↔ HA |
-| Position cover | `position`, `tilt` | PLC ↔ HA |
-| Climate | `current_temperature` | PLC → HA |
-| Climate setpoint | `target_temperature` | PLC ↔ HA |
+| Entity | Channel | Read address | Write address | Effective direction |
+| --- | --- | --- | --- | --- |
+| Sensor | value | `address` | — | read |
+| Number | value | `address` | `command_address` (or `address`) | read/write |
+| Select | value | `address` | `command_address` (or `address`) | read/write |
+| Entity sync | value | — | `address` | write |
+| Light | brightness | `brightness_state_address` | `brightness_command_address` | according to configured addresses |
+| Cover | position | `position_state_address` | `position_command_address` | according to configured addresses |
+| Cover | tilt | `tilt_state_address` | `tilt_command_address` | according to configured addresses |
+| Cover | status | `cover_status_address` | — | read |
+| Climate | current temperature | `current_temperature_address` | — | read |
+| Climate | target temperature | `target_temperature_address` | same address | read/write |
+| Climate | preset mode | `preset_mode_address` when bidirectional | same address | write or read/write |
+| Climate | HVAC status | `hvac_status_address` | — | read |
 
-Conversions are offered for BYTE, SINT, USINT, WORD, INT, DWORD, DINT, REAL,
-LREAL and TIME. BIT, STRING, WSTRING and CHAR are excluded. Boolean commands,
-discrete select maps, status words, HVAC/preset codes and fixed pulse values are
-also deliberately excluded because transforming them would change code/mapping
-semantics rather than engineering units.
+Boolean commands, end stops, movement bits, availability addresses and climate
+on/off/direct outputs are deliberately excluded because their schema requires
+`BIT`. Text entities are excluded because their addresses require `STRING` or
+`WSTRING`; `CHAR` is also not a numeric conversion datatype.
+
+Discrete mappings are applied in this order: PLC value, numeric conversion,
+semantic mapping, Home Assistant state. Writes use the exact inverse order:
+Home Assistant option/mode, semantic numeric mapping, conversion to the PLC
+domain, PLC write. This applies to select option maps, cover status words,
+climate preset modes and HVAC status words.
+
 
 ## YAML schema
 

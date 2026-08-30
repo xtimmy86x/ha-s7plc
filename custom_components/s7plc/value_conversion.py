@@ -34,6 +34,65 @@ INTEGER_DATA_TYPES = frozenset(
     if (value := getattr(DataType, name, None)) is not None
 )
 
+# Canonical logical-channel catalogue.  Address fields are strings on purpose:
+# this module is also used by the configuration editor tests without importing
+# Home Assistant's (large) const module.  Read and write addresses which model
+# one HA value share one conversion and are validated independently.
+VALUE_CHANNEL_SPECS: dict[str, dict[str, tuple[str | None, str | None]]] = {
+    "sensors": {"value": ("address", None)},
+    "numbers": {"value": ("address", "command_address")},
+    "selects": {"value": ("address", "command_address")},
+    "entity_sync": {"value": (None, "address")},
+    "lights": {
+        "brightness": ("brightness_state_address", "brightness_command_address")
+    },
+    "covers": {
+        "position": ("position_state_address", "position_command_address"),
+        "tilt": ("tilt_state_address", "tilt_command_address"),
+        "status": ("cover_status_address", None),
+    },
+    "climates": {
+        "current_temperature": ("current_temperature_address", None),
+        # The same setpoint address is both read and written.
+        "target_temperature": (
+            "target_temperature_address",
+            "target_temperature_address",
+        ),
+        # preset_mode is write-only unless preset_mode_bidirectional is enabled.
+        "preset_mode": ("preset_mode_address", "preset_mode_address"),
+        "hvac_status": ("hvac_status_address", None),
+    },
+}
+
+
+def conversion_contexts(entity_type: str, entity: Mapping[str, Any], channel: str):
+    """Return separate effective read/write contexts for a logical channel."""
+    try:
+        read_field, write_field = VALUE_CHANNEL_SPECS[entity_type][channel]
+    except KeyError as err:
+        raise ValueConversionError(
+            f"unsupported conversion channel '{channel}'"
+        ) from err
+    read_address = entity.get(read_field) if read_field else None
+    write_address = entity.get(write_field) if write_field else None
+    if (
+        entity_type == "climates"
+        and channel == "preset_mode"
+        and not entity.get("preset_mode_bidirectional")
+    ):
+        read_address = None
+    # number/select command defaults to their state address at runtime.
+    if entity_type in ("numbers", "selects") and not write_address:
+        write_address = read_address
+    contexts = []
+    if read_address:
+        contexts.append(ConversionContext.from_address(channel, read_address, "read"))
+    if write_address:
+        contexts.append(ConversionContext.from_address(channel, write_address, "write"))
+    if not contexts:
+        raise ValueConversionError(f"channel '{channel}' has no address")
+    return contexts
+
 
 class ValueConversionError(ValueError):
     """A conversion cannot be validated or performed."""

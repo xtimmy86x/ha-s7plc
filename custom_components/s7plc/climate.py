@@ -324,6 +324,12 @@ async def async_setup_entry(
                     target_temperature_conversion=normalize_value_conversion(
                         item, "target_temperature"
                     ),
+                    preset_mode_conversion=normalize_value_conversion(
+                        item, "preset_mode"
+                    ),
+                    hvac_status_conversion=normalize_value_conversion(
+                        item, "hvac_status"
+                    ),
                 )
             )
 
@@ -658,6 +664,8 @@ class S7ClimateSetpointControl(
         on_off_address: str | None = None,
         current_temperature_conversion: dict | None = None,
         target_temperature_conversion: dict | None = None,
+        preset_mode_conversion: dict | None = None,
+        hvac_status_conversion: dict | None = None,
     ):
         """Initialize setpoint control climate entity."""
         super().__init__(
@@ -682,6 +690,22 @@ class S7ClimateSetpointControl(
         self._preset_mode_address = preset_mode_address
         self._preset_mode_bidirectional = preset_mode_bidirectional
         self._hvac_status_address = hvac_status_address
+        self._preset_mode_conversion = preset_mode_conversion
+        self._hvac_status_conversion = hvac_status_conversion
+        self._preset_mode_context = (
+            ConversionContext.from_address(
+                "preset_mode",
+                preset_mode_address,
+                "bidirectional" if preset_mode_bidirectional else "write",
+            )
+            if preset_mode_address
+            else None
+        )
+        self._hvac_status_context = (
+            ConversionContext.from_address("hvac_status", hvac_status_address, "read")
+            if hvac_status_address
+            else None
+        )
         self._on_off_address = on_off_address
 
         self._attr_min_temp = float(min_temp)
@@ -901,6 +925,11 @@ class S7ClimateSetpointControl(
             preset_value = data.get(f"{self._topic}:preset_mode")
             if preset_value is not None:
                 try:
+                    preset_value = convert_from_plc(
+                        preset_value,
+                        self._preset_mode_conversion,
+                        self._preset_mode_context,
+                    )
                     mode = self._preset_value_to_mode.get(int(preset_value))
                 except (TypeError, ValueError):
                     mode = None
@@ -934,6 +963,11 @@ class S7ClimateSetpointControl(
             status = data.get(status_topic)
             if status is not None:
                 try:
+                    status = convert_from_plc(
+                        status,
+                        self._hvac_status_conversion,
+                        self._hvac_status_context,
+                    )
                     status_value = int(status)
                 except (TypeError, ValueError):
                     # A transient malformed coordinator value must not make
@@ -1027,6 +1061,11 @@ class S7ClimateSetpointControl(
         if self._preset_mode_address:
             mode_value = self._preset_mode_values.get(hvac_mode)
             if mode_value is not None:
+                mode_value = convert_to_plc(
+                    mode_value,
+                    self._preset_mode_conversion,
+                    self._preset_mode_context,
+                )
                 await self.coordinator.write_batched(
                     self._preset_mode_address, mode_value
                 )

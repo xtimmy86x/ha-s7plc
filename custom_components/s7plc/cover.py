@@ -296,6 +296,7 @@ async def async_setup_entry(
                     cover_stopped_topic=cover_stopped_topic,
                     position_conversion=normalize_value_conversion(item, "position"),
                     tilt_conversion=normalize_value_conversion(item, "tilt"),
+                    status_conversion=normalize_value_conversion(item, "status"),
                 )
             )
             continue
@@ -461,6 +462,7 @@ async def async_setup_entry(
                 cover_status_stopped_values=cover_status_stopped_values,
                 toggle_mode=toggle_mode,
                 toggle_pulse_duration=toggle_pulse_duration,
+                status_conversion=normalize_value_conversion(item, "status"),
             )
         )
 
@@ -509,6 +511,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         cover_status_stopped_values: str = DEFAULT_COVER_STATUS_STOPPED_VALUES,
         toggle_mode: bool = DEFAULT_TOGGLE_MODE,
         toggle_pulse_duration: float = DEFAULT_PULSE_DURATION,
+        status_conversion: dict | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -524,6 +527,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._toggle_pulse_duration = toggle_pulse_duration
         self._last_toggle_direction: str | None = None
         self._toggle_lock = asyncio.Lock()
+        self._status_conversion = status_conversion
+        self._status_conversion_context = (
+            ConversionContext.from_address("status", cover_status_address, "read")
+            if cover_status_address
+            else None
+        )
         # Set while a halt pulse is waiting for real "stopped" feedback
         # before continuing toward the originally requested target - see
         # _toggle_step/_handle_coordinator_update.
@@ -630,6 +639,9 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if status is None:
             return None
         try:
+            status = convert_from_plc(
+                status, self._status_conversion, self._status_conversion_context
+            )
             status = int(status)
         except (TypeError, ValueError):
             return None
@@ -1324,6 +1336,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         cover_stopped_topic: str | None = None,
         position_conversion: dict | None = None,
         tilt_conversion: dict | None = None,
+        status_conversion: dict | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -1363,6 +1376,12 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # tell HA whether the cover is actively moving, so is_opening/
         # is_closing stay False unless this is configured.
         self._cover_status_address = cover_status_address
+        self._status_conversion = status_conversion
+        self._status_conversion_context = (
+            ConversionContext.from_address("status", cover_status_address, "read")
+            if cover_status_address
+            else None
+        )
         self._cover_status_topic = cover_status_topic
         self._cover_status_values: dict[str, list[int]] = {
             "open": parse_mode_values(cover_status_open_values),
@@ -1543,6 +1562,9 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         if status is None:
             return None
         try:
+            status = convert_from_plc(
+                status, self._status_conversion, self._status_conversion_context
+            )
             status = int(status)
         except (TypeError, ValueError):
             return None
