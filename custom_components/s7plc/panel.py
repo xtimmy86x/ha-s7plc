@@ -7,14 +7,21 @@ from collections.abc import Hashable
 from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 
 import voluptuous as vol
 import yaml
 
 from .address import parse_tag
 from .config_validation import build_entity_item
-from .const import CONF_PLC_FAMILY, CONF_UID, DOMAIN, OPTION_KEYS, PLC_FAMILY_S7
+from .const import (
+    CONF_PLC_FAMILY,
+    CONF_UID,
+    DOMAIN,
+    FRONTEND_MODULE,
+    OPTION_KEYS,
+    PLC_FAMILY_S7,
+    VERSION,
+)
 from .helpers import generate_uid
 from .logo_address import (
     is_logo_address_candidate,
@@ -37,11 +44,6 @@ class ConfigurationValidationError(ValueError):
         self.entity_type = entity_type
         self.index = index
         self.error_key = error_key
-
-
-def _versioned_asset_url(asset_url: str, version: str) -> str:
-    """Append the integration version to an asset URL for cache busting."""
-    return f"{asset_url}?{urlencode({'v': version})}"
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):
@@ -298,7 +300,6 @@ async def async_setup_panel(hass: Any) -> None:
 
     from homeassistant.components import panel_custom, websocket_api
     from homeassistant.components.http import StaticPathConfig
-    from homeassistant.loader import async_get_integration
 
     hass.data[DOMAIN][PYS7_VERSION_DATA] = await hass.async_add_executor_job(
         package_version, "pys7"
@@ -312,8 +313,6 @@ async def async_setup_panel(hass: Any) -> None:
 
     translations_url = "/s7plc_translations"
     translations_path = Path(__file__).parent / "translations"
-
-    integration = await async_get_integration(hass, DOMAIN)
 
     await hass.http.async_register_static_paths(
         [
@@ -509,10 +508,13 @@ async def async_setup_panel(hass: Any) -> None:
         hass,
         webcomponent_name="s7plc-configuration-panel",
         frontend_url_path=PANEL_URL,
-        module_url=_versioned_asset_url(asset_url, integration.version),
+        module_url=FRONTEND_MODULE,
         sidebar_title="S7 PLC",
         sidebar_icon="mdi:memory",
         require_admin=True,
-        config={"domain": DOMAIN, "version": integration.version},
+        config={
+            "domain": DOMAIN,
+            "version": VERSION,
+        },
     )
     hass.data[DOMAIN][PANEL_DATA] = True

@@ -12,6 +12,13 @@ PLATFORMS = [
     "climate",
 ]
 
+VERSION = "7.2.0"
+FRONTEND_BUILD = "20260830.1"
+
+PANEL_URL = "s7plc-config"
+
+FRONTEND_MODULE = "/s7plc_static/s7plc-panel.js" f"?v={VERSION}&build={FRONTEND_BUILD}"
+
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
 CONF_CONNECTION_TYPE = "connection_type"

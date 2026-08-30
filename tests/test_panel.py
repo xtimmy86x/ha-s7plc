@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from custom_components.s7plc.config_validation import build_entity_item
+from custom_components.s7plc.const import FRONTEND_BUILD, FRONTEND_MODULE, VERSION
 from custom_components.s7plc.panel import (
     PYS7_VERSION_DATA,
     _configuration_from_yaml,
@@ -18,12 +19,27 @@ from custom_components.s7plc.panel import (
     _canonicalize_logo_addresses,
     _entity_from_message,
     _entry_payload,
-    _versioned_asset_url,
     async_setup_panel,
 )
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
+
+
+def test_const_version_matches_manifest() -> None:
+    manifest = json.loads(
+        Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert VERSION == manifest["version"]
+
+
+def test_panel_asset_url_is_versioned() -> None:
+    assert FRONTEND_MODULE == (
+        f"/s7plc_static/s7plc-panel.js"
+        f"?v={VERSION}&build={FRONTEND_BUILD}"
+    )
+
 
 
 @pytest.mark.parametrize(
@@ -66,16 +82,6 @@ def test_entry_payload_always_includes_profile_for_logo_family(family):
     assert payload["logo_profile"]["family"] == family
     assert payload["logo_profile"]["areas"]
     assert payload["logo_profile"]["vm_areas"]
-
-
-def test_panel_asset_url_uses_manifest_version() -> None:
-    manifest = json.loads(
-        Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
-    )
-
-    assert _versioned_asset_url(
-        "/s7plc_static/s7plc-panel.js", manifest["version"]
-    ) == (f"/s7plc_static/s7plc-panel.js?v={manifest['version']}")
 
 
 def test_panel_displays_integration_version() -> None:
