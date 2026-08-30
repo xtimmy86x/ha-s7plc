@@ -298,10 +298,6 @@
             "label": "Jednostka miary",
             "description": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
           },
-          "value_multiplier": {
-            "label": "Mnożnik wartości",
-            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
-          },
           "min_value": {
             "label": "Wartość wyjściowa min.",
             "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
@@ -309,14 +305,6 @@
           "max_value": {
             "label": "Wartość wyjściowa maks.",
             "description": "Maksymalna wartość wyjściowa skalowania liniowego."
-          },
-          "scale_raw_min": {
-            "label": "Wartość wejściowa min.",
-            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
-          },
-          "scale_raw_max": {
-            "label": "Wartość wejściowa maks.",
-            "description": "Maksymalna wartość wejściowa skalowania liniowego."
           },
           "state_class": {
             "label": "Klasa stanu",
@@ -597,10 +585,6 @@
           "pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
-          },
-          "brightness_scale": {
-            "label": "Maksymalna wartość jasności",
-            "description": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100)."
           }
         },
         "mode": {
@@ -661,18 +645,6 @@
           "step": {
             "label": "Krok",
             "description": "Krok przy zmianie wartości w interfejsie."
-          },
-          "value_multiplier": {
-            "label": "Mnożnik wartości",
-            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
-          },
-          "scale_raw_min": {
-            "label": "Wartość wejściowa min.",
-            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
-          },
-          "scale_raw_max": {
-            "label": "Wartość wejściowa maks.",
-            "description": "Maksymalna wartość wejściowa skalowania liniowego."
           },
           "real_precision": {
             "label": "Miejsca dziesiętne REAL",
@@ -1094,7 +1066,6 @@
       "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu osłony.",
       "climate_required_error": "Wprowadź adres temperatury docelowej.",
       "brightness_state_required_error": "Wprowadź adres odczytu jasności.",
-      "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
       "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
       "configuration_download_error": "Nie można pobrać kopii zapasowej.",
       "delete_entities_error": "Nie udało się usunąć niektórych encji. Konfiguracja została ponownie wczytana.",
@@ -1149,7 +1120,8 @@
       "options_map_out_of_range": "Co najmniej jedna wartość mapowania wykracza poza zakres typu danych.",
       "select_requires_integer_type": "Adres odczytu i zapisu listy musi być dyskretnym typem danych PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT lub TIME).",
       "select_command_type_mismatch": "Adres polecenia musi używać TIME wtedy i tylko wtedy, gdy adres stanu używa TIME.",
-      "value_conversions_must_be_mapping": "Konwersje wartości muszą być mapą."
+      "value_conversions_must_be_mapping": "Konwersje wartości muszą być mapą.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

@@ -410,7 +410,7 @@ with Home Assistant's time-of-day entity.
   `-2147483.648 s` through `2147483.647 s`, with native `0.001 s` resolution.
 * `min_value`, `max_value`, and `step` on a `TIME` number are expressed in
   seconds. When omitted, the signed TIME range and a `0.001 s` step are used.
-* `value_multiplier`, when configured, is applied after conversion to seconds
+* A `value_conversions.value` conversion is applied after conversion to seconds
   on reads and reversed before conversion to milliseconds on writes.
 
 Use an address such as `DB1,TIME0`. `TIME` is not accepted for entity
@@ -430,5 +430,5 @@ brightness conversion lets you edit only the PLC minimum and maximum (for
 example 0–1000); its Home Assistant minimum 0, maximum 255, and clamping are
 fixed. Multiplier and custom-expression results are likewise clamped before
 being exposed to Home Assistant, while writes are clamped before conversion.
-The legacy `brightness_scale` option remains supported and is normalized to the
-same bidirectional linear conversion without applying it twice.
+Existing legacy brightness settings are automatically migrated to the same
+bidirectional linear conversion without applying it twice.

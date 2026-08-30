@@ -1067,20 +1067,16 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
 def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "delete entity.light_mode" in source
-    assert (
-        "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}"
-        in source
-    )
+    assert "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;}" in source
     assert (
         "if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'))"
         in source
     )
-    assert "if(entity.brightness_scale==null)entity.brightness_scale=255" in source
-    assert 'min="1" max="65535"' in source
-    assert (
-        "['brightness_state_address','brightness_command_address','brightness_scale'].forEach"
-        in source
-    )
+    assert "brightness_scale" not in source
+    assert "value_multiplier" not in source
+    assert "scale_raw_min" not in source
+    assert "scale_raw_max" not in source
+    assert "['brightness_state_address','brightness_command_address'].forEach" in source
 
 
 def test_panel_control_mode_is_context_aware() -> None:
@@ -1950,7 +1946,7 @@ def test_panel_uses_autonomous_field_descriptions() -> None:
     assert "${help}</label>" in source
     # Preset values are PLC integer mode codes: step=1, not step=any (which
     # would silently allow decimal input to be truncated).
-    assert "presetValue?'step=\"1\"':key==='brightness_scale'" in source
+    assert "presetValue?'step=\"1\"':'step=\"any\"'" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")

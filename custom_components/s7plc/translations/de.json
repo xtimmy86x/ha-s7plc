@@ -298,10 +298,6 @@
             "label": "Maßeinheit",
             "description": "Benutzerdefinierte Maßeinheit (z.B. °C, RPM, bar). Leerlassen, um die Standardeinheit basierend auf der Geräteklasse zu verwenden."
           },
-          "value_multiplier": {
-            "label": "Wertmultiplikator",
-            "description": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten."
-          },
           "min_value": {
             "label": "Skalierung Min",
             "description": "Minimaler angezeigter Wert nach der Skalierung."
@@ -309,14 +305,6 @@
           "max_value": {
             "label": "Skalierung Max",
             "description": "Maximaler angezeigter Wert nach der Skalierung."
-          },
-          "scale_raw_min": {
-            "label": "Roh-Min-Skalierung",
-            "description": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren."
-          },
-          "scale_raw_max": {
-            "label": "Roh-Max-Skalierung",
-            "description": "Maximaler Rohwert (SPS) für die lineare Skalierung."
           },
           "state_class": {
             "label": "Zustandsklasse",
@@ -597,10 +585,6 @@
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s."
-          },
-          "brightness_scale": {
-            "label": "Helligkeitsskala (Maximalwert)",
-            "description": "Maximalwert, den der PLC für volle Helligkeit verwendet (z.B. 255 für BYTE, 100 für Prozent). Erforderlich wenn Helligkeitsadressen gesetzt sind."
           }
         },
         "mode": {
@@ -661,18 +645,6 @@
           "step": {
             "label": "Schritt",
             "description": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional)."
-          },
-          "value_multiplier": {
-            "label": "Wertmultiplikator",
-            "description": "Wertmultiplikator, bevor er verarbeitet wird. Leerlassen, um den Originalwert zu behalten."
-          },
-          "scale_raw_min": {
-            "label": "Roh-Min-Skalierung",
-            "description": "Minimaler Rohwert (SPS) für die lineare Skalierung. Alle vier Felder müssen ausgefüllt werden, um die Skalierung zu aktivieren."
-          },
-          "scale_raw_max": {
-            "label": "Roh-Max-Skalierung",
-            "description": "Maximaler Rohwert (SPS) für die lineare Skalierung."
           },
           "real_precision": {
             "label": "REAL-Dezimalstellen",
@@ -1094,7 +1066,6 @@
       "cover_required_error": "Geben Sie die erforderlichen Adressen für den gewählten Abdeckungstyp ein.",
       "climate_required_error": "Geben Sie die Adresse der Zieltemperatur ein.",
       "brightness_state_required_error": "Geben Sie die Helligkeits-Statusadresse für eine dimmbare Leuchte ein.",
-      "brightness_scale_error": "Die Helligkeitsskala muss zwischen 1 und 65535 liegen.",
       "configuration_load_error": "Die YAML-Konfiguration konnte nicht geladen werden.",
       "configuration_download_error": "Die Sicherung konnte nicht heruntergeladen werden.",
       "delete_entities_error": "Einige Entitäten konnten nicht gelöscht werden. Die Konfiguration wurde neu geladen.",
@@ -1149,7 +1120,8 @@
       "options_map_out_of_range": "Ein oder mehrere Optionswerte liegen außerhalb des Wertebereichs des SPS-Datentyps.",
       "select_requires_integer_type": "Auswahl-Entitäten benötigen einen diskreten numerischen SPS-Datentyp (BYTE, WORD, DWORD, SINT, USINT, INT, DINT oder TIME).",
       "select_command_type_mismatch": "Die Befehlsadresse muss genau dann TIME verwenden, wenn die Statusadresse TIME verwendet.",
-      "value_conversions_must_be_mapping": "Wertkonvertierungen müssen eine Zuordnung sein."
+      "value_conversions_must_be_mapping": "Wertkonvertierungen müssen eine Zuordnung sein.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

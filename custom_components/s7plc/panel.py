@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Hashable
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -28,6 +29,13 @@ from .logo_address import (
     logo_profile_payload,
     logo_to_s7_address,
 )
+from .value_conversion_migration import (
+    LEGACY_BRIGHTNESS_FIELDS,
+    LEGACY_VALUE_FIELDS,
+    normalize_legacy_conversion_input,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
@@ -88,6 +96,25 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
     return entity
 
 
+def _normalize_input_entity(entity_type: str, entity: dict[str, Any]) -> dict[str, Any]:
+    """Immediately canonicalize deprecated editor/import input."""
+    normalized, report = normalize_legacy_conversion_input(entity_type, entity)
+    if any(key in entity for key in (*LEGACY_VALUE_FIELDS, *LEGACY_BRIGHTNESS_FIELDS)):
+        _LOGGER.warning(
+            "Deprecated legacy conversion fields received for %s; "
+            "persisted value_conversions instead",
+            entity_type,
+        )
+    if report.conflicts:
+        _LOGGER.warning(
+            "Mixed conversion input for %s channels %s; "
+            "kept authoritative value_conversions",
+            entity_type,
+            ", ".join(report.conflicts),
+        )
+    return normalized
+
+
 def _configuration_from_yaml(
     configuration_yaml: str,
     current_options: dict[str, Any],
@@ -138,7 +165,9 @@ def _configuration_from_yaml(
         for index, raw_item in enumerate(raw_items):
             if not isinstance(raw_item, dict):
                 raise ValueError(f"{entity_type}[{index}] must be a mapping")
-            normalized_item = _canonicalize_logo_addresses(raw_item, plc_family)
+            normalized_item = _normalize_input_entity(
+                entity_type, _canonicalize_logo_addresses(raw_item, plc_family)
+            )
             item, errors = build_entity_item(
                 entity_type, normalized_item, options=result
             )
@@ -168,7 +197,15 @@ def _configuration_yaml(
             "source_entry_id": entry_id,
             "source_title": title or "",
         }
-    payload.update({key: list(options.get(key, [])) for key in OPTION_KEYS})
+    payload.update(
+        {
+            key: [
+                normalize_legacy_conversion_input(key, item)[0]
+                for item in options.get(key, [])
+            ]
+            for key in OPTION_KEYS
+        }
+    )
     return yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
 
 
@@ -389,9 +426,12 @@ async def async_setup_panel(hass: Any) -> None:
             connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
             return
         try:
-            raw_entity = _canonicalize_logo_addresses(
-                _entity_from_message(msg),
-                entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+            raw_entity = _normalize_input_entity(
+                msg["entity_type"],
+                _canonicalize_logo_addresses(
+                    _entity_from_message(msg),
+                    entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+                ),
             )
             item, errors = build_entity_item(
                 msg["entity_type"],

@@ -172,7 +172,11 @@ def test_build_sensor_normalizes_value_multiplier(
 
     assert errors == {}
     assert item is not None
-    assert item["value_multiplier"] == pytest.approx(expected)
+    assert "value_multiplier" not in item
+    assert item["value_conversions"]["value"] == {
+        "type": "multiplier",
+        "factor": pytest.approx(expected),
+    }
 
 
 def test_build_number_clamps_limits_to_plc_type_range() -> None:

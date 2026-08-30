@@ -298,10 +298,6 @@
             "label": "Unit of measurement",
             "description": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class."
           },
-          "value_multiplier": {
-            "label": "Value multiplier",
-            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
-          },
           "min_value": {
             "label": "Scale min",
             "description": "Minimum displayed value after scaling."
@@ -309,14 +305,6 @@
           "max_value": {
             "label": "Scale max",
             "description": "Maximum displayed value after scaling."
-          },
-          "scale_raw_min": {
-            "label": "Scale raw min",
-            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
-          },
-          "scale_raw_max": {
-            "label": "Scale raw max",
-            "description": "Maximum raw (PLC) value for linear scaling."
           },
           "state_class": {
             "label": "State class",
@@ -597,10 +585,6 @@
           "pulse_duration": {
             "label": "Pulse duration (s)",
             "description": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s."
-          },
-          "brightness_scale": {
-            "label": "Brightness scale (max value)",
-            "description": "Maximum value the PLC uses for full brightness (e.g., 255 for BYTE, 100 for percentage). Required when brightness addresses are set."
           }
         },
         "mode": {
@@ -661,18 +645,6 @@
           "step": {
             "label": "Step",
             "description": "Optional increment used when adjusting the value in the UI."
-          },
-          "value_multiplier": {
-            "label": "Value multiplier",
-            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
-          },
-          "scale_raw_min": {
-            "label": "Scale raw min",
-            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
-          },
-          "scale_raw_max": {
-            "label": "Scale raw max",
-            "description": "Maximum raw (PLC) value for linear scaling."
           },
           "real_precision": {
             "label": "REAL decimal precision",
@@ -1094,7 +1066,6 @@
       "cover_required_error": "Enter the required addresses for the selected cover type.",
       "climate_required_error": "Enter the target temperature address.",
       "brightness_state_required_error": "Enter the brightness state address for a dimmable light.",
-      "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
       "configuration_load_error": "Unable to load the YAML configuration.",
       "configuration_download_error": "Unable to download the backup.",
       "delete_entities_error": "Some entities could not be deleted. The configuration has been reloaded.",
@@ -1149,7 +1120,8 @@
       "options_map_out_of_range": "One or more option values are outside the range of the PLC data type.",
       "select_requires_integer_type": "Select entities require a discrete numeric PLC data type (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME).",
       "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME.",
-      "value_conversions_must_be_mapping": "Value conversions must be a mapping."
+      "value_conversions_must_be_mapping": "Value conversions must be a mapping.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

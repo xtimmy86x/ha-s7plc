@@ -298,10 +298,6 @@
             "label": "Unità di misura",
             "description": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla classe dispositivo."
           },
-          "value_multiplier": {
-            "label": "Moltiplicatore di valore",
-            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
-          },
           "min_value": {
             "label": "Scala min",
             "description": "Valore minimo visualizzato dopo la scalatura."
@@ -309,14 +305,6 @@
           "max_value": {
             "label": "Scala max",
             "description": "Valore massimo visualizzato dopo la scalatura."
-          },
-          "scale_raw_min": {
-            "label": "Valore grezzo minimo",
-            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
-          },
-          "scale_raw_max": {
-            "label": "Valore grezzo massimo",
-            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
           },
           "state_class": {
             "label": "Classe di stato",
@@ -597,10 +585,6 @@
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi (0,1-60 s, supporta decimali). Predefinito: 0,5 s."
-          },
-          "brightness_scale": {
-            "label": "Scala luminosità (valore massimo)",
-            "description": "Valore massimo usato dal PLC per la luminosità piena (es. 255 per BYTE, 100 per percentuale). Obbligatorio quando sono impostati gli indirizzi luminosità."
           }
         },
         "mode": {
@@ -661,18 +645,6 @@
           "step": {
             "label": "Passo",
             "description": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente."
-          },
-          "value_multiplier": {
-            "label": "Moltiplicatore di valore",
-            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
-          },
-          "scale_raw_min": {
-            "label": "Valore grezzo minimo",
-            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
-          },
-          "scale_raw_max": {
-            "label": "Valore grezzo massimo",
-            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
           },
           "real_precision": {
             "label": "Numero decimali REAL",
@@ -1094,7 +1066,6 @@
       "cover_required_error": "Inserisci gli indirizzi obbligatori per il tipo di tapparella scelto.",
       "climate_required_error": "Inserisci l'indirizzo della temperatura obiettivo.",
       "brightness_state_required_error": "Inserisci l’indirizzo di stato luminosità per una luce dimmerabile.",
-      "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
       "configuration_load_error": "Impossibile caricare la configurazione YAML.",
       "configuration_download_error": "Impossibile scaricare la copia di sicurezza.",
       "delete_entities_error": "Non è stato possibile eliminare alcune entità. La configurazione è stata ricaricata.",
@@ -1149,7 +1120,8 @@
       "options_map_out_of_range": "Uno o più valori delle opzioni sono fuori dall'intervallo del tipo di dato PLC.",
       "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC numerico discreto (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME).",
       "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME.",
-      "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa."
+      "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

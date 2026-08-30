@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -12,6 +13,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
+from .config_validation import build_entity_item
 from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
@@ -40,6 +42,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DOMAIN,
+    OPTION_KEYS,
     PLATFORMS,
 )
 from .coordinator import S7Coordinator
@@ -49,12 +52,72 @@ from .helpers import (
     build_expected_unique_ids,
     ensure_item_uids,
 )
+from .value_conversion import ValueConversionError
+from .value_conversion_migration import migrate_legacy_value_conversions
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SERVICE_HEALTH_CHECK = "health_check"
 SERVICE_WRITE_MULTI = "write_multi"
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Atomically migrate all persisted legacy conversions before setup."""
+    if entry.version >= 2:
+        return True
+    options = deepcopy(dict(entry.options))
+    totals = [0, 0, 0]
+    conflict_logs: list[tuple[str, str, str]] = []
+    try:
+        for entity_type in OPTION_KEYS:
+            migrated_items = []
+            for index, entity in enumerate(options.get(entity_type, [])):
+                migrated, report = migrate_legacy_value_conversions(entity_type, entity)
+                # Reuse normal persistence validation, but validate against a
+                # snapshot that contains already migrated siblings as well.
+                validated, errors = build_entity_item(
+                    entity_type, migrated, options=options, skip_idx=index
+                )
+                if validated is None:
+                    raise ValueConversionError(errors.get("base", str(errors)))
+                # The builder intentionally reconstructs known fields. Preserve
+                # unknown persisted properties and the immutable UID verbatim.
+                migrated_items.append(migrated)
+                totals[0] += report.multipliers
+                totals[1] += report.linear_scales
+                totals[2] += report.brightness_scales
+                identity = str(entity.get("uid") or entity.get("name") or index)
+                conflict_logs.extend(
+                    (entity_type, identity, channel) for channel in report.conflicts
+                )
+            if entity_type in options:
+                options[entity_type] = migrated_items
+    except (ValueConversionError, ValueError, TypeError) as err:
+        _LOGGER.error(
+            "Failed to migrate legacy value conversions for config entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        return False
+
+    for entity_type, identity, channel in conflict_logs:
+        _LOGGER.warning(
+            "Config entry %s %s %s channel %s has different legacy and "
+            "value_conversions settings; kept authoritative value_conversions",
+            entry.entry_id,
+            entity_type,
+            identity,
+            channel,
+        )
+    hass.config_entries.async_update_entry(entry, options=options, version=2)
+    _LOGGER.info(
+        "Migrated legacy value conversions for config entry %s: "
+        "%d multipliers, %d linear scales, %d brightness scales",
+        entry.entry_id,
+        *totals,
+    )
+    return True
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

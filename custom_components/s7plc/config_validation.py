@@ -711,32 +711,22 @@ class EntityConfigBuilder:
             CONF_STATE_CLASS,
         )
 
-        # Store display range + scale only when all 4 params are provided
+        # min/max are independent entity metadata; only the two raw legacy
+        # endpoints form a legacy scaling pair.
         min_v = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
         max_v = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
         raw_min_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
         raw_max_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
 
-        scale_values = (min_v, max_v, raw_min_v, raw_max_v)
-        any_scale_set = any(v is not None for v in scale_values)
-        all_scale_set = all(v is not None for v in scale_values)
-
-        if any_scale_set and not all_scale_set:
-            return None, {"base": "scale_requires_all_four"}
-
-        if all_scale_set:
+        if (raw_min_v is None) != (raw_max_v is None):
+            return None, {"base": "scale_requires_both_raw_endpoints"}
+        if min_v is not None:
             item[CONF_MIN_VALUE] = min_v
+        if max_v is not None:
             item[CONF_MAX_VALUE] = max_v
+        if raw_min_v is not None:
             item[CONF_SCALE_RAW_MIN] = raw_min_v
             item[CONF_SCALE_RAW_MAX] = raw_max_v
-        else:
-            for key in (
-                CONF_MIN_VALUE,
-                CONF_MAX_VALUE,
-                CONF_SCALE_RAW_MIN,
-                CONF_SCALE_RAW_MAX,
-            ):
-                item.pop(key, None)
 
         # Apply specific transformations
         self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
@@ -1405,7 +1395,8 @@ class EntityConfigBuilder:
                     return None, bri_cmd_errors
                 item[CONF_BRIGHTNESS_COMMAND_ADDRESS] = bri_cmd_val
 
-            # Brightness scale
+            # Deprecated 7.x input is normalized before this builder. Do not
+            # synthesize a legacy setting for an identity 0..255 dimmer.
             raw_brightness = user_input.get(CONF_BRIGHTNESS_SCALE)
             if raw_brightness is not None:
                 try:
@@ -1415,8 +1406,6 @@ class EntityConfigBuilder:
                 if brightness_scale < 1 or brightness_scale > 65535:
                     brightness_scale = DEFAULT_BRIGHTNESS_SCALE
                 item[CONF_BRIGHTNESS_SCALE] = brightness_scale
-            else:
-                item[CONF_BRIGHTNESS_SCALE] = DEFAULT_BRIGHTNESS_SCALE
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -2055,6 +2044,16 @@ def build_entity_item(
     skip_idx: int | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Validate and normalize one entity using the appropriate builder."""
+    # TODO 8.0.0:
+    # Remove acceptance of legacy conversion fields from new YAML/import input
+    # and remove any remaining non-migration compatibility paths.
+    # Keep versioned config-entry migrations for direct upgrades.
+    from .value_conversion_migration import normalize_legacy_conversion_input
+
+    try:
+        entity = normalize_legacy_conversion_input(entity_type, entity)[0]
+    except ValueError as err:
+        return None, {"base": f"invalid_value_conversion:{err}"}
     validate_entity_fields(entity_type, entity)
     if entity_type not in (CONF_SENSORS, CONF_NUMBERS, CONF_SELECTS):
         for key, value in entity.items():

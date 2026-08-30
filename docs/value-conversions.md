@@ -120,9 +120,12 @@ bounded AST; it never uses `eval`, templates, attributes, indexing, imports or
 arbitrary calls. Non-finite results and datatype overflows abort only the
 affected operation and are logged with entity/channel context.
 
-## Legacy compatibility
+## Automatic migration of legacy conversions
 
-Legacy values are normalized in memory and are never chained with a new value:
+Existing config entries are persistently and automatically migrated before any
+entity platform is set up. Entities do not need to be recreated: their UID,
+Home Assistant registry records, addresses, ordering, and unrelated properties
+are preserved. The panel displays and exports only `value_conversions`:
 
 * `value_multiplier` → `multiplier.factor` for the `value` channel;
 * `scale_raw_min`/`scale_raw_max` plus `min_value`/`max_value` → `linear_scale`,
@@ -130,10 +133,14 @@ Legacy values are normalized in memory and are never chained with a new value:
 * `brightness_scale` → brightness scale `0…brightness_scale` ↔ `0…255`, with
   clamping and integer rounding identical to the dimmer behaviour.
 
-YAML import continues accepting legacy fields. New and equivalent legacy fields
-in the same entity are rejected as an explicit conflict rather than silently
-being doubled. Editing may persist the new map and remove only the legacy fields
-that it replaces; there is no destructive bulk migration.
+During the 7.x series YAML/import still accepts these legacy fields, emits a
+deprecation warning, and converts them before persistence. A valid new channel
+is authoritative in mixed input; an equivalent legacy value is removed, while
+a different value is removed with a warning and is never chained. Invalid new
+configuration or incomplete/corrupt legacy scaling aborts the entire atomic
+migration. Starting with 8.0.0, new legacy YAML input will no longer be accepted;
+versioned config-entry migration remains available for direct upgrades from old
+versions.
 
 ## Light brightness invariant
 
@@ -161,6 +168,5 @@ write, the Home Assistant input is clamped to 0–255 and only then passed to th
 configured converter. The converter's PLC result is checked against the PLC
 datatype, not against 0–255.
 
-The legacy `brightness_scale: 1000` setting is normalized to exactly the linear
-scale above. A light therefore opens and runs without migration or a second
-conversion; saving it in the visual editor stores the canonical conversion.
+An existing legacy brightness setting is persistently migrated to exactly the
+linear scale above, so the runtime never applies a second conversion.

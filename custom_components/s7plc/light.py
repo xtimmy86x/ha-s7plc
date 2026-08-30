@@ -13,7 +13,6 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     CONF_AREA,
     CONF_BRIGHTNESS_COMMAND_ADDRESS,
-    CONF_BRIGHTNESS_SCALE,
     CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
@@ -56,7 +55,6 @@ async def async_setup_entry(
         pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
         pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
 
-        brightness_scale = item.get(CONF_BRIGHTNESS_SCALE)
         brightness_conversion = normalize_value_conversion(item, "brightness")
         brightness_state_address = item.get(CONF_BRIGHTNESS_STATE_ADDRESS)
         brightness_command_address = item.get(
@@ -74,9 +72,7 @@ async def async_setup_entry(
         await coord.add_item(topic, state_address, scan_interval)
 
         # If dimmer, also register the brightness topic
-        is_dimmer = (
-            brightness_scale is not None or brightness_conversion is not None
-        ) and brightness_state_address is not None
+        is_dimmer = brightness_state_address is not None
         if is_dimmer:
             await coord.add_item(
                 f"{topic}:brightness", brightness_state_address, scan_interval
@@ -94,7 +90,6 @@ async def async_setup_entry(
                 sync_state,
                 pulse_command,
                 pulse_duration,
-                brightness_scale,
                 brightness_state_address,
                 brightness_command_address,
                 area,
@@ -114,8 +109,8 @@ class S7Light(S7BoolSyncEntity, LightEntity):
     """Unified light entity supporting ON/OFF and optional dimmer mode.
 
     Inherits boolean ON/OFF state management, sync and pulse modes from
-    :class:`S7BoolSyncEntity`.  When *brightness_state_address* and
-    *brightness_scale* are set, the entity additionally supports
+    :class:`S7BoolSyncEntity`.  When a brightness address and conversion are
+    set, the entity additionally supports
     ``ColorMode.BRIGHTNESS`` and reads/writes brightness through the
     separate brightness addresses.
     """
@@ -132,7 +127,6 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         sync_state: bool = False,
         pulse_command: bool = False,
         pulse_duration: float = DEFAULT_PULSE_DURATION,
-        brightness_scale: int | None = None,
         brightness_state_address: str | None = None,
         brightness_command_address: str | None = None,
         suggested_area_id: str | None = None,
@@ -150,9 +144,6 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             pulse_command=pulse_command,
             pulse_duration=pulse_duration,
             suggested_area_id=suggested_area_id,
-        )
-        self._brightness_scale = (
-            max(1, brightness_scale) if brightness_scale is not None else None
         )
         self._brightness_conversion = brightness_conversion
         self._brightness_read_context = (
@@ -189,10 +180,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
 
     @property
     def _is_dimmer(self) -> bool:
-        return (
-            self._brightness_scale is not None
-            or self._brightness_conversion is not None
-        ) and self._brightness_state_address is not None
+        return self._brightness_state_address is not None
 
     @property
     def color_mode(self) -> ColorMode | None:
@@ -225,16 +213,10 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             return max(0, min(255, round(value)))
         if not isinstance(plc_value, (int, float)) or not math.isfinite(plc_value):
             raise ValueConversionError("brightness must be a finite numeric value")
-        if self._brightness_scale == 255:
-            return max(0, min(255, int(plc_value)))
-        return max(0, min(255, round(plc_value * 255 / self._brightness_scale)))
+        return max(0, min(255, round(plc_value)))
 
     def _ha_to_plc_brightness(self, ha_brightness: int) -> int | float:
         """Convert HA 0-255 brightness to PLC value range."""
-        if not isinstance(ha_brightness, (int, float)) or not math.isfinite(
-            ha_brightness
-        ):
-            raise ValueConversionError("brightness must be a finite numeric value")
         # HA normally supplies this range, but this boundary is deliberately
         # defensive so no converter ever receives a different logical domain.
         ha_brightness = max(0, min(255, ha_brightness))
@@ -244,15 +226,11 @@ class S7Light(S7BoolSyncEntity, LightEntity):
                 self._brightness_conversion,
                 self._brightness_write_context,
             )
-        if self._brightness_scale == 255:
-            return max(0, min(255, int(ha_brightness)))
-        return max(
-            0,
-            min(
-                self._brightness_scale,
-                round(ha_brightness * self._brightness_scale / 255),
-            ),
-        )
+        if not isinstance(ha_brightness, (int, float)) or not math.isfinite(
+            ha_brightness
+        ):
+            raise ValueConversionError("brightness must be a finite numeric value")
+        return round(ha_brightness)
 
     @property
     def brightness(self) -> int | None:
@@ -283,7 +261,6 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             attrs["s7_brightness_command_address"] = (
                 self._brightness_command_address.upper()
             )
-            attrs["brightness_scale"] = self._brightness_scale
         return attrs
 
     # ------------------------------------------------------------------

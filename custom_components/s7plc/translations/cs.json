@@ -298,10 +298,6 @@
             "label": "Jednotka",
             "description": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení."
           },
-          "value_multiplier": {
-            "label": "Násobitel hodnoty",
-            "description": "Násobí surovou hodnotu z PLC před odesíláním. Ponechte prázdné pro původní hodnotu."
-          },
           "min_value": {
             "label": "Zobrazené min.",
             "description": "Minimální zobrazená hodnota po škálování."
@@ -309,14 +305,6 @@
           "max_value": {
             "label": "Zobrazené max.",
             "description": "Maximální zobrazená hodnota po škálování."
-          },
-          "scale_raw_min": {
-            "label": "Syr. min. hodnota (rozsah)",
-            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
-          },
-          "scale_raw_max": {
-            "label": "Syr. max. hodnota (rozsah)",
-            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
           },
           "state_class": {
             "label": "Třída stavu",
@@ -597,10 +585,6 @@
           "pulse_duration": {
             "label": "Délka pulsu (s)",
             "description": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s."
-          },
-          "brightness_scale": {
-            "label": "Stupnice jasu (maximální hodnota)",
-            "description": "Maximální hodnota, kterou PLC používá pro plný jas (např. 255 pro BYTE, 100 pro procenta). Povinné, pokud jsou nastaveny adresy jasu."
           }
         },
         "mode": {
@@ -661,18 +645,6 @@
           "step": {
             "label": "Krok",
             "description": "Volitelný krok, o který se hodnota mění v UI."
-          },
-          "value_multiplier": {
-            "label": "Násobitel hodnoty",
-            "description": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu."
-          },
-          "scale_raw_min": {
-            "label": "Syr. min. hodnota (rozsah)",
-            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
-          },
-          "scale_raw_max": {
-            "label": "Syr. max. hodnota (rozsah)",
-            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
           },
           "real_precision": {
             "label": "Desetinná místa REAL",
@@ -1094,7 +1066,6 @@
       "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",
       "climate_required_error": "Zadejte adresu cílové teploty.",
       "brightness_state_required_error": "Zadejte adresu stavu jasu pro stmívatelné světlo.",
-      "brightness_scale_error": "Rozsah jasu musí být mezi 1 a 65535.",
       "configuration_load_error": "Konfiguraci YAML se nepodařilo načíst.",
       "configuration_download_error": "Zálohu se nepodařilo stáhnout.",
       "delete_entities_error": "Některé entity se nepodařilo odstranit. Konfigurace byla znovu načtena.",
@@ -1149,7 +1120,8 @@
       "options_map_out_of_range": "Jedna nebo více hodnot voleb je mimo rozsah datového typu PLC.",
       "select_requires_integer_type": "Entity výběru vyžadují diskrétní číselný datový typ PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME).",
       "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME.",
-      "value_conversions_must_be_mapping": "Převody hodnot musí být mapování."
+      "value_conversions_must_be_mapping": "Převody hodnot musí být mapování.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

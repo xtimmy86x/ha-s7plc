@@ -25,25 +25,19 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_ENTITY_SYNC,
     CONF_INVERT_STATE,
-    CONF_MAX_VALUE,
-    CONF_MIN_VALUE,
     CONF_REAL_PRECISION,
-    CONF_SCALE_RAW_MAX,
-    CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_SOURCE_ENTITY,
     CONF_STATE_CLASS,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
-    CONF_VALUE_MULTIPLIER,
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
     DEVICE_CLASS_DEFAULT_UNITS,
     default_entity_name,
     get_coordinator_and_device_info,
-    scale_value,
 )
 from .value_conversion import (
     ConversionContext,
@@ -301,15 +295,10 @@ async def async_setup_entry(
         topic = f"sensor:{address}"
         unique_id = item[CONF_UID]
         device_class = item.get(CONF_DEVICE_CLASS)
-        value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
         state_class = item.get(CONF_STATE_CLASS)
         real_precision = item.get(CONF_REAL_PRECISION)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        scale_raw_min = item.get(CONF_SCALE_RAW_MIN)
-        scale_raw_max = item.get(CONF_SCALE_RAW_MAX)
-        min_value = item.get(CONF_MIN_VALUE)
-        max_value = item.get(CONF_MAX_VALUE)
         await coord.add_item(topic, address, scan_interval, real_precision)
         entities.append(
             S7Sensor(
@@ -320,14 +309,9 @@ async def async_setup_entry(
                 topic,
                 address,
                 device_class,
-                value_multiplier,
                 unit_of_measurement,
                 state_class,
                 area,
-                scale_raw_min=scale_raw_min,
-                scale_raw_max=scale_raw_max,
-                min_value=min_value,
-                max_value=max_value,
                 value_conversion=normalize_value_conversion(item, "value"),
             )
         )
@@ -407,12 +391,9 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         topic: str,
         address: str,
         device_class: str | None,
-        value_multiplier: float | None,
         unit_of_measurement: str | None = None,
         state_class: str | None = None,
         suggested_area_id: str | None = None,
-        scale_raw_min: float | None = None,
-        scale_raw_max: float | None = None,
         min_value: float | None = None,
         max_value: float | None = None,
         value_conversion: dict | None = None,
@@ -430,33 +411,6 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         self._conversion_context = ConversionContext.from_address(
             "value", address, "read"
         )
-
-        # Parse value_multiplier with defensive validation
-        self._value_multiplier = None
-        if value_multiplier not in (None, ""):
-            try:
-                self._value_multiplier = float(value_multiplier)
-            except (TypeError, ValueError) as err:
-                _LOGGER.warning(
-                    "Invalid value_multiplier '%s' for sensor %s: %s. Ignoring.",
-                    value_multiplier,
-                    name,
-                    err,
-                )
-
-        # Parse linear-scale parameters (all four must be present to activate)
-        self._scale_params: tuple[float, float, float, float] | None = None
-        _sp = (scale_raw_min, scale_raw_max, min_value, max_value)
-        if all(v not in (None, "") for v in _sp):
-            try:
-                rn, rx, sn, sx = (float(v) for v in _sp)  # type: ignore[arg-type]
-                self._scale_params = (rn, rx, sn, sx)
-            except (TypeError, ValueError) as err:
-                _LOGGER.warning(
-                    "Invalid scale parameters for sensor %s: %s. Ignoring.",
-                    name,
-                    err,
-                )
 
         self._custom_unit = unit_of_measurement if unit_of_measurement else None
 
@@ -564,26 +518,11 @@ class S7Sensor(S7BaseEntity, SensorEntity):
                     err,
                 )
                 return None
-        # Linear scaling takes precedence over multiplier
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
-            return scale_value(numeric_value, rn, rx, sn, sx)
-        if self._value_multiplier is not None:
-            return numeric_value * self._value_multiplier
         return value
 
     @property
     def extra_state_attributes(self):
-        attrs = super().extra_state_attributes
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
-            attrs["scale_raw_min"] = rn
-            attrs["scale_raw_max"] = rx
-            attrs["min_value"] = sn
-            attrs["max_value"] = sx
-        elif self._value_multiplier is not None:
-            attrs["value_multiplier"] = self._value_multiplier
-        return attrs
+        return super().extra_state_attributes
 
 
 class S7EntitySync(S7BaseEntity, SensorEntity):
