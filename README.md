@@ -133,6 +133,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - **[Configuration Guide](docs/configuration.md)** - Complete setup instructions, connection types, entity management
 - **[Side Panel Guide](docs/sidepanel.md)** - Visual and YAML entity editing from the Home Assistant sidebar
 - **[S7 Addressing](docs/addressing.md)** - Address formats, data types, PLC-specific notes
+- **[Value Conversions](docs/value-conversions.md)** - Numeric scaling and safe custom expressions
 - **[Advanced Features](docs/advanced-features.md)** - State Synchronization, Entity Sync, and Performance Metrics
 - **[Examples](docs/examples.md)** - Practical use cases and configuration examples
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
@@ -144,6 +145,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | [Connection Types](docs/configuration.md#connection-types) | Rack/Slot vs TSAP addressing |
 | [Entity Types](docs/configuration.md#entity-type-details) | Switch, Light, Dimmer Light, Cover, Sensor, Number, Climate, Entity Sync |
 | [S7 PLC Side Panel](docs/sidepanel.md) | Visual/YAML editing, validation, live status, and multi-PLC selection |
+| [Value Conversions](docs/value-conversions.md) | Read/write scaling, clamping, and custom expressions |
 | [State Sync](docs/advanced-features.md#state-synchronization) | Bidirectional synchronization for physical controls |
 | [Entity Sync](docs/advanced-features.md#entity-sync) | Push HA entities to PLC addresses |
 | [Performance Metrics](docs/advanced-features.md#performance-metrics) | Diagnostic sensors for connection and communication stats |

@@ -448,7 +448,7 @@ def _build_connection_entry_data(
 class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
 
-    VERSION = 1
+    VERSION = 3
 
     def __init__(self) -> None:
         """Initialise the flow."""

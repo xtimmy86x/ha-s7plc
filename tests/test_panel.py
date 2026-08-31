@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from custom_components.s7plc.config_validation import build_entity_item
+from custom_components.s7plc.const import FRONTEND_BUILD, FRONTEND_MODULE, VERSION
 from custom_components.s7plc.panel import (
     PYS7_VERSION_DATA,
     _configuration_from_yaml,
@@ -18,12 +19,27 @@ from custom_components.s7plc.panel import (
     _canonicalize_logo_addresses,
     _entity_from_message,
     _entry_payload,
-    _versioned_asset_url,
     async_setup_panel,
 )
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
+
+
+def test_const_version_matches_manifest() -> None:
+    manifest = json.loads(
+        Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert VERSION == manifest["version"]
+
+
+def test_panel_asset_url_is_versioned() -> None:
+    assert FRONTEND_MODULE == (
+        f"/s7plc_static/s7plc-panel.js"
+        f"?v={VERSION}&build={FRONTEND_BUILD}"
+    )
+
 
 
 @pytest.mark.parametrize(
@@ -66,16 +82,6 @@ def test_entry_payload_always_includes_profile_for_logo_family(family):
     assert payload["logo_profile"]["family"] == family
     assert payload["logo_profile"]["areas"]
     assert payload["logo_profile"]["vm_areas"]
-
-
-def test_panel_asset_url_uses_manifest_version() -> None:
-    manifest = json.loads(
-        Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
-    )
-
-    assert _versioned_asset_url(
-        "/s7plc_static/s7plc-panel.js", manifest["version"]
-    ) == (f"/s7plc_static/s7plc-panel.js?v={manifest['version']}")
 
 
 def test_panel_displays_integration_version() -> None:
@@ -1061,20 +1067,16 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
 def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "delete entity.light_mode" in source
-    assert (
-        "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;delete entity.brightness_scale;}"
-        in source
-    )
+    assert "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;}" in source
     assert (
         "if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'))"
         in source
     )
-    assert "if(entity.brightness_scale==null)entity.brightness_scale=255" in source
-    assert 'min="1" max="65535"' in source
-    assert (
-        "['brightness_state_address','brightness_command_address','brightness_scale'].forEach"
-        in source
-    )
+    assert '["brightness_scale"' not in source
+    assert '["value_multiplier"' not in source
+    assert '["scale_raw_min"' not in source
+    assert '["scale_raw_max"' not in source
+    assert "['brightness_state_address','brightness_command_address'].forEach" in source
 
 
 def test_panel_control_mode_is_context_aware() -> None:
@@ -1878,7 +1880,7 @@ def test_panel_hides_uid_from_entity_summary() -> None:
     """The internal UID is not rendered as a summary chip."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert "k!=='uid'" in source
+    assert "k==='uid'" in source
 
 
 def test_panel_exposes_climate_mode_and_status_fields() -> None:
@@ -1944,7 +1946,7 @@ def test_panel_uses_autonomous_field_descriptions() -> None:
     assert "${help}</label>" in source
     # Preset values are PLC integer mode codes: step=1, not step=any (which
     # would silently allow decimal input to be truncated).
-    assert "presetValue?'step=\"1\"':key==='brightness_scale'" in source
+    assert "presetValue?'step=\"1\"':'step=\"any\"'" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -4648,3 +4650,404 @@ def test_address_mode_controls_are_accessible_responsive_and_translated() -> Non
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
         assert keys <= translation["config_panel"]["editor"].keys()
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_value_conversion_editor_is_localized_directional_and_accessible() -> None:
+    """Every logical channel has one translated, directional conversion editor."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const it=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],it)??key;
+const specs=vm.runInContext('VALUE_CHANNEL_SPECS',context), rows={};
+const entities={
+ sensors:{address:'DB1,REAL0'},numbers:{address:'DB1,REAL0',command_address:'DB1,REAL4'},selects:{address:'DB1,BYTE0'},entity_sync:{address:'DB1,REAL0'},lights:{brightness_state_address:'DB1,BYTE0',brightness_command_address:'DB1,BYTE2'},covers:{position_state_address:'DB1,BYTE0',position_command_address:'DB1,BYTE2',cover_status_address:'DB1,BYTE4',tilt_state_address:'DB1,BYTE6',tilt_command_address:'DB1,BYTE8'},climates:{current_temperature_address:'DB1,REAL0',target_temperature_address:'DB1,REAL4',preset_mode_address:'DB1,BYTE8',preset_mode_bidirectional:true,hvac_status_address:'DB1,BYTE10'}};
+for(const [type,list] of Object.entries(specs))for(const spec of list)rows[spec.label]=panel.valueConversionRow(type,entities[type],spec);
+const summaries=[null,{type:'multiplier',factor:5},{type:'linear_scale',plc_min:0,plc_max:27648,ha_min:0,ha_max:100},{type:'expression'}].map(v=>panel.valueConversionSummary(v));
+console.log(JSON.stringify({rows,summaries,directions:['', 'DB1,REAL0', 'DB1,REAL4'].map(write=>panel.valueConversionDirection('DB1,REAL0',write))}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    expected_titles = {
+        "sensor_value": "Conversione valore sensore",
+        "number_value": "Conversione valore number",
+        "select_value": "Conversione valore select",
+        "sync_value": "Conversione valore sincronizzato",
+        "brightness": "Conversione luminosità",
+        "position": "Conversione posizione",
+        "tilt": "Conversione tilt",
+        "cover_status": "Conversione stato cover",
+        "current_temperature": "Conversione temperatura corrente",
+        "target_temperature": "Conversione temperatura target",
+        "preset_mode": "Conversione modalità preset",
+        "hvac_status": "Conversione stato HVAC",
+    }
+    assert set(result["rows"]) == set(expected_titles)
+    for channel, title in expected_titles.items():
+        assert title in result["rows"][channel]
+        assert 'aria-describedby="vc_' in result["rows"][channel]
+        assert 'aria-expanded="false"' in result["rows"][channel]
+    assert "Position" not in result["rows"]["position"]
+    assert ">None<" not in result["rows"]["position"]
+    assert result["summaries"] == [
+        "Nessuna", "Moltiplicatore × 5", "Scala 0–27648 → 0–100",
+        "Espressione personalizzata",
+    ]
+    assert all("Scale" not in value and "Custom expression" not in value
+               for value in result["summaries"])
+    assert result["directions"] == ["read", "bidirectional_same", "bidirectional_distinct"]
+    assert "Il valore letto dal PLC" in result["rows"]["sensor_value"]
+    assert "Il valore di Home Assistant" in result["rows"]["sync_value"]
+    assert "indirizzo di stato" in result["rows"]["position"]
+    assert "stesso indirizzo PLC" in result["rows"]["target_temperature"]
+    assert "data-conversion-direction=\"read\"" in result["rows"]["position"]
+    assert "data-conversion-direction=\"write\"" in result["rows"]["position"]
+
+
+def test_value_conversion_translations_and_responsive_layout_are_complete() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    required = {
+        "none", "scale", "expression", "read_expression", "write_expression",
+        "expressions_independent", "inverse_automatic", "titles", "directions",
+    }
+    titles = {
+        "sensor_value", "number_value", "select_value", "sync_value", "brightness",
+        "position", "tilt", "cover_status", "current_temperature",
+        "target_temperature", "preset_mode", "hvac_status",
+    }
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        value = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= value.keys()
+        assert set(value["titles"]) == titles
+        assert set(value["directions"]) == {"title", "read", "write", "bidirectional_distinct", "bidirectional_same"}
+    assert "VALUE_CONVERSION_SUMMARY" not in source
+    assert 'this.t(`value_conversion.titles.${spec.label}`)' in source
+    assert "@media(max-width:600px){.value-conversion summary" in source
+    assert "overflow-wrap:anywhere" in source
+    assert "grid-column:1/-1" in source
+    assert "data-conversion-inverse" in source
+    assert "['multiplier','linear_scale'].includes(kind)" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_expression_editor_help_examples_and_directional_fields() -> None:
+    """Expression guidance reacts to direction and kind without replacing inputs."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
+const node=(dataset={})=>({dataset,hidden:false,textContent:'',setAttribute(){},addEventListener(){}});
+const readField=node({conversionDirection:'read'}),writeField=node({conversionDirection:'write'});
+const readHelp=node({conversionDirection:'read'}),writeHelp=node({conversionDirection:'write'});
+const expression=node({kind:'expression'}),multiplier=node({kind:'multiplier'});
+const linear=node({kind:'linear_scale'}),bcdKind=node({kind:'logo_time_bcd'});
+const examples={open:false},summary=node({conversionTitle:'Conversion'}),summaryText=node();
+const directionDescription=node(),readDirection=node(),writeDirection=node(),bcd=node(),inverse=node();
+const readInput={value:'value / 10'},writeInput={value:'value * 10'},select={value:'expression'};
+const nodes={
+ '[data-direction-description]':directionDescription,'summary':summary,
+ '[data-direction-read]':readDirection,'[data-direction-write]':writeDirection,
+ '[data-logo-bcd]':bcd,'[data-conversion-inverse]':inverse,
+ '[data-expression-independent]':null,'[data-conversion-summary]':summaryText,
+ '.conversion-preview':null,'.expression-examples':examples,
+ '[name="vc_value_read_expression"]':readInput,
+ '[name="vc_value_write_expression"]':writeInput,
+};
+const row={dataset:{valueConversion:'value',readField:'address',writeField:'command_address',writeFallback:'false',conditionalRead:''},hidden:false,open:false,
+ querySelector:s=>nodes[s]??null,
+ querySelectorAll:s=>s==='[data-conversion-direction]'?[readField,writeField,readHelp,writeHelp]:s==='[data-kind]'?[multiplier,linear,bcdKind,expression]:[],
+};
+const form={elements:{address:{value:'DB1,REAL0'},command_address:{value:'DB1,REAL4'},vc_value_type:select},querySelectorAll:s=>s==='[data-value-conversion]'?[row]:[]};
+const snapshot=()=>({direction:row.dataset.direction,readField:readField.hidden,writeField:writeField.hidden,readHelp:readHelp.hidden,writeHelp:writeHelp.hidden,expression:expression.hidden,values:[readInput.value,writeInput.value]});
+panel.syncValueConversionKind(row,form);const both=snapshot();
+const identities=[readField,writeField,readInput,writeInput];
+form.elements.command_address.value='';panel.syncValueConversions(form);const read=snapshot();
+form.elements.address.value='';form.elements.command_address.value='DB1,REAL4';panel.syncValueConversions(form);const write=snapshot();
+form.elements.address.value='DB1,REAL0';panel.syncValueConversions(form);const restored=snapshot();
+const kinds={};for(const kind of ['', 'multiplier','linear_scale','logo_time_bcd','expression']){select.value=kind;panel.syncValueConversionKind(row,form);kinds[kind||'none']=expression.hidden;}
+console.log(JSON.stringify({both,read,write,restored,kinds,examplesOpen:examples.open,
+ sameNodes:identities.every((item,index)=>item===[readField,writeField,readInput,writeInput][index]),
+ separate:translations.value_conversion.expression_separate}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    visible = {"readField": False, "writeField": False,
+               "readHelp": False, "writeHelp": False}
+    assert result["both"] | visible == result["both"]
+    assert result["both"]["direction"] == "bidirectional_distinct"
+    assert result["read"] | {"readField": False, "readHelp": False,
+                             "writeField": True, "writeHelp": True} == result["read"]
+    assert result["read"]["direction"] == "read"
+    assert result["write"] | {"readField": True, "readHelp": True,
+                              "writeField": False, "writeHelp": False} == result["write"]
+    assert result["write"]["direction"] == "write"
+    assert result["restored"]["values"] == ["value / 10", "value * 10"]
+    assert not any(result["restored"][key] for key in visible)
+    assert result["sameNodes"] is True
+    assert result["kinds"] == {
+        "none": True, "multiplier": True, "linear_scale": True,
+        "logo_time_bcd": True, "expression": False,
+    }
+    assert result["examplesOpen"] is False
+    assert "entrambe le direzioni" in result["separate"]
+    assert "non viene calcolata automaticamente" in result["separate"]
+
+
+def test_expression_guidance_translations_and_documentation_are_complete() -> None:
+    """Every panel locale and the repository docs expose the same guidance."""
+    required = {
+        "expression_help", "expression_read_direction",
+        "expression_write_direction", "expression_separate", "syntax_examples",
+        "example_read", "example_write", "example_clamp", "example_round",
+        "expression_safety",
+    }
+    structures = []
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        values = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= values.keys()
+        structures.append(set(values))
+        for key in required:
+            assert values[key] and "value_conversion." not in values[key]
+        assert all(token in values["expression_help"] for token in
+                   ("`value`", "`+`", "`//`", "`round`", "`clamp`"))
+    assert all(keys == structures[0] for keys in structures[1:])
+    docs = Path("docs/value-conversions.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    for formula in ("`value / 10`", "`value * 10`", "`clamp(value, 0, 100)`",
+                    "`round(value, 1)`", "`clamp(value, minimum, maximum)`"):
+        assert formula in docs
+    assert "does not derive or automatically invert" in docs
+    assert "[Value Conversions](docs/value-conversions.md)" in readme
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_linear_scale_clamp_editor_presentation_and_semantics() -> None:
+    """Clamp is a responsive, accessible full-row option with strict booleans."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
+const spec={channel:'value',label:'number_value',read:'address',write:'command_address'};
+const row=clamp=>panel.valueConversionRow('numbers',{address:'DB1,REAL0',command_address:'DB1,REAL4',value_conversions:{value:{type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,...clamp}}},spec);
+console.log(JSON.stringify({truthy:row({clamp:true}),falsey:row({clamp:false}),missing:row({}),strings:['0','false','anything','1','true'].map(value=>panel.checkboxValue(value)),summaries:[true,false,undefined].map(clamp=>panel.valueConversionSummary({type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,clamp}))}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    assert 'class="conversion-clamp"' in result["truthy"]
+    assert '<input name="vc_value_clamp" type="checkbox" checked>' in result["truthy"]
+    assert "Limita il risultato all’intervallo configurato" in result["truthy"]
+    assert "I valori inferiori o superiori" in result["truthy"]
+    assert "type=\"checkbox\" checked" not in result["falsey"]
+    assert "type=\"checkbox\" checked" not in result["missing"]
+    assert result["strings"] == [False, False, False, True, True]
+    assert result["summaries"] == [
+        "Scala 0–1000 → 0–100 · Limitata",
+        "Scala 0–1000 → 0–100",
+        "Scala 0–1000 → 0–100",
+    ]
+
+
+def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
+    """Every locale includes clamp feedback and CSS covers mobile/Safari."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    required = {"clamp", "clamp_description", "clamp_preview", "result_clamped",
+                "clamped_min", "clamped_max", "clamped_summary"}
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        values = json.loads(Path("custom_components/s7plc", filename).read_text(encoding="utf-8"))["config_panel"]["value_conversion"]
+        assert required <= values.keys()
+    assert ".conversion-clamp{grid-column:1/-1" in source
+    assert "grid-template-columns:auto minmax(0,1fr)" in source
+    assert "align-items:start" in source
+    assert ".conversion-clamp input{align-self:start" in source
+    assert ".conversion-clamp:focus-within" in source
+    assert "input.type==='checkbox')input.addEventListener('change',sync)" in source
+    assert "preview.textContent=select.value==='linear_scale'" in source
+    assert "clamp:channel==='brightness'||Boolean(read('clamp')?.checked)" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_real_precision_is_visible_only_for_real_addresses() -> None:
+    """The precision control follows REAL/LREAL address changes in the editor."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const panel=new Panel(),classes=new Set();
+const field={classList:{toggle:(name,hidden)=>hidden?classes.add(name):classes.delete(name)}};
+const form={elements:{address:{value:""},real_precision:{value:"2"}},querySelector:selector=>selector==='[data-field="real_precision"]'?field:null};
+const visible=address=>{form.elements.address.value=address;panel.syncRealPrecisionVisibility(form);return !classes.has('hidden-field');};
+console.log(JSON.stringify(["DB1,REAL0","DB1,R0","DB1,LREAL0","DB1,LR0","DB1,INT0","Q0.0","invalid",""].map(visible)));
+'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    assert result == [True, True, True, True, False, False, False, False]
+
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "this.syncRealPrecisionVisibility(form);this.syncValueConversions(form)" in source
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_card_value_conversion_chips_are_safe_localized_and_bounded() -> None:
+    """Conversion objects expand into translated chips before the card limit."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const document={createElement:()=>{let value="";return {set textContent(next){value=String(next);},get innerHTML(){return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}}}};
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.panelTranslations={config_panel:translations};
+const chips=(item,type='covers')=>panel.chips(item,type);
+const conversions={position:{type:'linear_scale',plc_min:0,plc_max:27648,ha_min:0,ha_max:100},tilt:{type:'multiplier',factor:10},status:{type:'linear_scale',plc_min:0,plc_max:10,ha_min:0,ha_max:1,clamp:true}};
+const original={value_conversions:conversions,address:'DB1,BYTE0'};const before=JSON.stringify(original);
+console.log(JSON.stringify({
+ multiplier:chips({value_conversions:{value:{type:'multiplier',factor:5}}},'sensors'),
+ scale:chips({value_conversions:{position:conversions.position}}),
+ clamped:chips({value_conversions:{position:conversions.status}}),
+ logo:chips({value_conversions:{value:{type:'logo_time_bcd'}}},'entity_sync'),
+ expression:chips({value_conversions:{brightness:{type:'expression',read_expression:'<script>'}}},'lights'),
+ multiple:chips({value_conversions:conversions}),
+ order:chips({value_conversions:{tilt:conversions.tilt,position:conversions.position,status:conversions.status}}),
+ bounded:chips({value_conversions:{z:{type:'expression'},y:{type:'expression'},x:{type:'expression'},w:{type:'expression'},v:{type:'expression'},u:{type:'expression'}}},'buttons'),
+ unexpected:[null,42,'bad',[],{value:null},{value:{}},{value:{type:'linear_scale',plc_min:'<b>',plc_max:{bad:true}}},{unknown_channel:{type:'multiplier',factor:'<5>'}}].map(value=>chips({value_conversions:value},'sensors')),
+ ordinaryObject:chips({options:{one:'One'}} ,'selects'),
+ unchanged:before===JSON.stringify(original),
+ noConversion:chips({address:'DB1,REAL0',name:'Plain'},'sensors'),
+ sensorLegacy:chips({min_value:0,max_value:100,scale_raw_min:0,scale_raw_max:27648,value_multiplier:2,brightness_scale:255,value_conversions:{value:conversions.position}},'sensors'),
+ numberLimits:chips({min_value:-10,max_value:10,scale_raw_min:0,scale_raw_max:100},'numbers')
+}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+
+    assert "[object Object]" not in json.dumps(result)
+    assert "Moltiplicatore × 5" in result["multiplier"]
+    assert "Scala 0–27648 → 0–100" in result["scale"]
+    assert "Scala 0–10 → 0–1 · Limitata" in result["clamped"]
+    assert "LOGO! time (BCD)" in result["logo"]
+    assert "Espressione personalizzata" in result["expression"]
+    assert 'title="Moltiplicatore × 5" tabindex="0">Moltiplicatore × 5' in result["multiplier"]
+    assert "Conversione valore sensore:" not in result["multiplier"]
+    assert 'title="Scala 0–27648 → 0–100"' in result["scale"]
+    assert "Posizione · Scala 0–27648 → 0–100" in result["multiple"]
+    assert "Tilt · Moltiplicatore × 10" in result["multiple"]
+    assert 'title="Posizione: Scala 0–27648 → 0–100"' in result["multiple"]
+    assert result["order"].index("Posizione ·") < result["order"].index("Stato cover ·") < result["order"].index("Tilt ·")
+    assert result["bounded"].count("<span") == 5
+    assert "Unknown Channel" not in result["unexpected"][-1]
+    assert "&lt;5&gt;" in result["unexpected"][-1]
+    assert "<5>" not in result["unexpected"][-1]
+    assert "&lt;b&gt;" in result["unexpected"][-2]
+    assert all(value == "" for value in result["unexpected"][:6])
+    assert result["ordinaryObject"] == ""
+    assert result["unchanged"] is True
+    assert result["noConversion"] == ""
+    assert "Min Value" not in result["sensorLegacy"]
+    assert "Max Value" not in result["sensorLegacy"]
+    assert "Scala 0–27648 → 0–100" in result["sensorLegacy"]
+    assert "Limite minimo: -10" in result["numberLimits"]
+    assert "Limite massimo: 10" in result["numberLimits"]
+    assert "Scale Raw" not in result["numberLimits"]
+
+
+def test_entity_card_conversion_chips_have_english_fallback_and_mobile_layout() -> None:
+    """Card conversion labels fall back to English and wrap on narrow cards."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const document={createElement:()=>{let value="";return {set textContent(next){value=String(next);},get innerHTML(){return value;}}}};
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document};vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const en=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel,panel=new Panel();panel.panelTranslations={config_panel:en};
+console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}},'entity_sync'));'''
+    rendered = subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/en.json"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    assert '>Multiplier × 5</span>' in rendered
+    assert "Synchronized value conversion:" not in rendered
+    assert 'title="Multiplier × 5"' in rendered
+    assert ".details>div{display:flex;flex-wrap:wrap;min-width:0}" in source
+    assert ".details span.conversion-chip{box-sizing:border-box;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere" in source
+    assert ".details span.conversion-chip:focus-visible" in source
+    assert ".details span{white-space:normal;overflow-wrap:anywhere}" in source
+    assert ".details div,.toolbar p{display:none}" not in source
+    assert "[...conversions,...metadata].slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_brightness_editor_has_fixed_ha_range() -> None:
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const it=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],it)??key;
+const spec={channel:'brightness',label:'brightness',read:'brightness_state_address',write:'brightness_command_address',writeFallback:true};
+const row=panel.valueConversionRow('lights',{brightness_state_address:'DB1,W0',brightness_command_address:'DB1,W2',value_conversions:{brightness:{type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:255,clamp:true}}},spec);
+console.log(JSON.stringify({row,summary:panel.valueConversionSummary({type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,clamp:false},'brightness')}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT),
+         "custom_components/s7plc/translations/it.json"], check=True,
+        capture_output=True, text=True).stdout)
+    assert 'name="vc_brightness_plc_min"' in result["row"]
+    assert 'name="vc_brightness_plc_max"' in result["row"]
+    assert 'name="vc_brightness_ha_' not in result["row"]
+    assert 'name="vc_brightness_clamp"' not in result["row"]
+    assert "Intervallo Home Assistant" in result["row"]
+    assert result["summary"] == "Scala PLC 0–1000 → HA 0–255"
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "ha_min:channel==='brightness'?0:number('ha_min')" in source
+    assert "ha_max:channel==='brightness'?255:number('ha_max')" in source
+    assert "clamp:channel==='brightness'||" in source
+def test_number_limit_copy_and_sensor_fields_are_consistent() -> None:
+    """Panel copy presents HA limits and hides meaningless sensor bounds."""
+    root = Path(__file__).parents[1]
+    catalogs = [
+        root / "custom_components/s7plc/strings.json",
+        *sorted((root / "custom_components/s7plc/translations").glob("*.json")),
+    ]
+    field_sets = []
+    for catalog in catalogs:
+        data = json.loads(catalog.read_text(encoding="utf-8"))
+        entities = data["config_panel"]["entity_types"]
+        assert "min_value" not in entities["sensors"]["fields"]
+        assert "max_value" not in entities["sensors"]["fields"]
+        number_fields = entities["numbers"]["fields"]
+        field_sets.append(set(number_fields))
+        for key in ("min_value", "max_value"):
+            copy = number_fields[key]
+            visible = f"{copy['label']} {copy['description']}".lower()
+            assert "scale" + " min" not in visible
+            assert "scale" + " max" not in visible
+            assert "scal" not in visible
+            assert "raw" not in visible
+    assert all(fields == field_sets[0] for fields in field_sets)
+
+    italian = json.loads(catalogs[4].read_text(encoding="utf-8"))
+    fields = italian["config_panel"]["entity_types"]["numbers"]["fields"]
+    assert fields["min_value"] == {
+        "label": "Limite minimo",
+        "description": "Valore minimo selezionabile in Home Assistant. Non "
+        "modifica né converte il valore letto dal PLC.",
+    }
+    assert fields["max_value"] == {
+        "label": "Limite massimo",
+        "description": "Valore massimo selezionabile in Home Assistant. Non "
+        "modifica né converte il valore letto dal PLC.",
+    }

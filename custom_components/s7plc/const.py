@@ -12,6 +12,13 @@ PLATFORMS = [
     "climate",
 ]
 
+VERSION = "7.2.0"
+FRONTEND_BUILD = "20260831.1"
+
+PANEL_URL = "s7plc-config"
+
+FRONTEND_MODULE = "/s7plc_static/s7plc-panel.js" f"?v={VERSION}&build={FRONTEND_BUILD}"
+
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
 CONF_CONNECTION_TYPE = "connection_type"
@@ -101,6 +108,7 @@ CONF_BRIGHTNESS_STATE_ADDRESS = "brightness_state_address"
 CONF_BRIGHTNESS_COMMAND_ADDRESS = "brightness_command_address"
 CONF_BRIGHTNESS_SCALE = "brightness_scale"
 CONF_VALUE_MULTIPLIER = "value_multiplier"
+CONF_VALUE_CONVERSIONS = "value_conversions"
 CONF_SCALE_RAW_MIN = "scale_raw_min"
 CONF_SCALE_RAW_MAX = "scale_raw_max"
 CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"

@@ -329,6 +329,13 @@ async def test_async_setup_entry_default_command_address(fake_hass, mock_coordin
     
     # Command address should default to state address
     assert switch._command_address == "db1,x0.0"
+    assert switch._address == "db1,x0.0"
+    assert switch._sync_state is False
+    assert mock_coordinator.add_item_calls[0][0][1] == "db1,x0.0"
+    await switch.async_turn_on()
+    await switch.async_turn_off()
+    assert ("write_batched", "db1,x0.0", True) in mock_coordinator.write_calls
+    assert ("write_batched", "db1,x0.0", False) in mock_coordinator.write_calls
 
 
 @pytest.mark.asyncio

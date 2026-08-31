@@ -12,8 +12,6 @@ from custom_components.s7plc.helpers import (
     default_entity_name,
     parse_mode_values,
     parse_pulse_duration,
-    scale_value,
-    inverse_scale_value,
 )
 from custom_components.s7plc.const import DEFAULT_PULSE_DURATION, DOMAIN
 
@@ -118,7 +116,6 @@ def test_build_expected_unique_ids_all_entity_types():
             {"state_address": "DB1,X2.1", "uid": "uid-light-1"},
             {
                 "state_address": "DB1,B10",
-                "brightness_scale": 255,
                 "uid": "uid-light-2",
             },
         ],
@@ -410,65 +407,3 @@ def test_parse_mode_values_ignores_invalid_tokens():
 def test_parse_mode_values_skips_empty_tokens():
     assert parse_mode_values("1,,2") == [1, 2]
     assert parse_mode_values(",") == []
-
-
-# ============================================================================
-# scale_value / inverse_scale_value
-# ============================================================================
-
-
-def test_scale_value_midpoint():
-    """Middle of raw range maps to middle of scale range."""
-    assert scale_value(50, 0, 100, 0, 10) == pytest.approx(5.0)
-
-
-def test_scale_value_min():
-    assert scale_value(0, 0, 100, 0, 10) == pytest.approx(0.0)
-
-
-def test_scale_value_max():
-    assert scale_value(100, 0, 100, 0, 10) == pytest.approx(10.0)
-
-
-def test_scale_value_offset_range():
-    """PLC 4000-20000 mA → 0-100 %."""
-    assert scale_value(4000, 4000, 20000, 0, 100) == pytest.approx(0.0)
-    assert scale_value(20000, 4000, 20000, 0, 100) == pytest.approx(100.0)
-    assert scale_value(12000, 4000, 20000, 0, 100) == pytest.approx(50.0)
-
-
-def test_scale_value_negative_scale_range():
-    """Inverted display range."""
-    result = scale_value(0, 0, 100, 100, 0)
-    assert result == pytest.approx(100.0)
-    result = scale_value(100, 0, 100, 100, 0)
-    assert result == pytest.approx(0.0)
-
-
-def test_scale_value_zero_raw_range_returns_scale_min():
-    """Edge case: raw_min == raw_max returns scale_min."""
-    assert scale_value(5, 5, 5, 10, 20) == 10
-
-
-def test_inverse_scale_value_midpoint():
-    assert inverse_scale_value(5.0, 0, 100, 0, 10) == pytest.approx(50.0)
-
-
-def test_inverse_scale_value_min():
-    assert inverse_scale_value(0, 0, 100, 0, 10) == pytest.approx(0.0)
-
-
-def test_inverse_scale_value_max():
-    assert inverse_scale_value(10, 0, 100, 0, 10) == pytest.approx(100.0)
-
-
-def test_inverse_scale_value_roundtrip():
-    """scale + inverse_scale should return original value."""
-    raw = 7543.0
-    scaled = scale_value(raw, 4000, 20000, 0, 100)
-    restored = inverse_scale_value(scaled, 4000, 20000, 0, 100)
-    assert restored == pytest.approx(raw)
-
-
-def test_inverse_scale_value_zero_scale_range_returns_raw_min():
-    assert inverse_scale_value(50, 0, 100, 5, 5) == 0

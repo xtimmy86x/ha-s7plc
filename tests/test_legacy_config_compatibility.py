@@ -87,7 +87,23 @@ def test_651_persisted_configuration_loads_validates_without_data_loss(
     assert {key: value for key, value in loaded.items() if value} == legacy
 
     normalized = _validate_configuration(loaded)
-    assert normalized == _with_empty_option_lists(legacy)
+    assert [
+        item["uid"]
+        for entity_type in OPTION_KEYS
+        for item in normalized[entity_type]
+    ] == [
+        item["uid"]
+        for entity_type in OPTION_KEYS
+        for item in legacy.get(entity_type, [])
+    ]
+    for entity_type in OPTION_KEYS:
+        for item in normalized[entity_type]:
+            assert not {
+                "value_multiplier",
+                "scale_raw_min",
+                "scale_raw_max",
+                "brightness_scale",
+            } & item.keys()
     assert legacy == original
 
 

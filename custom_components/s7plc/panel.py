@@ -3,24 +3,39 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Hashable
 from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 
 import voluptuous as vol
 import yaml
 
 from .address import parse_tag
 from .config_validation import build_entity_item
-from .const import CONF_PLC_FAMILY, CONF_UID, DOMAIN, OPTION_KEYS, PLC_FAMILY_S7
+from .const import (
+    CONF_PLC_FAMILY,
+    CONF_UID,
+    DOMAIN,
+    FRONTEND_MODULE,
+    OPTION_KEYS,
+    PLC_FAMILY_S7,
+    VERSION,
+)
 from .helpers import generate_uid
 from .logo_address import (
     is_logo_address_candidate,
     logo_profile_payload,
     logo_to_s7_address,
 )
+from .value_conversion_migration import (
+    LEGACY_BRIGHTNESS_FIELDS,
+    LEGACY_VALUE_FIELDS,
+    normalize_legacy_conversion_input,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 PANEL_URL = "s7plc-config"
 PANEL_DATA = "_panel_registered"
@@ -37,11 +52,6 @@ class ConfigurationValidationError(ValueError):
         self.entity_type = entity_type
         self.index = index
         self.error_key = error_key
-
-
-def _versioned_asset_url(asset_url: str, version: str) -> str:
-    """Append the integration version to an asset URL for cache busting."""
-    return f"{asset_url}?{urlencode({'v': version})}"
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):
@@ -84,6 +94,25 @@ def _entity_from_message(msg: dict[str, Any]) -> dict[str, Any]:
     if not all(isinstance(key, str) for key in entity):
         raise ValueError("YAML configuration keys must be strings")
     return entity
+
+
+def _normalize_input_entity(entity_type: str, entity: dict[str, Any]) -> dict[str, Any]:
+    """Immediately canonicalize deprecated editor/import input."""
+    normalized, report = normalize_legacy_conversion_input(entity_type, entity)
+    if any(key in entity for key in (*LEGACY_VALUE_FIELDS, *LEGACY_BRIGHTNESS_FIELDS)):
+        _LOGGER.warning(
+            "Deprecated legacy conversion fields received for %s; "
+            "persisted value_conversions instead",
+            entity_type,
+        )
+    if report.conflicts:
+        _LOGGER.warning(
+            "Mixed conversion input for %s channels %s; "
+            "kept authoritative value_conversions",
+            entity_type,
+            ", ".join(report.conflicts),
+        )
+    return normalized
 
 
 def _configuration_from_yaml(
@@ -136,7 +165,9 @@ def _configuration_from_yaml(
         for index, raw_item in enumerate(raw_items):
             if not isinstance(raw_item, dict):
                 raise ValueError(f"{entity_type}[{index}] must be a mapping")
-            normalized_item = _canonicalize_logo_addresses(raw_item, plc_family)
+            normalized_item = _normalize_input_entity(
+                entity_type, _canonicalize_logo_addresses(raw_item, plc_family)
+            )
             item, errors = build_entity_item(
                 entity_type, normalized_item, options=result
             )
@@ -166,7 +197,15 @@ def _configuration_yaml(
             "source_entry_id": entry_id,
             "source_title": title or "",
         }
-    payload.update({key: list(options.get(key, [])) for key in OPTION_KEYS})
+    payload.update(
+        {
+            key: [
+                normalize_legacy_conversion_input(key, item)[0]
+                for item in options.get(key, [])
+            ]
+            for key in OPTION_KEYS
+        }
+    )
     return yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
 
 
@@ -298,7 +337,6 @@ async def async_setup_panel(hass: Any) -> None:
 
     from homeassistant.components import panel_custom, websocket_api
     from homeassistant.components.http import StaticPathConfig
-    from homeassistant.loader import async_get_integration
 
     hass.data[DOMAIN][PYS7_VERSION_DATA] = await hass.async_add_executor_job(
         package_version, "pys7"
@@ -312,8 +350,6 @@ async def async_setup_panel(hass: Any) -> None:
 
     translations_url = "/s7plc_translations"
     translations_path = Path(__file__).parent / "translations"
-
-    integration = await async_get_integration(hass, DOMAIN)
 
     await hass.http.async_register_static_paths(
         [
@@ -390,9 +426,12 @@ async def async_setup_panel(hass: Any) -> None:
             connection.send_error(msg["id"], "invalid_index", "Entity no longer exists")
             return
         try:
-            raw_entity = _canonicalize_logo_addresses(
-                _entity_from_message(msg),
-                entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+            raw_entity = _normalize_input_entity(
+                msg["entity_type"],
+                _canonicalize_logo_addresses(
+                    _entity_from_message(msg),
+                    entry.data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+                ),
             )
             item, errors = build_entity_item(
                 msg["entity_type"],
@@ -509,10 +548,13 @@ async def async_setup_panel(hass: Any) -> None:
         hass,
         webcomponent_name="s7plc-configuration-panel",
         frontend_url_path=PANEL_URL,
-        module_url=_versioned_asset_url(asset_url, integration.version),
+        module_url=FRONTEND_MODULE,
         sidebar_title="S7 PLC",
         sidebar_icon="mdi:memory",
         require_admin=True,
-        config={"domain": DOMAIN, "version": integration.version},
+        config={
+            "domain": DOMAIN,
+            "version": VERSION,
+        },
     )
     hass.data[DOMAIN][PANEL_DATA] = True

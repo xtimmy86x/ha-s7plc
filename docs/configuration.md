@@ -410,9 +410,25 @@ with Home Assistant's time-of-day entity.
   `-2147483.648 s` through `2147483.647 s`, with native `0.001 s` resolution.
 * `min_value`, `max_value`, and `step` on a `TIME` number are expressed in
   seconds. When omitted, the signed TIME range and a `0.001 s` step are used.
-* `value_multiplier`, when configured, is applied after conversion to seconds
+* A `value_conversions.value` conversion is applied after conversion to seconds
   on reads and reversed before conversion to milliseconds on writes.
 
 Use an address such as `DB1,TIME0`. `TIME` is not accepted for entity
 platforms other than sensor, number, and select. Other Siemens temporal datatypes, including `LTIME` and time-of-day
 variants, are not supported.
+
+## Value conversion
+
+Numeric PLC addresses can use centralized, per-channel conversions without
+changing address syntax. See [PLC value conversions](value-conversions.md) for
+the channel matrix, YAML schema, converter semantics and legacy compatibility.
+
+### Brightness value conversions
+
+The logical brightness exposed by every light is always 0–255. A linear
+brightness conversion lets you edit only the PLC minimum and maximum (for
+example 0–1000); its Home Assistant minimum 0, maximum 255, and clamping are
+fixed. Multiplier and custom-expression results are likewise clamped before
+being exposed to Home Assistant, while writes are clamped before conversion.
+Existing legacy brightness settings are automatically migrated to the same
+bidirectional linear conversion without applying it twice.

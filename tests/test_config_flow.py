@@ -249,8 +249,8 @@ def test_legacy_entity_steps_are_not_reachable():
         assert not hasattr(config_flow.S7PLCOptionsFlow, f"async_step_{step}")
 
 
-def test_config_flow_version_remains_one():
-    assert config_flow.S7PLCConfigFlow.VERSION == 1
+def test_config_flow_version_is_three():
+    assert config_flow.S7PLCConfigFlow.VERSION == 3
 
 
 def test_options_connection_handles_connection_failure(monkeypatch):

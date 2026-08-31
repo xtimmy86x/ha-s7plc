@@ -26,21 +26,23 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBERS,
     CONF_REAL_PRECISION,
-    CONF_SCALE_RAW_MAX,
-    CONF_SCALE_RAW_MIN,
     CONF_SCAN_INTERVAL,
     CONF_STEP,
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
-    CONF_VALUE_MULTIPLIER,
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import (
     DEVICE_CLASS_DEFAULT_UNITS,
     default_entity_name,
     get_coordinator_and_device_info,
-    inverse_scale_value,
-    scale_value,
+)
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,9 +73,6 @@ async def async_setup_entry(
         device_class = item.get(CONF_DEVICE_CLASS)
         unit_of_measurement = item.get(CONF_UNIT_OF_MEASUREMENT)
         real_precision = item.get(CONF_REAL_PRECISION)
-        value_multiplier = item.get(CONF_VALUE_MULTIPLIER)
-        scale_raw_min = item.get(CONF_SCALE_RAW_MIN)
-        scale_raw_max = item.get(CONF_SCALE_RAW_MAX)
 
         scan_interval = item.get(CONF_SCAN_INTERVAL)
         await coord.add_item(topic, address, scan_interval, real_precision)
@@ -92,9 +91,7 @@ async def async_setup_entry(
                 device_class,
                 unit_of_measurement,
                 area,
-                value_multiplier=value_multiplier,
-                scale_raw_min=scale_raw_min,
-                scale_raw_max=scale_raw_max,
+                value_conversion=normalize_value_conversion(item, "value"),
             )
         )
 
@@ -126,9 +123,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         device_class: str | None = None,
         unit_of_measurement: str | None = None,
         suggested_area_id: str | None = None,
-        value_multiplier: float | None = None,
-        scale_raw_min: float | None = None,
-        scale_raw_max: float | None = None,
+        value_conversion: dict | None = None,
     ):
         super().__init__(
             coordinator,
@@ -140,38 +135,14 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+        self._value_conversion = value_conversion
+        self._conversion_context = ConversionContext.from_address(
+            "value", command_address or address, "bidirectional"
+        )
         try:
             self._is_time = is_time_data_type(parse_tag(address).data_type)
         except (RuntimeError, ValueError):
             self._is_time = False
-
-        # Parse value_multiplier with defensive validation
-        self._value_multiplier: float | None = None
-        if value_multiplier not in (None, ""):
-            try:
-                self._value_multiplier = float(value_multiplier)
-            except (TypeError, ValueError) as err:
-                _LOGGER.warning(
-                    "Invalid value_multiplier '%s' for number %s: %s. Ignoring.",
-                    value_multiplier,
-                    name,
-                    err,
-                )
-
-        # Parse linear-scale parameters (all four must be present to activate).
-        # When active, scale takes precedence over value_multiplier.
-        self._scale_params: tuple[float, float, float, float] | None = None
-        _sp = (scale_raw_min, scale_raw_max, min_value, max_value)
-        if all(v not in (None, "") for v in _sp):
-            try:
-                rn, rx, sn, sx = (float(v) for v in _sp)  # type: ignore[arg-type]
-                self._scale_params = (rn, rx, sn, sx)
-            except (TypeError, ValueError) as err:
-                _LOGGER.warning(
-                    "Invalid scale parameters for number %s: %s. Ignoring.",
-                    name,
-                    err,
-                )
 
         # Set device_class if provided
         if self._is_time:
@@ -205,27 +176,19 @@ class S7Number(S7BaseEntity, NumberEntity):
         if tag is not None:
             numeric_limits = get_numeric_limits(tag.data_type)
 
-        def _clamp(value: float | None) -> float | None:
-            if value is None:
-                return None
-            clamped = float(value)
-            if numeric_limits is not None:
-                limit_min, limit_max = numeric_limits
-                clamped = min(max(clamped, limit_min), limit_max)
-            return clamped
+        # Explicit bounds are Home Assistant entity limits, not PLC datatype or
+        # conversion endpoints. Only defaults come from the PLC datatype.
+        min_value_limit = float(min_value) if min_value is not None else None
+        max_value_limit = float(max_value) if max_value is not None else None
 
-        min_value_clamped = _clamp(min_value)
-        max_value_clamped = _clamp(max_value)
-
-        # If the user provided min/max, use them (clamped).
         # Otherwise, if available, use the native limits of the PLC data type.
-        if min_value_clamped is not None:
-            self._attr_native_min_value = min_value_clamped
+        if min_value_limit is not None:
+            self._attr_native_min_value = min_value_limit
         elif numeric_limits is not None:
             self._attr_native_min_value = float(numeric_limits[0])
 
-        if max_value_clamped is not None:
-            self._attr_native_max_value = max_value_clamped
+        if max_value_limit is not None:
+            self._attr_native_max_value = max_value_limit
         elif numeric_limits is not None:
             self._attr_native_max_value = float(numeric_limits[1])
 
@@ -233,24 +196,6 @@ class S7Number(S7BaseEntity, NumberEntity):
             self._attr_native_step = float(step)
         elif self._is_time:
             self._attr_native_step = 0.001
-
-        # Scale min/max/step by multiplier so the UI works in display units.
-        # The PLC raw value is always divided back when writing.
-        # If scale_params are active, the UI range is simply [scale_min, scale_max].
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
-            self._attr_native_min_value = min(sn, sx)
-            self._attr_native_max_value = max(sn, sx)
-        elif self._value_multiplier is not None:
-            if self._attr_native_min_value is not None:
-                self._attr_native_min_value = (
-                    self._attr_native_min_value * self._value_multiplier
-                )
-            if self._attr_native_max_value is not None:
-                self._attr_native_max_value = (
-                    self._attr_native_max_value * self._value_multiplier
-                )
-            self._attr_native_step = self._attr_native_step * self._value_multiplier
 
     @property
     def native_value(self):
@@ -263,19 +208,19 @@ class S7Number(S7BaseEntity, NumberEntity):
             except (TypeError, ValueError):
                 _LOGGER.warning("Invalid TIME value for %s: %r", self._topic, value)
                 return None
-        # Linear scaling takes precedence over multiplier
-        if self._scale_params is not None:
+        if self._value_conversion:
             try:
-                rn, rx, sn, sx = self._scale_params
-                return scale_value(float(value), rn, rx, sn, sx)
-            except (TypeError, ValueError):
-                return value
-        if self._value_multiplier is None:
-            return value
-        try:
-            return float(value) * self._value_multiplier
-        except (TypeError, ValueError):
-            return value
+                return convert_from_plc(
+                    value, self._value_conversion, self._conversion_context
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for number %s channel value: %s",
+                    self.name,
+                    err,
+                )
+                return None
+        return value
 
     async def async_set_native_value(self, value: float) -> None:
         await self._ensure_connected()
@@ -285,13 +230,15 @@ class S7Number(S7BaseEntity, NumberEntity):
         if self._is_time and not math.isfinite(float(value)):
             raise HomeAssistantError("TIME/number value must be finite.")
 
+        if self._value_conversion:
+            try:
+                plc_value = convert_to_plc(
+                    value, self._value_conversion, self._conversion_context
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                raise HomeAssistantError(str(err)) from err
         # Convert display-unit value back to PLC raw value. TIME scaling and
         # multipliers operate in HA seconds; conversion to pyS7 timedelta is last.
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
-            plc_value = inverse_scale_value(float(value), rn, rx, sn, sx)
-        elif self._value_multiplier is not None and self._value_multiplier != 0:
-            plc_value = float(value) / self._value_multiplier
         else:
             plc_value = float(value)
 
@@ -311,11 +258,4 @@ class S7Number(S7BaseEntity, NumberEntity):
             attrs["s7_command_address"] = self._command_address.upper()
         attrs["step"] = self._attr_native_step
         # min and max are exposed automatically by NumberEntity
-        if self._scale_params is not None:
-            rn, rx, sn, sx = self._scale_params
-            attrs["scale_raw_min"] = rn
-            attrs["scale_raw_max"] = rx
-        elif self._value_multiplier is not None:
-            attrs["value_multiplier"] = self._value_multiplier
-
         return attrs

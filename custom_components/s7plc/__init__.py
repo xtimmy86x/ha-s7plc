@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -12,6 +13,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
+from .config_entry_migration import canonicalize_legacy_sync_addresses
 from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
@@ -40,6 +42,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLOT,
     DOMAIN,
+    OPTION_KEYS,
     PLATFORMS,
 )
 from .coordinator import S7Coordinator
@@ -49,12 +52,128 @@ from .helpers import (
     build_expected_unique_ids,
     ensure_item_uids,
 )
+from .value_conversion import (
+    VALUE_CHANNEL_SPECS,
+    ValueConversionError,
+    conversion_contexts,
+    validate_value_conversion,
+)
+from .value_conversion_migration import migrate_legacy_value_conversions
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SERVICE_HEALTH_CHECK = "health_check"
 SERVICE_WRITE_MULTI = "write_multi"
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Atomically migrate only versioned legacy fields before setup.
+
+    Deliberately do not pass persisted entities through the current panel
+    builder: unrelated rules added after an entry was saved are not migration
+    rules and must not prevent a direct 7.x upgrade.
+    """
+    if entry.version >= 2:
+        return True
+    options = deepcopy(dict(entry.options))
+    totals = [0, 0, 0]
+    sync_configurations = 0
+    discarded_sensor_limits = 0
+    conflict_logs: list[tuple[str, str, str]] = []
+    for entity_type in OPTION_KEYS:
+        migrated_items = []
+        for index, entity in enumerate(options.get(entity_type, [])):
+            channel = (
+                "brightness"
+                if "brightness_scale" in entity
+                else (
+                    "value"
+                    if any(
+                        key in entity
+                        for key in (
+                            "value_multiplier",
+                            "scale_raw_min",
+                            "scale_raw_max",
+                        )
+                    )
+                    else "configuration"
+                )
+            )
+            try:
+                canonicalized, sync_report = canonicalize_legacy_sync_addresses(
+                    entity_type, entity
+                )
+                migrated, report = migrate_legacy_value_conversions(
+                    entity_type, canonicalized
+                )
+
+                conversions = migrated.get("value_conversions")
+                if conversions is not None:
+                    if not isinstance(conversions, dict):
+                        raise ValueConversionError(
+                            "value_conversions must be a mapping"
+                        )
+                    for channel, conversion in conversions.items():
+                        if channel not in VALUE_CHANNEL_SPECS.get(entity_type, {}):
+                            raise ValueConversionError(
+                                f"unsupported conversion channel '{channel}'"
+                            )
+                        for context in conversion_contexts(
+                            entity_type, migrated, channel
+                        ):
+                            validate_value_conversion(conversion, context)
+            except (ValueConversionError, ValueError, TypeError) as err:
+                _LOGGER.error(
+                    "Config entry %s migration failed for entity type %s "
+                    "index %d channel %s: %s",
+                    entry.entry_id,
+                    entity_type,
+                    index,
+                    channel,
+                    err,
+                )
+                return False
+
+            migrated_items.append(migrated)
+            totals[0] += report.multipliers
+            totals[1] += report.linear_scales
+            totals[2] += report.brightness_scales
+            discarded_sensor_limits += report.discarded_sensor_limits
+            sync_configurations += int(sync_report.changed)
+            identity = str(entity.get("uid") or entity.get("name") or index)
+            conflict_logs.extend(
+                (entity_type, identity, conflict_channel)
+                for conflict_channel in report.conflicts
+            )
+        if entity_type in options:
+            options[entity_type] = migrated_items
+
+    for entity_type, identity, channel in conflict_logs:
+        _LOGGER.warning(
+            "Config entry %s %s %s channel %s has different legacy and "
+            "value_conversions settings; kept authoritative value_conversions",
+            entry.entry_id,
+            entity_type,
+            identity,
+            channel,
+        )
+    hass.config_entries.async_update_entry(entry, options=options, version=3)
+    _LOGGER.info(
+        "Migrated legacy value conversions for config entry %s: "
+        "%d multipliers, %d linear scales, %d brightness scales, "
+        "%d redundant sync configurations normalized",
+        entry.entry_id,
+        *totals,
+        sync_configurations,
+    )
+    if discarded_sensor_limits:
+        _LOGGER.debug(
+            "Removed %d obsolete sensor min/max fields from config entry %s",
+            discarded_sensor_limits,
+            entry.entry_id,
+        )
+    return True
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

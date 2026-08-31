@@ -307,3 +307,4 @@ def test_migrate_uid_backfill_is_a_noop_once_uid_present(monkeypatch):
 
     assert len(update_calls) == 0
     assert entry.options["sensors"][0]["uid"] == "already-set"
+    

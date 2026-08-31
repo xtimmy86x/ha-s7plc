@@ -298,26 +298,6 @@
             "label": "Unità di misura",
             "description": "Unità di misura personalizzata (es. °C, RPM, bar). Lascia vuoto per usare l'unità predefinita basata sulla classe dispositivo."
           },
-          "value_multiplier": {
-            "label": "Moltiplicatore di valore",
-            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
-          },
-          "min_value": {
-            "label": "Scala min",
-            "description": "Valore minimo visualizzato dopo la scalatura."
-          },
-          "max_value": {
-            "label": "Scala max",
-            "description": "Valore massimo visualizzato dopo la scalatura."
-          },
-          "scale_raw_min": {
-            "label": "Valore grezzo minimo",
-            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
-          },
-          "scale_raw_max": {
-            "label": "Valore grezzo massimo",
-            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
-          },
           "state_class": {
             "label": "Classe di stato",
             "description": "Classe di stato per le statistiche: “measurement” per valori istantanei, “total” per valori cumulativi che possono diminuire, “total_increasing” per contatori (es. energia, consumo acqua). Lascia vuoto per automatico."
@@ -597,10 +577,6 @@
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi (0,1-60 s, supporta decimali). Predefinito: 0,5 s."
-          },
-          "brightness_scale": {
-            "label": "Scala luminosità (valore massimo)",
-            "description": "Valore massimo usato dal PLC per la luminosità piena (es. 255 per BYTE, 100 per percentuale). Obbligatorio quando sono impostati gli indirizzi luminosità."
           }
         },
         "mode": {
@@ -651,28 +627,16 @@
             "description": "Unità di misura personalizzata (es. °C, V, kW). Lascia vuoto se non necessaria."
           },
           "min_value": {
-            "label": "Valore minimo",
-            "description": "Limite minimo opzionale per il valore mostrato in Home Assistant."
+            "label": "Limite minimo",
+            "description": "Valore minimo selezionabile in Home Assistant. Non modifica né converte il valore letto dal PLC."
           },
           "max_value": {
-            "label": "Valore massimo",
-            "description": "Limite massimo opzionale per il valore mostrato in Home Assistant."
+            "label": "Limite massimo",
+            "description": "Valore massimo selezionabile in Home Assistant. Non modifica né converte il valore letto dal PLC."
           },
           "step": {
             "label": "Passo",
             "description": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente."
-          },
-          "value_multiplier": {
-            "label": "Moltiplicatore di valore",
-            "description": "Moltiplicatore opzionale per scalare il valore letto (es. 0.1 per ottenere decimali)."
-          },
-          "scale_raw_min": {
-            "label": "Valore grezzo minimo",
-            "description": "Valore minimo grezzo (PLC) per la scalatura lineare. Tutti e quattro i campi devono essere compilati per attivare la scalatura."
-          },
-          "scale_raw_max": {
-            "label": "Valore grezzo massimo",
-            "description": "Valore massimo grezzo (PLC) per la scalatura lineare."
           },
           "real_precision": {
             "label": "Numero decimali REAL",
@@ -1094,7 +1058,6 @@
       "cover_required_error": "Inserisci gli indirizzi obbligatori per il tipo di tapparella scelto.",
       "climate_required_error": "Inserisci l'indirizzo della temperatura obiettivo.",
       "brightness_state_required_error": "Inserisci l’indirizzo di stato luminosità per una luce dimmerabile.",
-      "brightness_scale_error": "La scala luminosità deve essere compresa tra 1 e 65535.",
       "configuration_load_error": "Impossibile caricare la configurazione YAML.",
       "configuration_download_error": "Impossibile scaricare la copia di sicurezza.",
       "delete_entities_error": "Non è stato possibile eliminare alcune entità. La configurazione è stata ricaricata.",
@@ -1148,7 +1111,9 @@
       "invalid_options_map": "Mappa opzioni non valida. Usa coppie 'valore:etichetta' separate da ';' con valori interi univoci ed etichette univoche.",
       "options_map_out_of_range": "Uno o più valori delle opzioni sono fuori dall'intervallo del tipo di dato PLC.",
       "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC numerico discreto (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME).",
-      "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME."
+      "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME.",
+      "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
@@ -1209,6 +1174,79 @@
       "address_not_convertible": "Indirizzo non convertibile",
       "vm_offset": "Offset VM",
       "not_configured": "Non configurato"
+    },
+    "value_conversion": {
+      "title": "Conversione valore",
+      "type": "Tipo di conversione",
+      "none": "Nessuna",
+      "multiplier": "Moltiplicatore",
+      "linear_scale": "Scala lineare",
+      "expression": "Espressione personalizzata",
+      "factor": "Fattore",
+      "clamp": "Limita il risultato all’intervallo configurato",
+      "read_expression": "Espressione in lettura",
+      "write_expression": "Espressione in scrittura",
+      "logo_seconds": "La conversione LOGO! utilizza ore e minuti; i secondi non vengono scritti.",
+      "preview_help": "L’anteprima si aggiorna localmente e non scrive mai nel PLC.",
+      "scale": "Scala",
+      "expressions_independent": "Le espressioni in lettura e in scrittura sono indipendenti.",
+      "inverse_automatic": "In lettura viene applicata la conversione configurata; in scrittura viene applicata automaticamente la conversione inversa.",
+      "titles": {
+        "sensor_value": "Conversione valore sensore",
+        "number_value": "Conversione valore number",
+        "select_value": "Conversione valore select",
+        "sync_value": "Conversione valore sincronizzato",
+        "brightness": "Conversione luminosità",
+        "position": "Conversione posizione",
+        "tilt": "Conversione tilt",
+        "cover_status": "Conversione stato cover",
+        "current_temperature": "Conversione temperatura corrente",
+        "target_temperature": "Conversione temperatura target",
+        "preset_mode": "Conversione modalità preset",
+        "hvac_status": "Conversione stato HVAC"
+      },
+      "directions": {
+        "title": "Direzioni",
+        "read": "Il valore letto dal PLC viene convertito prima di essere mostrato in Home Assistant.",
+        "write": "Il valore di Home Assistant viene convertito prima della scrittura nel PLC.",
+        "bidirectional_distinct": "Si applica in lettura all’indirizzo di stato e in scrittura all’indirizzo di comando.",
+        "bidirectional_same": "La conversione viene applicata in entrambe le direzioni sullo stesso indirizzo PLC."
+      },
+      "clamp_description": "I valori inferiori o superiori ai limiti vengono riportati rispettivamente al minimo o al massimo, in entrambe le direzioni.",
+      "clamp_preview": "La limitazione è attiva sui risultati in lettura e scrittura; l’anteprima è locale e non scrive mai nel PLC.",
+      "result_clamped": "Risultato limitato",
+      "clamped_min": "Valore limitato al minimo configurato",
+      "clamped_max": "Valore limitato al massimo configurato",
+      "clamped_summary": "Limitata",
+      "ha_range": "Intervallo Home Assistant",
+      "ha_fixed_range": "0–255 (fisso)",
+      "brightness_range_description": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255.",
+      "brightness_value_clamped": "I valori di luminosità fuori da 0–255 vengono limitati.",
+      "brightness_incompatible": "La luminosità di Home Assistant utilizza sempre l’intervallo 0–255.",
+      "channels": {
+        "sensor_value": "Valore",
+        "number_value": "Valore",
+        "select_value": "Valore",
+        "sync_value": "Valore",
+        "brightness": "Luminosità",
+        "position": "Posizione",
+        "tilt": "Tilt",
+        "cover_status": "Stato cover",
+        "current_temperature": "Temperatura corrente",
+        "target_temperature": "Temperatura target",
+        "preset_mode": "Modalità preset",
+        "hvac_status": "Stato HVAC"
+      },
+      "expression_help": "Usa `value` come valore di ingresso. Sono disponibili gli operatori `+`, `-`, `*`, `/`, `//`, `%` e le funzioni `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "L’espressione di lettura converte PLC → Home Assistant.",
+      "expression_write_direction": "L’espressione di scrittura converte Home Assistant → PLC.",
+      "expression_separate": "Quando sono disponibili entrambe le direzioni, le espressioni devono essere configurate separatamente. L’espressione inversa non viene calcolata automaticamente.",
+      "syntax_examples": "Sintassi ed esempi",
+      "example_read": "Conversione in lettura",
+      "example_write": "Conversione inversa in scrittura",
+      "example_clamp": "Limite del risultato",
+      "example_round": "Arrotondamento",
+      "expression_safety": "Non sono consentiti template, attributi, indicizzazione, importazioni o chiamate a funzioni diverse da quelle indicate."
     }
   },
   "selector": {

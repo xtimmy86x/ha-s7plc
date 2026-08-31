@@ -298,26 +298,6 @@
             "label": "Jednostka miary",
             "description": "Jednostka miary (np. °C, RPM, bar). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
           },
-          "value_multiplier": {
-            "label": "Mnożnik wartości",
-            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
-          },
-          "min_value": {
-            "label": "Wartość wyjściowa min.",
-            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
-          },
-          "max_value": {
-            "label": "Wartość wyjściowa maks.",
-            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
-          },
-          "scale_raw_min": {
-            "label": "Wartość wejściowa min.",
-            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
-          },
-          "scale_raw_max": {
-            "label": "Wartość wejściowa maks.",
-            "description": "Maksymalna wartość wejściowa skalowania liniowego."
-          },
           "state_class": {
             "label": "Klasa stanu",
             "description": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
@@ -597,10 +577,6 @@
           "pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
-          },
-          "brightness_scale": {
-            "label": "Maksymalna wartość jasności",
-            "description": "Wartość maksymalna jaką używasz dla zadania pełnej jasności. Domyślnie (255), dla ściemniaczy procentowych użyj (100)."
           }
         },
         "mode": {
@@ -651,28 +627,16 @@
             "description": "Jednostka miary (np. °C, V, kW). Pozostaw puste, aby użyć domyślnej jednostki wg. klasy urządzenia."
           },
           "min_value": {
-            "label": "Limit dolny",
-            "description": "Minimalna wartość wyjściowa skalowania liniowego. Jeśli zostaną wypełnione tylko wartości wyjsciowe to zamiast skalowania będzie wykonane limitowanie."
+            "label": "Dolny limit",
+            "description": "Minimalna wartość dostępna do wyboru w Home Assistant. Nie zmienia ani nie konwertuje wartości odczytanej ze sterownika PLC."
           },
           "max_value": {
-            "label": "Limit górny",
-            "description": "Maksymalna wartość wyjściowa skalowania liniowego."
+            "label": "Górny limit",
+            "description": "Maksymalna wartość dostępna do wyboru w Home Assistant. Nie zmienia ani nie konwertuje wartości odczytanej ze sterownika PLC."
           },
           "step": {
             "label": "Krok",
             "description": "Krok przy zmianie wartości w interfejsie."
-          },
-          "value_multiplier": {
-            "label": "Mnożnik wartości",
-            "description": "Mnożnik wartość wejściowej. Jeśli chcesz użyć skalowania liniowego lub nic nie robić z wartością wejściową to pozostaw to pole puste."
-          },
-          "scale_raw_min": {
-            "label": "Wartość wejściowa min.",
-            "description": "Minimalna wartość wejściowa skalowania liniowego. Wszystkie pola muszą być wypełnione, aby aktywować funkcję skalowania."
-          },
-          "scale_raw_max": {
-            "label": "Wartość wejściowa maks.",
-            "description": "Maksymalna wartość wejściowa skalowania liniowego."
           },
           "real_precision": {
             "label": "Miejsca dziesiętne REAL",
@@ -1094,7 +1058,6 @@
       "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu osłony.",
       "climate_required_error": "Wprowadź adres temperatury docelowej.",
       "brightness_state_required_error": "Wprowadź adres odczytu jasności.",
-      "brightness_scale_error": "Skala jasności musi mieścić się w zakresie od 1 do 65535.",
       "configuration_load_error": "Nie można wczytać konfiguracji YAML.",
       "configuration_download_error": "Nie można pobrać kopii zapasowej.",
       "delete_entities_error": "Nie udało się usunąć niektórych encji. Konfiguracja została ponownie wczytana.",
@@ -1148,7 +1111,9 @@
       "invalid_options_map": "Nieprawidłowe mapowanie, użyj par np. '0:Pump A;1:Pump B'. Wartości i tekst nie mogą się powtarzać w mapowaniu.",
       "options_map_out_of_range": "Co najmniej jedna wartość mapowania wykracza poza zakres typu danych.",
       "select_requires_integer_type": "Adres odczytu i zapisu listy musi być dyskretnym typem danych PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT lub TIME).",
-      "select_command_type_mismatch": "Adres polecenia musi używać TIME wtedy i tylko wtedy, gdy adres stanu używa TIME."
+      "select_command_type_mismatch": "Adres polecenia musi używać TIME wtedy i tylko wtedy, gdy adres stanu używa TIME.",
+      "value_conversions_must_be_mapping": "Konwersje wartości muszą być mapą.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",
@@ -1209,6 +1174,79 @@
       "address_not_convertible": "Nie można przekonwertować adresu",
       "vm_offset": "Offset VM",
       "not_configured": "Nie skonfigurowano"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "Brak",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Wyrażenie niestandardowe",
+      "factor": "Factor",
+      "clamp": "Ogranicz wynik do skonfigurowanego zakresu",
+      "read_expression": "Wyrażenie odczytu",
+      "write_expression": "Wyrażenie zapisu",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Skala",
+      "expressions_independent": "Wyrażenia odczytu i zapisu są od siebie niezależne.",
+      "inverse_automatic": "Przy odczycie stosowana jest skonfigurowana konwersja; przy zapisie automatycznie stosowana jest konwersja odwrotna.",
+      "titles": {
+        "sensor_value": "Konwersja wartości czujnika",
+        "number_value": "Konwersja wartości liczbowej",
+        "select_value": "Konwersja wartości wyboru",
+        "sync_value": "Konwersja wartości synchronizowanej",
+        "brightness": "Konwersja jasności",
+        "position": "Konwersja pozycji",
+        "tilt": "Konwersja nachylenia",
+        "cover_status": "Konwersja stanu osłony",
+        "current_temperature": "Konwersja bieżącej temperatury",
+        "target_temperature": "Konwersja temperatury docelowej",
+        "preset_mode": "Konwersja trybu ustawień",
+        "hvac_status": "Konwersja stanu HVAC"
+      },
+      "directions": {
+        "title": "Kierunki",
+        "read": "Wartość odczytana ze sterownika PLC jest konwertowana przed wyświetleniem w Home Assistant.",
+        "write": "Wartość Home Assistant jest konwertowana przed zapisaniem w sterowniku PLC.",
+        "bidirectional_distinct": "Dotyczy odczytu z adresu stanu i zapisu pod adres polecenia.",
+        "bidirectional_same": "Konwersja jest stosowana w obu kierunkach dla tego samego adresu PLC."
+      },
+      "clamp_description": "Wartości poniżej lub powyżej granic są w obu kierunkach ustawiane odpowiednio na minimum lub maksimum.",
+      "clamp_preview": "Ograniczanie jest aktywne dla wyników odczytu i zapisu; podgląd jest lokalny i nigdy nie zapisuje do PLC.",
+      "result_clamped": "Wynik ograniczony",
+      "clamped_min": "Wartość ograniczona do skonfigurowanego minimum",
+      "clamped_max": "Wartość ograniczona do skonfigurowanego maksimum",
+      "clamped_summary": "Ograniczona",
+      "ha_range": "Zakres Home Assistant",
+      "ha_fixed_range": "0–255 (stały)",
+      "brightness_range_description": "Jasność Home Assistant zawsze używa zakresu 0–255.",
+      "brightness_value_clamped": "Wartości jasności spoza 0–255 są ograniczane.",
+      "brightness_incompatible": "Jasność Home Assistant zawsze używa zakresu 0–255.",
+      "channels": {
+        "sensor_value": "Wartość",
+        "number_value": "Wartość",
+        "select_value": "Wartość",
+        "sync_value": "Wartość",
+        "brightness": "Jasność",
+        "position": "Pozycja",
+        "tilt": "Nachylenie",
+        "cover_status": "Stan osłony",
+        "current_temperature": "Bieżąca temperatura",
+        "target_temperature": "Temperatura docelowa",
+        "preset_mode": "Tryb ustawień",
+        "hvac_status": "Stan HVAC"
+      },
+      "expression_help": "Użyj `value` jako wartości wejściowej. Dostępne są operatory `+`, `-`, `*`, `/`, `//`, `%` oraz funkcje `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "Wyrażenie odczytu konwertuje PLC → Home Assistant.",
+      "expression_write_direction": "Wyrażenie zapisu konwertuje Home Assistant → PLC.",
+      "expression_separate": "Gdy dostępne są oba kierunki, wyrażenia muszą być skonfigurowane oddzielnie. Wyrażenie odwrotne nie jest obliczane automatycznie.",
+      "syntax_examples": "Składnia i przykłady",
+      "example_read": "Konwersja odczytu",
+      "example_write": "Odwrotna konwersja zapisu",
+      "example_clamp": "Ograniczenie wyniku",
+      "example_round": "Zaokrąglanie",
+      "expression_safety": "Szablony, atrybuty, indeksowanie, importy i wywołania funkcji innych niż wymienione są niedozwolone."
     }
   },
   "selector": {

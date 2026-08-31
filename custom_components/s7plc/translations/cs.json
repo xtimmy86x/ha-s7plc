@@ -298,26 +298,6 @@
             "label": "Jednotka",
             "description": "Vlastní jednotka (např. °C, RPM, bar). Ponechte prázdné pro výchozí jednotku podle třídy zařízení."
           },
-          "value_multiplier": {
-            "label": "Násobitel hodnoty",
-            "description": "Násobí surovou hodnotu z PLC před odesíláním. Ponechte prázdné pro původní hodnotu."
-          },
-          "min_value": {
-            "label": "Zobrazené min.",
-            "description": "Minimální zobrazená hodnota po škálování."
-          },
-          "max_value": {
-            "label": "Zobrazené max.",
-            "description": "Maximální zobrazená hodnota po škálování."
-          },
-          "scale_raw_min": {
-            "label": "Syr. min. hodnota (rozsah)",
-            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
-          },
-          "scale_raw_max": {
-            "label": "Syr. max. hodnota (rozsah)",
-            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
-          },
           "state_class": {
             "label": "Třída stavu",
             "description": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku."
@@ -597,10 +577,6 @@
           "pulse_duration": {
             "label": "Délka pulsu (s)",
             "description": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s."
-          },
-          "brightness_scale": {
-            "label": "Stupnice jasu (maximální hodnota)",
-            "description": "Maximální hodnota, kterou PLC používá pro plný jas (např. 255 pro BYTE, 100 pro procenta). Povinné, pokud jsou nastaveny adresy jasu."
           }
         },
         "mode": {
@@ -651,28 +627,16 @@
             "description": "Vlastní jednotka (např. °C, V, kW). Ponechte prázdné, pokud není potřeba."
           },
           "min_value": {
-            "label": "Minimální hodnota",
-            "description": "Volitelná minimální hodnota pro rozsah v Home Assistant."
+            "label": "Minimální limit",
+            "description": "Minimální hodnota, kterou lze vybrat v Home Assistant. Nemění ani nepřevádí hodnotu načtenou z PLC."
           },
           "max_value": {
-            "label": "Maximální hodnota",
-            "description": "Volitelná maximální hodnota pro rozsah v Home Assistant."
+            "label": "Maximální limit",
+            "description": "Maximální hodnota, kterou lze vybrat v Home Assistant. Nemění ani nepřevádí hodnotu načtenou z PLC."
           },
           "step": {
             "label": "Krok",
             "description": "Volitelný krok, o který se hodnota mění v UI."
-          },
-          "value_multiplier": {
-            "label": "Násobitel hodnoty",
-            "description": "Násobí surovou hodnotu z PLC před odesláním. Ponechte prázdné pro původní hodnotu."
-          },
-          "scale_raw_min": {
-            "label": "Syr. min. hodnota (rozsah)",
-            "description": "Minimální surová (PLC) hodnota pro lineární škálování. Všechna čtyři pole musí být vyplněna pro aktivaci škálování."
-          },
-          "scale_raw_max": {
-            "label": "Syr. max. hodnota (rozsah)",
-            "description": "Maximální surová (PLC) hodnota pro lineární škálování."
           },
           "real_precision": {
             "label": "Desetinná místa REAL",
@@ -1094,7 +1058,6 @@
       "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",
       "climate_required_error": "Zadejte adresu cílové teploty.",
       "brightness_state_required_error": "Zadejte adresu stavu jasu pro stmívatelné světlo.",
-      "brightness_scale_error": "Rozsah jasu musí být mezi 1 a 65535.",
       "configuration_load_error": "Konfiguraci YAML se nepodařilo načíst.",
       "configuration_download_error": "Zálohu se nepodařilo stáhnout.",
       "delete_entities_error": "Některé entity se nepodařilo odstranit. Konfigurace byla znovu načtena.",
@@ -1148,7 +1111,9 @@
       "invalid_options_map": "Neplatná mapa voleb. Použijte dvojice 'hodnota:popisek' oddělené ';' s jedinečnými celočíselnými hodnotami a jedinečnými popisky.",
       "options_map_out_of_range": "Jedna nebo více hodnot voleb je mimo rozsah datového typu PLC.",
       "select_requires_integer_type": "Entity výběru vyžadují diskrétní číselný datový typ PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME).",
-      "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME."
+      "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME.",
+      "value_conversions_must_be_mapping": "Převody hodnot musí být mapování.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1209,6 +1174,79 @@
       "address_not_convertible": "Adresu nelze převést",
       "vm_offset": "Offset VM",
       "not_configured": "Nenakonfigurováno"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "Žádná",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Vlastní výraz",
+      "factor": "Factor",
+      "clamp": "Omezit výsledek na nakonfigurovaný rozsah",
+      "read_expression": "Výraz pro čtení",
+      "write_expression": "Výraz pro zápis",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Stupnice",
+      "expressions_independent": "Výrazy pro čtení a zápis jsou na sobě nezávislé.",
+      "inverse_automatic": "Při čtení se použije nastavený převod; při zápisu se automaticky použije inverzní převod.",
+      "titles": {
+        "sensor_value": "Převod hodnoty senzoru",
+        "number_value": "Převod číselné hodnoty",
+        "select_value": "Převod hodnoty výběru",
+        "sync_value": "Převod synchronizované hodnoty",
+        "brightness": "Převod jasu",
+        "position": "Převod polohy",
+        "tilt": "Převod náklonu",
+        "cover_status": "Převod stavu krytu",
+        "current_temperature": "Převod aktuální teploty",
+        "target_temperature": "Převod cílové teploty",
+        "preset_mode": "Převod režimu předvolby",
+        "hvac_status": "Převod stavu HVAC"
+      },
+      "directions": {
+        "title": "Směry",
+        "read": "Hodnota načtená z PLC se převede před zobrazením v Home Assistant.",
+        "write": "Hodnota Home Assistant se převede před zápisem do PLC.",
+        "bidirectional_distinct": "Použije se při čtení na adresu stavu a při zápisu na adresu příkazu.",
+        "bidirectional_same": "Převod se použije v obou směrech na stejné adrese PLC."
+      },
+      "clamp_description": "Hodnoty pod nebo nad limity se v obou směrech nastaví na minimum, respektive maximum.",
+      "clamp_preview": "Omezení je aktivní pro výsledky čtení i zápisu; náhled je místní a nikdy nezapisuje do PLC.",
+      "result_clamped": "Výsledek omezen",
+      "clamped_min": "Hodnota omezena na nakonfigurované minimum",
+      "clamped_max": "Hodnota omezena na nakonfigurované maximum",
+      "clamped_summary": "Omezena",
+      "ha_range": "Rozsah Home Assistant",
+      "ha_fixed_range": "0–255 (pevný)",
+      "brightness_range_description": "Jas Home Assistant vždy používá rozsah 0–255.",
+      "brightness_value_clamped": "Hodnoty jasu mimo 0–255 jsou omezeny.",
+      "brightness_incompatible": "Jas Home Assistant vždy používá rozsah 0–255.",
+      "channels": {
+        "sensor_value": "Hodnota",
+        "number_value": "Hodnota",
+        "select_value": "Hodnota",
+        "sync_value": "Hodnota",
+        "brightness": "Jas",
+        "position": "Poloha",
+        "tilt": "Náklon",
+        "cover_status": "Stav krytu",
+        "current_temperature": "Aktuální teplota",
+        "target_temperature": "Cílová teplota",
+        "preset_mode": "Režim předvolby",
+        "hvac_status": "Stav HVAC"
+      },
+      "expression_help": "Použijte `value` jako vstupní hodnotu. K dispozici jsou operátory `+`, `-`, `*`, `/`, `//`, `%` a funkce `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "Výraz pro čtení převádí PLC → Home Assistant.",
+      "expression_write_direction": "Výraz pro zápis převádí Home Assistant → PLC.",
+      "expression_separate": "Pokud jsou k dispozici oba směry, musí být výrazy nakonfigurovány samostatně. Inverzní výraz se nevypočítává automaticky.",
+      "syntax_examples": "Syntaxe a příklady",
+      "example_read": "Převod při čtení",
+      "example_write": "Inverzní převod při zápisu",
+      "example_clamp": "Omezení výsledku",
+      "example_round": "Zaokrouhlení",
+      "expression_safety": "Šablony, atributy, indexování, importy a volání jiných než uvedených funkcí nejsou povoleny."
     }
   },
   "selector": {

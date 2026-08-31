@@ -104,10 +104,10 @@ from .const import (
     CONF_UID,
     CONF_UNIT_OF_MEASUREMENT,
     CONF_USE_STATE_TOPICS,
+    CONF_VALUE_CONVERSIONS,
     CONF_VALUE_MULTIPLIER,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
-    DEFAULT_BRIGHTNESS_SCALE,
     DEFAULT_COVER_STATUS_CLOSED_VALUES,
     DEFAULT_COVER_STATUS_CLOSING_VALUES,
     DEFAULT_COVER_STATUS_OPEN_VALUES,
@@ -171,22 +171,31 @@ _COMMON_FIELDS = frozenset(
         CONF_UID,
         CONF_AVAILABILITY_MODE,
         CONF_AVAILABILITY_ADDRESS,
+        CONF_VALUE_CONVERSIONS,
     }
 )
-_NUMERIC_SCALE_FIELDS = frozenset(
+_NUMERIC_ENTITY_FIELDS = frozenset(
     {
-        CONF_VALUE_MULTIPLIER,
         CONF_MIN_VALUE,
         CONF_MAX_VALUE,
+        CONF_REAL_PRECISION,
+    }
+)
+_LEGACY_CONVERSION_FIELDS = frozenset(
+    {
+        CONF_VALUE_MULTIPLIER,
+        # TODO(8.0.0): stop accepting legacy conversion keys at the
+        # configuration input boundary. Versioned migration must remain so
+        # direct upgrades from older releases continue to work.
         CONF_SCALE_RAW_MIN,
         CONF_SCALE_RAW_MAX,
-        CONF_REAL_PRECISION,
     }
 )
 
 ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
     CONF_SENSORS: _COMMON_FIELDS
-    | _NUMERIC_SCALE_FIELDS
+    | _NUMERIC_ENTITY_FIELDS
+    | _LEGACY_CONVERSION_FIELDS
     | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_UNIT_OF_MEASUREMENT, CONF_STATE_CLASS},
     CONF_BINARY_SENSORS: _COMMON_FIELDS
     | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_INVERT_STATE},
@@ -243,7 +252,8 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
     },
     CONF_BUTTONS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_BUTTON_PULSE},
     CONF_NUMBERS: _COMMON_FIELDS
-    | _NUMERIC_SCALE_FIELDS
+    | _NUMERIC_ENTITY_FIELDS
+    | _LEGACY_CONVERSION_FIELDS
     | {
         CONF_ADDRESS,
         CONF_COMMAND_ADDRESS,
@@ -424,36 +434,6 @@ class EntityConfigBuilder:
             raise ValueError("invalid numeric value")
 
         return result
-
-    @staticmethod
-    def _apply_value_multiplier(item: dict[str, Any], value: Any | None) -> None:
-        normalized = EntityConfigBuilder._normalize_numeric_value(value)
-        if normalized is None:
-            item.pop(CONF_VALUE_MULTIPLIER, None)
-        else:
-            item[CONF_VALUE_MULTIPLIER] = normalized
-
-    @staticmethod
-    def _apply_value_scale(
-        item: dict[str, Any],
-        raw_min: Any | None,
-        raw_max: Any | None,
-    ) -> None:
-        """Store or remove the raw-range scale parameters from *item*.
-
-        Both values must be valid numbers for the scale to be saved.
-        If either is missing/invalid the raw-range keys are cleared from the item.
-        """
-        _normalize = EntityConfigBuilder._normalize_numeric_value
-        rn = _normalize(raw_min)
-        rx = _normalize(raw_max)
-
-        if rn is not None and rx is not None:
-            item[CONF_SCALE_RAW_MIN] = rn
-            item[CONF_SCALE_RAW_MAX] = rx
-        else:
-            for key in (CONF_SCALE_RAW_MIN, CONF_SCALE_RAW_MAX):
-                item.pop(key, None)
 
     def _has_duplicate(
         self,
@@ -709,35 +689,7 @@ class EntityConfigBuilder:
             CONF_STATE_CLASS,
         )
 
-        # Store display range + scale only when all 4 params are provided
-        min_v = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
-        max_v = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
-        raw_min_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
-        raw_max_v = self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
-
-        scale_values = (min_v, max_v, raw_min_v, raw_max_v)
-        any_scale_set = any(v is not None for v in scale_values)
-        all_scale_set = all(v is not None for v in scale_values)
-
-        if any_scale_set and not all_scale_set:
-            return None, {"base": "scale_requires_all_four"}
-
-        if all_scale_set:
-            item[CONF_MIN_VALUE] = min_v
-            item[CONF_MAX_VALUE] = max_v
-            item[CONF_SCALE_RAW_MIN] = raw_min_v
-            item[CONF_SCALE_RAW_MAX] = raw_max_v
-        else:
-            for key in (
-                CONF_MIN_VALUE,
-                CONF_MAX_VALUE,
-                CONF_SCALE_RAW_MIN,
-                CONF_SCALE_RAW_MAX,
-            ):
-                item.pop(key, None)
-
         # Apply specific transformations
-        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -1403,19 +1355,6 @@ class EntityConfigBuilder:
                     return None, bri_cmd_errors
                 item[CONF_BRIGHTNESS_COMMAND_ADDRESS] = bri_cmd_val
 
-            # Brightness scale
-            raw_brightness = user_input.get(CONF_BRIGHTNESS_SCALE)
-            if raw_brightness is not None:
-                try:
-                    brightness_scale = int(raw_brightness)
-                except (TypeError, ValueError):
-                    brightness_scale = DEFAULT_BRIGHTNESS_SCALE
-                if brightness_scale < 1 or brightness_scale > 65535:
-                    brightness_scale = DEFAULT_BRIGHTNESS_SCALE
-                item[CONF_BRIGHTNESS_SCALE] = brightness_scale
-            else:
-                item[CONF_BRIGHTNESS_SCALE] = DEFAULT_BRIGHTNESS_SCALE
-
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -1467,37 +1406,32 @@ class EntityConfigBuilder:
         except ValueError:
             return None, {"base": "invalid_number"}
 
-        # If either raw-range scale param is set, both min and max are required
-        raw_min_set = (
-            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MIN))
-            is not None
-        )
-        raw_max_set = (
-            self._normalize_numeric_value(user_input.get(CONF_SCALE_RAW_MAX))
-            is not None
-        )
-        if (raw_min_set or raw_max_set) and (min_value is None or max_value is None):
-            return None, {"base": "scale_raw_requires_min_max"}
+        # Floating-point numbers have no practical automatic UI bounds.
+        # Require an explicit Home Assistant operating interval without using
+        # those values as PLC or conversion endpoints.
+        real_types = {
+            data_type
+            for data_type in (DataType.REAL, getattr(DataType, "LREAL", None))
+            if data_type is not None
+        }
+        if address_tag.data_type in real_types and (
+            min_value is None or max_value is None
+        ):
+            return None, {"base": "min_max_required_for_real"}
 
-        # Check if REAL or LREAL type requires min/max
-        real_type = getattr(DataType, "REAL", None)
-        lreal_type = getattr(DataType, "LREAL", None)
-
-        if address_tag.data_type in (real_type, lreal_type):
-            if min_value is None or max_value is None:
-                return None, {"base": "min_max_required_for_real"}
-
-        # PLC data-type limits
-        limits = get_numeric_limits(address_tag.data_type)
-        if limits is not None:
-            dtype_min, dtype_max = limits
-            if min_value is not None:
-                min_value = min(max(min_value, dtype_min), dtype_max)
-            if max_value is not None:
-                max_value = min(max(max_value, dtype_min), dtype_max)
-
-        # Range consistency (min/max)
-        if min_value is not None and max_value is not None and min_value > max_value:
+        # Validate the effective Home Assistant range. Missing limits are
+        # derived at runtime from the state address datatype, but are not
+        # persisted in the configuration.
+        datatype_limits = get_numeric_limits(address_tag.data_type)
+        fallback_min = datatype_limits[0] if datatype_limits is not None else None
+        fallback_max = datatype_limits[1] if datatype_limits is not None else None
+        effective_min = min_value if min_value is not None else fallback_min
+        effective_max = max_value if max_value is not None else fallback_max
+        if (
+            effective_min is not None
+            and effective_max is not None
+            and effective_min > effective_max
+        ):
             return None, {"base": "invalid_range"}
 
         # Build item
@@ -1523,12 +1457,6 @@ class EntityConfigBuilder:
             item[CONF_STEP] = step_value
 
         # Apply transformations
-        self._apply_value_multiplier(item, user_input.get(CONF_VALUE_MULTIPLIER))
-        self._apply_value_scale(
-            item,
-            user_input.get(CONF_SCALE_RAW_MIN),
-            user_input.get(CONF_SCALE_RAW_MAX),
-        )
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
@@ -2053,6 +1981,16 @@ def build_entity_item(
     skip_idx: int | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Validate and normalize one entity using the appropriate builder."""
+    # TODO 8.0.0:
+    # Remove acceptance of legacy conversion fields from new YAML/import input
+    # and remove any remaining non-migration compatibility paths.
+    # Keep versioned config-entry migrations for direct upgrades.
+    from .value_conversion_migration import normalize_legacy_conversion_input
+
+    try:
+        entity = normalize_legacy_conversion_input(entity_type, entity)[0]
+    except ValueError as err:
+        return None, {"base": f"invalid_value_conversion:{err}"}
     validate_entity_fields(entity_type, entity)
     if entity_type not in (CONF_SENSORS, CONF_NUMBERS, CONF_SELECTS):
         for key, value in entity.items():
@@ -2102,6 +2040,38 @@ def build_entity_item(
     item, errors = method(entity, skip_idx=skip_idx)
     if errors or item is None:
         return item, errors
+
+    # Keep conversions separate from address strings.  Builders deliberately
+    # enumerate legacy fields, so copy and validate this extensible map here.
+    conversions = entity.get(CONF_VALUE_CONVERSIONS)
+    if conversions:
+        from .value_conversion import (
+            VALUE_CHANNEL_SPECS,
+            ValueConversionError,
+            conversion_contexts,
+            normalize_value_conversion,
+            validate_value_conversion,
+        )
+
+        channels = VALUE_CHANNEL_SPECS.get(entity_type, {})
+        if not isinstance(conversions, dict):
+            return None, {"base": "value_conversions_must_be_mapping"}
+        if unknown_channels := sorted(set(conversions) - set(channels)):
+            return None, {
+                "base": f"unsupported_conversion_channels:{','.join(unknown_channels)}"
+            }
+        try:
+            for channel, conversion in conversions.items():
+                # Do not collapse state/command with ``or``: differing PLC
+                # datatypes must both support and validate the conversion.
+                normalized = normalize_value_conversion(entity, channel)
+                for context in conversion_contexts(entity_type, item, channel):
+                    validate_value_conversion(normalized, context)
+            item[CONF_VALUE_CONVERSIONS] = {
+                key: dict(value) for key, value in conversions.items() if value
+            }
+        except (ValueConversionError, ValueError, TypeError) as err:
+            return None, {"base": f"invalid_value_conversion:{err}"}
 
     mode = entity.get(CONF_AVAILABILITY_MODE) or AVAILABILITY_MODE_CONNECTION
     if mode not in AVAILABILITY_MODES:

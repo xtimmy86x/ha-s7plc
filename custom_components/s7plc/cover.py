@@ -64,6 +64,13 @@ from .helpers import (
     get_coordinator_and_device_info,
     parse_mode_values,
 )
+from .value_conversion import (
+    ConversionContext,
+    ValueConversionError,
+    convert_from_plc,
+    convert_to_plc,
+    normalize_value_conversion,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -287,6 +294,9 @@ async def async_setup_entry(
                     cover_opening_topic=cover_opening_topic,
                     cover_closing_topic=cover_closing_topic,
                     cover_stopped_topic=cover_stopped_topic,
+                    position_conversion=normalize_value_conversion(item, "position"),
+                    tilt_conversion=normalize_value_conversion(item, "tilt"),
+                    status_conversion=normalize_value_conversion(item, "status"),
                 )
             )
             continue
@@ -452,6 +462,7 @@ async def async_setup_entry(
                 cover_status_stopped_values=cover_status_stopped_values,
                 toggle_mode=toggle_mode,
                 toggle_pulse_duration=toggle_pulse_duration,
+                status_conversion=normalize_value_conversion(item, "status"),
             )
         )
 
@@ -500,6 +511,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         cover_status_stopped_values: str = DEFAULT_COVER_STATUS_STOPPED_VALUES,
         toggle_mode: bool = DEFAULT_TOGGLE_MODE,
         toggle_pulse_duration: float = DEFAULT_PULSE_DURATION,
+        status_conversion: dict | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -515,6 +527,12 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._toggle_pulse_duration = toggle_pulse_duration
         self._last_toggle_direction: str | None = None
         self._toggle_lock = asyncio.Lock()
+        self._status_conversion = status_conversion
+        self._status_conversion_context = (
+            ConversionContext.from_address("status", cover_status_address, "read")
+            if cover_status_address
+            else None
+        )
         # Set while a halt pulse is waiting for real "stopped" feedback
         # before continuing toward the originally requested target - see
         # _toggle_step/_handle_coordinator_update.
@@ -621,8 +639,11 @@ class S7Cover(S7BaseEntity, CoverEntity):
         if status is None:
             return None
         try:
+            status = convert_from_plc(
+                status, self._status_conversion, self._status_conversion_context
+            )
             status = int(status)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         for movement, values in self._cover_status_values.items():
             if status in values:
@@ -1313,6 +1334,9 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         cover_opening_topic: str | None = None,
         cover_closing_topic: str | None = None,
         cover_stopped_topic: str | None = None,
+        position_conversion: dict | None = None,
+        tilt_conversion: dict | None = None,
+        status_conversion: dict | None = None,
     ) -> None:
         super().__init__(
             coordinator,
@@ -1326,6 +1350,10 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         self._position_command_address = position_command or position_state
         self._position_topic = f"cover:position:{position_state}"
         self._invert_position = invert_position
+        self._position_conversion = position_conversion
+        self._position_conversion_context = ConversionContext.from_address(
+            "position", position_command or position_state, "bidirectional"
+        )
         self._stop_command_address = stop_command
         self._stop_pulse_duration = float(stop_pulse_duration)
 
@@ -1335,11 +1363,25 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
             f"cover:tilt:{tilt_state_address}" if tilt_state_address else None
         )
         self._invert_tilt = invert_tilt
+        self._tilt_conversion = tilt_conversion
+        self._tilt_conversion_context = (
+            ConversionContext.from_address(
+                "tilt", tilt_command_address or tilt_state_address, "bidirectional"
+            )
+            if (tilt_command_address or tilt_state_address)
+            else None
+        )
 
         # Optional real-time movement status: a raw position alone can't
         # tell HA whether the cover is actively moving, so is_opening/
         # is_closing stay False unless this is configured.
         self._cover_status_address = cover_status_address
+        self._status_conversion = status_conversion
+        self._status_conversion_context = (
+            ConversionContext.from_address("status", cover_status_address, "read")
+            if cover_status_address
+            else None
+        )
         self._cover_status_topic = cover_status_topic
         self._cover_status_values: dict[str, list[int]] = {
             "open": parse_mode_values(cover_status_open_values),
@@ -1395,7 +1437,7 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         """
         try:
             pct = int(value)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         pct = max(0, min(100, pct))
         if invert:
@@ -1410,6 +1452,18 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         value = data.get(self._position_topic)
         if value is None:
             return None
+        if self._position_conversion:
+            try:
+                value = convert_from_plc(
+                    value, self._position_conversion, self._position_conversion_context
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for cover %s channel position: %s",
+                    self.name,
+                    err,
+                )
+                return None
         return self._clamp_percent(value, self._invert_position)
 
     def _get_tilt_value(self) -> int | None:
@@ -1422,6 +1476,18 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         value = data.get(self._tilt_topic)
         if value is None:
             return None
+        if self._tilt_conversion and self._tilt_conversion_context:
+            try:
+                value = convert_from_plc(
+                    value, self._tilt_conversion, self._tilt_conversion_context
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for cover %s channel tilt: %s",
+                    self.name,
+                    err,
+                )
+                return None
         return self._clamp_percent(value, self._invert_tilt)
 
     def _entity_data_available(self) -> bool:
@@ -1496,8 +1562,11 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         if status is None:
             return None
         try:
+            status = convert_from_plc(
+                status, self._status_conversion, self._status_conversion_context
+            )
             status = int(status)
-        except (TypeError, ValueError):
+        except (ValueConversionError, TypeError, ValueError):
             return None
         for movement, values in self._cover_status_values.items():
             if status in values:
@@ -1577,6 +1646,21 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # we need to write the inverted value to the PLC
         plc_value = (100 - position) if self._invert_position else position
 
+        if self._position_conversion:
+            try:
+                plc_value = convert_to_plc(
+                    plc_value,
+                    self._position_conversion,
+                    self._position_conversion_context,
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for cover %s channel position: %s",
+                    self.name,
+                    err,
+                )
+                return
+
         await self.coordinator.write_batched(self._position_command_address, plc_value)
 
         self.async_write_ha_state()
@@ -1635,6 +1719,18 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
 
         tilt_position = max(0, min(100, int(tilt_position)))
         plc_value = (100 - tilt_position) if self._invert_tilt else tilt_position
+        if self._tilt_conversion and self._tilt_conversion_context:
+            try:
+                plc_value = convert_to_plc(
+                    plc_value, self._tilt_conversion, self._tilt_conversion_context
+                )
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for cover %s channel tilt: %s",
+                    self.name,
+                    err,
+                )
+                return
 
         await self.coordinator.write_batched(self._tilt_command_address, plc_value)
 

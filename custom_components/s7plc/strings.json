@@ -35,7 +35,7 @@
           "port": "ISO-on-TCP port, typically 102.",
           "rack": "CPU rack number (usually 0).",
           "slot": "CPU slot number (e.g., 1 for S7-1200/1500).",
-          "pys7_connection_type": "S7 connection type (PG \u2013 programming, OP \u2013 operator panel, S7 Basic \u2013 basic connection).",
+          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
@@ -71,7 +71,7 @@
           "port": "ISO-on-TCP port, typically 102.",
           "local_tsap": "Local TSAP address (e.g., 01.00 or 03.00).",
           "remote_tsap": "Remote TSAP address (e.g., 01.01 or 03.01).",
-          "pys7_connection_type": "S7 connection type (PG \u2013 programming, OP \u2013 operator panel, S7 Basic \u2013 basic connection).",
+          "pys7_connection_type": "S7 connection type (PG – programming, OP – operator panel, S7 Basic – basic connection).",
           "scan_interval": "How often to poll the PLC, in seconds. Use decimal values for millisecond precision.",
           "operation_timeout": "Maximum duration for a single read/write cycle before retrying.",
           "max_retries": "How many times to retry a failed PLC operation before giving up.",
@@ -203,7 +203,7 @@
   },
   "config_panel": {
     "common": {
-      "loading": "Loading configuration\u2026",
+      "loading": "Loading configuration…",
       "no_plc": "No PLC configured",
       "no_plc_help": "First add the Siemens S7 integration from Devices & services.",
       "title": "S7 PLC configuration",
@@ -214,7 +214,7 @@
       "unknown": "Unknown",
       "reload_help": "Changes are applied by automatically reloading the integration.",
       "empty": "No entities",
-      "empty_help": "Use \u201cAdd\u201d to create the first one.",
+      "empty_help": "Use “Add” to create the first one.",
       "entity": "Entity",
       "enabled_help": "Enable this option",
       "required": "Required",
@@ -258,7 +258,7 @@
           "description": "BIT address that must be true while the PLC is connected."
         }
       },
-      "datatype_time": "TIME \u2014 duration in seconds"
+      "datatype_time": "TIME — duration in seconds"
     },
     "sections": {
       "plc_connection": {
@@ -296,27 +296,7 @@
           },
           "unit_of_measurement": {
             "label": "Unit of measurement",
-            "description": "Custom unit of measurement (e.g., \u00b0C, RPM, bar). Leave blank to use the default unit based on device class."
-          },
-          "value_multiplier": {
-            "label": "Value multiplier",
-            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
-          },
-          "min_value": {
-            "label": "Scale min",
-            "description": "Minimum displayed value after scaling."
-          },
-          "max_value": {
-            "label": "Scale max",
-            "description": "Maximum displayed value after scaling."
-          },
-          "scale_raw_min": {
-            "label": "Scale raw min",
-            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
-          },
-          "scale_raw_max": {
-            "label": "Scale raw max",
-            "description": "Maximum raw (PLC) value for linear scaling."
+            "description": "Custom unit of measurement (e.g., °C, RPM, bar). Leave blank to use the default unit based on device class."
           },
           "state_class": {
             "label": "State class",
@@ -476,7 +456,7 @@
             "description": "Choose how the PLC controls the cover.",
             "options": {
               "traditional": "Open / Close",
-              "position": "Position 0\u2013100%",
+              "position": "Position 0–100%",
               "toggle": "Single button"
             },
             "descriptions": {
@@ -597,10 +577,6 @@
           "pulse_duration": {
             "label": "Pulse duration (s)",
             "description": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s."
-          },
-          "brightness_scale": {
-            "label": "Brightness scale (max value)",
-            "description": "Maximum value the PLC uses for full brightness (e.g., 255 for BYTE, 100 for percentage). Required when brightness addresses are set."
           }
         },
         "mode": {
@@ -648,31 +624,19 @@
           },
           "unit_of_measurement": {
             "label": "Unit of measurement",
-            "description": "Custom unit of measurement (e.g., \u00b0C, V, kW). Leave blank if not needed."
+            "description": "Custom unit of measurement (e.g., °C, V, kW). Leave blank if not needed."
           },
           "min_value": {
-            "label": "Minimum value",
-            "description": "Optional minimum bound for the value shown in Home Assistant."
+            "label": "Minimum limit",
+            "description": "Minimum value selectable in Home Assistant. It neither modifies nor converts the value read from the PLC."
           },
           "max_value": {
-            "label": "Maximum value",
-            "description": "Optional maximum bound for the value shown in Home Assistant."
+            "label": "Maximum limit",
+            "description": "Maximum value selectable in Home Assistant. It neither modifies nor converts the value read from the PLC."
           },
           "step": {
             "label": "Step",
             "description": "Optional increment used when adjusting the value in the UI."
-          },
-          "value_multiplier": {
-            "label": "Value multiplier",
-            "description": "Multiply the raw PLC value before reporting it. Leave blank to keep the original value."
-          },
-          "scale_raw_min": {
-            "label": "Scale raw min",
-            "description": "Minimum raw (PLC) value for linear scaling. All four scale fields must be filled to activate scaling."
-          },
-          "scale_raw_max": {
-            "label": "Scale raw max",
-            "description": "Maximum raw (PLC) value for linear scaling."
           },
           "real_precision": {
             "label": "REAL decimal precision",
@@ -843,15 +807,15 @@
           },
           "min_temp": {
             "label": "Minimum temperature",
-            "description": "Minimum settable temperature (\u00b0C)."
+            "description": "Minimum settable temperature (°C)."
           },
           "max_temp": {
             "label": "Maximum temperature",
-            "description": "Maximum settable temperature (\u00b0C)."
+            "description": "Maximum settable temperature (°C)."
           },
           "temp_step": {
             "label": "Temperature step",
-            "description": "Temperature adjustment step (\u00b0C)."
+            "description": "Temperature adjustment step (°C)."
           },
           "climate_direct_function": {
             "label": "Heating and cooling",
@@ -1056,7 +1020,7 @@
     "availability": {
       "title": "Connection availability",
       "last_24_hours": "Last 24 hours",
-      "loading": "Loading connection history\u2026",
+      "loading": "Loading connection history…",
       "timeline_label": "PLC connection states over the last 24 hours",
       "hours_ago": "24h ago",
       "now": "Now",
@@ -1094,7 +1058,6 @@
       "cover_required_error": "Enter the required addresses for the selected cover type.",
       "climate_required_error": "Enter the target temperature address.",
       "brightness_state_required_error": "Enter the brightness state address for a dimmable light.",
-      "brightness_scale_error": "Brightness scale must be between 1 and 65535.",
       "configuration_load_error": "Unable to load the YAML configuration.",
       "configuration_download_error": "Unable to download the backup.",
       "delete_entities_error": "Some entities could not be deleted. The configuration has been reloaded.",
@@ -1148,7 +1111,9 @@
       "invalid_options_map": "Invalid options map. Use 'value:label' pairs separated by ';' with unique integer values and unique labels.",
       "options_map_out_of_range": "One or more option values are outside the range of the PLC data type.",
       "select_requires_integer_type": "Select entities require a discrete numeric PLC data type (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME).",
-      "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME."
+      "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME.",
+      "value_conversions_must_be_mapping": "Value conversions must be a mapping.",
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
@@ -1209,6 +1174,79 @@
       "address_not_convertible": "Address cannot be converted",
       "vm_offset": "VM offset",
       "not_configured": "Not configured"
+    },
+    "value_conversion": {
+      "title": "Value conversion",
+      "type": "Conversion type",
+      "none": "None",
+      "multiplier": "Multiplier",
+      "linear_scale": "Linear scale",
+      "expression": "Custom expression",
+      "factor": "Factor",
+      "clamp": "Clamp the result to the configured range",
+      "read_expression": "Read expression",
+      "write_expression": "Write expression",
+      "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "preview_help": "Preview updates locally and never writes to the PLC.",
+      "scale": "Scale",
+      "expressions_independent": "The read and write expressions are independent.",
+      "inverse_automatic": "On read, the configured conversion is applied; on write, the inverse conversion is applied automatically.",
+      "titles": {
+        "sensor_value": "Sensor value conversion",
+        "number_value": "Number value conversion",
+        "select_value": "Select value conversion",
+        "sync_value": "Synchronized value conversion",
+        "brightness": "Brightness conversion",
+        "position": "Position conversion",
+        "tilt": "Tilt conversion",
+        "cover_status": "Cover status conversion",
+        "current_temperature": "Current temperature conversion",
+        "target_temperature": "Target temperature conversion",
+        "preset_mode": "Preset mode conversion",
+        "hvac_status": "HVAC status conversion"
+      },
+      "directions": {
+        "title": "Directions",
+        "read": "The value read from the PLC is converted before being shown in Home Assistant.",
+        "write": "The Home Assistant value is converted before being written to the PLC.",
+        "bidirectional_distinct": "Applies on read to the state address and on write to the command address.",
+        "bidirectional_same": "The conversion is applied in both directions on the same PLC address."
+      },
+      "clamp_description": "Values below or above the limits are brought to the minimum or maximum, respectively, in both directions.",
+      "clamp_preview": "Clamping is active for read and write results; the preview is local and never writes to the PLC.",
+      "result_clamped": "Result clamped",
+      "clamped_min": "Value clamped to the configured minimum",
+      "clamped_max": "Value clamped to the configured maximum",
+      "clamped_summary": "Clamped",
+      "ha_range": "Home Assistant range",
+      "ha_fixed_range": "0–255 (fixed)",
+      "brightness_range_description": "Home Assistant brightness always uses the 0–255 range.",
+      "brightness_value_clamped": "Brightness values outside 0–255 are clamped.",
+      "brightness_incompatible": "Home Assistant brightness requires the fixed 0–255 range and mandatory clamping.",
+      "channels": {
+        "sensor_value": "Value",
+        "number_value": "Value",
+        "select_value": "Value",
+        "sync_value": "Value",
+        "brightness": "Brightness",
+        "position": "Position",
+        "tilt": "Tilt",
+        "cover_status": "Cover status",
+        "current_temperature": "Current temperature",
+        "target_temperature": "Target temperature",
+        "preset_mode": "Preset mode",
+        "hvac_status": "HVAC status"
+      },
+      "expression_help": "Use `value` as the input value. Available operators are `+`, `-`, `*`, `/`, `//`, `%`, and available functions are `round`, `min`, `max`, `abs`, `int`, `float`, `clamp`.",
+      "expression_read_direction": "The read expression converts PLC → Home Assistant.",
+      "expression_write_direction": "The write expression converts Home Assistant → PLC.",
+      "expression_separate": "When both directions are available, the expressions must be configured separately. The inverse expression is not calculated automatically.",
+      "syntax_examples": "Syntax and examples",
+      "example_read": "Read conversion",
+      "example_write": "Inverse write conversion",
+      "example_clamp": "Limit the result",
+      "example_round": "Rounding",
+      "expression_safety": "Templates, attributes, indexing, imports, and calls to functions other than those listed are not allowed."
     }
   },
   "selector": {
