@@ -655,6 +655,10 @@
             "label": "Adresa příkazu",
             "description": "Adresa PLC pro zápis zvolené hodnoty (volitelné). Pokud není vyplněna, použije se adresa stavu."
           },
+          "sync_state": {
+            "label": "Synchronize command with state",
+            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+          },
           "options_map": {
             "label": "Mapa voleb",
             "description": "Každá hodnota PLC odpovídá volbě zobrazené v Home Assistant. Hodnoty TIME jsou vyjádřeny v sekundách. V YAML se ukládá jako dvojice 'hodnota:popisek' oddělené ';'.",

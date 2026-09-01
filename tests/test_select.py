@@ -1,5 +1,7 @@
 """Tests for the S7 PLC select entity."""
 
+import asyncio
+
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,8 +14,13 @@ from custom_components.s7plc.const import (
     CONF_COMMAND_ADDRESS,
     CONF_OPTIONS_MAP,
     CONF_SELECTS,
+    CONF_SYNC_STATE,
 )
-from custom_components.s7plc.select import S7Select, async_setup_entry, parse_options_map
+from custom_components.s7plc.select import (
+    S7Select,
+    async_setup_entry,
+    parse_options_map,
+)
 
 # ============================================================================
 # Fixtures
@@ -185,6 +192,81 @@ def test_select_extra_state_attributes(pump_select):
 
 
 @pytest.mark.asyncio
+async def test_select_sync_initial_external_echo_override_and_unmapped(
+    mock_coordinator, device_info, fake_hass
+):
+    entity = S7Select(
+        mock_coordinator,
+        "Mode",
+        "mode",
+        device_info,
+        "select:DB1,B0",
+        "DB1,B0",
+        "DB1,B10",
+        {0: "Off", 10: "Manual", 100: "Automatic"},
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+
+    mock_coordinator.data = {entity._topic: 0}
+    entity.async_write_ha_state()
+    assert entity._last_state == 0
+    assert mock_coordinator.write_calls == []
+
+    mock_coordinator.data[entity._topic] = 100
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
+
+    await entity.async_select_option("Manual")
+    mock_coordinator.write_calls.clear()
+    mock_coordinator.data[entity._topic] = 10
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert entity._pending_command is None
+    assert mock_coordinator.write_calls == []
+
+    await entity.async_select_option("Manual")
+    mock_coordinator.write_calls.clear()
+    mock_coordinator.data[entity._topic] = 100
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
+
+    mock_coordinator.write_calls.clear()
+    mock_coordinator.data[entity._topic] = 99
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == []
+
+
+@pytest.mark.asyncio
+async def test_time_select_sync_uses_timedelta(
+    mock_coordinator, device_info, fake_hass
+):
+    entity = S7Select(
+        mock_coordinator,
+        "Delay",
+        "delay-sync",
+        device_info,
+        "select:DB1,TIME0",
+        "DB1,TIME0",
+        "DB1,TIME4",
+        {0: "Off", 10: "Short"},
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    mock_coordinator.data = {entity._topic: timedelta(0)}
+    entity.async_write_ha_state()
+    mock_coordinator.data[entity._topic] = timedelta(seconds=10)
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == [
+        ("write_batched", "DB1,TIME4", timedelta(seconds=10))
+    ]
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_uses_options_and_default_command_address(
     fake_hass, mock_coordinator, device_info
 ):
@@ -248,6 +330,20 @@ def test_build_select_item_valid():
     assert item[CONF_COMMAND_ADDRESS] == "DB1,B10"
     # Normalized string form
     assert item[CONF_OPTIONS_MAP] == "0:Off;1:Pump A;2:Pump B"
+    assert item[CONF_SYNC_STATE] is False
+
+
+def test_build_select_item_accepts_sync_state():
+    item, errors = _build(
+        {
+            CONF_ADDRESS: "DB1,B0",
+            CONF_COMMAND_ADDRESS: "DB1,B10",
+            CONF_OPTIONS_MAP: "0:Off;1:On",
+            CONF_SYNC_STATE: True,
+        }
+    )
+    assert not errors
+    assert item[CONF_SYNC_STATE] is True
 
 
 def test_build_select_item_invalid_map():
@@ -350,9 +446,7 @@ def test_build_select_item_rejects_invalid_command_address():
         ("DB1,D0", "DB1,TIME4", "select_command_type_mismatch"),
     ],
 )
-def test_build_select_item_time_command_compatibility(
-    state, command, expected_error
-):
+def test_build_select_item_time_command_compatibility(state, command, expected_error):
     item, errors = _build(
         {
             CONF_ADDRESS: state,
@@ -370,9 +464,7 @@ def test_build_select_item_time_command_compatibility(
 
 @pytest.mark.parametrize("value", [-2147484, 2147484])
 def test_build_select_item_time_range(value):
-    item, errors = _build(
-        {CONF_ADDRESS: "DB1,TIME0", CONF_OPTIONS_MAP: f"{value}:Out"}
-    )
+    item, errors = _build({CONF_ADDRESS: "DB1,TIME0", CONF_OPTIONS_MAP: f"{value}:Out"})
     assert item is None
     assert errors == {"base": "options_map_out_of_range"}
 

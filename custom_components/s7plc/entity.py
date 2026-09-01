@@ -142,8 +142,99 @@ class S7BaseEntity(CoordinatorEntity):
         return attrs
 
 
-class S7BoolSyncEntity(S7BaseEntity):
-    """Base class for boolean entities with synchronization logic."""
+class S7SyncEntity(S7BaseEntity):
+    """Base class for entities that synchronize PLC state to a command address."""
+
+    _address_attr_name = "s7_state_address"
+
+    def _initialize_sync(
+        self,
+        state_address: str,
+        command_address: str | None,
+        sync_state: bool,
+    ) -> None:
+        """Initialize synchronization without imposing a value type on subclasses."""
+        self._command_address = command_address
+        self._sync_state = bool(
+            sync_state and command_address and state_address != command_address
+        )
+        self._last_state: Any = None
+        self._pending_command: Any = None
+
+    def _sync_value(self) -> Any:
+        """Return the valid, canonical value to track, or None when unavailable."""
+        raise NotImplementedError
+
+    def _sync_payload(self, value: Any) -> Any:
+        """Convert a canonical state value to its command-address representation."""
+        return value
+
+    @callback
+    def async_write_ha_state(self) -> None:
+        """Write HA state and synchronize external PLC changes safely."""
+        new_state = self._sync_value()
+        entity_name = getattr(self, "entity_id", self._attr_unique_id)
+
+        if self._last_state is None and new_state is not None:
+            self._last_state = new_state
+            _LOGGER.debug("%s: Initial state from PLC: %s", entity_name, new_state)
+            super().async_write_ha_state()
+            return
+
+        if (
+            self._sync_state
+            and new_state is not None
+            and self.coordinator.is_connected()
+        ):
+            if self._pending_command is not None:
+                if new_state == self._pending_command:
+                    _LOGGER.debug(
+                        "%s: PLC confirmed command: %s", entity_name, new_state
+                    )
+                    self._last_state = new_state
+                    self._pending_command = None
+                    super().async_write_ha_state()
+                    return
+                _LOGGER.debug(
+                    "%s: PLC override: expected %s, got %s",
+                    entity_name,
+                    self._pending_command,
+                    new_state,
+                )
+                self._pending_command = None
+
+            if new_state != self._last_state:
+                _LOGGER.debug(
+                    "%s: External change detected: %s -> %s, syncing command address",
+                    entity_name,
+                    self._last_state,
+                    new_state,
+                )
+                self._last_state = new_state
+
+                async def _async_sync_command_write() -> None:
+                    try:
+                        await self.coordinator.write_batched(
+                            self._command_address, self._sync_payload(new_state)
+                        )
+                    except (HomeAssistantError, TypeError, ValueError) as err:
+                        _LOGGER.warning(
+                            "%s: Failed to sync command address "
+                            "after external change: %s",
+                            entity_name,
+                            err,
+                        )
+
+                self.hass.async_create_background_task(
+                    _async_sync_command_write(),
+                    name=f"s7plc_sync_write_{self._attr_unique_id}",
+                )
+
+        super().async_write_ha_state()
+
+
+class S7BoolSyncEntity(S7SyncEntity):
+    """Boolean entity using the shared synchronization state machine."""
 
     _address_attr_name = "s7_state_address"
 
@@ -186,21 +277,21 @@ class S7BoolSyncEntity(S7BaseEntity):
             address=state_address,
             suggested_area_id=suggested_area_id,
         )
-        self._command_address = command_address
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
         # Pulse and sync are mutually exclusive; pulse takes priority.
         # Sync requires different state/command addresses to be useful.
-        self._sync_state = (
-            sync_state and not pulse_command and state_address != command_address
+        self._initialize_sync(
+            state_address, command_address, sync_state and not pulse_command
         )
-        self._last_state: bool | None = None
-        self._pending_command: bool | None = None
 
     @property
     def is_on(self) -> bool | None:
         val = (self.coordinator.data or {}).get(self._topic)
         return None if val is None else bool(val)
+
+    def _sync_value(self) -> bool | None:
+        return self.is_on
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -274,85 +365,3 @@ class S7BoolSyncEntity(S7BaseEntity):
         await asyncio.sleep(self._pulse_duration)
         await self.coordinator.write_batched(self._command_address, False)
         await self.coordinator.async_request_refresh()
-
-    @callback
-    def async_write_ha_state(self) -> None:
-        """Write entity state to Home Assistant with bidirectional sync logic.
-
-        Implements three synchronization scenarios:
-        1. Initial state: Store first PLC value without sending commands
-        2. HA command echo: Pending command matches PLC response, avoid loop
-        3. External change: PLC state changed externally, sync command address
-        """
-        new_state = self.is_on
-        entity_name = getattr(self, "entity_id", self._attr_unique_id)
-
-        # Scenario 1: Initial state from PLC - store without commanding
-        if self._last_state is None and new_state is not None:
-            self._last_state = new_state
-            _LOGGER.debug(
-                "%s: Initial state from PLC: %s",
-                entity_name,
-                new_state,
-            )
-            super().async_write_ha_state()
-            return
-
-        # Scenario 2 & 3: Handle sync logic if enabled and connected
-        if (
-            self._sync_state
-            and new_state is not None
-            and self.coordinator.is_connected()
-        ):
-            # Check for pending command echo from PLC
-            if self._pending_command is not None:
-                if new_state == self._pending_command:
-                    # PLC confirmed our command - clear pending and update
-                    _LOGGER.debug(
-                        "%s: PLC confirmed command: %s",
-                        entity_name,
-                        new_state,
-                    )
-                    self._last_state = new_state
-                    self._pending_command = None
-                    super().async_write_ha_state()
-                    return
-                else:
-                    # PLC responded with different value - external override
-                    _LOGGER.debug(
-                        "%s: PLC override: expected %s, got %s",
-                        entity_name,
-                        self._pending_command,
-                        new_state,
-                    )
-                    self._pending_command = None
-
-            # External state change detected - sync command address
-            if new_state != self._last_state:
-                _LOGGER.debug(
-                    "%s: External change detected: %s -> %s, syncing command address",
-                    entity_name,
-                    self._last_state,
-                    new_state,
-                )
-                self._last_state = new_state
-
-                async def _async_sync_command_write() -> None:
-                    try:
-                        await self.coordinator.write_batched(
-                            self._command_address, new_state
-                        )
-                    except HomeAssistantError as err:
-                        _LOGGER.warning(
-                            "%s: Failed to sync command address "
-                            "after external change: %s",
-                            entity_name,
-                            err,
-                        )
-
-                self.hass.async_create_background_task(
-                    _async_sync_command_write(),
-                    name=f"s7plc_sync_write_{self._attr_unique_id}",
-                )
-
-        super().async_write_ha_state()

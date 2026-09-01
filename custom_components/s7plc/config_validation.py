@@ -266,6 +266,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_ADDRESS,
         CONF_COMMAND_ADDRESS,
         CONF_OPTIONS_MAP,
+        CONF_SYNC_STATE,
     },
     CONF_TEXTS: _COMMON_FIELDS | {CONF_ADDRESS, CONF_COMMAND_ADDRESS, CONF_PATTERN},
     CONF_CLIMATES: _COMMON_FIELDS
@@ -1525,6 +1526,8 @@ class EntityConfigBuilder:
 
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
+
+        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
 
         # Store the normalized string form; the platform re-parses it.
         item[CONF_OPTIONS_MAP] = ";".join(

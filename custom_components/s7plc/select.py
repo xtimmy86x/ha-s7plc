@@ -18,9 +18,10 @@ from .const import (
     CONF_OPTIONS_MAP,
     CONF_SCAN_INTERVAL,
     CONF_SELECTS,
+    CONF_SYNC_STATE,
     CONF_UID,
 )
-from .entity import S7BaseEntity, async_configure_entity_availability
+from .entity import S7SyncEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
 from .value_conversion import (
     ConversionContext,
@@ -101,6 +102,7 @@ async def async_setup_entry(
                 options_map,
                 area,
                 normalize_value_conversion(item, "value"),
+                item.get(CONF_SYNC_STATE, False),
             )
         )
 
@@ -112,7 +114,7 @@ async def async_setup_entry(
         await coord.async_request_refresh()
 
 
-class S7Select(S7BaseEntity, SelectEntity):
+class S7Select(S7SyncEntity, SelectEntity):
     """Select entity mapping labeled options onto a numeric PLC address."""
 
     _address_attr_name = "s7_state_address"
@@ -129,6 +131,7 @@ class S7Select(S7BaseEntity, SelectEntity):
         options_map: dict[int, str],
         suggested_area_id: str | None = None,
         value_conversion: dict | None = None,
+        sync_state: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -152,6 +155,28 @@ class S7Select(S7BaseEntity, SelectEntity):
         self._write_conversion_context = ConversionContext.from_address(
             "value", command_address or address, "write"
         )
+        self._initialize_sync(address, command_address, sync_state)
+
+    def _sync_value(self) -> int | None:
+        """Return the mapped raw HA-side PLC value, never its option label."""
+        value = (self.coordinator.data or {}).get(self._topic)
+        if value is None:
+            return None
+        try:
+            value = convert_from_plc(
+                value, self._value_conversion, self._read_conversion_context
+            )
+            value = time_to_seconds(value) if self._is_time else int(value)
+        except (ValueConversionError, TypeError, ValueError):
+            return None
+        return value if value in self._value_to_label else None
+
+    def _sync_payload(self, value: int):
+        """Apply the same command conversion used for an HA selection."""
+        converted = convert_to_plc(
+            value, self._value_conversion, self._write_conversion_context
+        )
+        return seconds_to_time(converted) if self._is_time else converted
 
     @property
     def current_option(self) -> str | None:
@@ -188,14 +213,17 @@ class S7Select(S7BaseEntity, SelectEntity):
         value = self._label_to_value.get(option)
         if value is None:
             raise HomeAssistantError(f"Unknown option: {option}")
+        self._pending_command = value
         try:
-            value = convert_to_plc(
-                value, self._value_conversion, self._write_conversion_context
-            )
+            payload = self._sync_payload(value)
         except (ValueConversionError, TypeError, ValueError) as err:
+            self._pending_command = None
             raise HomeAssistantError(f"Value conversion failed: {err}") from err
-        payload = seconds_to_time(value) if self._is_time else value
-        await self.coordinator.write_batched(self._command_address, payload)
+        try:
+            await self.coordinator.write_batched(self._command_address, payload)
+        except HomeAssistantError:
+            self._pending_command = None
+            raise
         await self.coordinator.async_request_refresh()
 
     @property
@@ -203,6 +231,8 @@ class S7Select(S7BaseEntity, SelectEntity):
         attrs = super().extra_state_attributes
         if self._command_address:
             attrs["s7_command_address"] = self._command_address.upper()
+        if self._sync_state:
+            attrs["sync_state"] = True
         attrs["options_map"] = {
             str(value): label for value, label in self._value_to_label.items()
         }

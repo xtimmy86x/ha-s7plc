@@ -655,6 +655,10 @@
             "label": "Befehlsadresse",
             "description": "SPS-Adresse zum Schreiben des gewählten Wertes (optional). Wenn leer, wird die Statusadresse verwendet."
           },
+          "sync_state": {
+            "label": "Synchronize command with state",
+            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+          },
           "options_map": {
             "label": "Optionszuordnung",
             "description": "Jeder SPS-Wert wird der in Home Assistant angezeigten Option zugeordnet. TIME-Werte werden in Sekunden angegeben. In YAML wird dies als durch ';' getrennte 'Wert:Bezeichnung'-Paare gespeichert.",

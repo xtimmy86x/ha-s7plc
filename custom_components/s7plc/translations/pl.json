@@ -655,6 +655,10 @@
             "label": "Adres zapisu",
             "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
           },
+          "sync_state": {
+            "label": "Synchronize command with state",
+            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+          },
           "options_map": {
             "label": "Mapowanie",
             "description": "Każda wartość PLC odpowiada opcji wyświetlanej w Home Assistant. Wartości TIME są wyrażone w sekundach. W YAML zapis ma postać par 'wartość:etykieta' rozdzielonych ';'.",
