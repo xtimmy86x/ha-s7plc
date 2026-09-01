@@ -8,15 +8,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.s7plc.const import (
-    CONF_MANUAL_CONNECTION_CONTROL,
-    CONF_SWITCHES,
-)
+from custom_components.s7plc import config_flow, const
+from custom_components.s7plc.const import CONF_MANUAL_CONNECTION_CONTROL, CONF_SWITCHES
 from custom_components.s7plc.coordinator import S7Coordinator
-from custom_components.s7plc.switch import (
-    S7ConnectionControlSwitch,
-    async_setup_entry,
-)
+from custom_components.s7plc.switch import S7ConnectionControlSwitch, async_setup_entry
 
 
 @pytest.mark.asyncio
@@ -112,3 +107,102 @@ async def test_control_switch_persists_off_and_on(fake_hass):
     store.async_save.assert_awaited_with({"enabled": False})
     await control.async_turn_on()
     store.async_save.assert_awaited_with({"enabled": True})
+
+
+@pytest.mark.asyncio
+async def test_disable_cancels_queued_batch_and_it_never_runs_after_enable(fake_hass):
+    coordinator = S7Coordinator(fake_hass, "192.0.2.1")
+    coordinator.async_set_updated_data = MagicMock()
+    coordinator.async_request_refresh = AsyncMock()
+    coordinator.write_multi = AsyncMock(return_value={"DB1.DBX0.0": True})
+
+    write = asyncio.create_task(coordinator.write_batched("DB1.DBX0.0", True))
+    await asyncio.sleep(0)
+    await coordinator.async_disable_connection()
+
+    with pytest.raises(HomeAssistantError, match="manually disabled"):
+        await write
+    assert coordinator._write_batch_timer is None
+    assert not coordinator._write_batch_buffer
+    assert not coordinator._write_batch_waiters
+
+    await coordinator.async_enable_connection()
+    await asyncio.sleep(coordinator._write_batch_delay * 2)
+    coordinator.write_multi.assert_not_awaited()
+
+
+def _connection_data(**overrides):
+    data = {
+        "name": "PLC",
+        "host": "plc.local",
+        "port": const.DEFAULT_PORT,
+        const.CONF_CONNECTION_TYPE: const.CONNECTION_TYPE_RACK_SLOT,
+        const.CONF_RACK: const.DEFAULT_RACK,
+        const.CONF_SLOT: const.DEFAULT_SLOT,
+        const.CONF_PYS7_CONNECTION_TYPE: const.DEFAULT_PYS7_CONNECTION_TYPE,
+        "scan_interval": const.DEFAULT_SCAN_INTERVAL,
+        const.CONF_OP_TIMEOUT: const.DEFAULT_OP_TIMEOUT,
+        const.CONF_MAX_RETRIES: const.DEFAULT_MAX_RETRIES,
+        const.CONF_BACKOFF_INITIAL: const.DEFAULT_BACKOFF_INITIAL,
+        const.CONF_BACKOFF_MAX: const.DEFAULT_BACKOFF_MAX,
+        const.CONF_OPTIMIZE_READ: const.DEFAULT_OPTIMIZE_READ,
+        const.CONF_ENABLE_WRITE_BATCHING: const.DEFAULT_ENABLE_WRITE_BATCHING,
+        const.CONF_ENABLE_METRICS: const.DEFAULT_ENABLE_METRICS,
+    }
+    data.update(overrides)
+    return data
+
+
+@pytest.mark.asyncio
+async def test_options_only_manual_control_change_skips_offline_test():
+    entry = MagicMock()
+    entry.data = _connection_data()
+    entry.options = {}
+    entry.title = "PLC"
+    entry.unique_id = "plc.local-0-1"
+    entry.entry_id = "entry"
+    hass = MagicMock()
+    hass.config_entries.async_entries.return_value = [entry]
+    hass.config_entries.async_update_entry = MagicMock()
+    flow = config_flow.S7PLCOptionsFlow(entry)
+    flow.hass = hass
+    submitted = _connection_data(**{CONF_MANUAL_CONNECTION_CONTROL: True})
+
+    with patch(
+        "custom_components.s7plc.config_flow._test_plc_connection",
+        new=AsyncMock(side_effect=OSError("offline")),
+    ) as connection_test:
+        result = await flow.async_step_connection(submitted)
+        if asyncio.iscoroutine(result):
+            result = await result
+
+    assert result["type"] == "create_entry"
+    connection_test.assert_not_awaited()
+    saved = hass.config_entries.async_update_entry.call_args.kwargs["data"]
+    assert saved[CONF_MANUAL_CONNECTION_CONTROL] is True
+
+
+@pytest.mark.asyncio
+async def test_options_connection_change_still_tests_and_rejects_offline():
+    entry = MagicMock()
+    entry.data = _connection_data()
+    entry.options = {}
+    entry.title = "PLC"
+    entry.unique_id = "plc.local-0-1"
+    entry.entry_id = "entry"
+    hass = MagicMock()
+    hass.config_entries.async_entries.return_value = [entry]
+    flow = config_flow.S7PLCOptionsFlow(entry)
+    flow.hass = hass
+    submitted = _connection_data(port=103)
+
+    with patch(
+        "custom_components.s7plc.config_flow._test_plc_connection",
+        new=AsyncMock(side_effect=OSError("offline")),
+    ) as connection_test:
+        result = await flow.async_step_connection(submitted)
+
+    assert result["type"] == "form"
+    assert result["kwargs"]["errors"] == {"base": "cannot_connect"}
+    connection_test.assert_awaited_once()
+    hass.config_entries.async_update_entry.assert_not_called()

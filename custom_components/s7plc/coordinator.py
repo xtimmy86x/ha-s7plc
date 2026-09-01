@@ -126,6 +126,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Write batching for automatic optimization
         self._write_batch_buffer: dict[str, bool | int | float | str] = {}
         self._write_batch_waiters: dict[str, list[asyncio.Future[bool]]] = {}
+        self._write_batch_inflight_waiters: dict[str, list[asyncio.Future[bool]]] = {}
+        self._write_batch_generation = 0
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
         self._last_write_error_notification: float | None = (
@@ -219,7 +221,12 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Stop retries, pending writes and the active PLC connection."""
         self._connection_enabled = False
         self._connection_state_changed.set()
-        await self.disconnect()
+        async with self._async_lock:
+            self._write_batch_generation += 1
+            self._cancel_write_batches_locked(
+                HomeAssistantError("PLC connection is manually disabled")
+            )
+        await self._drop_connection()
         self._last_health_ok = False
         self.async_set_updated_data(dict(self._data_cache))
 
@@ -429,19 +436,29 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def disconnect(self) -> None:
         """Close the PLC connection and cancel pending writes."""
-        # Cancel any pending write batch timer
+        async with self._async_lock:
+            self._write_batch_generation += 1
+            self._cancel_write_batches_locked(
+                HomeAssistantError("PLC connection was disconnected")
+            )
+        await self._drop_connection()
+
+    def _cancel_write_batches_locked(self, error: HomeAssistantError) -> None:
+        """Cancel queued and in-flight batch waiters while holding the lock."""
         if self._write_batch_timer is not None:
             self._write_batch_timer.cancel()
-            self._write_batch_timer = None
-        if self._write_batch_waiters:
-            for waiters in self._write_batch_waiters.values():
-                for waiter in waiters:
-                    if not waiter.done():
-                        waiter.set_result(False)
-            self._write_batch_waiters.clear()
-            self._write_batch_buffer.clear()
-
-        await self._drop_connection()
+        self._write_batch_timer = None
+        self._write_batch_buffer.clear()
+        waiter_groups = (
+            *self._write_batch_waiters.values(),
+            *self._write_batch_inflight_waiters.values(),
+        )
+        self._write_batch_waiters.clear()
+        self._write_batch_inflight_waiters.clear()
+        for waiters in waiter_groups:
+            for waiter in waiters:
+                if not waiter.done() and not waiter.cancelled():
+                    waiter.set_exception(error)
 
     async def async_shutdown(self) -> None:
         """Cancel all communication before the coordinator is unloaded."""
@@ -1097,13 +1114,17 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Get buffered writes
             writes = list(self._write_batch_buffer.items())
             waiters = self._write_batch_waiters
+            generation = self._write_batch_generation
             self._write_batch_buffer.clear()
             self._write_batch_waiters = {}
+            self._write_batch_inflight_waiters = waiters
             self._write_batch_timer = None
 
         results: dict[str, bool] = {}
         # Execute batch write
         try:
+            if generation != self._write_batch_generation:
+                return
             results = await self.write_multi(writes)
 
             # Log results
@@ -1156,6 +1177,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         current_time - self._last_write_error_notification,
                     )
 
+        except HomeAssistantError:
+            # Manual disable/disconnect already completed pending callers with
+            # the precise error and must not produce a notification or retry.
+            results = {address: False for address, _ in writes}
         except Exception as e:  # pragma: no cover
             error_msg = f"S7 PLC batch write failed: {e}"
             _LOGGER.exception(error_msg)
@@ -1178,10 +1203,15 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 pass
             results = {address: False for address, _ in writes}
 
+        finally:
+            async with self._async_lock:
+                if self._write_batch_inflight_waiters is waiters:
+                    self._write_batch_inflight_waiters = {}
+
         for address, address_waiters in waiters.items():
             success = bool(results.get(address, False))
             for waiter in address_waiters:
-                if not waiter.done():
+                if not waiter.done() and not waiter.cancelled():
                     waiter.set_result(success)
 
     async def _write_with_retry(self, address: str, tag: S7Tag, payload: Any) -> bool:

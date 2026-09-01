@@ -100,6 +100,28 @@ def test_initial_config_flow_creates_connection(monkeypatch, connection_type, st
     assert result["type"] == "create_entry"
     assert result["kwargs"]["title"] == "PLC"
     assert result["kwargs"]["data"][const.CONF_CONNECTION_TYPE] == connection_type
+    assert result["kwargs"]["data"][const.CONF_MANUAL_CONNECTION_CONTROL] is False
+
+
+def test_initial_config_flow_enables_manual_connection_control(monkeypatch):
+    flow = config_flow.S7PLCConfigFlow()
+    flow.hass = HomeAssistant()
+    flow._discovered_hosts = []
+    install_connection_success(monkeypatch)
+    run_flow(
+        flow.async_step_user(
+            {const.CONF_CONNECTION_TYPE: const.CONNECTION_TYPE_RACK_SLOT}
+        )
+    )
+
+    result = run_flow(
+        flow.async_step_rack_slot(
+            connection_data(**{const.CONF_MANUAL_CONNECTION_CONTROL: True})
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["kwargs"]["data"][const.CONF_MANUAL_CONNECTION_CONTROL] is True
 
 
 def test_initial_config_flow_persists_logo_family_and_uses_verified_defaults():
