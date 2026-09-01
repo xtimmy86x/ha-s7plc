@@ -656,8 +656,8 @@
             "description": "Adresa PLC pro zápis zvolené hodnoty (volitelné). Pokud není vyplněna, použije se adresa stavu."
           },
           "sync_state": {
-            "label": "Synchronize command with state",
-            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+            "label": "Synchronizovat příkaz se stavem",
+            "description": "Při externí změně stavu PLC se hodnota ze stavové adresy zapíše také na samostatnou příkazovou adresu. Počáteční stav se nikdy nezapisuje."
           },
           "options_map": {
             "label": "Mapa voleb",

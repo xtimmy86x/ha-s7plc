@@ -1083,6 +1083,16 @@ def test_panel_control_mode_is_context_aware() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "command!==state" in source
+    assert 'selects:[["address","text",true],["command_address"],["sync_state","checkbox"]' in source
+    assert "const NORMALIZE_ADDRESS=value=>String(value??'').trim().toUpperCase()" in source
+    assert "NORMALIZE_ADDRESS(form.elements.address?.value)" in source
+    assert "sync.disabled=!canSync" in source
+    assert "if(!canSync)sync.checked=false" in source
+    assert (
+        "if(type==='selects')entity.sync_state=Boolean(entity.sync_state&&"
+        "entity.command_address&&NORMALIZE_ADDRESS(entity.address)!=="
+        "NORMALIZE_ADDRESS(entity.command_address))" in source
+    )
     assert "sync.disabled=!canSync" in source
     assert "selected!=='pulse'" in source
     assert '[data-field="pulse_duration"]' in source

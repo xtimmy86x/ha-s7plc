@@ -656,8 +656,8 @@
             "description": "Indirizzo PLC su cui scrivere il valore selezionato (opzionale). Se omesso, viene usato l'indirizzo di stato."
           },
           "sync_state": {
-            "label": "Synchronize command with state",
-            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+            "label": "Sincronizza comando con stato",
+            "description": "Quando lo stato PLC cambia esternamente, il valore letto dall’indirizzo di stato viene scritto anche nell’indirizzo di comando. Lo stato iniziale non viene mai scritto."
           },
           "options_map": {
             "label": "Mappa opzioni",

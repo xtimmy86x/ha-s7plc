@@ -342,12 +342,9 @@ class EntityConfigBuilder:
     @staticmethod
     def _normalized_address(address: Any | None) -> str | None:
         """Return a normalized representation used for comparisons."""
+        from .address import normalize_address
 
-        sanitized = EntityConfigBuilder._sanitize_address(address)
-        if sanitized is None:
-            return None
-
-        return sanitized.upper()
+        return normalize_address(address)
 
     @staticmethod
     def _normalize_scan_interval_value(value: Any | None) -> float | None:
@@ -770,7 +767,11 @@ class EntityConfigBuilder:
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
-        if sync_state and (not command_address or command_address == state_address):
+        if sync_state and (
+            not command_address
+            or self._normalized_address(command_address)
+            == self._normalized_address(state_address)
+        ):
             return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
         item[CONF_PULSE_COMMAND] = pulse_command
@@ -1326,7 +1327,11 @@ class EntityConfigBuilder:
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
-        if sync_state and (not command_address or command_address == state_address):
+        if sync_state and (
+            not command_address
+            or self._normalized_address(command_address)
+            == self._normalized_address(state_address)
+        ):
             return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
         item[CONF_PULSE_COMMAND] = pulse_command
@@ -1527,7 +1532,14 @@ class EntityConfigBuilder:
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
 
-        item[CONF_SYNC_STATE] = bool(user_input.get(CONF_SYNC_STATE, False))
+        sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
+        if sync_state and (
+            not command_address
+            or self._normalized_address(command_address)
+            == self._normalized_address(address)
+        ):
+            return None, {"base": "sync_same_address"}
+        item[CONF_SYNC_STATE] = sync_state
 
         # Store the normalized string form; the platform re-parses it.
         item[CONF_OPTIONS_MAP] = ";".join(

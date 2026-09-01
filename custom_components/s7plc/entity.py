@@ -9,6 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .address import normalize_address
 from .const import (
     AVAILABILITY_MODE_ALWAYS,
     AVAILABILITY_MODE_BIT,
@@ -156,7 +157,9 @@ class S7SyncEntity(S7BaseEntity):
         """Initialize synchronization without imposing a value type on subclasses."""
         self._command_address = command_address
         self._sync_state = bool(
-            sync_state and command_address and state_address != command_address
+            sync_state
+            and command_address
+            and normalize_address(state_address) != normalize_address(command_address)
         )
         self._last_state: Any = None
         self._pending_command: Any = None

@@ -656,8 +656,8 @@
             "description": "SPS-Adresse zum Schreiben des gewählten Wertes (optional). Wenn leer, wird die Statusadresse verwendet."
           },
           "sync_state": {
-            "label": "Synchronize command with state",
-            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+            "label": "Befehl mit Status synchronisieren",
+            "description": "Wenn sich der SPS-Status extern ändert, wird der von der Statusadresse gelesene Wert auch auf die separate Befehlsadresse geschrieben. Der Anfangsstatus wird niemals geschrieben."
           },
           "options_map": {
             "label": "Optionszuordnung",

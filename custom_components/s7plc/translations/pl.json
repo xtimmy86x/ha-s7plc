@@ -656,8 +656,8 @@
             "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
           },
           "sync_state": {
-            "label": "Synchronize command with state",
-            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+            "label": "Sterowanie synchronizacji stanu",
+            "description": "Po zewnętrznej zmianie stanu PLC wartość z adresu stanu jest zapisywana także pod osobnym adresem polecenia. Stan początkowy nigdy nie jest zapisywany."
           },
           "options_map": {
             "label": "Mapowanie",
