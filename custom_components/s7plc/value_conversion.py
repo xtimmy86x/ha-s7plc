@@ -86,9 +86,13 @@ def conversion_contexts(entity_type: str, entity: Mapping[str, Any], channel: st
         write_address = read_address
     contexts = []
     if read_address:
-        contexts.append(ConversionContext.from_address(channel, read_address, "read"))
+        contexts.append(
+            ConversionContext.from_address(channel, read_address, "read", entity_type)
+        )
     if write_address:
-        contexts.append(ConversionContext.from_address(channel, write_address, "write"))
+        contexts.append(
+            ConversionContext.from_address(channel, write_address, "write", entity_type)
+        )
     if not contexts:
         raise ValueConversionError(f"channel '{channel}' has no address")
     return contexts
@@ -105,10 +109,17 @@ class ConversionContext:
     channel: str
     data_type: Any
     direction: str = "bidirectional"  # read, write, bidirectional
+    entity_type: str | None = None
 
     @classmethod
-    def from_address(cls, channel: str, address: str, direction: str = "bidirectional"):
-        return cls(channel, parse_tag(address).data_type, direction)
+    def from_address(
+        cls,
+        channel: str,
+        address: str,
+        direction: str = "bidirectional",
+        entity_type: str | None = None,
+    ):
+        return cls(channel, parse_tag(address).data_type, direction, entity_type)
 
     @property
     def can_read(self) -> bool:
@@ -132,6 +143,62 @@ def _finite(value: Any, field: str = "value") -> float:
     if not math.isfinite(number):
         raise ValueConversionError(f"{field} must be finite")
     return number
+
+
+def normalize_enum_mappings(
+    mappings: Any, data_type: Any
+) -> list[dict[str, int | str]]:
+    """Validate and canonicalize an ordered PLC enum mapping."""
+    if not isinstance(mappings, list):
+        raise ValueConversionError("mappings must be a list")
+    if not mappings:
+        raise ValueConversionError("at least one enum mapping is required")
+    if data_type not in INTEGER_DATA_TYPES:
+        raise ValueConversionError("enum_map requires an integer PLC datatype")
+    limits = get_numeric_limits(data_type)
+    result: list[dict[str, int | str]] = []
+    seen_values: set[int] = set()
+    seen_labels: set[str] = set()
+    for index, mapping in enumerate(mappings, 1):
+        if not isinstance(mapping, Mapping):
+            raise ValueConversionError(f"mapping {index} must be an object")
+        if set(mapping) != {"value", "label"}:
+            raise ValueConversionError(
+                f"mapping {index} must contain exactly value and label"
+            )
+        mapping_value = mapping["value"]
+        if isinstance(mapping_value, bool):
+            raise ValueConversionError(f"mapping {index} value must not be boolean")
+        number = _finite(mapping_value, f"mapping {index} value")
+        if not number.is_integer():
+            raise ValueConversionError(f"mapping {index} value must be an integer")
+        canonical_value = int(number)
+        if limits and not limits[0] <= canonical_value <= limits[1]:
+            raise ValueConversionError(
+                f"mapping {index} value is outside PLC datatype limits {limits}"
+            )
+        if canonical_value in seen_values:
+            raise ValueConversionError(f"mapping {index} has a duplicate PLC value")
+        label_value = mapping["label"]
+        if not isinstance(label_value, str) or not (label := label_value.strip()):
+            raise ValueConversionError(f"mapping {index} label is required")
+        # Labels are case-sensitive, matching Home Assistant enum option semantics.
+        if label in seen_labels:
+            raise ValueConversionError(f"mapping {index} has a duplicate label")
+        seen_values.add(canonical_value)
+        seen_labels.add(label)
+        result.append({"value": canonical_value, "label": label})
+    return result
+
+
+def convert_enum_from_plc(value: Any, lookup: Mapping[int, str]) -> str | None:
+    """Convert one discrete PLC code using a precomputed enum lookup."""
+    if isinstance(value, bool):
+        raise ValueConversionError("enum PLC value must not be boolean")
+    number = _finite(value, "enum PLC value")
+    if not number.is_integer():
+        raise ValueConversionError("enum PLC value must be an integer")
+    return lookup.get(int(number))
 
 
 def _round(value: float, mode: str) -> int:
@@ -257,10 +324,21 @@ def validate_value_conversion(
     """Validate one serialized conversion against channel capabilities."""
     if not config:
         return
-    if not supports_value_conversion(context.data_type):
-        raise ValueConversionError("datatype is not numeric")
     kind = config.get("type")
-    if kind == "multiplier":
+    if kind != "enum_map" and not supports_value_conversion(context.data_type):
+        raise ValueConversionError("datatype is not numeric")
+    if kind == "enum_map":
+        if (
+            context.entity_type != "sensors"
+            or context.channel != "value"
+            or not context.can_read
+            or context.can_write
+        ):
+            raise ValueConversionError(
+                "enum_map is supported only for the read-only sensors.value channel"
+            )
+        normalize_enum_mappings(config.get("mappings"), context.data_type)
+    elif kind == "multiplier":
         factor = _finite(config.get("factor"), "factor")
         if context.can_write and factor == 0:
             raise ValueConversionError("factor must not be zero for writes")
@@ -303,6 +381,10 @@ def normalize_value_conversion(
     result = dict(configured) if configured else None
     if result and context:
         validate_value_conversion(result, context)
+        if result.get("type") == "enum_map":
+            result["mappings"] = normalize_enum_mappings(
+                result.get("mappings"), context.data_type
+            )
     return result
 
 
@@ -314,6 +396,12 @@ def convert_from_plc(
             return value
         validate_value_conversion(config, context)
         kind = config["type"]
+        if kind == "enum_map":
+            mappings = normalize_enum_mappings(config["mappings"], context.data_type)
+            return convert_enum_from_plc(
+                value,
+                {item["value"]: item["label"] for item in mappings},
+            )
         number = _finite(value)
         if kind == "multiplier":
             result = number * _finite(config["factor"], "factor")
@@ -344,6 +432,8 @@ def convert_to_plc(
             return value
         validate_value_conversion(config, context)
         kind = config["type"]
+        if kind == "enum_map":
+            raise ValueConversionError("enum_map is read-only and cannot write to PLC")
         if kind == "logo_time_bcd":
             return _logo_time(value)
         number = _finite(value)
@@ -380,4 +470,6 @@ def describe_value_conversion(config: Mapping[str, Any] | None) -> str:
         )
     if config.get("type") == "logo_time_bcd":
         return "LOGO! time (BCD)"
+    if config.get("type") == "enum_map":
+        return f"Enum map · {len(config.get('mappings') or [])} states"
     return "Custom expression"

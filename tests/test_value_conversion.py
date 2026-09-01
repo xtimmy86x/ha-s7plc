@@ -9,6 +9,7 @@ from custom_components.s7plc.value_conversion import (
     ConversionContext,
     VALUE_CHANNEL_SPECS,
     ValueConversionError,
+    convert_enum_from_plc,
     convert_from_plc,
     convert_to_plc,
     describe_value_conversion,
@@ -260,3 +261,145 @@ def test_brightness_scale_rejects_noncanonical_ha_domain(override) -> None:
         validate_value_conversion(
             conversion, ConversionContext("brightness", DataType.WORD)
         )
+
+
+ENUM = {
+    "type": "enum_map",
+    "mappings": [
+        {"value": 0, "label": "Closed"},
+        {"value": 1.0, "label": "Opening"},
+        {"value": 2, "label": "Open"},
+        {"value": 3, "label": "Fault"},
+    ],
+}
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        DataType.BYTE,
+        DataType.USINT,
+        DataType.SINT,
+        DataType.WORD,
+        DataType.INT,
+        DataType.DWORD,
+        DataType.DINT,
+    ],
+)
+def test_enum_map_integer_types_and_order(data_type):
+    context = ConversionContext("value", data_type, "read", "sensors")
+    validate_value_conversion(ENUM, context)
+    normalized = normalize_value_conversion(
+        {"value_conversions": {"value": ENUM}}, "value", context
+    )
+    assert normalized["mappings"][1]["value"] == 1
+    assert [convert_from_plc(value, normalized, context) for value in range(4)] == [
+        "Closed",
+        "Opening",
+        "Open",
+        "Fault",
+    ]
+    assert convert_from_plc(99, normalized, context) is None
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        DataType.REAL,
+        DataType.LREAL,
+        DataType.TIME,
+        DataType.BIT,
+        DataType.CHAR,
+        DataType.STRING,
+        DataType.WSTRING,
+    ],
+)
+def test_enum_map_rejects_non_integer_types(data_type):
+    with pytest.raises(ValueConversionError, match="integer PLC datatype"):
+        validate_value_conversion(
+            ENUM, ConversionContext("value", data_type, "read", "sensors")
+        )
+
+
+@pytest.mark.parametrize(
+    "entity_type", ["numbers", "selects", "entity_sync", "lights", "covers", "climates"]
+)
+def test_enum_map_is_sensor_only(entity_type):
+    with pytest.raises(ValueConversionError, match="only"):
+        validate_value_conversion(
+            ENUM, ConversionContext("value", DataType.INT, "read", entity_type)
+        )
+
+
+@pytest.mark.parametrize(
+    "mappings,match",
+    [
+        ([], "at least one"),
+        ([{"value": 1}], "exactly"),
+        ([{"value": 1.5, "label": "A"}], "integer"),
+        ([{"value": True, "label": "A"}], "boolean"),
+        ([{"value": 32768, "label": "A"}], "outside"),
+        ([{"value": 1, "label": "A"}, {"value": 1.0, "label": "B"}], "duplicate PLC"),
+        ([{"value": 1, "label": " "}], "required"),
+        ([{"value": 1, "label": "A"}, {"value": 2, "label": " A "}], "duplicate label"),
+    ],
+)
+def test_enum_map_invalid_mappings(mappings, match):
+    with pytest.raises(ValueConversionError, match=match):
+        validate_value_conversion(
+            {"type": "enum_map", "mappings": mappings},
+            ConversionContext("value", DataType.INT, "read", "sensors"),
+        )
+
+
+def test_enum_map_is_explicitly_read_only():
+    with pytest.raises(ValueConversionError, match="read-only"):
+        convert_to_plc(
+            1, ENUM, ConversionContext("value", DataType.INT, "read", "sensors")
+        )
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_enum_map_rejects_non_finite_values(value):
+    conversion = {"type": "enum_map", "mappings": [{"value": value, "label": "Bad"}]}
+    with pytest.raises(ValueConversionError, match="finite"):
+        validate_value_conversion(
+            conversion, ConversionContext("value", DataType.INT, "read", "sensors")
+        )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(0, "Zero"), (1, "One"), (1.0, "One"), (-1, "Negative"), (9, None), ("1", "One")],
+)
+def test_enum_helper_matches_conversion_pipeline(value, expected):
+    lookup = {-1: "Negative", 0: "Zero", 1: "One"}
+    conversion = {
+        "type": "enum_map",
+        "mappings": [{"value": key, "label": label} for key, label in lookup.items()],
+    }
+    context = ConversionContext("value", DataType.INT, "read", "sensors")
+    assert convert_enum_from_plc(value, lookup) == expected
+    assert convert_from_plc(value, conversion, context) == expected
+
+
+@pytest.mark.parametrize(
+    "value", [True, False, 1.5, float("nan"), float("inf"), float("-inf"), "bad"]
+)
+def test_enum_helper_and_conversion_pipeline_reject_same_values(value):
+    lookup = {1: "One"}
+    conversion = {"type": "enum_map", "mappings": [{"value": 1, "label": "One"}]}
+    context = ConversionContext("value", DataType.INT, "read", "sensors")
+    with pytest.raises(ValueConversionError):
+        convert_enum_from_plc(value, lookup)
+    with pytest.raises(ValueConversionError):
+        convert_from_plc(value, conversion, context)
+
+
+def test_enum_pipeline_canonicalizes_string_mapping_values():
+    conversion = {
+        "type": "enum_map",
+        "mappings": [{"value": "1", "label": "Open"}],
+    }
+    context = ConversionContext("value", DataType.INT, "read", "sensors")
+    assert convert_from_plc(1, conversion, context) == "Open"

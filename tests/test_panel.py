@@ -5051,3 +5051,186 @@ def test_number_limit_copy_and_sensor_fields_are_consistent() -> None:
         "description": "Valore massimo selezionabile in Home Assistant. Non "
         "modifica né converte il valore letto dal PLC.",
     }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_mapping_collection_is_strict_and_canonical() -> None:
+    """Empty/partial enum rows fail before Number(), while integral text canonicalizes."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
+const row=(value,label)=>({{querySelector:s=>s===".om-value"?{{value}}:{{value:label}}}});
+const box=rows=>({{querySelectorAll:()=>rows}});
+const run=rows=>{{try{{return panel.enumMappingsFromRow(box(rows));}}catch(e){{return e.message;}}}};
+console.log(JSON.stringify({{
+ emptyValue:run([row("","Closed")]),emptyBoth:run([row("","")]),partial:run([row("1","")]),
+ zero:run([row("0","Closed")]),decimalText:run([row("1.0","Open")]),fraction:run([row("1.5","Bad")]),none:run([])
+}}));"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value["emptyValue"] == "value_conversion.errors.value_required"
+    assert value["emptyBoth"] == "value_conversion.errors.value_required"
+    assert value["partial"] == "value_conversion.errors.label_required"
+    assert value["zero"] == [{"value": 0, "label": "Closed"}]
+    assert value["decimalText"] == [{"value": 1, "label": "Open"}]
+    assert value["fraction"] == "value_conversion.errors.value_integer"
+    assert value["none"] == "value_conversion.errors.mapping_required"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_kind_transition_restores_device_class_and_fields() -> None:
+    """Persisted enum and ordinary sensors both leave enum mode canonically."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.syncValueConversions=()=>{{}};
+const make=(device)=>{{
+ const select={{value:"enum_map"}},deviceClass={{value:device,disabled:false}},fields={{}};
+ for(const key of ["device_class","unit_of_measurement","state_class","real_precision"])fields[key]={{classList:{{hidden:false,toggle(_n,v){{this.hidden=v;}}}}}};
+ const summary={{textContent:"",dataset:{{conversionTitle:"Value"}},setAttribute(){{}}}};
+ const row={{dataset:{{valueConversion:"value"}},querySelectorAll:s=>s==="[data-kind]"?[{{dataset:{{kind:"enum_map"}},hidden:false}},{{dataset:{{kind:"multiplier"}},hidden:true}}]:[],querySelector:s=>s==="[data-conversion-summary]"?summary:s==="summary"?summary:null}};
+ const form={{dataset:{{}},elements:{{vc_value_type:select,device_class:deviceClass}},querySelector:s=>fields[s.match(/data-field="([^"]+)/)?.[1]]||null}};
+ panel.syncValueConversionKind(row,form,false);const active={{device:deviceClass.value,disabled:deviceClass.disabled,hidden:fields.unit_of_measurement.classList.hidden}};
+ panel.setValueConversionKind(row,form,"multiplier");return {{active,left:{{device:deviceClass.value,disabled:deviceClass.disabled,hidden:fields.unit_of_measurement.classList.hidden}},summary:summary.textContent}};
+}};
+console.log(JSON.stringify({{persisted:make("enum"),temperature:make("temperature"),none:make("")}}));"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value["persisted"]["left"]["device"] == ""
+    assert value["temperature"]["left"]["device"] == "temperature"
+    assert value["none"]["left"]["device"] == ""
+    for case in value.values():
+        assert case["active"] == {"device": "enum", "disabled": True, "hidden": True}
+        assert case["left"]["disabled"] is False and case["left"]["hidden"] is False
+        assert "[object Object]" not in case["summary"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_incompatible_datatypes_fully_leave_enum_mode_and_keep_rows() -> None:
+    """Changing an enum Sensor address updates all dependent draft UI state."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
+const run=dataType=>{{
+ const select={{value:"enum_map"}},device={{value:"enum",disabled:true}},enumOption={{hidden:false}},kind={{dataset:{{kind:"enum_map"}},hidden:false}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"enum",setAttribute(){{}},addEventListener(){{}}}},field={{classList:{{hidden:true,toggle(_n,v){{this.hidden=v;}}}}}},rows=[{{id:1}},{{id:2}}];
+ const row={{open:true,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?rows:[],querySelector:s=>s==="[data-enum-map]"?enumOption:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
+ const form={{dataset:{{enumPreviousDeviceClass:"__none__"}},elements:{{address:{{value:`DB1,${{dataType}}0`}},vc_value_type:select,device_class:device}},querySelector:s=>s.startsWith('[data-field=')?field:null,querySelectorAll:()=>[row]}};
+ panel.syncValueConversions(form);return {{kind:select.value,device:device.value,disabled:device.disabled,hidden:field.classList.hidden,editor:kind.hidden,rows:rows.length,optionHidden:enumOption.hidden,summary:summary.textContent}};
+}};
+console.log(JSON.stringify(Object.fromEntries(["REAL","LREAL","STRING","BIT","TIME"].map(t=>[t,run(t)]))));"""
+    values = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    for state in values.values():
+        assert state["kind"] == ""
+        assert state["device"] == ""
+        assert state["disabled"] is False
+        assert state["hidden"] is False
+        assert state["editor"] is True
+        assert state["rows"] == 2
+        assert state["optionHidden"] is True
+        assert state["summary"] == "value_conversion.none"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_option_is_sensor_integer_only() -> None:
+    """The rendered conversion catalogue and datatype gate both enforce scope."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
+const sensor=panel.valueConversionRow("sensors",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.sensors[0]);
+const number=panel.valueConversionRow("numbers",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.numbers[0]);
+console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),number:number.includes('data-enum-map'),integer:INTEGER_VALUE_TYPES.has('INT'),real:INTEGER_VALUE_TYPES.has('REAL'),time:INTEGER_VALUE_TYPES.has('TIME')}}));"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value == {
+        "sensor": True,
+        "number": False,
+        "integer": True,
+        "real": False,
+        "time": False,
+    }
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_editor_layout_and_existing_mapping_order() -> None:
+    """Enum mappings render below the selector at full width without reordering."""
+    script = f"""global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
+const html=panel.valueConversionRow("sensors",{{address:"DB1,INT0",value_conversions:{{value:{{type:"enum_map",mappings:[{{value:7,label:"Seven"}},{{value:-1,label:"Minus one"}}]}}}}}},VALUE_CHANNEL_SPECS.sensors[0]);
+console.log(JSON.stringify({{html,first:html.indexOf('value="7"'),second:html.indexOf('value="-1"')}}));"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    html = result["html"]
+    assert 'class="enum-map-editor"' in html
+    assert html.index('class="enum-map-editor"') > html.index('name="vc_value_type"')
+    assert result["first"] < result["second"]
+    assert 'value="Seven"' in html and 'value="Minus one"' in html
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert (
+        ".conversion-fields>.enum-map-editor{box-sizing:border-box;grid-column:1/-1"
+        in source
+    )
+    assert "grid-template-columns:minmax(110px,1fr) minmax(0,2fr) 44px" in source
+    assert "@media(max-width:600px)" in source
+    assert (
+        ".enum-map-editor .om-row{grid-template-columns:minmax(0,1fr) 44px}" in source
+    )
+    assert (
+        ".enum-map-editor .om-value,.enum-map-editor .om-label{max-width:100%}"
+        in source
+    )
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_empty_section_visibility_uses_effective_dom_visibility_without_mutation() -> (
+    None
+):
+    """Conditional sections hide and restore based on effective field visibility."""
+    script = f"""global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();
+const classes=()=>{{const values=new Set();return {{contains:n=>values.has(n),toggle:(n,on)=>on?values.add(n):values.delete(n),values}}}};
+const section=(key,fields)=>({{dataset:{{section:key}},classList:classes(),querySelectorAll:()=>fields}});
+const behaviorField={{hidden:false,classList:classes(),parentElement:null}},nestedParent={{hidden:true,classList:classes(),parentElement:null}},nestedField={{hidden:false,classList:classes(),parentElement:nestedParent}},rows=[{{id:1}},{{id:2}}];
+const conversion={{hidden:false,classList:classes(),parentElement:null,querySelectorAll:s=>s==='[data-enum-row]'?rows:[]}};
+const behavior=section('behavior',[behaviorField]),nested=section('other',[nestedField]),options=section('options',[conversion]),addresses=section('addresses',[]),ha=section('ha',[]);nestedParent.parentElement=nested;[behaviorField,conversion].forEach((f,i)=>f.parentElement=i?options:behavior);
+const form={{querySelectorAll:s=>s==='.form-section'?[behavior,nested,options,addresses,ha]:[]}};
+panel.syncEmptySections(form);const initial={{behavior:behavior.classList.values.has('hidden-field'),nested:nested.classList.values.has('hidden-field'),options:options.classList.values.has('hidden-field'),addresses:addresses.classList.values.has('hidden-field'),ha:ha.classList.values.has('hidden-field'),rows:rows.length}};
+behaviorField.classList.toggle('hidden-field',true);panel.syncEmptySections(form);const empty=behavior.classList.values.has('hidden-field');behaviorField.classList.toggle('hidden-field',false);panel.syncEmptySections(form);console.log(JSON.stringify({{initial,empty,restored:!behavior.classList.values.has('hidden-field'),rows:rows.length}}));"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value == {
+        "initial": {
+            "behavior": False,
+            "nested": True,
+            "options": False,
+            "addresses": False,
+            "ha": False,
+            "rows": 2,
+        },
+        "empty": True,
+        "restored": True,
+        "rows": 2,
+    }
+

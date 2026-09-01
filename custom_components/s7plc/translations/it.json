@@ -1246,7 +1246,24 @@
       "example_write": "Conversione inversa in scrittura",
       "example_clamp": "Limite del risultato",
       "example_round": "Arrotondamento",
-      "expression_safety": "Non sono consentiti template, attributi, indicizzazione, importazioni o chiamate a funzioni diverse da quelle indicate."
+      "expression_safety": "Non sono consentiti template, attributi, indicizzazione, importazioni o chiamate a funzioni diverse da quelle indicate.",
+      "enum_map": "Mappatura enum",
+      "plc_value": "Valore PLC",
+      "ha_state": "Stato Home Assistant",
+      "add_state": "Aggiungi stato",
+      "enum_states": "{count} stati",
+      "enum_help": "Mappa codici PLC interi discreti in stati testuali. La device class enum viene impostata automaticamente.",
+      "errors": {
+        "value_required": "Il valore PLC è obbligatorio.",
+        "value_integer": "Il valore PLC deve essere un intero.",
+        "value_duplicate": "Il valore PLC è duplicato.",
+        "label_required": "Lo stato Home Assistant è obbligatorio.",
+        "label_duplicate": "Lo stato Home Assistant è duplicato.",
+        "mapping_required": "È richiesta almeno una mappatura.",
+        "datatype_incompatible": "Il datatype PLC non è compatibile con enum_map.",
+        "unmapped": "Il valore PLC non è mappato."
+      },
+      "action": "Azione"
     }
   },
   "selector": {

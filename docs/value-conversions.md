@@ -208,3 +208,42 @@ datatype, not against 0–255.
 
 An existing legacy brightness setting is persistently migrated to exactly the
 linear scale above, so the runtime never applies a second conversion.
+
+## Sensor enum mapping
+
+`enum_map` is a read-only conversion available **only** for the Sensor `value`
+channel and the integer PLC datatypes `BYTE`, `USINT`, `SINT`, `WORD`, `INT`,
+`DWORD`, and `DINT`. It is an alternative to multiplier, linear scale, custom
+expression, and LOGO! time BCD conversions; converters cannot be chained.
+Selecting it automatically sets `device_class: enum` and removes
+`unit_of_measurement`, `state_class`, and `real_precision` from the persisted
+configuration.
+
+```yaml
+sensors:
+  - address: DB1,INT0
+    name: Door state
+    device_class: enum
+    value_conversions:
+      value:
+        type: enum_map
+        mappings:
+          - value: 0
+            label: Closed
+          - value: 1
+            label: Opening
+          - value: 2
+            label: Open
+          - value: 3
+            label: Fault
+```
+
+Mappings are an ordered list and that order becomes the Home Assistant enum
+options order. PLC values are canonical integers and must be unique and within
+the address datatype limits. Labels are trimmed and must be non-empty and
+unique using case-sensitive comparison. An unmapped PLC value produces an
+unknown state (`None`), and the raw number is never exposed. A warning is logged
+once for each consecutive occurrence of an unmapped value. After a mapped value
+is received, warning deduplication is reset, and normal state is restored. YAML
+import applies the same device-class and incompatible-field normalization as the
+visual editor.
