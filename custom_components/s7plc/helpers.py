@@ -61,6 +61,7 @@ from .const import (
     CONF_ENTITY_SYNC,
     CONF_HEATING_OUTPUT_ADDRESS,
     CONF_LIGHTS,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_NUMBERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -185,6 +186,7 @@ class RuntimeEntryData:
     name: str
     host: str
     device_id: str
+    connection_state_store: Any | None = None
 
 
 def get_coordinator_and_device_info(
@@ -502,6 +504,8 @@ def build_expected_unique_ids(
     if source.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS):
         for defn in METRICS_DEFINITIONS:
             ids.add(f"{device_id}:metrics:{defn.key}")
+    if source.get(CONF_MANUAL_CONNECTION_CONTROL, False):
+        ids.add(f"{device_id}:connection_enable")
     return ids
 
 

@@ -34,6 +34,7 @@ from .const import (
     CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_LOCAL_TSAP,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
@@ -49,6 +50,7 @@ from .const import (
     DEFAULT_BACKOFF_MAX,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
+    DEFAULT_MANUAL_CONNECTION_CONTROL,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPTIMIZE_READ,
@@ -418,6 +420,7 @@ def _build_connection_entry_data(
     rack: int | None,
     slot: int | None,
     plc_family: str = PLC_FAMILY_S7,
+    manual_connection_control: bool = DEFAULT_MANUAL_CONNECTION_CONTROL,
 ) -> dict[str, Any]:
     """Build connection entry data dict."""
     data = {
@@ -435,6 +438,7 @@ def _build_connection_entry_data(
         CONF_OPTIMIZE_READ: optimize_read,
         CONF_ENABLE_WRITE_BATCHING: enable_write_batching,
         CONF_ENABLE_METRICS: enable_metrics,
+        CONF_MANUAL_CONNECTION_CONTROL: manual_connection_control,
     }
     if connection_type == CONNECTION_TYPE_TSAP:
         data[CONF_LOCAL_TSAP] = local_tsap
@@ -927,6 +931,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_HOST: data.get(CONF_HOST, ""),
             **parse_defaults,
             CONF_PLC_FAMILY: data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+            CONF_MANUAL_CONNECTION_CONTROL: data.get(
+                CONF_MANUAL_CONNECTION_CONTROL, DEFAULT_MANUAL_CONNECTION_CONTROL
+            ),
         }
 
         # Build schema based on connection type
@@ -976,6 +983,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ): bool,
                 vol.Optional(
                     CONF_ENABLE_METRICS, default=defaults[CONF_ENABLE_METRICS]
+                ): bool,
+                vol.Optional(
+                    CONF_MANUAL_CONNECTION_CONTROL,
+                    default=defaults[CONF_MANUAL_CONNECTION_CONTROL],
                 ): bool,
                 vol.Optional(
                     CONF_PYS7_CONNECTION_TYPE,
@@ -1138,6 +1149,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             rack=params.rack,
             slot=params.slot,
             plc_family=family,
+            manual_connection_control=bool(
+                user_input.get(CONF_MANUAL_CONNECTION_CONTROL, False)
+            ),
         )
 
         update_result = self.hass.config_entries.async_update_entry(

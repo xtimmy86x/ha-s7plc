@@ -111,7 +111,8 @@
           "optimize_read": "Lesevorgänge optimieren",
           "enable_write_batching": "Schreibvorgänge bündeln aktivieren",
           "enable_metrics": "Leistungsmetriken aktivieren",
-          "plc_family": "SPS-Familie"
+          "plc_family": "SPS-Familie",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "Name für die SPS (wird in Entitätsnamen verwendet).",
@@ -127,7 +128,8 @@
           "retry_backoff_max": "Maximale Verzögerung zwischen Wiederholungsversuchen.",
           "optimize_read": "Aktivieren Sie optimierte Lesevorgänge zur Leistungsverbesserung. Bei Lesefehlern deaktivieren Sie diese Option.",
           "enable_write_batching": "Aktivieren Sie automatisches Bündeln von Schreibvorgängen. Wenn mehrere Entitäten gleichzeitig aktualisiert werden, werden Schreibvorgänge zu einer einzigen SPS-Anfrage gruppiert (50ms Fenster). Verbessert die Leistung für Szenen und Massenoperationen.",
-          "enable_metrics": "Leistungsmetriken aktivieren. Sammelt und meldet Leistungsdaten für Überwachung und Optimierung."
+          "enable_metrics": "Leistungsmetriken aktivieren. Sammelt und meldet Leistungsdaten für Überwachung und Optimierung.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       }
     },
@@ -198,6 +200,11 @@
       },
       "metrics_total_bytes_written": {
         "name": "Geschriebene Bytes gesamt"
+      }
+    },
+    "switch": {
+      "connection_enable": {
+        "name": "Enable connection"
       }
     }
   },

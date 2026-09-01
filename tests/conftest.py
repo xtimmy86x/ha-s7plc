@@ -378,6 +378,26 @@ helpers_typing.ConfigType = dict
 sys.modules["homeassistant.helpers.typing"] = helpers_typing
 helpers.typing = helpers_typing
 
+helpers_storage = ModuleType("homeassistant.helpers.storage")
+
+
+class Store:  # pragma: no cover - in-memory persistence stub
+    _data = {}
+
+    def __init__(self, hass, version, key):
+        self.key = key
+
+    async def async_load(self):
+        return self._data.get(self.key)
+
+    async def async_save(self, data):
+        self._data[self.key] = data
+
+
+helpers_storage.Store = Store
+sys.modules["homeassistant.helpers.storage"] = helpers_storage
+helpers.storage = helpers_storage
+
 update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
 
 T = TypeVar("T")
@@ -398,6 +418,9 @@ class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - simple stub
         return None
 
     async def async_request_refresh(self):  # pragma: no cover - stub
+        return None
+
+    async def async_shutdown(self):  # pragma: no cover - stub
         return None
 
 
@@ -890,7 +913,12 @@ class SwitchEntity:  # pragma: no cover - simple stub
 
 
 switch = ModuleType("homeassistant.components.switch")
+class SwitchDeviceClass:  # pragma: no cover - simple stub
+    SWITCH = "switch"
+
+
 switch.SwitchEntity = SwitchEntity
+switch.SwitchDeviceClass = SwitchDeviceClass
 sys.modules["homeassistant.components.switch"] = switch
 components.switch = switch
 
@@ -1260,6 +1288,10 @@ class DummyCoordinator:
         """Mock disconnect method."""
         self.disconnected = True
         self._connected = False
+
+    async def async_shutdown(self):
+        """Mock coordinator shutdown method."""
+        await self.disconnect()
 
 
 class _ImmediateAwaitable:

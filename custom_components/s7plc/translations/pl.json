@@ -111,7 +111,8 @@
           "optimize_read": "Optymalizacja odczytów wsadowych",
           "enable_write_batching": "Grupowanie zapisów",
           "enable_metrics": "Metryki wydajności",
-          "plc_family": "Rodzina PLC"
+          "plc_family": "Rodzina PLC",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "Przyjazna nazwa PLC używana w nazwach encji.",
@@ -127,7 +128,8 @@
           "retry_backoff_max": "Maksymalne opóźnienie w (s) przy kolejnych próbach komunikacji z PLC.",
           "optimize_read": "Włącz optymalizację odczytu wsadowego dla lepszej wydajności. Wyłącz, jeśli pojawią się błędy odczytu.",
           "enable_write_batching": "Automatyczne grupowanie zapisów. Gdy wiele encji aktualizuje się jednocześnie, zapisy są łączone w jedno żądanie PLC (okno 50ms). Poprawia wydajność dla scen i operacji zbiorczych.",
-          "enable_metrics": "Włącz metryki wydajności. Zbiera i raportuje dane wydajnościowe do monitorowania i optymalizacji."
+          "enable_metrics": "Włącz metryki wydajności. Zbiera i raportuje dane wydajnościowe do monitorowania i optymalizacji.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       }
     },
@@ -198,6 +200,11 @@
       },
       "metrics_total_bytes_written": {
         "name": "Łącznie zapisanych bajtów"
+      }
+    },
+    "switch": {
+      "connection_enable": {
+        "name": "Enable connection"
       }
     }
   },

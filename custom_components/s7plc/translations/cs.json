@@ -111,7 +111,8 @@
           "optimize_read": "Optimalizovat dávkové čtení",
           "enable_write_batching": "Povolit dávkové zápisy",
           "enable_metrics": "Povolit metriky výkonu",
-          "plc_family": "Rodina PLC"
+          "plc_family": "Rodina PLC",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "Srozumitelný název PLC (používá se v názvech entit).",
@@ -127,7 +128,8 @@
           "retry_backoff_max": "Maximální prodleva mezi opakovanými pokusy.",
           "optimize_read": "Zapne optimalizované dávkové čtení pro lepší výkon. Pokud se objeví chyby čtení, tuto volbu vypněte.",
           "enable_write_batching": "Zapne automatické dávkování zápisů. Při současné změně více entit se zápisy spojí do jednoho požadavku na PLC (okno 50 ms). Zlepšuje výkon scén a hromadných operací.",
-          "enable_metrics": "Povolit metriky výkonu. Shromažďuje a hlásí data o výkonu pro monitorování a optimalizaci."
+          "enable_metrics": "Povolit metriky výkonu. Shromažďuje a hlásí data o výkonu pro monitorování a optimalizaci.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       }
     },
@@ -198,6 +200,11 @@
       },
       "metrics_total_bytes_written": {
         "name": "Celkem zapsaných bajtů"
+      }
+    },
+    "switch": {
+      "connection_enable": {
+        "name": "Enable connection"
       }
     }
   },

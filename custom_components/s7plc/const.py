@@ -17,7 +17,7 @@ FRONTEND_BUILD = "20260901.1"
 
 PANEL_URL = "s7plc-config"
 
-FRONTEND_MODULE = "/s7plc_static/s7plc-panel.js" f"?v={VERSION}&build={FRONTEND_BUILD}"
+FRONTEND_MODULE = f"/s7plc_static/s7plc-panel.js?v={VERSION}&build={FRONTEND_BUILD}"
 
 CONF_RACK = "rack"
 CONF_SLOT = "slot"
@@ -293,6 +293,7 @@ CONF_BACKOFF_MAX = "retry_backoff_max"
 CONF_OPTIMIZE_READ = "optimize_read"
 CONF_ENABLE_WRITE_BATCHING = "enable_write_batching"
 CONF_ENABLE_METRICS = "enable_metrics"
+CONF_MANUAL_CONNECTION_CONTROL = "manual_connection_control"
 
 DEFAULT_OP_TIMEOUT = 5.0  # seconds
 DEFAULT_MAX_RETRIES = 3
@@ -301,3 +302,6 @@ DEFAULT_BACKOFF_MAX = 2.0  # seconds
 DEFAULT_OPTIMIZE_READ = True  # enabled by default for better performance
 DEFAULT_ENABLE_WRITE_BATCHING = True  # enabled by default for better performance
 DEFAULT_ENABLE_METRICS = False  # disabled by default to avoid overhead
+DEFAULT_MANUAL_CONNECTION_CONTROL = False
+
+CONNECTION_CONTROL_STORAGE_VERSION = 1
