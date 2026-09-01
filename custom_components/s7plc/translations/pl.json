@@ -931,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Typ",
+      "sync_requires_command": "Wymaga oddzielnego adresu polecenia.",
       "sync_requires_different": "Wymaga różnych adresów stanu i polecenia.",
       "options": {
         "direct": {

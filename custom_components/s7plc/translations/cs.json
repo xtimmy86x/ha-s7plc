@@ -931,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Chování ovládání",
+      "sync_requires_command": "Vyžaduje samostatnou příkazovou adresu.",
       "sync_requires_different": "Vyžaduje odlišnou stavovou a příkazovou adresu.",
       "options": {
         "direct": {

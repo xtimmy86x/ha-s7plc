@@ -931,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Comportamento controllo",
+      "sync_requires_command": "Richiede un indirizzo di comando separato.",
       "sync_requires_different": "Richiede indirizzi stato e comando differenti.",
       "options": {
         "direct": {

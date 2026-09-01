@@ -1083,15 +1083,15 @@ def test_panel_control_mode_is_context_aware() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
     assert "command!==state" in source
-    assert 'selects:[["address","text",true],["command_address"],["sync_state","checkbox"]' in source
+    assert 'selects:[["control_behavior","control",false,["direct","sync"]],["address","text",true],["command_address"]' in source
     assert "const NORMALIZE_ADDRESS=value=>String(value??'').trim().toUpperCase()" in source
-    assert "NORMALIZE_ADDRESS(form.elements.address?.value)" in source
+    assert "type==='selects'?'address':'state_address'" in source
     assert "sync.disabled=!canSync" in source
-    assert "if(!canSync)sync.checked=false" in source
+    assert "if(!canSync&&sync.checked)" in source
     assert (
-        "if(type==='selects')entity.sync_state=Boolean(entity.sync_state&&"
-        "entity.command_address&&NORMALIZE_ADDRESS(entity.address)!=="
-        "NORMALIZE_ADDRESS(entity.command_address))" in source
+        "if(type==='selects')entity.sync_state=form.elements.control_behavior.value==='sync'&&"
+        "Boolean(entity.command_address)&&NORMALIZE_ADDRESS(entity.address)!=="
+        "NORMALIZE_ADDRESS(entity.command_address);" in source
     )
     assert "sync.disabled=!canSync" in source
     assert "selected!=='pulse'" in source
@@ -1099,6 +1099,9 @@ def test_panel_control_mode_is_context_aware() -> None:
     assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
     assert 'name="pulse_command" type="checkbox"' not in source
+    assert "choices||['direct','sync','pulse']" in source
+    assert "sync_requires_command" in source
+    assert "data-sync-reason" in source
 
 
 def test_entity_from_visual_editor() -> None:
@@ -2968,10 +2971,14 @@ console.log(JSON.stringify(FIELDS));
             assert len(definition) <= 4
             assert len(definition) == 1 or definition[1] in technical_kinds
             key = definition[0]
-            text = english["entity_types"][entity_type]["fields"].get(key) or english[
-                "common"
-            ]["fields"].get(key)
-            assert text and text["label"] and text["description"]
+            text = (
+                english["entity_types"][entity_type]["fields"].get(key)
+                or english["common"]["fields"].get(key)
+                or (english["control_behavior"] if key == "control_behavior" else None)
+            )
+            assert text and text["label"]
+            if key != "control_behavior":
+                assert text["description"]
 
 
 def test_panel_has_no_flow_step_dependency_or_unresolved_translation_paths() -> None:

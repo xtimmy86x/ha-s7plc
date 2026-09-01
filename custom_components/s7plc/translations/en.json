@@ -931,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Control behavior",
+      "sync_requires_command": "Requires a separate command address.",
       "sync_requires_different": "Requires different state and command addresses.",
       "options": {
         "direct": {

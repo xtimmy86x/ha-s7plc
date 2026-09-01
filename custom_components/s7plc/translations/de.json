@@ -931,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Steuerverhalten",
+      "sync_requires_command": "Erfordert eine separate Befehlsadresse.",
       "sync_requires_different": "Erfordert unterschiedliche Status- und Befehlsadressen.",
       "options": {
         "direct": {
