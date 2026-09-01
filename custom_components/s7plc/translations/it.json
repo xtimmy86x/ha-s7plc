@@ -655,6 +655,10 @@
             "label": "Indirizzo di comando",
             "description": "Indirizzo PLC su cui scrivere il valore selezionato (opzionale). Se omesso, viene usato l'indirizzo di stato."
           },
+          "sync_state": {
+            "label": "Sincronizza comando con stato",
+            "description": "Quando lo stato PLC cambia esternamente, il valore letto dall’indirizzo di stato viene scritto anche nell’indirizzo di comando. Lo stato iniziale non viene mai scritto."
+          },
           "options_map": {
             "label": "Mappa opzioni",
             "description": "Ogni valore PLC corrisponde all'opzione mostrata in Home Assistant. I valori TIME sono espressi in secondi. In YAML viene memorizzato come coppie 'valore:etichetta' separate da ';'.",
@@ -927,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Comportamento controllo",
+      "sync_requires_command": "Richiede un indirizzo di comando separato.",
       "sync_requires_different": "Richiede indirizzi stato e comando differenti.",
       "options": {
         "direct": {

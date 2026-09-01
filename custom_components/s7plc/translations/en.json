@@ -655,6 +655,10 @@
             "label": "Command address",
             "description": "PLC address to write the selected value (optional). If omitted, the state address is used."
           },
+          "sync_state": {
+            "label": "Synchronize command with state",
+            "description": "Copy external PLC state changes to the separate command address. The initial state is never written."
+          },
           "options_map": {
             "label": "Options map",
             "description": "Each PLC value maps to the option shown in Home Assistant. TIME values are expressed in seconds. In YAML this is stored as 'value:label' pairs separated by ';'.",
@@ -927,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Control behavior",
+      "sync_requires_command": "Requires a separate command address.",
       "sync_requires_different": "Requires different state and command addresses.",
       "options": {
         "direct": {

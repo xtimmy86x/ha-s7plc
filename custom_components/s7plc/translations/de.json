@@ -655,6 +655,10 @@
             "label": "Befehlsadresse",
             "description": "SPS-Adresse zum Schreiben des gewählten Wertes (optional). Wenn leer, wird die Statusadresse verwendet."
           },
+          "sync_state": {
+            "label": "Befehl mit Status synchronisieren",
+            "description": "Wenn sich der SPS-Status extern ändert, wird der von der Statusadresse gelesene Wert auch auf die separate Befehlsadresse geschrieben. Der Anfangsstatus wird niemals geschrieben."
+          },
           "options_map": {
             "label": "Optionszuordnung",
             "description": "Jeder SPS-Wert wird der in Home Assistant angezeigten Option zugeordnet. TIME-Werte werden in Sekunden angegeben. In YAML wird dies als durch ';' getrennte 'Wert:Bezeichnung'-Paare gespeichert.",
@@ -927,6 +931,7 @@
     },
     "control_behavior": {
       "label": "Steuerverhalten",
+      "sync_requires_command": "Erfordert eine separate Befehlsadresse.",
       "sync_requires_different": "Erfordert unterschiedliche Status- und Befehlsadressen.",
       "options": {
         "direct": {

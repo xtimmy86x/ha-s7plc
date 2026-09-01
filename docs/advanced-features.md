@@ -4,7 +4,7 @@ This document covers advanced functionality including State Synchronization, Ent
 
 ## State Synchronization
 
-The **Sync State** feature is available for `switch` and `light` (on/off) entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
+The **Sync State** feature is available for `switch`, `light` (on/off), and mapped `select` entities and provides intelligent bidirectional synchronization between Home Assistant and the PLC.
 
 > **Note**: Sync State and Pulse Command Mode apply to both **on/off** lights and **dimmer lights**. For dimmers, these features control the boolean state (on/off) while brightness is controlled separately through the brightness addresses.
 
@@ -48,12 +48,12 @@ Disable `sync_state` (default) when:
 
 ### Configuration
 
-To enable sync state for a switch or light:
+To enable sync state for a switch, light, or select:
 
 1. Open the **S7 PLC Side Panel** from the sidebar.
 2. Select the PLC and add a new entity or edit an existing entity card.
-3. Select `switch` or `light` as the entity type
-4. Enter the `state_address` (the PLC address to read the actual state)
+3. Select `switch`, `light`, or `select` as the entity type
+4. Enter the state address (`state_address`, or `address` for a select)
 5. Enter the `command_address` (the PLC address to write commands) — **must be a different address from `state_address`**. If the two addresses are the same (or `command_address` is omitted), the configuration form will reject `sync_state` with a `sync_same_address` error.
 6. **Enable the `Sync State` checkbox**
 7. Save the configuration
@@ -66,6 +66,7 @@ To enable sync state for a switch or light:
 - State changes are written asynchronously to avoid blocking the coordinator
 - The integration maintains internal state tracking to distinguish between Home Assistant commands and external PLC changes
 - Initial state on entity creation is read-only (no synchronization) to avoid unintended writes during startup
+- Select synchronization writes the canonical mapped PLC value (after read conversion and before write conversion), not the option label or its list index
 
 ### Performance Considerations
 

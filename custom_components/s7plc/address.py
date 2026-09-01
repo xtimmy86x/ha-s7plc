@@ -16,6 +16,7 @@ __all__ = [
     "MemoryArea",
     "S7Tag",
     "parse_tag",
+    "normalize_address",
     "get_numeric_limits",
     "is_time_data_type",
     "time_to_seconds",
@@ -27,6 +28,14 @@ TIME_MIN_MILLISECONDS = -(2**31)
 TIME_MAX_MILLISECONDS = 2**31 - 1
 TIME_MIN_SECONDS = TIME_MIN_MILLISECONDS / 1000
 TIME_MAX_SECONDS = TIME_MAX_MILLISECONDS / 1000
+
+
+def normalize_address(address: object | None) -> str | None:
+    """Normalize an address for comparisons without changing stored formatting."""
+    if address is None:
+        return None
+    normalized = str(address).strip()
+    return normalized.upper() if normalized else None
 
 
 def is_time_data_type(data_type) -> bool:
