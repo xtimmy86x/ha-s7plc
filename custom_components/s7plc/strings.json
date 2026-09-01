@@ -1262,7 +1262,8 @@
         "mapping_required": "At least one mapping is required.",
         "datatype_incompatible": "The PLC datatype is not compatible with enum_map.",
         "unmapped": "The PLC value is not mapped."
-      }
+      },
+      "action": "Action"
     }
   },
   "selector": {

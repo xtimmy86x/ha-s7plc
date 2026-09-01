@@ -1262,7 +1262,8 @@
         "mapping_required": "Je vyžadováno alespoň jedno mapování.",
         "datatype_incompatible": "Datový typ PLC není kompatibilní s enum_map.",
         "unmapped": "Hodnota PLC není namapována."
-      }
+      },
+      "action": "Akce"
     }
   },
   "selector": {

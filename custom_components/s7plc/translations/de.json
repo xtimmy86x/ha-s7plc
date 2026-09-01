@@ -1262,7 +1262,8 @@
         "mapping_required": "Mindestens eine Zuordnung ist erforderlich.",
         "datatype_incompatible": "Der PLC-Datentyp ist nicht mit enum_map kompatibel.",
         "unmapped": "Der PLC-Wert ist nicht zugeordnet."
-      }
+      },
+      "action": "Aktion"
     }
   },
   "selector": {

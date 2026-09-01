@@ -5164,3 +5164,73 @@ console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),number:numb
         "real": False,
         "time": False,
     }
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_editor_layout_and_existing_mapping_order() -> None:
+    """Enum mappings render below the selector at full width without reordering."""
+    script = f"""global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
+const html=panel.valueConversionRow("sensors",{{address:"DB1,INT0",value_conversions:{{value:{{type:"enum_map",mappings:[{{value:7,label:"Seven"}},{{value:-1,label:"Minus one"}}]}}}}}},VALUE_CHANNEL_SPECS.sensors[0]);
+console.log(JSON.stringify({{html,first:html.indexOf('value="7"'),second:html.indexOf('value="-1"')}}));"""
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    html = result["html"]
+    assert 'class="enum-map-editor"' in html
+    assert html.index('class="enum-map-editor"') > html.index('name="vc_value_type"')
+    assert result["first"] < result["second"]
+    assert 'value="Seven"' in html and 'value="Minus one"' in html
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert (
+        ".conversion-fields>.enum-map-editor{box-sizing:border-box;grid-column:1/-1"
+        in source
+    )
+    assert "grid-template-columns:minmax(110px,1fr) minmax(0,2fr) 44px" in source
+    assert "@media(max-width:600px)" in source
+    assert (
+        ".enum-map-editor .om-row{grid-template-columns:minmax(0,1fr) 44px}" in source
+    )
+    assert (
+        ".enum-map-editor .om-value,.enum-map-editor .om-label{max-width:100%}"
+        in source
+    )
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_empty_section_visibility_uses_effective_dom_visibility_without_mutation() -> (
+    None
+):
+    """Conditional sections hide and restore based on effective field visibility."""
+    script = f"""global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();
+const classes=()=>{{const values=new Set();return {{contains:n=>values.has(n),toggle:(n,on)=>on?values.add(n):values.delete(n),values}}}};
+const section=(key,fields)=>({{dataset:{{section:key}},classList:classes(),querySelectorAll:()=>fields}});
+const behaviorField={{hidden:false,classList:classes(),parentElement:null}},nestedParent={{hidden:true,classList:classes(),parentElement:null}},nestedField={{hidden:false,classList:classes(),parentElement:nestedParent}},rows=[{{id:1}},{{id:2}}];
+const conversion={{hidden:false,classList:classes(),parentElement:null,querySelectorAll:s=>s==='[data-enum-row]'?rows:[]}};
+const behavior=section('behavior',[behaviorField]),nested=section('other',[nestedField]),options=section('options',[conversion]),addresses=section('addresses',[]),ha=section('ha',[]);nestedParent.parentElement=nested;[behaviorField,conversion].forEach((f,i)=>f.parentElement=i?options:behavior);
+const form={{querySelectorAll:s=>s==='.form-section'?[behavior,nested,options,addresses,ha]:[]}};
+panel.syncEmptySections(form);const initial={{behavior:behavior.classList.values.has('hidden-field'),nested:nested.classList.values.has('hidden-field'),options:options.classList.values.has('hidden-field'),addresses:addresses.classList.values.has('hidden-field'),ha:ha.classList.values.has('hidden-field'),rows:rows.length}};
+behaviorField.classList.toggle('hidden-field',true);panel.syncEmptySections(form);const empty=behavior.classList.values.has('hidden-field');behaviorField.classList.toggle('hidden-field',false);panel.syncEmptySections(form);console.log(JSON.stringify({{initial,empty,restored:!behavior.classList.values.has('hidden-field'),rows:rows.length}}));"""
+    value = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+    assert value == {
+        "initial": {
+            "behavior": False,
+            "nested": True,
+            "options": False,
+            "addresses": False,
+            "ha": False,
+            "rows": 2,
+        },
+        "empty": True,
+        "restored": True,
+        "rows": 2,
+    }
+
