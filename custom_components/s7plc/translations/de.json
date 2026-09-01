@@ -1246,7 +1246,23 @@
       "example_write": "Inverse Schreibkonvertierung",
       "example_clamp": "Ergebnis begrenzen",
       "example_round": "Rundung",
-      "expression_safety": "Templates, Attribute, Indizierung, Importe und Aufrufe anderer als der aufgeführten Funktionen sind nicht zulässig."
+      "expression_safety": "Templates, Attribute, Indizierung, Importe und Aufrufe anderer als der aufgeführten Funktionen sind nicht zulässig.",
+      "enum_map": "Enum-Zuordnung",
+      "plc_value": "PLC-Wert",
+      "ha_state": "Home-Assistant-Status",
+      "add_state": "Status hinzufügen",
+      "enum_states": "{count} Status",
+      "enum_help": "Ordnet diskrete ganzzahlige PLC-Codes Textstatus zu. Die Device Class enum wird automatisch gesetzt.",
+      "errors": {
+        "value_required": "PLC-Wert ist erforderlich.",
+        "value_integer": "PLC-Wert muss eine Ganzzahl sein.",
+        "value_duplicate": "PLC-Wert ist doppelt.",
+        "label_required": "Home-Assistant-Status ist erforderlich.",
+        "label_duplicate": "Home-Assistant-Status ist doppelt.",
+        "mapping_required": "Mindestens eine Zuordnung ist erforderlich.",
+        "datatype_incompatible": "Der PLC-Datentyp ist nicht mit enum_map kompatibel.",
+        "unmapped": "Der PLC-Wert ist nicht zugeordnet."
+      }
     }
   },
   "selector": {

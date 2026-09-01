@@ -985,3 +985,155 @@ async def test_entity_sync_coordinator_update_no_duplicate_tasks(entity_sync_fac
     # After the task completes the flag is cleared; a new poll may retry
     await created_tasks[0]
     assert es._initial_write_pending is False
+
+
+def test_sensor_enum_map_runtime_and_warning_dedup(
+    sensor_factory, mock_coordinator, caplog
+):
+    conversion = {
+        "type": "enum_map",
+        "mappings": [{"value": 0, "label": "Closed"}, {"value": 1, "label": "Open"}],
+    }
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0", address="DB1,INT0", value_conversion=conversion
+    )
+    assert sensor._attr_device_class == getattr(SensorDeviceClass, "ENUM", "enum")
+    assert sensor._attr_options == ["Closed", "Open"]
+    mock_coordinator.data = {"sensor:DB1,INT0": 0}
+    assert sensor.native_value == "Closed"
+    mock_coordinator.data["sensor:DB1,INT0"] = 9
+    assert sensor.native_value is None
+    assert sensor.native_value is None
+    assert caplog.text.count("Unmapped enum value") == 1
+    mock_coordinator.data["sensor:DB1,INT0"] = 1
+    assert sensor.native_value == "Open"
+
+
+def test_sensor_enum_lookup_warns_again_after_valid_value(
+    sensor_factory, mock_coordinator, caplog
+):
+    conversion = {"type": "enum_map", "mappings": [{"value": 1, "label": "Open"}]}
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0", address="DB1,INT0", value_conversion=conversion
+    )
+    assert sensor._enum_lookup == {1: "Open"}
+    mock_coordinator.data = {"sensor:DB1,INT0": 5}
+    assert sensor.native_value is None
+    assert sensor.native_value is None
+    mock_coordinator.data["sensor:DB1,INT0"] = 1
+    assert sensor.native_value == "Open"
+    mock_coordinator.data["sensor:DB1,INT0"] = 5
+    assert sensor.native_value is None
+    assert caplog.text.count("Unmapped enum value") == 2
+
+
+@pytest.mark.parametrize(
+    ("value", "expected", "invalid"),
+    [
+        (0, "Zero", False),
+        (1, "One", False),
+        (1.0, "One", False),
+        (-1, "Negative", False),
+        (9, None, False),
+        ("1", "One", False),
+        (1.5, None, True),
+        (float("nan"), None, True),
+        (float("inf"), None, True),
+        (float("-inf"), None, True),
+        ("bad", None, True),
+        (True, None, True),
+        (False, None, True),
+    ],
+)
+def test_sensor_enum_path_matches_shared_converter(
+    sensor_factory, mock_coordinator, value, expected, invalid
+):
+    from custom_components.s7plc.value_conversion import (
+        ConversionContext,
+        ValueConversionError,
+        convert_enum_from_plc,
+        convert_from_plc,
+    )
+
+    mappings = [
+        {"value": -1, "label": "Negative"},
+        {"value": 0, "label": "Zero"},
+        {"value": 1, "label": "One"},
+    ]
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0",
+        address="DB1,INT0",
+        value_conversion={"type": "enum_map", "mappings": mappings},
+    )
+    mock_coordinator.data = {"sensor:DB1,INT0": value}
+    assert sensor.native_value == expected
+    lookup = {mapping["value"]: mapping["label"] for mapping in mappings}
+    context = ConversionContext("value", DataType.INT, "read", "sensors")
+    if invalid:
+        with pytest.raises(ValueConversionError):
+            convert_enum_from_plc(value, lookup)
+        with pytest.raises(ValueConversionError):
+            convert_from_plc(value, sensor._value_conversion, context)
+    else:
+        assert convert_enum_from_plc(value, lookup) == expected
+        assert convert_from_plc(value, sensor._value_conversion, context) == expected
+
+
+def test_sensor_enum_canonicalizes_direct_string_mapping_values(
+    sensor_factory, mock_coordinator
+):
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0",
+        address="DB1,INT0",
+        value_conversion={
+            "type": "enum_map",
+            "mappings": [{"value": "1", "label": "Open"}],
+        },
+    )
+    assert sensor._enum_lookup == {1: "Open"}
+    mock_coordinator.data = {"sensor:DB1,INT0": 1}
+    assert sensor.native_value == "Open"
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_sensor_enum_rejects_boolean_with_conversion_warning(
+    sensor_factory, mock_coordinator, caplog, value
+):
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0",
+        address="DB1,INT0",
+        value_conversion={
+            "type": "enum_map",
+            "mappings": [{"value": 1, "label": "Open"}],
+        },
+    )
+    mock_coordinator.data = {"sensor:DB1,INT0": value}
+    assert sensor.native_value is None
+    assert "enum PLC value must not be boolean" in caplog.text
+
+
+def test_sensor_enum_warns_when_unmapped_value_changes(
+    sensor_factory, mock_coordinator, caplog
+):
+    sensor = sensor_factory(
+        topic="sensor:DB1,INT0",
+        address="DB1,INT0",
+        value_conversion={
+            "type": "enum_map",
+            "mappings": [{"value": 1, "label": "Open"}],
+        },
+    )
+    for value in (5, 6, 6):
+        mock_coordinator.data = {"sensor:DB1,INT0": value}
+        assert sensor.native_value is None
+    warnings = [
+        record.message
+        for record in caplog.records
+        if "Unmapped enum value" in record.message
+    ]
+    assert len(warnings) == 2
+    assert all(
+        "Test Sensor" in warning and "DB1,INT0" in warning for warning in warnings
+    )
+    assert warnings[0].endswith(": 5")
+    assert warnings[1].endswith(": 6")

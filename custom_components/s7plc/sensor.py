@@ -42,7 +42,9 @@ from .helpers import (
 from .value_conversion import (
     ConversionContext,
     ValueConversionError,
+    convert_enum_from_plc,
     convert_from_plc,
+    normalize_enum_mappings,
     normalize_value_conversion,
 )
 
@@ -407,8 +409,10 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         )
         self._value_conversion = value_conversion
         self._conversion_context = ConversionContext.from_address(
-            "value", address, "read"
+            "value", address, "read", "sensors"
         )
+        self._last_unmapped_enum_value: int | None = None
+        self._enum_lookup: dict[int, str] | None = None
 
         self._custom_unit = unit_of_measurement if unit_of_measurement else None
 
@@ -421,6 +425,19 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         is_string_or_char = self._is_string_or_char_sensor()
 
         sensor_device_class = SensorDeviceClass.DURATION if self._is_time else None
+
+        if value_conversion and value_conversion.get("type") == "enum_map":
+            mappings = normalize_enum_mappings(
+                value_conversion["mappings"], self._conversion_context.data_type
+            )
+            self._value_conversion = {**value_conversion, "mappings": mappings}
+            self._enum_lookup = {
+                mapping["value"]: mapping["label"] for mapping in mappings
+            }
+            enum_device_class = getattr(SensorDeviceClass, "ENUM", "enum")
+            sensor_device_class = enum_device_class
+            self._attr_device_class = enum_device_class
+            self._attr_options = [mapping["label"] for mapping in mappings]
 
         if self._is_time:
             self._attr_device_class = SensorDeviceClass.DURATION
@@ -483,13 +500,36 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         value = (self.coordinator.data or {}).get(self._topic)
         if value is None:
             return value
-        if isinstance(value, bool):
+        if isinstance(value, bool) and self._enum_lookup is None:
             return value
         if self._is_time:
             try:
                 value = time_to_seconds(value)
             except (TypeError, ValueError):
                 _LOGGER.warning("Invalid TIME value for %s: %r", self._topic, value)
+                return None
+        if self._enum_lookup is not None:
+            try:
+                converted = convert_enum_from_plc(value, self._enum_lookup)
+                if converted is None:
+                    unmapped = int(float(value))
+                    if unmapped != self._last_unmapped_enum_value:
+                        _LOGGER.warning(
+                            "Unmapped enum value for sensor %s at %s: %s",
+                            self.name,
+                            self._address,
+                            unmapped,
+                        )
+                        self._last_unmapped_enum_value = unmapped
+                else:
+                    self._last_unmapped_enum_value = None
+                return converted
+            except (ValueConversionError, TypeError, ValueError) as err:
+                _LOGGER.warning(
+                    "Value conversion failed for sensor %s channel value: %s",
+                    self.name,
+                    err,
+                )
                 return None
         # Resolve numeric value once
         if isinstance(value, numbers.Number):

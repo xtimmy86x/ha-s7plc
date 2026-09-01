@@ -2061,15 +2061,29 @@ def build_entity_item(
                 "base": f"unsupported_conversion_channels:{','.join(unknown_channels)}"
             }
         try:
+            canonical_conversions = {}
             for channel, conversion in conversions.items():
                 # Do not collapse state/command with ``or``: differing PLC
                 # datatypes must both support and validate the conversion.
-                normalized = normalize_value_conversion(entity, channel)
-                for context in conversion_contexts(entity_type, item, channel):
+                contexts = conversion_contexts(entity_type, item, channel)
+                normalized = normalize_value_conversion(entity, channel, contexts[0])
+                if normalized is None:
+                    continue
+                for context in contexts:
                     validate_value_conversion(normalized, context)
-            item[CONF_VALUE_CONVERSIONS] = {
-                key: dict(value) for key, value in conversions.items() if value
-            }
+                canonical_conversions[channel] = normalized
+            if canonical_conversions:
+                item[CONF_VALUE_CONVERSIONS] = canonical_conversions
+            else:
+                item.pop(CONF_VALUE_CONVERSIONS, None)
+            if (
+                entity_type == CONF_SENSORS
+                and canonical_conversions.get("value", {}).get("type") == "enum_map"
+            ):
+                item[CONF_DEVICE_CLASS] = "enum"
+                item.pop(CONF_UNIT_OF_MEASUREMENT, None)
+                item.pop(CONF_STATE_CLASS, None)
+                item.pop(CONF_REAL_PRECISION, None)
         except (ValueConversionError, ValueError, TypeError) as err:
             return None, {"base": f"invalid_value_conversion:{err}"}
 

@@ -1246,7 +1246,23 @@
       "example_write": "Inverse write conversion",
       "example_clamp": "Limit the result",
       "example_round": "Rounding",
-      "expression_safety": "Templates, attributes, indexing, imports, and calls to functions other than those listed are not allowed."
+      "expression_safety": "Templates, attributes, indexing, imports, and calls to functions other than those listed are not allowed.",
+      "enum_map": "Enum map",
+      "plc_value": "PLC value",
+      "ha_state": "Home Assistant state",
+      "add_state": "Add state",
+      "enum_states": "{count} states",
+      "enum_help": "Map discrete integer PLC codes to text states. The enum device class is set automatically.",
+      "errors": {
+        "value_required": "PLC value is required.",
+        "value_integer": "PLC value must be an integer.",
+        "value_duplicate": "PLC value is duplicated.",
+        "label_required": "Home Assistant state is required.",
+        "label_duplicate": "Home Assistant state is duplicated.",
+        "mapping_required": "At least one mapping is required.",
+        "datatype_incompatible": "The PLC datatype is not compatible with enum_map.",
+        "unmapped": "The PLC value is not mapped."
+      }
     }
   },
   "selector": {

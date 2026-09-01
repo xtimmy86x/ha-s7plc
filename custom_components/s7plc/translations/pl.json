@@ -1246,7 +1246,23 @@
       "example_write": "Odwrotna konwersja zapisu",
       "example_clamp": "Ograniczenie wyniku",
       "example_round": "Zaokrąglanie",
-      "expression_safety": "Szablony, atrybuty, indeksowanie, importy i wywołania funkcji innych niż wymienione są niedozwolone."
+      "expression_safety": "Szablony, atrybuty, indeksowanie, importy i wywołania funkcji innych niż wymienione są niedozwolone.",
+      "enum_map": "Mapowanie enum",
+      "plc_value": "Wartość PLC",
+      "ha_state": "Stan Home Assistant",
+      "add_state": "Dodaj stan",
+      "enum_states": "{count} stanów",
+      "enum_help": "Mapuje dyskretne całkowite kody PLC na stany tekstowe. Klasa urządzenia enum jest ustawiana automatycznie.",
+      "errors": {
+        "value_required": "Wartość PLC jest wymagana.",
+        "value_integer": "Wartość PLC musi być liczbą całkowitą.",
+        "value_duplicate": "Wartość PLC jest zduplikowana.",
+        "label_required": "Stan Home Assistant jest wymagany.",
+        "label_duplicate": "Stan Home Assistant jest zduplikowany.",
+        "mapping_required": "Wymagane jest co najmniej jedno mapowanie.",
+        "datatype_incompatible": "Typ danych PLC nie jest zgodny z enum_map.",
+        "unmapped": "Wartość PLC nie jest zmapowana."
+      }
     }
   },
   "selector": {
