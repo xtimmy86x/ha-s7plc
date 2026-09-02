@@ -5251,70 +5251,99 @@ console.log(JSON.stringify({{persisted:make("enum"),temperature:make("temperatur
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_enum_incompatible_datatypes_fully_leave_enum_mode_and_keep_rows() -> None:
-    """Changing an enum Sensor address updates all dependent draft UI state."""
+def test_enum_incompatible_datatypes_fully_leave_enum_mode_and_remove_option() -> None:
+    """Changing an enum Sensor address removes its option and resets draft UI."""
     script = f"""
 global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+const options=[];const makeOption=value=>{{const option={{value,dataset:{{}},textContent:"",remove(){{options.splice(options.indexOf(this),1);}}}};if(value==="enum_map")option.dataset.enumMap="";if(value==="logo_time_bcd")option.dataset.logoBcd="";return option;}};
+global.document={{createElement:()=>makeOption("")}};
 {PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
 const run=dataType=>{{
- const select={{value:"enum_map"}},device={{value:"enum",disabled:true}},enumOption={{hidden:false}},enumHint={{hidden:true}},kind={{dataset:{{kind:"enum_map"}},hidden:false}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"enum",setAttribute(){{}},addEventListener(){{}}}},field={{classList:{{hidden:true,toggle(_n,v){{this.hidden=v;}}}}}},rows=[{{id:1}},{{id:2}}];
- const row={{open:true,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?rows:[],querySelector:s=>s==="[data-enum-map]"?enumOption:s==="[data-enum-unavailable]"?enumHint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
+ options.splice(0,options.length,...["","multiplier","linear_scale","enum_map","logo_time_bcd","expression"].map(makeOption));
+ const select={{value:"enum_map",querySelector(s){{if(s.includes('enum_map'))return options.find(o=>o.value==="enum_map")||null;if(s==="[data-logo-bcd]")return options.find(o=>o.value==="logo_time_bcd")||null;if(s.includes('expression'))return options.find(o=>o.value==="expression")||null;return null;}},insertBefore(option,before){{const i=before?options.indexOf(before):options.length;options.splice(i,0,option);}}}},device={{value:"enum",disabled:true}},enumHint={{hidden:true}},kind={{dataset:{{kind:"enum_map"}},hidden:false}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"enum",setAttribute(){{}},addEventListener(){{}}}},field={{classList:{{hidden:true,toggle(_n,v){{this.hidden=v;}}}}}},rows=[{{id:1}},{{id:2}}];
+ const row={{open:true,dataset:{{valueConversion:"value",enumMapSupported:"true",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?rows:[],querySelector:s=>s==="[data-enum-unavailable]"?enumHint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
  const form={{dataset:{{enumPreviousDeviceClass:"__none__"}},elements:{{address:{{value:`DB1,${{dataType}}0`}},vc_value_type:select,device_class:device}},querySelector:s=>s.startsWith('[data-field=')?field:null,querySelectorAll:()=>[row]}};
- panel.syncValueConversions(form);return {{kind:select.value,device:device.value,disabled:device.disabled,hidden:field.classList.hidden,editor:kind.hidden,rows:rows.length,optionHidden:enumOption.hidden,hintHidden:enumHint.hidden,summary:summary.textContent}};
+ panel.syncValueConversions(form);return {{kind:select.value,device:device.value,disabled:device.disabled,hidden:field.classList.hidden,editor:kind.hidden,rows:rows.length,optionPresent:options.some(o=>o.value==="enum_map"),hintHidden:enumHint.hidden,summary:summary.textContent}};
 }};
 console.log(JSON.stringify(Object.fromEntries(["REAL","LREAL","STRING","BIT","TIME"].map(t=>[t,run(t)]))));"""
-    values = json.loads(
-        subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
-        ).stdout
-    )
+    values = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
     for state in values.values():
-        assert state["kind"] == ""
-        assert state["device"] == ""
-        assert state["disabled"] is False
-        assert state["hidden"] is False
-        assert state["editor"] is True
-        assert state["rows"] == 2
-        assert state["optionHidden"] is True
-        assert state["hintHidden"] is False
-        assert state["summary"] == "value_conversion.none"
+        assert state == {
+            "kind": "", "device": "", "disabled": False, "hidden": False,
+            "editor": True, "rows": 2, "optionPresent": False,
+            "hintHidden": False, "summary": "value_conversion.none",
+        }
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_enum_availability_hint_tracks_manual_and_builder_datatype_changes() -> None:
-    """The informational hint and enum option share the reactive datatype gate."""
+def test_enum_option_dom_sync_is_ordered_and_duplicate_free() -> None:
+    """Repeated datatype transitions remove and recreate one correctly placed option."""
     script = f"""
 global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+const options=[];const makeOption=value=>{{const option={{value,dataset:{{}},textContent:"",remove(){{options.splice(options.indexOf(this),1);}}}};if(value==="logo_time_bcd")option.dataset.logoBcd="";return option;}};
+global.document={{createElement:()=>makeOption("")}};
 {PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
-const select={{value:"multiplier"}},enumOption={{hidden:false}},enumHint={{hidden:true}};
-const multiplier={{dataset:{{kind:"multiplier"}},hidden:false}},linear={{dataset:{{kind:"linear_scale"}},hidden:true}},expression={{dataset:{{kind:"expression"}},hidden:true}};
-const summary={{dataset:{{conversionTitle:"Value"}},textContent:"",setAttribute(){{}},addEventListener(){{}}}};
-const row={{open:true,hidden:false,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},
- querySelectorAll:s=>s==="[data-kind]"?[multiplier,linear,expression]:s==="[data-conversion-direction]"?[]:[],
- querySelector:s=>s==="[data-enum-map]"?enumOption:s==="[data-enum-unavailable]"?enumHint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
-const address={{value:"DB1,INT0"}},form={{elements:{{address,vc_value_type:select}},querySelectorAll:()=>[row]}};
-const snap=()=>({{optionHidden:enumOption.hidden,hintHidden:enumHint.hidden,kind:select.value,multiplierHidden:multiplier.hidden,rowHidden:row.hidden}});
-const states={{}};
-for(const [name,value] of [["integer","DB1,INT0"],["real","DB1,REAL0"],["lreal","DB1,LREAL0"],["backToInteger","DB1,INT0"]]){{address.value=value;panel.syncValueConversions(form);states[name]=snap();}}
-select.value="linear_scale";panel.syncValueConversionKind(row,form);states.linear=snap();
-select.value="expression";panel.syncValueConversionKind(row,form);states.expression=snap();
-console.log(JSON.stringify(states));"""
-    states = json.loads(subprocess.run(
+const panel=new S7PlcConfigurationPanel();panel.t=k=>`translated:${{k}}`;
+const select={{querySelector(s){{if(s.includes('enum_map'))return options.find(o=>o.value==="enum_map")||null;if(s==="[data-logo-bcd]")return options.find(o=>o.value==="logo_time_bcd")||null;if(s.includes('expression'))return options.find(o=>o.value==="expression")||null;return null;}},insertBefore(option,before){{const i=before?options.indexOf(before):options.length;options.splice(i,0,option);}}}};
+options.push(...["","multiplier","linear_scale","logo_time_bcd","expression"].map(makeOption));
+const states=[];for(const available of [true,false,true,false,true,true]){{panel.syncEnumMapOption(select,available);states.push(options.map(o=>o.value));}}
+const option=options.find(o=>o.value==="enum_map");console.log(JSON.stringify({{states,count:options.filter(o=>o.value==="enum_map").length,text:option.textContent,data:Object.hasOwn(option.dataset,"enumMap"),hidden:Object.hasOwn(option,"hidden")}}));"""
+    result = json.loads(subprocess.run(
         ["node", "-e", script], check=True, capture_output=True, text=True
     ).stdout)
-    assert states["integer"] == {"optionHidden": False, "hintHidden": True, "kind": "multiplier", "multiplierHidden": False, "rowHidden": False}
-    for datatype in ("real", "lreal"):
-        assert states[datatype]["optionHidden"] is True
-        assert states[datatype]["hintHidden"] is False
-        assert states[datatype]["kind"] == "multiplier"
-        assert states[datatype]["multiplierHidden"] is False
-        assert states[datatype]["rowHidden"] is False
-    assert states["backToInteger"]["optionHidden"] is False
-    assert states["backToInteger"]["hintHidden"] is True
-    assert states["linear"]["kind"] == "linear_scale"
-    assert states["expression"]["kind"] == "expression"
+    assert result["states"][0] == ["", "multiplier", "linear_scale", "enum_map", "logo_time_bcd", "expression"]
+    assert result["states"][1].count("enum_map") == 0
+    assert result["states"][2] == result["states"][0]
+    assert result["count"] == 1
+    assert result["text"] == "translated:value_conversion.enum_map"
+    assert result["data"] is True
+    assert result["hidden"] is False
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_unavailable_hint_tracks_current_editor_invalidation_only() -> None:
+    """The hint describes an enum reset in this editor session, not a datatype."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+const options=[];const makeOption=value=>{{const option={{value,dataset:{{}},textContent:"",remove(){{options.splice(options.indexOf(this),1);}}}};if(value==="logo_time_bcd")option.dataset.logoBcd="";return option;}};
+global.document={{createElement:()=>makeOption("")}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
+options.push(...["","multiplier","linear_scale","enum_map","logo_time_bcd","expression"].map(makeOption));
+const select={{value:"",querySelector(s){{if(s.includes('enum_map'))return options.find(o=>o.value==="enum_map")||null;if(s==="[data-logo-bcd]")return options.find(o=>o.value==="logo_time_bcd")||null;if(s.includes('expression'))return options.find(o=>o.value==="expression")||null;return null;}},insertBefore(option,before){{options.splice(before?options.indexOf(before):options.length,0,option);}}}};
+const hint={{hidden:true}},kind={{dataset:{{kind:"enum_map"}},hidden:true}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"",setAttribute(){{}},addEventListener(){{}}}},device={{value:"temperature",disabled:false}},field={{classList:{{toggle(){{}}}}}},address={{value:"DB1,INT0"}};
+const row={{open:true,dataset:{{valueConversion:"value",enumMapSupported:"true",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?[]:[],querySelector:s=>s==="[data-enum-unavailable]"?hint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
+const form={{dataset:{{}},elements:{{address,vc_value_type:select,device_class:device}},querySelector:s=>s.startsWith('[data-field=')?field:null,querySelectorAll:()=>[row]}};
+const snap=()=>({{kind:select.value,hintHidden:hint.hidden,optionCount:options.filter(o=>o.value==="enum_map").length,device:device.value,disabled:device.disabled}});
+panel.syncValueConversions(form);const initial=snap();
+address.value="DB1,REAL0";panel.syncValueConversions(form);const plainReal=snap();
+address.value="DB1,INT0";panel.syncValueConversions(form);select.value="enum_map";panel.syncValueConversionKind(row,form,false);const selected=snap();
+address.value="DB1,REAL0";panel.syncValueConversions(form);const invalidated=snap();
+select.value="multiplier";panel.syncValueConversionKind(row,form);const voluntary=snap();
+address.value="DB1,INT0";panel.syncValueConversions(form);const restored=snap();
+for(let i=0;i<3;i++){{address.value="DB1,REAL0";panel.syncValueConversions(form);address.value="DB1,INT0";panel.syncValueConversions(form);}}
+console.log(JSON.stringify({{initial,plainReal,selected,invalidated,voluntary,restored,final:snap()}}));"""
+    value = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert value["initial"]["hintHidden"] is True
+    assert value["plainReal"] == {
+        "kind": "", "hintHidden": True, "optionCount": 0,
+        "device": "temperature", "disabled": False,
+    }
+    assert value["selected"]["kind"] == "enum_map"
+    assert value["invalidated"] == {
+        "kind": "", "hintHidden": False, "optionCount": 0,
+        "device": "temperature", "disabled": False,
+    }
+    assert value["voluntary"]["hintHidden"] is True
+    assert value["restored"]["hintHidden"] is True
+    assert value["restored"]["optionCount"] == 1
+    assert value["final"]["optionCount"] == 1
+    assert value["final"]["hintHidden"] is True
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -5326,8 +5355,9 @@ global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
 const sensor=panel.valueConversionRow("sensors",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.sensors[0]);
 const real=panel.valueConversionRow("sensors",{{address:"DB1,REAL0"}},VALUE_CHANNEL_SPECS.sensors[0]);
+const lreal=panel.valueConversionRow("sensors",{{address:"DB1,LREAL0"}},VALUE_CHANNEL_SPECS.sensors[0]);
 const number=panel.valueConversionRow("numbers",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.numbers[0]);
-console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),integerHintHidden:sensor.includes('data-enum-unavailable role="note" hidden'),realHintVisible:real.includes('data-enum-unavailable role="note" >'),otherConversions:['multiplier','linear_scale','expression'].every(kind=>real.includes(`value="${{kind}}"`)),number:number.includes('data-enum-map'),integer:INTEGER_VALUE_TYPES.has('INT'),real:INTEGER_VALUE_TYPES.has('REAL'),time:INTEGER_VALUE_TYPES.has('TIME')}}));"""
+console.log(JSON.stringify({{sensor:sensor.includes('<option data-enum-map'),realOption:real.includes('<option data-enum-map'),lrealOption:lreal.includes('<option data-enum-map'),lrealHintHidden:lreal.includes('data-enum-unavailable role="note" hidden'),logo:real.includes('value="logo_time_bcd"'),integerHintHidden:sensor.includes('data-enum-unavailable role="note" hidden'),realHintHidden:real.includes('data-enum-unavailable role="note" hidden'),otherConversions:['multiplier','linear_scale','expression'].every(kind=>real.includes(`value="${{kind}}"`)),number:number.includes('<option data-enum-map'),integer:INTEGER_VALUE_TYPES.has('INT'),real:INTEGER_VALUE_TYPES.has('REAL'),time:INTEGER_VALUE_TYPES.has('TIME')}}));"""
     value = json.loads(
         subprocess.run(
             ["node", "-e", script], check=True, capture_output=True, text=True
@@ -5335,8 +5365,12 @@ console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),integerHint
     )
     assert value == {
         "sensor": True,
+        "realOption": False,
+        "lrealOption": False,
+        "lrealHintHidden": True,
+        "logo": True,
         "integerHintHidden": True,
-        "realHintVisible": True,
+        "realHintHidden": True,
         "otherConversions": True,
         "number": False,
         "integer": True,
