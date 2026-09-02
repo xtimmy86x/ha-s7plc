@@ -1259,6 +1259,7 @@
       "add_state": "Status hinzufügen",
       "enum_states": "{count} Status",
       "enum_help": "Ordnet diskrete ganzzahlige PLC-Codes Textstatus zu. Die Device Class enum wird automatisch gesetzt.",
+      "enum_unavailable": "Die Enum-Zuordnung ist nicht verfügbar, da diese Adresse keinen ganzzahligen PLC-Datentyp verwendet.",
       "errors": {
         "value_required": "PLC-Wert ist erforderlich.",
         "value_integer": "PLC-Wert muss eine Ganzzahl sein.",

@@ -1259,6 +1259,7 @@
       "add_state": "Přidat stav",
       "enum_states": "{count} stavů",
       "enum_help": "Mapuje diskrétní celočíselné kódy PLC na textové stavy. Třída zařízení enum se nastaví automaticky.",
+      "enum_unavailable": "Mapování Enum není dostupné, protože tato adresa nepoužívá celočíselný datový typ PLC.",
       "errors": {
         "value_required": "Hodnota PLC je povinná.",
         "value_integer": "Hodnota PLC musí být celé číslo.",

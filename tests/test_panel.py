@@ -5258,10 +5258,10 @@ global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 {PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
 const run=dataType=>{{
- const select={{value:"enum_map"}},device={{value:"enum",disabled:true}},enumOption={{hidden:false}},kind={{dataset:{{kind:"enum_map"}},hidden:false}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"enum",setAttribute(){{}},addEventListener(){{}}}},field={{classList:{{hidden:true,toggle(_n,v){{this.hidden=v;}}}}}},rows=[{{id:1}},{{id:2}}];
- const row={{open:true,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?rows:[],querySelector:s=>s==="[data-enum-map]"?enumOption:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
+ const select={{value:"enum_map"}},device={{value:"enum",disabled:true}},enumOption={{hidden:false}},enumHint={{hidden:true}},kind={{dataset:{{kind:"enum_map"}},hidden:false}},summary={{dataset:{{conversionTitle:"Value"}},textContent:"enum",setAttribute(){{}},addEventListener(){{}}}},field={{classList:{{hidden:true,toggle(_n,v){{this.hidden=v;}}}}}},rows=[{{id:1}},{{id:2}}];
+ const row={{open:true,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},querySelectorAll:s=>s==="[data-kind]"?[kind]:s==="[data-enum-row]"?rows:[],querySelector:s=>s==="[data-enum-map]"?enumOption:s==="[data-enum-unavailable]"?enumHint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
  const form={{dataset:{{enumPreviousDeviceClass:"__none__"}},elements:{{address:{{value:`DB1,${{dataType}}0`}},vc_value_type:select,device_class:device}},querySelector:s=>s.startsWith('[data-field=')?field:null,querySelectorAll:()=>[row]}};
- panel.syncValueConversions(form);return {{kind:select.value,device:device.value,disabled:device.disabled,hidden:field.classList.hidden,editor:kind.hidden,rows:rows.length,optionHidden:enumOption.hidden,summary:summary.textContent}};
+ panel.syncValueConversions(form);return {{kind:select.value,device:device.value,disabled:device.disabled,hidden:field.classList.hidden,editor:kind.hidden,rows:rows.length,optionHidden:enumOption.hidden,hintHidden:enumHint.hidden,summary:summary.textContent}};
 }};
 console.log(JSON.stringify(Object.fromEntries(["REAL","LREAL","STRING","BIT","TIME"].map(t=>[t,run(t)]))));"""
     values = json.loads(
@@ -5277,7 +5277,44 @@ console.log(JSON.stringify(Object.fromEntries(["REAL","LREAL","STRING","BIT","TI
         assert state["editor"] is True
         assert state["rows"] == 2
         assert state["optionHidden"] is True
+        assert state["hintHidden"] is False
         assert state["summary"] == "value_conversion.none"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_enum_availability_hint_tracks_manual_and_builder_datatype_changes() -> None:
+    """The informational hint and enum option share the reactive datatype gate."""
+    script = f"""
+global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;
+const select={{value:"multiplier"}},enumOption={{hidden:false}},enumHint={{hidden:true}};
+const multiplier={{dataset:{{kind:"multiplier"}},hidden:false}},linear={{dataset:{{kind:"linear_scale"}},hidden:true}},expression={{dataset:{{kind:"expression"}},hidden:true}};
+const summary={{dataset:{{conversionTitle:"Value"}},textContent:"",setAttribute(){{}},addEventListener(){{}}}};
+const row={{open:true,hidden:false,dataset:{{valueConversion:"value",readField:"address",writeField:"",writeFallback:"false",conditionalRead:""}},
+ querySelectorAll:s=>s==="[data-kind]"?[multiplier,linear,expression]:s==="[data-conversion-direction]"?[]:[],
+ querySelector:s=>s==="[data-enum-map]"?enumOption:s==="[data-enum-unavailable]"?enumHint:s==="summary"||s==="[data-conversion-summary]"?summary:null}};
+const address={{value:"DB1,INT0"}},form={{elements:{{address,vc_value_type:select}},querySelectorAll:()=>[row]}};
+const snap=()=>({{optionHidden:enumOption.hidden,hintHidden:enumHint.hidden,kind:select.value,multiplierHidden:multiplier.hidden,rowHidden:row.hidden}});
+const states={{}};
+for(const [name,value] of [["integer","DB1,INT0"],["real","DB1,REAL0"],["lreal","DB1,LREAL0"],["backToInteger","DB1,INT0"]]){{address.value=value;panel.syncValueConversions(form);states[name]=snap();}}
+select.value="linear_scale";panel.syncValueConversionKind(row,form);states.linear=snap();
+select.value="expression";panel.syncValueConversionKind(row,form);states.expression=snap();
+console.log(JSON.stringify(states));"""
+    states = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert states["integer"] == {"optionHidden": False, "hintHidden": True, "kind": "multiplier", "multiplierHidden": False, "rowHidden": False}
+    for datatype in ("real", "lreal"):
+        assert states[datatype]["optionHidden"] is True
+        assert states[datatype]["hintHidden"] is False
+        assert states[datatype]["kind"] == "multiplier"
+        assert states[datatype]["multiplierHidden"] is False
+        assert states[datatype]["rowHidden"] is False
+    assert states["backToInteger"]["optionHidden"] is False
+    assert states["backToInteger"]["hintHidden"] is True
+    assert states["linear"]["kind"] == "linear_scale"
+    assert states["expression"]["kind"] == "expression"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -5288,8 +5325,9 @@ global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 {PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
 const sensor=panel.valueConversionRow("sensors",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.sensors[0]);
+const real=panel.valueConversionRow("sensors",{{address:"DB1,REAL0"}},VALUE_CHANNEL_SPECS.sensors[0]);
 const number=panel.valueConversionRow("numbers",{{address:"DB1,INT0"}},VALUE_CHANNEL_SPECS.numbers[0]);
-console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),number:number.includes('data-enum-map'),integer:INTEGER_VALUE_TYPES.has('INT'),real:INTEGER_VALUE_TYPES.has('REAL'),time:INTEGER_VALUE_TYPES.has('TIME')}}));"""
+console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),integerHintHidden:sensor.includes('data-enum-unavailable role="note" hidden'),realHintVisible:real.includes('data-enum-unavailable role="note" >'),otherConversions:['multiplier','linear_scale','expression'].every(kind=>real.includes(`value="${{kind}}"`)),number:number.includes('data-enum-map'),integer:INTEGER_VALUE_TYPES.has('INT'),real:INTEGER_VALUE_TYPES.has('REAL'),time:INTEGER_VALUE_TYPES.has('TIME')}}));"""
     value = json.loads(
         subprocess.run(
             ["node", "-e", script], check=True, capture_output=True, text=True
@@ -5297,6 +5335,9 @@ console.log(JSON.stringify({{sensor:sensor.includes('data-enum-map'),number:numb
     )
     assert value == {
         "sensor": True,
+        "integerHintHidden": True,
+        "realHintVisible": True,
+        "otherConversions": True,
         "number": False,
         "integer": True,
         "real": False,
