@@ -126,7 +126,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Write batching for automatic optimization
         self._write_batch_buffer: dict[str, bool | int | float | str] = {}
         self._write_batch_waiters: dict[str, list[asyncio.Future[bool]]] = {}
-        self._write_batch_inflight_waiters: dict[str, list[asyncio.Future[bool]]] = {}
+        self._write_batch_inflight_waiters: dict[
+            int, dict[str, list[asyncio.Future[bool]]]
+        ] = {}
+        self._write_batch_flush_id = 0
         self._write_batch_generation = 0
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
@@ -451,7 +454,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._write_batch_buffer.clear()
         waiter_groups = (
             *self._write_batch_waiters.values(),
-            *self._write_batch_inflight_waiters.values(),
+            *(
+                waiters
+                for flush_waiters in self._write_batch_inflight_waiters.values()
+                for waiters in flush_waiters.values()
+            ),
         )
         self._write_batch_waiters.clear()
         self._write_batch_inflight_waiters.clear()
@@ -1115,9 +1122,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             writes = list(self._write_batch_buffer.items())
             waiters = self._write_batch_waiters
             generation = self._write_batch_generation
+            self._write_batch_flush_id += 1
+            flush_id = self._write_batch_flush_id
             self._write_batch_buffer.clear()
             self._write_batch_waiters = {}
-            self._write_batch_inflight_waiters = waiters
+            self._write_batch_inflight_waiters[flush_id] = waiters
             self._write_batch_timer = None
 
         results: dict[str, bool] = {}
@@ -1126,6 +1135,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             if generation != self._write_batch_generation:
                 return
             results = await self.write_multi(writes)
+
+            # A manual disable/disconnect may have happened while pyS7 was
+            # already performing the write.  Let that operation finish so the
+            # client is not left half-way through protocol I/O, but discard its
+            # outcome: cancellation has already failed all of this flush's
+            # callers and a later result must not revive the old generation.
+            if generation != self._write_batch_generation:
+                return
 
             # Log results
             success_count = sum(1 for v in results.values() if v)
@@ -1182,6 +1199,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             # the precise error and must not produce a notification or retry.
             results = {address: False for address, _ in writes}
         except Exception as e:  # pragma: no cover
+            if generation != self._write_batch_generation:
+                return
             error_msg = f"S7 PLC batch write failed: {e}"
             _LOGGER.exception(error_msg)
 
@@ -1205,8 +1224,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         finally:
             async with self._async_lock:
-                if self._write_batch_inflight_waiters is waiters:
-                    self._write_batch_inflight_waiters = {}
+                self._write_batch_inflight_waiters.pop(flush_id, None)
 
         for address, address_waiters in waiters.items():
             success = bool(results.get(address, False))

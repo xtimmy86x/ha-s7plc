@@ -73,6 +73,7 @@ from .const import (
     PYS7_CONNECTION_TYPE_S7BASIC,
 )
 from .coordinator import S7Coordinator
+from .helpers import build_device_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1222,10 +1223,19 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             )
             await state_store.async_remove()
             entity_registry = er.async_get(self.hass)
+            runtime_data = getattr(self._config_entry, "runtime_data", None)
+            device_id = getattr(runtime_data, "device_id", None)
+            if not isinstance(device_id, str):
+                device_id = build_device_id(data)
+            connection_switch_unique_id = f"{device_id}:connection_enable"
             for entity in er.async_entries_for_config_entry(
                 entity_registry, self._config_entry.entry_id
             ):
-                if entity.unique_id.endswith(":connection_enable"):
+                if (
+                    entity.config_entry_id == self._config_entry.entry_id
+                    and entity.platform == DOMAIN
+                    and entity.unique_id == connection_switch_unique_id
+                ):
                     entity_registry.async_remove(entity.entity_id)
 
         update_result = self.hass.config_entries.async_update_entry(

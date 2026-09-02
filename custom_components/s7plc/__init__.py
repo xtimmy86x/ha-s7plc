@@ -12,7 +12,6 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import slugify
 
 from .config_entry_migration import canonicalize_legacy_sync_addresses
 from .const import (
@@ -52,6 +51,7 @@ from .const import (
 from .coordinator import S7Coordinator
 from .helpers import (
     RuntimeEntryData,
+    build_device_id,
     build_entity_area_map,
     build_expected_unique_ids,
     ensure_item_uids,
@@ -232,13 +232,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         remote_tsap = data.get(CONF_REMOTE_TSAP, "01.01")
         rack = None
         slot = None
-        device_id = slugify(f"s7plc-{host}-tsap-{local_tsap}-{remote_tsap}")
     else:
         rack = data.get(CONF_RACK, DEFAULT_RACK)
         slot = data.get(CONF_SLOT, DEFAULT_SLOT)
         local_tsap = None
         remote_tsap = None
-        device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
+    device_id = build_device_id(data)
 
     # Assign a permanent identity to every config item that doesn't have one
     # yet, so unique_id no longer depends on any editable address field.
