@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     CONF_AREA,
     CONF_COMMAND_ADDRESS,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
@@ -31,9 +33,18 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
-    coord, device_info, _ = get_coordinator_and_device_info(entry)
+    coord, device_info, device_id = get_coordinator_and_device_info(entry)
 
     entities = []
+    if entry.data.get(CONF_MANUAL_CONNECTION_CONTROL, False) is True:
+        entities.append(
+            S7ConnectionControlSwitch(
+                coord,
+                device_info,
+                f"{device_id}:connection_enable",
+                entry.runtime_data.connection_state_store,
+            )
+        )
     for item in entry.options.get(CONF_SWITCHES, []):
         state_address = item.get(CONF_STATE_ADDRESS)
         if not state_address:
@@ -66,10 +77,44 @@ async def async_setup_entry(
 
     if entities:
         await async_configure_entity_availability(
-            entities, entry.options.get(CONF_SWITCHES, [])
+            [entity for entity in entities if isinstance(entity, S7Switch)],
+            entry.options.get(CONF_SWITCHES, []),
         )
         async_add_entities(entities)
-        await coord.async_request_refresh()
+        if entry.options.get(CONF_SWITCHES):
+            await coord.async_request_refresh()
+
+
+class S7ConnectionControlSwitch(CoordinatorEntity, SwitchEntity):
+    """Always-available, persisted control for all PLC communication."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "connection_enable"
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    _attr_available = True
+    _attr_should_poll = False
+
+    def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str, store):
+        super().__init__(coordinator)
+        self._attr_unique_id = unique_id
+        self._attr_device_info = device_info
+        self._store = store
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.connection_enabled
+
+    async def _async_save(self) -> None:
+        if self._store is not None:
+            await self._store.async_save({"enabled": self.is_on})
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_enable_connection()
+        await self._async_save()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_disable_connection()
+        await self._async_save()
 
 
 class S7Switch(S7BoolSyncEntity, SwitchEntity):

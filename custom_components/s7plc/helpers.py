@@ -15,6 +15,7 @@ from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    CONF_HOST,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -24,6 +25,7 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
+from homeassistant.util import slugify
 
 try:
     from homeassistant.const import UnitOfRatio
@@ -54,6 +56,7 @@ from .const import (
     CONF_CLIMATES,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
+    CONF_CONNECTION_TYPE,
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVERS,
     CONF_CURRENT_TEMPERATURE_ADDRESS,
@@ -61,22 +64,30 @@ from .const import (
     CONF_ENTITY_SYNC,
     CONF_HEATING_OUTPUT_ADDRESS,
     CONF_LIGHTS,
+    CONF_LOCAL_TSAP,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_NUMBERS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
+    CONF_RACK,
+    CONF_REMOTE_TSAP,
     CONF_SELECTS,
     CONF_SENSORS,
+    CONF_SLOT,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_TARGET_TEMPERATURE_ADDRESS,
     CONF_TEXTS,
     CONF_UID,
+    CONNECTION_TYPE_TSAP,
     CONTROL_MODE_DIRECT,
     CONTROL_MODE_SETPOINT,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_PULSE_DURATION,
+    DEFAULT_RACK,
+    DEFAULT_SLOT,
     DOMAIN,
     OPTION_KEYS,
 )
@@ -85,6 +96,18 @@ if TYPE_CHECKING:  # pragma: no cover - used for type checking only
     from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def build_device_id(data: Mapping[str, Any]) -> str:
+    """Build the deterministic PLC device identifier from config-entry data."""
+    host = data[CONF_HOST]
+    if data.get(CONF_CONNECTION_TYPE) == CONNECTION_TYPE_TSAP:
+        local_tsap = data.get(CONF_LOCAL_TSAP, "01.00")
+        remote_tsap = data.get(CONF_REMOTE_TSAP, "01.01")
+        return slugify(f"s7plc-{host}-tsap-{local_tsap}-{remote_tsap}")
+    rack = data.get(CONF_RACK, DEFAULT_RACK)
+    slot = data.get(CONF_SLOT, DEFAULT_SLOT)
+    return slugify(f"s7plc-{host}-{rack}-{slot}")
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +208,7 @@ class RuntimeEntryData:
     name: str
     host: str
     device_id: str
+    connection_state_store: Any | None = None
 
 
 def get_coordinator_and_device_info(
@@ -502,6 +526,8 @@ def build_expected_unique_ids(
     if source.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS):
         for defn in METRICS_DEFINITIONS:
             ids.add(f"{device_id}:metrics:{defn.key}")
+    if source.get(CONF_MANUAL_CONNECTION_CONTROL, False):
+        ids.add(f"{device_id}:connection_enable")
     return ids
 
 

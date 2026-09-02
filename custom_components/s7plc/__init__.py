@@ -10,8 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import slugify
 
 from .config_entry_migration import canonicalize_legacy_sync_addresses
 from .const import (
@@ -21,6 +21,7 @@ from .const import (
     CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_LOCAL_TSAP,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
@@ -28,11 +29,13 @@ from .const import (
     CONF_RACK,
     CONF_REMOTE_TSAP,
     CONF_SLOT,
+    CONNECTION_CONTROL_STORAGE_VERSION,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
+    DEFAULT_MANUAL_CONNECTION_CONTROL,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPTIMIZE_READ,
@@ -48,6 +51,7 @@ from .const import (
 from .coordinator import S7Coordinator
 from .helpers import (
     RuntimeEntryData,
+    build_device_id,
     build_entity_area_map,
     build_expected_unique_ids,
     ensure_item_uids,
@@ -202,6 +206,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data.get(CONF_ENABLE_WRITE_BATCHING, DEFAULT_ENABLE_WRITE_BATCHING)
     )
     enable_metrics = bool(data.get(CONF_ENABLE_METRICS, DEFAULT_ENABLE_METRICS))
+    manual_connection_control = bool(
+        data.get(CONF_MANUAL_CONNECTION_CONTROL, DEFAULT_MANUAL_CONNECTION_CONTROL)
+    )
+    connection_state_store = None
+    connection_enabled = True
+    if manual_connection_control:
+        connection_state_store = Store(
+            hass,
+            CONNECTION_CONTROL_STORAGE_VERSION,
+            f"{DOMAIN}.connection_control.{entry.entry_id}",
+        )
+        stored_state = await connection_state_store.async_load()
+        if isinstance(stored_state, dict):
+            connection_enabled = bool(stored_state.get("enabled", True))
     pys7_connection_type = data.get(
         CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
     )
@@ -214,13 +232,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         remote_tsap = data.get(CONF_REMOTE_TSAP, "01.01")
         rack = None
         slot = None
-        device_id = slugify(f"s7plc-{host}-tsap-{local_tsap}-{remote_tsap}")
     else:
         rack = data.get(CONF_RACK, DEFAULT_RACK)
         slot = data.get(CONF_SLOT, DEFAULT_SLOT)
         local_tsap = None
         remote_tsap = None
-        device_id = slugify(f"s7plc-{host}-{rack}-{slot}")
+    device_id = build_device_id(data)
 
     # Assign a permanent identity to every config item that doesn't have one
     # yet, so unique_id no longer depends on any editable address field.
@@ -248,6 +265,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         optimize_read=optimize_read,
         enable_write_batching=enable_write_batching,
         enable_metrics=enable_metrics,
+        connection_enabled=connection_enabled,
     )
 
     # Store runtime data directly in the config entry
@@ -256,6 +274,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         name=name,
         host=host,
         device_id=device_id,
+        connection_state_store=connection_state_store,
     )
 
     hass.data.setdefault(DOMAIN, {})
@@ -408,7 +427,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         # Disconnect coordinator (runtime_data is automatically cleaned up by HA)
-        await entry.runtime_data.coordinator.disconnect()
+        await entry.runtime_data.coordinator.async_shutdown()
 
         # Unregister services if this is the last config entry
         remaining_entries = [

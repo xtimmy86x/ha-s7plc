@@ -51,6 +51,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         optimize_read: bool = True,  # enable optimized batch reads
         enable_write_batching: bool = True,  # enable automatic write batching
         enable_metrics: bool = False,  # disable pyS7 performance metrics
+        connection_enabled: bool = True,
     ):
         super().__init__(
             hass,
@@ -84,6 +85,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._optimize_read = bool(optimize_read)
         self._enable_write_batching = bool(enable_write_batching)
         self._enable_metrics = bool(enable_metrics)
+        self._connection_enabled = bool(connection_enabled)
+        # Wakes retry backoffs immediately when manual control is changed.
+        self._connection_state_changed = asyncio.Event()
         # Lock for async operations (state management)
         self._async_lock = asyncio.Lock()
         self._client: Any | None = None  # pyS7.AsyncS7Client when available
@@ -122,6 +126,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Write batching for automatic optimization
         self._write_batch_buffer: dict[str, bool | int | float | str] = {}
         self._write_batch_waiters: dict[str, list[asyncio.Future[bool]]] = {}
+        self._write_batch_inflight_waiters: dict[
+            int, dict[str, list[asyncio.Future[bool]]]
+        ] = {}
+        self._write_batch_flush_id = 0
+        self._write_batch_generation = 0
         self._write_batch_timer: asyncio.TimerHandle | None = None
         self._write_batch_delay: float = 0.05  # 50ms window to collect writes
         self._last_write_error_notification: float | None = (
@@ -191,6 +200,39 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
     # -------------------------
     # Connection handling
     # -------------------------
+    @property
+    def connection_enabled(self) -> bool:
+        """Return whether communication with this PLC is allowed."""
+        return self._connection_enabled
+
+    def _raise_if_connection_disabled(self) -> None:
+        """Reject PLC I/O without allowing it to reconnect."""
+        if not self._connection_enabled:
+            raise HomeAssistantError("PLC connection is manually disabled")
+
+    async def async_enable_connection(self) -> None:
+        """Allow communication and immediately request a connection attempt."""
+        if self._connection_enabled:
+            return
+        self._connection_enabled = True
+        self._connection_state_changed.set()
+        self._connection_state_changed.clear()
+        self.async_set_updated_data(dict(self._data_cache))
+        await self.async_request_refresh()
+
+    async def async_disable_connection(self) -> None:
+        """Stop retries, pending writes and the active PLC connection."""
+        self._connection_enabled = False
+        self._connection_state_changed.set()
+        async with self._async_lock:
+            self._write_batch_generation += 1
+            self._cancel_write_batches_locked(
+                HomeAssistantError("PLC connection is manually disabled")
+            )
+        await self._drop_connection()
+        self._last_health_ok = False
+        self.async_set_updated_data(dict(self._data_cache))
+
     async def _drop_connection(self) -> None:
         """Safely close PLC connection, tolerant of concurrent disconnects.
 
@@ -215,6 +257,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             RuntimeError: If connection fails
         """
+        self._raise_if_connection_disabled()
         if self._client is None:
             # Create client based on connection type
             if self._local_tsap and self._remote_tsap:
@@ -239,6 +282,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._client.is_connected:
             try:
                 await self._client.connect()
+                if not self._connection_enabled:
+                    await self._drop_connection()
+                    self._raise_if_connection_disabled()
                 if self._local_tsap and self._remote_tsap:
                     _LOGGER.info(
                         "Connected to S7 PLC %s (TSAP %s/%s)",
@@ -393,19 +439,38 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def disconnect(self) -> None:
         """Close the PLC connection and cancel pending writes."""
-        # Cancel any pending write batch timer
+        async with self._async_lock:
+            self._write_batch_generation += 1
+            self._cancel_write_batches_locked(
+                HomeAssistantError("PLC connection was disconnected")
+            )
+        await self._drop_connection()
+
+    def _cancel_write_batches_locked(self, error: HomeAssistantError) -> None:
+        """Cancel queued and in-flight batch waiters while holding the lock."""
         if self._write_batch_timer is not None:
             self._write_batch_timer.cancel()
-            self._write_batch_timer = None
-        if self._write_batch_waiters:
-            for waiters in self._write_batch_waiters.values():
-                for waiter in waiters:
-                    if not waiter.done():
-                        waiter.set_result(False)
-            self._write_batch_waiters.clear()
-            self._write_batch_buffer.clear()
+        self._write_batch_timer = None
+        self._write_batch_buffer.clear()
+        waiter_groups = (
+            *self._write_batch_waiters.values(),
+            *(
+                waiters
+                for flush_waiters in self._write_batch_inflight_waiters.values()
+                for waiters in flush_waiters.values()
+            ),
+        )
+        self._write_batch_waiters.clear()
+        self._write_batch_inflight_waiters.clear()
+        for waiters in waiter_groups:
+            for waiter in waiters:
+                if not waiter.done() and not waiter.cancelled():
+                    waiter.set_exception(error)
 
-        await self._drop_connection()
+    async def async_shutdown(self) -> None:
+        """Cancel all communication before the coordinator is unloaded."""
+        await self.async_disable_connection()
+        await super().async_shutdown()
 
     # -------------------------
     # Address management
@@ -506,7 +571,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Args:
             seconds: Duration to sleep (seconds), negative values are clamped to 0
         """
-        await asyncio.sleep(max(0.0, seconds))
+        try:
+            await asyncio.wait_for(
+                self._connection_state_changed.wait(), timeout=max(0.0, seconds)
+            )
+        except TimeoutError:
+            return
+        self._raise_if_connection_disabled()
 
     async def _retry(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute ``func`` with retries using exponential backoff.
@@ -530,6 +601,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         error_category = "unknown"
 
         while attempt <= self._max_retries:
+            self._raise_if_connection_disabled()
             try:
                 # Ensure connection before each attempt
                 await self._ensure_connected()
@@ -659,6 +731,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             UpdateFailed: On connection or read errors
         """
+        if not self._connection_enabled:
+            return dict(self._data_cache)
         start_time = time.monotonic()
         now = start_time
 
@@ -984,6 +1058,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             # If batching enabled: both writes executed together in ~50ms
             # If batching disabled: each write executed immediately
         """
+        self._raise_if_connection_disabled()
         # If batching disabled, execute write immediately
         if not self._enable_write_batching:
             try:
@@ -1002,6 +1077,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Batching enabled: accumulate writes
         waiter: asyncio.Future[bool] = asyncio.get_running_loop().create_future()
         async with self._async_lock:
+            self._raise_if_connection_disabled()
             # Add to buffer
             self._write_batch_buffer[address] = value
             self._write_batch_waiters.setdefault(address, []).append(waiter)
@@ -1045,14 +1121,28 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Get buffered writes
             writes = list(self._write_batch_buffer.items())
             waiters = self._write_batch_waiters
+            generation = self._write_batch_generation
+            self._write_batch_flush_id += 1
+            flush_id = self._write_batch_flush_id
             self._write_batch_buffer.clear()
             self._write_batch_waiters = {}
+            self._write_batch_inflight_waiters[flush_id] = waiters
             self._write_batch_timer = None
 
         results: dict[str, bool] = {}
         # Execute batch write
         try:
+            if generation != self._write_batch_generation:
+                return
             results = await self.write_multi(writes)
+
+            # A manual disable/disconnect may have happened while pyS7 was
+            # already performing the write.  Let that operation finish so the
+            # client is not left half-way through protocol I/O, but discard its
+            # outcome: cancellation has already failed all of this flush's
+            # callers and a later result must not revive the old generation.
+            if generation != self._write_batch_generation:
+                return
 
             # Log results
             success_count = sum(1 for v in results.values() if v)
@@ -1104,7 +1194,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         current_time - self._last_write_error_notification,
                     )
 
+        except HomeAssistantError:
+            # Manual disable/disconnect already completed pending callers with
+            # the precise error and must not produce a notification or retry.
+            results = {address: False for address, _ in writes}
         except Exception as e:  # pragma: no cover
+            if generation != self._write_batch_generation:
+                return
             error_msg = f"S7 PLC batch write failed: {e}"
             _LOGGER.exception(error_msg)
 
@@ -1126,10 +1222,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 pass
             results = {address: False for address, _ in writes}
 
+        finally:
+            async with self._async_lock:
+                self._write_batch_inflight_waiters.pop(flush_id, None)
+
         for address, address_waiters in waiters.items():
             success = bool(results.get(address, False))
             for waiter in address_waiters:
-                if not waiter.done():
+                if not waiter.done() and not waiter.cancelled():
                     waiter.set_result(success)
 
     async def _write_with_retry(self, address: str, tag: S7Tag, payload: Any) -> bool:
@@ -1242,6 +1342,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             ValueError: If value type doesn't match address data type
         """
+        self._raise_if_connection_disabled()
         tag = self._get_or_parse_tag(address)
         payload = self._prepare_payload(tag, value, address)
         return await self._write_with_retry(address, tag, payload)
@@ -1345,6 +1446,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             ... ])
             {'DB1.DBX0.0': True, 'DB1.DBW10': True, 'DB1.DBD20': True}
         """
+        self._raise_if_connection_disabled()
         if not writes:
             return {}
 

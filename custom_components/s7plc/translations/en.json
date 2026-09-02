@@ -27,7 +27,8 @@
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
           "enable_write_batching": "Enable write batching",
-          "enable_metrics": "Enable performance metrics"
+          "enable_metrics": "Enable performance metrics",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -43,7 +44,8 @@
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
           "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
-          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       },
       "tsap": {
@@ -63,7 +65,8 @@
           "retry_backoff_max": "Retry backoff max (s)",
           "optimize_read": "Optimize batch reads",
           "enable_write_batching": "Enable write batching",
-          "enable_metrics": "Enable performance metrics"
+          "enable_metrics": "Enable performance metrics",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -79,7 +82,8 @@
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
           "enable_write_batching": "Automatically group writes together. When multiple entities update simultaneously, writes are combined into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
-          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       }
     },
@@ -111,7 +115,8 @@
           "optimize_read": "Optimize batch reads",
           "enable_write_batching": "Enable write batching",
           "enable_metrics": "Enable performance metrics",
-          "plc_family": "PLC family"
+          "plc_family": "PLC family",
+          "manual_connection_control": "Manual connection control"
         },
         "data_description": {
           "name": "A friendly name for the PLC (used in entity names).",
@@ -127,7 +132,8 @@
           "retry_backoff_max": "Maximum delay between retry attempts.",
           "optimize_read": "Enable optimized batch reads to improve performance. If you experience read errors, disable this option.",
           "enable_write_batching": "Enable automatic batching of writes. When multiple entities update simultaneously, writes are grouped into a single PLC request (50ms window). Improves performance for scenes and bulk operations.",
-          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization."
+          "enable_metrics": "Enable performance metrics. Collects and reports performance data for monitoring and optimization.",
+          "manual_connection_control": "Creates a switch that can suspend the PLC connection and reconnection attempts."
         }
       }
     },
@@ -198,6 +204,11 @@
       },
       "metrics_total_bytes_written": {
         "name": "Total bytes written"
+      }
+    },
+    "switch": {
+      "connection_enable": {
+        "name": "Enable connection"
       }
     }
   },

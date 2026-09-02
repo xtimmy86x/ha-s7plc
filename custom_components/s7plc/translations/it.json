@@ -27,7 +27,8 @@
           "retry_backoff_max": "Ritardo massimo tra i tentativi (s)",
           "optimize_read": "Ottimizza le letture raggruppate",
           "enable_write_batching": "Raggruppa le scritture",
-          "enable_metrics": "Abilita le metriche delle prestazioni"
+          "enable_metrics": "Abilita le metriche delle prestazioni",
+          "manual_connection_control": "Controllo manuale della connessione"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -43,7 +44,8 @@
           "retry_backoff_max": "Attesa massima tra i tentativi successivi.",
           "optimize_read": "Abilita letture raggruppate ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
           "enable_write_batching": "Abilita il raggruppamento automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra di 50 ms). Migliora le prestazioni per scene e operazioni in blocco.",
-          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
+          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione.",
+          "manual_connection_control": "Crea uno switch che permette di sospendere la connessione e i tentativi di riconnessione al PLC."
         }
       },
       "tsap": {
@@ -63,7 +65,8 @@
           "retry_backoff_max": "Ritardo massimo tra i tentativi (s)",
           "optimize_read": "Ottimizza le letture raggruppate",
           "enable_write_batching": "Raggruppa le scritture",
-          "enable_metrics": "Abilita le metriche delle prestazioni"
+          "enable_metrics": "Abilita le metriche delle prestazioni",
+          "manual_connection_control": "Controllo manuale della connessione"
         },
         "data_description": {
           "name": "Nome leggibile del PLC (usato nei nomi entità).",
@@ -79,7 +82,8 @@
           "retry_backoff_max": "Attesa massima tra i tentativi successivi.",
           "optimize_read": "Abilita letture raggruppate ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
           "enable_write_batching": "Abilita il raggruppamento automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra di 50 ms). Migliora le prestazioni per scene e operazioni in blocco.",
-          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
+          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione.",
+          "manual_connection_control": "Crea uno switch che permette di sospendere la connessione e i tentativi di riconnessione al PLC."
         }
       }
     },
@@ -111,7 +115,8 @@
           "optimize_read": "Ottimizza le letture raggruppate",
           "enable_write_batching": "Raggruppa le scritture",
           "enable_metrics": "Abilita le metriche delle prestazioni",
-          "plc_family": "Famiglia PLC"
+          "plc_family": "Famiglia PLC",
+          "manual_connection_control": "Controllo manuale della connessione"
         },
         "data_description": {
           "name": "Nome descrittivo per il PLC (usato nei nomi delle entità).",
@@ -127,7 +132,8 @@
           "retry_backoff_max": "Ritardo massimo tra i tentativi successivi.",
           "optimize_read": "Abilita letture raggruppate ottimizzate. Se riscontri errori di lettura, disabilita questa opzione.",
           "enable_write_batching": "Abilita il raggruppamento automatico delle scritture. Quando più entità si aggiornano contemporaneamente, le scritture vengono raggruppate in un'unica richiesta PLC (finestra di 50 ms). Migliora le prestazioni per scene e operazioni in blocco.",
-          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione."
+          "enable_metrics": "Abilita le metriche delle prestazioni. Raccoglie e riporta dati sulle prestazioni per il monitoraggio e l'ottimizzazione.",
+          "manual_connection_control": "Crea uno switch che permette di sospendere la connessione e i tentativi di riconnessione al PLC."
         }
       }
     },
@@ -198,6 +204,11 @@
       },
       "metrics_total_bytes_written": {
         "name": "Byte totali scritti"
+      }
+    },
+    "switch": {
+      "connection_enable": {
+        "name": "Abilita connessione"
       }
     }
   },

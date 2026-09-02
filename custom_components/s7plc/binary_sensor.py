@@ -141,6 +141,10 @@ class PlcConnectionBinarySensor(S7BaseEntity, BinarySensorEntity):
         attrs = {}
         attrs["s7_ip"] = self.coordinator.host
         attrs["pys7_connection_type"] = self.coordinator.pys7_connection_type_str
+        connection_enabled = getattr(self.coordinator, "connection_enabled", True)
+        attrs["connection_enabled"] = connection_enabled
+        if not connection_enabled:
+            attrs["disconnection_reason"] = "manually_disabled"
         if self.coordinator.connection_type == "rack_slot":
             attrs["connection_type"] = "Rack/Slot"
             attrs["rack"] = self.coordinator.rack

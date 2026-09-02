@@ -13,7 +13,9 @@ from homeassistant import config_entries
 from homeassistant.components import network
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.helpers.storage import Store
 
 # Import S7-specific exceptions if available
 try:
@@ -34,6 +36,7 @@ from .const import (
     CONF_ENABLE_METRICS,
     CONF_ENABLE_WRITE_BATCHING,
     CONF_LOCAL_TSAP,
+    CONF_MANUAL_CONNECTION_CONTROL,
     CONF_MAX_RETRIES,
     CONF_OP_TIMEOUT,
     CONF_OPTIMIZE_READ,
@@ -43,12 +46,14 @@ from .const import (
     CONF_REMOTE_TSAP,
     CONF_SCAN_INTERVAL,
     CONF_SLOT,
+    CONNECTION_CONTROL_STORAGE_VERSION,
     CONNECTION_TYPE_RACK_SLOT,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
     DEFAULT_BACKOFF_MAX,
     DEFAULT_ENABLE_METRICS,
     DEFAULT_ENABLE_WRITE_BATCHING,
+    DEFAULT_MANUAL_CONNECTION_CONTROL,
     DEFAULT_MAX_RETRIES,
     DEFAULT_OP_TIMEOUT,
     DEFAULT_OPTIMIZE_READ,
@@ -68,6 +73,7 @@ from .const import (
     PYS7_CONNECTION_TYPE_S7BASIC,
 )
 from .coordinator import S7Coordinator
+from .helpers import build_device_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -418,6 +424,7 @@ def _build_connection_entry_data(
     rack: int | None,
     slot: int | None,
     plc_family: str = PLC_FAMILY_S7,
+    manual_connection_control: bool = DEFAULT_MANUAL_CONNECTION_CONTROL,
 ) -> dict[str, Any]:
     """Build connection entry data dict."""
     data = {
@@ -435,6 +442,7 @@ def _build_connection_entry_data(
         CONF_OPTIMIZE_READ: optimize_read,
         CONF_ENABLE_WRITE_BATCHING: enable_write_batching,
         CONF_ENABLE_METRICS: enable_metrics,
+        CONF_MANUAL_CONNECTION_CONTROL: manual_connection_control,
     }
     if connection_type == CONNECTION_TYPE_TSAP:
         data[CONF_LOCAL_TSAP] = local_tsap
@@ -588,6 +596,10 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_ENABLE_WRITE_BATCHING, default=DEFAULT_ENABLE_WRITE_BATCHING
                 ): bool,
                 vol.Optional(CONF_ENABLE_METRICS, default=DEFAULT_ENABLE_METRICS): bool,
+                vol.Optional(
+                    CONF_MANUAL_CONNECTION_CONTROL,
+                    default=DEFAULT_MANUAL_CONNECTION_CONTROL,
+                ): bool,
             }
         )
 
@@ -681,6 +693,10 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): bool,
                 vol.Optional(CONF_OPTIMIZE_READ, default=DEFAULT_OPTIMIZE_READ): bool,
                 vol.Optional(CONF_ENABLE_METRICS, default=DEFAULT_ENABLE_METRICS): bool,
+                vol.Optional(
+                    CONF_MANUAL_CONNECTION_CONTROL,
+                    default=DEFAULT_MANUAL_CONNECTION_CONTROL,
+                ): bool,
             }
         )
 
@@ -801,6 +817,12 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             slot=params.slot,
             plc_family=self._connection_data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
             enable_metrics=params.enable_metrics,
+            manual_connection_control=bool(
+                user_input.get(
+                    CONF_MANUAL_CONNECTION_CONTROL,
+                    DEFAULT_MANUAL_CONNECTION_CONTROL,
+                )
+            ),
         )
 
         return self.async_create_entry(title=name, data=entry_data)
@@ -927,6 +949,9 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             CONF_HOST: data.get(CONF_HOST, ""),
             **parse_defaults,
             CONF_PLC_FAMILY: data.get(CONF_PLC_FAMILY, PLC_FAMILY_S7),
+            CONF_MANUAL_CONNECTION_CONTROL: data.get(
+                CONF_MANUAL_CONNECTION_CONTROL, DEFAULT_MANUAL_CONNECTION_CONTROL
+            ),
         }
 
         # Build schema based on connection type
@@ -976,6 +1001,10 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 ): bool,
                 vol.Optional(
                     CONF_ENABLE_METRICS, default=defaults[CONF_ENABLE_METRICS]
+                ): bool,
+                vol.Optional(
+                    CONF_MANUAL_CONNECTION_CONTROL,
+                    default=defaults[CONF_MANUAL_CONNECTION_CONTROL],
                 ): bool,
                 vol.Optional(
                     CONF_PYS7_CONNECTION_TYPE,
@@ -1080,26 +1109,67 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
                 description_placeholders=description_placeholders,
             )
 
-        try:
-            await _test_plc_connection(
-                self.hass,
-                host=host,
-                connection_type=connection_type,
-                rack=params.rack,
-                slot=params.slot,
-                local_tsap=params.local_tsap,
-                remote_tsap=params.remote_tsap,
-                pys7_connection_type=params.pys7_connection_type,
-                port=params.port,
-                scan_interval=params.scan_interval,
-                op_timeout=params.op_timeout,
-                max_retries=params.max_retries,
-                backoff_initial=params.backoff_initial,
-                backoff_max=params.backoff_max,
-                optimize_read=params.optimize_read,
-                enable_write_batching=params.enable_write_batching,
-                enable_metrics=params.enable_metrics,
+        candidate_connection_data = {
+            CONF_HOST: host,
+            CONF_PORT: params.port,
+            CONF_PYS7_CONNECTION_TYPE: params.pys7_connection_type,
+        }
+        current_connection_data = {
+            CONF_HOST: data.get(CONF_HOST, ""),
+            CONF_PORT: int(data.get(CONF_PORT, DEFAULT_PORT)),
+            CONF_PYS7_CONNECTION_TYPE: data.get(
+                CONF_PYS7_CONNECTION_TYPE, DEFAULT_PYS7_CONNECTION_TYPE
+            ),
+        }
+        if is_tsap:
+            candidate_connection_data.update(
+                {
+                    CONF_LOCAL_TSAP: params.local_tsap,
+                    CONF_REMOTE_TSAP: params.remote_tsap,
+                }
             )
+            current_connection_data.update(
+                {
+                    CONF_LOCAL_TSAP: data.get(CONF_LOCAL_TSAP, "01.00"),
+                    CONF_REMOTE_TSAP: data.get(CONF_REMOTE_TSAP, "01.01"),
+                }
+            )
+        else:
+            candidate_connection_data.update(
+                {CONF_RACK: params.rack, CONF_SLOT: params.slot}
+            )
+            current_connection_data.update(
+                {
+                    CONF_RACK: int(data.get(CONF_RACK, DEFAULT_RACK)),
+                    CONF_SLOT: int(data.get(CONF_SLOT, DEFAULT_SLOT)),
+                }
+            )
+        connection_changed = any(
+            candidate_connection_data[key] != current_connection_data[key]
+            for key in candidate_connection_data
+        )
+
+        try:
+            if connection_changed:
+                await _test_plc_connection(
+                    self.hass,
+                    host=host,
+                    connection_type=connection_type,
+                    rack=params.rack,
+                    slot=params.slot,
+                    local_tsap=params.local_tsap,
+                    remote_tsap=params.remote_tsap,
+                    pys7_connection_type=params.pys7_connection_type,
+                    port=params.port,
+                    scan_interval=params.scan_interval,
+                    op_timeout=params.op_timeout,
+                    max_retries=params.max_retries,
+                    backoff_initial=params.backoff_initial,
+                    backoff_max=params.backoff_max,
+                    optimize_read=params.optimize_read,
+                    enable_write_batching=params.enable_write_batching,
+                    enable_metrics=params.enable_metrics,
+                )
         except Exception as err:
             # Catch all connection errors during options flow connection test
             # to provide user-friendly error messages in the UI
@@ -1138,7 +1208,35 @@ class S7PLCOptionsFlow(config_entries.OptionsFlow):
             rack=params.rack,
             slot=params.slot,
             plc_family=family,
+            manual_connection_control=bool(
+                user_input.get(CONF_MANUAL_CONNECTION_CONTROL, False)
+            ),
         )
+
+        was_manual = bool(data.get(CONF_MANUAL_CONNECTION_CONTROL, False))
+        is_manual = bool(new_data[CONF_MANUAL_CONNECTION_CONTROL])
+        if was_manual and not is_manual:
+            state_store = Store(
+                self.hass,
+                CONNECTION_CONTROL_STORAGE_VERSION,
+                f"{DOMAIN}.connection_control.{self._config_entry.entry_id}",
+            )
+            await state_store.async_remove()
+            entity_registry = er.async_get(self.hass)
+            runtime_data = getattr(self._config_entry, "runtime_data", None)
+            device_id = getattr(runtime_data, "device_id", None)
+            if not isinstance(device_id, str):
+                device_id = build_device_id(data)
+            connection_switch_unique_id = f"{device_id}:connection_enable"
+            for entity in er.async_entries_for_config_entry(
+                entity_registry, self._config_entry.entry_id
+            ):
+                if (
+                    entity.config_entry_id == self._config_entry.entry_id
+                    and entity.platform == DOMAIN
+                    and entity.unique_id == connection_switch_unique_id
+                ):
+                    entity_registry.async_remove(entity.entity_id)
 
         update_result = self.hass.config_entries.async_update_entry(
             self._config_entry,
