@@ -4776,10 +4776,7 @@ def test_address_mode_controls_are_accessible_responsive_and_translated() -> Non
     assert ".address-mode-actions button,.bulk-address-modes button" not in source
     mobile_dialog_styles = dialog_styles.split("@media(max-width:650px){", 1)[1]
     assert ".bulk-address-modes{justify-content:flex-start}" in mobile_dialog_styles
-    assert (
-        ".default-address-mode{align-items:flex-start;flex-direction:column}"
-        in page_styles
-    )
+    assert ".default-address-mode{align-items:stretch;flex-direction:column" in page_styles
     keys = {
         "default_address_mode", "default_address_mode_description", "use_guided",
         "use_manual", "set_all_addresses", "apply_guided_all",
@@ -4788,6 +4785,21 @@ def test_address_mode_controls_are_accessible_responsive_and_translated() -> Non
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
         assert keys <= translation["config_panel"]["editor"].keys()
+
+
+def test_panel_header_uses_compact_responsive_layout() -> None:
+    """The content preceding entity navigation remains compact at each breakpoint."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    page_styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
+    mobile_styles = page_styles.split("@media(max-width:650px){", 1)[1]
+
+    assert ".hero-banner{width:100%;height:150px" in page_styles
+    assert ".hero-banner img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
+    assert ".summary{position:relative;overflow:hidden;margin:0 0 10px;padding:14px 18px" in page_styles
+    assert ".default-address-mode{display:flex;align-items:center;justify-content:space-between" in page_styles
+    assert ".hero-banner{height:80px;margin-bottom:8px" in mobile_styles
+    assert ".summary{margin-bottom:8px;padding:10px 12px" in mobile_styles
+    assert ".address-mode-actions button{flex:1;min-width:0;min-height:40px}" in mobile_styles
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_value_conversion_editor_is_localized_directional_and_accessible() -> None:
