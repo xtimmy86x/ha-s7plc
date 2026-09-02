@@ -1056,7 +1056,8 @@
       "select_entity": "Seleziona entità",
       "delete_selected": "Elimina selezionate",
       "delete_selected_confirm": "Eliminare le {count} entità selezionate?",
-      "duplicate": "Duplica entità"
+      "duplicate": "Duplica entità",
+      "more_actions": "Altre azioni"
     },
     "errors": {
       "required_error": "Compila tutti i campi obbligatori.",

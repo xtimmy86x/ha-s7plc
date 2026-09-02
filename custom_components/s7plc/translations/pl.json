@@ -1056,7 +1056,8 @@
       "select_entity": "Wybierz encję",
       "delete_selected": "Usuń wybrane",
       "delete_selected_confirm": "Usunąć {count} wybranych encji?",
-      "duplicate": "Duplikuj encję"
+      "duplicate": "Duplikuj encję",
+      "more_actions": "Więcej działań"
     },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",

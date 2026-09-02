@@ -1,6 +1,7 @@
 """Tests for the native configuration panel helpers."""
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -4530,11 +4531,10 @@ console.log(JSON.stringify({{markup,call,stopped,empty:panel.entityCards({{entit
     )
 
     for markup in result["markup"].values():
-        assert 'type="button" data-duplicate="0"' in markup
+        assert 'data-duplicate="0"' in markup
         assert 'icon="mdi:content-copy"' in markup
         assert 'title="Duplicate entity"' in markup
         assert 'aria-label="Duplicate entity"' in markup
-        assert "<ha-tooltip>Duplicate entity</ha-tooltip>" in markup
         assert (
             markup.index("data-edit=")
             < markup.index("data-duplicate=")
@@ -4544,6 +4544,127 @@ console.log(JSON.stringify({{markup,call,stopped,empty:panel.entityCards({{entit
     assert result["stopped"] is True
     assert result["call"][:2] == [None, "lights"]
     assert result["call"][2]["uid"] == "uid-lights"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_card_overflow_menu_actions_and_lifecycle() -> None:
+    """The mobile menu is accessible, closes safely, and reuses action handlers."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+const listeners={{}};global.document={{addEventListener:(name,fn)=>listeners[name]=fn,removeEventListener:(name,fn)=>{{if(listeners[name]===fn)delete listeners[name];}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=key=>({{"actions.more_actions":"More actions","actions.edit":"Edit","actions.duplicate":"Duplicate","actions.delete":"Delete","common.entity":"Entity"}}[key]||key);panel.bt=key=>key;panel.escape=String;panel.icon=()=>"help";panel.stateText=()=>"A very long current state";panel.selectedIndices=new Set([3]);panel._viewMode="tabs";
+const entry={{entity_ids:{{sensors:["sensor.test"]}},entities:{{sensors:[{{name:"Test",address:"DB1,REAL0",unit_of_measurement:"kWh"}}]}}}};
+const markup=panel.entityCards(entry,"sensors");
+const focused=[];const classes=new Set();const article={{classList:{{add:name=>classes.add(name),remove:name=>classes.delete(name)}}}};const item={{focus:()=>focused.push("item")}};const menu={{hidden:true,querySelector:()=>item,querySelectorAll:()=>[item]}};const wrapper={{querySelector:()=>menu}};const button={{attrs:{{}},setAttribute(name,value){{this.attrs[name]=value;}},closest:selector=>selector==="article"?article:wrapper,focus:()=>focused.push("button")}};
+panel.toggleEntityOverflow(button);const open={{expanded:button.attrs["aria-expanded"],hidden:menu.hidden,raised:classes.has("overflow-open"),listeners:Object.keys(listeners),selection:[...panel.selectedIndices]}};
+listeners.keydown({{key:"Escape",preventDefault(){{}}}});const closed={{expanded:button.attrs["aria-expanded"],hidden:menu.hidden,raised:classes.has("overflow-open"),focused,selection:[...panel.selectedIndices]}};
+const calls=[];panel.openEditor=(...args)=>calls.push(["edit",...args]);panel.duplicateEntity=(...args)=>calls.push(["duplicate",...args]);panel.remove=(...args)=>calls.push(["delete",...args]);
+panel.runEntityAction("edit",0,"sensors");panel.runEntityAction("duplicate",0,"sensors");panel.runEntityAction("delete",0,"sensors");
+console.log(JSON.stringify({{markup,open,closed,calls}}));'''
+    result = json.loads(
+        subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    markup = result["markup"]
+    assert markup.count('class="entity-actions"') == 1
+    assert markup.count('data-entity-action="edit"') == 2
+    assert markup.count('data-entity-action="duplicate"') == 2
+    assert markup.count('data-entity-action="delete"') == 2
+    assert 'icon="mdi:dots-vertical"' in markup
+    assert 'aria-label="More actions"' in markup
+    assert 'title="More actions"' in markup
+    assert 'aria-expanded="false"' in markup
+    assert 'role="menu"' in markup
+    assert markup.count('role="menuitem"') == 3
+    assert 'class="entity-state state-badge"' in markup
+    assert "A very long current state" in markup
+    assert result["open"] == {
+        "expanded": "true",
+        "hidden": False,
+        "raised": True,
+        "listeners": ["click", "keydown"],
+        "selection": [3],
+    }
+    assert result["closed"] == {
+        "expanded": "false",
+        "hidden": True,
+        "raised": False,
+        "focused": ["item", "button"],
+        "selection": [3],
+    }
+    assert result["calls"] == [
+        ["edit", 0, "sensors"],
+        ["duplicate", 0, "sensors"],
+        ["delete", [0], "sensors"],
+    ]
+
+
+def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
+    """Both shared card layouts have compact responsive actions and all labels."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    mobile = source.split("@media(max-width:650px){", 1)[1].split(
+        "@media(max-width:500px)", 1
+    )[0]
+
+    assert "${this.entityCards(entry,type)}" in source
+    assert source.count("${this.entityCards(entry,type)}") == 2
+    assert ".entity-actions{display:none}" in mobile
+    assert ".entity-overflow{display:block}" in mobile
+    assert (
+        ".cards article.overflow-open,.cards article.overflow-open:hover{z-index:100}"
+        in source
+    )
+    assert ".entity-state{display:block" in mobile
+    assert ".state-badge{display:none}" not in mobile
+    assert "max-width:min(34%,140px)" in mobile
+    assert ".details>div{gap:2px}" in mobile
+
+    translation_files = [
+        Path("custom_components/s7plc/strings.json"),
+        *Path("custom_components/s7plc/translations").glob("*.json"),
+    ]
+    for path in translation_files:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["config_panel"]["actions"]["more_actions"]
+
+
+def test_entity_overflow_stacking_hierarchy_stays_above_neighbor_cards() -> None:
+    """Transformed hover cards cannot cover an open entity action menu."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
+
+    def rule(selector: str) -> str:
+        match = re.search(
+            rf"(?:^|[}}\n])\s*{re.escape(selector)}\{{([^}}]*)\}}", styles
+        )
+        assert match is not None, f"Missing CSS rule for {selector}"
+        return match.group(1)
+
+    cards = rule(".cards")
+    article = rule("article")
+    hover = rule("article:hover")
+    open_card = rule(
+        ".cards article.overflow-open,.cards article.overflow-open:hover"
+    )
+    overflow = rule(".entity-overflow")
+    menu = rule(".entity-overflow-menu")
+
+    assert "position:relative" in cards
+    assert "isolation:isolate" in cards
+    assert "position:relative" in article
+    assert "z-index:0" in article
+    assert "transform:translateY(-2px)" in hover
+    assert "z-index:1" in hover
+    assert "z-index:100" in open_card
+    assert "position:relative" in overflow
+    assert "z-index:101" in menu
+
+    # These ancestors must not clip the absolutely positioned menu. The sections
+    # view uses the same .cards hierarchy and its section adds no clipping either.
+    for selector in (".cards", "article", ".entity-side", ".entity-overflow", ".entity-section"):
+        assert "overflow:hidden" not in rule(selector)
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -5250,4 +5371,3 @@ behaviorField.classList.toggle('hidden-field',true);panel.syncEmptySections(form
         "restored": True,
         "rows": 2,
     }
-

@@ -1056,7 +1056,8 @@
       "select_entity": "Entität auswählen",
       "delete_selected": "Ausgewählte löschen",
       "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?",
-      "duplicate": "Entität duplizieren"
+      "duplicate": "Entität duplizieren",
+      "more_actions": "Weitere Aktionen"
     },
     "errors": {
       "required_error": "Füllen Sie alle erforderlichen Felder aus.",

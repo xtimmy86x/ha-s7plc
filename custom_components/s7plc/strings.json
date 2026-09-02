@@ -1056,7 +1056,8 @@
       "select_entity": "Select entity",
       "delete_selected": "Delete selected",
       "delete_selected_confirm": "Delete {count} selected entities?",
-      "duplicate": "Duplicate entity"
+      "duplicate": "Duplicate entity",
+      "more_actions": "More actions"
     },
     "errors": {
       "required_error": "Fill in all required fields.",

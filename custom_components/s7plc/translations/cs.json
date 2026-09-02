@@ -1056,7 +1056,8 @@
       "select_entity": "Vybrat entitu",
       "delete_selected": "Odstranit vybrané",
       "delete_selected_confirm": "Odstranit {count} vybraných entit?",
-      "duplicate": "Duplikovat entitu"
+      "duplicate": "Duplikovat entitu",
+      "more_actions": "Další akce"
     },
     "errors": {
       "required_error": "Vyplňte všechna povinná pole.",
