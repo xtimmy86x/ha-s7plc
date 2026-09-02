@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
@@ -17,6 +18,7 @@ from .const import (
     CONF_AVAILABILITY_ADDRESS,
     CONF_AVAILABILITY_MODE,
     CONF_UID,
+    SYNC_COMMAND_SETTLE_TIME,
 )
 
 if TYPE_CHECKING:
@@ -163,6 +165,40 @@ class S7SyncEntity(S7BaseEntity):
         )
         self._last_state: Any = None
         self._pending_command: Any = None
+        self._pending_command_time: float | None = None
+        self._external_candidate: Any = None
+        self._external_candidate_generation: int | None = None
+        self._external_candidate_count = 0
+        self._plc_update_generation = 0
+
+    def _clear_external_candidate(self) -> None:
+        """Discard unconfirmed external feedback."""
+        self._external_candidate = None
+        self._external_candidate_generation = None
+        self._external_candidate_count = 0
+
+    def _set_pending_command(self, value: Any) -> None:
+        """Track a new HA command and discard mismatch evidence for an older one."""
+        self._clear_external_candidate()
+        self._pending_command = value
+        self._pending_command_time = time.monotonic()
+
+    def _mark_pending_command_written(self) -> None:
+        """Start a full settle window after the command write has completed."""
+        if self._pending_command is not None:
+            self._pending_command_time = time.monotonic()
+
+    def _clear_pending_command(self) -> None:
+        """Clear a completed command and its mismatch evidence."""
+        self._pending_command = None
+        self._pending_command_time = None
+        self._clear_external_candidate()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Record exactly one generation for each real coordinator update."""
+        self._plc_update_generation += 1
+        super()._handle_coordinator_update()
 
     def _sync_value(self) -> Any:
         """Return the valid, canonical value to track, or None when unavailable."""
@@ -177,6 +213,9 @@ class S7SyncEntity(S7BaseEntity):
         """Write HA state and synchronize external PLC changes safely."""
         new_state = self._sync_value()
         entity_name = getattr(self, "entity_id", self._attr_unique_id)
+        force_ha_update = False
+        previous_state = self._last_state
+        rejected_command = False
 
         if self._last_state is None and new_state is not None:
             self._last_state = new_state
@@ -195,25 +234,80 @@ class S7SyncEntity(S7BaseEntity):
                         "%s: PLC confirmed command: %s", entity_name, new_state
                     )
                     self._last_state = new_state
-                    self._pending_command = None
+                    self._clear_pending_command()
                     super().async_write_ha_state()
                     return
+                command_age = (
+                    0.0
+                    if self._pending_command_time is None
+                    else time.monotonic() - self._pending_command_time
+                )
+                if command_age < SYNC_COMMAND_SETTLE_TIME:
+                    _LOGGER.debug(
+                        "%s: HA command not yet confirmed: expected %s, got PLC "
+                        "feedback %s after %.3fs; waiting for settle window",
+                        entity_name,
+                        self._pending_command,
+                        new_state,
+                        command_age,
+                    )
+                    # Do not publish a possibly stale sample over HA's command
+                    # result until either confirmation or rejection is stable.
+                    return
                 _LOGGER.debug(
-                    "%s: PLC override: expected %s, got %s",
+                    "%s: HA command not confirmed: expected %s, got PLC feedback "
+                    "%s; realigning command address",
                     entity_name,
                     self._pending_command,
                     new_state,
                 )
-                self._pending_command = None
-
-            if new_state != self._last_state:
-                _LOGGER.debug(
-                    "%s: External change detected: %s -> %s, syncing command address",
-                    entity_name,
-                    self._last_state,
-                    new_state,
-                )
+                self._clear_pending_command()
+                # The feedback is authoritative.  This is deliberately handled
+                # independently of _last_state: when a command is rejected the
+                # PLC often keeps reporting the state HA had already seen.
                 self._last_state = new_state
+                force_ha_update = True
+                rejected_command = True
+                should_sync = True
+            else:
+                should_sync = False
+                if new_state == self._last_state:
+                    self._clear_external_candidate()
+                elif self._external_candidate != new_state:
+                    self._external_candidate = new_state
+                    self._external_candidate_generation = self._plc_update_generation
+                    self._external_candidate_count = 1
+                    _LOGGER.debug(
+                        "%s: External change candidate: %s -> %s",
+                        entity_name,
+                        self._last_state,
+                        new_state,
+                    )
+                    return
+                elif self._external_candidate_generation != self._plc_update_generation:
+                    self._external_candidate_generation = self._plc_update_generation
+                    self._external_candidate_count += 1
+                    if self._external_candidate_count >= 2:
+                        should_sync = True
+                        self._clear_external_candidate()
+                if not should_sync and new_state != self._last_state:
+                    # Repeated HA state writes for one coordinator sample cannot
+                    # turn a candidate into accepted PLC feedback.
+                    return
+
+            if should_sync:
+                if not rejected_command:
+                    _LOGGER.debug(
+                        "%s: External change detected: %s -> %s, "
+                        "syncing command address",
+                        entity_name,
+                        previous_state,
+                        new_state,
+                    )
+                self._last_state = new_state
+                sync_reason = (
+                    "rejected HA command" if rejected_command else "external change"
+                )
 
                 async def _async_sync_command_write() -> None:
                     try:
@@ -222,9 +316,9 @@ class S7SyncEntity(S7BaseEntity):
                         )
                     except (HomeAssistantError, TypeError, ValueError) as err:
                         _LOGGER.warning(
-                            "%s: Failed to sync command address "
-                            "after external change: %s",
+                            "%s: Failed to sync command address after %s: %s",
                             entity_name,
+                            sync_reason,
                             err,
                         )
 
@@ -232,6 +326,18 @@ class S7SyncEntity(S7BaseEntity):
                     _async_sync_command_write(),
                     name=f"s7plc_sync_write_{self._attr_unique_id}",
                 )
+
+        if force_ha_update:
+            # HA's frontend may optimistically display the requested value. If
+            # the real value did not change, Entity would normally suppress the
+            # identical state event, so force exactly this corrective update.
+            previous_force_update = getattr(self, "_attr_force_update", False)
+            self._attr_force_update = True
+            try:
+                super().async_write_ha_state()
+            finally:
+                self._attr_force_update = previous_force_update
+            return
 
         super().async_write_ha_state()
 
@@ -327,12 +433,13 @@ class S7BoolSyncEntity(S7SyncEntity):
                 await self._async_pulse()
         else:
             await self._ensure_connected()
-            self._pending_command = True
+            self._set_pending_command(True)
             try:
                 await self.coordinator.write_batched(self._command_address, True)
             except HomeAssistantError:
-                self._pending_command = None
+                self._clear_pending_command()
                 raise
+            self._mark_pending_command_written()
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -349,12 +456,13 @@ class S7BoolSyncEntity(S7SyncEntity):
                 await self._async_pulse()
         else:
             await self._ensure_connected()
-            self._pending_command = False
+            self._set_pending_command(False)
             try:
                 await self.coordinator.write_batched(self._command_address, False)
             except HomeAssistantError:
-                self._pending_command = None
+                self._clear_pending_command()
                 raise
+            self._mark_pending_command_written()
             await self.coordinator.async_request_refresh()
 
     async def _async_pulse(self) -> None:
