@@ -166,16 +166,39 @@ class S7SyncEntity(S7BaseEntity):
         self._last_state: Any = None
         self._pending_command: Any = None
         self._pending_command_time: float | None = None
+        self._external_candidate: Any = None
+        self._external_candidate_generation: int | None = None
+        self._external_candidate_count = 0
+        self._plc_update_generation = 0
+
+    def _clear_external_candidate(self) -> None:
+        """Discard unconfirmed external feedback."""
+        self._external_candidate = None
+        self._external_candidate_generation = None
+        self._external_candidate_count = 0
 
     def _set_pending_command(self, value: Any) -> None:
         """Track a new HA command and discard mismatch evidence for an older one."""
+        self._clear_external_candidate()
         self._pending_command = value
         self._pending_command_time = time.monotonic()
+
+    def _mark_pending_command_written(self) -> None:
+        """Start a full settle window after the command write has completed."""
+        if self._pending_command is not None:
+            self._pending_command_time = time.monotonic()
 
     def _clear_pending_command(self) -> None:
         """Clear a completed command and its mismatch evidence."""
         self._pending_command = None
         self._pending_command_time = None
+        self._clear_external_candidate()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Record exactly one generation for each real coordinator update."""
+        self._plc_update_generation += 1
+        super()._handle_coordinator_update()
 
     def _sync_value(self) -> Any:
         """Return the valid, canonical value to track, or None when unavailable."""
@@ -247,7 +270,30 @@ class S7SyncEntity(S7BaseEntity):
                 rejected_command = True
                 should_sync = True
             else:
-                should_sync = new_state != self._last_state
+                should_sync = False
+                if new_state == self._last_state:
+                    self._clear_external_candidate()
+                elif self._external_candidate != new_state:
+                    self._external_candidate = new_state
+                    self._external_candidate_generation = self._plc_update_generation
+                    self._external_candidate_count = 1
+                    _LOGGER.debug(
+                        "%s: External change candidate: %s -> %s",
+                        entity_name,
+                        self._last_state,
+                        new_state,
+                    )
+                    return
+                elif self._external_candidate_generation != self._plc_update_generation:
+                    self._external_candidate_generation = self._plc_update_generation
+                    self._external_candidate_count += 1
+                    if self._external_candidate_count >= 2:
+                        should_sync = True
+                        self._clear_external_candidate()
+                if not should_sync and new_state != self._last_state:
+                    # Repeated HA state writes for one coordinator sample cannot
+                    # turn a candidate into accepted PLC feedback.
+                    return
 
             if should_sync:
                 if not rejected_command:
@@ -393,6 +439,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             except HomeAssistantError:
                 self._clear_pending_command()
                 raise
+            self._mark_pending_command_written()
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -415,6 +462,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             except HomeAssistantError:
                 self._clear_pending_command()
                 raise
+            self._mark_pending_command_written()
             await self.coordinator.async_request_refresh()
 
     async def _async_pulse(self) -> None:

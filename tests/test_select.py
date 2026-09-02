@@ -280,10 +280,39 @@ async def test_select_sync_bidirectional_conversion_pipeline(
     mock_coordinator.data = {entity._topic: 0}
     entity.async_write_ha_state()
     mock_coordinator.data[entity._topic] = 10
-    entity.async_write_ha_state()
+    entity._handle_coordinator_update()
+    entity._handle_coordinator_update()
     await asyncio.sleep(0)
     assert entity.current_option == "Automatic"
     assert mock_coordinator.write_calls == [("write_batched", "DB1,W10", 10)]
+
+
+@pytest.mark.asyncio
+async def test_select_external_candidate_change_restarts_debounce(
+    mock_coordinator, device_info, fake_hass
+):
+    """A different valid select sample replaces, rather than confirms, a candidate."""
+    entity = S7Select(
+        mock_coordinator, "Mode", "candidate-restart", device_info,
+        "select:DB1,B0", "DB1,B0", "DB1,B10",
+        {0: "Off", 1: "Manual", 2: "Automatic"}, sync_state=True,
+    )
+    entity.hass = fake_hass
+    mock_coordinator.data = {entity._topic: 0}
+    entity.async_write_ha_state()
+
+    mock_coordinator.data[entity._topic] = 1
+    entity._handle_coordinator_update()
+    mock_coordinator.data[entity._topic] = 2
+    entity._handle_coordinator_update()
+    assert entity._last_state == 0
+    assert entity._external_candidate == 2
+    assert entity._external_candidate_count == 1
+
+    entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._last_state == 2
+    assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 2)]
 
 
 @pytest.mark.asyncio
@@ -453,6 +482,7 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
 
     mock_coordinator.data[entity._topic] = 100
     entity._handle_coordinator_update()
+    entity._handle_coordinator_update()
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
     now = [10.0]
@@ -505,7 +535,8 @@ async def test_time_select_sync_uses_timedelta(
     mock_coordinator.data = {entity._topic: timedelta(0)}
     entity.async_write_ha_state()
     mock_coordinator.data[entity._topic] = timedelta(seconds=10)
-    entity.async_write_ha_state()
+    entity._handle_coordinator_update()
+    entity._handle_coordinator_update()
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [
         ("write_batched", "DB1,TIME4", timedelta(seconds=10))

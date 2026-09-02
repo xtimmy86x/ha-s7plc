@@ -203,13 +203,86 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     coord.data["topic"] = True
     ent._pending_command = None
 
-    # Trigger state update - need to give asyncio.create_task time to execute
-    ent.async_write_ha_state()
+    # Two distinct coordinator updates confirm external feedback.
+    ent._handle_coordinator_update()
+    ent._handle_coordinator_update()
     await asyncio.sleep(0.01)  # Give task time to execute
 
     assert coord.write_calls == [("write_batched", "db1,x0.1", True)]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
+
+
+@pytest.mark.asyncio
+async def test_external_bool_feedback_requires_two_plc_updates(
+    mock_coordinator, fake_hass
+):
+    """One bad sample is ignored, while two distinct matching polls are accepted."""
+    coord = mock_coordinator
+    coord.data = {"topic": True}
+    entity = S7BoolSyncEntity(
+        coord,
+        unique_id="debounce",
+        device_info={"identifiers": {"domain"}},
+        topic="topic",
+        state_address="DB1,X0.0",
+        command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+
+    coord.data["topic"] = False
+    entity._handle_coordinator_update()
+    entity.async_write_ha_state()  # The same PLC sample must not count twice.
+    assert entity._last_state is True
+    assert coord.write_calls == []
+
+    coord.data["topic"] = True
+    entity._handle_coordinator_update()
+    assert entity._last_state is True
+    assert coord.write_calls == []
+
+    coord.data["topic"] = False
+    entity._handle_coordinator_update()
+    entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._last_state is False
+    assert coord.write_calls == [("write_batched", "DB1,X0.1", False)]
+
+
+@pytest.mark.asyncio
+async def test_successful_command_write_restarts_settle_timestamp(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """Network/batching time is not deducted from the PLC settle window."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord,
+        unique_id="write-time",
+        device_info={"identifiers": {"domain"}},
+        topic="topic",
+        state_address="DB1,X0.0",
+        command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    times = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: times[0]
+    )
+    original_write = coord.write_batched
+
+    async def delayed_write(*args):
+        times[0] = 12.5
+        await original_write(*args)
+
+    coord.write_batched = delayed_write
+    await entity.async_turn_on()
+
+    assert entity._pending_command is True
+    assert entity._pending_command_time == 12.5
 
 
 @pytest.mark.asyncio

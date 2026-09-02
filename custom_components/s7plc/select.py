@@ -224,6 +224,7 @@ class S7Select(S7SyncEntity, SelectEntity):
         except HomeAssistantError:
             self._clear_pending_command()
             raise
+        self._mark_pending_command_written()
         await self.coordinator.async_request_refresh()
 
     @property
