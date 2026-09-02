@@ -6,11 +6,14 @@ import asyncio
 import pytest
 
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from custom_components.s7plc.button import S7Button, async_setup_entry as button_setup_entry
 from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity
 from custom_components.s7plc.helpers import default_entity_name
+from custom_components.s7plc.light import S7Light
 from custom_components.s7plc.number import S7Number, async_setup_entry as number_setup_entry
+from custom_components.s7plc.switch import S7Switch
 from custom_components.s7plc.const import (
     CONF_ADDRESS,
     CONF_BUTTONS,
@@ -141,6 +144,7 @@ async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
 
     assert coord.write_calls[-1] == ("write_batched", "db1,x0.1", True)
     assert ent._pending_command is None
+    assert ent._pending_command_time is None
     assert not coord.refresh_called
 
 
@@ -198,7 +202,7 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
 
     coord.data["topic"] = True
     ent._pending_command = None
-    
+
     # Trigger state update - need to give asyncio.create_task time to execute
     ent.async_write_ha_state()
     await asyncio.sleep(0.01)  # Give task time to execute
@@ -206,6 +210,258 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     assert coord.write_calls == [("write_batched", "db1,x0.1", True)]
     assert ent._last_state is True
     assert ent._ha_state_calls == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("entity_class", [S7Switch, S7Light])
+async def test_bool_sync_rejected_command_realigns_only_once(
+    entity_class, mock_coordinator, fake_hass, monkeypatch, caplog
+):
+    """Switches and lights emit and write one correction for a rejection."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = entity_class(
+        coord, "Test", f"rejected-{entity_class.__name__}",
+        {"identifiers": {"domain"}}, "topic", "DB1,X0.0", "DB1,X0.1",
+        True, False, 0.5,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [100.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+
+    force_updates = []
+    monkeypatch.setattr(
+        CoordinatorEntity,
+        "async_write_ha_state",
+        lambda self: force_updates.append(self._attr_force_update),
+    )
+    entity._set_pending_command(True)
+    with caplog.at_level("DEBUG"):
+        entity.async_write_ha_state()
+        assert entity._pending_command is True
+        assert force_updates == []
+        assert coord.write_calls == []
+
+        # Polling frequency and extra HA writes do not shorten the time window.
+        for _ in range(10):
+            entity.async_write_ha_state()
+        assert entity._pending_command is True
+        assert force_updates == []
+        assert coord.write_calls == []
+
+        now[0] += 1.999
+        entity.async_write_ha_state()
+        assert entity._pending_command is True
+        assert force_updates == []
+        assert coord.write_calls == []
+
+        now[0] += 0.002
+        entity.async_write_ha_state()
+        await asyncio.sleep(0)
+        assert entity._pending_command is None
+        assert force_updates == [True]
+        assert coord.write_calls == [("write_batched", "DB1,X0.1", False)]
+
+        entity.async_write_ha_state()
+        await asyncio.sleep(0)
+
+    assert force_updates == [True, False]
+    assert entity._attr_force_update is False
+    assert coord.write_calls == [("write_batched", "DB1,X0.1", False)]
+    assert "HA command not confirmed" in caplog.text
+    assert "External change detected" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_new_bool_command_restarts_settle_window(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """A new boolean command replaces pending state and restarts its timer."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="new-command", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    await entity.async_turn_on()
+    assert entity._pending_command_time == 10.0
+
+    now[0] = 11.9
+    await entity.async_turn_off()
+
+    assert entity._pending_command is False
+    assert entity._pending_command_time == 11.9
+
+
+@pytest.mark.asyncio
+async def test_mismatch_followed_by_command_confirmation_does_not_realign(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """A transient mismatch is discarded when the expected feedback arrives."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="late-confirmation", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(True)
+
+    entity.async_write_ha_state()
+    now[0] = 11.5
+    coord.data["topic"] = True
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert entity._pending_command is None
+    assert entity._pending_command_time is None
+    assert coord.write_calls == []
+
+
+def test_disconnection_does_not_resolve_expired_pending_command(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """Disconnected feedback cannot reject a command after the settle window."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="disconnected", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(True)
+    now[0] = 20.0
+    coord.set_connected(False)
+
+    entity.async_write_ha_state()
+
+    assert entity._pending_command is True
+    assert entity._pending_command_time == 10.0
+    assert coord.write_calls == []
+
+
+@pytest.mark.asyncio
+async def test_sync_correction_restores_existing_force_update_true(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """The corrective state write preserves an already enabled force_update."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="force-update", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._attr_force_update = True
+    observed = []
+    monkeypatch.setattr(
+        CoordinatorEntity,
+        "async_write_ha_state",
+        lambda self: observed.append(self._attr_force_update),
+    )
+
+    entity._set_pending_command(True)
+    now[0] = 12.0
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert observed == [True]
+    assert entity._attr_force_update is True
+
+
+@pytest.mark.asyncio
+async def test_sync_correction_restores_force_update_after_state_write_exception(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """The temporary force_update flag is restored if HA's state write fails."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="force-error", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(True)
+
+    def raise_during_state_write(self):
+        assert self._attr_force_update is True
+        raise RuntimeError("state write failed")
+
+    monkeypatch.setattr(
+        CoordinatorEntity, "async_write_ha_state", raise_during_state_write
+    )
+    entity.async_write_ha_state()
+    now[0] = 12.0
+    with pytest.raises(RuntimeError, match="state write failed"):
+        entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert entity._attr_force_update is False
+
+
+@pytest.mark.asyncio
+async def test_sync_confirmed_command_does_not_force_or_realign(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """A confirmed command follows the ordinary HA state-write path."""
+    coord = mock_coordinator
+    coord.data = {"topic": False}
+    entity = S7BoolSyncEntity(
+        coord, unique_id="confirmed", device_info={"identifiers": {"domain"}},
+        topic="topic", state_address="DB1,X0.0", command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    observed = []
+    monkeypatch.setattr(
+        CoordinatorEntity,
+        "async_write_ha_state",
+        lambda self: observed.append(getattr(self, "_attr_force_update", False)),
+    )
+
+    entity._set_pending_command(True)
+    coord.data["topic"] = True
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert observed == [False]
+    assert entity._pending_command is None
+    assert coord.write_calls == []
 
 
 def test_bool_entity_pulse_disables_sync(mock_coordinator):

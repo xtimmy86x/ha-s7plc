@@ -213,16 +213,16 @@ class S7Select(S7SyncEntity, SelectEntity):
         value = self._label_to_value.get(option)
         if value is None:
             raise HomeAssistantError(f"Unknown option: {option}")
-        self._pending_command = value
+        self._set_pending_command(value)
         try:
             payload = self._sync_payload(value)
         except (ValueConversionError, TypeError, ValueError) as err:
-            self._pending_command = None
+            self._clear_pending_command()
             raise HomeAssistantError(f"Value conversion failed: {err}") from err
         try:
             await self.coordinator.write_batched(self._command_address, payload)
         except HomeAssistantError:
-            self._pending_command = None
+            self._clear_pending_command()
             raise
         await self.coordinator.async_request_refresh()
 

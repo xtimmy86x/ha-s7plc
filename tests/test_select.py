@@ -134,9 +134,13 @@ def test_select_current_option_non_integer(pump_select, mock_coordinator):
 
 
 @pytest.mark.asyncio
-async def test_select_option_writes_value(pump_select, mock_coordinator):
+async def test_select_option_writes_value(pump_select, mock_coordinator, monkeypatch):
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: 5.0
+    )
     await pump_select.async_select_option("Pump B")
     assert ("write_batched", "DB1,B10", 2) in mock_coordinator.write_calls
+    assert pump_select._pending_command_time == 5.0
 
 
 @pytest.mark.asyncio
@@ -283,6 +287,120 @@ async def test_select_sync_bidirectional_conversion_pipeline(
 
 
 @pytest.mark.asyncio
+async def test_select_rejected_command_realigns_canonical_unchanged_feedback(
+    mock_coordinator, device_info, fake_hass, monkeypatch
+):
+    """Rejected select commands use the canonical value and write conversion."""
+    entity = S7Select(
+        mock_coordinator,
+        "Mode",
+        "mode-rejected",
+        device_info,
+        "select:DB1,W0",
+        "DB1,W0",
+        "DB1,W10",
+        {10: "Manual", 100: "Automatic"},
+        value_conversion={"type": "multiplier", "factor": 10},
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    # Raw 1 maps to canonical 10 and is only recorded on initial discovery.
+    mock_coordinator.data = {entity._topic: 1}
+    entity.async_write_ha_state()
+    assert mock_coordinator.write_calls == []
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+
+    entity._set_pending_command(100)
+    for _ in range(10):
+        entity.async_write_ha_state()
+    assert entity._pending_command == 100
+    assert mock_coordinator.write_calls == []
+
+    now[0] = 11.999
+    entity.async_write_ha_state()
+    assert entity._pending_command == 100
+    assert mock_coordinator.write_calls == []
+
+    now[0] = 12.001
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert entity._pending_command is None
+    assert entity._last_state == 10
+    assert mock_coordinator.write_calls == [("write_batched", "DB1,W10", 1)]
+
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == [("write_batched", "DB1,W10", 1)]
+
+
+@pytest.mark.asyncio
+async def test_select_realignment_write_error_is_consumed(
+    mock_coordinator_failing, device_info, fake_hass, caplog, monkeypatch
+):
+    """A failed corrective write is logged by its background task."""
+    entity = S7Select(
+        mock_coordinator_failing,
+        "Mode",
+        "mode-realignment-error",
+        device_info,
+        "select:DB1,B0",
+        "DB1,B0",
+        "DB1,B10",
+        {0: "Off", 1: "On"},
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    mock_coordinator_failing.data = {entity._topic: 0}
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(1)
+
+    entity.async_write_ha_state()
+    assert entity._pending_command == 1
+    now[0] = 12.001
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+
+    assert entity._pending_command is None
+    assert "Failed to sync command address" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_select_invalid_feedback_does_not_resolve_pending_command(
+    mock_coordinator, device_info, fake_hass, monkeypatch
+):
+    """Unavailable and unmapped feedback remain inert after the settle window."""
+    entity = S7Select(
+        mock_coordinator, "Mode", "mode-candidates", device_info,
+        "select:DB1,B0", "DB1,B0", "DB1,B10",
+        {0: "Off", 1: "Manual", 2: "Automatic", 3: "Requested"},
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    mock_coordinator.data = {entity._topic: 0}
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(3)
+    now[0] = 12.001
+
+    for invalid_feedback in (None, 99):
+        mock_coordinator.data[entity._topic] = invalid_feedback
+        entity.async_write_ha_state()
+        assert entity._pending_command == 3
+        assert mock_coordinator.write_calls == []
+
+
+@pytest.mark.asyncio
 async def test_select_sync_conversion_error_does_not_write(
     mock_coordinator, device_info, fake_hass
 ):
@@ -313,7 +431,7 @@ async def test_select_sync_conversion_error_does_not_write(
 
 @pytest.mark.asyncio
 async def test_select_sync_initial_external_echo_override_and_unmapped(
-    mock_coordinator, device_info, fake_hass
+    mock_coordinator, device_info, fake_hass, monkeypatch
 ):
     entity = S7Select(
         mock_coordinator,
@@ -334,14 +452,18 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
     assert mock_coordinator.write_calls == []
 
     mock_coordinator.data[entity._topic] = 100
-    entity.async_write_ha_state()
+    entity._handle_coordinator_update()
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
 
     await entity.async_select_option("Manual")
     mock_coordinator.write_calls.clear()
     mock_coordinator.data[entity._topic] = 10
-    entity.async_write_ha_state()
+    entity._handle_coordinator_update()
     await asyncio.sleep(0)
     assert entity._pending_command is None
     assert mock_coordinator.write_calls == []
@@ -349,6 +471,10 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
     await entity.async_select_option("Manual")
     mock_coordinator.write_calls.clear()
     mock_coordinator.data[entity._topic] = 100
+    entity.async_write_ha_state()
+    await asyncio.sleep(0)
+    assert mock_coordinator.write_calls == []
+    now[0] = 12.001
     entity.async_write_ha_state()
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
