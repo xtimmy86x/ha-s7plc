@@ -1067,7 +1067,8 @@
       "select_entity": "Seleziona entità",
       "delete_selected": "Elimina selezionate",
       "delete_selected_confirm": "Eliminare le {count} entità selezionate?",
-      "duplicate": "Duplica entità"
+      "duplicate": "Duplica entità",
+      "more_actions": "Altre azioni"
     },
     "errors": {
       "required_error": "Compila tutti i campi obbligatori.",
@@ -1269,6 +1270,7 @@
       "add_state": "Aggiungi stato",
       "enum_states": "{count} stati",
       "enum_help": "Mappa codici PLC interi discreti in stati testuali. La device class enum viene impostata automaticamente.",
+      "enum_unavailable": "La mappatura Enum non è disponibile perché questo indirizzo non utilizza un tipo di dato PLC intero.",
       "errors": {
         "value_required": "Il valore PLC è obbligatorio.",
         "value_integer": "Il valore PLC deve essere un intero.",

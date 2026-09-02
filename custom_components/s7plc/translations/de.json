@@ -1067,7 +1067,8 @@
       "select_entity": "Entität auswählen",
       "delete_selected": "Ausgewählte löschen",
       "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?",
-      "duplicate": "Entität duplizieren"
+      "duplicate": "Entität duplizieren",
+      "more_actions": "Weitere Aktionen"
     },
     "errors": {
       "required_error": "Füllen Sie alle erforderlichen Felder aus.",
@@ -1269,6 +1270,7 @@
       "add_state": "Status hinzufügen",
       "enum_states": "{count} Status",
       "enum_help": "Ordnet diskrete ganzzahlige PLC-Codes Textstatus zu. Die Device Class enum wird automatisch gesetzt.",
+      "enum_unavailable": "Die Enum-Zuordnung ist nicht verfügbar, da diese Adresse keinen ganzzahligen PLC-Datentyp verwendet.",
       "errors": {
         "value_required": "PLC-Wert ist erforderlich.",
         "value_integer": "PLC-Wert muss eine Ganzzahl sein.",

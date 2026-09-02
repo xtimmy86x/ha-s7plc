@@ -1067,7 +1067,8 @@
       "select_entity": "Wybierz encję",
       "delete_selected": "Usuń wybrane",
       "delete_selected_confirm": "Usunąć {count} wybranych encji?",
-      "duplicate": "Duplikuj encję"
+      "duplicate": "Duplikuj encję",
+      "more_actions": "Więcej działań"
     },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",
@@ -1269,6 +1270,7 @@
       "add_state": "Dodaj stan",
       "enum_states": "{count} stanów",
       "enum_help": "Mapuje dyskretne całkowite kody PLC na stany tekstowe. Klasa urządzenia enum jest ustawiana automatycznie.",
+      "enum_unavailable": "Mapowanie Enum jest niedostępne, ponieważ ten adres nie używa całkowitego typu danych PLC.",
       "errors": {
         "value_required": "Wartość PLC jest wymagana.",
         "value_integer": "Wartość PLC musi być liczbą całkowitą.",

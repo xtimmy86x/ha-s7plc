@@ -1067,7 +1067,8 @@
       "select_entity": "Select entity",
       "delete_selected": "Delete selected",
       "delete_selected_confirm": "Delete {count} selected entities?",
-      "duplicate": "Duplicate entity"
+      "duplicate": "Duplicate entity",
+      "more_actions": "More actions"
     },
     "errors": {
       "required_error": "Fill in all required fields.",
@@ -1269,6 +1270,7 @@
       "add_state": "Add state",
       "enum_states": "{count} states",
       "enum_help": "Map discrete integer PLC codes to text states. The enum device class is set automatically.",
+      "enum_unavailable": "Enum mapping is not available because this address does not use an integer PLC datatype.",
       "errors": {
         "value_required": "PLC value is required.",
         "value_integer": "PLC value must be an integer.",
