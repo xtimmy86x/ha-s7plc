@@ -4792,6 +4792,9 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     page_styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
     mobile_styles = page_styles.split("@media(max-width:650px){", 1)[1]
+    intermediate_styles = page_styles.split(
+        "@media(min-width:501px) and (max-width:900px){", 1
+    )[1].split("@media(max-width:480px)", 1)[0]
 
     assert ".hero-banner{width:100%;height:150px" in page_styles
     assert ".hero-banner img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
@@ -4800,6 +4803,16 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     assert ".hero-banner{height:80px;margin-bottom:8px" in mobile_styles
     assert ".summary{margin-bottom:8px;padding:10px 12px" in mobile_styles
     assert ".address-mode-actions button{flex:1;min-width:0;min-height:40px}" in mobile_styles
+    assert ".hero-banner{height:clamp(80px,calc(42.5px + 7.5vw),110px)" in intermediate_styles
+    assert ".toolbar,.sections-toolbar{align-items:stretch;flex-direction:column;gap:8px}" in intermediate_styles
+    assert ".toolbar p{display:block}" in intermediate_styles
+    assert ".toolbar-actions{justify-content:flex-end;flex-wrap:wrap}" in intermediate_styles
+    assert (
+        "@media(min-width:901px) and (max-width:1199px){"
+        ".hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}"
+        in page_styles
+    )
+    assert "(100vw - 900px)*.134" not in page_styles
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_value_conversion_editor_is_localized_directional_and_accessible() -> None:
