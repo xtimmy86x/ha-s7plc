@@ -1,232 +1,179 @@
-# Integration Quality Scale Tracking for s7plc
-# This file tracks the implementation status of quality scale rules
-
-# Note: This is a custom integration (not in HA core)
-# Working towards Bronze/Silver tier compliance
+# Integration Quality Scale tracking for s7plc.
+#
+# Audited against the official Home Assistant rule set on 2026-09-01:
+# https://developers.home-assistant.io/docs/core/integration-quality-scale/
+#
+# This is a custom integration, so this checklist records progress only. It does
+# not assign an official Home Assistant quality tier. A tier is reached only
+# when every rule in that tier and all lower tiers is done or validly exempt.
 
 rules:
-  # ============================================================================
-  # BRONZE TIER
-  # ============================================================================
-
+  # Bronze
   action-setup:
     status: done
-    comment: Service actions registered in async_setup (__init__.py)
-
+    comment: Actions are registered during integration setup and removed with the final config entry.
   appropriate-polling:
     status: done
-    comment: Configurable scan interval with reasonable defaults (5-60s)
-
+    comment: The coordinator centralizes polling and supports configurable global and per-entity intervals.
   brands:
-    status: done
-    comment: Branding assets available in docs/banner.png
-
+    status: todo
+    comment: Local artwork is not an entry in the official home-assistant/brands repository.
   common-modules:
     status: done
-    comment: Common patterns in entity.py, helpers.py, address.py
-
-  config-flow-test-coverage:
-    status: done
-    comment: 16 tests in test_config_flow.py covering all flows
-
+    comment: Shared entity, coordinator, address, validation, and helper logic is kept in common modules.
   config-flow:
     status: done
-    comment: |
-      Full UI config flow with data_description fields.
-      Correct use of ConfigEntry.data and ConfigEntry.options.
-
+    comment: The integration can be configured through the Home Assistant UI.
+  config-flow-test-coverage:
+    status: todo
+    comment: Config-flow tests exist, but the required 100% flow coverage has not been demonstrated.
   dependency-transparency:
     status: done
-    comment: pys7==2.6.1 specified in manifest.json requirements
-
+    comment: The runtime dependency and exact version are declared in manifest.json.
   docs-actions:
+    status: todo
+    comment: The custom health_check and write_multi actions need complete end-user action documentation.
+  docs-conditions:
     status: done
-    comment: Service actions documented in configuration.md
-
+    comment: The integration provides no custom automation conditions, so there are none to document.
   docs-high-level-description:
     status: done
-    comment: High-level description in README.md and docs/configuration.md
-
+    comment: README.md describes the integration, supported PLC families, and its purpose.
   docs-installation-instructions:
     status: done
-    comment: Step-by-step installation in README.md (HACS and manual)
-
+    comment: README.md contains HACS and manual installation instructions.
   docs-removal-instructions:
+    status: todo
+    comment: Entity removal is documented, but removal of the integration itself is not.
+  docs-triggers:
     status: done
-    comment: Standard HA integration removal via UI
-
+    comment: The integration provides no custom automation triggers, so there are none to document.
   entity-event-setup:
     status: done
-    comment: Events subscribed in coordinator update lifecycle
-
+    comment: Entity listeners use the entity lifecycle and coordinator listener management.
   entity-unique-id:
     status: done
-    comment: All entities have unique IDs based on device_id and topic
-
+    comment: Entities define stable unique IDs derived from the configured PLC and entity identity.
   has-entity-name:
     status: done
-    comment: _attr_has_entity_name = True in S7BaseEntity
-
+    comment: S7BaseEntity and the metrics entities enable has_entity_name.
   runtime-data:
     status: done
-    comment: Uses ConfigEntry.runtime_data with RuntimeEntryData dataclass (__init__.py)
-
+    comment: Config entries store a typed RuntimeEntryData instance in runtime_data.
   test-before-configure:
     status: done
-    comment: Connection test in async_step_connection (config_flow.py)
-
+    comment: The connection step validates PLC connectivity before creating the config entry.
   test-before-setup:
     status: done
-    comment: Connection check during coordinator initialization
-
+    comment: Setup performs the coordinator's first refresh before forwarding platform setup.
   unique-config-entry:
     status: done
-    comment: Duplicate detection via _async_current_entries() in config flow
+    comment: The config flow prevents duplicate PLC connection entries.
 
-  # ============================================================================
-  # SILVER TIER
-  # ============================================================================
-
+  # Silver
   action-exceptions:
     status: done
-    comment: Service actions raise HomeAssistantError on failures
-
+    comment: Action failures are surfaced as HomeAssistantError rather than swallowed.
   config-entry-unloading:
     status: done
-    comment: async_unload_entry implemented in __init__.py
-
+    comment: async_unload_entry unloads platforms, shuts down the coordinator, and removes shared actions.
   docs-configuration-parameters:
     status: done
-    comment: All parameters documented in docs/configuration.md
-
+    comment: Configuration and entity parameters are described in docs/configuration.md.
   docs-installation-parameters:
     status: done
-    comment: Installation parameters in docs/configuration.md (timeout, retry, etc.)
-
+    comment: Connection type, address, rack/slot, TSAP, timeout, retry, and polling settings are documented.
   entity-unavailable:
     status: done
-    comment: Entities marked unavailable when coordinator has errors
-
+    comment: Entity availability follows coordinator connectivity and per-entity data availability.
   integration-owner:
     status: done
-    comment: Listed as codeowner in manifest.json
-
+    comment: manifest.json declares an active code owner.
   log-when-unavailable:
     status: done
-    comment: Connection errors logged once, recovery logged once
-
+    comment: Coordinator failures use DataUpdateCoordinator's unavailable and recovery logging behavior.
   parallel-updates:
     status: done
-    comment: "PARALLEL_UPDATES set appropriately: 0 for read-only (binary_sensor, sensor), 1 for write operations (switch, light, cover, number, button)"
-
+    comment: Every polling entity platform declares an explicit PARALLEL_UPDATES value.
   reauthentication-flow:
-    status: todo
-    comment: Could implement reauth flow for connection failures
-
+    status: exempt
+    comment: Siemens S7 connections configured by this integration do not use credentials or authentication tokens.
   test-coverage:
-    status: done
-    comment: 419 tests passing, >95% coverage
+    status: todo
+    comment: CI currently enforces 78.5%, below the rule's required coverage above 95% for every module.
 
-  # ============================================================================
-  # GOLD TIER
-  # ============================================================================
-
+  # Gold
   devices:
     status: done
-    comment: Device created per PLC with proper device_info
-
+    comment: Entities are grouped under a device representing the configured PLC.
   diagnostics:
     status: done
-    comment: Diagnostics implemented in diagnostics.py
-
+    comment: The integration implements config-entry diagnostics with sensitive data redaction.
+  discovery:
+    status: exempt
+    comment: Generic S7 PLC endpoints do not advertise a supported Home Assistant discovery protocol.
   discovery-update-info:
     status: exempt
-    comment: Manual configuration preferred for industrial PLCs
-
-  discovery:
-    status: partial
-    comment: Network discovery available but optional (zeroconf not required)
-
+    comment: There is no supported discovery source from which an updated PLC address can be received.
   docs-data-update:
     status: done
-    comment: Polling mechanism documented in configuration.md
-
+    comment: Polling and global/per-entity scan intervals are documented.
   docs-examples:
     status: done
-    comment: Examples in docs/examples.md
-
+    comment: docs/examples.md provides setup and automation examples.
   docs-known-limitations:
     status: done
-    comment: Limitations documented in docs/troubleshooting.md
-
+    comment: docs/troubleshooting.md documents protocol, connection, addressing, and performance limitations.
   docs-supported-devices:
     status: done
-    comment: Supported PLCs listed in docs/configuration.md and addressing.md
-
+    comment: Supported Siemens PLC families and connection modes are documented.
   docs-supported-functions:
     status: done
-    comment: All entity types and features documented
-
+    comment: Supported entity platforms and features are documented.
   docs-troubleshooting:
     status: done
-    comment: Comprehensive troubleshooting guide in docs/troubleshooting.md
-
+    comment: docs/troubleshooting.md provides symptom-based troubleshooting steps.
   docs-use-cases:
     status: done
-    comment: Use cases in README.md and docs/examples.md
-
+    comment: README.md and docs/examples.md describe representative PLC automation use cases.
   dynamic-devices:
     status: exempt
-    comment: Entities added via config flow, PLCs don't dynamically add devices
-
+    comment: A configured PLC is one static device and does not dynamically add or remove child devices.
   entity-category:
     status: done
-    comment: EntityCategory.DIAGNOSTIC set on PlcConnectionBinarySensor and S7EntitySync
-
+    comment: Connection and performance entities are categorized as diagnostic.
   entity-device-class:
     status: done
-    comment: Device classes used for binary_sensor and sensor entities
-
+    comment: Applicable entities expose Home Assistant device classes from validated configuration.
   entity-disabled-by-default:
     status: exempt
-    comment: All entities are intentionally configured by user
-
+    comment: User-created PLC entities are explicitly selected by the user; no noisy optional entities are auto-created.
   entity-translations:
     status: done
-    comment: Translations in EN/IT/DE/CS for all entity UI strings
-
+    comment: Integration-owned entity names use translation keys with localized resources.
   exception-translations:
     status: todo
-    comment: Exception messages should use translation keys
-
+    comment: User-facing HomeAssistantError messages still use hard-coded English strings.
   icon-translations:
     status: todo
-    comment: Could implement dynamic icons based on state
-
+    comment: Some integration-owned entities still set icons in Python and no icons.json is provided.
   reconfiguration-flow:
-    status: done
-    comment: Reconfigure flow available via config flow edit_connection
-
+    status: todo
+    comment: Options can be edited, but the config flow does not implement Home Assistant's reconfigure step.
   repair-issues:
     status: done
-    comment: Orphaned entities repair flow in repairs.py with async_create_issue in __init__.py
-
+    comment: The integration creates a repair issue and repair flow for orphaned entity configuration.
   stale-devices:
     status: exempt
-    comment: Manual device removal appropriate for static PLC infrastructure
+    comment: Each config entry represents one manually configured static PLC and cannot discover stale devices.
 
-  # ============================================================================
-  # PLATINUM TIER
-  # ============================================================================
-
+  # Platinum
   async-dependency:
-    status: todo
-    comment: pys7 library is synchronous, runs in executor
-
+    status: done
+    comment: pys7 3.x provides the AsyncS7Client used by the coordinator.
   inject-websession:
     status: exempt
-    comment: S7 protocol uses raw TCP sockets, not HTTP
-
+    comment: S7 uses a raw TCP protocol and does not create an HTTP client session.
   strict-typing:
-    status: partial
-    comment: Type hints present but not fully strict (no mypy --strict)
+    status: todo
+    comment: Strict mypy compliance for the integration and its dependency has not been demonstrated.
