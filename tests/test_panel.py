@@ -4630,6 +4630,49 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
         assert data["config_panel"]["actions"]["more_actions"]
 
 
+@pytest.mark.parametrize("viewport_width", [320, 360, 390])
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_card_leading_controls_stack_on_narrow_viewports(
+    viewport_width: int,
+) -> None:
+    """Sparse cards keep usable selection controls and room for long names."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
+    mobile = styles.split("@media(max-width:650px){", 1)[1].split(
+        "@media(max-width:500px)", 1
+    )[0]
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=key=>key;panel.bt=key=>key;
+panel.escape=String;panel.icon=()=>"help";panel.selectedIndices=new Set();
+const entry={{entities:{{sensors:[{{name:"A very long entity name that must not widen the card"}}]}}}};
+process.stdout.write(panel.entityCards(entry,"sensors"));'''
+    markup = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout
+
+    # The checkbox and icon form one flex item, so they can change axis together.
+    assert re.search(
+        r'<div class="entity-leading"><label class="entity-select".*?</label>'
+        r'<div class="entity-icon">.*?</div></div><div class="details">',
+        markup,
+    )
+    assert 'class="entity-state state-badge"' not in markup
+    assert "<div></div>" in markup  # No metadata chips.
+    assert "A very long entity name that must not widen the card" in markup
+
+    assert viewport_width <= 650
+    assert ".entity-leading{display:flex;align-items:center;gap:3px" in styles
+    assert (
+        ".entity-select{box-sizing:border-box;display:grid;place-items:center;"
+        in styles
+    )
+    assert "width:38px;min-height:32px" in styles
+    assert ".entity-leading{flex-direction:column;gap:4px}" in mobile
+    assert ".details{flex:1;min-width:0}" in styles
+    assert ".details>b{font-size:14px;font-weight:600;overflow:hidden;" in styles
+
+
 def test_entity_overflow_stacking_hierarchy_stays_above_neighbor_cards() -> None:
     """Transformed hover cards cannot cover an open entity action menu."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
