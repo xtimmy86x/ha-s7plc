@@ -269,7 +269,8 @@
           "description": "BIT-Adresse, die gesetzt sein muss, solange die SPS verbunden ist."
         }
       },
-      "datatype_time": "TIME — Dauer in Sekunden"
+      "datatype_time": "TIME — Dauer in Sekunden",
+      "disabled": "Verbindung deaktiviert"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +968,10 @@
         "connection": "SPS-Verbindung",
         "performance": "Kommunikation und Leistung",
         "retry": "Wiederverbindung",
-        "other": "Weitere Parameter"
+        "other": "Weitere Parameter",
+        "activity": "Aktivität und Wiederverbindung",
+        "configuration": "Kommunikation und Konfiguration",
+        "metrics": "Leistungsmetriken"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1021,39 @@
         },
         "plc_family": {
           "label": "SPS-Familie"
+        },
+        "configuration_name": {
+          "label": "Konfigurationsname"
+        },
+        "last_connected": {
+          "label": "Letzte erfolgreiche Verbindung"
+        },
+        "last_disconnected": {
+          "label": "Letzte Trennung"
+        },
+        "last_error": {
+          "label": "Letzter Fehler"
+        },
+        "manual_disabled": {
+          "label": "Mit „Verbindung aktivieren“ deaktiviert"
+        },
+        "polling_interval": {
+          "label": "Abfrageintervall"
+        },
+        "last_cycle": {
+          "label": "Dauer des letzten Zyklus"
+        },
+        "configured_entities": {
+          "label": "Konfigurierte Entitäten"
+        },
+        "read_count": {
+          "label": "Lesevorgänge"
+        },
+        "write_count": {
+          "label": "Schreibvorgänge"
+        },
+        "communication_errors": {
+          "label": "Kommunikationsfehler"
         }
       },
       "values": {
@@ -1031,6 +1068,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {

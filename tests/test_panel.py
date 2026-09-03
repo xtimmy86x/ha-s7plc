@@ -194,9 +194,11 @@ def test_connection_details_structural_styles_are_preserved() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
 
-    assert ".connection-head-text{min-width:0;display:flex;flex-direction:column" in styles
-    assert ".availability-title{display:flex;" in styles
-    assert "grid-template-columns:repeat(4,minmax(0,1fr))" in styles
+    assert ".connection-head-text{min-width:0;display:flex;flex:1 1 auto" in styles
+    assert ".connection-detail-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))" in styles
+    assert "@media(max-width:650px)" in styles
+    assert ".connection-detail-groups{grid-template-columns:minmax(0,1fr)}" in styles
+    assert "overflow-wrap:anywhere" in styles
     assert ".connection-detail-group h3{display:flex;align-items:center;gap:7px" in styles
     assert ".connection-detail-group h3 ha-icon{" in styles
     assert ".connection-details .connection-detail-group dl{margin:0;border:1px" in styles
@@ -660,129 +662,67 @@ console.log(JSON.stringify({{
     ]
 
 
-def test_connection_badge_opens_read_only_connection_details() -> None:
+def test_connection_badge_opens_accessible_live_read_only_details() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert 'type="button" class="connection-badge' in source
     assert ".connection-badge').onclick=()=>this.openConnectionDetails(entry)" in source
-    assert "connectionDetailGroups(data)" in source
-    assert "pys7_version:entry.pys7_version" in source
-    assert "Object.entries(entry.data)" not in source
-    assert 'class="connection-detail"' in source
-    assert "openConnectionDetails(entry)" in source
-    details_source = source[
-        source.index("  openConnectionDetails(entry){") : source.index("  field(")
-    ]
+    assert "dialog.headerTitle=this.t('connection_details.title')" in source
+    assert "dialog.setAttribute('aria-label',this.t('connection_details.title'))" in source
+    assert 'role="status"' in source and 'aria-label="${this.escape(this.t(`common.${status}`))}"' in source
+    assert 'aria-hidden="true"' in source
+    assert "this.updateConnectionDialog()" in source
+    assert "body.scrollTop=scroll" in source
+    assert "this.loadConnectionAvailability(dialog,entry)" in source
+    update_source = source[source.index("  updateConnectionDialog()") : source.index("  openConnectionDetails(entry){")]
+    assert "callApi(" not in update_source
+    details_source = source[source.index("  openConnectionDetails(entry){") : source.index("  readAddressModePreferences()")]
     assert "input name=" not in details_source
 
 
-def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
-    """Normal UI values inherit HA typography; only technical data is mono."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "var(--ha-font-family-body,Roboto,sans-serif)" in source
-    assert "@import" not in source
-    assert "fonts.googleapis.com" not in source
-    assert (
-        ".connection-detail dd{margin:0;font-size:13px;font-family:inherit;"
-        "font-weight:500" in source
-    )
-    assert "font-variant-numeric:tabular-nums" in source
-    assert ".connection-detail dd.technical-value{font-family:ui-monospace" in source
-    assert "key==='local_tsap'||key==='remote_tsap'" in source
-    assert ".connection-head-text code{font-family:ui-monospace" in source
-    assert ".details code{" in source and "font-family:ui-monospace" in source
-    assert ".visual-form input.mono{font-family:ui-monospace" in source
-    assert ".yaml-editor textarea{" in source
-    assert ".configuration-editor textarea{" in source
-    assert "@media(max-width:650px)" in source
-
-
-def test_connection_performance_uses_write_batching_key() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    performance_group = next(
-        line for line in source.splitlines() if '{key:"performance"' in line
-    )
-    assert '"enable_write_batching"' in performance_group
-    assert "group_writes" not in source
-
-
-def test_connection_detail_groups_are_ordered_dynamic_and_lossless() -> None:
-    """The executable helper owns ordering and mode-specific filtering."""
+def test_connection_details_restore_inventory_modes_and_metric_gating() -> None:
     if shutil.which("node") is None:
         pytest.skip("node is required to evaluate the panel helpers")
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     script = f"""
-global.HTMLElement = class {{}};
-global.customElements = {{define() {{}}}};
+global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
 {PANEL_LOADER}
-const simplify=data=>connectionDetailGroups(data).map(group=>({{
-  key:group.key,fields:group.fields.map(field=>field.key)
-}}));
+const rows=e=>Object.fromEntries(CONNECTION_DETAIL_SECTIONS(e).map(s=>[s.key,Object.fromEntries(s.rows)]));
+const base={{title:'PLC',plc_family:'s7',pys7_version:'3.1.1',data:{{connection_type:'rack_slot',rack:0,slot:1,pys7_connection_type:'pg',scan_interval:0,operation_timeout:5,optimize_read:false,enable_write_batching:false,max_retries:3,retry_backoff_initial:0.0,retry_backoff_max:2,future_option:42}}}};
 console.log(JSON.stringify({{
- rack:simplify({{future_option:42,port:102,slot:1,name:"S7 PLC",rack:0,
-   enable_write_batching:true,connection_type:"rack_slot",host:"192.168.100.89",
-    pys7_connection_type:"pg",pys7_version:"3.1.1",scan_interval:1,operation_timeout:5,
-   optimize_read:true,enable_metrics:false,max_retries:3,
-   retry_backoff_initial:0.5,retry_backoff_max:2,local_tsap:"ignored"}}),
- tsap:simplify({{slot:9,remote_tsap:"03.02",rack:9,connection_type:"tsap",
-    local_tsap:"01.00",pys7_connection_type:"op",pys7_version:"3.1.1"}}),
- incomplete:simplify({{host:"plc.local",new_setting:"kept"}}),
- empty:simplify(null)
+ disabled:rows({{...base,data:{{...base.data,enable_metrics:false}},connection_runtime:{{last_cycle_seconds:0,read_count:0,write_count:0,communication_errors:0}}}}),
+ enabled:rows({{...base,data:{{...base.data,enable_metrics:true}},connection_runtime:{{last_cycle_seconds:0,read_count:0,write_count:0,communication_errors:0}}}}),
+ tsap:rows({{...base,data:{{...base.data,connection_type:'tsap',local_tsap:'01.00',remote_tsap:'03.02'}}}})
 }}));
 """
-    result = json.loads(
-        subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
-        ).stdout
-    )
+    result=json.loads(subprocess.run(["node","-e",script],check=True,capture_output=True,text=True).stdout)
+    disabled=result["disabled"]
+    assert list(disabled["connection"]) == ["plc_family","pys7_version","pys7_connection_type","connection_type","rack","slot"]
+    assert disabled["configuration"] == {"scan_interval":0,"operation_timeout":5,"optimize_read":False,"enable_write_batching":False,"enable_metrics":False}
+    assert disabled["retry"] == {"max_retries":3,"retry_backoff_initial":0,"retry_backoff_max":2}
+    assert disabled["other"] == {"future_option":42}
+    assert "metrics" not in disabled
+    assert result["enabled"]["metrics"] == {"last_cycle":0,"read_count":0,"write_count":0,"communication_errors":0}
+    assert result["enabled"]["configuration"]["enable_metrics"] is True
+    assert "rack" not in result["tsap"]["connection"] and "slot" not in result["tsap"]["connection"]
+    assert result["tsap"]["connection"]["local_tsap"] == "01.00"
+    assert result["tsap"]["connection"]["remote_tsap"] == "03.02"
 
-    assert result["rack"] == [
-        {
-            "key": "connection",
-            "fields": [
-                "pys7_version",
-                "pys7_connection_type",
-                "connection_type",
-                "rack",
-                "slot",
-            ],
-        },
-        {
-            "key": "performance",
-            "fields": [
-                "scan_interval",
-                "operation_timeout",
-                "optimize_read",
-                "enable_write_batching",
-                "enable_metrics",
-            ],
-        },
-        {
-            "key": "retry",
-            "fields": [
-                "max_retries",
-                "retry_backoff_initial",
-                "retry_backoff_max",
-            ],
-        },
-        {"key": "other", "fields": ["future_option"]},
-    ]
-    assert result["tsap"] == [
-        {
-            "key": "connection",
-            "fields": [
-                "pys7_version",
-                "pys7_connection_type",
-                "connection_type",
-                "local_tsap",
-                "remote_tsap",
-            ],
-        }
-    ]
-    assert result["incomplete"] == [{"key": "other", "fields": ["new_setting"]}]
-    assert result["empty"] == []
+
+def test_connection_availability_ui_is_complete() -> None:
+    source=PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    for key in ("percentage","current_uptime","current_downtime","disconnections","unknown_time","percentage_note"):
+        assert key in source
+    assert 'class="connection-timeline"' in source
+    assert 'class="availability-container"' in source
+
+
+def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert "var(--ha-font-family-body,Roboto,sans-serif)" in source
+    assert "@import" not in source and "fonts.googleapis.com" not in source
+    assert ".connection-detail dd{min-width:0;max-width:65%;" in source
+    assert "font-variant-numeric:tabular-nums" in source
+    assert ".connection-detail dd.technical-value{font-family:ui-monospace" in source
+    assert "CONNECTION_DETAIL_TECHNICAL_FIELDS.has(key)" in source
+    assert ".connection-head-text code{font-family:ui-monospace" in source
 
 
 def test_connection_values_preserve_dotted_versions() -> None:
@@ -947,7 +887,8 @@ def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
     assert "@media(max-width:480px){.connection-badge-details{display:none}}" in source
     assert ".connection-badge:focus-visible" in source
     assert ".connection-badge:active" in source
-    assert '<span tabindex="0" class="timeline-segment' in source
+    assert 'role="status"' in source
+    assert 'aria-hidden="true"' in source
 
 
 def test_connection_badge_aria_label_is_localized_and_refreshed() -> None:
@@ -985,59 +926,6 @@ panel._hass={{callWS:async()=>[{{entry_id:"plc",connected:statuses[index++]}}]}}
     assert result == {"initial": expected, "labels": expected}
 
 
-def test_connection_history_fallback_preserves_only_valid_live_duration() -> None:
-    """Missing history keeps a valid live uptime/downtime without invented stats."""
-    if shutil.which("node") is None:
-        pytest.skip("node is required to evaluate the panel helpers")
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = f"""
-global.HTMLElement = class {{}};
-global.customElements = {{define() {{}}}};
-console.debug=()=>{{}};
-{PANEL_LOADER}
-const now=Date.parse("2026-08-21T12:00:00Z");Date.now=()=>now;
-const panel=new S7PlcConfigurationPanel();
-panel.t=key=>({{
-  "availability.current_uptime":"Current uptime",
-  "availability.current_downtime":"Current downtime",
-  "availability.history_unavailable":"Historical data is not available.",
-  "availability.day_short":"d","availability.hour_short":"h","availability.minute_short":"m"
-}}[key]||key);
-const states={{
-  on:{{state:"on",last_changed:"2026-08-18T05:00:00Z"}},
-  off:{{state:"off",last_changed:"2026-08-21T11:42:00Z"}},
-  unknown:{{state:"unknown",last_changed:"2026-08-21T11:00:00Z"}},
-  unavailable:{{state:"unavailable",last_changed:"2026-08-21T11:00:00Z"}},
-  missing:{{state:"on"}},invalid:{{state:"off",last_changed:"invalid"}}
-}};
-const run=async(name,history,entity=true)=>{{
-  const container={{innerHTML:""}};panel._hass={{states:entity?{{"binary_sensor.connection":states[name]}}:{{}},callApi:async()=>{{if(history==="error")throw Error("history");return history;}}}};
-  await panel.loadConnectionAvailability({{querySelector:()=>container}},entity?{{connection_entity_id:"binary_sensor.connection"}}:{{}});
-  return container.innerHTML;
-}};
-(async()=>console.log(JSON.stringify({{
-  emptyOn:await run("on",[[]]),errorOff:await run("off","error"),noEntity:await run("on",null,false),
-  unknown:await run("unknown",[[]]),unavailable:await run("unavailable",[[]]),missing:await run("missing",[[]]),invalid:await run("invalid",[[]])
-}})))();
-"""
-    result = json.loads(
-        subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
-        ).stdout
-    )
-    assert "Current uptime" in result["emptyOn"]
-    assert "3d 7h" in result["emptyOn"]
-    assert "Current downtime" in result["errorOff"]
-    assert "18m" in result["errorOff"]
-    for key, markup in result.items():
-        assert "Historical data is not available." in markup
-        assert "connection-timeline" not in markup
-        assert "availability.percentage" not in markup
-        assert "availability.disconnections" not in markup
-        if key not in {"emptyOn", "errorOff"}:
-            assert "availability-stats" not in markup
-
-
 def test_connection_diagnostics_translations_are_complete() -> None:
     paths = [
         Path("custom_components/s7plc/strings.json"),
@@ -1048,15 +936,16 @@ def test_connection_diagnostics_translations_are_complete() -> None:
         panel = json.loads(path.read_text(encoding="utf-8"))["config_panel"]
         assert panel["connection_details"]["title"]
         assert panel["common"]["unknown"]
-        assert panel["availability"]["current_downtime"]
-        assert list(panel["connection_details"]["sections"]) == [
-            "connection",
-            "performance",
-            "retry",
-            "other",
-        ]
-        assert panel["connection_details"]["fields"]["connection_type"]["label"]
-        assert panel["connection_details"]["fields"]["pys7_connection_type"]["label"]
+        assert panel["common"]["disabled"]
+        details = panel["connection_details"]
+        for section in ("connection", "configuration", "metrics", "retry", "activity", "other"):
+            assert details["sections"][section]
+        for field in ("connection_type", "configuration_name", "last_connected",
+                      "last_disconnected", "last_error", "manual_disabled",
+                      "polling_interval", "last_cycle", "configured_entities",
+                      "read_count", "write_count", "communication_errors"):
+            assert details["fields"][field]["label"]
+        assert details["units"]["seconds"]
 
     italian = json.loads(
         Path("custom_components/s7plc/translations/it.json").read_text(encoding="utf-8")
@@ -1933,6 +1822,45 @@ def test_entry_payload_includes_connection_status(connected) -> None:
 
     assert payload["connected"] is connected
     assert payload["pys7_version"] is None
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_entry_payload_only_exposes_runtime_metrics_when_enabled(enabled) -> None:
+    """Configuration, rather than metric truthiness, gates runtime statistics."""
+    coordinator = SimpleNamespace(
+        is_connected=lambda: True,
+        enable_metrics=enabled,
+        pys7_metrics_dict={"read_count": 0, "write_count": 0, "total_errors": 0},
+        connection_enabled=True,
+        last_health_latency=0.0,
+        error_count_by_category={},
+        update_interval=None,
+    )
+    entry = SimpleNamespace(
+        entry_id="entry-1",
+        title="PLC test",
+        data={"host": "192.0.2.1", "enable_metrics": enabled},
+        options={},
+        runtime_data=SimpleNamespace(coordinator=coordinator),
+    )
+
+    runtime = _entry_payload(entry)["connection_runtime"]
+
+    metric_keys = {
+        "last_cycle_seconds",
+        "read_count",
+        "write_count",
+        "communication_errors",
+    }
+    if enabled:
+        assert {key: runtime[key] for key in metric_keys} == {
+            "last_cycle_seconds": 0.0,
+            "read_count": 0,
+            "write_count": 0,
+            "communication_errors": 0,
+        }
+    else:
+        assert metric_keys.isdisjoint(runtime)
 
 
 def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
@@ -4344,13 +4272,14 @@ def test_plc_family_connection_group_translation_and_legacy_fallback() -> None:
 global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 {PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel.panelTranslations={{config_panel:{{connection_details:{{values:{{s7:"SIMATIC S7",logo_9:"LOGO! 9"}}}}}}}};
-const simplify=value=>connectionDetailGroups(value).map(g=>[g.key,g.fields.map(f=>f.key)]);
-console.log(JSON.stringify({{groups:simplify({{plc_family:"logo_9",pys7_version:"3.1.1",connection_type:"rack_slot",rack:0,slot:1}}),translated:panel.connectionValue("logo_9"),legacy:panel.connectionValue("s7")}}));'''
+const entry={{title:"PLC",plc_family:"logo_9",data:{{connection_type:"rack_slot",rack:0,slot:1}}}};
+const groups=CONNECTION_DETAIL_SECTIONS(entry).map(g=>[g.key,g.rows.map(r=>r[0])]);
+console.log(JSON.stringify({{groups,translated:panel.connectionValue("logo_9"),legacy:panel.connectionValue("s7")}}));'''
     value = json.loads(subprocess.run(
         ["node", "-e", script], check=True, capture_output=True, text=True
     ).stdout)
     connection = dict(value["groups"])["connection"]
-    assert connection == ["plc_family", "pys7_version", "connection_type", "rack", "slot"]
+    assert connection == ["plc_family", "connection_type", "rack", "slot"]
     assert not any(key == "other" for key, _fields in value["groups"])
     assert value["translated"] == "LOGO! 9"
     assert value["legacy"] == "SIMATIC S7"

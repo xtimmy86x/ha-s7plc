@@ -15,6 +15,7 @@ import yaml
 from .address import parse_tag
 from .config_validation import build_entity_item
 from .const import (
+    CONF_ENABLE_METRICS,
     CONF_PLC_FAMILY,
     CONF_UID,
     DOMAIN,
@@ -42,6 +43,11 @@ PANEL_DATA = "_panel_registered"
 BACKUP_METADATA_KEY = "s7plc"
 BACKUP_FORMAT_VERSION = 1
 PYS7_VERSION_DATA = "_pys7_version"
+
+
+def _iso_or_none(value: Any) -> str | None:
+    """Serialize an existing timestamp without manufacturing one."""
+    return value.isoformat() if value is not None else None
 
 
 class ConfigurationValidationError(ValueError):
@@ -306,6 +312,44 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
             logo_profile_payload(family) if family != PLC_FAMILY_S7 else None
         ),
     }
+    if coordinator is not None:
+        update_interval = getattr(coordinator, "update_interval", None)
+        metrics = (
+            getattr(coordinator, "pys7_metrics_dict", {})
+            if getattr(coordinator, "enable_metrics", False)
+            else {}
+        )
+        connection_runtime = {
+            "connection_enabled": getattr(coordinator, "connection_enabled", True),
+            "last_update_success_time": _iso_or_none(
+                getattr(coordinator, "last_update_success_time", None)
+            ),
+            "last_update_failure_time": _iso_or_none(
+                getattr(coordinator, "last_update_failure_time", None)
+            ),
+            "last_error_category": getattr(coordinator, "last_error_category", None),
+            "last_error_message": getattr(coordinator, "last_error_message", None),
+            "polling_interval_seconds": (
+                update_interval.total_seconds()
+                if update_interval is not None
+                else None
+            ),
+            "configured_entities": sum(
+                len(entry.options.get(key, [])) for key in OPTION_KEYS
+            ),
+        }
+        if entry.data.get(CONF_ENABLE_METRICS) is True:
+            connection_runtime.update(
+                {
+                    "last_cycle_seconds": getattr(
+                        coordinator, "last_health_latency", None
+                    ),
+                    "read_count": metrics.get("read_count"),
+                    "write_count": metrics.get("write_count"),
+                    "communication_errors": metrics.get("total_errors"),
+                }
+            )
+        payload["connection_runtime"] = connection_runtime
     if hass is not None:
         payload["entity_ids"] = _entity_ids_payload(hass, entry)
         payload["connection_entity_id"] = _connection_entity_id(hass, entry)

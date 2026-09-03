@@ -269,7 +269,8 @@
           "description": "Adres BIT, który musi być aktywny, gdy PLC jest połączony."
         }
       },
-      "datatype_time": "TIME — czas trwania w sekundach"
+      "datatype_time": "TIME — czas trwania w sekundach",
+      "disabled": "Połączenie wyłączone"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +968,10 @@
         "connection": "Połączenie",
         "performance": "Komunikacja i wydajność",
         "retry": "Ponowne łączenie",
-        "other": "Inne parametry"
+        "other": "Inne parametry",
+        "activity": "Aktywność i ponowne łączenie",
+        "configuration": "Komunikacja i konfiguracja",
+        "metrics": "Metryki wydajności"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1021,39 @@
         },
         "plc_family": {
           "label": "Rodzina PLC"
+        },
+        "configuration_name": {
+          "label": "Nazwa konfiguracji"
+        },
+        "last_connected": {
+          "label": "Ostatnie udane połączenie"
+        },
+        "last_disconnected": {
+          "label": "Ostatnie rozłączenie"
+        },
+        "last_error": {
+          "label": "Ostatni błąd"
+        },
+        "manual_disabled": {
+          "label": "Wyłączono przełącznikiem „Włącz połączenie”"
+        },
+        "polling_interval": {
+          "label": "Interwał odpytywania"
+        },
+        "last_cycle": {
+          "label": "Czas ostatniego cyklu"
+        },
+        "configured_entities": {
+          "label": "Skonfigurowane encje"
+        },
+        "read_count": {
+          "label": "Odczyty"
+        },
+        "write_count": {
+          "label": "Zapisy"
+        },
+        "communication_errors": {
+          "label": "Błędy komunikacji"
         }
       },
       "values": {
@@ -1031,6 +1068,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {

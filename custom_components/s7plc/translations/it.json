@@ -269,7 +269,8 @@
           "description": "Indirizzo BIT che deve essere vero mentre il PLC è connesso."
         }
       },
-      "datatype_time": "TIME — durata in secondi"
+      "datatype_time": "TIME — durata in secondi",
+      "disabled": "Connessione disabilitata"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +968,10 @@
         "connection": "Connessione PLC",
         "performance": "Comunicazione e prestazioni",
         "retry": "Riconnessione",
-        "other": "Altri parametri"
+        "other": "Altri parametri",
+        "activity": "Attività e riconnessione",
+        "configuration": "Comunicazione e configurazione",
+        "metrics": "Metriche delle prestazioni"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1021,39 @@
         },
         "plc_family": {
           "label": "Famiglia PLC"
+        },
+        "configuration_name": {
+          "label": "Nome configurazione"
+        },
+        "last_connected": {
+          "label": "Ultima connessione riuscita"
+        },
+        "last_disconnected": {
+          "label": "Ultima disconnessione"
+        },
+        "last_error": {
+          "label": "Ultimo errore"
+        },
+        "manual_disabled": {
+          "label": "Disabilitata con “Abilita connessione”"
+        },
+        "polling_interval": {
+          "label": "Intervallo di polling"
+        },
+        "last_cycle": {
+          "label": "Durata ultimo ciclo"
+        },
+        "configured_entities": {
+          "label": "Entità configurate"
+        },
+        "read_count": {
+          "label": "Letture"
+        },
+        "write_count": {
+          "label": "Scritture"
+        },
+        "communication_errors": {
+          "label": "Errori di comunicazione"
         }
       },
       "values": {
@@ -1031,6 +1068,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {
