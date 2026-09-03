@@ -27,6 +27,62 @@ PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
 
 
+def test_category_navigation_markup_and_styles() -> None:
+    """Categories use touch tabs or the integrated accessible heading menu."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+
+    assert 'class="category-tabs"' in source
+    assert "data-category-menu-toggle" in source
+    assert 'aria-haspopup="menu"' in source
+    assert 'role="menu" hidden' in source
+    assert 'aria-current="page"' in source
+    assert "this.icon(type)" in source
+    assert "mdi:chevron-down" in source
+    assert "selectCategory(type)" in source
+    assert "navigator?.maxTouchPoints" in source
+    assert "matchMedia?.('(pointer: coarse)')" in source
+    assert "nav.scrollWidth>nav.clientWidth+2" in source
+    assert "scrollbar-width:none" in source
+    assert ".category-tabs::-webkit-scrollbar{width:0;height:0;display:none}" in source
+    assert "overflow-x:auto;overflow-y:hidden" in source
+    assert "scrollIntoView" not in source[source.index("selectCategory(type)") : source.index("_renderSectionsView")]
+    assert "addEventListener?.('wheel'" not in source
+    assert "data-category-selector" not in source
+    assert ">Categoria<" not in source
+    assert "category-arrow" not in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_category_mode_selection_and_viewport_positioning() -> None:
+    """Touch, overflow, shared selection, cleanup, and menu placement stay coherent."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+global.requestAnimationFrame=fn=>fn();global.document={{documentElement:{{clientWidth:800,clientHeight:600}},addEventListener(){{}},removeEventListener(){{}}}};
+global.innerWidth=800;global.innerHeight=600;global.addEventListener=()=>{{}};global.removeEventListener=()=>{{}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.selectedIndices=new Set([1]);panel.render=()=>panel.rendered=(panel.rendered||0)+1;panel.closeCategoryMenu=()=>panel.closed=true;
+global.navigator={{maxTouchPoints:1}};global.matchMedia=()=>({{matches:false}});const touch=panel.touchCapable();
+global.navigator={{maxTouchPoints:0}};const classes=[];const layout={{classList:{{toggle:(name,on)=>classes.push([name,on])}}}};
+const nav={{scrollWidth:503,clientWidth:500}};panel.querySelector=s=>s==='.category-tabs'?nav:layout;panel.updateCategoryMode();const overflowCompact=classes.at(-1)[1];
+nav.scrollWidth=502;panel.updateCategoryMode();const toleranceCompact=classes.at(-1)[1];
+panel.selectCategory('switches');const selected={{type:panel.type,size:panel.selectedIndices.size,closed:panel.closed,rendered:panel.rendered}};panel.selectCategory('invalid');
+const style={{}};const menu={{hidden:false,style,classList:{{toggle(_n,on){{this.up=on;}}}},getBoundingClientRect:()=>({{width:280,height:250}})}};const button={{getBoundingClientRect:()=>({{left:760,top:500,bottom:540}})}};
+panel.querySelector=s=>s.includes('toggle')?button:menu;panel.positionCategoryMenu();
+console.log(JSON.stringify({{touch,overflowCompact,toleranceCompact,selected,invalid:panel.type,left:style.left,top:style.top,up:menu.classList.up}}));'''
+    value = json.loads(
+        subprocess.run(["node", "-"], input=script, check=True, capture_output=True, text=True).stdout
+    )
+    assert value == {
+        "touch": True,
+        "overflowCompact": True,
+        "toleranceCompact": False,
+        "selected": {"type": "switches", "size": 0, "closed": True, "rendered": 1},
+        "invalid": "switches",
+        "left": "508px",
+        "top": "244px",
+        "up": True,
+    }
+
+
 def test_const_version_matches_manifest() -> None:
     manifest = json.loads(
         Path("custom_components/s7plc/manifest.json").read_text(encoding="utf-8")
