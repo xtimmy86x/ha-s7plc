@@ -41,7 +41,15 @@ def test_category_navigation_markup_and_styles() -> None:
     assert "selectCategory(type)" in source
     assert "navigator?.maxTouchPoints" in source
     assert "matchMedia?.('(pointer: coarse)')" in source
-    assert "nav.scrollWidth>nav.clientWidth+2" in source
+    assert "nav.scrollWidth<=nav.clientWidth+2" in source
+    assert "button[data-type]" in source
+    assert "Math.abs(value-top)<=2" in source
+    assert "single-row-category-mode" in source
+    assert "wrapped-category-mode" in source
+    assert "compact-category-mode" in source
+    assert ".category-mode-pending>.category-tabs{visibility:hidden}" in source
+    assert ".wrapped-category-mode>.category-tabs{flex-wrap:wrap;overflow:visible;row-gap:8px" in source
+    assert ".compact-category-mode>.category-tabs{display:none}" in source
     assert "scrollbar-width:none" in source
     assert ".category-tabs::-webkit-scrollbar{width:0;height:0;display:none}" in source
     assert "overflow-x:auto;overflow-y:hidden" in source
@@ -54,33 +62,66 @@ def test_category_navigation_markup_and_styles() -> None:
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_category_mode_selection_and_viewport_positioning() -> None:
-    """Touch, overflow, shared selection, cleanup, and menu placement stay coherent."""
+    """Touch, adaptive desktop rows, selection, and menu placement stay coherent."""
     script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
 global.requestAnimationFrame=fn=>fn();global.document={{documentElement:{{clientWidth:800,clientHeight:600}},addEventListener(){{}},removeEventListener(){{}}}};
 global.innerWidth=800;global.innerHeight=600;global.addEventListener=()=>{{}};global.removeEventListener=()=>{{}};
 {PANEL_LOADER}
 const panel=new S7PlcConfigurationPanel();panel.selectedIndices=new Set([1]);panel.render=()=>panel.rendered=(panel.rendered||0)+1;panel.closeCategoryMenu=()=>panel.closed=true;
-global.navigator={{maxTouchPoints:1}};global.matchMedia=()=>({{matches:false}});const touch=panel.touchCapable();
-global.navigator={{maxTouchPoints:0}};const classes=[];const layout={{classList:{{toggle:(name,on)=>classes.push([name,on])}}}};
-const nav={{scrollWidth:503,clientWidth:500}};panel.querySelector=s=>s==='.category-tabs'?nav:layout;panel.updateCategoryMode();const overflowCompact=classes.at(-1)[1];
-nav.scrollWidth=502;panel.updateCategoryMode();const toleranceCompact=classes.at(-1)[1];
+Object.defineProperty(global,'navigator',{{value:{{maxTouchPoints:1}},configurable:true}});global.matchMedia=()=>({{matches:false}});const touch=panel.touchCapable();
+Object.defineProperty(global,'navigator',{{value:{{maxTouchPoints:0}},configurable:true}});
+const active=new Set();const history=[];const classList={{toggle:(name,on)=>{{on?active.add(name):active.delete(name);history.push([...active]);}},remove:name=>active.delete(name)}};
+const layout={{classList,clientWidth:500}};let rowTops=[0];let measuredSelector;
+const nav={{scrollWidth:500,clientWidth:500,querySelectorAll:selector=>{{measuredSelector=selector;return rowTops.map(offsetTop=>({{offsetTop}}));}},querySelector:()=>null}};
+panel.querySelector=s=>s==='.category-tabs'?nav:layout;
+panel.updateCategoryMode();const one=[...active];
+nav.scrollWidth=700;rowTops=[0,0,40,41];panel.updateCategoryMode();const two=[...active];
+rowTops=[0,40,80];panel.updateCategoryMode();const three=[...active];
+rowTops=[0,40];panel.updateCategoryMode();const backTwo=[...active];
+nav.scrollWidth=500;panel.updateCategoryMode();const backOne=[...active];
+Object.defineProperty(global,'navigator',{{value:{{maxTouchPoints:1}},configurable:true}});nav.scrollWidth=900;rowTops=[0,40,80];panel.updateCategoryMode();const touchMode=[...active];
+Object.defineProperty(global,'navigator',{{value:{{maxTouchPoints:0}},configurable:true}});
 panel.selectCategory('switches');const selected={{type:panel.type,size:panel.selectedIndices.size,closed:panel.closed,rendered:panel.rendered}};panel.selectCategory('invalid');
 const style={{}};const menu={{hidden:false,style,classList:{{toggle(_n,on){{this.up=on;}}}},getBoundingClientRect:()=>({{width:280,height:250}})}};const button={{getBoundingClientRect:()=>({{left:760,top:500,bottom:540}})}};
 panel.querySelector=s=>s.includes('toggle')?button:menu;panel.positionCategoryMenu();
-console.log(JSON.stringify({{touch,overflowCompact,toleranceCompact,selected,invalid:panel.type,left:style.left,top:style.top,up:menu.classList.up}}));'''
+console.log(JSON.stringify({{touch,one,two,three,backTwo,backOne,touchMode,measuredSelector,selected,invalid:panel.type,left:style.left,top:style.top,up:menu.classList.up}}));'''
     value = json.loads(
         subprocess.run(["node", "-"], input=script, check=True, capture_output=True, text=True).stdout
     )
     assert value == {
         "touch": True,
-        "overflowCompact": True,
-        "toleranceCompact": False,
+        "one": ["single-row-category-mode"],
+        "two": ["wrapped-category-mode"],
+        "three": ["compact-category-mode"],
+        "backTwo": ["wrapped-category-mode"],
+        "backOne": ["single-row-category-mode"],
+        "touchMode": ["single-row-category-mode"],
+        "measuredSelector": "button[data-type]",
         "selected": {"type": "switches", "size": 0, "closed": True, "rendered": 1},
         "invalid": "switches",
         "left": "508px",
         "top": "244px",
         "up": True,
     }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_category_resize_observer_uses_width_and_cleans_up() -> None:
+    """Repeated observer heights do not remeasure and lifecycle cleanup disconnects."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+global.requestAnimationFrame=fn=>fn();global.addEventListener=()=>{{}};global.removeEventListener=()=>{{}};global.document={{removeEventListener(){{}}}};
+let callback,observed,disconnected=0;global.ResizeObserver=class {{constructor(cb){{callback=cb}}observe(node){{observed=node}}disconnect(){{disconnected++}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();let updates=0;panel.updateCategoryMode=()=>updates++;
+const layout={{clientWidth:500,getBoundingClientRect:()=>({{width:500}})}};const nav={{}};const toggle={{setAttribute(){{}}}};
+panel.querySelector=s=>s==='.category-tabs'?nav:s==='.category-layout'?layout:s.includes('toggle')?toggle:null;
+panel.querySelectorAll=()=>[];panel.setupCategoryNavigation();
+callback([{{contentRect:{{width:500,height:40}}}}]);callback([{{contentRect:{{width:500,height:80}}}}]);callback([{{contentRect:{{width:498,height:80}}}}]);
+panel.teardownCategoryNavigation();console.log(JSON.stringify({{updates,observed:observed===layout,disconnected,lastWidth:panel._categoryLastWidth}}));'''
+    value = json.loads(
+        subprocess.run(["node", "-"], input=script, check=True, capture_output=True, text=True).stdout
+    )
+    assert value == {"updates": 3, "observed": True, "disconnected": 1, "lastWidth": None}
 
 
 def test_const_version_matches_manifest() -> None:
