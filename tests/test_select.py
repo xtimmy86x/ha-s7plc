@@ -27,6 +27,12 @@ from custom_components.s7plc.select import (
 # ============================================================================
 
 
+def _fresh_update(coordinator, entity):
+    """Notify an entity after a successful read of its state topic."""
+    coordinator.advance_topic_read_revision(entity._topic)
+    entity._handle_coordinator_update()
+
+
 @pytest.fixture
 def device_info():
     """Device info dict."""
@@ -280,8 +286,8 @@ async def test_select_sync_bidirectional_conversion_pipeline(
     mock_coordinator.data = {entity._topic: 0}
     entity.async_write_ha_state()
     mock_coordinator.data[entity._topic] = 10
-    entity._handle_coordinator_update()
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert entity.current_option == "Automatic"
     assert mock_coordinator.write_calls == [("write_batched", "DB1,W10", 10)]
@@ -302,14 +308,14 @@ async def test_select_external_candidate_change_restarts_debounce(
     entity.async_write_ha_state()
 
     mock_coordinator.data[entity._topic] = 1
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
     mock_coordinator.data[entity._topic] = 2
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
     assert entity._last_state == 0
     assert entity._external_candidate == 2
     assert entity._external_candidate_count == 1
 
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert entity._last_state == 2
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 2)]
@@ -354,7 +360,9 @@ async def test_select_rejected_command_realigns_canonical_unchanged_feedback(
     assert mock_coordinator.write_calls == []
 
     now[0] = 12.001
-    entity.async_write_ha_state()
+    _fresh_update(mock_coordinator, entity)
+    assert entity._pending_command == 100
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
 
     assert entity._pending_command is None
@@ -394,7 +402,8 @@ async def test_select_realignment_write_error_is_consumed(
     entity.async_write_ha_state()
     assert entity._pending_command == 1
     now[0] = 12.001
-    entity.async_write_ha_state()
+    _fresh_update(mock_coordinator_failing, entity)
+    _fresh_update(mock_coordinator_failing, entity)
     await asyncio.sleep(0)
 
     assert entity._pending_command is None
@@ -481,8 +490,8 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
     assert mock_coordinator.write_calls == []
 
     mock_coordinator.data[entity._topic] = 100
-    entity._handle_coordinator_update()
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
     now = [10.0]
@@ -493,7 +502,7 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
     await entity.async_select_option("Manual")
     mock_coordinator.write_calls.clear()
     mock_coordinator.data[entity._topic] = 10
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert entity._pending_command is None
     assert mock_coordinator.write_calls == []
@@ -505,7 +514,8 @@ async def test_select_sync_initial_external_echo_override_and_unmapped(
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == []
     now[0] = 12.001
-    entity.async_write_ha_state()
+    _fresh_update(mock_coordinator, entity)
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [("write_batched", "DB1,B10", 100)]
 
@@ -535,8 +545,8 @@ async def test_time_select_sync_uses_timedelta(
     mock_coordinator.data = {entity._topic: timedelta(0)}
     entity.async_write_ha_state()
     mock_coordinator.data[entity._topic] = timedelta(seconds=10)
-    entity._handle_coordinator_update()
-    entity._handle_coordinator_update()
+    _fresh_update(mock_coordinator, entity)
+    _fresh_update(mock_coordinator, entity)
     await asyncio.sleep(0)
     assert mock_coordinator.write_calls == [
         ("write_batched", "DB1,TIME4", timedelta(seconds=10))

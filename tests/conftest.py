@@ -1193,6 +1193,7 @@ class DummyCoordinator:
         self._item_scan_intervals = {}
         self._default_scan_interval = 10
         self._item_real_precisions = {}
+        self._topic_read_revisions = {}
         self.connected = False
         self.disconnected = False
         
@@ -1229,6 +1230,16 @@ class DummyCoordinator:
 
     def get_real_precision(self, topic: str):
         return self._item_real_precisions.get(topic)
+
+    def get_topic_read_revision(self, topic: str) -> int:
+        """Return the simulated successful-read revision for a topic."""
+        return self._topic_read_revisions.get(topic, 0)
+
+    def advance_topic_read_revision(self, topic: str) -> int:
+        """Simulate one successful PLC read of a topic."""
+        revision = self.get_topic_read_revision(topic) + 1
+        self._topic_read_revisions[topic] = revision
+        return revision
 
     def is_string_plan(self, topic: str) -> bool:
         return topic in self._plans_str

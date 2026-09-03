@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from custom_components.s7plc.button import S7Button, async_setup_entry as button_setup_entry
-from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity
+from custom_components.s7plc.entity import S7BaseEntity, S7BoolSyncEntity, S7SyncEntity
 from custom_components.s7plc.helpers import default_entity_name
 from custom_components.s7plc.light import S7Light
 from custom_components.s7plc.number import S7Number, async_setup_entry as number_setup_entry
@@ -93,6 +93,29 @@ def test_base_entity_availability_and_attrs(mock_coordinator_disconnected):
 # ============================================================================
 
 
+def _fresh_topic_update(coord, entity, topic="topic"):
+    """Notify an entity after simulating a successful read of its state topic."""
+    coord.advance_topic_read_revision(topic)
+    entity._handle_coordinator_update()
+
+
+class _TestSyncEntity(S7SyncEntity):
+    """Small multi-value sync entity for state-machine regression tests."""
+
+    def __init__(self, coordinator):
+        super().__init__(
+            coordinator,
+            unique_id="test-sync",
+            device_info={"identifiers": {"domain"}},
+            topic="topic",
+            address="DB1,B0",
+        )
+        self._initialize_sync("DB1,B0", "DB1,B1", True)
+
+    def _sync_value(self):
+        return (self.coordinator.data or {}).get(self._topic)
+
+
 @pytest.mark.asyncio
 async def test_bool_entity_commands_and_refresh(mock_coordinator, fake_hass):
     """Test boolean entity turn on/off commands."""
@@ -138,6 +161,9 @@ async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
         sync_state=True,
     )
     ent.hass = fake_hass
+    ent._rejection_candidate = False
+    ent._rejection_candidate_revision = 1
+    ent._rejection_candidate_count = 1
 
     with pytest.raises(HomeAssistantError):
         await ent.async_turn_on()
@@ -145,6 +171,9 @@ async def test_bool_entity_write_failure(mock_coordinator_failing, fake_hass):
     assert coord.write_calls[-1] == ("write_batched", "db1,x0.1", True)
     assert ent._pending_command is None
     assert ent._pending_command_time is None
+    assert ent._rejection_candidate is None
+    assert ent._rejection_candidate_revision is None
+    assert ent._rejection_candidate_count == 0
     assert not coord.refresh_called
 
 
@@ -193,8 +222,8 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     assert ent._ha_state_calls == 1
 
     coord.data["topic"] = False
-    ent._pending_command = False
-    ent.async_write_ha_state()
+    ent._set_pending_command(False)
+    _fresh_topic_update(coord, ent)
     assert ent._pending_command is None
     assert ent._last_state is False
     assert ent.hass.calls == []
@@ -204,8 +233,8 @@ async def test_bool_entity_state_synchronization_fire_and_forget(mock_coordinato
     ent._pending_command = None
 
     # Two distinct coordinator updates confirm external feedback.
-    ent._handle_coordinator_update()
-    ent._handle_coordinator_update()
+    _fresh_topic_update(coord, ent)
+    _fresh_topic_update(coord, ent)
     await asyncio.sleep(0.01)  # Give task time to execute
 
     assert coord.write_calls == [("write_batched", "db1,x0.1", True)]
@@ -233,22 +262,184 @@ async def test_external_bool_feedback_requires_two_plc_updates(
     entity.async_write_ha_state()
 
     coord.data["topic"] = False
-    entity._handle_coordinator_update()
+    _fresh_topic_update(coord, entity)
     entity.async_write_ha_state()  # The same PLC sample must not count twice.
     assert entity._last_state is True
     assert coord.write_calls == []
 
     coord.data["topic"] = True
-    entity._handle_coordinator_update()
+    _fresh_topic_update(coord, entity)
     assert entity._last_state is True
     assert coord.write_calls == []
 
     coord.data["topic"] = False
-    entity._handle_coordinator_update()
-    entity._handle_coordinator_update()
+    _fresh_topic_update(coord, entity)
+    _fresh_topic_update(coord, entity)
     await asyncio.sleep(0)
     assert entity._last_state is False
     assert coord.write_calls == [("write_batched", "DB1,X0.1", False)]
+
+
+@pytest.mark.asyncio
+async def test_cached_slow_topic_cannot_confirm_or_reject_sync(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """Fast-topic updates cannot reuse a cached slow state for synchronization."""
+    coord = mock_coordinator
+    coord._topic_read_revisions = {"state": 1, "fast": 1}
+    coord.data = {"state": True, "fast": False}
+    entity = S7BoolSyncEntity(
+        coord,
+        unique_id="mixed-intervals",
+        device_info={"identifiers": {"domain"}},
+        topic="state",
+        state_address="DB1,X0.0",
+        command_address="DB1,X0.1",
+        sync_state=True,
+    )
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+
+    # A changed slow-topic sample starts an external candidate. Repeated fast
+    # reads notify the entity but leave that candidate on the same revision.
+    coord.data["state"] = False
+    coord.advance_topic_read_revision("state")
+    entity._handle_coordinator_update()
+    for _ in range(3):
+        coord.advance_topic_read_revision("fast")
+        entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._last_state is True
+    assert coord.write_calls == []
+
+    # Start a command while the old state remains cached, then let its settle
+    # window expire. Fast reads still must not reject it or restore the old bit.
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(True)
+    now[0] = 20.0
+    for _ in range(3):
+        coord.advance_topic_read_revision("fast")
+        entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._pending_command is True
+    assert coord.write_calls == []
+
+    # One genuinely new slow-topic read only starts rejection debounce.
+    coord.advance_topic_read_revision("state")
+    entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._pending_command is True
+    assert coord.write_calls == []
+
+    # Repeated notifications for that sample still cannot reject the command.
+    entity._handle_coordinator_update()
+    entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._pending_command is True
+    assert coord.write_calls == []
+
+    # A second fresh matching sample can authoritatively reject the command.
+    coord.advance_topic_read_revision("state")
+    entity._handle_coordinator_update()
+    await asyncio.sleep(0)
+    assert entity._pending_command is None
+    assert coord.write_calls == [("write_batched", "DB1,X0.1", False)]
+
+
+@pytest.mark.asyncio
+async def test_changed_rejection_feedback_restarts_two_read_debounce(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """Different fresh mismatches cannot combine to reject a command."""
+    coord = mock_coordinator
+    coord.data = {"topic": 0}
+    entity = _TestSyncEntity(coord)
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(3)
+    now[0] = 20.0
+
+    coord.data["topic"] = 1
+    _fresh_topic_update(coord, entity)
+    coord.data["topic"] = 2
+    _fresh_topic_update(coord, entity)
+    assert entity._pending_command == 3
+    assert entity._rejection_candidate == 2
+    assert entity._rejection_candidate_count == 1
+    assert coord.write_calls == []
+
+    _fresh_topic_update(coord, entity)
+    await asyncio.sleep(0)
+    assert entity._pending_command is None
+    assert coord.write_calls == [("write_batched", "DB1,B1", 2)]
+
+
+def test_fresh_confirmation_clears_rejection_candidate(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """Expected fresh feedback discards an earlier rejection candidate."""
+    coord = mock_coordinator
+    coord.data = {"topic": 0}
+    entity = _TestSyncEntity(coord)
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(2)
+    now[0] = 20.0
+
+    coord.data["topic"] = 1
+    _fresh_topic_update(coord, entity)
+    assert entity._rejection_candidate_count == 1
+
+    coord.data["topic"] = 2
+    _fresh_topic_update(coord, entity)
+    assert entity._pending_command is None
+    assert entity._rejection_candidate is None
+    assert entity._rejection_candidate_count == 0
+    assert coord.write_calls == []
+
+
+def test_non_increasing_state_revision_cannot_reject_command(
+    mock_coordinator, fake_hass, monkeypatch
+):
+    """State revisions at or below the command baseline remain stale."""
+    coord = mock_coordinator
+    coord.data = {"topic": 0}
+    coord._topic_read_revisions["topic"] = 5
+    entity = _TestSyncEntity(coord)
+    entity.hass = fake_hass
+    entity.async_write_ha_state()
+    now = [10.0]
+    monkeypatch.setattr(
+        "custom_components.s7plc.entity.time.monotonic", lambda: now[0]
+    )
+    entity._set_pending_command(2)
+    now[0] = 20.0
+
+    for revision in (5, 4, 5):
+        coord._topic_read_revisions["topic"] = revision
+        entity._handle_coordinator_update()
+
+    assert entity._pending_command == 2
+    assert entity._rejection_candidate is None
+    assert coord.write_calls == []
+
+
+def test_sync_mocks_expose_only_per_topic_read_revisions(mock_coordinator):
+    """The coordinator mock does not emulate the removed global generation."""
+    assert mock_coordinator.get_topic_read_revision("state") == 0
+    assert mock_coordinator.advance_topic_read_revision("state") == 1
+    assert mock_coordinator.get_topic_read_revision("state") == 1
 
 
 @pytest.mark.asyncio
@@ -332,7 +523,12 @@ async def test_bool_sync_rejected_command_realigns_only_once(
         assert coord.write_calls == []
 
         now[0] += 0.002
-        entity.async_write_ha_state()
+        _fresh_topic_update(coord, entity)
+        assert entity._pending_command is True
+        assert force_updates == []
+        assert coord.write_calls == []
+
+        _fresh_topic_update(coord, entity)
         await asyncio.sleep(0)
         assert entity._pending_command is None
         assert force_updates == [True]
@@ -399,7 +595,7 @@ async def test_mismatch_followed_by_command_confirmation_does_not_realign(
     entity.async_write_ha_state()
     now[0] = 11.5
     coord.data["topic"] = True
-    entity.async_write_ha_state()
+    _fresh_topic_update(coord, entity)
     await asyncio.sleep(0)
 
     assert entity._pending_command is None
@@ -463,7 +659,8 @@ async def test_sync_correction_restores_existing_force_update_true(
 
     entity._set_pending_command(True)
     now[0] = 12.0
-    entity.async_write_ha_state()
+    _fresh_topic_update(coord, entity)
+    _fresh_topic_update(coord, entity)
     await asyncio.sleep(0)
 
     assert observed == [True]
@@ -499,8 +696,9 @@ async def test_sync_correction_restores_force_update_after_state_write_exception
     )
     entity.async_write_ha_state()
     now[0] = 12.0
+    _fresh_topic_update(coord, entity)
     with pytest.raises(RuntimeError, match="state write failed"):
-        entity.async_write_ha_state()
+        _fresh_topic_update(coord, entity)
     await asyncio.sleep(0)
 
     assert entity._attr_force_update is False
@@ -529,7 +727,7 @@ async def test_sync_confirmed_command_does_not_force_or_realign(
 
     entity._set_pending_command(True)
     coord.data["topic"] = True
-    entity.async_write_ha_state()
+    _fresh_topic_update(coord, entity)
     await asyncio.sleep(0)
 
     assert observed == [False]

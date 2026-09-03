@@ -167,38 +167,52 @@ class S7SyncEntity(S7BaseEntity):
         self._pending_command: Any = None
         self._pending_command_time: float | None = None
         self._external_candidate: Any = None
-        self._external_candidate_generation: int | None = None
+        self._external_candidate_revision: int | None = None
         self._external_candidate_count = 0
-        self._plc_update_generation = 0
+        self._pending_command_revision: int | None = None
+        self._rejection_candidate: Any = None
+        self._rejection_candidate_revision: int | None = None
+        self._rejection_candidate_count = 0
 
     def _clear_external_candidate(self) -> None:
         """Discard unconfirmed external feedback."""
         self._external_candidate = None
-        self._external_candidate_generation = None
+        self._external_candidate_revision = None
         self._external_candidate_count = 0
+
+    def _clear_rejection_candidate(self) -> None:
+        """Discard unconfirmed feedback rejecting a pending command."""
+        self._rejection_candidate = None
+        self._rejection_candidate_revision = None
+        self._rejection_candidate_count = 0
 
     def _set_pending_command(self, value: Any) -> None:
         """Track a new HA command and discard mismatch evidence for an older one."""
         self._clear_external_candidate()
+        self._clear_rejection_candidate()
         self._pending_command = value
         self._pending_command_time = time.monotonic()
+        self._pending_command_revision = self._state_topic_revision()
 
     def _mark_pending_command_written(self) -> None:
         """Start a full settle window after the command write has completed."""
         if self._pending_command is not None:
             self._pending_command_time = time.monotonic()
+            self._pending_command_revision = self._state_topic_revision()
+            self._clear_rejection_candidate()
 
     def _clear_pending_command(self) -> None:
         """Clear a completed command and its mismatch evidence."""
         self._pending_command = None
         self._pending_command_time = None
+        self._pending_command_revision = None
+        self._clear_rejection_candidate()
         self._clear_external_candidate()
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Record exactly one generation for each real coordinator update."""
-        self._plc_update_generation += 1
-        super()._handle_coordinator_update()
+    def _state_topic_revision(self) -> int:
+        """Return the revision of the entity's state topic."""
+        assert self._topic is not None
+        return self.coordinator.get_topic_read_revision(self._topic)
 
     def _sync_value(self) -> Any:
         """Return the valid, canonical value to track, or None when unavailable."""
@@ -216,6 +230,7 @@ class S7SyncEntity(S7BaseEntity):
         force_ha_update = False
         previous_state = self._last_state
         rejected_command = False
+        state_revision = self._state_topic_revision()
 
         if self._last_state is None and new_state is not None:
             self._last_state = new_state
@@ -229,7 +244,11 @@ class S7SyncEntity(S7BaseEntity):
             and self.coordinator.is_connected()
         ):
             if self._pending_command is not None:
+                assert self._pending_command_revision is not None
+                revision_is_fresh = state_revision > self._pending_command_revision
                 if new_state == self._pending_command:
+                    if not revision_is_fresh:
+                        return
                     _LOGGER.debug(
                         "%s: PLC confirmed command: %s", entity_name, new_state
                     )
@@ -254,6 +273,28 @@ class S7SyncEntity(S7BaseEntity):
                     # Do not publish a possibly stale sample over HA's command
                     # result until either confirmation or rejection is stable.
                     return
+                if not revision_is_fresh:
+                    _LOGGER.debug(
+                        "%s: HA command settle window expired, but state feedback "
+                        "revision %s predates the command; waiting for a fresh read",
+                        entity_name,
+                        state_revision,
+                    )
+                    return
+                if self._rejection_candidate != new_state:
+                    self._rejection_candidate = new_state
+                    self._rejection_candidate_revision = state_revision
+                    self._rejection_candidate_count = 1
+                    return
+                if self._rejection_candidate_revision == state_revision:
+                    return
+                assert self._rejection_candidate_revision is not None
+                if state_revision < self._rejection_candidate_revision:
+                    return
+                self._rejection_candidate_revision = state_revision
+                self._rejection_candidate_count += 1
+                if self._rejection_candidate_count < 2:
+                    return
                 _LOGGER.debug(
                     "%s: HA command not confirmed: expected %s, got PLC feedback "
                     "%s; realigning command address",
@@ -275,7 +316,7 @@ class S7SyncEntity(S7BaseEntity):
                     self._clear_external_candidate()
                 elif self._external_candidate != new_state:
                     self._external_candidate = new_state
-                    self._external_candidate_generation = self._plc_update_generation
+                    self._external_candidate_revision = state_revision
                     self._external_candidate_count = 1
                     _LOGGER.debug(
                         "%s: External change candidate: %s -> %s",
@@ -284,8 +325,11 @@ class S7SyncEntity(S7BaseEntity):
                         new_state,
                     )
                     return
-                elif self._external_candidate_generation != self._plc_update_generation:
-                    self._external_candidate_generation = self._plc_update_generation
+                elif (
+                    self._external_candidate_revision is not None
+                    and state_revision > self._external_candidate_revision
+                ):
+                    self._external_candidate_revision = state_revision
                     self._external_candidate_count += 1
                     if self._external_candidate_count >= 2:
                         should_sync = True

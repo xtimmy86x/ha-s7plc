@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import struct
+import time
 import pytest
 import asyncio
 
@@ -232,6 +233,39 @@ async def test_async_update_data_respects_item_scan_interval(coord_factory, dumm
     data_second = await coord._async_update_data()
     assert data_second == results
     assert len(read_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_topic_read_revisions_ignore_cached_mixed_interval_data(
+    coord_factory, dummy_tag
+):
+    """Only topics included in a new PLC result advance their read revision."""
+    coord = coord_factory()
+    slow_plan = TagPlan("state", dummy_tag())
+    fast_plan = TagPlan("fast", dummy_tag())
+    coord._plans_batch = {"state": slow_plan, "fast": fast_plan}
+    coord._plans_str = {}
+    coord._items = {"state": "DB1,X0.0", "fast": "DB1,X0.1"}
+    coord._item_scan_intervals = {"state": 30.0, "fast": 0.05}
+    coord._item_next_read = {"state": 0.0, "fast": 0.0}
+
+    async def fake_read_all(plans_batch, plans_str):
+        return {plan.topic: plan.topic == "fast" for plan in plans_batch}
+
+    coord._read_all = fake_read_all
+    await coord._async_update_data()
+    assert coord.get_topic_read_revision("state") == 1
+    assert coord.get_topic_read_revision("fast") == 1
+
+    # Simulate another coordinator tick while only the fast topic is due. The
+    # returned data still contains the cached slow state.
+    coord._item_next_read["state"] = time.monotonic() + 30.0
+    coord._item_next_read["fast"] = 0.0
+    data = await coord._async_update_data()
+
+    assert data == {"state": False, "fast": True}
+    assert coord.get_topic_read_revision("state") == 1
+    assert coord.get_topic_read_revision("fast") == 2
 
 
 # ============================================================================

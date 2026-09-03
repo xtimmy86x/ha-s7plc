@@ -112,6 +112,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Store the latest values so entities keep their last state when a tag
         # is not due for polling in the current cycle.
         self._data_cache: dict[str, Any] = {}
+        # Per-topic revisions distinguish a fresh PLC read from a coordinator
+        # update that merely returns this topic's cached value.
+        self._topic_read_revisions: dict[str, int] = {}
 
         # Health check bookkeeping (updated by normal read cycle)
         self._last_health_ok: bool | None = None
@@ -500,8 +503,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             else:
                 self._item_real_precisions[topic] = real_precision
             self._item_next_read[topic] = time.monotonic()
+            self._topic_read_revisions.pop(topic, None)
             self._invalidate_cache()
             self._update_min_interval_locked()
+
+    def get_topic_read_revision(self, topic: str) -> int:
+        """Return the number of successful PLC reads containing ``topic``."""
+        return self._topic_read_revisions.get(topic, 0)
 
     def _invalidate_cache(self) -> None:
         """Clear read and write plan caches.
@@ -789,6 +797,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 interval = max(interval, self._MIN_SCAN_INTERVAL)
                 self._item_next_read[topic] = read_time + interval
+                if topic in results:
+                    self._topic_read_revisions[topic] = (
+                        self._topic_read_revisions.get(topic, 0) + 1
+                    )
             self._data_cache.update(results)
             return dict(self._data_cache)
 
