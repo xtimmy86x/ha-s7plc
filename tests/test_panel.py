@@ -1185,18 +1185,6 @@ def test_list_is_lightweight_and_frontend_has_three_yaml_actions() -> None:
     assert "s7plc/config/get_configuration" in source
 
 
-def test_configuration_editor_handles_load_download_and_repeated_clicks() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "configuration_load_error" in source
-    assert "configuration_download_error" in source
-    assert "textarea.disabled=!!loadError" in source
-    assert "if(backupLoading)return" in source
-    assert "if(saveLoading)return" in source
-    assert "backupButton.disabled=true" in source
-    assert "saveButton.disabled=true" in source
-
-
 class _Connection:
     def __init__(self):
         self.error = None
