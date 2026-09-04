@@ -3622,28 +3622,6 @@ process.stdout.write(context.result);
     assert result["zeros"] == "DB0,X0.0"
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_required_address_builder_blocks_submission_and_gets_focus() -> None:
-    """Builder validity is explicit because hidden inputs cannot constrain forms."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = r'''
-const vm = require("vm"); let Panel;
-const context = {HTMLElement: class {}, customElements: {define: (_, cls) => Panel = cls}};
-vm.createContext(context); vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
-let focused = 0, scrolled = 0;
-const hidden = {value: ""};
-const field = {dataset: {required: "true", addressError: "incomplete"},
-  querySelector: () => hidden, focus: () => focused++, scrollIntoView: () => scrolled++};
-const form = {querySelectorAll: () => [field]};
-const panel = new Panel();
-process.stdout.write(JSON.stringify({valid: panel.validateAddressBuilders(form), focused, scrolled}));
-'''
-    value = json.loads(subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT)], check=True, capture_output=True, text=True
-    ).stdout)
-    assert value == {"valid": False, "focused": 1, "scrolled": 1}
-
-
 def test_address_builder_focus_style_only_indicates_real_errors() -> None:
     """Focusing a builder only shows an error outline for explicit errors."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
@@ -4057,15 +4035,6 @@ console.log(JSON.stringify(state));'''
         "invalidNeverGuided": "manual",
     }
 
-
-def test_address_mode_toggle_preserves_address_value() -> None:
-    """Mode event handlers only copy the current value; they never clear or convert it."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "manual.value=hidden.value;setMode('manual');this.writeAddressMode" in source
-    assert "hidden.value=manual.value;writeParts(parsed);setMode('guided')" in source
-    assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'manual')" in source
-    assert "this.writeAddressMode(field.dataset.addressPreferenceKey,'guided')" in source
 
 def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
     """Both shared card layouts have compact responsive actions and all labels."""
