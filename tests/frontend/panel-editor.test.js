@@ -81,6 +81,91 @@ describe("entity editor", () => {
     expect(address.required).toBe(false);
   });
 
+  test("places one availability address in every entity HA section", () => {
+    const types = [
+      "sensors", "binary_sensors", "switches", "covers", "lights", "buttons",
+      "numbers", "selects", "texts", "climates", "entity_sync",
+    ];
+
+    for (const type of types) {
+      document.body.replaceChildren();
+      const panel = createPanel();
+      panel.openEditor(null, type);
+      const form = currentDialog().querySelector("form");
+      const fields = form.querySelectorAll('[data-field="availability_address"]');
+      expect(fields, type).toHaveLength(1);
+      expect(fields[0].closest('[data-section="ha"]'), type).not.toBeNull();
+    }
+  });
+
+  test("keeps Climate availability independent from its control options", () => {
+    const entry = createEntry();
+    entry.entities.climates = [{
+      name: "Availability climate",
+      control_mode: "setpoint",
+      current_temperature_address: "DB1,REAL0",
+      target_temperature_address: "DB1,REAL4",
+      availability_mode: "bit",
+      availability_address: "DB1,X8.0",
+    }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "climates");
+    const form = currentDialog().querySelector("form");
+    const availability = form.querySelector('[data-field="availability_address"]');
+
+    expect(availability.classList.contains("hidden-field")).toBe(false);
+    choose(form, "climate_mode_control", "coded_on_off");
+    choose(form, "climate_action_feedback", "plc");
+    choose(form, "control_mode", "direct");
+    choose(form, "climate_direct_function", "heat_cool");
+    choose(form, "climate_direct_feedback", "plc");
+
+    expect(availability.classList.contains("hidden-field")).toBe(false);
+    expect(form.elements.availability_address.value).toBe("DB1,X8.0");
+    choose(form, "availability_mode", "always");
+    expect(availability.classList.contains("hidden-field")).toBe(true);
+  });
+
+  test("updates REAL precision from actual address-builder input", () => {
+    const panel = createPanel();
+    panel.openEditor(0, "sensors");
+    const form = currentDialog().querySelector("form");
+    const builder = form.querySelector('[data-field="address"]');
+    const precision = form.querySelector('[data-field="real_precision"]');
+    const manual = builder.querySelector("[data-address-manual]");
+    builder.querySelector('[data-address-mode="manual"]').click();
+
+    expect(precision.classList.contains("hidden-field")).toBe(false);
+    manual.value = "DB1,INT0";
+    manual.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(precision.classList.contains("hidden-field")).toBe(true);
+
+    manual.value = "DB1,LREAL0";
+    manual.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(precision.classList.contains("hidden-field")).toBe(false);
+  });
+
+  test("uses datatype-specific placeholders in real address builders", () => {
+    const cases = [
+      ["texts", "address", "e.g. DB1,S0.254"],
+      ["texts", "command_address", "e.g. DB1,S0.254"],
+      ["covers", "open_command_address", "e.g. DB1,X0.0"],
+      ["selects", "address", "e.g. DB1,W0"],
+      ["selects", "command_address", "e.g. DB1,W0"],
+      ["sensors", "address", "e.g. DB1,REAL0"],
+    ];
+
+    for (const [type, field, expected] of cases) {
+      document.body.replaceChildren();
+      const panel = createPanel();
+      panel.openEditor(null, type);
+      const input = currentDialog().querySelector(
+        `[data-field="${field}"] [data-address-manual]`,
+      );
+      expect(input.placeholder, `${type}.${field}`).toBe(expected);
+    }
+  });
+
   test("saves edited visual-form values through the panel WebSocket contract", async () => {
     const panel = createPanel();
     panel.openEditor(0, "sensors");

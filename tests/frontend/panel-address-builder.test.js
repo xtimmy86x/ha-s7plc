@@ -206,4 +206,45 @@ describe("LOGO address builder", () => {
     expect(form.elements.address.value).toBe("DB1,REAL0");
     expect(builder.dataset.addressError).toBe("");
   });
+
+  test("validates empty LOGO fields and generates only after selecting an area", () => {
+    const entry = createEntry({
+      plc_family: "logo_0ba8",
+      data: { plc_family: "logo_0ba8" },
+      logo_profile: {
+        family: "logo_0ba8",
+        areas: [{ name: "AI", first: 1, last: 8, vm_offset: 1032, data_type: "INT" }],
+        vm_areas: [{ name: "VW", first: 0, last: 849, data_type: "WORD", width: 2 }],
+      },
+    });
+    const panel = createPanel(entry);
+    panel.openEditor(null, "sensors");
+    const form = dialogForm();
+    const builder = form.querySelector('[data-field="address"]');
+    const area = builder.querySelector("[data-logo-area]");
+
+    expect(form.elements.address.value).toBe("");
+    expect(builder.dataset.addressError).toBe("incomplete");
+    expect(panel.validateAddressBuilders(form)).toBe(false);
+
+    area.value = "AI";
+    area.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(form.elements.address.value).toBe("DB1,INT1032");
+    expect(builder.querySelector("[data-logo-preview]").textContent).toBe("AI1");
+    expect(builder.dataset.addressError).toBe("");
+    expect(panel.validateAddressBuilders(form)).toBe(true);
+
+    area.value = "";
+    area.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(form.elements.address.value).toBe("");
+    expect(builder.dataset.addressError).toBe("incomplete");
+
+    document.body.replaceChildren();
+    const numberPanel = createPanel(entry);
+    numberPanel.openEditor(null, "numbers");
+    const command = dialogForm().querySelector('[data-field="command_address"]');
+    expect(command.dataset.required).toBe("false");
+    expect(command.dataset.addressError).toBe("");
+    expect(command.querySelector("[data-logo-area]").value).toBe("");
+  });
 });

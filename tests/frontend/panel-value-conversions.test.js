@@ -124,9 +124,11 @@ describe("value conversion editor", () => {
   test("invalidates Enum mode after changing the sensor to a non-integer datatype", () => {
     const { panel, form, row } = openSensorEditor({ address: "DB1,INT0" });
     selectKind(form, "enum_map");
-    form.elements.address.value = "DB1,REAL0";
-
-    panel.syncValueConversions(form);
+    const builder = form.querySelector('[data-field="address"]');
+    const manual = builder.querySelector("[data-address-manual]");
+    builder.querySelector('[data-address-mode="manual"]').click();
+    manual.value = "DB1,REAL0";
+    manual.dispatchEvent(new Event("input", { bubbles: true }));
 
     expect(form.elements.vc_value_type.value).toBe("");
     expect(form.elements.vc_value_type.querySelector('option[value="enum_map"]')).toBeNull();
