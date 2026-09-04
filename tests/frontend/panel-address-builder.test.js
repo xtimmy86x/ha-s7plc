@@ -95,6 +95,38 @@ describe("S7 address builder", () => {
     expect(builder.dataset.addressError).toBe("incomplete");
     expect(focus).toHaveBeenCalledOnce();
   });
+
+  test("offers binary and numeric addresses to entity sync and serializes both", () => {
+    const entry = createEntry();
+    entry.entities.entity_sync = [{
+      name: "Demand sync",
+      source_entity: "input_boolean.demand",
+      address: "DB1,X0.0",
+    }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "entity_sync");
+    const form = dialogForm();
+    const builder = form.querySelector('[data-field="address"]');
+    const types = [...builder.querySelectorAll('[data-address-part="dataType"] option')]
+      .map((option) => option.value)
+      .filter(Boolean);
+
+    expect(types).toEqual([
+      "BIT", "BYTE", "USINT", "SINT", "WORD", "INT", "DWORD", "DINT",
+      "REAL", "LREAL",
+    ]);
+    expect(types).not.toContain("TIME");
+    expect(types).not.toContain("STRING");
+    expect(panel.formEntity(form, entry.entities.entity_sync[0], "entity_sync").address)
+      .toBe("DB1,X0.0");
+
+    setPart(builder, "area", "DB");
+    setPart(builder, "dbNumber", "2");
+    setPart(builder, "dataType", "REAL");
+    setPart(builder, "offset", "4");
+    expect(panel.formEntity(form, entry.entities.entity_sync[0], "entity_sync").address)
+      .toBe("DB2,R4");
+  });
 });
 
 describe("LOGO address builder", () => {
@@ -126,6 +158,52 @@ describe("LOGO address builder", () => {
     expect(builder.querySelector("[data-logo-preview]").textContent).toBe("I2");
     expect(builder.querySelector("[data-internal-preview]").textContent).toBe("DB1,X1024.1");
     expect(form.elements.address.value).toBe("DB1,X1024.1");
+    expect(builder.dataset.addressError).toBe("");
+  });
+
+  test("preserves manual input while typing and recovers from LOGO errors", () => {
+    const entry = createEntry({
+      plc_family: "logo_0ba8",
+      data: { plc_family: "logo_0ba8" },
+      logo_profile: {
+        family: "logo_0ba8",
+        areas: [],
+        vm_areas: [{ name: "VW", first: 0, last: 849, data_type: "WORD", width: 2 }],
+      },
+    });
+    entry.entities.sensors = [{ name: "VM word", address: "DB1,WORD2" }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "sensors");
+    const form = dialogForm();
+    const builder = form.querySelector('[data-field="address"]');
+    const manualButton = builder.querySelector('[data-address-mode="manual"]');
+    const guidedButton = builder.querySelector('[data-address-mode="guided"]');
+    const manual = builder.querySelector("[data-address-manual]");
+    const type = (value) => {
+      manual.value = value;
+      manual.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    manualButton.click();
+    type("VW");
+    expect(manual.value).toBe("VW");
+    expect(form.elements.address.value).toBe("");
+    expect(builder.dataset.addressError).not.toBe("");
+
+    type("VW9999");
+    expect(manual.value).toBe("VW9999");
+    expect(builder.dataset.addressError).toBe("address_out_of_range");
+
+    type("VW2");
+    expect(form.elements.address.value).toBe("DB1,WORD2");
+    expect(builder.querySelector("[data-logo-preview]").textContent).toBe("VW2");
+    expect(builder.dataset.addressError).toBe("");
+
+    type("DB1,REAL0");
+    guidedButton.click();
+    expect(manualButton.classList.contains("active")).toBe(true);
+    expect(manual.value).toBe("DB1,REAL0");
+    expect(form.elements.address.value).toBe("DB1,REAL0");
     expect(builder.dataset.addressError).toBe("");
   });
 });
