@@ -16,6 +16,15 @@ afterEach(() => {
 });
 
 const currentDialog = () => document.body.querySelector("ha-dialog");
+const choose = (form, name, value) => {
+  const input = form.querySelector(`input[name="${name}"][value="${value}"]`);
+  input.checked = true;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  return input;
+};
+const isHidden = (form, field) => form
+  .querySelector(`[data-field="${field}"]`)
+  .classList.contains("hidden-field");
 
 describe("entity editor", () => {
   test("opens an existing entity and switches between visual and YAML modes", () => {
@@ -157,5 +166,126 @@ describe("entity editor", () => {
     expect(dialog.querySelector("form").elements.name.value).toBe("Copy me");
     expect(entry.entities.selects[0].uid).toBe("original-uid");
     expect(entry.entities.selects[0].options_map.nested[0].label).toBe("One");
+  });
+
+  test("updates switch command behavior and serializes the selected mode", () => {
+    const panel = createPanel();
+    panel.openEditor(0, "switches");
+    const form = currentDialog().querySelector("form");
+
+    expect(form.elements.control_behavior.value).toBe("direct");
+    expect(isHidden(form, "pulse_duration")).toBe(true);
+    expect(form.querySelector('input[name="control_behavior"][value="sync"]').disabled).toBe(false);
+
+    choose(form, "control_behavior", "pulse");
+    form.elements.pulse_duration.value = "0.75";
+    const entity = panel.formEntity(form, panel.entries[0].entities.switches[0], "switches");
+
+    expect(isHidden(form, "pulse_duration")).toBe(false);
+    expect(entity).toMatchObject({
+      state_address: "DB1,X8.0",
+      command_address: "DB1,X8.1",
+      pulse_command: true,
+      sync_state: false,
+      pulse_duration: 0.75,
+    });
+  });
+
+  test("reveals brightness addresses only for a dimmable light", () => {
+    const entry = createEntry();
+    entry.entities.lights = [{
+      name: "Workshop light",
+      state_address: "DB1,X10.0",
+      command_address: "DB1,X10.1",
+    }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "lights");
+    const form = currentDialog().querySelector("form");
+
+    expect(form.elements.light_mode.value).toBe("on_off");
+    expect(isHidden(form, "brightness_state_address")).toBe(true);
+    expect(isHidden(form, "brightness_command_address")).toBe(true);
+
+    choose(form, "light_mode", "dimmable");
+
+    expect(isHidden(form, "brightness_state_address")).toBe(false);
+    expect(isHidden(form, "brightness_command_address")).toBe(false);
+    form.elements.brightness_state_address.value = "DB1,BYTE12";
+    form.elements.brightness_command_address.value = "DB1,BYTE14";
+    expect(panel.formEntity(form, entry.entities.lights[0], "lights")).toMatchObject({
+      brightness_state_address: "DB1,BYTE12",
+      brightness_command_address: "DB1,BYTE14",
+    });
+
+    choose(form, "light_mode", "on_off");
+    const onOff = panel.formEntity(form, entry.entities.lights[0], "lights");
+    expect(onOff).not.toHaveProperty("brightness_state_address");
+    expect(onOff).not.toHaveProperty("brightness_command_address");
+    expect(onOff).not.toHaveProperty("light_mode");
+  });
+
+  test("updates cover controls and serialization when selecting toggle mode", () => {
+    const entry = createEntry();
+    entry.entities.covers = [{
+      name: "Gate",
+      open_command_address: "DB1,X12.0",
+      close_command_address: "DB1,X12.1",
+      operate_time: 20,
+      cover_position_feedback: "timed",
+    }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "covers");
+    const form = currentDialog().querySelector("form");
+
+    expect(form.elements.cover_control_mode.value).toBe("traditional");
+    expect(isHidden(form, "close_command_address")).toBe(false);
+    expect(isHidden(form, "operate_time")).toBe(false);
+
+    choose(form, "cover_control_mode", "toggle");
+
+    expect(isHidden(form, "open_command_address")).toBe(false);
+    expect(isHidden(form, "close_command_address")).toBe(true);
+    expect(isHidden(form, "operate_time")).toBe(true);
+    expect(isHidden(form, "toggle_pulse_duration")).toBe(false);
+    expect(form.querySelector('[data-section="cover-options"]').classList.contains("hidden-field")).toBe(false);
+    expect(form.elements.open_command_address.required).toBe(true);
+    expect(form.elements.close_command_address.required).toBe(false);
+    form.elements.opening_state_address.value = "DB1,X13.0";
+    form.elements.closing_state_address.value = "DB1,X13.1";
+    form.elements.cover_opening_address.value = "DB1,X14.0";
+    form.elements.cover_closing_address.value = "DB1,X14.1";
+    const entity = panel.formEntity(form, entry.entities.covers[0], "covers");
+    expect(entity.toggle_mode).toBe(true);
+    expect(entity).not.toHaveProperty("close_command_address");
+  });
+
+  test("rebuilds climate sections when switching from setpoint to direct control", () => {
+    const entry = createEntry();
+    entry.entities.climates = [{
+      name: "Office climate",
+      control_mode: "setpoint",
+      current_temperature_address: "DB1,REAL20",
+      target_temperature_address: "DB1,REAL24",
+    }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "climates");
+    const form = currentDialog().querySelector("form");
+
+    expect(isHidden(form, "target_temperature_address")).toBe(false);
+    expect(form.querySelector('[data-section="climate-mode-control"]').classList.contains("hidden-field")).toBe(false);
+    expect(form.querySelector('[data-section="climate-direct-function"]').classList.contains("hidden-field")).toBe(true);
+
+    choose(form, "control_mode", "direct");
+
+    expect(isHidden(form, "target_temperature_address")).toBe(true);
+    expect(isHidden(form, "heating_output_address")).toBe(false);
+    expect(isHidden(form, "cooling_output_address")).toBe(true);
+    expect(form.querySelector('[data-section="climate-mode-control"]').classList.contains("hidden-field")).toBe(true);
+    expect(form.querySelector('[data-section="climate-direct-function"]').classList.contains("hidden-field")).toBe(false);
+    form.elements.heating_output_address.value = "DB1,X28.0";
+    const entity = panel.formEntity(form, entry.entities.climates[0], "climates");
+    expect(entity.control_mode).toBe("direct");
+    expect(entity.heating_output_address).toBe("DB1,X28.0");
+    expect(entity).not.toHaveProperty("target_temperature_address");
   });
 });
