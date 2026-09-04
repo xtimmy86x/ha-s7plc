@@ -7,12 +7,16 @@ const panelSource = fs.readFileSync(
   path.join(root, "custom_components/s7plc/www/s7plc-panel.js"),
   "utf8",
 );
-const translations = JSON.parse(
-  fs.readFileSync(
-    path.join(root, "custom_components/s7plc/translations/en.json"),
-    "utf8",
-  ),
-);
+export function getTranslations(language = "en") {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(root, `custom_components/s7plc/translations/${language}.json`),
+      "utf8",
+    ),
+  );
+}
+
+const translations = getTranslations();
 
 const entityTypes = [
   "sensors",

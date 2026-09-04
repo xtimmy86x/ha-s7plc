@@ -2,7 +2,7 @@
 
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { createEntry, createPanel, installPanel } from "./panel-fixture.js";
+import { createEntry, createPanel, getTranslations, installPanel } from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback) => callback();
@@ -230,6 +230,23 @@ describe("entity editor", () => {
     expect(dialog.open).toBe(true);
     expect(alert.style.display).toBe("block");
     expect(alert.textContent).toContain("PLC rejected the entity");
+  });
+
+  test("translates known backend validation failures in the rendered dialog", async () => {
+    const panel = createPanel();
+    panel.panelTranslations = getTranslations("it");
+    panel.openEditor(0, "sensors");
+    const dialog = currentDialog();
+    panel._hass.callWS = vi.fn(async () => {
+      throw new Error("invalid_address");
+    });
+
+    await dialog.querySelector('[slot="primaryAction"]').onclick();
+
+    const alert = dialog.querySelector(".editor-error");
+    expect(dialog.open).toBe(true);
+    expect(alert.style.display).toBe("block");
+    expect(alert.textContent).toBe("Formato indirizzo non valido.");
   });
 
   test("duplicates into an independent sanitized create draft", () => {

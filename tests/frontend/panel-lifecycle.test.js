@@ -2,7 +2,13 @@
 
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { createEntry, createHass, createPanel, installPanel } from "./panel-fixture.js";
+import {
+  createEntry,
+  createHass,
+  createPanel,
+  getTranslations,
+  installPanel,
+} from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback) => callback();
@@ -24,6 +30,51 @@ function freshPanel() {
 }
 
 describe("panel lifecycle", () => {
+  test.each([
+    {
+      locale: "it-IT",
+      responses: { it: getTranslations("it") },
+      urls: ["/s7plc_translations/it.json"],
+      title: "Configurazione S7 PLC",
+      field: "Nome",
+    },
+    {
+      locale: "fr-FR",
+      responses: { en: getTranslations("en") },
+      urls: ["/s7plc_translations/en.json"],
+      title: "S7 PLC configuration",
+      field: "Name",
+    },
+    {
+      locale: "de-DE",
+      responses: { en: getTranslations("en") },
+      urls: ["/s7plc_translations/de.json", "/s7plc_translations/en.json"],
+      title: "S7 PLC configuration",
+      field: "Name",
+    },
+  ])("loads translations and safely falls back for $locale", async ({
+    locale, responses, urls, title, field,
+  }) => {
+    const panel = freshPanel();
+    panel._hass = { locale: { language: locale } };
+    const requested = [];
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async (url) => {
+      requested.push(url);
+      const language = url.match(/\/([^/]+)\.json$/)[1];
+      return language in responses
+        ? { ok: true, json: async () => responses[language] }
+        : { ok: false, status: 503 };
+    }));
+
+    await panel.loadPanelTranslations();
+
+    expect(requested).toEqual(urls);
+    expect(panel.t("common.title")).toBe(title);
+    expect(panel.fieldText("sensors", "name", "label")).toBe(field);
+    expect(warning).toHaveBeenCalledTimes(urls.length - 1);
+  });
+
   test("renders the repository badge with an optional integration version", () => {
     const panel = createPanel();
 
