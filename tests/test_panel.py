@@ -27,6 +27,31 @@ PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
 
 
+def test_panel_action_controls_share_explicit_height_without_global_select_normalization() -> None:
+    """Desktop and mobile PLC controls align without changing editor selects."""
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
+
+    action_size_rule = (
+        ".mobile-actions .config-yaml,\n"
+        ".mobile-actions select,\n"
+        ".summary-actions .config-yaml,\n"
+        ".summary-actions select{box-sizing:border-box;height:38px;min-height:38px}"
+    )
+    selector_normalization_rule = (
+        ".mobile-actions select,\n"
+        ".summary-actions select{padding-top:0;padding-bottom:0;line-height:normal}"
+    )
+
+    assert action_size_rule in styles
+    assert selector_normalization_rule in styles
+    assert styles.count("padding-top:0") == 1
+    assert styles.count("padding-bottom:0") == 1
+    assert styles.count("line-height:normal") == 1
+    assert ".mobile-actions,.summary-actions{display:flex;align-items:center" in styles
+    assert ".config-yaml{display:flex;align-items:center" in styles
+
+
 def test_category_navigation_markup_and_styles() -> None:
     """Categories use touch tabs or the integrated accessible heading menu."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")

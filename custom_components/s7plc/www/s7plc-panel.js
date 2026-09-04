@@ -588,6 +588,12 @@ class S7PlcConfigurationPanel extends HTMLElement {
   header,.toolbar,.summary,article{display:flex;align-items:center}
 .mobile-controls{display:none}
 .mobile-actions,.summary-actions{display:flex;align-items:center;gap:10px;min-width:0}
+.mobile-actions .config-yaml,
+.mobile-actions select,
+.summary-actions .config-yaml,
+.summary-actions select{box-sizing:border-box;height:38px;min-height:38px}
+.mobile-actions select,
+.summary-actions select{padding-top:0;padding-bottom:0;line-height:normal}
 .integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
