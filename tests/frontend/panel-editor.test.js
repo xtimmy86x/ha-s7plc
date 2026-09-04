@@ -260,6 +260,7 @@ describe("entity editor", () => {
 
     expect(form.elements.control_behavior.value).toBe("direct");
     expect(isHidden(form, "pulse_duration")).toBe(true);
+    expect(form.querySelector('[data-section="options"]').classList.contains("hidden-field")).toBe(true);
     expect(form.querySelector('input[name="control_behavior"][value="sync"]').disabled).toBe(false);
 
     choose(form, "control_behavior", "pulse");
@@ -267,6 +268,7 @@ describe("entity editor", () => {
     const entity = panel.formEntity(form, panel.entries[0].entities.switches[0], "switches");
 
     expect(isHidden(form, "pulse_duration")).toBe(false);
+    expect(form.querySelector('[data-section="options"]').classList.contains("hidden-field")).toBe(false);
     expect(entity).toMatchObject({
       state_address: "DB1,X8.0",
       command_address: "DB1,X8.1",

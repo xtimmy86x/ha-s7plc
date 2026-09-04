@@ -24,6 +24,24 @@ function freshPanel() {
 }
 
 describe("panel lifecycle", () => {
+  test("renders the repository badge with an optional integration version", () => {
+    const panel = createPanel();
+
+    panel.panel = { config: { version: "7.3.0" } };
+    let badge = panel.querySelector(".project-badge");
+    expect(badge.href).toBe("https://github.com/xtimmy86x/ha-s7plc");
+    expect(badge.target).toBe("_blank");
+    expect(badge.rel).toBe("noopener noreferrer");
+    expect(badge.getAttribute("aria-label")).toBe("Open ha-s7plc on GitHub");
+    expect(badge.textContent).toContain("@xtimmy86x");
+    expect(badge.textContent).toContain("v7.3.0");
+
+    panel.panel = { config: {} };
+    badge = panel.querySelector(".project-badge");
+    expect(badge.textContent).toContain("@xtimmy86x");
+    expect(badge.textContent).not.toMatch(/v(?:undefined|null)/);
+  });
+
   test("loads entries and translations before rendering the selected PLC", async () => {
     const entry = createEntry();
     const translations = createPanel(entry).panelTranslations;

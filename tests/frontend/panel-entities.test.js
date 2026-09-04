@@ -16,6 +16,59 @@ afterEach(() => {
 });
 
 describe("entity views and actions", () => {
+  test("renders type-specific main addresses without duplicate chips", () => {
+    const entry = createEntry();
+    entry.entities.covers = [
+      { name: "<Kitchen & blind>", open_command_address: "DB1,X0.0", close_command_address: "DB1,X0.1" },
+      { position_state_address: "DB1,BYTE2", position_command_address: "DB1,BYTE3" },
+      { close_command_address: "DB1,X0.5" },
+    ];
+    const panel = createPanel(entry);
+    panel.type = "covers";
+    panel.render();
+    const cards = [...panel.querySelectorAll(".cards article")];
+
+    expect(cards[0].querySelector(".details > b").textContent).toBe("<Kitchen & blind>");
+    expect(cards[0].querySelector(".details > code").textContent).toBe("DB1,X0.0");
+    expect(cards[0].querySelector(".details > div").textContent).not.toContain("DB1,X0.0");
+    expect(cards[0].querySelector(".details > b").children).toHaveLength(0);
+    expect(cards[1].querySelector(".details > b").textContent).toBe("DB1,BYTE2");
+    expect(cards[1].querySelector(".details > code").textContent).toBe("DB1,BYTE2");
+    expect(cards[1].querySelector(".details > div").textContent).not.toContain("DB1,BYTE2");
+    expect(cards[2].querySelector(".details > b").textContent).toBe("Entity 3");
+    expect(cards[2].querySelector(".details > code").textContent).toBe("—");
+  });
+
+  test("prioritizes conversion chips and renders bounded overflow as text", () => {
+    const entry = createEntry();
+    entry.entities.buttons = [{
+      name: "Conversion test",
+      address: "DB1,X0.0",
+      property_1: "hidden-1",
+      value_conversions: Object.fromEntries(
+        ["a", "b", "c", "d", "e"].map((channel) => [channel, { type: "expression" }]),
+      ),
+    }];
+    const panel = createPanel(entry);
+    panel.type = "buttons";
+    panel.render();
+    const details = panel.querySelector(".cards article .details");
+    const conversions = [...details.querySelectorAll(".conversion-chip")];
+    const overflow = details.querySelector(".chip-overflow");
+
+    expect(conversions).toHaveLength(5);
+    expect(conversions.map((chip) => chip.textContent)).toEqual([
+      "A · Custom expression", "B · Custom expression", "C · Custom expression",
+      "D · Custom expression", "E · Custom expression",
+    ]);
+    expect(conversions.every((chip) => chip.tabIndex === 0)).toBe(true);
+    expect(overflow.textContent).toBe("+1");
+    expect(overflow.title).toBe("1 more property");
+    expect(overflow.getAttribute("aria-label")).toBe("1 more property");
+    expect(overflow.matches("button, [role], [tabindex]")).toBe(false);
+    expect(details.textContent).not.toContain("Property 1");
+  });
+
   test("switches between category and all-entities views and persists the choice", () => {
     const panel = createPanel();
     const toggle = panel.querySelector("[data-layout-toggle]");
