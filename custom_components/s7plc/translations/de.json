@@ -269,7 +269,9 @@
           "description": "BIT-Adresse, die gesetzt sein muss, solange die SPS verbunden ist."
         }
       },
-      "datatype_time": "TIME — Dauer in Sekunden"
+      "datatype_time": "TIME — Dauer in Sekunden",
+      "disabled": "Verbindung deaktiviert",
+      "open_project_github": "ha-s7plc auf GitHub öffnen"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +969,10 @@
         "connection": "SPS-Verbindung",
         "performance": "Kommunikation und Leistung",
         "retry": "Wiederverbindung",
-        "other": "Weitere Parameter"
+        "other": "Weitere Parameter",
+        "activity": "Aktivität und Wiederverbindung",
+        "configuration": "Kommunikation und Konfiguration",
+        "metrics": "Leistungsmetriken"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1022,39 @@
         },
         "plc_family": {
           "label": "SPS-Familie"
+        },
+        "configuration_name": {
+          "label": "Konfigurationsname"
+        },
+        "last_connected": {
+          "label": "Letzte erfolgreiche Verbindung"
+        },
+        "last_disconnected": {
+          "label": "Letzte Trennung"
+        },
+        "last_error": {
+          "label": "Letzter Fehler"
+        },
+        "manual_disabled": {
+          "label": "Mit „Verbindung aktivieren“ deaktiviert"
+        },
+        "polling_interval": {
+          "label": "Abfrageintervall"
+        },
+        "last_cycle": {
+          "label": "Dauer des letzten Zyklus"
+        },
+        "configured_entities": {
+          "label": "Konfigurierte Entitäten"
+        },
+        "read_count": {
+          "label": "Lesevorgänge"
+        },
+        "write_count": {
+          "label": "Schreibvorgänge"
+        },
+        "communication_errors": {
+          "label": "Kommunikationsfehler"
         }
       },
       "values": {
@@ -1031,6 +1069,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {
@@ -1161,6 +1202,14 @@
       "apply_manual_all": "Manuell auf alle anwenden",
       "mixed_address_mode": "Gemischter Modus"
     },
+    "search": {
+      "label": "Entitäten suchen",
+      "placeholder": "Entitäten suchen…",
+      "one_result": "1 Ergebnis",
+      "many_results": "{count} Ergebnisse",
+      "no_results": "Keine Entitäten entsprechen der Suche",
+      "clear": "Suche löschen"
+    },
     "layout": {
       "switch_to_tabs": "Zur Kategorieansicht wechseln",
       "switch_to_sections": "Zur Ansicht aller Entitäten wechseln",
@@ -1282,6 +1331,10 @@
         "unmapped": "Der PLC-Wert ist nicht zugeordnet."
       },
       "action": "Aktion"
+    },
+    "entity_card": {
+      "hidden_property": "1 weitere Eigenschaft",
+      "hidden_properties": "{count} weitere Eigenschaften"
     }
   },
   "selector": {

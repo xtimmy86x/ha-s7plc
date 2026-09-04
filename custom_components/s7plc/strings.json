@@ -269,7 +269,9 @@
           "description": "BIT address that must be true while the PLC is connected."
         }
       },
-      "datatype_time": "TIME — duration in seconds"
+      "datatype_time": "TIME — duration in seconds",
+      "disabled": "Connection disabled",
+      "open_project_github": "Open ha-s7plc on GitHub"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +969,10 @@
         "connection": "PLC connection",
         "performance": "Communication and performance",
         "retry": "Reconnection",
-        "other": "Other parameters"
+        "other": "Other parameters",
+        "activity": "Activity and reconnection",
+        "configuration": "Communication and configuration",
+        "metrics": "Performance metrics"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1022,39 @@
         },
         "plc_family": {
           "label": "PLC family"
+        },
+        "configuration_name": {
+          "label": "Configuration name"
+        },
+        "last_connected": {
+          "label": "Last successful connection"
+        },
+        "last_disconnected": {
+          "label": "Last disconnection"
+        },
+        "last_error": {
+          "label": "Last error"
+        },
+        "manual_disabled": {
+          "label": "Disabled with “Enable connection”"
+        },
+        "polling_interval": {
+          "label": "Polling interval"
+        },
+        "last_cycle": {
+          "label": "Last cycle duration"
+        },
+        "configured_entities": {
+          "label": "Configured entities"
+        },
+        "read_count": {
+          "label": "Reads"
+        },
+        "write_count": {
+          "label": "Writes"
+        },
+        "communication_errors": {
+          "label": "Communication errors"
         }
       },
       "values": {
@@ -1031,6 +1069,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {
@@ -1161,6 +1202,14 @@
       "apply_manual_all": "Apply Manual to all",
       "mixed_address_mode": "Mixed mode"
     },
+    "search": {
+      "label": "Search entities",
+      "placeholder": "Search entities…",
+      "one_result": "1 result",
+      "many_results": "{count} results",
+      "no_results": "No entities match your search",
+      "clear": "Clear search"
+    },
     "layout": {
       "switch_to_tabs": "Switch to category view",
       "switch_to_sections": "Switch to all-entities view",
@@ -1282,6 +1331,10 @@
         "unmapped": "The PLC value is not mapped."
       },
       "action": "Action"
+    },
+    "entity_card": {
+      "hidden_property": "1 more property",
+      "hidden_properties": "{count} more properties"
     }
   },
   "selector": {

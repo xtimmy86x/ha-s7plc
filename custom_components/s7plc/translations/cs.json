@@ -269,7 +269,9 @@
           "description": "BIT adresa, která musí být aktivní, když je PLC připojeno."
         }
       },
-      "datatype_time": "TIME — doba trvání v sekundách"
+      "datatype_time": "TIME — doba trvání v sekundách",
+      "disabled": "Připojení zakázáno",
+      "open_project_github": "Otevřít ha-s7plc na GitHubu"
     },
     "sections": {
       "plc_connection": {
@@ -967,7 +969,10 @@
         "connection": "Připojení PLC",
         "performance": "Komunikace a výkon",
         "retry": "Opětovné připojení",
-        "other": "Další parametry"
+        "other": "Další parametry",
+        "activity": "Aktivita a opětovné připojení",
+        "configuration": "Komunikace a konfigurace",
+        "metrics": "Výkonnostní metriky"
       },
       "fields": {
         "connection_type": {
@@ -1017,6 +1022,39 @@
         },
         "plc_family": {
           "label": "Rodina PLC"
+        },
+        "configuration_name": {
+          "label": "Název konfigurace"
+        },
+        "last_connected": {
+          "label": "Poslední úspěšné připojení"
+        },
+        "last_disconnected": {
+          "label": "Poslední odpojení"
+        },
+        "last_error": {
+          "label": "Poslední chyba"
+        },
+        "manual_disabled": {
+          "label": "Zakázáno přepínačem „Povolit připojení“"
+        },
+        "polling_interval": {
+          "label": "Interval dotazování"
+        },
+        "last_cycle": {
+          "label": "Doba posledního cyklu"
+        },
+        "configured_entities": {
+          "label": "Nakonfigurované entity"
+        },
+        "read_count": {
+          "label": "Čtení"
+        },
+        "write_count": {
+          "label": "Zápisy"
+        },
+        "communication_errors": {
+          "label": "Chyby komunikace"
         }
       },
       "values": {
@@ -1031,6 +1069,9 @@
         "logo_0ba7": "LOGO! 0BA7",
         "logo_0ba8": "LOGO! 0BA8",
         "logo_9": "LOGO! 9"
+      },
+      "units": {
+        "seconds": "s"
       }
     },
     "availability": {
@@ -1161,6 +1202,14 @@
       "apply_manual_all": "Použít ruční režim na vše",
       "mixed_address_mode": "Smíšený režim"
     },
+    "search": {
+      "label": "Hledat entity",
+      "placeholder": "Hledat entity…",
+      "one_result": "1 výsledek",
+      "many_results": "{count} výsledků",
+      "no_results": "Žádné entity neodpovídají hledání",
+      "clear": "Vymazat hledání"
+    },
     "layout": {
       "switch_to_tabs": "Přepnout na zobrazení kategorií",
       "switch_to_sections": "Přepnout na zobrazení všech entit",
@@ -1282,6 +1331,10 @@
         "unmapped": "Hodnota PLC není namapována."
       },
       "action": "Akce"
+    },
+    "entity_card": {
+      "hidden_property": "1 další vlastnost",
+      "hidden_properties": "{count} další vlastnosti"
     }
   },
   "selector": {
