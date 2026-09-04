@@ -69,6 +69,90 @@ describe("entity views and actions", () => {
     expect(details.textContent).not.toContain("Property 1");
   });
 
+  test("renders known conversion summaries in channel order", () => {
+    const entry = createEntry();
+    entry.entities.covers = [{
+      name: "Converted cover",
+      position_state_address: "DB1,BYTE0",
+      value_conversions: {
+        tilt: { type: "multiplier", factor: 10 },
+        position: { type: "linear_scale", plc_min: 0, plc_max: 27648, ha_min: 0, ha_max: 100 },
+        status: { type: "linear_scale", plc_min: 0, plc_max: 10, ha_min: 0, ha_max: 1, clamp: true },
+      },
+    }];
+    const panel = createPanel(entry);
+    panel.type = "covers";
+    panel.render();
+    const chips = [...panel.querySelectorAll(".conversion-chip")];
+
+    expect(chips.map((chip) => chip.textContent)).toEqual([
+      "Position · Scale 0–27648 → 0–100",
+      "Cover status · Scale 0–10 → 0–1 · Clamped",
+      "Tilt · Multiplier × 10",
+    ]);
+    expect(chips.map((chip) => chip.title)).toEqual([
+      "Position: Scale 0–27648 → 0–100",
+      "Cover status: Scale 0–10 → 0–1 · Clamped",
+      "Tilt: Multiplier × 10",
+    ]);
+
+    entry.entities.entity_sync = [{
+      name: "LOGO time",
+      address: "DB1,WORD0",
+      value_conversions: { value: { type: "logo_time_bcd" } },
+    }];
+    panel.type = "entity_sync";
+    panel.render();
+    expect(panel.querySelector(".conversion-chip").textContent).toBe("LOGO! time (BCD)");
+
+    entry.entities.lights = [{
+      name: "Expression light",
+      state_address: "DB1,X2.0",
+      brightness_state_address: "DB1,BYTE2",
+      value_conversions: { brightness: { type: "expression", read_expression: "<script>" } },
+    }];
+    panel.type = "lights";
+    panel.render();
+    expect(panel.querySelector(".conversion-chip").textContent).toBe("Custom expression");
+  });
+
+  test("ignores malformed and legacy card metadata while escaping summaries", () => {
+    const entry = createEntry();
+    entry.entities.sensors = [
+      { name: "Malformed", address: "DB1,REAL0", value_conversions: null, options: { nested: true } },
+      { name: "Escaped", address: "DB1,REAL4", value_conversions: { unknown: { type: "multiplier", factor: "<5>" } } },
+      {
+        name: "Legacy",
+        address: "DB1,REAL8",
+        min_value: 0,
+        max_value: 100,
+        scale_raw_min: 0,
+        scale_raw_max: 27648,
+        value_multiplier: 2,
+        brightness_scale: 255,
+        value_conversions: {
+          value: { type: "linear_scale", plc_min: 0, plc_max: 27648, ha_min: 0, ha_max: 100 },
+        },
+      },
+    ];
+    const panel = createPanel(entry);
+    const cards = [...panel.querySelectorAll(".cards article")];
+
+    expect(cards[0].querySelector(".details > div").textContent).toBe("");
+    expect(cards[0].textContent).not.toContain("[object Object]");
+    const escaped = cards[1].querySelector(".conversion-chip");
+    expect(escaped.textContent).toBe("Multiplier × <5>");
+    expect(escaped.children).toHaveLength(0);
+    expect(cards[2].querySelector(".details > div").textContent).toBe("Scale 0–27648 → 0–100");
+    expect(cards[2].textContent).not.toMatch(/Min Value|Max Value|Scale Raw|Value Multiplier|Brightness Scale/);
+
+    entry.entities.numbers = [{ name: "Limited", address: "DB1,INT0", min_value: -10, max_value: 10 }];
+    panel.type = "numbers";
+    panel.render();
+    expect(panel.querySelector(".details > div").textContent).toContain("Minimum limit: -10");
+    expect(panel.querySelector(".details > div").textContent).toContain("Maximum limit: 10");
+  });
+
   test("switches between category and all-entities views and persists the choice", () => {
     const panel = createPanel();
     const toggle = panel.querySelector("[data-layout-toggle]");

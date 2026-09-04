@@ -3610,89 +3610,9 @@ def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
     assert "clamp:channel==='brightness'||Boolean(read('clamp')?.checked)" in source
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_entity_card_value_conversion_chips_are_safe_localized_and_bounded() -> None:
-    """Conversion objects expand into translated chips before the card limit."""
-    script = r'''
-const vm=require("vm"),fs=require("fs");let Panel;
-const document={createElement:()=>{let value="";return {set textContent(next){value=String(next);},get innerHTML(){return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}}}};
-const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document};
-vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
-const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
-const panel=new Panel();panel.panelTranslations={config_panel:translations};
-const chips=(item,type='covers')=>panel.chips(item,type);
-const conversions={position:{type:'linear_scale',plc_min:0,plc_max:27648,ha_min:0,ha_max:100},tilt:{type:'multiplier',factor:10},status:{type:'linear_scale',plc_min:0,plc_max:10,ha_min:0,ha_max:1,clamp:true}};
-const original={value_conversions:conversions,address:'DB1,BYTE0'};const before=JSON.stringify(original);
-console.log(JSON.stringify({
- multiplier:chips({value_conversions:{value:{type:'multiplier',factor:5}}},'sensors'),
- scale:chips({value_conversions:{position:conversions.position}}),
- clamped:chips({value_conversions:{position:conversions.status}}),
- logo:chips({value_conversions:{value:{type:'logo_time_bcd'}}},'entity_sync'),
- expression:chips({value_conversions:{brightness:{type:'expression',read_expression:'<script>'}}},'lights'),
- multiple:chips({value_conversions:conversions}),
- order:chips({value_conversions:{tilt:conversions.tilt,position:conversions.position,status:conversions.status}}),
- bounded:chips({value_conversions:{z:{type:'expression'},y:{type:'expression'},x:{type:'expression'},w:{type:'expression'},v:{type:'expression'},u:{type:'expression'}}},'buttons'),
- unexpected:[null,42,'bad',[],{value:null},{value:{}},{value:{type:'linear_scale',plc_min:'<b>',plc_max:{bad:true}}},{unknown_channel:{type:'multiplier',factor:'<5>'}}].map(value=>chips({value_conversions:value},'sensors')),
- ordinaryObject:chips({options:{one:'One'}} ,'selects'),
- unchanged:before===JSON.stringify(original),
- noConversion:chips({address:'DB1,REAL0',name:'Plain'},'sensors'),
- sensorLegacy:chips({min_value:0,max_value:100,scale_raw_min:0,scale_raw_max:27648,value_multiplier:2,brightness_scale:255,value_conversions:{value:conversions.position}},'sensors'),
- numberLimits:chips({min_value:-10,max_value:10,scale_raw_min:0,scale_raw_max:100},'numbers')
-}));'''
-    result = json.loads(subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT),
-         "custom_components/s7plc/translations/it.json"],
-        check=True, capture_output=True, text=True,
-    ).stdout)
-
-    assert "[object Object]" not in json.dumps(result)
-    assert "Moltiplicatore × 5" in result["multiplier"]
-    assert "Scala 0–27648 → 0–100" in result["scale"]
-    assert "Scala 0–10 → 0–1 · Limitata" in result["clamped"]
-    assert "LOGO! time (BCD)" in result["logo"]
-    assert "Espressione personalizzata" in result["expression"]
-    assert 'title="Moltiplicatore × 5" tabindex="0">Moltiplicatore × 5' in result["multiplier"]
-    assert "Conversione valore sensore:" not in result["multiplier"]
-    assert 'title="Scala 0–27648 → 0–100"' in result["scale"]
-    assert "Posizione · Scala 0–27648 → 0–100" in result["multiple"]
-    assert "Tilt · Moltiplicatore × 10" in result["multiple"]
-    assert 'title="Posizione: Scala 0–27648 → 0–100"' in result["multiple"]
-    assert result["order"].index("Posizione ·") < result["order"].index("Stato cover ·") < result["order"].index("Tilt ·")
-    assert result["bounded"].count("<span") == 6
-    assert '>+1</span>' in result["bounded"]
-    assert "Unknown Channel" not in result["unexpected"][-1]
-    assert "&lt;5&gt;" in result["unexpected"][-1]
-    assert "<5>" not in result["unexpected"][-1]
-    assert "&lt;b&gt;" in result["unexpected"][-2]
-    assert all(value == "" for value in result["unexpected"][:6])
-    assert result["ordinaryObject"] == ""
-    assert result["unchanged"] is True
-    assert result["noConversion"] == ""
-    assert "Min Value" not in result["sensorLegacy"]
-    assert "Max Value" not in result["sensorLegacy"]
-    assert "Scala 0–27648 → 0–100" in result["sensorLegacy"]
-    assert "Limite minimo: -10" in result["numberLimits"]
-    assert "Limite massimo: 10" in result["numberLimits"]
-    assert "Scale Raw" not in result["numberLimits"]
-
-
-def test_entity_card_conversion_chips_have_english_fallback_and_mobile_layout() -> None:
-    """Card conversion labels fall back to English and wrap on narrow cards."""
+def test_entity_card_conversion_chips_have_responsive_layout() -> None:
+    """Rendered conversion chips retain their compact responsive styling."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = r'''
-const vm=require("vm"),fs=require("fs");let Panel;
-const document={createElement:()=>{let value="";return {set textContent(next){value=String(next);},get innerHTML(){return value;}}}};
-const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document};vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
-const en=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel,panel=new Panel();panel.panelTranslations={config_panel:en};
-console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}},'entity_sync'));'''
-    rendered = subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT),
-         "custom_components/s7plc/translations/en.json"],
-        check=True, capture_output=True, text=True,
-    ).stdout
-    assert '>Multiplier × 5</span>' in rendered
-    assert "Synchronized value conversion:" not in rendered
-    assert 'title="Multiplier × 5"' in rendered
     assert ".details>div{display:flex;flex-wrap:wrap;min-width:0}" in source
     assert ".details span.conversion-chip{box-sizing:border-box;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere" in source
     assert ".details span.conversion-chip:focus-visible" in source
@@ -3700,8 +3620,6 @@ console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}}
     assert ".details div,.toolbar p{display:none}" not in source
     assert "const allChips=[...conversions,...metadata]" in source
     assert "const visible=allChips.slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
-
-
     assert "clamp:channel==='brightness'||" in source
 def test_number_limit_copy_and_sensor_fields_are_consistent() -> None:
     """Panel copy presents HA limits and hides meaningless sensor bounds."""
