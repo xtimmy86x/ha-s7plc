@@ -30,12 +30,23 @@ const entityTypes = [
 
 export function installPanel() {
   if (!customElements.get("s7plc-configuration-panel")) {
-    window.eval(panelSource);
+    window.eval(`${panelSource}\nwindow.__s7plcPanelTestHelpers = {
+      BUILD_CONNECTION_AVAILABILITY,
+      APPLY_LIVE_CONNECTION_DURATION,
+      LIVE_CONNECTION_STATUS,
+      ENTITY_SEARCH_TEXT,
+      FILTER_ENTITY_ITEMS,
+    };`);
   }
   globalThis.ResizeObserver ??= class {
     observe() {}
     disconnect() {}
   };
+}
+
+export function getPanelTestHelpers() {
+  installPanel();
+  return window.__s7plcPanelTestHelpers;
 }
 
 export function createEntry(overrides = {}) {
