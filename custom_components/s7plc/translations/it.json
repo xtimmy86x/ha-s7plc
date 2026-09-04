@@ -270,7 +270,8 @@
         }
       },
       "datatype_time": "TIME — durata in secondi",
-      "disabled": "Connessione disabilitata"
+      "disabled": "Connessione disabilitata",
+      "open_project_github": "Apri ha-s7plc su GitHub"
     },
     "sections": {
       "plc_connection": {

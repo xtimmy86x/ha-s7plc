@@ -215,11 +215,54 @@ def test_entry_payload_always_includes_profile_for_logo_family(family):
     assert payload["logo_profile"]["vm_areas"]
 
 
-def test_panel_displays_integration_version() -> None:
+def test_panel_displays_project_badge_in_banner() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    banner = source.split("  banner(){", 1)[1].split("  panelActions(className){", 1)[0]
+    actions = source.split("  panelActions(className){", 1)[1].split("  syncMenuButtons()", 1)[0]
+    styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
 
     assert "this._panel?.config?.version" in source
-    assert 'class="integration-version"' in source
+    assert 'class="project-badge"' in banner
+    assert 'href="https://github.com/xtimmy86x/ha-s7plc"' in banner
+    assert 'target="_blank"' in banner
+    assert 'rel="noopener noreferrer"' in banner
+    assert 'icon="mdi:github" aria-hidden="true"' in banner
+    assert "this.t('common.open_project_github')" in banner
+    assert "currentVersion=this.integrationVersion" in banner
+    assert "currentVersion?`<span>v${this.escape(currentVersion)}</span>`:''" in banner
+    assert "@xtimmy86x" in banner
+    assert "integration-version" not in actions
+    assert "integration-version" not in styles
+    assert ".project-badge:focus-visible{outline:2px solid #fff" in styles
+    assert ".project-badge{right:7px;bottom:7px;gap:4px" in styles
+
+    for language in ("en", "it", "de", "pl", "cs"):
+        translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
+        assert translation["config_panel"]["common"]["open_project_github"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_project_badge_renders_dynamic_and_missing_versions_safely() -> None:
+    """The banner uses panel metadata and remains complete before it is available."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel;
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},
+document:{createElement(){return {set textContent(value){this.innerHTML=String(value??"")}}}}};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
+const panel=new Panel();panel.panelTranslations={common:{open_project_github:"Open repository"}};
+panel._panel={config:{version:"7.3.0"}};const ready=panel.banner();
+panel._panel={config:{}};const pending=panel.banner();
+console.log(JSON.stringify({ready,pending}));
+'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+
+    assert "v7.3.0" in result["ready"]
+    assert "@xtimmy86x" in result["pending"]
+    assert "vundefined" not in result["pending"]
+    assert "vnull" not in result["pending"]
 
 
 def test_connection_details_structural_styles_are_preserved() -> None:
@@ -4922,7 +4965,7 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
         "@media(min-width:501px) and (max-width:900px){", 1
     )[1].split("@media(max-width:480px)", 1)[0]
 
-    assert ".hero-banner{width:100%;height:150px" in page_styles
+    assert ".hero-banner{position:relative;width:100%;height:150px" in page_styles
     assert ".hero-banner img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
     assert ".summary{position:relative;overflow:hidden;margin:0 0 10px;padding:14px 18px" in page_styles
     assert ".default-address-mode{display:flex;align-items:center;justify-content:space-between" in page_styles

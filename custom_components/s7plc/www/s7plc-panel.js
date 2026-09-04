@@ -31,7 +31,7 @@ return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[.
 };
 const SUPPORTED_LANGUAGES = new Set(["en", "it", "de", "pl", "cs"]);
 const ENGLISH_EMERGENCY_FALLBACK = {
-common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required"},
+common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required",open_project_github:"Open ha-s7plc on GitHub"},
 actions:{add:"Add",edit:"Edit",duplicate:"Duplicate entity",delete:"Delete",cancel:"Cancel",save:"Save changes",close:"Close",select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},errors:{required_error:"Fill in all required fields."},connection_details:{title:"Connection details"},editor:{configuration_yaml:"Advanced YAML",default_address_mode:"Default address editor mode",default_address_mode_description:"Applied to address fields without an individual preference.",use_guided:"Use the guided builder when possible",use_manual:"Use manual mode",set_all_addresses:"Set all addresses",apply_guided_all:"Apply Guided to all",apply_manual_all:"Apply Manual to all"}
 };
 const DUPLICATE_ENTITY_TEMPLATE = source => {
@@ -279,11 +279,11 @@ class S7PlcConfigurationPanel extends HTMLElement {
   set narrow(value) { this._narrow = value; this.syncMenuButtons(); }
   menuButton(){return '<ha-menu-button></ha-menu-button>';}
   banner(){
-  const version=this.integrationVersion?`?v=${encodeURIComponent(this.integrationVersion)}`:'';
-  return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${version}" alt="ha-s7plc"></div>`;
+  const currentVersion=this.integrationVersion,cacheVersion=currentVersion?`?v=${encodeURIComponent(currentVersion)}`:'',version=currentVersion?`<span>v${this.escape(currentVersion)}</span>`:'';
+  return `<div class="hero-banner"><img src="/s7plc_static/s7plc-header.png${cacheVersion}" alt="ha-s7plc"><a class="project-badge" href="https://github.com/xtimmy86x/ha-s7plc" target="_blank" rel="noopener noreferrer" aria-label="${this.escape(this.t('common.open_project_github'))}"><ha-icon icon="mdi:github" aria-hidden="true"></ha-icon><span>@xtimmy86x</span>${version?`<span aria-hidden="true">·</span>${version}`:''}</a></div>`;
   }
   panelActions(className){
-  return `<div class="${className}"><button class="config-yaml" data-config-yaml title="${this.t('editor.configuration_yaml')}" aria-label="${this.t('editor.configuration_yaml')}"><ha-icon icon="mdi:file-code-outline"></ha-icon><span>${this.t('editor.configuration_yaml')}</span></button><select data-entry-selector aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select>${this.integrationVersion?`<span class="integration-version">v${this.escape(this.integrationVersion)}</span>`:''}</div>`;
+  return `<div class="${className}"><button class="config-yaml" data-config-yaml title="${this.t('editor.configuration_yaml')}" aria-label="${this.t('editor.configuration_yaml')}"><ha-icon icon="mdi:file-code-outline"></ha-icon><span>${this.t('editor.configuration_yaml')}</span></button><select data-entry-selector aria-label="PLC">${this.entries.map(e=>`<option value="${this.escape(e.entry_id)}" ${e.entry_id===this.entryId?'selected':''}>${this.escape(e.title)}</option>`).join('')}</select></div>`;
   }
   syncMenuButtons(){this.querySelectorAll('ha-menu-button').forEach(b=>{b.hass=this._hass;b.narrow=this._narrow;});}
   get integrationVersion(){return this._panel?.config?.version||'';}
@@ -583,8 +583,10 @@ class S7PlcConfigurationPanel extends HTMLElement {
   :host{display:block;background:var(--primary-background-color);min-height:100vh;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif);-webkit-font-smoothing:antialiased}
   button,input,select,textarea,ha-button{font-family:inherit}
 .page{max-width:1180px;margin:auto;padding:32px 24px 64px}
-.hero-banner{width:100%;height:150px;margin:0 0 12px;border-radius:16px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
+.hero-banner{position:relative;width:100%;height:150px;margin:0 0 12px;border-radius:16px;overflow:hidden;background:#03182f;box-shadow:0 8px 28px #00000018}
 .hero-banner img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.project-badge{position:absolute;right:11px;bottom:11px;display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 22px);box-sizing:border-box;padding:5px 9px;border:1px solid #ffffff38;border-radius:8px;background:#07111dcc;color:#fff;text-decoration:none;font-size:12px;font-weight:600;line-height:1.25;white-space:nowrap;box-shadow:0 2px 8px #0005;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:background .15s,border-color .15s,transform .15s}
+.project-badge ha-icon{--mdc-icon-size:16px;flex:0 0 auto}.project-badge:hover{background:#07111deb;border-color:#ffffff66;transform:translateY(-1px)}.project-badge:focus-visible{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 3px #07111daa}.project-badge:active{transform:translateY(0)}
   header,.toolbar,.summary,article{display:flex;align-items:center}
 .mobile-controls{display:none}
 .mobile-actions,.summary-actions{display:flex;align-items:center;gap:10px;min-width:0}
@@ -592,7 +594,6 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .mobile-actions select,
 .summary-actions .config-yaml,
 .summary-actions select{box-sizing:border-box;height:38px;min-height:38px}
-.integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
   ha-menu-button{color:var(--primary-text-color)}
@@ -613,8 +614,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .summary .plc-title b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .summary-actions{position:relative;flex:0 1 auto;justify-content:flex-end}
 .summary-actions .config-yaml,
-.summary-actions select,
-.summary-actions .integration-version{color:#fff;background:#ffffff18;border-color:#ffffff30;box-shadow:none}
+.summary-actions select{color:#fff;background:#ffffff18;border-color:#ffffff30;box-shadow:none}
 .summary-actions .config-yaml:hover{background:#ffffff26;border-color:#ffffff45}
 .summary-actions select:hover{background-color:#ffffff26;border-color:#ffffff45}
 .summary-actions .config-yaml:focus-visible,
@@ -623,7 +623,6 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .summary-actions select{-webkit-appearance:none;-moz-appearance:none;appearance:none;padding:0 34px 0 13px;line-height:normal;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .summary-actions select{min-width:120px;max-width:230px}
 .summary-actions select option{color:var(--primary-text-color);background:var(--card-background-color)}
-.summary-actions .integration-version{opacity:1}
 .connection-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:#ffffff1f;box-shadow:inset 0 0 0 1px #ffffff2e;color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;line-height:1.5;transition:background .15s,transform .15s,box-shadow .15s}
 .connection-badge:hover{background:#ffffff30;transform:translateY(-1px)}
 .connection-badge:focus-visible{outline:2px solid #fff;outline-offset:2px;box-shadow:inset 0 0 0 1px #ffffff55,0 0 0 3px #ffffff25}
@@ -695,12 +694,12 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .empty p{color:var(--secondary-text-color)}
 .loading{padding:36px;color:var(--secondary-text-color)}
 @media(prefers-reduced-motion:reduce){.page *,.page *::before{transition:none!important;animation:none!important}}
-@media(max-width:650px){.page{padding:10px 12px 48px}.mobile-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0}.mobile-actions{flex:1;justify-content:flex-end}.mobile-actions select{flex:1;min-width:0}.mobile-actions .config-yaml{flex:0 0 auto}.hero-banner{height:80px;margin-bottom:8px;border-radius:12px}.summary{margin-bottom:8px;padding:10px 12px;border-radius:13px}.summary-actions{display:none}.summary-info{gap:10px}.summary-info>ha-icon{width:40px;height:40px;border-radius:11px}.toolbar p{display:none}.cards article{align-items:flex-start;padding:12px;gap:9px;min-width:0}.entity-leading{flex-direction:column;gap:4px}.entity-icon{width:38px;height:38px;border-radius:11px}.details span{white-space:normal;overflow-wrap:anywhere}.details>div{gap:2px}.details span{box-sizing:border-box;margin:1px 2px 1px 0;padding:3px 7px}.entity-side{position:relative;display:flex;flex:0 0 auto;max-width:min(34%,140px);min-width:38px;align-items:flex-end;flex-direction:column;gap:5px}.entity-state{display:block;box-sizing:border-box;max-width:100%;padding:4px 8px}.entity-actions{display:none}.entity-overflow{display:block}.entity-overflow-toggle{width:36px;height:36px}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.entity-section{padding:12px}.entity-section-header{align-items:flex-start}.section-actions{flex-direction:column;align-items:stretch}.section-actions .primary,.section-actions .batch-delete{padding:9px 12px}.section-toggle{min-width:0}.sections-toolbar{align-items:flex-start}.default-address-mode{align-items:stretch;flex-direction:column;gap:7px;margin-bottom:8px;padding:8px 10px}.address-mode-actions{width:100%}.address-mode-actions button{flex:1;min-width:0;min-height:40px}}
-@media(max-width:500px){.mobile-actions .integration-version{display:none}.mobile-actions .config-yaml span,.layout-toggle span{display:none}.layout-toggle{padding:10px 12px}}
+@media(max-width:650px){.page{padding:10px 12px 48px}.mobile-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0}.mobile-actions{flex:1;justify-content:flex-end}.mobile-actions select{flex:1;min-width:0}.mobile-actions .config-yaml{flex:0 0 auto}.hero-banner{height:80px;margin-bottom:8px;border-radius:12px}.project-badge{right:7px;bottom:7px;gap:4px;max-width:calc(100% - 14px);padding:4px 7px;font-size:11px}.project-badge ha-icon{--mdc-icon-size:14px}.summary{margin-bottom:8px;padding:10px 12px;border-radius:13px}.summary-actions{display:none}.summary-info{gap:10px}.summary-info>ha-icon{width:40px;height:40px;border-radius:11px}.toolbar p{display:none}.cards article{align-items:flex-start;padding:12px;gap:9px;min-width:0}.entity-leading{flex-direction:column;gap:4px}.entity-icon{width:38px;height:38px;border-radius:11px}.details span{white-space:normal;overflow-wrap:anywhere}.details>div{gap:2px}.details span{box-sizing:border-box;margin:1px 2px 1px 0;padding:3px 7px}.entity-side{position:relative;display:flex;flex:0 0 auto;max-width:min(34%,140px);min-width:38px;align-items:flex-end;flex-direction:column;gap:5px}.entity-state{display:block;box-sizing:border-box;max-width:100%;padding:4px 8px}.entity-actions{display:none}.entity-overflow{display:block}.entity-overflow-toggle{width:36px;height:36px}.toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.entity-section{padding:12px}.entity-section-header{align-items:flex-start}.section-actions{flex-direction:column;align-items:stretch}.section-actions .primary,.section-actions .batch-delete{padding:9px 12px}.section-toggle{min-width:0}.sections-toolbar{align-items:flex-start}.default-address-mode{align-items:stretch;flex-direction:column;gap:7px;margin-bottom:8px;padding:8px 10px}.address-mode-actions{width:100%}.address-mode-actions button{flex:1;min-width:0;min-height:40px}}
+@media(max-width:500px){.mobile-actions .config-yaml span,.layout-toggle span{display:none}.layout-toggle{padding:10px 12px}}
 @media(min-width:501px) and (max-width:900px){.hero-banner{height:clamp(80px,calc(42.5px + 7.5vw),110px)}.hero-banner img{object-position:center}.toolbar,.sections-toolbar{align-items:stretch;flex-direction:column;gap:8px}.toolbar p{display:block}.toolbar-actions{justify-content:flex-end;flex-wrap:wrap}}
 @media(min-width:901px) and (max-width:1199px){.hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}}
 @media(max-width:480px){.connection-badge-details{display:none}}
-@media(min-width:651px) and (max-width:850px){.summary{padding:12px 14px}.summary-actions{gap:7px}.summary-actions .integration-version{display:none}.summary-actions select{max-width:180px}}`;}
+@media(min-width:651px) and (max-width:850px){.summary{padding:12px 14px}.summary-actions{gap:7px}.summary-actions select{max-width:180px}}`;}
   get dialogStyles(){return `
 .dialog-body{box-sizing:border-box;width:100%;max-height:min(78vh,900px);overflow:auto;padding:0 22px 22px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color)}
 .dialog-body button,.dialog-body input,.dialog-body select,.dialog-body textarea,ha-dialog-footer,ha-button{font-family:inherit}

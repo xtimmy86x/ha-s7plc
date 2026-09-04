@@ -270,7 +270,8 @@
         }
       },
       "datatype_time": "TIME — doba trvání v sekundách",
-      "disabled": "Připojení zakázáno"
+      "disabled": "Připojení zakázáno",
+      "open_project_github": "Otevřít ha-s7plc na GitHubu"
     },
     "sections": {
       "plc_connection": {
