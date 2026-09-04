@@ -44,6 +44,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
+
+      - name: Install frontend test dependencies
+        run: npm ci
+
+      - name: Run panel DOM tests
+        run: npm run test:panel
           
       - name: Run tests
         run: |
