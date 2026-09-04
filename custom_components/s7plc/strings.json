@@ -1202,6 +1202,14 @@
       "apply_manual_all": "Apply Manual to all",
       "mixed_address_mode": "Mixed mode"
     },
+    "search": {
+      "label": "Search entities",
+      "placeholder": "Search entities…",
+      "one_result": "1 result",
+      "many_results": "{count} results",
+      "no_results": "No entities match your search",
+      "clear": "Clear search"
+    },
     "layout": {
       "switch_to_tabs": "Switch to category view",
       "switch_to_sections": "Switch to all-entities view",

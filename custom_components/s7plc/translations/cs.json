@@ -1202,6 +1202,14 @@
       "apply_manual_all": "Použít ruční režim na vše",
       "mixed_address_mode": "Smíšený režim"
     },
+    "search": {
+      "label": "Hledat entity",
+      "placeholder": "Hledat entity…",
+      "one_result": "1 výsledek",
+      "many_results": "{count} výsledků",
+      "no_results": "Žádné entity neodpovídají hledání",
+      "clear": "Vymazat hledání"
+    },
     "layout": {
       "switch_to_tabs": "Přepnout na zobrazení kategorií",
       "switch_to_sections": "Přepnout na zobrazení všech entit",

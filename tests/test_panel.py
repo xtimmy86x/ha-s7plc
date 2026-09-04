@@ -4734,8 +4734,8 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
         "@media(max-width:500px)", 1
     )[0]
 
-    assert "${this.entityCards(entry,type)}" in source
-    assert source.count("${this.entityCards(entry,type)}") == 2
+    assert "${this.entityCards(entry,type,matches)}" in source
+    assert source.count("this.entityCards(entry,type,matches)") == 2
     assert ".entity-actions{display:none}" in mobile
     assert ".entity-overflow{display:block}" in mobile
     assert (

@@ -1202,6 +1202,14 @@
       "apply_manual_all": "Manuell auf alle anwenden",
       "mixed_address_mode": "Gemischter Modus"
     },
+    "search": {
+      "label": "Entitäten suchen",
+      "placeholder": "Entitäten suchen…",
+      "one_result": "1 Ergebnis",
+      "many_results": "{count} Ergebnisse",
+      "no_results": "Keine Entitäten entsprechen der Suche",
+      "clear": "Suche löschen"
+    },
     "layout": {
       "switch_to_tabs": "Zur Kategorieansicht wechseln",
       "switch_to_sections": "Zur Ansicht aller Entitäten wechseln",

@@ -1202,6 +1202,14 @@
       "apply_manual_all": "Zastosuj tryb ręczny do wszystkich",
       "mixed_address_mode": "Tryb mieszany"
     },
+    "search": {
+      "label": "Szukaj encji",
+      "placeholder": "Szukaj encji…",
+      "one_result": "1 wynik",
+      "many_results": "{count} wyników",
+      "no_results": "Żadne encje nie pasują do wyszukiwania",
+      "clear": "Wyczyść wyszukiwanie"
+    },
     "layout": {
       "switch_to_tabs": "Przełącz na kategorie",
       "switch_to_sections": "Przełącz na listę",
