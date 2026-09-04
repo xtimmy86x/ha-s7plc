@@ -42,6 +42,7 @@ export function installPanel() {
     observe() {}
     disconnect() {}
   };
+  Element.prototype.scrollIntoView ??= function scrollIntoView() {};
 }
 
 export function getPanelTestHelpers() {
