@@ -1331,6 +1331,10 @@
         "unmapped": "Der PLC-Wert ist nicht zugeordnet."
       },
       "action": "Aktion"
+    },
+    "entity_card": {
+      "hidden_property": "1 weitere Eigenschaft",
+      "hidden_properties": "{count} weitere Eigenschaften"
     }
   },
   "selector": {

@@ -5293,7 +5293,8 @@ console.log(JSON.stringify({
     assert "Tilt · Moltiplicatore × 10" in result["multiple"]
     assert 'title="Posizione: Scala 0–27648 → 0–100"' in result["multiple"]
     assert result["order"].index("Posizione ·") < result["order"].index("Stato cover ·") < result["order"].index("Tilt ·")
-    assert result["bounded"].count("<span") == 5
+    assert result["bounded"].count("<span") == 6
+    assert '>+1</span>' in result["bounded"]
     assert "Unknown Channel" not in result["unexpected"][-1]
     assert "&lt;5&gt;" in result["unexpected"][-1]
     assert "<5>" not in result["unexpected"][-1]
@@ -5332,7 +5333,8 @@ console.log(panel.chips({value_conversions:{value:{type:'multiplier',factor:5}}}
     assert ".details span.conversion-chip:focus-visible" in source
     assert ".details span{white-space:normal;overflow-wrap:anywhere}" in source
     assert ".details div,.toolbar p{display:none}" not in source
-    assert "[...conversions,...metadata].slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
+    assert "const allChips=[...conversions,...metadata]" in source
+    assert "const visible=allChips.slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
@@ -5653,3 +5655,58 @@ behaviorField.classList.toggle('hidden-field',true);panel.syncEmptySections(form
         "restored": True,
         "rows": 2,
     }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_entity_card_chip_overflow_is_exact_localized_and_noninteractive() -> None:
+    """Overflow reports omitted chips without changing ordering or search indexing."""
+    script = r'''
+const vm=require("vm"),fs=require("fs");let Panel,search;
+const document={createElement:()=>{let value="";return {set textContent(next){value=String(next);},get innerHTML(){return value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}}}};
+const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document};
+vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8")+"\nglobalThis.search=ENTITY_SEARCH_TEXT",context);search=context.search;
+const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
+const panel=new Panel();panel.panelTranslations={config_panel:translations};
+const metadata=count=>Object.fromEntries(Array.from({length:count},(_,i)=>[`property_${i+1}`,`hidden-${i+1}`]));
+const conversions=Object.fromEntries(["a","b","c","d","e"].map(channel=>[channel,{type:"expression"}]));
+console.log(JSON.stringify({
+ below:panel.chips(metadata(4),"buttons"),
+ exact:panel.chips(metadata(5),"buttons"),
+ one:panel.chips(metadata(6),"buttons"),
+ many:panel.chips(metadata(8),"buttons"),
+ priority:panel.chips({...metadata(1),value_conversions:conversions},"buttons"),
+ searchable:search(metadata(6)).includes("hidden-6")
+}));
+'''
+    root = Path(__file__).parents[1]
+    panel_path = root / "custom_components/s7plc/www/s7plc-panel.js"
+    for language, singular, plural in (
+        ("en", "1 more property", "3 more properties"),
+        ("it", "1 altra proprietà", "3 altre proprietà"),
+        ("de", "1 weitere Eigenschaft", "3 weitere Eigenschaften"),
+        ("pl", "1 dodatkowa właściwość", "3 dodatkowe właściwości"),
+        ("cs", "1 další vlastnost", "3 další vlastnosti"),
+    ):
+        result = json.loads(subprocess.run(
+            ["node", "-e", script, str(panel_path),
+             str(root / f"custom_components/s7plc/translations/{language}.json")],
+            check=True, capture_output=True, text=True,
+        ).stdout)
+        assert "chip-overflow" not in result["below"]
+        assert "chip-overflow" not in result["exact"]
+        assert f'class="chip-overflow" title="{singular}" aria-label="{singular}">+1</span>' in result["one"]
+        assert f'title="{plural}" aria-label="{plural}">+3</span>' in result["many"]
+        assert "button" not in result["one"] and "role=" not in result["one"] and "tabindex=" not in result["one"]
+        assert result["priority"].index("A ·") < result["priority"].index("E ·") < result["priority"].index("+1")
+        assert "Property 1" not in result["priority"]
+        assert result["searchable"] is True
+
+    source = panel_path.read_text(encoding="utf-8")
+    assert ".details span.chip-overflow{background:transparent" in source
+    assert "white-space:nowrap" in source
+    assert ".details>div{display:flex;flex-wrap:wrap;min-width:0}" in source
+    assert "@media(max-width:650px)" in source
+    for filename in ("strings.json", "translations/en.json", "translations/it.json",
+                     "translations/de.json", "translations/pl.json", "translations/cs.json"):
+        card = json.loads((root / "custom_components/s7plc" / filename).read_text(encoding="utf-8"))["config_panel"]["entity_card"]
+        assert card["hidden_property"] and "{count}" in card["hidden_properties"]

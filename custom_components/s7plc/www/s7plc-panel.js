@@ -49,7 +49,7 @@ return Object.fromEntries(Object.entries(grouped).map(([type,indices])=>[type,[.
 const SUPPORTED_LANGUAGES = new Set(["en", "it", "de", "pl", "cs"]);
 const ENGLISH_EMERGENCY_FALLBACK = {
 common:{loading:"Loading configuration…",no_plc:"No PLC configured",title:"S7 PLC configuration",entities:"entities",entity:"Entity",connected:"Connected",disconnected:"Disconnected",unknown:"Unknown",required:"Required",open_project_github:"Open ha-s7plc on GitHub"},
-actions:{add:"Add",edit:"Edit",duplicate:"Duplicate entity",delete:"Delete",cancel:"Cancel",save:"Save changes",close:"Close",select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},errors:{required_error:"Fill in all required fields."},connection_details:{title:"Connection details"},search:{label:"Search entities",placeholder:"Search entities…",one_result:"1 result",many_results:"{count} results",no_results:"No entities match your search",clear:"Clear search"},editor:{configuration_yaml:"Advanced YAML",default_address_mode:"Default address editor mode",default_address_mode_description:"Applied to address fields without an individual preference.",use_guided:"Use the guided builder when possible",use_manual:"Use manual mode",set_all_addresses:"Set all addresses",apply_guided_all:"Apply Guided to all",apply_manual_all:"Apply Manual to all"}
+actions:{add:"Add",edit:"Edit",duplicate:"Duplicate entity",delete:"Delete",cancel:"Cancel",save:"Save changes",close:"Close",select_entity:"Select entity",delete_selected:"Delete selected",delete_selected_confirm:"Delete {count} selected entities?"},errors:{required_error:"Fill in all required fields."},connection_details:{title:"Connection details"},search:{label:"Search entities",placeholder:"Search entities…",one_result:"1 result",many_results:"{count} results",no_results:"No entities match your search",clear:"Clear search"},entity_card:{hidden_property:"1 more property",hidden_properties:"{count} more properties"},editor:{configuration_yaml:"Advanced YAML",default_address_mode:"Default address editor mode",default_address_mode_description:"Applied to address fields without an individual preference.",use_guided:"Use the guided builder when possible",use_manual:"Use manual mode",set_all_addresses:"Set all addresses",apply_guided_all:"Apply Guided to all",apply_manual_all:"Apply Manual to all"}
 };
 const DUPLICATE_ENTITY_TEMPLATE = source => {
 const copy=typeof structuredClone==="function"?structuredClone(source):JSON.parse(JSON.stringify(source));
@@ -410,11 +410,17 @@ class S7PlcConfigurationPanel extends HTMLElement {
     if(typeof value==='object')continue;
     metadata.push({label:this.fieldText(type,k,'label'),value:value===true?null:(k==='device_class'||k==='state_class')?pretty(value):String(value),flag:value===true});
   }
-  return [...conversions,...metadata].slice(0,ENTITY_CARD_CHIP_LIMIT).map(chip=>chip.summary!=null
+  const allChips=[...conversions,...metadata];
+  const visible=allChips.slice(0,ENTITY_CARD_CHIP_LIMIT);
+  const hiddenCount=allChips.length-visible.length;
+  const markup=visible.map(chip=>chip.summary!=null
     ?`<span class="conversion-chip" title="${this.escape(chip.multiple?`${chip.label}: ${chip.summary}`:chip.summary)}" tabindex="0">${this.escape(chip.multiple?`${chip.label} · ${chip.summary}`:chip.summary)}</span>`
     :chip.flag
     ?`<span class="chip-flag">✓ ${this.escape(chip.label)}</span>`
     :`<span>${this.escape(chip.label)}: ${this.escape(chip.value)}</span>`).join('');
+  if(!hiddenCount)return markup;
+  const hiddenLabel=(hiddenCount===1?this.t('entity_card.hidden_property'):this.t('entity_card.hidden_properties')).replace('{count}',hiddenCount);
+  return `${markup}<span class="chip-overflow" title="${this.escape(hiddenLabel)}" aria-label="${this.escape(hiddenLabel)}">+${hiddenCount}</span>`;
   }
   stateText(entityId){const state=this._hass?.states?.[entityId];if(!state)return '—';const unit=state.attributes?.unit_of_measurement;return unit?`${state.state} ${unit}`:state.state;}
   updateStates(){this.querySelectorAll('.state-badge[data-entity-id]').forEach(el=>{const text=this.stateText(el.dataset.entityId);if(el.textContent!==text)el.textContent=text;});}
@@ -702,6 +708,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .details>div{display:flex;flex-wrap:wrap;min-width:0}.details span{font-size:11px;background:var(--secondary-background-color);padding:4px 9px;border-radius:99px;margin:2px 4px 2px 0;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details span.conversion-chip{box-sizing:border-box;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35}
 .details span.conversion-chip:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
+.details span.chip-overflow{background:transparent;box-shadow:inset 0 0 0 1px var(--divider-color);color:var(--secondary-text-color);font-weight:600;white-space:nowrap}
 .details span.chip-flag{background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color);font-weight:600}
 .state-badge{flex:0 0 auto;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;background:color-mix(in srgb,var(--primary-color) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary-color) 18%,transparent);color:var(--primary-color);white-space:nowrap;font-variant-numeric:tabular-nums;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .entity-side{display:contents}.entity-actions{display:flex;align-items:center;gap:12px}.cards article.overflow-open,.cards article.overflow-open:hover{z-index:100}.entity-overflow{display:none;position:relative}.entity-overflow-menu{position:absolute;z-index:101;top:calc(100% + 4px);right:0;box-sizing:border-box;min-width:148px;padding:5px;border:1px solid var(--divider-color);border-radius:10px;background:var(--card-background-color);box-shadow:0 8px 24px #0003}.entity-overflow-menu[hidden]{display:none}.entity-menu-item{display:flex;width:100%;align-items:center;gap:9px;padding:9px 11px;background:transparent;text-align:left}.entity-menu-item:hover,.entity-menu-item:focus-visible{background:var(--secondary-background-color)}.entity-menu-item ha-icon{--mdc-icon-size:18px}.entity-menu-item.danger{border-top:1px solid var(--divider-color);border-radius:0 0 7px 7px;margin-top:4px;padding-top:10px}

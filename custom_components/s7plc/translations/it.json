@@ -1331,6 +1331,10 @@
         "unmapped": "Il valore PLC non è mappato."
       },
       "action": "Azione"
+    },
+    "entity_card": {
+      "hidden_property": "1 altra proprietà",
+      "hidden_properties": "{count} altre proprietà"
     }
   },
   "selector": {

@@ -1331,6 +1331,10 @@
         "unmapped": "Hodnota PLC není namapována."
       },
       "action": "Akce"
+    },
+    "entity_card": {
+      "hidden_property": "1 další vlastnost",
+      "hidden_properties": "{count} další vlastnosti"
     }
   },
   "selector": {
