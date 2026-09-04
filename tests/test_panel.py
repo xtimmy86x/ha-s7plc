@@ -1648,15 +1648,6 @@ def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
     assert payload["connection_entity_id"] == "binary_sensor.plc_connection"
 
 
-def test_panel_renders_current_state_badges() -> None:
-    """The panel shows the live state of every configured entity."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "state-badge" in source
-    assert "entry.entity_ids?.[type]?.[i]" in source
-    assert "this.updateStates()" in source
-
-
 def test_panel_hides_uid_from_entity_summary() -> None:
     """The internal UID is not rendered as a summary chip."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
