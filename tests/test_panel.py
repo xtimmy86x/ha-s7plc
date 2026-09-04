@@ -4974,8 +4974,21 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     assert ".address-mode-actions button{flex:1;min-width:0;min-height:40px}" in mobile_styles
     assert ".hero-banner{height:clamp(80px,calc(42.5px + 7.5vw),110px)" in intermediate_styles
     assert ".toolbar,.sections-toolbar{align-items:stretch;flex-direction:column;gap:8px}" in intermediate_styles
+    assert (
+        ".category-heading,.sections-toolbar>div:first-child,.entity-search{"
+        "flex:0 0 auto;width:100%;max-width:none;min-width:0}"
+        in intermediate_styles
+    )
     assert ".toolbar p{display:block}" in intermediate_styles
-    assert ".toolbar-actions{justify-content:flex-end;flex-wrap:wrap}" in intermediate_styles
+    assert (
+        ".toolbar-actions{align-self:flex-end;justify-content:flex-end;flex-wrap:wrap}"
+        in intermediate_styles
+    )
+    assert "flex:1 1 220px" not in intermediate_styles
+    assert "flex:1 1 250px" not in intermediate_styles
+    assert ".category-heading{flex:1 1 220px}" in page_styles
+    assert ".entity-search{display:flex;flex:1 1 250px;max-width:360px;min-width:190px" in page_styles
+    assert ".entity-search{order:3;flex:1 0 100%;width:100%;max-width:none;min-width:0}" in mobile_styles
     assert (
         "@media(min-width:901px) and (max-width:1199px){"
         ".hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}"

@@ -330,9 +330,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
             "last_error_category": getattr(coordinator, "last_error_category", None),
             "last_error_message": getattr(coordinator, "last_error_message", None),
             "polling_interval_seconds": (
-                update_interval.total_seconds()
-                if update_interval is not None
-                else None
+                update_interval.total_seconds() if update_interval is not None else None
             ),
             "configured_entities": sum(
                 len(entry.options.get(key, [])) for key in OPTION_KEYS
