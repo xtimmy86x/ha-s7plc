@@ -257,6 +257,7 @@ describe("entity editor", () => {
     const entity = panel.formEntity(form, entry.entities.covers[0], "covers");
     expect(entity.toggle_mode).toBe(true);
     expect(entity).not.toHaveProperty("close_command_address");
+    expect(entity).not.toHaveProperty("operate_time");
   });
 
   test("rebuilds climate sections when switching from setpoint to direct control", () => {
