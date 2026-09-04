@@ -763,7 +763,7 @@ global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
 const rows=e=>Object.fromEntries(CONNECTION_DETAIL_SECTIONS(e).map(s=>[s.key,Object.fromEntries(s.rows)]));
 const base={{title:'PLC',plc_family:'s7',pys7_version:'3.1.1',data:{{connection_type:'rack_slot',rack:0,slot:1,pys7_connection_type:'pg',scan_interval:0,operation_timeout:5,optimize_read:false,enable_write_batching:false,max_retries:3,retry_backoff_initial:0.0,retry_backoff_max:2,future_option:42}}}};
 console.log(JSON.stringify({{
- disabled:rows({{...base,data:{{...base.data,enable_metrics:false}},connection_runtime:{{last_cycle_seconds:0,read_count:0,write_count:0,communication_errors:0}}}}),
+ disabled:rows({{...base,data:{{...base.data,enable_metrics:false}},connection_runtime:{{polling_interval_seconds:10,configured_entities:7,last_cycle_seconds:0,read_count:0,write_count:0,communication_errors:0}}}}),
  enabled:rows({{...base,data:{{...base.data,enable_metrics:true}},connection_runtime:{{last_cycle_seconds:0,read_count:0,write_count:0,communication_errors:0}}}}),
  tsap:rows({{...base,data:{{...base.data,connection_type:'tsap',local_tsap:'01.00',remote_tsap:'03.02'}}}})
 }}));
@@ -771,7 +771,7 @@ console.log(JSON.stringify({{
     result=json.loads(subprocess.run(["node","-e",script],check=True,capture_output=True,text=True).stdout)
     disabled=result["disabled"]
     assert list(disabled["connection"]) == ["plc_family","pys7_version","pys7_connection_type","connection_type","rack","slot"]
-    assert disabled["configuration"] == {"scan_interval":0,"operation_timeout":5,"optimize_read":False,"enable_write_batching":False,"enable_metrics":False}
+    assert disabled["configuration"] == {"scan_interval":0,"operation_timeout":5,"optimize_read":False,"enable_write_batching":False,"enable_metrics":False,"polling_interval":10,"configured_entities":7}
     assert disabled["retry"] == {"max_retries":3,"retry_backoff_initial":0,"retry_backoff_max":2}
     assert disabled["other"] == {"future_option":42}
     assert "metrics" not in disabled

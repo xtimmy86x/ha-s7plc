@@ -54,6 +54,7 @@ jobs:
             --cov-fail-under=78.5 \
             --cov-report=term-missing \
             --cov-report=xml
+          node --test tests/test_panel_search.js
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v6

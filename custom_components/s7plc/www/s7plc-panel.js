@@ -1,16 +1,17 @@
 const NORMALIZE_ADDRESS=value=>String(value??'').trim().toUpperCase();
 const TYPES = ["sensors", "binary_sensors", "switches", "covers", "lights", "buttons", "numbers", "selects", "texts", "climates", "entity_sync"];
 const SEARCH_DEBOUNCE_MS = 150;
-const SEARCH_NESTED_FIELDS = new Set(["value_conversion","options","enum_map","mapping","value_map"]);
+const SEARCH_NESTED_FIELDS = new Set(["value_conversions","options","enum_map","mapping","value_map"]);
 const SEARCH_IGNORED_FIELDS = new Set(["uid","unique_id","internal","metadata"]);
 const NORMALIZE_SEARCH_VALUE=value=>String(value??'').trim().toLocaleLowerCase();
 const ENTITY_SEARCH_TEXT=(entity,runtimeValue)=>{
 const values=[];
 const add=value=>{if(value===null||value===undefined||typeof value==='function')return;if(['string','number','boolean'].includes(typeof value)){const normalized=NORMALIZE_SEARCH_VALUE(value);if(normalized)values.push(normalized);}};
+const addNested=value=>{if(Array.isArray(value)){value.forEach(addNested);return;}if(value&&typeof value==='object'){Object.values(value).forEach(addNested);return;}add(value);};
 for(const [key,value] of Object.entries(entity||{})){
 if(SEARCH_IGNORED_FIELDS.has(key)||key.startsWith('_'))continue;
-if(Array.isArray(value)){if(key.includes('address')||SEARCH_NESTED_FIELDS.has(key)||key.includes('value'))value.forEach(add);continue;}
-if(value&&typeof value==='object'){if(SEARCH_NESTED_FIELDS.has(key))Object.values(value).forEach(nested=>{if(nested&&typeof nested==='object')Object.values(nested).forEach(add);else add(nested);});continue;}
+if(Array.isArray(value)){if(key.includes('address')||SEARCH_NESTED_FIELDS.has(key)||key.includes('value'))addNested(value);continue;}
+if(value&&typeof value==='object'){if(SEARCH_NESTED_FIELDS.has(key))addNested(value);continue;}
 add(value);
 }
 add(runtimeValue);
@@ -122,6 +123,8 @@ const data={...(entry?.data||{}),plc_family:entry?.plc_family||entry?.data?.plc_
 const definitions=CONNECTION_CONFIG_GROUPS.map(group=>group.key==="connection"?{...group,fields:[...group.fields,...(mode==="tsap"?["local_tsap","remote_tsap"]:["rack","slot"])]}:group);
 const used=new Set([...CONNECTION_HEADER_FIELDS,...CONNECTION_MODE_FIELDS]);
 const sections=definitions.map(group=>({...group,rows:group.fields.filter(key=>Object.prototype.hasOwnProperty.call(data,key)&&PRESENT_CONNECTION_VALUE(data[key])).map(key=>{used.add(key);return [key,data[key]];})})).filter(group=>group.rows.length);
+const runtimeConfiguration=[["polling_interval",runtime.polling_interval_seconds],["configured_entities",runtime.configured_entities]].filter(([,value])=>PRESENT_CONNECTION_VALUE(value));
+if(runtimeConfiguration.length){const configuration=sections.find(section=>section.key==="configuration");if(configuration)configuration.rows.push(...runtimeConfiguration);else sections.push({key:"configuration",icon:"mdi:tune-variant",rows:runtimeConfiguration});}
 const activity=[["last_connected",runtime.last_update_success_time],["last_disconnected",runtime.last_update_failure_time],["last_error",runtime.last_error_message],["manual_disabled",runtime.connection_enabled===false?true:null]].filter(([,value])=>PRESENT_CONNECTION_VALUE(value));
 if(activity.length)sections.push({key:"activity",icon:"mdi:timeline-clock-outline",rows:activity});
 if(data.enable_metrics===true){const metrics=[["last_cycle",runtime.last_cycle_seconds],["read_count",runtime.read_count],["write_count",runtime.write_count],["communication_errors",runtime.communication_errors]].filter(([,value])=>PRESENT_CONNECTION_VALUE(value));if(metrics.length)sections.push({key:"metrics",icon:"mdi:chart-line",rows:metrics});}
@@ -291,7 +294,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   selectionKey(type,index){return this._viewMode==="sections"?`${type}:${index}`:index;}
   selectedFor(type,index){return this.selectedIndices.has(this.selectionKey(type,index));}
   disconnectedCallback(){clearInterval(this._statusTimer);clearTimeout(this._searchTimer);this._statusTimer=this._searchTimer=null;this.searchQuery='';this.closeEntityOverflow();this.teardownCategoryNavigation();}
-  set hass(value) { const previous=this.language; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadPanelTranslations().then(()=>this.render()); else {this.updateStates();this.updateConnectionDialog();} this.syncMenuButtons(); }
+  set hass(value) { const previous=this.language,searchInput=this.searchQuery?this.querySelector('#entity-search-input'):null,searchFocused=Boolean(searchInput)&&searchInput===document.activeElement,selectionStart=searchFocused?searchInput.selectionStart:null,selectionEnd=searchFocused?searchInput.selectionEnd:null,previousResults=this.searchQuery?this.searchResultsFingerprint():null; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadPanelTranslations().then(()=>this.render()); else {if(this.searchQuery&&previousResults!==this.searchResultsFingerprint()){this.render();if(searchFocused){const next=this.querySelector('#entity-search-input');next?.focus();next?.setSelectionRange(selectionStart,selectionEnd);}}else this.updateStates();this.updateConnectionDialog();} this.syncMenuButtons(); }
   set panel(value) { this._panel = value; if(this._loaded&&this.entries)this.render(); }
   set narrow(value) { this._narrow = value; this.syncMenuButtons(); }
   menuButton(){return '<ha-menu-button></ha-menu-button>';}
@@ -423,6 +426,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   return `${markup}<span class="chip-overflow" title="${this.escape(hiddenLabel)}" aria-label="${this.escape(hiddenLabel)}">+${hiddenCount}</span>`;
   }
   stateText(entityId){const state=this._hass?.states?.[entityId];if(!state)return '—';const unit=state.attributes?.unit_of_measurement;return unit?`${state.state} ${unit}`:state.state;}
+  searchResultsFingerprint(){const entry=this.entries?.find(item=>item.entry_id===this.entryId);if(!entry)return '[]';const types=this._viewMode==="sections"?TYPES:[this.type||TYPES[0]];return JSON.stringify(types.flatMap(type=>this.matchingItems(entry,type).map(({index})=>[type,index])));}
   updateStates(){this.querySelectorAll('.state-badge[data-entity-id]').forEach(el=>{const text=this.stateText(el.dataset.entityId);if(el.textContent!==text)el.textContent=text;});}
   inferred(item,type){const copy={...item};if(type==='covers')Object.assign(copy,COVER_UI_FROM_ENTITY(item));if(type==='climates'){Object.assign(copy,CLIMATE_UI_FROM_ENTITY(item));copy.preset_mode_bidirectional=item.preset_mode_bidirectional===true;}if(type==='switches'||type==='lights'||type==='selects')copy.control_behavior=CONTROL_MODE_FROM_ENTITY(item);if(type==='lights')copy.light_mode=LIGHT_MODE_FROM_ENTITY(item);return copy;}
   fieldText(type,key,part){return this.translation(`config_panel.entity_types.${type}.fields.${key}.${part}`,this.panelTranslations)??this.translation(`config_panel.common.fields.${key}.${part}`,this.panelTranslations)??key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
