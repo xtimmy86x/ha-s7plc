@@ -240,6 +240,9 @@ describe("entity editor", () => {
       address: "DB1,BYTE0",
       command_address: "DB1,BYTE2",
       options_map: { nested: [{ value: 1, label: "One" }] },
+      area: "kitchen",
+      availability_mode: "bit",
+      availability_address: "DB1,X4.0",
     }];
     const panel = createPanel(entry);
 
@@ -249,7 +252,11 @@ describe("entity editor", () => {
     expect(dialog.headerTitle).toBe("Duplicate entity");
     expect(dialog.querySelector("textarea").value).not.toContain("original-uid");
     expect(dialog.querySelector("form").elements.name.value).toBe("Copy me");
+    expect(dialog.querySelector("form").elements.area.value).toBe("kitchen");
+    expect(dialog.querySelector("form").elements.availability_address.value).toBe("DB1,X4.0");
+    dialog.querySelector("form").elements.name.value = "Changed only in draft";
     expect(entry.entities.selects[0].uid).toBe("original-uid");
+    expect(entry.entities.selects[0].name).toBe("Copy me");
     expect(entry.entities.selects[0].options_map.nested[0].label).toBe("One");
   });
 

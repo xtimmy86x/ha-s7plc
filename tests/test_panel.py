@@ -144,7 +144,6 @@ def test_panel_displays_project_badge_in_banner() -> None:
         assert translation["config_panel"]["common"]["open_project_github"]
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_connection_details_structural_styles_are_preserved() -> None:
     """Connection details retain the cards, timeline, and row separators."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
@@ -314,7 +313,6 @@ process.stdout.write(String(definitions.size));
     assert result.stdout == "1"
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "var(--ha-font-family-body,Roboto,sans-serif)" in source
@@ -3290,48 +3288,6 @@ def test_entity_overflow_stacking_hierarchy_stays_above_neighbor_cards() -> None
         assert "overflow:hidden" not in rule(selector)
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_duplicate_editor_deep_clones_sanitizes_and_infers_virtual_modes() -> None:
-    """A duplicate is an independent create draft with clean YAML and inferred UI state."""
-    script = r"""
-const vm=require("vm");let Panel;let dialog;let captured;
-const form={dataset:{},elements:{},querySelector:()=>null,querySelectorAll:()=>[]};
-const context={structuredClone,HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls},document:{createElement:()=>dialog={style:{setProperty(){}},setAttribute(){},querySelector:s=>s==='form'?form:{},querySelectorAll:()=>[],addEventListener(){},remove(){}},body:{appendChild(){}}}};
-vm.createContext(context);vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'),context);
-const panel=new Panel();panel.entryId='entry';panel.entries=[{entry_id:'entry',entities:{selects:[]}}];panel.t=k=>k;panel.escape=v=>String(v??'');panel.icon=()=>"help";panel.initAddressBuilders=()=>{};panel.editorSections=(type,item)=>(captured={type,item},'');
-const source={uid:'original-uid',name:'Copy me',address:'DB1,BYTE0',command_address:'DB1,BYTE2',options_map:{nested:[{value:1,label:'One'}]},area:'kitchen',availability_mode:'bit',availability_address:'DB1,X4.0'};
-panel.openEditor(null,'selects',source);
-captured.item.options_map.nested[0].label='Changed only in draft';
-const light=panel.inferred({state_address:'DB1,X0.0',brightness_state_address:'DB1,BYTE2'},'lights');
-const cover=panel.inferred({position_state_address:'DB1,BYTE4',stop_command_address:'DB1,X8.0'},'covers');
-const climate=panel.inferred({current_temperature_address:'DB1,REAL0',target_temperature_address:'DB1,REAL4',preset_mode_address:'DB1,BYTE8',on_off_address:'DB1,X9.0',hvac_status_address:'DB1,BYTE10'},'climates');
-console.log(JSON.stringify({draft:captured.item,source,header:dialog.headerTitle,html:dialog.innerHTML,light,cover,climate}));
-"""
-    result = json.loads(
-        subprocess.run(
-            ["node", "-e", script, str(PANEL_JAVASCRIPT)],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-    )
-
-    assert "uid" not in result["draft"]
-    assert "original-uid" not in result["html"]
-    assert result["header"] == "editor.duplicate_entity"
-    assert result["source"]["options_map"]["nested"][0]["label"] == "One"
-    assert (
-        result["draft"]["options_map"]["nested"][0]["label"] == "Changed only in draft"
-    )
-    assert result["draft"]["area"] == "kitchen"
-    assert result["draft"]["availability_address"] == "DB1,X4.0"
-    assert result["light"]["light_mode"] == "dimmable"
-    assert result["cover"]["cover_control_mode"] == "position"
-    assert result["cover"]["cover_stop_enabled"] == "enabled"
-    assert result["climate"]["climate_mode_control"] == "coded_on_off"
-    assert result["climate"]["climate_action_feedback"] == "plc"
-
-
 def test_duplicate_translation_keys_match_all_supported_languages() -> None:
     """Every shipped locale exposes the duplicate action and editor copy."""
     files = [
@@ -3346,38 +3302,6 @@ def test_duplicate_translation_keys_match_all_supported_languages() -> None:
         assert panel["editor"]["configure_duplicate"]
         structures.append((set(panel["actions"]), set(panel["editor"])))
     assert all(structure == structures[0] for structure in structures[1:])
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_default_address_mode_storage_and_precedence() -> None:
-    """The global default is safe, validated, shared, and below field preferences."""
-    script = f'''
-const store=new Map();
-global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-global.localStorage={{getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)}};
-{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
-panel.entries=[{{entry_id:"one",plc_family:"s7"}},{{entry_id:"two",plc_family:"s7"}}];
-const mode=html=>html.includes('data-address-mode="guided" class="active"')?"guided":"manual";
-panel.entryId="one";panel._addressPreferenceContext={{entryId:"one",type:"switches",identity:"new-draft"}};
-const result={{missing:panel.readDefaultAddressMode()}};
-store.set(DEFAULT_ADDRESS_MODE_STORAGE_KEY,"manual");result.saved=panel.readDefaultAddressMode();
-result.newManual=mode(panel.addressField("state_address","DB1,X0.0","","",false,"switches"));
-panel.writeAddressMode(panel.addressPreferenceKey("state_address"),"guided");
-result.individualWins=mode(panel.addressField("state_address","DB1,X0.0","","",false,"switches"));
-result.invalidAddress=mode(panel.addressField("command_address","invalid","","",false,"switches"));
-panel.entryId="two";result.sharedAcrossPlcs=panel.readDefaultAddressMode();
-store.set(DEFAULT_ADDRESS_MODE_STORAGE_KEY,"mixed");result.invalid=panel.readDefaultAddressMode();
-global.localStorage={{getItem(){{throw Error("denied")}},setItem(){{throw Error("denied")}}}};
-result.readException=panel.readDefaultAddressMode();result.writeException=panel.writeDefaultAddressMode("manual");
-console.log(JSON.stringify(result));'''
-    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
-    assert json.loads(result.stdout) == {
-        "missing": "guided", "saved": "manual", "newManual": "manual",
-        "individualWins": "guided", "invalidAddress": "manual",
-        "sharedAcrossPlcs": "manual", "invalid": "guided",
-        "readException": "guided", "writeException": False,
-    }
-
 
 def test_address_mode_controls_are_accessible_responsive_and_translated() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")

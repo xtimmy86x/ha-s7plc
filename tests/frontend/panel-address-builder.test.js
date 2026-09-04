@@ -23,6 +23,54 @@ const setPart = (builder, name, value) => {
 };
 
 describe("S7 address builder", () => {
+  test("persists the global default and lets a field preference override it", () => {
+    const entry = createEntry();
+    entry.entities.sensors[0].uid = "boiler-temperature";
+    const second = createEntry({ entry_id: "second-plc", title: "CPU1511" });
+    const panel = createPanel(entry);
+    panel.entries = [entry, second];
+    panel.render();
+    const manualDefault = panel.querySelector('[data-default-address-mode="manual"]');
+
+    expect(panel.querySelector('[data-default-address-mode="guided"]').getAttribute("aria-pressed")).toBe("true");
+    manualDefault.click();
+    expect(localStorage.getItem("s7plc-panel-default-address-mode-v1")).toBe("manual");
+    expect(manualDefault.getAttribute("aria-pressed")).toBe("true");
+
+    panel.openEditor(0, "sensors");
+    let builder = dialogForm().querySelector('[data-field="address"]');
+    expect(builder.querySelector('[data-address-mode="manual"]').classList.contains("active")).toBe(true);
+    builder.querySelector('[data-address-mode="guided"]').click();
+    expect(builder.querySelector('[data-address-mode="guided"]').classList.contains("active")).toBe(true);
+
+    document.body.querySelector("ha-dialog").remove();
+    panel.openEditor(0, "sensors");
+    builder = dialogForm().querySelector('[data-field="address"]');
+    expect(builder.querySelector('[data-address-mode="guided"]').classList.contains("active")).toBe(true);
+
+    document.body.querySelector("ha-dialog").remove();
+    panel.entryId = "second-plc";
+    panel.render();
+    expect(panel.querySelector('[data-default-address-mode="manual"]').getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("falls back safely for invalid defaults and unavailable storage", () => {
+    const panel = createPanel();
+    localStorage.setItem("s7plc-panel-default-address-mode-v1", "mixed");
+    expect(panel.readDefaultAddressMode()).toBe("guided");
+
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    expect(panel.readDefaultAddressMode()).toBe("guided");
+    getItem.mockRestore();
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    expect(panel.writeDefaultAddressMode("manual")).toBe(false);
+    expect(panel.writeDefaultAddressMode("mixed")).toBe(false);
+  });
+
   test("builds a canonical address and updates dependent controls", () => {
     const panel = createPanel();
     panel.openEditor(0, "sensors");
