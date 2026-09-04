@@ -82,6 +82,8 @@ describe("advanced Cover and Climate editors", () => {
     expect(isHidden(form, "cover-position-feedback")).toBe(false);
     expect(form.querySelector('input[name="cover_movement_feedback"][value="bits"]')
       .closest(".control-card").classList.contains("hidden-field")).toBe(false);
+    choose(form, "cover_position_feedback", "both");
+    choose(form, "cover_movement_feedback", "bits");
     choose(form, "cover_stop_enabled", "enabled");
     choose(form, "cover_tilt_enabled", "enabled");
     expect(isHidden(form, "stop_command_address")).toBe(false);
@@ -90,6 +92,12 @@ describe("advanced Cover and Climate editors", () => {
     setAddress(form, "stop_command_address", "DB1,X24.0");
     setAddress(form, "tilt_state_address", "DB1,BYTE26");
     setAddress(form, "tilt_command_address", "DB1,BYTE28");
+    setAddress(form, "opening_state_address", "DB1,X30.0");
+    expect(() => panel.formEntity(form, entry.entities.covers[0], "covers"))
+      .toThrow("Closed-end-stop feedback requires the fully-closed address.");
+    setAddress(form, "closing_state_address", "DB1,X30.1");
+    setAddress(form, "cover_opening_address", "DB1,X32.0");
+    setAddress(form, "cover_closing_address", "DB1,X32.1");
     form.elements.stop_pulse_duration.value = "0.5";
     form.elements.invert_tilt.checked = true;
     const entity = panel.formEntity(form, entry.entities.covers[0], "covers");
@@ -102,6 +110,10 @@ describe("advanced Cover and Climate editors", () => {
       tilt_state_address: "DB1,BYTE26",
       tilt_command_address: "DB1,BYTE28",
       invert_tilt: true,
+      opening_state_address: "DB1,X30.0",
+      closing_state_address: "DB1,X30.1",
+      cover_opening_address: "DB1,X32.0",
+      cover_closing_address: "DB1,X32.1",
     });
     expect(entity).not.toHaveProperty("open_command_address");
     expect(entity).not.toHaveProperty("close_command_address");
@@ -120,11 +132,18 @@ describe("advanced Cover and Climate editors", () => {
     const form = currentForm();
 
     choose(form, "climate_mode_control", "coded");
-    choose(form, "climate_action_feedback", "plc");
     expect(isHidden(form, "climate-mode-feedback")).toBe(false);
     expect(isHidden(form, "preset_mode_address")).toBe(false);
-    expect(isHidden(form, "hvac_status_address")).toBe(false);
+    const history = form.querySelector(
+      'input[name="preset_mode_bidirectional"][value="false"]',
+    ).closest(".control-card");
+    expect(history.querySelector("ha-icon").getAttribute("icon")).toBe("mdi:history");
+    choose(form, "preset_mode_bidirectional", "true");
     setAddress(form, "preset_mode_address", "DB1,BYTE38");
+    choose(form, "climate_action_feedback", "plc");
+    expect(isHidden(form, "hvac_status_address")).toBe(false);
+    expect(() => panel.formEntity(form, entry.entities.climates[0], "climates"))
+      .toThrow("Enter the PLC operating-status address.");
     setAddress(form, "hvac_status_address", "DB1,BYTE40");
     form.elements.preset_mode_heat_value.value = "11";
     form.elements.preset_mode_cool_value.value = "12";
@@ -135,6 +154,7 @@ describe("advanced Cover and Climate editors", () => {
     expect(entity).toMatchObject({
       control_mode: "setpoint",
       preset_mode_address: "DB1,BYTE38",
+      preset_mode_bidirectional: true,
       hvac_status_address: "DB1,BYTE40",
       preset_mode_heat_value: 11,
       preset_mode_cool_value: 12,
