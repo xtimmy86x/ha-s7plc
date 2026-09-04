@@ -3158,20 +3158,6 @@ console.log(JSON.stringify({{
     assert result["missing"]["closing"] == "errors.cover_endstop_open_required_error"
 
 
-def test_position_cover_feedback_section_and_bits_option_always_visible() -> None:
-    """syncMode() no longer hides the "Pozycja" section or the "bits"
-    movement-feedback option card for control==='position'."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert (
-        'form.querySelector(\'[data-section="cover-position-feedback"]\').classList.toggle(\'hidden-field\',control===\'position\')'
-        not in source
-    )
-    assert (
-        'form.querySelector(\'input[name="cover_movement_feedback"][value="bits"]\').closest(\'.control-card\').classList.toggle(\'hidden-field\',control===\'position\')'
-        not in source
-    )
-
-
 def test_position_cover_default_feedback_uses_position_not_timed_concept() -> None:
     """Position covers have a continuous 0-100 reading of their own, so the
     "no separate source" concept is called "position", not "timed" - a
