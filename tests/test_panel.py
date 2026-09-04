@@ -725,6 +725,30 @@ def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
     assert ".connection-head-text code{font-family:ui-monospace" in source
 
 
+def test_connection_boolean_values_do_not_wrap() -> None:
+    """Only boolean detail values receive the non-wrapping class."""
+    if shutil.which("node") is None:
+        pytest.skip("node is required to evaluate the panel helpers")
+    script = f"""
+global.HTMLElement = class {{}}; global.customElements = {{get() {{}}, define() {{}}}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();
+panel.panelTranslations={{config_panel:{{connection_details:{{values:{{yes:"Sì"}}}}}}}};
+panel.escape=value=>String(value);
+CONNECTION_DETAIL_TECHNICAL_FIELDS.add("optimize_read");
+console.log(panel.connectionDetailGroupsMarkup({{data:{{optimize_read:true,enable_write_batching:false,future_option:"a long value"}}}}));
+"""
+    markup = subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout
+    assert '<dd class="technical-value boolean-value">Sì</dd>' in markup
+    assert '<dd class="boolean-value">false</dd>' in markup
+    assert "<dd>a long value</dd>" in markup
+
+    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
+    assert ".connection-detail dd.boolean-value{flex:0 0 auto;min-width:max-content;white-space:nowrap;word-break:normal;overflow-wrap:normal}" in source
+
+
 def test_connection_values_preserve_dotted_versions() -> None:
     """Literal versions must not be reduced to their final dotted segment."""
     if shutil.which("node") is None:
