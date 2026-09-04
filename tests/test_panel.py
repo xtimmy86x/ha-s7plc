@@ -27,8 +27,8 @@ PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
 
 
-def test_panel_action_controls_share_explicit_height_without_global_select_normalization() -> None:
-    """Desktop and mobile PLC controls align without changing editor selects."""
+def test_panel_action_controls_share_height_and_normalize_only_plc_selects() -> None:
+    """PLC controls align and use a scoped CSS arrow without changing other selects."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
 
@@ -40,13 +40,21 @@ def test_panel_action_controls_share_explicit_height_without_global_select_norma
     )
     selector_normalization_rule = (
         ".mobile-actions select,\n"
-        ".summary-actions select{padding-top:0;padding-bottom:0;line-height:normal}"
+        ".summary-actions select{-webkit-appearance:none;-moz-appearance:none;"
+        "appearance:none;padding:0 34px 0 13px;line-height:normal;"
+        "background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),"
+        "linear-gradient(135deg,currentColor 50%,transparent 50%);"
+        "background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;"
+        "background-size:5px 5px,5px 5px;background-repeat:no-repeat}"
     )
 
     assert action_size_rule in styles
     assert selector_normalization_rule in styles
-    assert styles.count("padding-top:0") == 1
-    assert styles.count("padding-bottom:0") == 1
+    assert styles.count("-webkit-appearance:none") == 1
+    assert styles.count("-moz-appearance:none") == 1
+    assert selector_normalization_rule.count("currentColor 50%") == 2
+    assert not re.search(r"(?:^|})select\{[^}]*appearance:none", styles)
+    assert ".summary-actions select:hover{background-color:#ffffff26;" in styles
     assert styles.count("line-height:normal") == 1
     assert ".mobile-actions,.summary-actions{display:flex;align-items:center" in styles
     assert ".config-yaml{display:flex;align-items:center" in styles

@@ -592,8 +592,6 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .mobile-actions select,
 .summary-actions .config-yaml,
 .summary-actions select{box-sizing:border-box;height:38px;min-height:38px}
-.mobile-actions select,
-.summary-actions select{padding-top:0;padding-bottom:0;line-height:normal}
 .integration-version{color:var(--secondary-text-color);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding:5px 11px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .config-yaml{display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid var(--divider-color)}.config-yaml ha-icon{--mdc-icon-size:18px}
 .menubar{padding:8px 4px}
@@ -617,10 +615,12 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .summary-actions .config-yaml,
 .summary-actions select,
 .summary-actions .integration-version{color:#fff;background:#ffffff18;border-color:#ffffff30;box-shadow:none}
-.summary-actions .config-yaml:hover,
-.summary-actions select:hover{background:#ffffff26;border-color:#ffffff45}
+.summary-actions .config-yaml:hover{background:#ffffff26;border-color:#ffffff45}
+.summary-actions select:hover{background-color:#ffffff26;border-color:#ffffff45}
 .summary-actions .config-yaml:focus-visible,
 .summary-actions select:focus{border-color:#ffffff70;box-shadow:0 0 0 3px #ffffff20}
+.mobile-actions select,
+.summary-actions select{-webkit-appearance:none;-moz-appearance:none;appearance:none;padding:0 34px 0 13px;line-height:normal;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .summary-actions select{min-width:120px;max-width:230px}
 .summary-actions select option{color:var(--primary-text-color);background:var(--card-background-color)}
 .summary-actions .integration-version{opacity:1}
