@@ -44,6 +44,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
+
+      - name: Install frontend test dependencies
+        run: npm ci
+
+      - name: Run panel DOM tests
+        run: npm run test:panel
           
       - name: Run tests
         run: |
@@ -54,8 +61,6 @@ jobs:
             --cov-fail-under=78.5 \
             --cov-report=term-missing \
             --cov-report=xml
-          node --test tests/test_panel_search.js
-
       - name: Upload coverage report
         uses: actions/upload-artifact@v6
         if: always()

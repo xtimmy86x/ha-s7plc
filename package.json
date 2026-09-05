@@ -1,0 +1,11 @@
+{
+  "name": "ha-s7plc-panel-tests",
+  "private": true,
+  "scripts": {
+    "test:panel": "vitest run tests/frontend"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
+  }
+}
