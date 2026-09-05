@@ -35,11 +35,18 @@ const entityTypes = [
 export function installPanel() {
   if (!customElements.get("s7plc-configuration-panel")) {
     window.eval(`${panelSource}\nwindow.__s7plcPanelTestHelpers = {
+      ADDRESS_FIELD_VISIBILITY,
+      ADDRESS_TYPES_FOR_FIELD,
       BUILD_CONNECTION_AVAILABILITY,
       APPLY_LIVE_CONNECTION_DURATION,
       LIVE_CONNECTION_STATUS,
       ENTITY_SEARCH_TEXT,
       FILTER_ENTITY_ITEMS,
+      LOGO_ADDRESS_CANDIDATE,
+      LOGO_TO_S7,
+      PARSE_S7_ADDRESS,
+      S7_TO_LOGO,
+      SERIALIZE_S7_ADDRESS,
     };`);
   }
   globalThis.ResizeObserver ??= class {

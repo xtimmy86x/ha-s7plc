@@ -178,6 +178,62 @@ describe("S7 address builder", () => {
 });
 
 describe("LOGO address builder", () => {
+  test("selects the matching VM area and exposes bit controls only for V", () => {
+    const profile = {
+      family: "logo_0ba8",
+      vm_last_byte: 850,
+      areas: [],
+      vm_areas: [
+        { name: "V", first: 0, last: 850, data_type: "X", width: 1, bit_min: 0, bit_max: 7 },
+        { name: "VB", first: 0, last: 850, data_type: "BYTE", width: 1 },
+        { name: "VW", first: 0, last: 849, data_type: "WORD", width: 2 },
+        { name: "VD", first: 0, last: 847, data_type: "DWORD", width: 4 },
+      ],
+    };
+    const cases = [
+      ["DB1,BYTE10", "VB", true],
+      ["DB1,WORD20", "VW", true],
+      ["DB1,DWORD30", "VD", true],
+      ["DB1,X10.3", "V", false],
+    ];
+
+    for (const [address, area, bitHidden] of cases) {
+      document.body.replaceChildren();
+      const entry = createEntry({ plc_family: "logo_0ba8", data: { plc_family: "logo_0ba8" }, logo_profile: profile });
+      entry.entities.entity_sync = [{ name: area, source_entity: "input_number.test", address }];
+      const panel = createPanel(entry);
+      panel.openEditor(0, "entity_sync");
+      const builder = dialogForm().querySelector('[data-field="address"]');
+
+      expect(builder.querySelector("[data-logo-area]").value).toBe(area);
+      expect(builder.querySelector("[data-logo-number-text]").textContent).toBe("VM offset");
+      expect(builder.querySelector("[data-logo-bit]").hidden).toBe(bitHidden);
+      expect(builder.querySelector('input[type="hidden"]').value).toBe(address);
+    }
+  });
+
+  test("keeps LOGO text addresses in manual mode", () => {
+    const entry = createEntry({
+      plc_family: "logo_0ba8",
+      data: { plc_family: "logo_0ba8" },
+      logo_profile: {
+        family: "logo_0ba8",
+        areas: [{ name: "I", first: 1, last: 24, vm_offset: 1024, data_type: "X" }],
+        vm_areas: [],
+      },
+    });
+    entry.entities.texts = [{ name: "Message", address: "DB1,S0.20" }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "texts");
+    const builder = dialogForm().querySelector('[data-field="address"]');
+
+    expect(builder.querySelector('[data-address-mode="guided"]').disabled).toBe(true);
+    expect(builder.querySelector('[data-address-mode="manual"]').classList.contains("active")).toBe(true);
+    expect(builder.querySelector(".address-guided").hidden).toBe(true);
+    expect(builder.querySelector("[data-address-manual]").value).toBe("DB1,S0.20");
+    expect(builder.querySelector('input[type="hidden"]').value).toBe("DB1,S0.20");
+  });
+
   test("converts a native LOGO input into its canonical S7 address", () => {
     const entry = createEntry({
       plc_family: "logo_0ba8",

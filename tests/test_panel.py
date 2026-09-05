@@ -2760,92 +2760,11 @@ def test_panel_layout_translations_are_available_in_every_language() -> None:
         assert required <= translations["config_panel"]["layout"].keys(), path
         assert all(translations["config_panel"]["layout"][key] for key in required)
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_guided_address_grammar_round_trips_every_supported_type() -> None:
-    """The browser grammar mirrors current pyS7 tokens and canonical forms."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    cases = [
-        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
-        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
-        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
-        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MD72",
-    ]
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}\nconsole.log(JSON.stringify(process.argv.slice(1).map(value=>{{const parsed=PARSE_S7_ADDRESS(value);return [parsed.error,SERIALIZE_S7_ADDRESS(parsed)];}})));'''
-    result = json.loads(subprocess.run(["node", "-e", script, *cases], check=True, capture_output=True, text=True).stdout)
-    assert all(not error for error, _ in result)
-    # Aliases intentionally serialize to the builder's stable short-token spelling.
-    assert [value for _, value in result] == [
-        "DB1,X10.3", "I3.0", "Q2.6", "M7.1", "DB36,B2", "DB1,USINT2",
-        "DB1,SINT2", "DB102,C4", "DB17,W4", "DB10,I3", "DB51,DW6",
-        "DB103,DI3", "DB21,R14", "DB21,LR14", "DB1,TIME4",
-        "DB102,S10.15", "DB2,WS0.128", "IB10", "QW8", "MDW72",
-    ]
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_guided_address_validation_and_field_restrictions() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}\nconsole.log(JSON.stringify({{
-      badBit:PARSE_S7_ADDRESS("DB1,X0.8").error,
-      missingLength:PARSE_S7_ADDRESS("DB1,S0").error,
-      timeArea:PARSE_S7_ADDRESS("MTIME0").error,
-      malformed:PARSE_S7_ADDRESS("DB1,").error,
-      empty:PARSE_S7_ADDRESS("").empty,
-      boolean:ADDRESS_TYPES_FOR_FIELD("binary_sensors","address"),
-      text:ADDRESS_TYPES_FOR_FIELD("texts","address"),
-      select:ADDRESS_TYPES_FOR_FIELD("selects","address"),
-      optional:SERIALIZE_S7_ADDRESS({{empty:true}})
-    }}));'''
-    value = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
-    assert value == {"badBit":"invalid", "missingLength":"incomplete", "timeArea":"unsupported", "malformed":"invalid", "empty":True, "boolean":["BIT"], "text":["STRING","WSTRING"], "select":["BYTE","USINT","SINT","WORD","INT","DWORD","DINT","TIME"], "optional":""}
-
-
 def test_all_visual_plc_addresses_use_reusable_builder() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     assert "if(address&&key!=='source_entity')return this.addressField" in source
     assert "this.initAddressBuilders(form,type)" in source
     assert 'name="${key}" value="${this.escape(value)}"' in source
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_address_builder_serialization_and_visibility_behaviour() -> None:
-    """Structured address helpers distinguish missing values and expose fields."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = r'''
-const vm = require("vm");
-const context = {HTMLElement: class {}, customElements: {define() {}}};
-vm.createContext(context);
-vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8') + `
-const values = {
-  visibility: [
-    ADDRESS_FIELD_VISIBILITY("DB", "BIT"),
-    ADDRESS_FIELD_VISIBILITY("I", "STRING"),
-    ADDRESS_FIELD_VISIBILITY("Q", "WSTRING"),
-    ADDRESS_FIELD_VISIBILITY("M", "INT"),
-  ],
-  emptyDb: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"",dataType:"INT",offset:"0"}),
-  emptyOffset: SERIALIZE_S7_ADDRESS({area:"M",dataType:"INT",offset:""}),
-  emptyBit: SERIALIZE_S7_ADDRESS({area:"M",dataType:"BIT",offset:"0",bit:""}),
-  emptyLength: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"1",dataType:"STRING",offset:"0",length:""}),
-  zeros: SERIALIZE_S7_ADDRESS({area:"DB",dbNumber:"0",dataType:"BIT",offset:"0",bit:"0"}),
-};
-globalThis.result = JSON.stringify(values);`, context);
-process.stdout.write(context.result);
-'''
-    result = json.loads(subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT)], check=True, capture_output=True, text=True
-    ).stdout)
-    assert result["visibility"] == [
-        {"dbNumber": True, "bit": True, "length": False},
-        {"dbNumber": False, "bit": False, "length": True},
-        {"dbNumber": False, "bit": False, "length": True},
-        {"dbNumber": False, "bit": False, "length": False},
-    ]
-    assert result["emptyDb"] == {"error": "incomplete"}
-    assert result["emptyOffset"] == {"error": "incomplete"}
-    assert result["emptyBit"] == {"error": "incomplete"}
-    assert result["emptyLength"] == {"error": "incomplete"}
-    assert result["zeros"] == "DB0,X0.0"
-
 
 def test_address_builder_focus_style_only_indicates_real_errors() -> None:
     """Focusing a builder only shows an error outline for explicit errors."""
@@ -2893,42 +2812,6 @@ def test_italian_address_builder_is_translated() -> None:
     }
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_logo_builder_profiles_preview_reverse_hidden_and_s7_fallback() -> None:
-    """Every selected entry chooses its profile while S7 markup stays unchanged."""
-    script = f'''
-global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-{PANEL_LOADER}
-const profile=(family,start,last)=>({{family,areas:[{{name:"I",first:1,last,vm_offset:start,data_type:"X"}}]}});
-const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;
-panel.entries=[
- {{entry_id:"s7",plc_family:"s7"}},
- {{entry_id:"a7",plc_family:"logo_0ba7",logo_profile:profile("logo_0ba7",923,24)}},
- {{entry_id:"a8",plc_family:"logo_0ba8",logo_profile:profile("logo_0ba8",1024,24)}},
- {{entry_id:"nine",plc_family:"logo_9",logo_profile:profile("logo_9",6024,64)}}];
-const html=id=>{{panel.entryId=id;return panel.addressField("address",id==="nine"?"DB1,X6024.0":"DB1,X1024.0","Address","",true,"sensors");}};
-const p9=panel.entries[3].logo_profile;
-console.log(JSON.stringify({{
- s7:!html("s7").includes("data-logo-builder"),a7:html("a7").includes("data-logo-builder"),
- a8:html("a8").includes("data-logo-builder"),nine:html("nine").includes("data-logo-builder"),
- forward:LOGO_TO_S7(p9,"I1"),reverse:S7_TO_LOGO(p9,"DB1,X6024.0"),
- out:LOGO_TO_S7(p9,"I65"),reserved:S7_TO_LOGO(p9,"DB1,X6032.0"),
- markup:html("nine")
-}}));'''
-    value = json.loads(subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout)
-    assert value["s7"] and value["a7"] and value["a8"] and value["nine"]
-    assert value["forward"]["canonical"] == "DB1,X6024.0"
-    assert value["reverse"]["symbol"] == "I1"
-    assert value["out"]["error"] == "address_out_of_range"
-    assert value["reserved"] is None
-    assert 'type="hidden" name="address" value="DB1,X6024.0"' in value["markup"]
-    assert "address_builder.logo_address" in value["markup"]
-    assert "address_builder.internal_address" in value["markup"]
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_plc_family_connection_group_translation_and_legacy_fallback() -> None:
     script = f'''
 global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
@@ -2946,33 +2829,6 @@ console.log(JSON.stringify({{groups,translated:panel.connectionValue("logo_9"),l
     assert value["translated"] == "LOGO! 9"
     assert value["legacy"] == "SIMATIC S7"
 
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_logo_vm_helpers_and_builder_datatype_filtering() -> None:
-    """VM helpers and guided reconstruction stay aligned."""
-    script = f"""
-global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-{PANEL_LOADER}
-const vmAreas=[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}},{{name:"VB",first:0,last:850,data_type:"BYTE",width:1}},{{name:"VW",first:0,last:849,data_type:"WORD",width:2}},{{name:"VD",first:0,last:847,data_type:"DWORD",width:4}}];
-const profile={{family:"logo_0ba8",vm_last_byte:850,areas:[],vm_areas:vmAreas}};
-const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
-const html=value=>panel.addressField("address",value,"Address","",false,"entity_sync");
-console.log(JSON.stringify({{forward:["V0.0","V850.7","VB850","VW849","VD847"].map(v=>LOGO_TO_S7(profile,v)),invalid:["V0","V0.8","VB0.0","VW850","VD848","VB-1"].map(v=>LOGO_TO_S7(profile,v).error),reverse:["DB1,X0.0","DB1,BYTE10","DB1,WORD20","DB1,DWORD30"].map(v=>S7_TO_LOGO(profile,v)?.symbol),candidates:["V0.0","V0.8","VW850","IB10","QW8","MD72","DB1,X0.0"].map(v=>LOGO_ADDRESS_CANDIDATE(profile,v)),byte:html("DB1,BYTE10"),word:html("DB1,WORD20"),dword:html("DB1,DWORD30"),bit:html("DB1,X10.3"),empty:html("")}}));"""
-    value = json.loads(subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout)
-    assert [item["canonical"] for item in value["forward"]] == [
-        "DB1,X0.0", "DB1,X850.7", "DB1,BYTE850", "DB1,WORD849", "DB1,DWORD847"
-    ]
-    assert all(value["invalid"])
-    assert value["reverse"] == ["V0.0", "VB10", "VW20", "VD30"]
-    assert value["candidates"] == [True, True, True, False, False, False, False]
-    for name, expected in (("byte", "VB"), ("word", "VW"), ("dword", "VD"), ("bit", "V")):
-        assert f'<option value="{expected}" selected>' in value[name]
-        assert "address_builder.vm_offset" in value[name]
-    assert "data-logo-bit hidden" not in value["bit"]
-    assert "data-logo-bit hidden" in value["byte"]
-    assert 'type="hidden" name="address" value=""' in value["empty"]
 
 @pytest.mark.parametrize(("source", "expected"), [
     ("binary_sensors:\n  - address: I1\n", "DB1,X1024.0"),
@@ -2997,23 +2853,6 @@ def test_complete_configuration_yaml_preserves_canonical_and_s7_addresses():
     )
     assert canonical["sensors"][0]["address"] == "DB1,REAL0"
     assert s7["binary_sensors"][0]["address"] == "I1.0"
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_logo_text_address_fields_are_manual_only_and_preserve_values():
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
-const profile={{family:"logo_0ba8",areas:[{{name:"I",first:1,last:24,vm_offset:1024,data_type:"X"}}],vm_areas:[]}};
-const panel=new S7PlcConfigurationPanel();panel.escape=v=>String(v??"");panel.t=k=>k;panel.entries=[{{entry_id:"logo",plc_family:"logo_0ba8",logo_profile:profile}}];panel.entryId="logo";
-console.log(JSON.stringify(["","DB1,S0.20","DB1,WS0.20"].map(value=>panel.addressField("address",value,"Address","",true,"texts"))));'''
-    values = json.loads(subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout)
-    for value, markup in zip(("", "DB1,S0.20", "DB1,WS0.20"), values, strict=True):
-        assert 'data-address-mode="guided" disabled' in markup
-        assert 'data-address-mode="manual" class="active"' in markup
-        assert 'class="address-guided" hidden' in markup
-        assert f'value="{value}"' in markup
-
 
 
 def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
