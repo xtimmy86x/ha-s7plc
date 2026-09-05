@@ -18,7 +18,7 @@ export function getTranslations(language = "en") {
 
 const translations = getTranslations();
 
-const entityTypes = [
+export const entityTypes = [
   "sensors",
   "binary_sensors",
   "switches",
