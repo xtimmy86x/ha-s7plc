@@ -87,6 +87,23 @@ describe("connection details dialog", () => {
     expect(dialog.querySelector(".section-metrics").textContent).toContain("0.04 s");
   });
 
+  test("shows live polling and entity counts in the configuration section", () => {
+    const entry = createEntry({
+      connection_runtime: {
+        polling_interval_seconds: 1.5,
+        configured_entities: 42,
+      },
+    });
+    const panel = createPanel(entry);
+    panel.querySelector(".connection-badge").click();
+    const configuration = document.body.querySelector("ha-dialog .section-configuration");
+
+    expect(configuration.textContent).toContain("Polling interval");
+    expect(configuration.textContent).toContain("1.5 s");
+    expect(configuration.textContent).toContain("Configured entities");
+    expect(configuration.textContent).toContain("42");
+  });
+
   test("refreshes the badge and an open dialog from the live connection sensor", async () => {
     const entry = createEntry();
     const panel = createPanel(entry);

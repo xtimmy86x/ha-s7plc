@@ -17,6 +17,30 @@ afterEach(() => {
 });
 
 describe("panel category navigation", () => {
+  test("keeps the layout toggle above category-specific navigation", () => {
+    const panel = createPanel();
+    const layout = panel.querySelector(".category-layout");
+
+    expect([...layout.children].map((node) => node.className)).toEqual([
+      "toolbar",
+      "category-navigation",
+      "",
+    ]);
+    expect(layout.children[2].tagName).toBe("MAIN");
+    expect(layout.querySelector(".toolbar .category-tabs")).toBeNull();
+    expect(layout.querySelector(".toolbar [data-category-menu-toggle]")).toBeNull();
+    expect(layout.querySelector(".category-navigation .category-tabs")).not.toBeNull();
+    expect(layout.querySelector(".category-navigation [data-category-menu-toggle]")).not.toBeNull();
+    expect(layout.querySelector(".toolbar-actions").firstElementChild)
+      .toBe(layout.querySelector("[data-layout-toggle]"));
+
+    layout.querySelector("[data-layout-toggle]").click();
+    const sectionsToolbar = panel.querySelector(".sections-toolbar");
+    expect(sectionsToolbar.firstElementChild.className).not.toBe("category-navigation");
+    expect(sectionsToolbar.querySelector(".toolbar-actions").firstElementChild)
+      .toBe(sectionsToolbar.querySelector("[data-layout-toggle]"));
+  });
+
   test("renders entity cards and changes category through the real DOM", () => {
     const panel = createPanel();
 

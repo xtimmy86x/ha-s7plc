@@ -49,7 +49,12 @@ describe("panel entity search", () => {
       state_class: "measurement",
       unit_of_measurement: "bar",
       scale: 12.5,
-      value_conversion: { enum_map: { 0: "Stopped", 1: "Running" } },
+      value_conversions: {
+        value: {
+          type: "enum_map",
+          mappings: [{ value: 0, label: "Stopped" }, { value: 1, label: "Running" }],
+        },
+      },
       _cache: "secret",
       uid: "technical-only",
     };
@@ -61,6 +66,33 @@ describe("panel entity search", () => {
     expect(text).not.toContain("secret");
     expect(text).not.toContain("technical-only");
     expect([...FILTER_ENTITY_ITEMS([entity, undefined], " PRESSURE ")].map((item) => item.index)).toEqual([0]);
+  });
+
+  test("refreshes active search results from live states without losing focus", () => {
+    const panel = createPanel();
+    panel.searchQuery = "42.5";
+    panel.render();
+    const input = panel.querySelector("#entity-search-input");
+    input.focus();
+    input.setSelectionRange(2, 4);
+    expect(panel.querySelectorAll(".cards article")).toHaveLength(1);
+
+    panel.hass = {
+      ...panel._hass,
+      states: {
+        ...panel._hass.states,
+        "sensor.boiler_temperature": {
+          state: "19.0",
+          attributes: { unit_of_measurement: "°C" },
+        },
+      },
+    };
+
+    expect(panel.querySelectorAll(".cards article")).toHaveLength(0);
+    expect(panel.querySelector(".search-empty")).not.toBeNull();
+    expect(document.activeElement).toBe(panel.querySelector("#entity-search-input"));
+    expect(panel.querySelector("#entity-search-input").selectionStart).toBe(2);
+    expect(panel.querySelector("#entity-search-input").selectionEnd).toBe(4);
   });
 
   test("searches globally in sections view and renders only matching sections", async () => {

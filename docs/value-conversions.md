@@ -105,7 +105,7 @@ and `0`. The editor preview is local only and never writes to the PLC.
 Integer targets support `half_even` (default), `half_up`, `floor`, and `ceil`
 rounding.
 
-`logo_time_bcd` is write-only and requires WORD. It accepts `HH:MM` or
+`logo_time_bcd` is write-only and requires WORD. The visual editor offers this shortcut only for LOGO! connections (`plc_family` beginning with `logo_`) that have an available WORD write channel; runtime and YAML validation remain based on direction and datatype. It accepts `HH:MM` or
 `HH:MM:SS`, validates seconds but packs only hours/minutes (`08:30` becomes
 `0x0830`, decimal 2096). It uses the normal pyS7 WORD write without an extra
 byte swap.

@@ -61,7 +61,6 @@ jobs:
             --cov-fail-under=78.5 \
             --cov-report=term-missing \
             --cov-report=xml
-
       - name: Upload coverage report
         uses: actions/upload-artifact@v6
         if: always()

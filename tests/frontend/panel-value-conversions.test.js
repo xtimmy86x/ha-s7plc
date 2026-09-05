@@ -266,7 +266,7 @@ describe("value conversion editor", () => {
       panel.syncValueConversions(form);
       const values = [...form.elements.vc_value_type.options].map((option) => option.value);
       expect(values.filter((value) => value === "enum_map")).toHaveLength(1);
-      expect(values.indexOf("enum_map")).toBeLessThan(values.indexOf("logo_time_bcd"));
+      expect(values.indexOf("enum_map")).toBeLessThan(values.indexOf("expression"));
       expect(row.querySelector("[data-enum-unavailable]").hidden).toBe(true);
 
       form.elements.address.value = "DB1,REAL0";
@@ -436,5 +436,43 @@ describe("value conversion editor", () => {
       ha_max: 255,
       clamp: true,
     });
+  });
+
+  test("offers LOGO time conversion only to LOGO WORD write channels", () => {
+    const s7 = openSensorEditor({ address: "DB1,WORD0" });
+    expect(s7.form.elements.vc_value_type.querySelector(
+      'option[value="logo_time_bcd"]',
+    )).toBeNull();
+
+    document.body.replaceChildren();
+    const logoEntry = createEntry({
+      plc_family: "logo_0ba8",
+      data: { ...createEntry().data, plc_family: "logo_0ba8" },
+      logo_profile: {
+        family: "logo_0ba8",
+        areas: [],
+        vm_areas: [{ name: "VW", first: 0, last: 849, data_type: "WORD", width: 2 }],
+      },
+    });
+    logoEntry.entities.numbers = [{
+      name: "LOGO timer",
+      address: "DB1,WORD0",
+      command_address: "DB1,WORD2",
+      min_value: 0,
+      max_value: 2359,
+      step: 1,
+    }];
+    const logoPanel = createPanel(logoEntry);
+    logoPanel.openEditor(0, "numbers");
+    const logoForm = document.body.querySelector("ha-dialog form");
+    expect(logoForm.elements.vc_value_type.querySelector(
+      'option[value="logo_time_bcd"]',
+    )).not.toBeNull();
+
+    logoForm.elements.command_address.value = "DB1,DWORD2";
+    logoPanel.syncValueConversions(logoForm);
+    expect(logoForm.elements.vc_value_type.querySelector(
+      'option[value="logo_time_bcd"]',
+    )).toBeNull();
   });
 });
