@@ -62,6 +62,8 @@ export function evaluatePanelSource() {
       SERIALIZE_S7_ADDRESS,
       CONNECTION_DETAIL_SECTIONS,
       CONTROL_MODE_FROM_ENTITY,
+      COVER_UI_FROM_ENTITY,
+      CLEAN_COVER_ENTITY,
     };`);
 }
 
