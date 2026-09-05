@@ -5669,7 +5669,7 @@ console.log(JSON.stringify({{sensor:sensor.includes('<option data-enum-map'),rea
         "realOption": False,
         "lrealOption": False,
         "lrealHintHidden": True,
-        "logo": True,
+        "logo": False,
         "integerHintHidden": True,
         "realHintHidden": True,
         "otherConversions": True,
@@ -5802,3 +5802,44 @@ console.log(JSON.stringify({
                      "translations/de.json", "translations/pl.json", "translations/cs.json"):
         card = json.loads((root / "custom_components/s7plc" / filename).read_text(encoding="utf-8"))["config_panel"]["entity_card"]
         assert card["hidden_property"] and "{count}" in card["hidden_properties"]
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_logo_time_bcd_option_tracks_family_write_word_and_preserves_legacy_s7() -> None:
+    """BCD is offered only for LOGO writable WORDs, without losing old S7 data."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+const options=[];const makeOption=value=>({{value,dataset:{{}},textContent:"",remove(){{options.splice(options.indexOf(this),1);}}}});
+global.document={{createElement:()=>makeOption("")}};
+{PANEL_LOADER}
+const panel=new S7PlcConfigurationPanel();panel.t=k=>k;panel.escape=v=>String(v??"");
+const spec={{channel:"value",read:"address",write:"command_address",writeFallback:true,label:"number_value"}};
+const rendered={{}};for(const family of ["s7","logo_0ba7","logo_0ba8","logo_9"]){{
+ panel.entries=[{{entry_id:"entry",plc_family:family}}];panel.entryId="entry";
+ rendered[family]=panel.valueConversionRow("numbers",{{address:"DB1,WORD0",command_address:"DB1,WORD2"}},spec).includes('value="logo_time_bcd"');
+}}
+panel.entries=[{{entry_id:"entry",data:{{plc_family:"logo_0ba8"}}}}];
+rendered.dataFallback=panel.activePlcFamily();panel.entries=[{{entry_id:"entry"}}];rendered.defaultFamily=panel.activePlcFamily();
+panel.entries=[{{entry_id:"entry",plc_family:"logo_0ba8"}}];
+rendered.nonWord=panel.valueConversionRow("numbers",{{address:"DB1,REAL0",command_address:"DB1,REAL4"}},spec).includes('value="logo_time_bcd"');
+rendered.readOnly=panel.valueConversionRow("sensors",{{address:"DB1,WORD0"}},{{channel:"value",read:"address",write:null,label:"sensor_value"}}).includes('value="logo_time_bcd"');
+panel.entries=[{{entry_id:"entry",plc_family:"s7"}}];
+const legacy={{address:"DB1,WORD0",command_address:"DB1,WORD2",value_conversions:{{value:{{type:"logo_time_bcd"}}}}}};
+const legacyHtml=panel.valueConversionRow("numbers",legacy,spec);rendered.legacyVisible=legacyHtml.includes('value="logo_time_bcd" selected');
+const setup=value=>{{options.splice(0,options.length,...["","multiplier","linear_scale","enum_map","logo_time_bcd","expression"].map(makeOption));for(const o of options){{if(o.value==="enum_map")o.dataset.enumMap="";if(o.value==="logo_time_bcd")o.dataset.logoBcd="";}}const select={{value,querySelector(s){{const match=s.match(/value="([^"]+)/);if(match)return options.find(o=>o.value===match[1])||null;if(s.includes("enum-map"))return options.find(o=>o.value==="enum_map")||null;if(s.includes("logo-bcd"))return options.find(o=>o.value==="logo_time_bcd")||null;return null;}},insertBefore(o,b){{options.splice(b?options.indexOf(b):options.length,0,o);}}}};const summary={{dataset:{{conversionTitle:"Value"}},textContent:"",setAttribute(){{}},addEventListener(){{}}}};const row={{open:true,hidden:false,dataset:{{valueConversion:"value",enumMapSupported:"false",readField:"address",writeField:"command_address",writeFallback:"false",conditionalRead:""}},querySelector:s=>s==="summary"||s==="[data-conversion-summary]"?summary:null,querySelectorAll:()=>[]}};const form={{elements:{{address:{{value:"DB1,WORD0"}},command_address:{{value:"DB1,WORD2"}},vc_value_type:select}},querySelectorAll:()=>[row]}};return {{select,row,form}};}};
+panel.entries=[{{entry_id:"entry",plc_family:"logo_0ba8"}}];let dom=setup("");panel.syncValueConversions(dom.form);const word=options.map(o=>o.value);dom.form.elements.command_address.value="DB1,REAL2";panel.syncValueConversions(dom.form);const real=options.map(o=>o.value);dom.form.elements.command_address.value="DB1,WORD2";panel.syncValueConversions(dom.form);const wordAgain=options.map(o=>o.value);
+panel.entries=[{{entry_id:"entry",plc_family:"s7"}}];dom=setup("logo_time_bcd");panel.syncValueConversions(dom.form);const legacyAfterSync={{value:dom.select.value,options:options.map(o=>o.value)}};
+const saveElements={{}};for(const [key,kind] of FIELDS.numbers)saveElements[key]={{type:kind==="checkbox"?"checkbox":"text",value:String(legacy[key]??""),checked:Boolean(legacy[key])}};Object.assign(saveElements,dom.form.elements);const saveForm={{elements:saveElements,dataset:{{}},reportValidity:()=>true,querySelectorAll:s=>s==="[data-value-conversion]"?[dom.row]:[],querySelector:()=>null}};panel.validateAddressBuilders=()=>true;const roundTrip=panel.formEntity(saveForm,legacy,"numbers").value_conversions.value;
+console.log(JSON.stringify({{rendered,word,real,wordAgain,legacyAfterSync,roundTrip}}));'''
+    result = json.loads(subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout)
+    assert result["rendered"] == {
+        "s7": False, "logo_0ba7": True, "logo_0ba8": True, "logo_9": True,
+        "dataFallback": "logo_0ba8", "defaultFamily": "s7",
+        "nonWord": False, "readOnly": False, "legacyVisible": True,
+    }
+    expected = ["", "multiplier", "linear_scale", "enum_map", "logo_time_bcd", "expression"]
+    assert result["word"] == expected
+    assert result["real"] == ["", "multiplier", "linear_scale", "enum_map", "expression"]
+    assert result["wordAgain"] == expected
+    assert result["legacyAfterSync"] == {"value": "logo_time_bcd", "options": expected}
+    assert result["roundTrip"] == {"type": "logo_time_bcd"}
