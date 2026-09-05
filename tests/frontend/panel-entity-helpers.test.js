@@ -199,6 +199,83 @@ describe("entity configuration helpers", () => {
     });
   });
 
+  test("infers and cleans Climate modes without losing legacy mappings", () => {
+    const {
+      CLIMATE_UI_FROM_ENTITY: infer,
+      CLEAN_CLIMATE_ENTITY: clean,
+    } = getPanelTestHelpers();
+
+    expect(infer({ heating_output_address: "Q0.0" }).climate_direct_function).toBe("heat");
+    expect(infer({ cooling_output_address: "Q0.1" }).climate_direct_function).toBe("cool");
+    expect(infer({
+      heating_output_address: "Q0.0",
+      cooling_output_address: "Q0.1",
+    }).climate_direct_function).toBe("heat_cool");
+    expect([
+      {},
+      { on_off_address: "Q0.0" },
+      { preset_mode_address: "DB1,B0" },
+      { preset_mode_address: "DB1,B0", on_off_address: "Q0.0" },
+    ].map(infer).map((ui) => ui.climate_mode_control)).toEqual([
+      "setpoint", "on_off", "coded", "coded_on_off",
+    ]);
+
+    const mappings = {
+      preset_mode_off_value: null,
+      hvac_status_off_values: "",
+      hvac_status_heating_values: "7",
+    };
+    const sameAddress = clean({
+      uid: "kept",
+      control_mode: "setpoint",
+      target_temperature_address: "DB1,R0",
+      preset_mode_address: "DB1,B4",
+      hvac_status_address: "DB1,B4",
+      preset_mode_bidirectional: true,
+      ...mappings,
+    }, { ...infer({ preset_mode_address: "DB1,B4", hvac_status_address: "DB1,B4" }), control_mode: "setpoint" });
+    expect(sameAddress).toMatchObject({
+      uid: "kept",
+      preset_mode_address: "DB1,B4",
+      hvac_status_address: "DB1,B4",
+      preset_mode_bidirectional: true,
+    });
+
+    const statusDisabled = clean({
+      control_mode: "setpoint",
+      target_temperature_address: "DB1,R0",
+      hvac_status_address: "DB1,B4",
+      ...mappings,
+    }, { ...infer({ hvac_status_address: "DB1,B4" }), control_mode: "setpoint", climate_action_feedback: "inferred" }, ["climate_action_feedback"]);
+    expect(statusDisabled).not.toHaveProperty("hvac_status_address");
+    expect(statusDisabled.hvac_status_off_values).toBe("");
+
+    const codedDisabled = clean({
+      control_mode: "setpoint",
+      target_temperature_address: "DB1,R0",
+      preset_mode_address: "DB1,B4",
+      preset_mode_bidirectional: true,
+      ...mappings,
+    }, { ...infer({ preset_mode_address: "DB1,B4" }), control_mode: "setpoint", climate_mode_control: "setpoint" }, ["climate_mode_control"]);
+    expect(codedDisabled).not.toHaveProperty("preset_mode_address");
+    expect(codedDisabled.preset_mode_off_value).toBeNull();
+
+    const direct = clean({
+      uid: "kept",
+      control_mode: "setpoint",
+      target_temperature_address: "DB1,R0",
+      preset_mode_address: "DB1,B4",
+      hvac_status_address: "DB1,B4",
+      ...mappings,
+    }, { ...infer({}), control_mode: "direct" }, ["control_mode"]);
+    expect(direct.uid).toBe("kept");
+    expect(direct).not.toHaveProperty("target_temperature_address");
+    expect(direct).not.toHaveProperty("preset_mode_address");
+    expect(direct).not.toHaveProperty("hvac_status_address");
+    expect(direct).not.toHaveProperty("climate_mode_control");
+    expect(direct).not.toHaveProperty("climate_action_feedback");
+  });
+
   test("keeps field definitions technical and backed by panel copy", () => {
     const { FIELDS } = getPanelTestHelpers();
     const english = getTranslations("en").config_panel;

@@ -36,6 +36,19 @@ const openCover = (original) => {
   panel.openEditor(0, "covers");
   return { panel, form: currentForm(), original: entry.entities.covers[0] };
 };
+const openClimate = (original = {}) => {
+  const entry = createEntry();
+  entry.entities.climates = [{
+    name: "Legacy climate",
+    control_mode: "setpoint",
+    current_temperature_address: "DB1,REAL0",
+    target_temperature_address: "DB1,REAL4",
+    ...original,
+  }];
+  const panel = createPanel(entry);
+  panel.openEditor(0, "climates");
+  return { panel, form: currentForm(), original: entry.entities.climates[0] };
+};
 
 describe("advanced Cover and Climate editors", () => {
   test("validates and serializes Cover status-word position feedback", () => {
@@ -337,5 +350,49 @@ describe("advanced Cover and Climate editors", () => {
     expect(entity).not.toHaveProperty("target_temperature_address");
     expect(entity).not.toHaveProperty("preset_mode_address");
     expect(entity).not.toHaveProperty("hvac_status_address");
+  });
+
+  test("renders legacy Climate core defaults without persisting untouched values", () => {
+    const { panel, form, original } = openClimate();
+    expect([
+      form.elements.preset_mode_off_value.value,
+      form.elements.preset_mode_heat_value.value,
+      form.elements.preset_mode_cool_value.value,
+      form.elements.preset_mode_heat_cool_value.value,
+    ]).toEqual(["0", "1", "2", "3"]);
+    expect(form.elements.preset_mode_auto_value.value).toBe("");
+    expect([
+      form.elements.hvac_status_off_values.value,
+      form.elements.hvac_status_heating_values.value,
+      form.elements.hvac_status_cooling_values.value,
+    ]).toEqual(["0", "1", "2"]);
+    expect(form.elements.hvac_status_idle_values.value).toBe("");
+
+    const entity = panel.formEntity(form, original, "climates");
+    for (const key of [
+      "preset_mode_off_value", "preset_mode_heat_value",
+      "preset_mode_cool_value", "preset_mode_heat_cool_value",
+      "hvac_status_off_values", "hvac_status_heating_values",
+      "hvac_status_cooling_values",
+    ]) expect(entity).not.toHaveProperty(key);
+  });
+
+  test("keeps explicitly cleared Climate core mappings disabled", () => {
+    const { panel, form, original } = openClimate({
+      preset_mode_off_value: null,
+      preset_mode_heat_cool_value: null,
+      hvac_status_off_values: "",
+      hvac_status_cooling_values: "",
+    });
+    expect(form.elements.preset_mode_off_value.value).toBe("");
+    expect(form.elements.preset_mode_heat_cool_value.value).toBe("");
+    expect(form.elements.hvac_status_off_values.value).toBe("");
+    expect(form.elements.hvac_status_cooling_values.value).toBe("");
+
+    const entity = panel.formEntity(form, original, "climates");
+    expect(entity.preset_mode_off_value).toBeNull();
+    expect(entity.preset_mode_heat_cool_value).toBeNull();
+    expect(entity.hvac_status_off_values).toBe("");
+    expect(entity.hvac_status_cooling_values).toBe("");
   });
 });

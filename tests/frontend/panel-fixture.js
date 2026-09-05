@@ -64,6 +64,8 @@ export function evaluatePanelSource() {
       CONTROL_MODE_FROM_ENTITY,
       COVER_UI_FROM_ENTITY,
       CLEAN_COVER_ENTITY,
+      CLIMATE_UI_FROM_ENTITY,
+      CLEAN_CLIMATE_ENTITY,
     };`);
 }
 
