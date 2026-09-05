@@ -16,6 +16,23 @@ afterEach(() => {
 });
 
 describe("entity views and actions", () => {
+  test("keeps sparse cards in the shared leading-details-side structure", () => {
+    const entry = createEntry();
+    entry.entities.sensors = [{ name: "A very long entity name that must not widen the card" }];
+    entry.entity_ids.sensors = [];
+    const panel = createPanel(entry);
+    const article = panel.querySelector(".cards article");
+
+    expect(article.children[0].className).toBe("entity-leading");
+    expect(article.children[1].className).toBe("details");
+    expect(article.children[2].className).toBe("entity-side");
+    expect(article.querySelector(".entity-leading > .entity-select")).not.toBeNull();
+    expect(article.querySelector(".entity-leading > .entity-icon")).not.toBeNull();
+    expect(article.querySelector(".details > b").textContent).toBe("A very long entity name that must not widen the card");
+    expect(article.querySelector(".details > div").children).toHaveLength(0);
+    expect(article.querySelector(".state-badge")).toBeNull();
+  });
+
   test("renders type-specific main addresses without duplicate chips", () => {
     const entry = createEntry();
     entry.entities.covers = [

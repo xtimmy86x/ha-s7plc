@@ -6,6 +6,7 @@ import {
   createEntry,
   createHass,
   createPanel,
+  evaluatePanelSource,
   getTranslations,
   installPanel,
 } from "./panel-fixture.js";
@@ -30,6 +31,15 @@ function freshPanel() {
 }
 
 describe("panel lifecycle", () => {
+  test("reuses one custom-element registration across repeated installs", () => {
+    const registered = customElements.get("s7plc-configuration-panel");
+
+    evaluatePanelSource();
+    evaluatePanelSource();
+
+    expect(customElements.get("s7plc-configuration-panel")).toBe(registered);
+  });
+
   test.each([
     {
       locale: "it-IT",

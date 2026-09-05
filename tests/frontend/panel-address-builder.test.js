@@ -71,11 +71,58 @@ describe("S7 address builder", () => {
     expect(panel.writeDefaultAddressMode("mixed")).toBe(false);
   });
 
+  test("isolates address preferences by PLC, entity, and field", () => {
+    const first = createEntry();
+    first.entities.switches[0].uid = "pump-a";
+    first.entities.switches.push({
+      uid: "pump-b",
+      name: "Second pump",
+      state_address: "DB1,X10.0",
+      command_address: "DB1,X10.1",
+    });
+    const second = createEntry({ entry_id: "second-plc", title: "CPU1511" });
+    second.entities.switches[0].uid = "pump-a";
+    const panel = createPanel(first);
+    panel.entries = [first, second];
+
+    panel.openEditor(0, "switches");
+    let form = dialogForm();
+    form.querySelector('[data-field="state_address"] [data-address-mode="manual"]').click();
+    document.body.querySelector("ha-dialog").remove();
+
+    panel.openEditor(0, "switches");
+    form = dialogForm();
+    expect(form.querySelector('[data-field="state_address"] [data-address-mode="manual"]').classList.contains("active")).toBe(true);
+    expect(form.querySelector('[data-field="command_address"] [data-address-mode="guided"]').classList.contains("active")).toBe(true);
+    document.body.querySelector("ha-dialog").remove();
+
+    panel.openEditor(1, "switches");
+    expect(dialogForm().querySelector('[data-field="state_address"] [data-address-mode="guided"]').classList.contains("active")).toBe(true);
+    document.body.querySelector("ha-dialog").remove();
+
+    panel.entryId = "second-plc";
+    panel.openEditor(0, "switches");
+    expect(dialogForm().querySelector('[data-field="state_address"] [data-address-mode="guided"]').classList.contains("active")).toBe(true);
+    document.body.querySelector("ha-dialog").remove();
+
+    localStorage.setItem("s7plc-panel-address-modes-v1", "{bad json");
+    panel.openEditor(0, "switches");
+    expect(dialogForm().querySelector('[data-field="state_address"] [data-address-mode="guided"]').classList.contains("active")).toBe(true);
+    document.body.querySelector("ha-dialog").remove();
+
+    second.entities.switches[0].state_address = "not-an-address";
+    panel.openEditor(0, "switches");
+    expect(dialogForm().querySelector('[data-field="state_address"] [data-address-mode="manual"]').classList.contains("active")).toBe(true);
+  });
+
   test("builds a canonical address and updates dependent controls", () => {
     const panel = createPanel();
     panel.openEditor(0, "sensors");
     const form = dialogForm();
     const builder = form.querySelector('[data-field="address"]');
+
+    expect(builder.tagName).toBe("FIELDSET");
+    expect(builder.querySelector(":scope > legend + .address-builder-layout")).not.toBeNull();
 
     setPart(builder, "area", "DB");
     setPart(builder, "dbNumber", "5");
@@ -253,6 +300,9 @@ describe("LOGO address builder", () => {
     const number = builder.querySelector("[data-logo-number]");
 
     expect(builder.hasAttribute("data-logo-builder")).toBe(true);
+    expect(builder.tagName).toBe("FIELDSET");
+    expect(builder.querySelector(":scope > legend + .address-builder-layout")).not.toBeNull();
+    expect(builder.querySelector(".address-manual").hidden).toBe(true);
     expect(builder.querySelector("[data-logo-preview]").textContent).toBe("I1");
     area.value = "I";
     area.dispatchEvent(new Event("change", { bubbles: true }));

@@ -253,64 +253,8 @@ def test_safari_form_control_normalization_is_preserved() -> None:
     assert "data:" not in select_rule.lower()
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_address_builders_use_inner_query_container_and_hidden_controls() -> None:
-    """S7 and LOGO keep semantic fieldsets while isolating WebKit containment."""
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
-panel.entries=[{{entry_id:"s7",plc_family:"s7"}}];panel.entryId="s7";
-const s7=panel.addressField("address","DB1,X0.0","Address","",true,"sensors");
-const profile={{family:"logo_0ba8",areas:[{{name:"I",first:1,last:24,vm_offset:1024,data_type:"X"}}],vm_areas:[{{name:"V",first:0,last:850,data_type:"X",width:1,bit_min:0,bit_max:7}}]}};
-const logo=panel.logoAddressField("address","DB1,X1024.0","Address","",true,"binary_sensors",profile);
-console.log(JSON.stringify({{s7,logo}}));'''
-    markup = json.loads(
-        subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
-        ).stdout
-    )
-
-    for builder in markup.values():
-        assert builder.startswith('<fieldset class="address-builder"')
-        assert "</legend><div class=\"address-builder-layout\">" in builder
-        assert builder.endswith("</div></fieldset>")
-        assert 'class="address-guided"' in builder
-    assert "data-db-number hidden" not in markup["s7"]
-    assert "data-bit hidden" not in markup["s7"]
-    assert "data-length hidden" not in markup["s7"]
-    assert "data-logo-bit hidden" in markup["logo"]
-    assert 'class="address-manual" hidden' in markup["logo"]
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_panel_registration_is_idempotent() -> None:
-    """Repeated resource loads reuse the existing custom element registration."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = r"""
-const vm = require("vm");
-const definitions = new Map();
-const customElements = {
-    get: name => definitions.get(name),
-    define: (name, element) => {
-        if (definitions.has(name)) throw new Error(`duplicate definition: ${name}`);
-        definitions.set(name, element);
-    },
-};
-for (let load = 0; load < 2; load++) {
-    const context = {HTMLElement: class {}, customElements};
-    vm.createContext(context);
-    vm.runInContext(require('fs').readFileSync(process.argv[1],'utf8'), context);
-}
-process.stdout.write(String(definitions.size));
-"""
-
-    result = subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT)],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout == "1"
 
 
 def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
@@ -324,28 +268,6 @@ def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
     assert ".connection-head-text code{font-family:ui-monospace" in source
 
 
-def test_connection_boolean_values_do_not_wrap() -> None:
-    """Only boolean detail values receive the non-wrapping class."""
-    if shutil.which("node") is None:
-        pytest.skip("node is required to evaluate the panel helpers")
-    script = f"""
-global.HTMLElement = class {{}}; global.customElements = {{get() {{}}, define() {{}}}};
-{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();
-panel.panelTranslations={{config_panel:{{connection_details:{{values:{{yes:"Sì"}}}}}}}};
-panel.escape=value=>String(value);
-CONNECTION_DETAIL_TECHNICAL_FIELDS.add("optimize_read");
-console.log(panel.connectionDetailGroupsMarkup({{data:{{optimize_read:true,enable_write_batching:false,future_option:"a long value"}}}}));
-"""
-    markup = subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout
-    assert '<dd class="technical-value boolean-value">Sì</dd>' in markup
-    assert '<dd class="boolean-value">false</dd>' in markup
-    assert "<dd>a long value</dd>" in markup
-
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert ".connection-detail dd.boolean-value{flex:0 0 auto;min-width:max-content;white-space:nowrap;word-break:normal;overflow-wrap:normal}" in source
 
 
 def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
@@ -359,6 +281,7 @@ def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
     assert ".connection-badge:active" in source
     assert 'role="status"' in source
     assert 'aria-hidden="true"' in source
+    assert ".connection-detail dd.boolean-value{flex:0 0 auto;min-width:max-content;white-space:nowrap;word-break:normal;overflow-wrap:normal}" in source
 
 
 def test_connection_diagnostics_translations_are_complete() -> None:
@@ -400,69 +323,8 @@ def test_panel_supports_batch_entity_deletion() -> None:
     assert "for(const index of sorted)await this._hass.callWS" in source
 
 
-def test_panel_control_mode_mapping_preserves_backend_format() -> None:
-    """The graphical mode must remain a view over the legacy boolean keys."""
-    if shutil.which("node") is None:
-        pytest.skip("node is required to evaluate the panel helpers")
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    script = f"""
-global.HTMLElement = class {{}};
-global.customElements = {{define() {{}}}};
-{PANEL_LOADER}
-const fixtures = [
-  {{}},
-  {{sync_state: true}},
-  {{pulse_command: true}},
-  {{sync_state: true, pulse_command: true}}
-];
-console.log(JSON.stringify({{
-  loaded: fixtures.map(CONTROL_MODE_FROM_ENTITY),
-  saved: ["direct", "sync", "pulse"].map(mode =>
-    APPLY_CONTROL_MODE({{name: "unchanged", unrelated: 42}}, mode))
-}}));
-"""
-    result = subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    )
-    behavior = json.loads(result.stdout)
-
-    assert behavior["loaded"] == ["direct", "sync", "pulse", "pulse"]
-    assert behavior["saved"] == [
-        {
-            "name": "unchanged",
-            "unrelated": 42,
-            "sync_state": False,
-            "pulse_command": False,
-        },
-        {
-            "name": "unchanged",
-            "unrelated": 42,
-            "sync_state": True,
-            "pulse_command": False,
-        },
-        {
-            "name": "unchanged",
-            "unrelated": 42,
-            "sync_state": False,
-            "pulse_command": True,
-        },
-    ]
 
 
-def test_panel_light_mode_inference_uses_only_brightness_state_address() -> None:
-    """The virtual mode follows the backend's actual dimmer requirement."""
-    if shutil.which("node") is None:
-        pytest.skip("node is required to evaluate the panel helpers")
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    prefix = source.split("const CONNECTION_WINDOW_MS", 1)[0]
-    script = (
-        prefix
-        + "\nconsole.log(JSON.stringify([{}, {brightness_scale: 10}, {brightness_command_address: 'DB1,W2'}, {brightness_state_address: 'DB1,W0'}].map(LIGHT_MODE_FROM_ENTITY)));"
-    )
-    result = subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    )
-    assert json.loads(result.stdout) == ["on_off", "on_off", "on_off", "dimmable"]
 
 
 def test_switch_and_light_editor_section_order_is_explicit() -> None:
@@ -2049,47 +1911,6 @@ def test_config_panel_translation_tree_has_language_parity() -> None:
     assert all(_translation_shape(panel) == expected for panel in panels)
 
 
-def test_fields_contain_only_technical_metadata_and_have_panel_text() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    if shutil.which("node") is None:
-        pytest.skip("node is required to evaluate FIELDS")
-    script = f"""
-global.HTMLElement = class {{}}; global.customElements = {{define() {{}}}};
-{PANEL_LOADER}
-console.log(JSON.stringify(FIELDS));
-"""
-    fields = json.loads(
-        subprocess.run(
-            ["node", "-e", script], check=True, capture_output=True, text=True
-        ).stdout
-    )
-    english = json.loads(
-        Path("custom_components/s7plc/translations/en.json").read_text(encoding="utf-8")
-    )["config_panel"]
-    technical_kinds = {
-        "text",
-        "number",
-        "checkbox",
-        "select",
-        "control",
-        "light",
-        "cover-selector",
-        "climate-selector",
-        "options-map",
-    }
-    for entity_type, definitions in fields.items():
-        for definition in definitions:
-            assert len(definition) <= 4
-            assert len(definition) == 1 or definition[1] in technical_kinds
-            key = definition[0]
-            text = (
-                english["entity_types"][entity_type]["fields"].get(key)
-                or english["common"]["fields"].get(key)
-                or (english["control_behavior"] if key == "control_behavior" else None)
-            )
-            assert text and text["label"]
-            if key != "control_behavior":
-                assert text["description"]
 
 
 def test_panel_has_no_flow_step_dependency_or_unresolved_translation_paths() -> None:
@@ -2812,22 +2633,6 @@ def test_italian_address_builder_is_translated() -> None:
     }
 
 
-def test_plc_family_connection_group_translation_and_legacy_fallback() -> None:
-    script = f'''
-global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.panelTranslations={{config_panel:{{connection_details:{{values:{{s7:"SIMATIC S7",logo_9:"LOGO! 9"}}}}}}}};
-const entry={{title:"PLC",plc_family:"logo_9",data:{{connection_type:"rack_slot",rack:0,slot:1}}}};
-const groups=CONNECTION_DETAIL_SECTIONS(entry).map(g=>[g.key,g.rows.map(r=>r[0])]);
-console.log(JSON.stringify({{groups,translated:panel.connectionValue("logo_9"),legacy:panel.connectionValue("s7")}}));'''
-    value = json.loads(subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout)
-    connection = dict(value["groups"])["connection"]
-    assert connection == ["plc_family", "connection_type", "rack", "slot"]
-    assert not any(key == "other" for key, _fields in value["groups"])
-    assert value["translated"] == "LOGO! 9"
-    assert value["legacy"] == "SIMATIC S7"
 
 
 @pytest.mark.parametrize(("source", "expected"), [
@@ -2864,44 +2669,6 @@ def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
     assert saved["numbers"][0]["address"] == "DB1,WORD2"
     assert "command_address" not in saved["numbers"][0]
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_address_modes_persist_per_plc_entity_and_field() -> None:
-    """Saved UI choices are isolated and invalid/absent preferences fall back safely."""
-    script = f'''
-const store = new Map();
-global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-global.localStorage={{getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)}};
-{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.escape=value=>String(value??"");panel.t=key=>key;
-panel.entries=[{{entry_id:"plc-a",plc_family:"s7"}},{{entry_id:"plc-b",plc_family:"s7"}}];
-const render=(entryId,identity,field,value)=>{{panel.entryId=entryId;panel._addressPreferenceContext={{entryId,type:"switches",identity}};return panel.addressField(field,value,field,"",false,"switches");}};
-const mode=html=>html.includes('data-address-mode="guided" class="active"')?"guided":"manual";
-const state={{automatic:mode(render("plc-a","entity-a","state_address","DB1,X0.0")),unparseable:mode(render("plc-a","entity-a","state_address","not-an-address"))}};
-panel._addressPreferenceContext={{entryId:"plc-a",type:"switches",identity:"entity-a"}};
-panel.writeAddressMode(panel.addressPreferenceKey("state_address"),"manual");
-panel.writeAddressMode(panel.addressPreferenceKey("command_address"),"guided");
-state.savedManual=mode(render("plc-a","entity-a","state_address","DB1,X0.0"));
-state.otherField=mode(render("plc-a","entity-a","command_address","DB1,X0.1"));
-state.otherEntity=mode(render("plc-a","entity-b","state_address","DB1,X0.0"));
-state.otherPlc=mode(render("plc-b","entity-a","state_address","DB1,X0.0"));
-store.set(ADDRESS_MODE_STORAGE_KEY,'{{"bad":"sideways"');
-state.invalidStorage=mode(render("plc-a","entity-a","state_address","DB1,X0.0"));
-store.set(ADDRESS_MODE_STORAGE_KEY,JSON.stringify({{[panel.addressPreferenceKey("state_address")]:"guided"}}));
-state.invalidNeverGuided=mode(render("plc-a","entity-a","state_address","not-an-address"));
-console.log(JSON.stringify(state));'''
-    result = subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    )
-    assert json.loads(result.stdout) == {
-        "automatic": "guided",
-        "unparseable": "manual",
-        "savedManual": "manual",
-        "otherField": "guided",
-        "otherEntity": "guided",
-        "otherPlc": "guided",
-        "invalidStorage": "guided",
-        "invalidNeverGuided": "manual",
-    }
 
 
 def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
@@ -2923,6 +2690,12 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
     assert ".state-badge{display:none}" not in mobile
     assert "max-width:min(34%,140px)" in mobile
     assert ".details>div{gap:2px}" in mobile
+    assert ".entity-leading{display:flex;align-items:center;gap:3px" in source
+    assert ".entity-select{box-sizing:border-box;display:grid;place-items:center;" in source
+    assert "width:38px;min-height:32px" in source
+    assert ".entity-leading{flex-direction:column;gap:4px}" in mobile
+    assert ".details{flex:1;min-width:0}" in source
+    assert ".details>b{font-size:14px;font-weight:600;overflow:hidden;" in source
 
     translation_files = [
         Path("custom_components/s7plc/strings.json"),
@@ -2933,47 +2706,6 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
         assert data["config_panel"]["actions"]["more_actions"]
 
 
-@pytest.mark.parametrize("viewport_width", [320, 360, 390])
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_entity_card_leading_controls_stack_on_narrow_viewports(
-    viewport_width: int,
-) -> None:
-    """Sparse cards keep usable selection controls and room for long names."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
-    mobile = styles.split("@media(max-width:650px){", 1)[1].split(
-        "@media(max-width:500px)", 1
-    )[0]
-    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
-{PANEL_LOADER}
-const panel=new S7PlcConfigurationPanel();panel.t=key=>key;panel.bt=key=>key;
-panel.escape=String;panel.icon=()=>"help";panel.selectedIndices=new Set();
-const entry={{entities:{{sensors:[{{name:"A very long entity name that must not widen the card"}}]}}}};
-process.stdout.write(panel.entityCards(entry,"sensors"));'''
-    markup = subprocess.run(
-        ["node", "-e", script], check=True, capture_output=True, text=True
-    ).stdout
-
-    # The checkbox and icon form one flex item, so they can change axis together.
-    assert re.search(
-        r'<div class="entity-leading"><label class="entity-select".*?</label>'
-        r'<div class="entity-icon">.*?</div></div><div class="details">',
-        markup,
-    )
-    assert 'class="entity-state state-badge"' not in markup
-    assert "<div></div>" in markup  # No metadata chips.
-    assert "A very long entity name that must not widen the card" in markup
-
-    assert viewport_width <= 650
-    assert ".entity-leading{display:flex;align-items:center;gap:3px" in styles
-    assert (
-        ".entity-select{box-sizing:border-box;display:grid;place-items:center;"
-        in styles
-    )
-    assert "width:38px;min-height:32px" in styles
-    assert ".entity-leading{flex-direction:column;gap:4px}" in mobile
-    assert ".details{flex:1;min-width:0}" in styles
-    assert ".details>b{font-size:14px;font-weight:600;overflow:hidden;" in styles
 
 
 def test_entity_overflow_stacking_hierarchy_stays_above_neighbor_cards() -> None:

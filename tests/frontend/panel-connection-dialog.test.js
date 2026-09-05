@@ -2,7 +2,13 @@
 
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
-import { createEntry, createPanel, getPanelTestHelpers, installPanel } from "./panel-fixture.js";
+import {
+  createEntry,
+  createPanel,
+  getPanelTestHelpers,
+  getTranslations,
+  installPanel,
+} from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback) => callback();
@@ -15,6 +21,34 @@ afterEach(() => {
 });
 
 describe("connection details dialog", () => {
+  test("renders PLC family and value classes from the actual inventory", () => {
+    const entry = createEntry({ plc_family: "logo_9" });
+    entry.data = {
+      ...entry.data,
+      plc_family: "logo_9",
+      optimize_read: true,
+      enable_write_batching: false,
+      future_option: "a long value",
+    };
+    const panel = createPanel(entry);
+    panel.panelTranslations = getTranslations("it");
+    panel.render();
+    panel.querySelector(".connection-badge").click();
+    const dialog = document.body.querySelector("ha-dialog");
+    const valueFor = (label) => [...dialog.querySelectorAll("dt")]
+      .find((item) => item.textContent === label).nextElementSibling;
+
+    expect(dialog.querySelector(".section-connection").textContent).toContain("LOGO! 9");
+    expect(dialog.querySelector(".section-other")).not.toBeNull();
+    expect(dialog.querySelector(".section-other").textContent).not.toContain("Famiglia PLC");
+    expect(dialog.querySelector(".connection-head-text code").textContent).toContain("192.168.100.230");
+    expect(valueFor("Ottimizza le letture raggruppate").textContent).toBe("Sì");
+    expect(valueFor("Ottimizza le letture raggruppate").className).toBe("boolean-value");
+    expect(valueFor("Raggruppa le scritture").textContent).toBe("No");
+    expect(valueFor("Future Option").textContent).toBe("a long value");
+    expect(valueFor("Future Option").className).toBe("");
+  });
+
   test("opens from the status badge as an accessible read-only dialog", () => {
     const panel = createPanel();
     const badge = panel.querySelector(".connection-badge");
