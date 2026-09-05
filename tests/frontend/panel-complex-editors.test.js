@@ -29,6 +29,13 @@ const setAddress = (form, name, value) => {
 const isHidden = (form, key) => form
   .querySelector(`[data-field="${key}"], [data-section="${key}"]`)
   .classList.contains("hidden-field");
+const openCover = (original) => {
+  const entry = createEntry();
+  entry.entities.covers = [{ name: "Legacy cover", ...original }];
+  const panel = createPanel(entry);
+  panel.openEditor(0, "covers");
+  return { panel, form: currentForm(), original: entry.entities.covers[0] };
+};
 
 describe("advanced Cover and Climate editors", () => {
   test("validates and serializes Cover status-word position feedback", () => {
@@ -117,6 +124,141 @@ describe("advanced Cover and Climate editors", () => {
     });
     expect(entity).not.toHaveProperty("open_command_address");
     expect(entity).not.toHaveProperty("close_command_address");
+  });
+
+  test("round-trips legacy Cover end stops without rendering a derived input", () => {
+    const { panel, form, original } = openCover({
+      uid: "cover-1",
+      area: "living",
+      device_class: "blind",
+      scan_interval: 2,
+      open_command_address: "DB1,X0.0",
+      close_command_address: "DB1,X0.1",
+      opening_state_address: "DB1,X0.2",
+      closing_state_address: "DB1,X0.3",
+      use_state_topics: true,
+    });
+
+    expect(form.elements.use_state_topics).toBeUndefined();
+    expect(form.querySelector('[name="use_state_topics"]')).toBeNull();
+    expect(form.elements.cover_position_feedback.value).toBe("both");
+    const entity = panel.formEntity(form, original, "covers");
+    expect(entity).toMatchObject({
+      uid: "cover-1",
+      area: "living",
+      device_class: "blind",
+      scan_interval: 2,
+      opening_state_address: "DB1,X0.2",
+      closing_state_address: "DB1,X0.3",
+      use_state_topics: true,
+    });
+    for (const key of [
+      "cover_control_mode", "cover_movement_feedback", "cover_stop_enabled",
+      "cover_tilt_enabled", "cover_mode", "feedback_mode",
+    ]) expect(entity).not.toHaveProperty(key);
+  });
+
+  test("validates an explicitly selected pair of Cover end stops", () => {
+    const { panel, form, original } = openCover({
+      open_command_address: "DB1,X0.0",
+      close_command_address: "DB1,X0.1",
+      cover_position_feedback: "timed",
+    });
+
+    choose(form, "cover_position_feedback", "both");
+    setAddress(form, "opening_state_address", "DB1,X0.2");
+    expect(() => panel.formEntity(form, original, "covers"))
+      .toThrow("Closed-end-stop feedback requires the fully-closed address.");
+    setAddress(form, "closing_state_address", "DB1,X0.3");
+    const entity = panel.formEntity(form, original, "covers");
+    expect(entity).toMatchObject({
+      opening_state_address: "DB1,X0.2",
+      closing_state_address: "DB1,X0.3",
+      use_state_topics: true,
+    });
+
+    choose(form, "cover_position_feedback", "timed");
+    const timed = panel.formEntity(form, original, "covers");
+    expect(timed.use_state_topics).toBe(false);
+    expect(timed).not.toHaveProperty("opening_state_address");
+    expect(timed).not.toHaveProperty("closing_state_address");
+  });
+
+  test("normalizes position feedback and preserves independently usable status mappings", () => {
+    const movement = openCover({
+      position_state_address: "DB1,B0",
+      cover_position_feedback: "timed",
+      cover_status_address: "DB1,B10",
+      cover_status_opening_values: "1",
+      cover_status_closing_values: "2",
+      cover_status_stopped_values: "3",
+    });
+    expect(movement.form.elements.cover_position_feedback.value).toBe("position");
+    expect(movement.form.elements.cover_movement_feedback.value).toBe("status");
+    expect(movement.form.querySelector(
+      'input[name="cover_position_feedback"][value="timed"]',
+    ).closest(".control-card").classList.contains("hidden-field")).toBe(true);
+    expect(movement.form.querySelector(
+      'input[name="cover_position_feedback"][value="position"]',
+    ).closest(".control-card").classList.contains("hidden-field")).toBe(false);
+    const movementEntity = movement.panel.formEntity(
+      movement.form, movement.original, "covers",
+    );
+    expect(movementEntity).toMatchObject({
+      cover_position_feedback: "position",
+      cover_status_address: "DB1,B10",
+      cover_status_opening_values: "1",
+    });
+
+    document.body.replaceChildren();
+    const position = openCover({
+      position_state_address: "DB1,B0",
+      cover_status_address: "DB1,B10",
+      cover_status_open_values: "1",
+      cover_status_closed_values: "2",
+    });
+    expect(position.form.elements.cover_position_feedback.value).toBe("status");
+    expect(position.form.elements.cover_movement_feedback.value).toBe("none");
+    const positionEntity = position.panel.formEntity(
+      position.form, position.original, "covers",
+    );
+    expect(positionEntity).toMatchObject({
+      cover_position_feedback: "status",
+      cover_status_address: "DB1,B10",
+      cover_status_open_values: "1",
+    });
+  });
+
+  test("preserves single legacy end stops and removes disabled position accessories", () => {
+    const opening = openCover({
+      open_command_address: "DB1,X0.0",
+      close_command_address: "DB1,X0.1",
+      opening_state_address: "DB1,X0.2",
+    });
+    expect(opening.form.elements.cover_position_feedback.value).toBe("opening");
+    const opened = opening.panel.formEntity(opening.form, opening.original, "covers");
+    expect(opened.opening_state_address).toBe("DB1,X0.2");
+    expect(opened).not.toHaveProperty("closing_state_address");
+    expect(opened).not.toHaveProperty("use_state_topics");
+
+    document.body.replaceChildren();
+    const accessories = openCover({
+      position_state_address: "DB1,BYTE0",
+      stop_command_address: "DB1,X10.0",
+      stop_pulse_duration: 0.5,
+      tilt_state_address: "DB1,BYTE2",
+      tilt_command_address: "DB1,BYTE4",
+      invert_tilt: true,
+    });
+    choose(accessories.form, "cover_stop_enabled", "disabled");
+    choose(accessories.form, "cover_tilt_enabled", "disabled");
+    const cleaned = accessories.panel.formEntity(
+      accessories.form, accessories.original, "covers",
+    );
+    for (const key of [
+      "stop_command_address", "stop_pulse_duration", "tilt_state_address",
+      "tilt_command_address", "invert_tilt",
+    ]) expect(cleaned).not.toHaveProperty(key);
   });
 
   test("configures coded setpoint modes with PLC action feedback", () => {
