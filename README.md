@@ -254,18 +254,17 @@ Contributions welcome! Please:
 
 ### Development
 
-For local development/testing, install dev dependencies (kept separate from runtime deps):
+Local development requires Python and Node.js. Install both dependency sets and run the backend and panel DOM test suites:
 
 ```bash
-pip install -r requirements_dev.txt
+python -m pip install -r requirements_dev.txt
+npm ci
+
+python -m pytest tests -v
+npm run test:panel
 ```
 
-Run quality checks:
-
-```bash
-ruff check custom_components tests
-pytest -q
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete environment setup, focused test commands, frontend test structure, coverage checks, and pull request guidelines.
 
 This project also uses [pre-commit](https://pre-commit.com/):
 
