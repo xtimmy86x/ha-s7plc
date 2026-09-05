@@ -17,6 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  frontend:
+    name: Panel DOM tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install frontend test dependencies
+        run: npm ci
+
+      - name: Run panel DOM tests
+        run: npm run test:panel
+
   pytest:
     name: Python tests
     runs-on: ubuntu-latest
@@ -40,27 +61,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements_dev.txt
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: npm
-
-      - name: Install frontend test dependencies
-        run: npm ci
-
-      - name: Run panel DOM tests
-        run: npm run test:panel
-          
       - name: Run tests
         run: |
           python -m pytest tests -v \
-            --verbose \
             --cov=custom_components/s7plc \
             --cov-branch \
             --cov-fail-under=78.5 \
             --cov-report=term-missing \
             --cov-report=xml
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v6
         if: always()
