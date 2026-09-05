@@ -2,7 +2,13 @@
 
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { createEntry, createPanel, installPanel } from "./panel-fixture.js";
+import {
+  createEntry,
+  createPanel,
+  getPanelTestHelpers,
+  getTranslations,
+  installPanel,
+} from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback) => callback();
@@ -15,7 +21,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function openSensorEditor(entity = {}) {
+function openSensorEditor(entity = {}, language = "en") {
   const entry = createEntry();
   entry.entities.sensors = [{
     name: "Converted sensor",
@@ -23,6 +29,7 @@ function openSensorEditor(entity = {}) {
     ...entity,
   }];
   const panel = createPanel(entry);
+  panel.panelTranslations = getTranslations(language);
   panel.openEditor(0, "sensors");
   const dialog = document.body.querySelector("ha-dialog");
   const form = dialog.querySelector("form");
@@ -38,6 +45,87 @@ function selectKind(form, kind) {
 }
 
 describe("value conversion editor", () => {
+  test("renders every localized channel with accessible directional controls", () => {
+    const entry = createEntry();
+    const panel = createPanel(entry);
+    panel.panelTranslations = getTranslations("it");
+    const { VALUE_CHANNEL_SPECS: specs } = getPanelTestHelpers();
+    const entities = {
+      sensors: { address: "DB1,REAL0" },
+      numbers: { address: "DB1,REAL0", command_address: "DB1,REAL4" },
+      selects: { address: "DB1,BYTE0" },
+      entity_sync: { address: "DB1,REAL0" },
+      lights: { brightness_state_address: "DB1,BYTE0", brightness_command_address: "DB1,BYTE2" },
+      covers: {
+        position_state_address: "DB1,BYTE0",
+        position_command_address: "DB1,BYTE2",
+        cover_status_address: "DB1,BYTE4",
+        tilt_state_address: "DB1,BYTE6",
+        tilt_command_address: "DB1,BYTE8",
+      },
+      climates: {
+        current_temperature_address: "DB1,REAL0",
+        target_temperature_address: "DB1,REAL4",
+        preset_mode_address: "DB1,BYTE8",
+        preset_mode_bidirectional: true,
+        hvac_status_address: "DB1,BYTE10",
+      },
+    };
+    const expectedTitles = {
+      sensor_value: "Conversione valore sensore",
+      number_value: "Conversione valore number",
+      select_value: "Conversione valore select",
+      sync_value: "Conversione valore sincronizzato",
+      brightness: "Conversione luminosità",
+      position: "Conversione posizione",
+      tilt: "Conversione tilt",
+      cover_status: "Conversione stato cover",
+      current_temperature: "Conversione temperatura corrente",
+      target_temperature: "Conversione temperatura target",
+      preset_mode: "Conversione modalità preset",
+      hvac_status: "Conversione stato HVAC",
+    };
+    const rendered = {};
+    for (const [type, channels] of Object.entries(specs)) {
+      for (const spec of channels) {
+        const template = document.createElement("template");
+        template.innerHTML = panel.valueConversionRow(type, entities[type], spec);
+        rendered[spec.label] = template.content.firstElementChild;
+      }
+    }
+
+    expect(Object.keys(rendered).sort()).toEqual(Object.keys(expectedTitles).sort());
+    for (const [channel, title] of Object.entries(expectedTitles)) {
+      const row = rendered[channel];
+      expect(row.textContent).toContain(title);
+      expect(row.querySelector("summary").getAttribute("aria-describedby")).toMatch(/^vc_/);
+      expect(row.querySelector("summary").getAttribute("aria-expanded")).toBe("false");
+    }
+    expect(rendered.position.textContent).not.toContain("Position");
+    expect(rendered.position.textContent).not.toContain("None");
+    expect(rendered.sensor_value.textContent).toContain("Il valore letto dal PLC");
+    expect(rendered.sync_value.textContent).toContain("Il valore di Home Assistant");
+    expect(rendered.position.textContent).toContain("indirizzo di stato");
+    expect(rendered.target_temperature.textContent).toContain("stesso indirizzo PLC");
+    expect(rendered.position.querySelector('[data-conversion-direction="read"]')).not.toBeNull();
+    expect(rendered.position.querySelector('[data-conversion-direction="write"]')).not.toBeNull();
+
+    expect([
+      null,
+      { type: "multiplier", factor: 5 },
+      { type: "linear_scale", plc_min: 0, plc_max: 27648, ha_min: 0, ha_max: 100 },
+      { type: "expression" },
+    ].map((value) => panel.valueConversionSummary(value))).toEqual([
+      "Nessuna",
+      "Moltiplicatore × 5",
+      "Scala 0–27648 → 0–100",
+      "Espressione personalizzata",
+    ]);
+    expect(["", "DB1,REAL0", "DB1,REAL4"].map((write) => (
+      panel.valueConversionDirection("DB1,REAL0", write)
+    ))).toEqual(["read", "bidirectional_same", "bidirectional_distinct"]);
+  });
+
   test("configures and serializes a multiplier through the real form", () => {
     const { entry, panel, form, row } = openSensorEditor();
 
@@ -74,6 +162,44 @@ describe("value conversion editor", () => {
       ha_max: 50,
       clamp: true,
     });
+  });
+
+  test("renders and summarizes linear-scale clamp as a strict boolean", () => {
+    const open = (clamp) => openSensorEditor({
+      value_conversions: {
+        value: {
+          type: "linear_scale",
+          plc_min: 0,
+          plc_max: 1000,
+          ha_min: 0,
+          ha_max: 100,
+          ...(clamp === undefined ? {} : { clamp }),
+        },
+      },
+    }, "it");
+
+    const truthy = open(true);
+    expect(truthy.row.querySelector(".conversion-clamp")).not.toBeNull();
+    expect(truthy.form.elements.vc_value_clamp.checked).toBe(true);
+    expect(truthy.row.textContent).toContain("Limita il risultato all’intervallo configurato");
+    expect(truthy.row.textContent).toContain("I valori inferiori o superiori");
+    expect(truthy.panel.valueConversionSummary(
+      truthy.entry.entities.sensors[0].value_conversions.value,
+    )).toBe("Scala 0–1000 → 0–100 · Limitata");
+
+    document.body.replaceChildren();
+    const falsey = open(false);
+    expect(falsey.form.elements.vc_value_clamp.checked).toBe(false);
+    expect(falsey.panel.valueConversionSummary(
+      falsey.entry.entities.sensors[0].value_conversions.value,
+    )).toBe("Scala 0–1000 → 0–100");
+
+    document.body.replaceChildren();
+    const missing = open(undefined);
+    expect(missing.form.elements.vc_value_clamp.checked).toBe(false);
+    expect(["0", "false", "anything", "1", "true"].map((value) => (
+      missing.panel.checkboxValue(value)
+    ))).toEqual([false, false, false, true, true]);
   });
 
   test("keeps read and write expressions directional", () => {

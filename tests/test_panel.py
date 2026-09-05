@@ -2,8 +2,6 @@
 
 import json
 import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -24,7 +22,6 @@ from custom_components.s7plc.panel import (
 )
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
-PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
 
 
 def test_panel_action_controls_share_height_and_normalize_only_plc_selects() -> None:
@@ -2142,62 +2139,6 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     )
     assert "(100vw - 900px)*.134" not in page_styles
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_value_conversion_editor_is_localized_directional_and_accessible() -> None:
-    """Every logical channel has one translated, directional conversion editor."""
-    script = r'''
-const vm=require("vm"),fs=require("fs");let Panel;
-const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
-vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
-const it=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
-const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],it)??key;
-const specs=vm.runInContext('VALUE_CHANNEL_SPECS',context), rows={};
-const entities={
- sensors:{address:'DB1,REAL0'},numbers:{address:'DB1,REAL0',command_address:'DB1,REAL4'},selects:{address:'DB1,BYTE0'},entity_sync:{address:'DB1,REAL0'},lights:{brightness_state_address:'DB1,BYTE0',brightness_command_address:'DB1,BYTE2'},covers:{position_state_address:'DB1,BYTE0',position_command_address:'DB1,BYTE2',cover_status_address:'DB1,BYTE4',tilt_state_address:'DB1,BYTE6',tilt_command_address:'DB1,BYTE8'},climates:{current_temperature_address:'DB1,REAL0',target_temperature_address:'DB1,REAL4',preset_mode_address:'DB1,BYTE8',preset_mode_bidirectional:true,hvac_status_address:'DB1,BYTE10'}};
-for(const [type,list] of Object.entries(specs))for(const spec of list)rows[spec.label]=panel.valueConversionRow(type,entities[type],spec);
-const summaries=[null,{type:'multiplier',factor:5},{type:'linear_scale',plc_min:0,plc_max:27648,ha_min:0,ha_max:100},{type:'expression'}].map(v=>panel.valueConversionSummary(v));
-console.log(JSON.stringify({rows,summaries,directions:['', 'DB1,REAL0', 'DB1,REAL4'].map(write=>panel.valueConversionDirection('DB1,REAL0',write))}));'''
-    result = json.loads(subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT),
-         "custom_components/s7plc/translations/it.json"],
-        check=True, capture_output=True, text=True,
-    ).stdout)
-    expected_titles = {
-        "sensor_value": "Conversione valore sensore",
-        "number_value": "Conversione valore number",
-        "select_value": "Conversione valore select",
-        "sync_value": "Conversione valore sincronizzato",
-        "brightness": "Conversione luminosità",
-        "position": "Conversione posizione",
-        "tilt": "Conversione tilt",
-        "cover_status": "Conversione stato cover",
-        "current_temperature": "Conversione temperatura corrente",
-        "target_temperature": "Conversione temperatura target",
-        "preset_mode": "Conversione modalità preset",
-        "hvac_status": "Conversione stato HVAC",
-    }
-    assert set(result["rows"]) == set(expected_titles)
-    for channel, title in expected_titles.items():
-        assert title in result["rows"][channel]
-        assert 'aria-describedby="vc_' in result["rows"][channel]
-        assert 'aria-expanded="false"' in result["rows"][channel]
-    assert "Position" not in result["rows"]["position"]
-    assert ">None<" not in result["rows"]["position"]
-    assert result["summaries"] == [
-        "Nessuna", "Moltiplicatore × 5", "Scala 0–27648 → 0–100",
-        "Espressione personalizzata",
-    ]
-    assert all("Scale" not in value and "Custom expression" not in value
-               for value in result["summaries"])
-    assert result["directions"] == ["read", "bidirectional_same", "bidirectional_distinct"]
-    assert "Il valore letto dal PLC" in result["rows"]["sensor_value"]
-    assert "Il valore di Home Assistant" in result["rows"]["sync_value"]
-    assert "indirizzo di stato" in result["rows"]["position"]
-    assert "stesso indirizzo PLC" in result["rows"]["target_temperature"]
-    assert "data-conversion-direction=\"read\"" in result["rows"]["position"]
-    assert "data-conversion-direction=\"write\"" in result["rows"]["position"]
-
-
 def test_value_conversion_translations_and_responsive_layout_are_complete() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     required = {
@@ -2251,37 +2192,6 @@ def test_expression_guidance_translations_and_documentation_are_complete() -> No
         assert formula in docs
     assert "does not derive or automatically invert" in docs
     assert "[Value Conversions](docs/value-conversions.md)" in readme
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
-def test_linear_scale_clamp_editor_presentation_and_semantics() -> None:
-    """Clamp is a responsive, accessible full-row option with strict booleans."""
-    script = r'''
-const vm=require("vm"),fs=require("fs");let Panel;
-const context={HTMLElement:class{},customElements:{get(){},define:(_,cls)=>Panel=cls}};
-vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),context);
-const translations=JSON.parse(fs.readFileSync(process.argv[2],"utf8")).config_panel;
-const panel=new Panel();panel.escape=v=>String(v??"");panel.t=key=>key.split('.').reduce((o,k)=>o?.[k],translations)??key;
-const spec={channel:'value',label:'number_value',read:'address',write:'command_address'};
-const row=clamp=>panel.valueConversionRow('numbers',{address:'DB1,REAL0',command_address:'DB1,REAL4',value_conversions:{value:{type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,...clamp}}},spec);
-console.log(JSON.stringify({truthy:row({clamp:true}),falsey:row({clamp:false}),missing:row({}),strings:['0','false','anything','1','true'].map(value=>panel.checkboxValue(value)),summaries:[true,false,undefined].map(clamp=>panel.valueConversionSummary({type:'linear_scale',plc_min:0,plc_max:1000,ha_min:0,ha_max:100,clamp}))}));'''
-    result = json.loads(subprocess.run(
-        ["node", "-e", script, str(PANEL_JAVASCRIPT),
-         "custom_components/s7plc/translations/it.json"],
-        check=True, capture_output=True, text=True,
-    ).stdout)
-    assert 'class="conversion-clamp"' in result["truthy"]
-    assert '<input name="vc_value_clamp" type="checkbox" checked>' in result["truthy"]
-    assert "Limita il risultato all’intervallo configurato" in result["truthy"]
-    assert "I valori inferiori o superiori" in result["truthy"]
-    assert "type=\"checkbox\" checked" not in result["falsey"]
-    assert "type=\"checkbox\" checked" not in result["missing"]
-    assert result["strings"] == [False, False, False, True, True]
-    assert result["summaries"] == [
-        "Scala 0–1000 → 0–100 · Limitata",
-        "Scala 0–1000 → 0–100",
-        "Scala 0–1000 → 0–100",
-    ]
-
 
 def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
     """Every locale includes clamp feedback and CSS covers mobile/Safari."""
