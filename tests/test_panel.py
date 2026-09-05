@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -25,6 +26,41 @@ from custom_components.s7plc.panel import (
 
 PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 PANEL_LOADER = "require(\"vm\").runInThisContext(require(\"fs\").readFileSync(\"custom_components/s7plc/www/s7plc-panel.js\",\"utf8\"));"
+
+
+class _PanelDOMParser(HTMLParser):
+    """Build the small element tree needed for panel markup assertions."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.root = {"tag": "root", "attrs": {}, "children": []}
+        self.stack = [self.root]
+
+    def handle_starttag(self, tag, attrs) -> None:
+        node = {"tag": tag, "attrs": dict(attrs), "children": []}
+        self.stack[-1]["children"].append(node)
+        if tag not in {"input"}:
+            self.stack.append(node)
+
+    def handle_endtag(self, tag) -> None:
+        if len(self.stack) > 1 and self.stack[-1]["tag"] == tag:
+            self.stack.pop()
+
+
+def _panel_dom(markup):
+    parser = _PanelDOMParser()
+    parser.feed(markup)
+    return parser.root
+
+
+def _dom_find(node, class_name):
+    classes = node["attrs"].get("class", "").split()
+    if class_name in classes:
+        return node
+    return next(
+        (match for child in node["children"] if (match := _dom_find(child, class_name))),
+        None,
+    )
 
 
 def test_panel_action_controls_share_height_and_normalize_only_plc_selects() -> None:
@@ -80,9 +116,12 @@ def test_category_navigation_markup_and_styles() -> None:
     assert "single-row-category-mode" in source
     assert "wrapped-category-mode" in source
     assert "compact-category-mode" in source
-    assert ".category-mode-pending>.category-tabs{visibility:hidden}" in source
-    assert ".wrapped-category-mode>.category-tabs{flex-wrap:wrap;overflow:visible;row-gap:8px" in source
-    assert ".compact-category-mode>.category-tabs{display:none}" in source
+    assert ".category-mode-pending>.category-navigation{visibility:hidden}" in source
+    assert ".category-navigation{position:relative;padding:6px 2px 8px}" in source
+    assert ".wrapped-category-mode .category-tabs{flex-wrap:wrap;overflow:visible;row-gap:8px" in source
+    assert ".compact-category-mode .category-tabs{display:none}" in source
+    assert ".compact-category-mode .category-menu-toggle{display:flex}" in source
+    assert ".toolbar{justify-content:space-between;margin:10px 0 4px" in source
     assert "scrollbar-width:none" in source
     assert ".category-tabs::-webkit-scrollbar{width:0;height:0;display:none}" in source
     assert "overflow-x:auto;overflow-y:hidden" in source
@@ -91,6 +130,59 @@ def test_category_navigation_markup_and_styles() -> None:
     assert "data-category-selector" not in source
     assert ">Categoria<" not in source
     assert "category-arrow" not in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_layout_toggle_precedes_category_content_in_both_views() -> None:
+    """Changing layouts keeps the toggle row above view-specific content."""
+    script = f'''global.HTMLElement=class {{}};global.customElements={{get(){{}},define(){{}}}};
+global.document={{createElement:()=>{{let value="";return {{set textContent(next){{value=String(next);}},get innerHTML(){{return value;}}}};}}}};
+{PANEL_LOADER}
+const entities=Object.fromEntries(TYPES.map(type=>[type,[]]));
+const entry={{entities,entity_ids:{{}},selector_options:{{}}}};
+const panel=new S7PlcConfigurationPanel();panel.t=key=>key;panel.bt=key=>key;
+panel.fieldText=(_type,key)=>key;panel.selectedIndices=new Set();panel.expandedSections=new Set();
+panel._viewMode="tabs";const tabs=panel.renderTabsView(entry,TYPES[0]);
+panel._viewMode="sections";const sections=panel._renderSectionsView(entry);
+console.log(JSON.stringify({{tabs,sections}}));'''
+    markup = json.loads(
+        subprocess.run(
+            ["node", "-"], input=script, check=True, capture_output=True, text=True
+        ).stdout
+    )
+
+    tabs = _panel_dom(markup["tabs"])
+    category_layout = _dom_find(tabs, "category-layout")
+    category_children = category_layout["children"]
+    assert [child["attrs"].get("class") for child in category_children] == [
+        "toolbar",
+        "category-navigation",
+        None,
+    ]
+    toolbar, navigation = category_children[:2]
+    assert _dom_find(toolbar, "category-menu-toggle") is None
+    assert _dom_find(toolbar, "category-tabs") is None
+    assert [child["attrs"].get("class") for child in navigation["children"]] == [
+        "category-tabs",
+        "category-menu-toggle",
+        "category-menu",
+    ]
+    assert category_children[-1]["tag"] == "main"
+    assert category_children[-1]["children"][0]["attrs"].get("class") == "cards"
+
+    sections = _panel_dom(markup["sections"])
+    sections_children = sections["children"]
+    assert [child["attrs"].get("class") for child in sections_children] == [
+        "sections-toolbar",
+        "entity-sections",
+    ]
+    assert _dom_find(sections, "category-tabs") is None
+
+    for dom in (tabs, sections):
+        toggle = _dom_find(dom, "layout-toggle")
+        actions = _dom_find(dom, "toolbar-actions")
+        assert toggle is not None
+        assert actions["children"][0] is toggle
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
