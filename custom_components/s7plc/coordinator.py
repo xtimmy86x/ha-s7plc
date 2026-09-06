@@ -4,6 +4,7 @@ import asyncio
 import logging
 import struct
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, Callable, TypeVar
 
@@ -86,6 +87,17 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._enable_write_batching = bool(enable_write_batching)
         self._enable_metrics = bool(enable_metrics)
         self._connection_enabled = bool(connection_enabled)
+        self._shutdown = False
+        self._shutdown_task: asyncio.Task[None] | None = None
+        self._lifecycle_lock = asyncio.Lock()
+        # Unlike pyS7's packet lock, this covers the complete write/retry and
+        # cancellation cleanup, so the next write cannot reuse an aborted stream.
+        self._write_io_lock = asyncio.Lock()
+        self._writes_stopping = False
+        # Task-local epochs also protect immediate/service writes across retries.
+        self._write_tasks: dict[asyncio.Task, int] = {}
+        self._write_completions: dict[asyncio.Task, asyncio.Future[None]] = {}
+        self._flush_tasks: set[asyncio.Task] = set()
         # Wakes retry backoffs immediately when manual control is changed.
         self._connection_state_changed = asyncio.Event()
         # Lock for async operations (state management)
@@ -210,31 +222,47 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _raise_if_connection_disabled(self) -> None:
         """Reject PLC I/O without allowing it to reconnect."""
+        if self._shutdown:
+            raise HomeAssistantError("PLC coordinator is shut down")
         if not self._connection_enabled:
             raise HomeAssistantError("PLC connection is manually disabled")
+        if (
+            self._writes_stopping
+            or self._write_tasks.get(
+                asyncio.current_task(), self._write_batch_generation
+            )
+            != self._write_batch_generation
+        ):
+            raise HomeAssistantError("PLC connection was disconnected")
 
     async def async_enable_connection(self) -> None:
         """Allow communication and immediately request a connection attempt."""
-        if self._connection_enabled:
-            return
-        self._connection_enabled = True
-        self._connection_state_changed.set()
-        self._connection_state_changed.clear()
-        self.async_set_updated_data(dict(self._data_cache))
+        async with self._lifecycle_lock:
+            if self._shutdown:
+                raise HomeAssistantError("PLC coordinator is shut down")
+            if self._writes_stopping:
+                raise HomeAssistantError("PLC writes have not finished stopping")
+            if self._connection_enabled:
+                return
+            self._connection_enabled = True
+            self._connection_state_changed.set()
+            self._connection_state_changed.clear()
+            self.async_set_updated_data(dict(self._data_cache))
         await self.async_request_refresh()
 
     async def async_disable_connection(self) -> None:
         """Stop retries, pending writes and the active PLC connection."""
         self._connection_enabled = False
         self._connection_state_changed.set()
-        async with self._async_lock:
-            self._write_batch_generation += 1
-            self._cancel_write_batches_locked(
+        async with self._lifecycle_lock:
+            # Reassert after acquiring the lock: an enable may have preceded us.
+            self._connection_enabled = False
+            self._connection_state_changed.set()
+            await self._stop_writes(
                 HomeAssistantError("PLC connection is manually disabled")
             )
-        await self._drop_connection()
-        self._last_health_ok = False
-        self.async_set_updated_data(dict(self._data_cache))
+            self._last_health_ok = False
+            self.async_set_updated_data(dict(self._data_cache))
 
     async def _drop_connection(self) -> None:
         """Safely close PLC connection, tolerant of concurrent disconnects.
@@ -285,9 +313,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._client.is_connected:
             try:
                 await self._client.connect()
-                if not self._connection_enabled:
-                    await self._drop_connection()
+                try:
                     self._raise_if_connection_disabled()
+                except HomeAssistantError:
+                    await self._drop_connection()
+                    raise
                 if self._local_tsap and self._remote_tsap:
                     _LOGGER.info(
                         "Connected to S7 PLC %s (TSAP %s/%s)",
@@ -442,12 +472,88 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def disconnect(self) -> None:
         """Close the PLC connection and cancel pending writes."""
-        async with self._async_lock:
-            self._write_batch_generation += 1
-            self._cancel_write_batches_locked(
+        async with self._lifecycle_lock:
+            await self._stop_writes(
                 HomeAssistantError("PLC connection was disconnected")
             )
-        await self._drop_connection()
+
+    async def _stop_writes(self, error: HomeAssistantError) -> None:
+        """Drain invalidated writes; caller holds only the lifecycle lock."""
+        self._writes_stopping = True
+        self._connection_state_changed.set()
+        async with self._async_lock:
+            self._write_batch_generation += 1
+            self._cancel_write_batches_locked(error)
+        operations = {
+            task: done
+            for task, done in self._write_completions.items()
+            if task is not asyncio.current_task()
+        }
+        # For entity/service callers, wait for the write scope, not their whole
+        # task: a caller may continue unrelated work after handling a write error.
+        owned_tasks = self._flush_tasks - {asyncio.current_task()}
+        completions = set(operations.values()) | owned_tasks
+        completions = {done for done in completions if not done.done()}
+        if completions:
+            _, pending = await asyncio.wait(completions, timeout=self._op_timeout)
+            if pending:
+                # pyS7.disconnect also acquires its I/O lock. Bound this attempt
+                # before cancelling writes, then close again once locks release.
+                try:
+                    await asyncio.wait_for(self._drop_connection(), self._op_timeout)
+                except TimeoutError:
+                    _LOGGER.debug("Disconnect waiting for active PLC writes")
+                cancellable = owned_tasks | {
+                    task for task, done in operations.items() if not done.done()
+                }
+                for task in cancellable:
+                    if not task.done():
+                        task.cancel()
+                _, pending = await asyncio.wait(pending, timeout=self._op_timeout)
+                if pending:
+                    # Do not reopen or report successful unload with live writes.
+                    raise HomeAssistantError("PLC write tasks did not stop")
+            await asyncio.gather(*completions, return_exceptions=True)
+        await asyncio.wait_for(self._drop_connection(), self._op_timeout)
+        self._writes_stopping = False
+        if self._connection_enabled and not self._shutdown:
+            self._connection_state_changed.clear()
+
+    @asynccontextmanager
+    async def _write_operation(self, *, serialize: bool = False):
+        """Own a write task and preserve its epoch through nested write calls."""
+        self._raise_if_connection_disabled()
+        task = asyncio.current_task()
+        owner = task not in self._write_tasks
+        if owner:
+            self._write_tasks[task] = self._write_batch_generation
+            self._write_completions[task] = asyncio.get_running_loop().create_future()
+        try:
+            if serialize:
+                async with self._write_io_lock:
+                    self._raise_if_connection_disabled()
+                    try:
+                        yield
+                    except asyncio.CancelledError:
+                        if not self._writes_stopping:
+                            # A direct cancellation can leave a response unread.
+                            # Reset the transport before allowing another write.
+                            try:
+                                await asyncio.wait_for(
+                                    self._drop_connection(), self._op_timeout
+                                )
+                            except TimeoutError:
+                                self._writes_stopping = True
+                                _LOGGER.error(
+                                    "PLC disconnect timed out after write cancellation"
+                                )
+                        raise
+            else:
+                yield
+        finally:
+            if owner:
+                self._write_tasks.pop(task, None)
+                self._write_completions.pop(task).set_result(None)
 
     def _cancel_write_batches_locked(self, error: HomeAssistantError) -> None:
         """Cancel queued and in-flight batch waiters while holding the lock."""
@@ -471,9 +577,27 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     waiter.set_exception(error)
 
     async def async_shutdown(self) -> None:
-        """Cancel all communication before the coordinator is unloaded."""
-        await self.async_disable_connection()
-        await super().async_shutdown()
+        """Permanently stop communication, even if an unload caller is cancelled."""
+        if self._shutdown_task is None:
+            self._shutdown = True
+            self._connection_enabled = False
+            self._connection_state_changed.set()
+            self._shutdown_task = asyncio.create_task(self._finish_shutdown())
+            self._shutdown_task.add_done_callback(self._consume_task_result)
+        await asyncio.shield(self._shutdown_task)
+
+    async def _finish_shutdown(self) -> None:
+        async with self._lifecycle_lock:
+            await self._stop_writes(HomeAssistantError("PLC coordinator is shut down"))
+            self._last_health_ok = False
+            await super().async_shutdown()
+
+    @staticmethod
+    def _consume_task_result(task: asyncio.Task) -> None:
+        if not task.cancelled():
+            error = task.exception()
+            if error is not None:
+                _LOGGER.error("PLC background task failed: %s", error)
 
     # -------------------------
     # Address management
@@ -613,9 +737,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 # Ensure connection before each attempt
                 await self._ensure_connected()
+                self._raise_if_connection_disabled()
                 result = func(*args, **kwargs)
                 if asyncio.iscoroutine(result):
-                    return await result
+                    result = await result
+                self._raise_if_connection_disabled()
                 return result
             except (S7CommunicationError, S7ConnectionError) as e:
                 # S7-specific communication errors (most common)
@@ -686,6 +812,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 await self._drop_connection()
 
+            self._raise_if_connection_disabled()
             # Check if we should retry
             if attempt == self._max_retries:
                 break
@@ -739,7 +866,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             UpdateFailed: On connection or read errors
         """
-        if not self._connection_enabled:
+        if self._shutdown or not self._connection_enabled or self._writes_stopping:
             return dict(self._data_cache)
         start_time = time.monotonic()
         now = start_time
@@ -1102,18 +1229,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.hass.loop is not None:
                 self._write_batch_timer = self.hass.loop.call_later(
                     self._write_batch_delay,
-                    lambda: self.hass.async_create_background_task(
-                        self._flush_write_batch(),
-                        name=f"s7plc_flush_batch_{self._host}",
+                    lambda generation=self._write_batch_generation: (
+                        self._start_write_flush(generation)
                     ),
                 )
             else:
                 # Fallback: execute immediately if loop unavailable (shutdown)
                 _LOGGER.debug("Event loop unavailable, executing write immediately")
-                self.hass.async_create_background_task(
-                    self._flush_write_batch(),
-                    name=f"s7plc_flush_batch_{self._host}",
-                )
+                self._start_write_flush(self._write_batch_generation)
 
         try:
             success = await asyncio.wait_for(
@@ -1121,11 +1244,88 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         except asyncio.TimeoutError as err:
             raise HomeAssistantError(f"S7 PLC write timed out for {address}") from err
+        finally:
+            # Remove only this caller; never cancel a shared write on timeout.
+            for groups in (
+                self._write_batch_waiters,
+                *self._write_batch_inflight_waiters.values(),
+            ):
+                address_waiters = groups.get(address, [])
+                if waiter in address_waiters:
+                    address_waiters.remove(waiter)
         if not success:
             raise HomeAssistantError(f"S7 PLC write failed for {address}")
 
+    def _start_write_flush(self, generation: int) -> None:
+        """Own the task before it can run, including cancelled-before-start tasks."""
+        if (
+            self._shutdown
+            or not self._connection_enabled
+            or self._writes_stopping
+            or generation != self._write_batch_generation
+        ):
+            return
+        started = False
+
+        async def run():
+            nonlocal started
+            started = True
+            # A queued task may start after disconnect and a subsequent enable.
+            if generation == self._write_batch_generation:
+                await self._flush_write_batch()
+
+        def done(task):
+            self._flush_tasks.discard(task)
+            if not started and task.cancelled():
+                self._fail_queued_flush(generation)
+            self._consume_task_result(task)
+
+        task = self.hass.async_create_background_task(
+            run(), name=f"s7plc_flush_batch_{self._host}"
+        )
+        self._flush_tasks.add(task)
+        task.add_done_callback(done)
+
+    def _fail_queued_flush(self, generation: int) -> None:
+        """Fail only queued work if its flush was cancelled before snapshotting.
+
+        No awaits: state mutations are atomic on the HA event loop, like the
+        snapshot's critical section. Other in-flight batches are unaffected.
+        """
+        if generation != self._write_batch_generation:
+            return
+        if self._write_batch_timer is not None:
+            self._write_batch_timer.cancel()
+        self._write_batch_timer = None
+        waiters = self._write_batch_waiters
+        self._write_batch_waiters = {}
+        self._write_batch_buffer.clear()
+        self._fail_write_waiters(waiters)
+
+    @staticmethod
+    def _fail_write_waiters(waiters) -> None:
+        for group in waiters.values():
+            for waiter in group:
+                if not waiter.done():
+                    waiter.set_exception(HomeAssistantError("PLC write was cancelled"))
+
     async def _flush_write_batch(self) -> None:
         """Flush accumulated writes to PLC using write_multi."""
+        generation = self._write_batch_generation
+        queued_waiters = self._write_batch_waiters
+        try:
+            async with self._write_operation():
+                await self._flush_write_batch_impl()
+        except asyncio.CancelledError:
+            # Covers cancellation while waiting for the snapshot lock, too.
+            if queued_waiters is self._write_batch_waiters:
+                self._fail_queued_flush(generation)
+            raise
+        except HomeAssistantError:
+            # A stop already resolved the callers; no shutdown notification.
+            return
+
+    async def _flush_write_batch_impl(self) -> None:
         async with self._async_lock:
             if not self._write_batch_buffer:
                 return
@@ -1139,6 +1339,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._write_batch_buffer.clear()
             self._write_batch_waiters = {}
             self._write_batch_inflight_waiters[flush_id] = waiters
+            if self._write_batch_timer is not None:
+                self._write_batch_timer.cancel()
             self._write_batch_timer = None
 
         results: dict[str, bool] = {}
@@ -1206,6 +1408,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         current_time - self._last_write_error_notification,
                     )
 
+        except asyncio.CancelledError:
+            self._fail_write_waiters(waiters)
+            raise
         except HomeAssistantError:
             # Manual disable/disconnect already completed pending callers with
             # the precise error and must not produce a notification or retry.
@@ -1235,8 +1440,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             results = {address: False for address, _ in writes}
 
         finally:
-            async with self._async_lock:
-                self._write_batch_inflight_waiters.pop(flush_id, None)
+            self._write_batch_inflight_waiters.pop(flush_id, None)
 
         for address, address_waiters in waiters.items():
             success = bool(results.get(address, False))
@@ -1261,6 +1465,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._ensure_connected()
             await self._retry(lambda: self._client.write([tag], [payload]))
             return True
+        except HomeAssistantError:
+            raise
         except (
             OSError,
             RuntimeError,
@@ -1357,7 +1563,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._raise_if_connection_disabled()
         tag = self._get_or_parse_tag(address)
         payload = self._prepare_payload(tag, value, address)
-        return await self._write_with_retry(address, tag, payload)
+        async with self._write_operation(serialize=True):
+            return await self._write_with_retry(address, tag, payload)
 
     def _prepare_payload(
         self,
@@ -1483,11 +1690,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Execute batch write
         if tags:
             try:
-                await self._ensure_connected()
-                await self._retry(lambda: self._client.write(tags, payloads))
+                async with self._write_operation(serialize=True):
+                    await self._ensure_connected()
+                    await self._retry(lambda: self._client.write(tags, payloads))
                 # Mark all as successful
                 for addr in addresses:
                     results[addr] = True
+            except HomeAssistantError:
+                raise
             except (
                 OSError,
                 RuntimeError,
