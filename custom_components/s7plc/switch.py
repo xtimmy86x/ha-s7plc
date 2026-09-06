@@ -91,7 +91,6 @@ class S7ConnectionControlSwitch(CoordinatorEntity, SwitchEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "connection_enable"
     _attr_device_class = SwitchDeviceClass.SWITCH
-    _attr_available = True
     _attr_should_poll = False
 
     def __init__(self, coordinator, device_info: DeviceInfo, unique_id: str, store):
@@ -99,6 +98,11 @@ class S7ConnectionControlSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = unique_id
         self._attr_device_info = device_info
         self._store = store
+
+    @property
+    def available(self) -> bool:
+        """Keep connection control available when the PLC is offline."""
+        return True
 
     @property
     def is_on(self) -> bool:

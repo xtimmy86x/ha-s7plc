@@ -77,7 +77,7 @@ async def test_real_setup_restores_connection_control_state(
     )
     assert coordinator.connection_enabled is expected_enabled
     assert control.is_on is expected_enabled
-    assert control._attr_available is True
+    assert control.available is True
     assert coordinator._client is None
     assert ensure_connected.await_count == expected_connects
     assert coordinator._write_batch_timer is None
@@ -158,7 +158,7 @@ async def test_control_switch_created_without_normal_switches(fake_hass):
     assert isinstance(control, S7ConnectionControlSwitch)
     assert control._attr_unique_id == "test-device:connection_enable"
     assert control._attr_device_info == device_info
-    assert control._attr_available is True
+    assert control.available is True
 
 
 @pytest.mark.asyncio
@@ -219,7 +219,7 @@ async def test_entities_availability_when_manually_disabled(fake_hass):
     control = S7ConnectionControlSwitch(
         coordinator, {}, "device:connection_enable", None
     )
-    assert control._attr_available is True
+    assert control.available is True
     assert control.is_on is False
 
 
