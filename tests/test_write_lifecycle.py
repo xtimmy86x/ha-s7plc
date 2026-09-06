@@ -36,8 +36,8 @@ def make_coordinator():
 
 
 def assert_clean(coord):
-    assert not coord._write_tasks
-    assert not coord._write_completions
+    assert not coord._io_tasks
+    assert not coord._io_completions
     assert not coord._flush_tasks
     assert not coord._write_batch_buffer
     assert not coord._write_batch_inflight_waiters
@@ -160,10 +160,7 @@ async def test_stop_waits_for_natural_io_completion_without_late_success(stop):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("disconnect_timeout", [False, True])
-async def test_shutdown_deadline_disconnects_then_cancels_and_drains(
-    monkeypatch, disconnect_timeout
-):
+async def test_shutdown_deadline_cancels_and_drains_before_disconnect(monkeypatch):
     coord, scheduler, tasks, client = make_coordinator()
     entered = asyncio.Event()
     order = []
@@ -181,16 +178,6 @@ async def test_shutdown_deadline_disconnects_then_cancels_and_drains(
 
     client.write.side_effect = write
     client.disconnect.side_effect = disconnect
-    if disconnect_timeout:
-        real_drop = coord._drop_connection
-
-        async def blocked_first_drop():
-            if not order:
-                order.append("disconnect")
-                raise TimeoutError  # disconnect waiting for pyS7's I/O lock
-            await real_drop()
-
-        coord._drop_connection = blocked_first_drop
     real_wait = asyncio.wait
     waits = 0
 
@@ -210,8 +197,53 @@ async def test_shutdown_deadline_disconnects_then_cancels_and_drains(
     with pytest.raises(HomeAssistantError, match="shut down"):
         await caller
     assert tasks[0].cancelled()
-    assert order == ["disconnect", "write-ended", "disconnect"]
+    assert order == ["write-ended", "disconnect"]
     assert_clean(coord)
+
+
+@pytest.mark.asyncio
+async def test_shutdown_drains_direct_multi_write_error_cleanup(monkeypatch):
+    coord, _, _, client = make_coordinator()
+    entered, released = asyncio.Event(), asyncio.Event()
+    finished = asyncio.Event()
+    disconnects = 0
+
+    async def disconnect():
+        nonlocal disconnects
+        disconnects += 1
+        if disconnects == 1:
+            entered.set()
+            try:
+                await released.wait()
+            finally:
+                finished.set()
+        client.is_connected = False
+
+    # An unexpected driver error reaches write_multi's final cleanup handler.
+    client.write.side_effect = ValueError("invalid driver response")
+    client.disconnect.side_effect = disconnect
+    real_wait = asyncio.wait
+    expired = False
+
+    async def controlled_wait(fs, *, timeout):
+        nonlocal expired
+        if not expired:
+            expired = True
+            return set(), set(fs)
+        return await real_wait(fs, timeout=timeout)
+
+    monkeypatch.setattr(asyncio, "wait", controlled_wait)
+    caller = asyncio.create_task(coord.write_multi([("DB1,W0", 1)]))
+    await entered.wait()
+    try:
+        await coord.async_shutdown()
+        assert finished.is_set()
+        assert caller.cancelled()
+        assert disconnects == 2
+        assert_clean(coord)
+    finally:
+        released.set()
+        await asyncio.gather(caller, return_exceptions=True)
 
 
 @pytest.mark.asyncio
@@ -289,7 +321,7 @@ async def test_shutdown_drains_nonbatched_and_service_writes(batching):
     try:
         assert coord._shutdown
         assert not shutdown.done()
-        assert caller in coord._write_tasks
+        assert caller in coord._io_tasks
     finally:
         release.set()
         with pytest.raises(HomeAssistantError, match="shut down"):
