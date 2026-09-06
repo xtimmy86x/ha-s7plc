@@ -38,11 +38,11 @@ def make_coordinator():
 def assert_clean(coord):
     assert not coord._io_tasks
     assert not coord._io_completions
-    assert not coord._flush_tasks
-    assert not coord._write_batch_buffer
-    assert not coord._write_batch_inflight_waiters
-    assert not coord._write_batch_waiters
-    assert coord._write_batch_timer is None
+    assert not coord._write_manager._flush_tasks
+    assert not coord._write_manager._buffer
+    assert not coord._write_manager._inflight_waiters
+    assert not coord._write_manager._waiters
+    assert coord._write_manager._timer is None
 
 
 @pytest.mark.asyncio
@@ -399,7 +399,7 @@ async def test_cancel_inflight_resolves_its_waiters_not_the_next_batch():
     with pytest.raises(HomeAssistantError, match="cancelled"):
         await first
     assert not second.done()
-    assert coord._write_batch_buffer == {"DB1,W2": 2}
+    assert coord._write_manager._buffer == {"DB1,W2": 2}
     client.disconnect.assert_awaited_once()
     scheduler.timers[-1].fire()
     assert await second is None
@@ -503,7 +503,7 @@ async def test_serialization_covers_complete_writes_and_waiting_epoch():
     scheduler.timers[-1].fire()
     await asyncio.sleep(0)
     try:
-        assert len(coord._write_batch_inflight_waiters) == 2
+        assert len(coord._write_manager._inflight_waiters) == 2
         assert payloads == [[1]]
     finally:
         release.set()
@@ -542,7 +542,7 @@ async def test_timeout_removes_only_its_waiter_and_keeps_shared_write(
 
     monkeypatch.setattr(asyncio, "wait_for", controlled_wait_for)
     first = await _enqueue(coord, "DB1,W0", 1)
-    expired_waiter = coord._write_batch_waiters["DB1,W0"][0]
+    expired_waiter = coord._write_manager._waiters["DB1,W0"][0]
     second = await _enqueue(coord, "DB1,W0", 2)
     if inflight:
         scheduler.timers[-1].fire()
@@ -551,9 +551,9 @@ async def test_timeout_removes_only_its_waiter_and_keeps_shared_write(
     with pytest.raises(HomeAssistantError, match="timed out"):
         await first
     groups = (
-        next(iter(coord._write_batch_inflight_waiters.values()))
+        next(iter(coord._write_manager._inflight_waiters.values()))
         if inflight
-        else coord._write_batch_waiters
+        else coord._write_manager._waiters
     )
     assert expired_waiter not in groups["DB1,W0"]
     assert not second.done()
@@ -583,7 +583,7 @@ async def test_queued_io_does_not_start_after_shutdown_invalidates_epoch():
     second = await _enqueue(coord, "DB1,W2", 2)
     scheduler.timers[-1].fire()
     await asyncio.sleep(0)
-    assert len(coord._write_batch_inflight_waiters) == 2
+    assert len(coord._write_manager._inflight_waiters) == 2
     shutdown = asyncio.create_task(coord.async_shutdown())
     try:
         for caller in (first, second):
@@ -603,13 +603,13 @@ async def test_shutdown_of_one_coordinator_does_not_affect_another():
     second, second_scheduler, second_tasks, second_client = make_coordinator()
     first_caller = await _enqueue(first, "DB1,W0", 1)
     second_caller = await _enqueue(second, "DB1,W0", 2)
-    generation = second._write_batch_generation
+    generation = second._io_generation
     await first.async_shutdown()
     with pytest.raises(HomeAssistantError):
         await first_caller
     assert not second_caller.done()
     assert not second_scheduler.timers[-1].cancelled
-    assert second._write_batch_generation == generation
+    assert second._io_generation == generation
     assert second.connection_enabled
     second_scheduler.timers[-1].fire()
     assert await second_caller is None
