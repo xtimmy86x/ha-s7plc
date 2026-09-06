@@ -4,6 +4,7 @@ import asyncio
 import logging
 import struct
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, Callable, TypeVar
 
@@ -86,6 +87,18 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._enable_write_batching = bool(enable_write_batching)
         self._enable_metrics = bool(enable_metrics)
         self._connection_enabled = bool(connection_enabled)
+        self._shutdown = False
+        self._shutdown_task: asyncio.Task[None] | None = None
+        self._lifecycle_lock = asyncio.Lock()
+        # Unlike pyS7's packet lock, this covers the complete write/retry and
+        # cancellation cleanup, so the next write cannot reuse an aborted stream.
+        self._write_io_lock = asyncio.Lock()
+        self._io_stopping = False
+        # Track operation scopes, including reads, probes and connections, so
+        # shutdown can release pyS7's shared I/O lock before disconnecting.
+        self._io_tasks: dict[asyncio.Task, int] = {}
+        self._io_completions: dict[asyncio.Task, asyncio.Future[None]] = {}
+        self._flush_tasks: set[asyncio.Task] = set()
         # Wakes retry backoffs immediately when manual control is changed.
         self._connection_state_changed = asyncio.Event()
         # Lock for async operations (state management)
@@ -210,31 +223,45 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _raise_if_connection_disabled(self) -> None:
         """Reject PLC I/O without allowing it to reconnect."""
+        if self._shutdown:
+            raise HomeAssistantError("PLC coordinator is shut down")
         if not self._connection_enabled:
             raise HomeAssistantError("PLC connection is manually disabled")
+        if (
+            self._io_stopping
+            or self._io_tasks.get(asyncio.current_task(), self._write_batch_generation)
+            != self._write_batch_generation
+        ):
+            raise HomeAssistantError("PLC connection was disconnected")
 
     async def async_enable_connection(self) -> None:
         """Allow communication and immediately request a connection attempt."""
-        if self._connection_enabled:
-            return
-        self._connection_enabled = True
-        self._connection_state_changed.set()
-        self._connection_state_changed.clear()
-        self.async_set_updated_data(dict(self._data_cache))
+        async with self._lifecycle_lock:
+            if self._shutdown:
+                raise HomeAssistantError("PLC coordinator is shut down")
+            if self._io_stopping:
+                raise HomeAssistantError("PLC I/O has not finished stopping")
+            if self._connection_enabled:
+                return
+            self._connection_enabled = True
+            self._connection_state_changed.set()
+            self._connection_state_changed.clear()
+            self.async_set_updated_data(dict(self._data_cache))
         await self.async_request_refresh()
 
     async def async_disable_connection(self) -> None:
         """Stop retries, pending writes and the active PLC connection."""
         self._connection_enabled = False
         self._connection_state_changed.set()
-        async with self._async_lock:
-            self._write_batch_generation += 1
-            self._cancel_write_batches_locked(
+        async with self._lifecycle_lock:
+            # Reassert after acquiring the lock: an enable may have preceded us.
+            self._connection_enabled = False
+            self._connection_state_changed.set()
+            await self._stop_io(
                 HomeAssistantError("PLC connection is manually disabled")
             )
-        await self._drop_connection()
-        self._last_health_ok = False
-        self.async_set_updated_data(dict(self._data_cache))
+            self._last_health_ok = False
+            self.async_set_updated_data(dict(self._data_cache))
 
     async def _drop_connection(self) -> None:
         """Safely close PLC connection, tolerant of concurrent disconnects.
@@ -260,57 +287,60 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             RuntimeError: If connection fails
         """
-        self._raise_if_connection_disabled()
-        if self._client is None:
-            # Create client based on connection type
-            if self._local_tsap and self._remote_tsap:
-                self._client = pyS7.AsyncS7Client(
-                    address=self._host,
-                    local_tsap=self._local_tsap,
-                    remote_tsap=self._remote_tsap,
-                    port=self._port,
-                    connection_type=self._pys7_connection_type,
-                    enable_metrics=self._enable_metrics,
-                )
-            else:
-                self._client = pyS7.AsyncS7Client(
-                    self._host,
-                    self._rack,
-                    self._slot,
-                    port=self._port,
-                    connection_type=self._pys7_connection_type,
-                    enable_metrics=self._enable_metrics,
-                )
-
-        if not self._client.is_connected:
-            try:
-                await self._client.connect()
-                if not self._connection_enabled:
-                    await self._drop_connection()
-                    self._raise_if_connection_disabled()
+        async with self._io_operation():
+            self._raise_if_connection_disabled()
+            if self._client is None:
+                # Create client based on connection type
                 if self._local_tsap and self._remote_tsap:
-                    _LOGGER.info(
-                        "Connected to S7 PLC %s (TSAP %s/%s)",
-                        self._host,
-                        self._local_tsap,
-                        self._remote_tsap,
+                    self._client = pyS7.AsyncS7Client(
+                        address=self._host,
+                        local_tsap=self._local_tsap,
+                        remote_tsap=self._remote_tsap,
+                        port=self._port,
+                        connection_type=self._pys7_connection_type,
+                        enable_metrics=self._enable_metrics,
                     )
                 else:
-                    _LOGGER.info(
-                        "Connected to S7 PLC %s (rack=%s slot=%s)",
+                    self._client = pyS7.AsyncS7Client(
                         self._host,
                         self._rack,
                         self._slot,
+                        port=self._port,
+                        connection_type=self._pys7_connection_type,
+                        enable_metrics=self._enable_metrics,
                     )
-            except (
-                OSError,
-                RuntimeError,
-                S7CommunicationError,
-                S7ConnectionError,
-            ) as err:
-                # Ensure cleanup if connection failed
-                await self._drop_connection()
-                raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
+
+            if not self._client.is_connected:
+                try:
+                    await self._client.connect()
+                    try:
+                        self._raise_if_connection_disabled()
+                    except HomeAssistantError:
+                        await self._drop_connection()
+                        raise
+                    if self._local_tsap and self._remote_tsap:
+                        _LOGGER.info(
+                            "Connected to S7 PLC %s (TSAP %s/%s)",
+                            self._host,
+                            self._local_tsap,
+                            self._remote_tsap,
+                        )
+                    else:
+                        _LOGGER.info(
+                            "Connected to S7 PLC %s (rack=%s slot=%s)",
+                            self._host,
+                            self._rack,
+                            self._slot,
+                        )
+                except (
+                    OSError,
+                    RuntimeError,
+                    S7CommunicationError,
+                    S7ConnectionError,
+                ) as err:
+                    # Ensure cleanup if connection failed
+                    await self._drop_connection()
+                    raise RuntimeError(f"Connection to PLC {self._host} failed: {err}")
 
     def is_connected(self) -> bool:
         """Check if PLC connection is active.
@@ -328,51 +358,54 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         Updates internal health bookkeeping and returns a summary dict.
         """
-        start = time.monotonic()
-        ok = False
-        error: str | None = None
-        try:
-            await self._ensure_connected()
-            client = self._client
-            if client is None:
-                raise RuntimeError("Client not initialized")
+        async with self._io_operation():
+            start = time.monotonic()
+            ok = False
+            error: str | None = None
+            try:
+                await self._ensure_connected()
+                client = self._client
+                if client is None:
+                    raise RuntimeError("Client not initialized")
 
-            # Prefer a real PLC call if available;
-            # otherwise rely on connection flag
-            if hasattr(client, "get_cpu_info"):
-                try:
-                    await client.get_cpu_info()
-                except Exception as err:
-                    # Catch all exceptions from pyS7 library
-                    # calls which may raise various undocumented exception types
-                    # beyond the standard S7 errors
-                    raise RuntimeError(f"CPU info probe failed: {err}") from err
-            else:
-                # Fallback: ensure the driver reports connected
-                if not getattr(client, "is_connected", False):
-                    raise RuntimeError("Client reports not connected")
+                # Prefer a real PLC call if available;
+                # otherwise rely on connection flag
+                if hasattr(client, "get_cpu_info"):
+                    try:
+                        await client.get_cpu_info()
+                    except Exception as err:
+                        # Catch all exceptions from pyS7 library
+                        # calls which may raise various undocumented exception types
+                        # beyond the standard S7 errors
+                        raise RuntimeError(f"CPU info probe failed: {err}") from err
+                else:
+                    # Fallback: ensure the driver reports connected
+                    if not getattr(client, "is_connected", False):
+                        raise RuntimeError("Client reports not connected")
 
-            ok = True
-        except (
-            OSError,
-            RuntimeError,
-            S7CommunicationError,
-            S7ConnectionError,
-        ) as err:
-            error = str(err)
-        finally:
-            latency = time.monotonic() - start
+                ok = True
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+            ) as err:
+                error = str(err)
+            finally:
+                latency = time.monotonic() - start
 
-        # Record state
-        self._last_health_ok = ok
-        self._last_health_latency = round(latency, 2)
-        self._last_health_time = datetime.now()
+            # A probe completed during stop must not publish a healthy state.
+            self._raise_if_connection_disabled()
+            # Record state
+            self._last_health_ok = ok
+            self._last_health_latency = round(latency, 2)
+            self._last_health_time = datetime.now()
 
-        return {
-            "ok": ok,
-            "latency": latency,
-            "error": error,
-        }
+            return {
+                "ok": ok,
+                "latency": latency,
+                "error": error,
+            }
 
     @property
     def pys7_metrics(self) -> Any | None:
@@ -442,12 +475,88 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def disconnect(self) -> None:
         """Close the PLC connection and cancel pending writes."""
+        async with self._lifecycle_lock:
+            await self._stop_io(HomeAssistantError("PLC connection was disconnected"))
+
+    async def _stop_io(self, error: HomeAssistantError) -> None:
+        """Drain invalidated PLC operations; caller holds only the lifecycle lock."""
+        self._io_stopping = True
+        self._connection_state_changed.set()
         async with self._async_lock:
             self._write_batch_generation += 1
-            self._cancel_write_batches_locked(
-                HomeAssistantError("PLC connection was disconnected")
-            )
-        await self._drop_connection()
+            self._cancel_write_batches_locked(error)
+        operations = {
+            task: done
+            for task, done in self._io_completions.items()
+            if task is not asyncio.current_task()
+        }
+        # For entity/service callers, wait for the I/O scope, not their whole
+        # task: a caller may continue unrelated work after handling a write error.
+        owned_tasks = self._flush_tasks - {asyncio.current_task()}
+        completions = set(operations.values()) | owned_tasks
+        completions = {done for done in completions if not done.done()}
+        if completions:
+            _, pending = await asyncio.wait(completions, timeout=self._op_timeout)
+            if pending:
+                # pyS7.disconnect also needs the I/O lock. Cancel and drain its
+                # owners before trying to close the connection.
+                cancellable = owned_tasks | {
+                    task for task, done in operations.items() if not done.done()
+                }
+                for task in cancellable:
+                    if not task.done():
+                        task.cancel()
+                _, pending = await asyncio.wait(pending, timeout=self._op_timeout)
+                if pending:
+                    # Do not reopen or report successful unload with live I/O.
+                    raise HomeAssistantError("PLC I/O tasks did not stop")
+            await asyncio.gather(*completions, return_exceptions=True)
+        await asyncio.wait_for(self._drop_connection(), self._op_timeout)
+        self._io_stopping = False
+        if self._connection_enabled and not self._shutdown:
+            self._connection_state_changed.clear()
+
+    @asynccontextmanager
+    async def _io_operation(self):
+        """Track active PLC work without owning the caller's later work."""
+        self._raise_if_connection_disabled()
+        task = asyncio.current_task()
+        owner = task not in self._io_tasks
+        if owner:
+            self._io_tasks[task] = self._write_batch_generation
+            self._io_completions[task] = asyncio.get_running_loop().create_future()
+        try:
+            yield
+        finally:
+            if owner:
+                self._io_tasks.pop(task, None)
+                self._io_completions.pop(task).set_result(None)
+
+    @asynccontextmanager
+    async def _write_operation(self, *, serialize: bool = False):
+        """Serialize complete writes, including retry and cancellation cleanup."""
+        async with self._io_operation():
+            if serialize:
+                async with self._write_io_lock:
+                    self._raise_if_connection_disabled()
+                    try:
+                        yield
+                    except asyncio.CancelledError:
+                        if not self._io_stopping:
+                            # A direct cancellation can leave a response unread.
+                            # Reset the transport before allowing another write.
+                            try:
+                                await asyncio.wait_for(
+                                    self._drop_connection(), self._op_timeout
+                                )
+                            except TimeoutError:
+                                self._io_stopping = True
+                                _LOGGER.error(
+                                    "PLC disconnect timed out after write cancellation"
+                                )
+                        raise
+            else:
+                yield
 
     def _cancel_write_batches_locked(self, error: HomeAssistantError) -> None:
         """Cancel queued and in-flight batch waiters while holding the lock."""
@@ -471,9 +580,36 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     waiter.set_exception(error)
 
     async def async_shutdown(self) -> None:
-        """Cancel all communication before the coordinator is unloaded."""
-        await self.async_disable_connection()
-        await super().async_shutdown()
+        """Permanently stop communication, even if an unload caller is cancelled."""
+        previous = self._shutdown_task
+        if previous is None or (
+            previous.done()
+            and (previous.cancelled() or previous.exception() is not None)
+        ):
+            self._shutdown = True
+            self._connection_enabled = False
+            self._connection_state_changed.set()
+            self._shutdown_task = asyncio.create_task(self._finish_shutdown())
+            self._shutdown_task.add_done_callback(self._consume_task_result)
+        await asyncio.shield(self._shutdown_task)
+
+    async def _finish_shutdown(self) -> None:
+        async with self._lifecycle_lock:
+            # Stop coordinator/debouncer scheduling before draining active PLC
+            # operations. The permanent admission barrier is already set.
+            await super().async_shutdown()
+            await self._stop_io(HomeAssistantError("PLC coordinator is shut down"))
+            self._last_health_ok = False
+            # An already-running HA refresh can reschedule in its finally block.
+            # Clear any such timer after its PLC operation has finished too.
+            await super().async_shutdown()
+
+    @staticmethod
+    def _consume_task_result(task: asyncio.Task) -> None:
+        if not task.cancelled():
+            error = task.exception()
+            if error is not None:
+                _LOGGER.error("PLC background task failed: %s", error)
 
     # -------------------------
     # Address management
@@ -604,124 +740,128 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             RuntimeError: If all retry attempts are exhausted.
         """
-        attempt = 0
-        last_exc: Exception | None = None
-        error_category = "unknown"
+        async with self._io_operation():
+            attempt = 0
+            last_exc: Exception | None = None
+            error_category = "unknown"
 
-        while attempt <= self._max_retries:
-            self._raise_if_connection_disabled()
-            try:
-                # Ensure connection before each attempt
-                await self._ensure_connected()
-                result = func(*args, **kwargs)
-                if asyncio.iscoroutine(result):
-                    return await result
-                return result
-            except (S7CommunicationError, S7ConnectionError) as e:
-                # S7-specific communication errors (most common)
-                last_exc = e
-                error_category = "s7_communication"
+            while attempt <= self._max_retries:
+                self._raise_if_connection_disabled()
+                try:
+                    # Ensure connection before each attempt
+                    await self._ensure_connected()
+                    self._raise_if_connection_disabled()
+                    result = func(*args, **kwargs)
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                    self._raise_if_connection_disabled()
+                    return result
+                except (S7CommunicationError, S7ConnectionError) as e:
+                    # S7-specific communication errors (most common)
+                    last_exc = e
+                    error_category = "s7_communication"
+                    _LOGGER.debug(
+                        "S7 communication error on attempt %s/%s: %s",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                    )
+                    await self._drop_connection()
+                except S7ReadResponseError as e:
+                    # S7 response parsing errors
+                    last_exc = e
+                    error_category = "s7_response"
+                    _LOGGER.debug(
+                        "S7 response error on attempt %s/%s: %s",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                    )
+                    await self._drop_connection()
+                except OSError as e:
+                    # Network/socket errors
+                    last_exc = e
+                    error_category = "network"
+                    _LOGGER.debug(
+                        "Network error on attempt %s/%s: %s (errno: %s)",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                        getattr(e, "errno", "unknown"),
+                    )
+                    await self._drop_connection()
+                except struct.error as e:
+                    # Data parsing errors (usually indicates protocol mismatch)
+                    last_exc = e
+                    error_category = "data_parsing"
+                    _LOGGER.warning(
+                        "Data parsing error on attempt %s/%s: %s (check PLC data type)",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                    )
+                    await self._drop_connection()
+                except IndexError as e:
+                    # Array access errors (unexpected response size)
+                    last_exc = e
+                    error_category = "unexpected_response"
+                    _LOGGER.warning(
+                        "Unexpected response size on attempt %s/%s: %s",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                        exc_info=True,
+                    )
+                    await self._drop_connection()
+                except RuntimeError as e:
+                    # Generic runtime errors (catch-all for pyS7 issues)
+                    last_exc = e
+                    error_category = "runtime"
+                    _LOGGER.debug(
+                        "Runtime error on attempt %s/%s: %s",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        e,
+                    )
+                    await self._drop_connection()
+
+                self._raise_if_connection_disabled()
+                # Check if we should retry
+                if attempt == self._max_retries:
+                    break
+
+                # Exponential backoff
+                backoff = min(self._backoff_initial * (2**attempt), self._backoff_max)
                 _LOGGER.debug(
-                    "S7 communication error on attempt %s/%s: %s",
+                    "Retrying after %.2fs backoff (attempt %s/%s, error: %s)",
+                    backoff,
                     attempt + 1,
-                    self._max_retries + 1,
-                    e,
+                    self._max_retries,
+                    error_category,
                 )
-                await self._drop_connection()
-            except S7ReadResponseError as e:
-                # S7 response parsing errors
-                last_exc = e
-                error_category = "s7_response"
-                _LOGGER.debug(
-                    "S7 response error on attempt %s/%s: %s",
-                    attempt + 1,
-                    self._max_retries + 1,
-                    e,
-                )
-                await self._drop_connection()
-            except OSError as e:
-                # Network/socket errors
-                last_exc = e
-                error_category = "network"
-                _LOGGER.debug(
-                    "Network error on attempt %s/%s: %s (errno: %s)",
-                    attempt + 1,
-                    self._max_retries + 1,
-                    e,
-                    getattr(e, "errno", "unknown"),
-                )
-                await self._drop_connection()
-            except struct.error as e:
-                # Data parsing errors (usually indicates protocol mismatch)
-                last_exc = e
-                error_category = "data_parsing"
-                _LOGGER.warning(
-                    "Data parsing error on attempt %s/%s: %s (check PLC data type)",
-                    attempt + 1,
-                    self._max_retries + 1,
-                    e,
-                )
-                await self._drop_connection()
-            except IndexError as e:
-                # Array access errors (unexpected response size)
-                last_exc = e
-                error_category = "unexpected_response"
-                _LOGGER.warning(
-                    "Unexpected response size on attempt %s/%s: %s",
-                    attempt + 1,
-                    self._max_retries + 1,
-                    e,
-                    exc_info=True,
-                )
-                await self._drop_connection()
-            except RuntimeError as e:
-                # Generic runtime errors (catch-all for pyS7 issues)
-                last_exc = e
-                error_category = "runtime"
-                _LOGGER.debug(
-                    "Runtime error on attempt %s/%s: %s",
-                    attempt + 1,
-                    self._max_retries + 1,
-                    e,
-                )
-                await self._drop_connection()
+                await self._sleep(backoff)
+                attempt += 1
 
-            # Check if we should retry
-            if attempt == self._max_retries:
-                break
+            # All attempts exhausted
+            if last_exc is not None:
+                # Track error for diagnostics
+                self._last_error_category = error_category
+                self._last_error_message = str(last_exc)
+                self._error_count_by_category[error_category] = (
+                    self._error_count_by_category.get(error_category, 0) + 1
+                )
 
-            # Exponential backoff
-            backoff = min(self._backoff_initial * (2**attempt), self._backoff_max)
-            _LOGGER.debug(
-                "Retrying after %.2fs backoff (attempt %s/%s, error: %s)",
-                backoff,
-                attempt + 1,
-                self._max_retries,
-                error_category,
-            )
-            await self._sleep(backoff)
-            attempt += 1
-
-        # All attempts exhausted
-        if last_exc is not None:
-            # Track error for diagnostics
-            self._last_error_category = error_category
-            self._last_error_message = str(last_exc)
-            self._error_count_by_category[error_category] = (
-                self._error_count_by_category.get(error_category, 0) + 1
-            )
-
-            _LOGGER.error(
-                "Operation failed after %s attempts (category: %s): %s",
-                self._max_retries + 1,
-                error_category,
-                last_exc,
-            )
-            raise RuntimeError(
-                f"Operation failed after {self._max_retries + 1} attempts "
-                f"({error_category}): {last_exc}"
-            ) from last_exc
-        raise RuntimeError("Operation failed without specific exception")
+                _LOGGER.error(
+                    "Operation failed after %s attempts (category: %s): %s",
+                    self._max_retries + 1,
+                    error_category,
+                    last_exc,
+                )
+                raise RuntimeError(
+                    f"Operation failed after {self._max_retries + 1} attempts "
+                    f"({error_category}): {last_exc}"
+                ) from last_exc
+            raise RuntimeError("Operation failed without specific exception")
 
     # -------------------------
     # Update loop
@@ -739,70 +879,74 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             UpdateFailed: On connection or read errors
         """
-        if not self._connection_enabled:
+        if self._shutdown or not self._connection_enabled or self._io_stopping:
             return dict(self._data_cache)
-        start_time = time.monotonic()
-        now = start_time
+        async with self._io_operation():
+            start_time = time.monotonic()
+            now = start_time
 
-        async with self._async_lock:
-            if not self._plans_batch and not self._plans_str:
-                self._build_tag_cache()
-            due_topics = [
-                topic for topic, due in self._item_next_read.items() if due <= now
-            ]
-
-            if not due_topics and not self._data_cache:
-                # First refresh without cached data: read all topics once.
-                due_topics = list(self._items.keys())
-                now = time.monotonic()
-                for topic in due_topics:
-                    self._item_next_read[topic] = now
-
-            plans_batch = [
-                self._plans_batch[topic]
-                for topic in due_topics
-                if topic in self._plans_batch
-            ]
-            plans_str = [
-                self._plans_str[topic]
-                for topic in due_topics
-                if topic in self._plans_str
-            ]
-
-        if not plans_batch and not plans_str:
             async with self._async_lock:
-                return dict(self._data_cache)
+                self._raise_if_connection_disabled()
+                if not self._plans_batch and not self._plans_str:
+                    self._build_tag_cache()
+                due_topics = [
+                    topic for topic, due in self._item_next_read.items() if due <= now
+                ]
 
-        try:
-            results = await self._read_all(plans_batch, plans_str)
-            # Update health: read succeeded
-            latency = round(time.monotonic() - start_time, 2)
-            self._last_health_ok = True
-            self._last_health_latency = latency
-            # Clear error info on success
-            self._last_error_category = None
-            self._last_error_message = None
-        except UpdateFailed:
-            # Update health: read failed
-            latency = round(time.monotonic() - start_time, 2)
-            self._last_health_ok = False
-            self._last_health_latency = latency
-            raise
+                if not due_topics and not self._data_cache:
+                    # First refresh without cached data: read all topics once.
+                    due_topics = list(self._items.keys())
+                    now = time.monotonic()
+                    for topic in due_topics:
+                        self._item_next_read[topic] = now
 
-        async with self._async_lock:
-            read_time = time.monotonic()
-            for topic in due_topics:
-                interval = self._item_scan_intervals.get(
-                    topic, self._default_scan_interval
-                )
-                interval = max(interval, self._MIN_SCAN_INTERVAL)
-                self._item_next_read[topic] = read_time + interval
-                if topic in results:
-                    self._topic_read_revisions[topic] = (
-                        self._topic_read_revisions.get(topic, 0) + 1
+                plans_batch = [
+                    self._plans_batch[topic]
+                    for topic in due_topics
+                    if topic in self._plans_batch
+                ]
+                plans_str = [
+                    self._plans_str[topic]
+                    for topic in due_topics
+                    if topic in self._plans_str
+                ]
+
+            if not plans_batch and not plans_str:
+                async with self._async_lock:
+                    return dict(self._data_cache)
+
+            try:
+                results = await self._read_all(plans_batch, plans_str)
+                self._raise_if_connection_disabled()
+                # Update health: read succeeded
+                latency = round(time.monotonic() - start_time, 2)
+                self._last_health_ok = True
+                self._last_health_latency = latency
+                # Clear error info on success
+                self._last_error_category = None
+                self._last_error_message = None
+            except UpdateFailed:
+                # Update health: read failed
+                latency = round(time.monotonic() - start_time, 2)
+                self._last_health_ok = False
+                self._last_health_latency = latency
+                raise
+
+            async with self._async_lock:
+                self._raise_if_connection_disabled()
+                read_time = time.monotonic()
+                for topic in due_topics:
+                    interval = self._item_scan_intervals.get(
+                        topic, self._default_scan_interval
                     )
-            self._data_cache.update(results)
-            return dict(self._data_cache)
+                    interval = max(interval, self._MIN_SCAN_INTERVAL)
+                    self._item_next_read[topic] = read_time + interval
+                    if topic in results:
+                        self._topic_read_revisions[topic] = (
+                            self._topic_read_revisions.get(topic, 0) + 1
+                        )
+                self._data_cache.update(results)
+                return dict(self._data_cache)
 
     async def _read_s7_string(
         self, db: int, start: int, length: int, is_wstring: bool = False
@@ -1021,6 +1165,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.exception("Read error")
             await self._drop_connection()
             raise UpdateFailed(f"Read error: {err}") from err
+        except HomeAssistantError:
+            raise
         except Exception as err:  # pragma: no cover - catch unexpected errors
             _LOGGER.exception("Unexpected error during read")
             await self._drop_connection()
@@ -1102,18 +1248,14 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.hass.loop is not None:
                 self._write_batch_timer = self.hass.loop.call_later(
                     self._write_batch_delay,
-                    lambda: self.hass.async_create_background_task(
-                        self._flush_write_batch(),
-                        name=f"s7plc_flush_batch_{self._host}",
+                    lambda generation=self._write_batch_generation: (
+                        self._start_write_flush(generation)
                     ),
                 )
             else:
                 # Fallback: execute immediately if loop unavailable (shutdown)
                 _LOGGER.debug("Event loop unavailable, executing write immediately")
-                self.hass.async_create_background_task(
-                    self._flush_write_batch(),
-                    name=f"s7plc_flush_batch_{self._host}",
-                )
+                self._start_write_flush(self._write_batch_generation)
 
         try:
             success = await asyncio.wait_for(
@@ -1121,11 +1263,88 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         except asyncio.TimeoutError as err:
             raise HomeAssistantError(f"S7 PLC write timed out for {address}") from err
+        finally:
+            # Remove only this caller; never cancel a shared write on timeout.
+            for groups in (
+                self._write_batch_waiters,
+                *self._write_batch_inflight_waiters.values(),
+            ):
+                address_waiters = groups.get(address, [])
+                if waiter in address_waiters:
+                    address_waiters.remove(waiter)
         if not success:
             raise HomeAssistantError(f"S7 PLC write failed for {address}")
 
+    def _start_write_flush(self, generation: int) -> None:
+        """Own the task before it can run, including cancelled-before-start tasks."""
+        if (
+            self._shutdown
+            or not self._connection_enabled
+            or self._io_stopping
+            or generation != self._write_batch_generation
+        ):
+            return
+        started = False
+
+        async def run():
+            nonlocal started
+            started = True
+            # A queued task may start after disconnect and a subsequent enable.
+            if generation == self._write_batch_generation:
+                await self._flush_write_batch()
+
+        def done(task):
+            self._flush_tasks.discard(task)
+            if not started and task.cancelled():
+                self._fail_queued_flush(generation)
+            self._consume_task_result(task)
+
+        task = self.hass.async_create_background_task(
+            run(), name=f"s7plc_flush_batch_{self._host}"
+        )
+        self._flush_tasks.add(task)
+        task.add_done_callback(done)
+
+    def _fail_queued_flush(self, generation: int) -> None:
+        """Fail only queued work if its flush was cancelled before snapshotting.
+
+        No awaits: state mutations are atomic on the HA event loop, like the
+        snapshot's critical section. Other in-flight batches are unaffected.
+        """
+        if generation != self._write_batch_generation:
+            return
+        if self._write_batch_timer is not None:
+            self._write_batch_timer.cancel()
+        self._write_batch_timer = None
+        waiters = self._write_batch_waiters
+        self._write_batch_waiters = {}
+        self._write_batch_buffer.clear()
+        self._fail_write_waiters(waiters)
+
+    @staticmethod
+    def _fail_write_waiters(waiters) -> None:
+        for group in waiters.values():
+            for waiter in group:
+                if not waiter.done():
+                    waiter.set_exception(HomeAssistantError("PLC write was cancelled"))
+
     async def _flush_write_batch(self) -> None:
         """Flush accumulated writes to PLC using write_multi."""
+        generation = self._write_batch_generation
+        queued_waiters = self._write_batch_waiters
+        try:
+            async with self._write_operation():
+                await self._flush_write_batch_impl()
+        except asyncio.CancelledError:
+            # Covers cancellation while waiting for the snapshot lock, too.
+            if queued_waiters is self._write_batch_waiters:
+                self._fail_queued_flush(generation)
+            raise
+        except HomeAssistantError:
+            # A stop already resolved the callers; no shutdown notification.
+            return
+
+    async def _flush_write_batch_impl(self) -> None:
         async with self._async_lock:
             if not self._write_batch_buffer:
                 return
@@ -1139,6 +1358,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._write_batch_buffer.clear()
             self._write_batch_waiters = {}
             self._write_batch_inflight_waiters[flush_id] = waiters
+            if self._write_batch_timer is not None:
+                self._write_batch_timer.cancel()
             self._write_batch_timer = None
 
         results: dict[str, bool] = {}
@@ -1206,6 +1427,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         current_time - self._last_write_error_notification,
                     )
 
+        except asyncio.CancelledError:
+            self._fail_write_waiters(waiters)
+            raise
         except HomeAssistantError:
             # Manual disable/disconnect already completed pending callers with
             # the precise error and must not produce a notification or retry.
@@ -1235,8 +1459,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             results = {address: False for address, _ in writes}
 
         finally:
-            async with self._async_lock:
-                self._write_batch_inflight_waiters.pop(flush_id, None)
+            self._write_batch_inflight_waiters.pop(flush_id, None)
 
         for address, address_waiters in waiters.items():
             success = bool(results.get(address, False))
@@ -1261,6 +1484,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._ensure_connected()
             await self._retry(lambda: self._client.write([tag], [payload]))
             return True
+        except HomeAssistantError:
+            raise
         except (
             OSError,
             RuntimeError,
@@ -1290,51 +1515,56 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             RuntimeError: On connection or read failures
         """
-        try:
-            await self._ensure_connected()
-            tag = self._get_or_parse_tag(address)
+        async with self._io_operation():
+            try:
+                await self._ensure_connected()
+                tag = self._get_or_parse_tag(address)
 
-            # Handle STRING types (CHAR array, STRING, WSTRING)
-            if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
-                return await self._read_s7_string(
-                    tag.db_number, tag.start, tag.length, is_wstring=False
-                )
-            elif tag.data_type == DataType.STRING:
-                return await self._read_s7_string(
-                    tag.db_number, tag.start, tag.length, is_wstring=False
-                )
-            elif tag.data_type == DataType.WSTRING:
-                return await self._read_s7_string(
-                    tag.db_number, tag.start, tag.length, is_wstring=True
-                )
+                # Handle STRING types (CHAR array, STRING, WSTRING)
+                if tag.data_type == DataType.CHAR and getattr(tag, "length", 1) > 1:
+                    return await self._read_s7_string(
+                        tag.db_number, tag.start, tag.length, is_wstring=False
+                    )
+                elif tag.data_type == DataType.STRING:
+                    return await self._read_s7_string(
+                        tag.db_number, tag.start, tag.length, is_wstring=False
+                    )
+                elif tag.data_type == DataType.WSTRING:
+                    return await self._read_s7_string(
+                        tag.db_number, tag.start, tag.length, is_wstring=True
+                    )
 
-            # Changed in pyS7 1.5.0 optimized=True by default
-            value = (
-                await self._retry(
-                    lambda: self._client.read([tag], optimize=self._optimize_read)
+                # Changed in pyS7 1.5.0 optimized=True by default
+                value = (
+                    await self._retry(
+                        lambda: self._client.read([tag], optimize=self._optimize_read)
+                    )
+                )[0]
+                _LOGGER.debug(
+                    "Read single tag %s optimize=%s", address, self._optimize_read
                 )
-            )[0]
-            _LOGGER.debug(
-                "Read single tag %s optimize=%s", address, self._optimize_read
-            )
-            # Normalize BIT to bool
-            if tag.data_type == DataType.BIT:
-                return bool(value)
-            return apply_postprocess(tag.data_type, value)
-        except (
-            OSError,
-            RuntimeError,
-            S7CommunicationError,
-            S7ConnectionError,
-            S7ReadResponseError,
-        ) as err:
-            _LOGGER.error("Read error for %s: %s", address, err)
-            await self._drop_connection()
-            raise RuntimeError(f"Failed to read {address}: {err}") from err
-        except Exception as err:  # pragma: no cover - catch unexpected errors
-            _LOGGER.exception("Unexpected read error for %s", address)
-            await self._drop_connection()
-            raise RuntimeError(f"Unexpected error reading {address}: {err}") from err
+                # Normalize BIT to bool
+                if tag.data_type == DataType.BIT:
+                    return bool(value)
+                return apply_postprocess(tag.data_type, value)
+            except (
+                OSError,
+                RuntimeError,
+                S7CommunicationError,
+                S7ConnectionError,
+                S7ReadResponseError,
+            ) as err:
+                _LOGGER.error("Read error for %s: %s", address, err)
+                await self._drop_connection()
+                raise RuntimeError(f"Failed to read {address}: {err}") from err
+            except HomeAssistantError:
+                raise
+            except Exception as err:  # pragma: no cover - catch unexpected errors
+                _LOGGER.exception("Unexpected read error for %s", address)
+                await self._drop_connection()
+                raise RuntimeError(
+                    f"Unexpected error reading {address}: {err}"
+                ) from err
 
     async def write(
         self, address: str, value: bool | int | float | str | timedelta
@@ -1357,7 +1587,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._raise_if_connection_disabled()
         tag = self._get_or_parse_tag(address)
         payload = self._prepare_payload(tag, value, address)
-        return await self._write_with_retry(address, tag, payload)
+        async with self._write_operation(serialize=True):
+            return await self._write_with_retry(address, tag, payload)
 
     def _prepare_payload(
         self,
@@ -1482,28 +1713,31 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Execute batch write
         if tags:
-            try:
-                await self._ensure_connected()
-                await self._retry(lambda: self._client.write(tags, payloads))
-                # Mark all as successful
-                for addr in addresses:
-                    results[addr] = True
-            except (
-                OSError,
-                RuntimeError,
-                S7CommunicationError,
-                S7ConnectionError,
-                S7ReadResponseError,
-            ):
-                _LOGGER.exception("Batch write error for %d tags", len(tags))
-                await self._drop_connection()
-                # Mark all as failed
-                for addr in addresses:
-                    results[addr] = False
-            except Exception:  # pragma: no cover - catch unexpected errors
-                _LOGGER.exception("Unexpected batch write error")
-                await self._drop_connection()
-                for addr in addresses:
-                    results[addr] = False
+            async with self._write_operation(serialize=True):
+                try:
+                    await self._ensure_connected()
+                    await self._retry(lambda: self._client.write(tags, payloads))
+                    # Mark all as successful
+                    for addr in addresses:
+                        results[addr] = True
+                except HomeAssistantError:
+                    raise
+                except (
+                    OSError,
+                    RuntimeError,
+                    S7CommunicationError,
+                    S7ConnectionError,
+                    S7ReadResponseError,
+                ):
+                    _LOGGER.exception("Batch write error for %d tags", len(tags))
+                    await self._drop_connection()
+                    # Mark all as failed
+                    for addr in addresses:
+                        results[addr] = False
+                except Exception:  # pragma: no cover - catch unexpected errors
+                    _LOGGER.exception("Unexpected batch write error")
+                    await self._drop_connection()
+                    for addr in addresses:
+                        results[addr] = False
 
         return results
