@@ -11,8 +11,8 @@ from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
-from custom_components.s7plc.plans import StringPlan, TagPlan
-from custom_components.s7plc.read_executor import S7ReadError
+from custom_components.s7plc.plc.plans import StringPlan, TagPlan
+from custom_components.s7plc.plc.read_executor import S7ReadError
 from conftest import DummyTag
 
 

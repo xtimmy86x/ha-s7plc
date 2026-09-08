@@ -9,7 +9,7 @@ from conftest import DummyTag
 
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
-from custom_components.s7plc.plans import TagPlan
+from custom_components.s7plc.plc.plans import TagPlan
 
 # ============================================================================
 # Helpers

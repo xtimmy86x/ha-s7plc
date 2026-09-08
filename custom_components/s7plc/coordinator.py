@@ -13,10 +13,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from pyS7.constants import ConnectionType
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
 
-from .address import DataType, S7Tag, parse_tag
-from .connection_manager import S7ConnectionManager
-from .plans import StringPlan, TagPlan, build_plans
-from .read_executor import S7ReadError, S7ReadExecutor
+from .plc.address import DataType, S7Tag, parse_tag
+from .plc.connection_manager import S7ConnectionManager
+from .plc.plans import StringPlan, TagPlan, build_plans
+from .plc.read_executor import S7ReadError, S7ReadExecutor
 from .write_manager import S7WriteManager
 
 _LOGGER = logging.getLogger(__name__)

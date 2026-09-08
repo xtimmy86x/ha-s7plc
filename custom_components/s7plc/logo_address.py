@@ -11,8 +11,8 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from .address import parse_tag
 from .const import PLC_FAMILY_LOGO_0BA7, PLC_FAMILY_LOGO_0BA8, PLC_FAMILY_LOGO_9
+from .plc.address import parse_tag
 
 
 @dataclass(frozen=True, slots=True)

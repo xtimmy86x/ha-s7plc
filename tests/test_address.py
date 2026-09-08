@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from custom_components.s7plc import address
+from custom_components.s7plc.plc import address
 
 def test_map_address_to_tag():
     """``map_address_to_tag``"""

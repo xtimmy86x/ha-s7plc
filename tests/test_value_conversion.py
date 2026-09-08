@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.s7plc.address import DataType
+from custom_components.s7plc.plc.address import DataType
 from custom_components.s7plc.value_conversion import (
     ConversionContext,
     VALUE_CHANNEL_SPECS,

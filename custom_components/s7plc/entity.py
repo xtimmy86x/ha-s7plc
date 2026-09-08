@@ -10,7 +10,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .address import normalize_address
 from .const import (
     AVAILABILITY_MODE_ALWAYS,
     AVAILABILITY_MODE_BIT,
@@ -20,6 +19,7 @@ from .const import (
     CONF_UID,
     SYNC_COMMAND_SETTLE_TIME,
 )
+from .plc.address import normalize_address
 
 if TYPE_CHECKING:
     from .coordinator import S7Coordinator

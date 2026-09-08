@@ -9,7 +9,7 @@ import pytest
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.s7plc.address import (
+from custom_components.s7plc.plc.address import (
     DataType,
     TIME_MAX_SECONDS,
     TIME_MIN_SECONDS,

@@ -18,7 +18,6 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .address import DataType, is_time_data_type, parse_tag, time_to_seconds
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -39,6 +38,7 @@ from .helpers import (
     default_entity_name,
     get_coordinator_and_device_info,
 )
+from .plc.address import DataType, is_time_data_type, parse_tag, time_to_seconds
 from .value_conversion import (
     ConversionContext,
     ValueConversionError,
