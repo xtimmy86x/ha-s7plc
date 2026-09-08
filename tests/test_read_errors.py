@@ -8,8 +8,8 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
 
 from custom_components.s7plc.coordinator import S7Coordinator
-from custom_components.s7plc.plans import StringPlan
-from custom_components.s7plc.read_executor import S7ReadError, S7ReadExecutor
+from custom_components.s7plc.plc.plans import StringPlan
+from custom_components.s7plc.plc.read_executor import S7ReadError, S7ReadExecutor
 
 pytestmark = pytest.mark.asyncio
 

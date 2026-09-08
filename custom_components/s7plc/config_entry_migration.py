@@ -6,7 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from .address import parse_tag
+from .plc.address import parse_tag
 
 _SYNC_ENTITY_TYPES = frozenset(("switches", "lights"))
 

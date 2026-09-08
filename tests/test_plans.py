@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.s7plc.address import DataType
-from custom_components.s7plc import plans
+from custom_components.s7plc.plc.address import DataType
+from custom_components.s7plc.plc import plans
 
 
 def test_build_plans_splits_scalar_and_strings(monkeypatch):

@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .address import DataType, S7Tag, parse_tag
-from .const import DEFAULT_REAL_PRECISION
 
 _LOGGER = logging.getLogger(__name__)
+
+DEFAULT_REAL_PRECISION = 1
 
 
 @dataclass

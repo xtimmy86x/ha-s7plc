@@ -10,13 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .address import (
-    get_numeric_limits,
-    is_time_data_type,
-    parse_tag,
-    seconds_to_time,
-    time_to_seconds,
-)
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -36,6 +29,13 @@ from .helpers import (
     DEVICE_CLASS_DEFAULT_UNITS,
     default_entity_name,
     get_coordinator_and_device_info,
+)
+from .plc.address import (
+    get_numeric_limits,
+    is_time_data_type,
+    parse_tag,
+    seconds_to_time,
+    time_to_seconds,
 )
 from .value_conversion import (
     ConversionContext,

@@ -92,6 +92,29 @@ When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM 
 
 Backend and integration tests remain under `tests/test_*.py`.
 
+## Python module boundaries
+
+`custom_components/s7plc/plc/` contains helpers that depend only on Python and
+pyS7. Keep imports inside this package independent of Home Assistant and the
+integration modules above it.
+
+| Module | Responsibility |
+| --- | --- |
+| `plc/address.py` | Address parsing, datatype limits and TIME representation |
+| `plc/plans.py` | Read plans, postprocessing and the default REAL precision |
+| `plc/read_executor.py` | Scalar/string reads and internal `S7ReadError` failures |
+| `plc/connection_manager.py` | Client ownership, I/O admission, cancellation cleanup and draining |
+
+The coordinator remains the Home Assistant adapter: it owns polling, cache and
+health publication, retry policy, HA shutdown scheduling and conversion of
+`S7ReadError` to `UpdateFailed`. It supplies the connection manager's lifecycle
+exception type. `write_manager.py` remains outside `plc/` because it uses HA task
+creation and notification services.
+
+`tests/test_plc_package.py` imports a copy of the PLC package in an isolated
+interpreter, without the integration's parent modules and with Home Assistant
+imports blocked. Existing behavior tests continue to exercise the coordinator.
+
 ## Code quality
 
 Run Ruff:

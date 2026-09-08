@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .address import is_time_data_type, parse_tag, seconds_to_time, time_to_seconds
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -23,6 +22,7 @@ from .const import (
 )
 from .entity import S7SyncEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
+from .plc.address import is_time_data_type, parse_tag, seconds_to_time, time_to_seconds
 from .value_conversion import (
     ConversionContext,
     ValueConversionError,

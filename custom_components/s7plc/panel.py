@@ -12,7 +12,6 @@ from typing import Any
 import voluptuous as vol
 import yaml
 
-from .address import parse_tag
 from .config_validation import build_entity_item
 from .const import (
     CONF_ENABLE_METRICS,
@@ -30,6 +29,7 @@ from .logo_address import (
     logo_profile_payload,
     logo_to_s7_address,
 )
+from .plc.address import parse_tag
 from .value_conversion_migration import (
     LEGACY_BRIGHTNESS_FIELDS,
     LEGACY_VALUE_FIELDS,

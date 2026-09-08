@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from pyS7.constants import DataType
 
-from .address import parse_tag
 from .const import (
     CONF_ADDRESS,
     CONF_AREA,
@@ -21,6 +20,7 @@ from .const import (
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .helpers import default_entity_name, get_coordinator_and_device_info
+from .plc.address import parse_tag
 
 _LOGGER = logging.getLogger(__name__)
 

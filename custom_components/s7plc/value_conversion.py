@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal
 from typing import Any, Callable, Mapping
 
-from .address import DataType, get_numeric_limits, parse_tag
+from .plc.address import DataType, get_numeric_limits, parse_tag
 
 NUMERIC_DATA_TYPES = frozenset(
     value

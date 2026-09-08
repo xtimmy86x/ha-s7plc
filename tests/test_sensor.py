@@ -15,7 +15,7 @@ from custom_components.s7plc.sensor import (
     TOTAL_INCREASING_CLASSES,
     NO_MEASUREMENT_CLASSES,
 )
-from custom_components.s7plc.address import DataType
+from custom_components.s7plc.plc.address import DataType
 
 
 # Note: mock_coordinator fixture is now imported from conftest.py (DummyCoordinator)
