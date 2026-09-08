@@ -246,16 +246,23 @@ class S7WriteManager:
                     notification_id = (
                         f"s7plc_write_error_{self._host.replace('.', '_')}"
                     )
-                    await self.hass.services.async_call(
-                        "persistent_notification",
-                        "create",
-                        {
-                            "title": "S7 PLC Write Error",
-                            "message": error_msg,
-                            "notification_id": notification_id,
-                        },
-                        blocking=False,
-                    )
+                    try:
+                        await self.hass.services.async_call(
+                            "persistent_notification",
+                            "create",
+                            {
+                                "title": "S7 PLC Write Error",
+                                "message": error_msg,
+                                "notification_id": notification_id,
+                            },
+                            blocking=False,
+                        )
+                    except Exception:
+                        # Reporting failures must not replace PLC write results.
+                        # CancelledError still reaches the lifecycle handler.
+                        _LOGGER.exception(
+                            "Failed to create S7 PLC write error notification"
+                        )
                 else:
                     _LOGGER.debug(
                         "Suppressing notification (last sent %.0fs ago)",
