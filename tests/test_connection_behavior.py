@@ -1,9 +1,10 @@
-"""Proposed connection contracts: run against main before implementing a fix.
+"""Connection ownership contracts and regressions reproduced before the fix.
 
-Known regressions deliberately fail, without xfail markers. The controlled
-client models pyS7 3.1.1 returning immediately from connect while CONNECTING.
+The controlled client models pyS7 3.1.1 returning immediately from connect
+while CONNECTING.
 One test also exercises that behavior through the installed real pyS7 client.
-No coordinator connection, retry, or lifecycle methods are replaced.
+Only the dispatch-timing regression wraps a coordinator connection method;
+the other cases retain coordinator connection, retry, and lifecycle methods.
 """
 
 from __future__ import annotations
@@ -88,7 +89,7 @@ class Scenario:
         )
         self.client = ConnectingClient()
         self.coord._client = self.client
-        # The repository's HA stub omits state publication; transport is real.
+        # The repository's HA stub omits state publication.
         self.coord.async_set_updated_data = MagicMock()
         self.tasks = []
 
@@ -324,3 +325,159 @@ async def test_real_pys7_connect_does_not_report_success_during_tcp_open(monkeyp
             return_exceptions=True,
         )
         await asyncio.wait_for(coord.async_shutdown(), timeout=3)
+
+
+@pytest.mark.parametrize("batch", [False, True])
+@pytest.mark.parametrize("writer_first", [False, True])
+async def test_cancelled_write_waiter_preserves_another_callers_handshake(
+    batch, writer_first
+):
+    async with scenario() as case:
+        operation = (
+            (lambda: case.coord.write_multi([("DB1,W0", 7)]))
+            if batch
+            else (lambda: case.coord.write("DB1,W0", 7))
+        )
+        if writer_first:
+            writer = await case.start(operation)
+            await asyncio.wait_for(case.client.entered.wait(), timeout=3)
+            connector = await case.start(case.coord.connect)
+        else:
+            connector = await case.first_connect()
+            writer = await case.start(operation)
+        assert not writer.done()
+        assert not connector.done()
+        writer.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await writer
+        assert case.client.connecting
+        assert not case.client.cancelled
+        assert not case.coord._io_stopping
+        case.client.release.set()
+        await asyncio.wait_for(connector, timeout=3)
+        assert case.coord.is_connected()
+        assert case.client.handshakes == 1
+        assert case.client.io_calls == []
+
+
+@pytest.mark.parametrize("stop", ["async_shutdown", "async_disable_connection"])
+async def test_stop_owns_handshake_after_all_callers_cancel(monkeypatch, stop):
+    async with scenario() as case:
+        expire_first_drain(monkeypatch)
+        caller = await case.first_connect()
+        caller.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await caller
+        assert case.client.connecting
+        await asyncio.wait_for(getattr(case.coord, stop)(), timeout=3)
+        assert case.client.cancelled
+        assert not case.client.connecting
+        assert not case.coord.is_connected()
+        assert case.coord._connect_task is None
+        assert not case.coord._io_tasks
+        assert not case.coord._io_completions
+
+
+async def test_failed_owned_handshake_without_waiters_allows_a_later_attempt():
+    async with scenario() as case:
+        case.client.error = OSError("orphaned handshake refused")
+        caller = await case.first_connect()
+        attempt = case.coord._connect_task
+        finished = asyncio.Event()
+        attempt.add_done_callback(lambda _: finished.set())
+        caller.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await caller
+        case.client.release.set()
+        await asyncio.wait_for(finished.wait(), timeout=3)
+        assert case.coord._connect_task is None
+        case.client.error = None
+        await asyncio.wait_for(case.coord.connect(), timeout=3)
+        assert case.coord.is_connected()
+        assert case.client.handshakes == 2
+
+
+@pytest.mark.parametrize("outcome", ["success", "failure", "cancelled"])
+async def test_config_connection_check_always_shuts_down_its_temporary_coordinator(
+    monkeypatch, outcome
+):
+    from custom_components.s7plc import config_flow
+
+    async with scenario() as case:
+        expire_first_drain(monkeypatch)
+        monkeypatch.setattr(config_flow, "S7Coordinator", lambda *a, **kw: case.coord)
+        if outcome == "failure":
+            case.client.error = OSError("temporary connection refused")
+
+        async def check():
+            await config_flow._test_plc_connection(
+                case.coord.hass,
+                host="plc.local",
+                connection_type="rack_slot",
+                rack=0,
+                slot=1,
+                local_tsap=None,
+                remote_tsap=None,
+                pys7_connection_type="pg",
+                port=102,
+                scan_interval=0.5,
+                op_timeout=0.5,
+                max_retries=0,
+                backoff_initial=0.5,
+                backoff_max=2,
+                optimize_read=True,
+                enable_write_batching=False,
+                enable_metrics=False,
+            )
+
+        task = await case.start(check)
+        await asyncio.wait_for(case.client.entered.wait(), timeout=3)
+        if outcome == "cancelled":
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(task, timeout=3)
+        else:
+            case.client.release.set()
+            if outcome == "failure":
+                with pytest.raises(RuntimeError, match="temporary connection refused"):
+                    await asyncio.wait_for(task, timeout=3)
+            else:
+                await asyncio.wait_for(task, timeout=3)
+        assert case.coord._shutdown
+        assert case.coord._connect_task is None
+        assert not case.coord.is_connected()
+        assert not case.client.connecting
+        assert not case.coord._io_tasks
+        assert not case.coord._io_completions
+
+
+@pytest.mark.parametrize("stop", ["async_shutdown", "async_disable_connection"])
+async def test_stop_owns_scheduled_handshake_before_io_registration(monkeypatch, stop):
+    """A scheduled connection remains owned before its I/O scope has started."""
+    async with scenario() as case:
+        expire_first_drain(monkeypatch)
+        scheduled = asyncio.Event()
+        original_connect = case.coord._connect
+
+        async def delayed_start(generation):
+            scheduled.set()
+            await asyncio.Event().wait()
+            await original_connect(generation)
+
+        # Delay dispatch only: this exercises the interval before _io_operation
+        # can register the owned handshake, after its caller has been cancelled.
+        monkeypatch.setattr(case.coord, "_connect", delayed_start)
+        caller = await case.start(case.coord.connect)
+        await asyncio.wait_for(scheduled.wait(), timeout=3)
+        attempt = case.coord._connect_task
+        caller.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await caller
+        assert not case.coord._io_tasks
+        assert not case.coord._io_completions
+        assert not attempt.done()
+        await asyncio.wait_for(getattr(case.coord, stop)(), timeout=3)
+        assert attempt.done()
+        assert case.coord._connect_task is None
+        assert case.client.connect_calls == 0
+        assert not case.coord._io_stopping

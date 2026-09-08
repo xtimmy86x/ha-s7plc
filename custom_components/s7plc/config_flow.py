@@ -400,8 +400,12 @@ async def _test_plc_connection(
         enable_write_batching=enable_write_batching,
         enable_metrics=enable_metrics,
     )
-    await coordinator.connect()
-    await coordinator.disconnect()
+    try:
+        await coordinator.connect()
+    finally:
+        # This temporary coordinator also owns the shared connection attempt.
+        # Drain it on failure or cancellation as well as on success.
+        await coordinator.async_shutdown()
 
 
 def _build_connection_entry_data(
