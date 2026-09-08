@@ -80,10 +80,10 @@ async def test_real_setup_restores_connection_control_state(
     assert control.available is True
     assert coordinator._client is None
     assert ensure_connected.await_count == expected_connects
-    assert coordinator._write_batch_timer is None
-    assert not coordinator._write_batch_buffer
-    assert not coordinator._write_batch_waiters
-    assert not coordinator._write_batch_inflight_waiters
+    assert coordinator._write_manager._timer is None
+    assert not coordinator._write_manager._buffer
+    assert not coordinator._write_manager._waiters
+    assert not coordinator._write_manager._inflight_waiters
     coordinator.async_set_updated_data = MagicMock()
     coordinator._drop_connection = AsyncMock()
     await coordinator.async_shutdown()
@@ -236,12 +236,12 @@ async def test_disable_cancels_queued_batch_and_it_never_runs_after_enable(fake_
 
     with pytest.raises(HomeAssistantError, match="manually disabled"):
         await write
-    assert coordinator._write_batch_timer is None
-    assert not coordinator._write_batch_buffer
-    assert not coordinator._write_batch_waiters
+    assert coordinator._write_manager._timer is None
+    assert not coordinator._write_manager._buffer
+    assert not coordinator._write_manager._waiters
 
     await coordinator.async_enable_connection()
-    await asyncio.sleep(coordinator._write_batch_delay * 2)
+    await asyncio.sleep(coordinator._write_manager._delay * 2)
     coordinator.write_multi.assert_not_awaited()
 
 
@@ -249,7 +249,7 @@ async def test_disable_cancels_queued_batch_and_it_never_runs_after_enable(fake_
 async def test_disable_cancels_two_concurrent_inflight_flushes(fake_hass):
     """A late pyS7 completion cannot overwrite either flush's disable error."""
     coordinator = S7Coordinator(fake_hass, "192.0.2.1")
-    coordinator._write_batch_delay = 60
+    coordinator._write_manager._delay = 60
     coordinator.async_set_updated_data = MagicMock()
     coordinator.async_request_refresh = AsyncMock()
     entered = [asyncio.Event(), asyncio.Event()]
@@ -268,19 +268,19 @@ async def test_disable_cancels_two_concurrent_inflight_flushes(fake_hass):
 
     write_a = asyncio.create_task(coordinator.write_batched("DB1.DBX0.0", True))
     await asyncio.sleep(0)
-    flush_a = asyncio.create_task(coordinator._flush_write_batch())
+    flush_a = asyncio.create_task(coordinator._write_manager._flush())
     await entered[0].wait()
     write_b = asyncio.create_task(coordinator.write_batched("DB1.DBX0.1", True))
     await asyncio.sleep(0)
-    flush_b = asyncio.create_task(coordinator._flush_write_batch())
+    flush_b = asyncio.create_task(coordinator._write_manager._flush())
     await entered[1].wait()
 
-    assert len(coordinator._write_batch_inflight_waiters) == 2
+    assert len(coordinator._write_manager._inflight_waiters) == 2
     disable = asyncio.create_task(coordinator.async_disable_connection())
     for write in (write_a, write_b):
         with pytest.raises(HomeAssistantError, match="manually disabled"):
             await asyncio.wait_for(write, timeout=0.1)
-    assert not coordinator._write_batch_inflight_waiters
+    assert not coordinator._write_manager._inflight_waiters
     assert not disable.done()  # Disable must drain I/O, not just fail the callers.
 
     release[0].set()
@@ -290,9 +290,9 @@ async def test_disable_cancels_two_concurrent_inflight_flushes(fake_hass):
     await coordinator.async_enable_connection()
     await asyncio.sleep(0)
     assert calls == 2
-    assert not coordinator._write_batch_buffer
-    assert not coordinator._write_batch_waiters
-    assert not coordinator._write_batch_inflight_waiters
+    assert not coordinator._write_manager._buffer
+    assert not coordinator._write_manager._waiters
+    assert not coordinator._write_manager._inflight_waiters
 
 
 @pytest.mark.asyncio
@@ -307,10 +307,10 @@ async def test_repeated_disable_and_disconnect_are_idempotent(fake_hass):
     await coordinator.disconnect()
 
     assert coordinator.connection_enabled is False
-    assert coordinator._write_batch_timer is None
-    assert not coordinator._write_batch_buffer
-    assert not coordinator._write_batch_waiters
-    assert not coordinator._write_batch_inflight_waiters
+    assert coordinator._write_manager._timer is None
+    assert not coordinator._write_manager._buffer
+    assert not coordinator._write_manager._waiters
+    assert not coordinator._write_manager._inflight_waiters
     assert coordinator._drop_connection.await_count == 4
 
 
@@ -319,7 +319,7 @@ async def test_shutdown_cleans_retry_queued_and_inflight_work(fake_hass):
     coordinator = S7Coordinator(
         fake_hass, "192.0.2.1", backoff_initial=60, max_retries=2
     )
-    coordinator._write_batch_delay = 60
+    coordinator._write_manager._delay = 60
     coordinator.async_set_updated_data = MagicMock()
     coordinator._drop_connection = AsyncMock()
     entered = asyncio.Event()
@@ -342,7 +342,7 @@ async def test_shutdown_cleans_retry_queued_and_inflight_work(fake_hass):
     await retry_started.wait()
     write_inflight = asyncio.create_task(coordinator.write_batched("DB1.DBX0.0", True))
     await asyncio.sleep(0)
-    flush = asyncio.create_task(coordinator._flush_write_batch())
+    flush = asyncio.create_task(coordinator._write_manager._flush())
     await entered.wait()
     write_queued = asyncio.create_task(coordinator.write_batched("DB1.DBX0.1", True))
     await asyncio.sleep(0)
@@ -352,10 +352,10 @@ async def test_shutdown_cleans_retry_queued_and_inflight_work(fake_hass):
         with pytest.raises(HomeAssistantError, match="shut down"):
             await asyncio.wait_for(task, timeout=0.1)
 
-    assert coordinator._write_batch_timer is None
-    assert not coordinator._write_batch_buffer
-    assert not coordinator._write_batch_waiters
-    assert not coordinator._write_batch_inflight_waiters
+    assert coordinator._write_manager._timer is None
+    assert not coordinator._write_manager._buffer
+    assert not coordinator._write_manager._waiters
+    assert not coordinator._write_manager._inflight_waiters
     fake_hass.services.async_call.assert_not_called()
     assert not shutdown.done()
 
