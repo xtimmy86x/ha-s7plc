@@ -6,7 +6,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from homeassistant.helpers.update_coordinator import UpdateFailed
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
 
 from .address import DataType, MemoryArea, S7Tag
@@ -15,13 +14,19 @@ from .plans import StringPlan, TagPlan, apply_postprocess
 _LOGGER = logging.getLogger(__name__)
 
 
+class S7ReadError(Exception):
+    """A planned string read failed or its cooperative deadline expired."""
+
+
 class S7ReadExecutor:
     """Execute scalar and string reads for one PLC without owning its client.
 
     The supplied read callback owns retry and resolves the current client on
     each attempt. Calls run within the connection manager's operation scope;
     this executor creates no tasks, connections, caches or lifecycle barriers.
-    The coordinator supplies the cycle deadline and its monotonic clock.
+    The coordinator supplies the cycle deadline and its monotonic clock, and
+    translates S7ReadError into its framework's update error. This executor
+    does not handle lifecycle errors or cancellations.
     """
 
     def __init__(
@@ -158,13 +163,13 @@ class S7ReadExecutor:
             Dictionary mapping topic names to their string values
 
         Raises:
-            UpdateFailed: On timeout or communication failures
+            S7ReadError: On timeout or communication failures
         """
         results: dict[str, Any] = {}
         for plan in plans_str:
             if self._monotonic() > deadline:
                 _LOGGER.warning("String read timeout reached (%.2fs)", self._op_timeout)
-                raise UpdateFailed(
+                raise S7ReadError(
                     f"String read timeout reached ({self._op_timeout:.2f}s)"
                 )
             try:
@@ -184,7 +189,7 @@ class S7ReadExecutor:
                     plan.start,
                     err,
                 )
-                raise UpdateFailed(
+                raise S7ReadError(
                     f"S7 error reading string {plan.topic}: {err}"
                 ) from err
             except (OSError, RuntimeError) as err:
@@ -195,7 +200,7 @@ class S7ReadExecutor:
                     plan.start,
                     err,
                 )
-                raise UpdateFailed(f"Error reading string {plan.topic}: {err}") from err
+                raise S7ReadError(f"Error reading string {plan.topic}: {err}") from err
         return results
 
     async def read_one(self, tag: S7Tag, address: str) -> Any:
