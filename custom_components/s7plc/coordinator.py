@@ -957,18 +957,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         self._connection.check_available()
         tag = self._get_or_parse_tag(address)
-        payload = self._prepare_payload(tag, value, address)
+        payload = prepare_payload(tag, value, address)
         async with self._connection.write_operation(serialize=True):
             return await self._write_with_retry(address, tag, payload)
-
-    def _prepare_payload(
-        self,
-        tag: S7Tag,
-        value: bool | int | float | str | timedelta,
-        address: str = "",
-    ) -> bool | int | float | str | timedelta:
-        """Prepare a pyS7 payload using the PLC-level validation helper."""
-        return prepare_payload(tag, value, address)
 
     async def write_multi(
         self, writes: list[tuple[str, bool | int | float | str | timedelta]]
@@ -1006,7 +997,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         for address, value in writes:
             try:
                 tag = self._get_or_parse_tag(address)
-                payload = self._prepare_payload(tag, value, address)
+                payload = prepare_payload(tag, value, address)
                 addresses.append(address)
                 tags.append(tag)
                 payloads.append(payload)
