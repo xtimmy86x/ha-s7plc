@@ -26,14 +26,6 @@ _LOGGER = logging.getLogger(__name__)
 S7ClientT = TypeVar("S7ClientT")
 
 
-class _ConnectionWaitCancelled(asyncio.CancelledError):
-    """A caller was cancelled while awaiting a separately owned handshake.
-
-    No write was dispatched by this wait. Write cancellation cleanup must not
-    disconnect the transport still needed by the other connection waiters.
-    """
-
-
 # -----------------------------
 # Coordinator
 # -----------------------------
@@ -101,6 +93,12 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._shutdown_task: asyncio.Task[None] | None = None
         self._lifecycle_lock = asyncio.Lock()
         self._connection_lock = asyncio.Lock()
+        # Gate complete driver calls so cancellation cleanup precedes any queued
+        # request. pyS7's packet lock alone releases before our cleanup can run.
+        self._transport_lock = asyncio.Lock()
+        self._transport_generation = 0
+        self._transport_reset_task: asyncio.Task[None] | None = None
+        self._transport_reset_failed = False
         self._connect_task: asyncio.Task[None] | None = None
         # Unlike pyS7's packet lock, this covers the complete write/retry and
         # cancellation cleanup, so the next write cannot reuse an aborted stream.
@@ -280,7 +278,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._last_health_ok = False
             self.async_set_updated_data(dict(self._data_cache))
 
-    async def _drop_connection(self) -> None:
+    async def _drop_connection(self, *, strict: bool = False) -> None:
         """Safely close PLC connection, tolerant of concurrent disconnects.
 
         The pyS7 library may concurrently set socket=None when the peer closes
@@ -289,20 +287,30 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         is_connected guard because pyS7.disconnect() already returns early
         when the state is DISCONNECTED.
         """
-        async with self._connection_lock:
-            await self._disconnect_client(self._client)
+        async with self._transport_lock, self._connection_lock:
+            await self._disconnect_client(
+                self._client, strict=strict or self._transport_reset_failed
+            )
 
-    async def _disconnect_client(self, client: Any | None) -> None:
+    async def _disconnect_client(
+        self, client: Any | None, *, strict: bool = False
+    ) -> None:
         """Close a captured client while the caller owns the connection lock."""
+        self._transport_generation += 1
         if client is not None:
             try:
                 await client.disconnect()
+                if strict and client.is_connected:
+                    raise RuntimeError("PLC client remained connected after cleanup")
             except (OSError, RuntimeError, AttributeError) as err:
                 _LOGGER.debug("Error during PLC disconnect: %s", err)
+                if strict:
+                    raise
 
     async def _ensure_connected(self) -> None:
         """Await the shared handshake without transferring ownership to callers."""
         async with self._io_operation():
+            await self._wait_for_transport_reset()
             if self._client is None:
                 # Create client based on connection type
                 if self._local_tsap and self._remote_tsap:
@@ -333,10 +341,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 task = asyncio.create_task(self._connect(self._io_generation))
                 self._connect_task = task
                 task.add_done_callback(self._connection_task_done)
-            try:
-                await asyncio.shield(task)
-            except asyncio.CancelledError as err:
-                raise _ConnectionWaitCancelled(*err.args) from err
+            await asyncio.shield(task)
             self._raise_if_connection_disabled()
 
     def _connection_task_done(self, task: asyncio.Task[None]) -> None:
@@ -353,58 +358,64 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         async with self._io_operation():
             if generation != self._io_generation:
                 raise HomeAssistantError("PLC connection was disconnected")
-            async with self._connection_lock:
-                self._raise_if_connection_disabled()
-                client = self._client
-                try:
-                    await client.connect()
+            while True:
+                await self._wait_for_transport_reset()
+                async with self._transport_lock, self._connection_lock:
+                    if self._transport_reset_task is not None:
+                        continue
                     self._raise_if_connection_disabled()
-                    if not client.is_connected:
+                    client = self._client
+                    try:
+                        await client.connect()
+                        self._raise_if_connection_disabled()
+                        if not client.is_connected:
+                            raise RuntimeError(
+                                "PLC handshake did not establish a connection"
+                            )
+                    except asyncio.CancelledError:
+                        # Stop drains all I/O owners before disconnecting. Otherwise
+                        # Direct cancellation of the owned task needs cleanup.
+                        if not self._io_stopping:
+                            try:
+                                await asyncio.wait_for(
+                                    self._disconnect_client(client), self._op_timeout
+                                )
+                            except TimeoutError:
+                                self._io_stopping = True
+                                _LOGGER.error(
+                                    "PLC disconnect timed out "
+                                    "after connect cancellation"
+                                )
+                        raise
+                    except HomeAssistantError:
+                        # The lifecycle barrier owns cleanup after active I/O drains.
+                        raise
+                    except (
+                        OSError,
+                        RuntimeError,
+                        S7CommunicationError,
+                        S7ConnectionError,
+                    ) as err:
+                        await self._disconnect_client(client)
                         raise RuntimeError(
-                            "PLC handshake did not establish a connection"
-                        )
-                except asyncio.CancelledError:
-                    # Stop drains all I/O owners before disconnecting. Otherwise
-                    # direct cancellation of this owned task needs its own cleanup.
-                    if not self._io_stopping:
-                        try:
-                            await asyncio.wait_for(
-                                self._disconnect_client(client), self._op_timeout
-                            )
-                        except TimeoutError:
-                            self._io_stopping = True
-                            _LOGGER.error(
-                                "PLC disconnect timed out after connect cancellation"
-                            )
-                    raise
-                except HomeAssistantError:
-                    # The lifecycle barrier owns cleanup after active I/O drains.
-                    raise
-                except (
-                    OSError,
-                    RuntimeError,
-                    S7CommunicationError,
-                    S7ConnectionError,
-                ) as err:
-                    await self._disconnect_client(client)
-                    raise RuntimeError(
-                        f"Connection to PLC {self._host} failed: {err}"
-                    ) from err
+                            f"Connection to PLC {self._host} failed: {err}"
+                        ) from err
 
-                if self._local_tsap and self._remote_tsap:
-                    _LOGGER.info(
-                        "Connected to S7 PLC %s (TSAP %s/%s)",
-                        self._host,
-                        self._local_tsap,
-                        self._remote_tsap,
-                    )
-                else:
-                    _LOGGER.info(
-                        "Connected to S7 PLC %s (rack=%s slot=%s)",
-                        self._host,
-                        self._rack,
-                        self._slot,
-                    )
+                    if self._local_tsap and self._remote_tsap:
+                        _LOGGER.info(
+                            "Connected to S7 PLC %s (TSAP %s/%s)",
+                            self._host,
+                            self._local_tsap,
+                            self._remote_tsap,
+                        )
+                    else:
+                        _LOGGER.info(
+                            "Connected to S7 PLC %s (rack=%s slot=%s)",
+                            self._host,
+                            self._rack,
+                            self._slot,
+                        )
+                return
 
     def is_connected(self) -> bool:
         """Check if PLC connection is active.
@@ -436,7 +447,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # otherwise rely on connection flag
                 if hasattr(client, "get_cpu_info"):
                     try:
-                        await client.get_cpu_info()
+                        await self._perform_io(lambda: self._client.get_cpu_info())
                     except Exception as err:
                         # Catch all exceptions from pyS7 library
                         # calls which may raise various undocumented exception types
@@ -559,6 +570,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         owned_tasks = self._write_manager.tasks
         if self._connect_task is not None:
             owned_tasks.add(self._connect_task)
+        if self._transport_reset_task is not None:
+            owned_tasks.add(self._transport_reset_task)
         owned_tasks.discard(asyncio.current_task())
         completions = set(operations.values()) | owned_tasks
         completions = {done for done in completions if not done.done()}
@@ -579,6 +592,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise HomeAssistantError("PLC I/O tasks did not stop")
             await asyncio.gather(*completions, return_exceptions=True)
         await asyncio.wait_for(self._drop_connection(), self._op_timeout)
+        self._transport_reset_failed = False
         self._io_stopping = False
         if self._connection_enabled and not self._shutdown:
             self._connection_state_changed.clear()
@@ -606,24 +620,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             if serialize:
                 async with self._write_io_lock:
                     self._raise_if_connection_disabled()
-                    try:
-                        yield
-                    except asyncio.CancelledError as err:
-                        if not self._io_stopping and not isinstance(
-                            err, _ConnectionWaitCancelled
-                        ):
-                            # A direct cancellation can leave a response unread.
-                            # Reset the transport before allowing another write.
-                            try:
-                                await asyncio.wait_for(
-                                    self._drop_connection(), self._op_timeout
-                                )
-                            except TimeoutError:
-                                self._io_stopping = True
-                                _LOGGER.error(
-                                    "PLC disconnect timed out after write cancellation"
-                                )
-                        raise
+                    yield
             else:
                 yield
 
@@ -771,6 +768,81 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
         self._raise_if_connection_disabled()
 
+    async def _wait_for_transport_reset(self) -> None:
+        """Wait outside transport locks; cancelling a waiter cannot cancel cleanup."""
+        task = self._transport_reset_task
+        if task is not None:
+            await asyncio.shield(task)
+
+    def _start_transport_reset(self) -> asyncio.Task[None]:
+        """Mark the stream unusable synchronously before releasing its gate."""
+        task = self._transport_reset_task
+        if task is None:
+            task = asyncio.create_task(self._reset_transport())
+            self._transport_reset_task = task
+            task.add_done_callback(self._transport_reset_done)
+        return task
+
+    async def _reset_transport(self) -> None:
+        """Own cleanup even if the cancelled caller is cancelled a second time."""
+        try:
+            await asyncio.wait_for(self._drop_connection(strict=True), self._op_timeout)
+        except BaseException:
+            # A failed/cancelled close must not reopen admission on an uncertain
+            # stream. An explicit lifecycle stop can retry and finish cleanup.
+            self._io_stopping = True
+            self._transport_reset_failed = True
+            self._connection_state_changed.set()
+            raise
+
+    def _transport_reset_done(self, task: asyncio.Task[None]) -> None:
+        if self._transport_reset_task is task:
+            self._transport_reset_task = None
+        self._consume_task_result(task)
+
+    async def _perform_io(
+        self, func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> Any:
+        """Dispatch one driver call and quarantine its stream on cancellation.
+
+        Connection waits, transport-gate waits and retry backoffs send no packet
+        and need no reset. All reads, writes and CPU probes use this boundary.
+        """
+        reset = None
+        try:
+            while True:
+                await self._ensure_connected()
+                generation = self._transport_generation
+                async with self._transport_lock:
+                    # Already-queued callers may acquire the gate before the
+                    # reset task. Yield it rather than using or waiting on it.
+                    if (
+                        self._transport_reset_task is not None
+                        or generation != self._transport_generation
+                    ):
+                        continue
+                    self._raise_if_connection_disabled()
+                    try:
+                        result = func(*args, **kwargs)
+                        if asyncio.iscoroutine(result):
+                            result = await result
+                    except asyncio.CancelledError:
+                        if not self._io_stopping:
+                            reset = self._start_transport_reset()
+                        raise
+                    self._raise_if_connection_disabled()
+                    return result
+        except asyncio.CancelledError:
+            if reset is not None:
+                try:
+                    # The gate is released before cleanup needs to acquire it.
+                    await asyncio.shield(reset)
+                except Exception:
+                    # The owned task logs the failure and closes admission.
+                    # Preserve the initiating caller's cancellation outcome.
+                    pass
+            raise
+
     async def _retry(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute ``func`` with retries using exponential backoff.
 
@@ -796,14 +868,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             while attempt <= self._max_retries:
                 self._raise_if_connection_disabled()
                 try:
-                    # Ensure connection before each attempt
-                    await self._ensure_connected()
-                    self._raise_if_connection_disabled()
-                    result = func(*args, **kwargs)
-                    if asyncio.iscoroutine(result):
-                        result = await result
-                    self._raise_if_connection_disabled()
-                    return result
+                    return await self._perform_io(func, *args, **kwargs)
                 except (S7CommunicationError, S7ConnectionError) as e:
                     # S7-specific communication errors (most common)
                     last_exc = e
