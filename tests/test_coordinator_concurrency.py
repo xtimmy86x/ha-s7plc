@@ -212,10 +212,8 @@ async def test_write_and_poll_overlap_without_corrupting_results(first_kind):
             self.write_calls = []
 
         async def execute(self, kind):
-            if kind != first_kind:
-                second_requested.set()
-            # This is pyS7's shared packet lock, not a coordinator lock added
-            # by the test. Both public operations reach this client concurrently.
+            # Model pyS7's packet lock. The coordinator now gates dispatch too,
+            # so a cancelled packet can be cleaned up before the next request.
             async with self.lock:
                 operation_log.append((kind, "start"))
                 if kind == first_kind:
@@ -242,10 +240,14 @@ async def test_write_and_poll_overlap_without_corrupting_results(first_kind):
     await coord.add_item("value", "DB1,W0")
 
     def start(kind):
-        operation = (
-            coord._async_update_data() if kind == "read" else coord.write("DB1,W0", 99)
-        )
-        return asyncio.create_task(operation)
+        async def operation():
+            if kind != first_kind:
+                second_requested.set()
+            if kind == "read":
+                return await coord._async_update_data()
+            return await coord.write("DB1,W0", 99)
+
+        return asyncio.create_task(operation())
 
     first = start(first_kind)
     second = None
@@ -257,6 +259,7 @@ async def test_write_and_poll_overlap_without_corrupting_results(first_kind):
         assert not first.done()
         assert not second.done()
         assert operation_log == [(first_kind, "start")]
+        assert len(client.read_calls) + len(client.write_calls) == 1
         release.set()
         results = await asyncio.wait_for(asyncio.gather(first, second), timeout=3)
         poll_result, write_result = results if first_kind == "read" else results[::-1]
