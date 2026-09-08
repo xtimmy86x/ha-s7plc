@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import pytest
 
-from homeassistant.exceptions import HomeAssistantError
+import pytest
+from conftest import DummyTag
 
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import TagPlan
-from conftest import DummyTag
-
 
 # ============================================================================
 # Helpers
@@ -25,51 +23,56 @@ def _make_coordinator(**kwargs) -> S7Coordinator:
 
 
 # ============================================================================
-# Test 1 – Concurrent reconnect
-#
-# Two coroutines call _ensure_connected() at the same time.
-# Only ONE real connect must happen.
+# Test 1 – Reconnect before reading and reuse of the established connection
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_concurrent_reconnect_single_connect():
-    """Two concurrent _ensure_connected calls must produce only one connect."""
-    coord = _make_coordinator()
+async def test_poll_waits_for_connection_and_reuses_connected_client():
+    """Polling waits for the handshake; later callers reuse the connection.
 
-    connect_count = 0
-    connect_event = asyncio.Event()
+    No test-side coordinator lock is added. This does not claim that the
+    coordinator serializes simultaneous handshakes on an unconnected client.
+    """
+    coord = _make_coordinator(max_retries=0)
+    entered, release = asyncio.Event(), asyncio.Event()
+    operations = []
 
     class FakeClient:
         is_connected = False
 
         async def connect(self):
-            nonlocal connect_count
-            connect_count += 1
-            # Simulate slow handshake so the second caller overlaps
-            await asyncio.sleep(0.05)
-            FakeClient.is_connected = True
+            operations.append("connect-start")
+            entered.set()
+            await release.wait()
+            self.is_connected = True
+            operations.append("connect-end")
+
+        async def read(self, tags, optimize=True):
+            assert self.is_connected
+            operations.append("read")
+            return [42]
 
         async def disconnect(self):
-            FakeClient.is_connected = False
+            self.is_connected = False
 
     coord._client = FakeClient()
-
-    # Both coroutines share the coordinator's _async_lock through _read_all
-    # but _ensure_connected itself has no lock – the real serialisation
-    # happens at the _retry / _read_all level via _async_lock.
-    # We verify the *external* contract: two _read_all calls run
-    # sequentially because of the lock, so connect is called at most once.
-
-    async def caller():
-        async with coord._async_lock:
-            await coord._ensure_connected()
-
-    await asyncio.gather(caller(), caller())
-
-    assert connect_count == 1, (
-        f"Expected exactly 1 connect call, got {connect_count}"
-    )
+    await coord.add_item("value", "DB1,W0")
+    polling = asyncio.create_task(coord._async_update_data())
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=3)
+        assert not polling.done()
+        assert operations == ["connect-start"]
+        release.set()
+        assert await asyncio.wait_for(polling, timeout=3) == {"value": 42}
+        await asyncio.gather(coord.connect(), coord.connect())
+        assert operations == ["connect-start", "connect-end", "read"]
+    finally:
+        release.set()
+        if not polling.done():
+            polling.cancel()
+        await asyncio.gather(polling, return_exceptions=True)
+        await coord.async_shutdown()
 
 
 # ============================================================================
@@ -185,81 +188,97 @@ async def test_unload_cancels_retry_sleep():
 
 
 # ============================================================================
-# Test 4 – Write and poll simultaneously
-#
-# A coordinator poll (_async_update_data) and a write_multi happen
-# concurrently.  The _async_lock must serialise them so the final state
-# is coherent.
+# Test 4 – Overlapping poll and write through the driver's shared I/O lock
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_write_and_poll_no_race():
-    """Concurrent poll + write must not corrupt shared state."""
-    coord = _make_coordinator(enable_write_batching=False)
-    coord._max_retries = 0
-
-    # Track operation order to prove serialisation
-    operation_log: list[str] = []
-
-    tag = DummyTag(data_type=coordinator.DataType.WORD, start=0)
-    coord._plans_batch = {"topic/a": TagPlan("topic/a", tag)}
-    coord._plans_str = {}
-    coord._items["topic/a"] = "DB1,W0"
-    coord._item_scan_intervals["topic/a"] = 0.5
-    coord._item_next_read["topic/a"] = 0.0
+@pytest.mark.parametrize("first_kind", ["read", "write"])
+async def test_write_and_poll_overlap_without_corrupting_results(first_kind):
+    """Keep both operations in flight using events and the modeled driver lock."""
+    coord = _make_coordinator(enable_write_batching=False, max_retries=0)
+    first_entered = asyncio.Event()
+    second_requested = asyncio.Event()
+    release = asyncio.Event()
+    operation_log = []
 
     class FakeClient:
         is_connected = True
 
-        def read(self, tags, optimize=True):
-            operation_log.append("read")
-            return [42]
+        def __init__(self):
+            self.lock = asyncio.Lock()
+            self.value = 42
+            self.read_calls = []
+            self.write_calls = []
 
-        def write(self, tags, payloads):
-            operation_log.append("write")
-            return None
+        async def execute(self, kind):
+            if kind != first_kind:
+                second_requested.set()
+            # This is pyS7's shared packet lock, not a coordinator lock added
+            # by the test. Both public operations reach this client concurrently.
+            async with self.lock:
+                operation_log.append((kind, "start"))
+                if kind == first_kind:
+                    first_entered.set()
+                    await release.wait()
+                if kind == "write":
+                    self.value = 99
+                operation_log.append((kind, "end"))
+                return self.value
 
-        async def connect(self):
-            pass
+        async def read(self, tags, optimize=True):
+            self.read_calls.append((tags, optimize))
+            return [await self.execute("read")]
+
+        async def write(self, tags, payloads):
+            self.write_calls.append((tags, payloads))
+            await self.execute("write")
 
         async def disconnect(self):
-            pass
+            self.is_connected = False
 
-    coord._client = FakeClient()
+    client = FakeClient()
+    coord._client = client
+    await coord.add_item("value", "DB1,W0")
 
-    async def fake_ensure():
-        pass
+    def start(kind):
+        operation = (
+            coord._async_update_data() if kind == "read" else coord.write("DB1,W0", 99)
+        )
+        return asyncio.create_task(operation)
 
-    coord._ensure_connected = fake_ensure
-
-    # Lightweight _retry that just calls the function once.
-    async def passthrough_retry(func, *args, **kwargs):
-        result = func(*args, **kwargs)
-        if asyncio.iscoroutine(result):
-            return await result
-        return result
-
-    coord._retry = passthrough_retry
-
-    # Run poll and write concurrently
-    poll_task = asyncio.create_task(coord._async_update_data())
-    write_task = asyncio.create_task(coord.write("DB1,W0", 99))
-
-    poll_result, write_result = await asyncio.gather(
-        poll_task, write_task, return_exceptions=True
-    )
-
-    # Poll should succeed and return data
-    assert isinstance(poll_result, dict)
-    assert poll_result.get("topic/a") == 42
-
-    # Write should succeed
-    assert write_result is True
-
-    # Both operations executed
-    assert "read" in operation_log
-    assert "write" in operation_log
+    first = start(first_kind)
+    second = None
+    try:
+        await asyncio.wait_for(first_entered.wait(), timeout=3)
+        second_kind = "write" if first_kind == "read" else "read"
+        second = start(second_kind)
+        await asyncio.wait_for(second_requested.wait(), timeout=3)
+        assert not first.done()
+        assert not second.done()
+        assert operation_log == [(first_kind, "start")]
+        release.set()
+        results = await asyncio.wait_for(asyncio.gather(first, second), timeout=3)
+        poll_result, write_result = results if first_kind == "read" else results[::-1]
+        assert poll_result == {"value": 42 if first_kind == "read" else 99}
+        assert write_result is True
+        assert coord.get_topic_read_revision("value") == 1
+        assert operation_log == [
+            (first_kind, "start"), (first_kind, "end"),
+            (second_kind, "start"), (second_kind, "end"),
+        ]
+        assert len(client.read_calls) == len(client.write_calls) == 1
+        assert client.read_calls[0][1] is True
+        assert client.read_calls[0][0] == client.write_calls[0][0]
+        assert client.write_calls[0][1] == [99]
+    finally:
+        release.set()
+        tasks = [task for task in (first, second) if task is not None]
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await coord.async_shutdown()
 
 
 # ============================================================================
@@ -337,3 +356,80 @@ async def test_stale_read_discarded_after_reconnect():
     assert result["topic/a"] == 999, (
         "Data must come from the new client, not from the stale connection"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("second_fails", [False, True])
+async def test_overlapping_plc_polls_keep_results_and_errors_isolated(second_fails):
+    """Two PLCs in the same HA instance may use identical topics and addresses."""
+    hass = coordinator.HomeAssistant()
+    first = S7Coordinator(hass, host="plc-a.local", max_retries=0)
+    second = S7Coordinator(hass, host="plc-b.local", max_retries=0)
+
+    class FakeClient:
+        is_connected = True
+
+        def __init__(self, value, fail=False):
+            self.value = value
+            self.fail = fail
+            self.entered = asyncio.Event()
+            self.release = asyncio.Event()
+            self.calls = []
+
+        async def read(self, tags, optimize=True):
+            self.calls.append((tags, optimize))
+            self.entered.set()
+            await self.release.wait()
+            if self.fail:
+                raise OSError("second PLC unavailable")
+            return [self.value]
+
+        async def disconnect(self):
+            self.is_connected = False
+
+    first_client = FakeClient(42)
+    second_client = FakeClient(84, fail=second_fails)
+    first._client = first_client
+    second._client = second_client
+    for coord in (first, second):
+        await coord.add_item("value", "DB1,W0")
+    first._data_cache = {"value": -1}
+    second._data_cache = {"value": -2}
+    tasks = [asyncio.create_task(coord._async_update_data()) for coord in (first, second)]
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(first_client.entered.wait(), second_client.entered.wait()),
+            timeout=3,
+        )
+        first_client.release.set()
+        assert await asyncio.wait_for(tasks[0], timeout=3) == {"value": 42}
+        assert not tasks[1].done()
+        assert second._data_cache == {"value": -2}
+        assert second.get_topic_read_revision("value") == 0
+
+        second_client.release.set()
+        if second_fails:
+            with pytest.raises(coordinator.UpdateFailed, match="second PLC unavailable"):
+                await asyncio.wait_for(tasks[1], timeout=3)
+            assert second._data_cache == {"value": -2}
+            assert second.get_topic_read_revision("value") == 0
+            assert second.last_health_ok is False
+            assert not second_client.is_connected
+        else:
+            assert await asyncio.wait_for(tasks[1], timeout=3) == {"value": 84}
+            assert second.get_topic_read_revision("value") == 1
+            assert second.last_health_ok is True
+        assert first._data_cache == {"value": 42}
+        assert first.get_topic_read_revision("value") == 1
+        assert first.last_health_ok is True
+        assert first_client.is_connected
+        assert len(first_client.calls) == len(second_client.calls) == 1
+    finally:
+        first_client.release.set()
+        second_client.release.set()
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await first.async_shutdown()
+        await second.async_shutdown()
