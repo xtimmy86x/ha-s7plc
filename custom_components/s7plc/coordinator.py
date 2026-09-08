@@ -1071,8 +1071,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         for address, value in writes:
             try:
                 tag = self._get_or_parse_tag(address)
-                addresses.append(address)
                 payload = self._prepare_payload(tag, value, address)
+                addresses.append(address)
                 tags.append(tag)
                 payloads.append(payload)
 
