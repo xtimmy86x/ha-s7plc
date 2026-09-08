@@ -13,8 +13,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from pyS7.constants import ConnectionType
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
 
-from .plc.address import DataType, S7Tag, parse_tag
+from .plc.address import DataType  # noqa: F401 - preserve the existing module export
+from .plc.address import S7Tag, parse_tag
 from .plc.connection_manager import S7ConnectionManager
+from .plc.payload import prepare_payload
 from .plc.plans import StringPlan, TagPlan, build_plans
 from .plc.read_executor import S7ReadError, S7ReadExecutor
 from .write_manager import S7WriteManager
@@ -965,75 +967,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         value: bool | int | float | str | timedelta,
         address: str = "",
     ) -> bool | int | float | str | timedelta:
-        """Validate and convert a Python value to the appropriate PLC payload.
-
-        Args:
-            tag: Parsed S7Tag describing the target data type.
-            value: Value to convert.
-            address: PLC address (used only in error messages).
-
-        Returns:
-            Converted payload ready for the pyS7 write call.
-
-        Raises:
-            ValueError: If value type doesn't match the tag data type.
-        """
-        if tag.data_type == DataType.BIT:
-            if not isinstance(value, bool):
-                raise ValueError(
-                    f"BIT address {address} requires bool value, "
-                    f"got {type(value).__name__}"
-                )
-            return bool(value)
-
-        if tag.data_type == getattr(DataType, "TIME", None):
-            if not isinstance(value, timedelta):
-                raise ValueError(
-                    f"TIME address {address} requires timedelta value, "
-                    f"got {type(value).__name__}"
-                )
-            return value
-
-        if tag.data_type in (DataType.STRING, DataType.WSTRING):
-            if not isinstance(value, str):
-                raise ValueError(
-                    f"STRING/WSTRING address {address} requires str value, "
-                    f"got {type(value).__name__}"
-                )
-            return str(value)
-
-        if tag.data_type in (DataType.REAL, DataType.LREAL):
-            if not isinstance(value, (int, float)):
-                raise ValueError(
-                    f"{tag.data_type.name} address {address} requires numeric value, "
-                    f"got {type(value).__name__}"
-                )
-            return float(value)
-
-        if tag.data_type in (
-            DataType.BYTE,
-            DataType.WORD,
-            DataType.DWORD,
-            DataType.INT,
-            DataType.DINT,
-            DataType.USINT,
-            DataType.SINT,
-        ):
-            if not isinstance(value, (int, float)):
-                raise ValueError(
-                    f"{tag.data_type.name} address {address} requires "
-                    f"numeric value, got {type(value).__name__}"
-                )
-            return int(round(float(value)))
-
-        if tag.data_type == DataType.CHAR:
-            raise ValueError(
-                f"CHAR arrays not supported for write at {address}, use STRING instead"
-            )
-
-        raise ValueError(
-            f"Unsupported data type for write at {address}: {tag.data_type}"
-        )
+        """Prepare a pyS7 payload using the PLC-level validation helper."""
+        return prepare_payload(tag, value, address)
 
     async def write_multi(
         self, writes: list[tuple[str, bool | int | float | str | timedelta]]

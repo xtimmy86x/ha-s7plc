@@ -101,6 +101,7 @@ integration modules above it.
 | Module | Responsibility |
 | --- | --- |
 | `plc/address.py` | Address parsing, datatype limits and TIME representation |
+| `plc/payload.py` | Python value validation and preparation for pyS7 writes |
 | `plc/plans.py` | Read plans, postprocessing and the default REAL precision |
 | `plc/read_executor.py` | Scalar/string reads and internal `S7ReadError` failures |
 | `plc/connection_manager.py` | Client ownership, I/O admission, cancellation cleanup and draining |
