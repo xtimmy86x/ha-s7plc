@@ -306,7 +306,7 @@ def test_options_connection_handles_connection_failure(monkeypatch):
         async def connect(self):
             raise OSError("boom")
 
-        async def disconnect(self):
+        async def async_shutdown(self):
             return None
 
     monkeypatch.setattr(config_flow, "S7Coordinator", FailingCoordinator)
@@ -378,7 +378,7 @@ def test_options_connection_detects_duplicate_unique_id(monkeypatch):
         async def connect(self):
             return None
 
-        async def disconnect(self):
+        async def async_shutdown(self):
             return None
 
     monkeypatch.setattr(config_flow, "S7Coordinator", FakeCoordinator)
