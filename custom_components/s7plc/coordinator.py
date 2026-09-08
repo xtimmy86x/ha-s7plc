@@ -541,72 +541,54 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._connection.check_available()
                 try:
                     return await self._connection.perform_io(func, *args, **kwargs)
-                except (S7CommunicationError, S7ConnectionError) as e:
-                    # S7-specific communication errors (most common)
-                    last_exc = e
-                    error_category = "s7_communication"
-                    _LOGGER.debug(
-                        "S7 communication error on attempt %s/%s: %s",
+                except (
+                    S7CommunicationError,
+                    S7ConnectionError,
+                    S7ReadResponseError,
+                    OSError,
+                    struct.error,
+                    IndexError,
+                    RuntimeError,
+                ) as error:
+                    last_exc = error
+                    log_level = logging.DEBUG
+                    log_args: tuple[Any, ...] = ()
+                    log_traceback = False
+
+                    if isinstance(error, (S7CommunicationError, S7ConnectionError)):
+                        error_category = "s7_communication"
+                        message = "S7 communication error on attempt %s/%s: %s"
+                    elif isinstance(error, S7ReadResponseError):
+                        error_category = "s7_response"
+                        message = "S7 response error on attempt %s/%s: %s"
+                    elif isinstance(error, OSError):
+                        error_category = "network"
+                        message = "Network error on attempt %s/%s: %s (errno: %s)"
+                        log_args = (getattr(error, "errno", "unknown"),)
+                    elif isinstance(error, struct.error):
+                        error_category = "data_parsing"
+                        log_level = logging.WARNING
+                        message = (
+                            "Data parsing error on attempt %s/%s: %s "
+                            "(check PLC data type)"
+                        )
+                    elif isinstance(error, IndexError):
+                        error_category = "unexpected_response"
+                        log_level = logging.WARNING
+                        log_traceback = True
+                        message = "Unexpected response size on attempt %s/%s: %s"
+                    else:  # RuntimeError
+                        error_category = "runtime"
+                        message = "Runtime error on attempt %s/%s: %s"
+
+                    _LOGGER.log(
+                        log_level,
+                        message,
                         attempt + 1,
                         self._max_retries + 1,
-                        e,
-                    )
-                    await self._connection.drop_connection()
-                except S7ReadResponseError as e:
-                    # S7 response parsing errors
-                    last_exc = e
-                    error_category = "s7_response"
-                    _LOGGER.debug(
-                        "S7 response error on attempt %s/%s: %s",
-                        attempt + 1,
-                        self._max_retries + 1,
-                        e,
-                    )
-                    await self._connection.drop_connection()
-                except OSError as e:
-                    # Network/socket errors
-                    last_exc = e
-                    error_category = "network"
-                    _LOGGER.debug(
-                        "Network error on attempt %s/%s: %s (errno: %s)",
-                        attempt + 1,
-                        self._max_retries + 1,
-                        e,
-                        getattr(e, "errno", "unknown"),
-                    )
-                    await self._connection.drop_connection()
-                except struct.error as e:
-                    # Data parsing errors (usually indicates protocol mismatch)
-                    last_exc = e
-                    error_category = "data_parsing"
-                    _LOGGER.warning(
-                        "Data parsing error on attempt %s/%s: %s (check PLC data type)",
-                        attempt + 1,
-                        self._max_retries + 1,
-                        e,
-                    )
-                    await self._connection.drop_connection()
-                except IndexError as e:
-                    # Array access errors (unexpected response size)
-                    last_exc = e
-                    error_category = "unexpected_response"
-                    _LOGGER.warning(
-                        "Unexpected response size on attempt %s/%s: %s",
-                        attempt + 1,
-                        self._max_retries + 1,
-                        e,
-                        exc_info=True,
-                    )
-                    await self._connection.drop_connection()
-                except RuntimeError as e:
-                    # Generic runtime errors (catch-all for pyS7 issues)
-                    last_exc = e
-                    error_category = "runtime"
-                    _LOGGER.debug(
-                        "Runtime error on attempt %s/%s: %s",
-                        attempt + 1,
-                        self._max_retries + 1,
-                        e,
+                        error,
+                        *log_args,
+                        exc_info=log_traceback,
                     )
                     await self._connection.drop_connection()
 

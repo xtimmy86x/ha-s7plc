@@ -4,6 +4,7 @@ Disconnect counts below describe current behavior, including redundant closes;
 they are not a recommendation that future cleanup must retain duplicate work.
 """
 
+import logging
 import struct
 from collections import deque
 from types import SimpleNamespace
@@ -287,4 +288,83 @@ async def test_health_check_reports_failure_without_entering_retry(rig, during_c
     assert rig.coord.last_health_ok is False
     assert rig.coord.last_error_category is None
     assert rig.coord.error_count_by_category == {}
+    assert_no_operations(rig.coord)
+
+
+@pytest.mark.parametrize(
+    ("failure", "level", "message", "with_traceback"),
+    [
+        (
+            S7CommunicationError("offline"),
+            logging.DEBUG,
+            "S7 communication error on attempt 1/1: offline",
+            False,
+        ),
+        (
+            S7ConnectionError("offline"),
+            logging.DEBUG,
+            "S7 communication error on attempt 1/1: offline",
+            False,
+        ),
+        (
+            S7ReadResponseError("bad reply"),
+            logging.DEBUG,
+            "S7 response error on attempt 1/1: bad reply",
+            False,
+        ),
+        (
+            OSError(5, "offline"),
+            logging.DEBUG,
+            "Network error on attempt 1/1: [Errno 5] offline (errno: 5)",
+            False,
+        ),
+        (
+            struct.error("bad data"),
+            logging.WARNING,
+            "Data parsing error on attempt 1/1: bad data (check PLC data type)",
+            False,
+        ),
+        (
+            IndexError("missing data"),
+            logging.WARNING,
+            "Unexpected response size on attempt 1/1: missing data",
+            True,
+        ),
+        (
+            RuntimeError("failure"),
+            logging.DEBUG,
+            "Runtime error on attempt 1/1: failure",
+            False,
+        ),
+    ],
+)
+async def test_retry_preserves_log_message_level_and_traceback(
+    rig, caplog, failure, level, message, with_traceback
+):
+    """Consolidating retry handling must preserve troubleshooting details."""
+    rig.io_errors.append(failure)
+    with (
+        caplog.at_level(logging.DEBUG, logger="custom_components.s7plc.coordinator"),
+        pytest.raises(RuntimeError),
+    ):
+        await rig.coord._retry(rig.client.read, [])
+
+    records = [
+        record
+        for record in caplog.records
+        if record.name == "custom_components.s7plc.coordinator"
+    ]
+    assert len(records) == 2
+    attempt, exhausted = records
+    assert attempt.getMessage() == message
+    assert attempt.levelno == level
+    if with_traceback:
+        assert attempt.exc_info[1] is failure
+    else:
+        assert not attempt.exc_info
+    assert exhausted.levelno == logging.ERROR
+    assert exhausted.getMessage() == (
+        f"Operation failed after 1 attempts (category: "
+        f"{rig.coord.last_error_category}): {failure}"
+    )
     assert_no_operations(rig.coord)
