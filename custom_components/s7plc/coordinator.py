@@ -16,7 +16,7 @@ from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseE
 from .address import DataType, S7Tag, parse_tag
 from .connection_manager import S7ConnectionManager
 from .plans import StringPlan, TagPlan, build_plans
-from .read_executor import S7ReadExecutor
+from .read_executor import S7ReadError, S7ReadExecutor
 from .write_manager import S7WriteManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -779,6 +779,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     results.setdefault(plan.topic, None)
                 return results
 
+        except S7ReadError as err:
+            # Preserve the reader's message and original cause without another
+            # disconnect or the generic read-error prefix.
+            raise UpdateFailed(str(err)) from err.__cause__
         except (
             OSError,
             RuntimeError,

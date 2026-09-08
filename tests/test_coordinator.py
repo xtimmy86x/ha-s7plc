@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from custom_components.s7plc import coordinator
 from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.plans import StringPlan, TagPlan
+from custom_components.s7plc.read_executor import S7ReadError
 from conftest import DummyTag
 
 
@@ -340,7 +341,7 @@ async def test_read_strings_raises_on_timeout(coord_factory, monkeypatch, caplog
 
     coord._read_executor.read_s7_string = fake_read
 
-    with pytest.raises(coordinator.UpdateFailed) as err:
+    with pytest.raises(S7ReadError) as err:
         await coord._read_executor.read_strings(plans, deadline=50.0)
 
     assert "timeout" in str(err.value).lower()
@@ -361,7 +362,7 @@ async def test_read_strings_raises_on_error(coord_factory, monkeypatch, caplog):
     coord._read_executor.read_s7_string = fake_read
     monkeypatch.setattr(coordinator.time, "monotonic", lambda: 0.0)
 
-    with pytest.raises(coordinator.UpdateFailed) as err:
+    with pytest.raises(S7ReadError) as err:
         await coord._read_executor.read_strings(plans, deadline=50.0)
 
     assert "boom" in str(err.value)
@@ -379,7 +380,7 @@ async def test_read_all_propagates_string_failures(coord_factory):
         return {}
 
     async def fake_read_strings(plans, deadline):
-        raise coordinator.UpdateFailed("timeout")
+        raise S7ReadError("timeout")
 
     coord._read_executor.read_batch = fake_read_batch
     coord._read_executor.read_strings = fake_read_strings
