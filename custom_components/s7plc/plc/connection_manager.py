@@ -6,12 +6,21 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import Any
 
 import pyS7
 from pyS7.errors import S7CommunicationError, S7ConnectionError
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(eq=False)
+class _TransportCleanup:
+    """Identity and successful cleanup of one client session/handshake."""
+
+    client: Any
+    closed: bool = False
 
 
 class S7ConnectionManager:
@@ -55,6 +64,7 @@ class S7ConnectionManager:
         # Claim admission before pyS7's packet lock, including stream cleanup.
         self._transport_lock = asyncio.Lock()
         self._transport_generation = 0
+        self._transport_cleanup: _TransportCleanup | None = None
         self._transport_reset_task: asyncio.Task[None] | None = None
         self._transport_reset_failed = False
         self._connect_task: asyncio.Task[None] | None = None
@@ -123,7 +133,33 @@ class S7ConnectionManager:
         ):
             raise self._error_type("PLC connection was disconnected")
 
-    async def drop_connection(self, *, strict: bool = False) -> None:
+    def _capture_transport(self) -> _TransportCleanup:
+        """Capture the current session, including injected/replaced clients."""
+        transport = self._transport_cleanup
+        if transport is None or transport.client is not self.client:
+            transport = self._transport_cleanup = _TransportCleanup(self.client)
+        return transport
+
+    def _mark_failed_transport(
+        self, error: Exception, transport: _TransportCleanup
+    ) -> None:
+        """Carry cleanup ownership through existing exception cause chains."""
+        error._s7plc_cleanup = (self, transport)
+
+    def _failed_transport(self, error: Exception | None) -> _TransportCleanup | None:
+        """Find this manager's receipt without changing public exception types."""
+        seen = set()
+        while error is not None and id(error) not in seen:
+            seen.add(id(error))
+            receipt = getattr(error, "_s7plc_cleanup", None)
+            if receipt is not None and receipt[0] is self:
+                return receipt[1]
+            error = error.__cause__
+        return None
+
+    async def drop_connection(
+        self, *, strict: bool = False, error: Exception | None = None
+    ) -> None:
         """Safely close PLC connection, tolerant of concurrent disconnects.
 
         The pyS7 library may concurrently set socket=None when the peer closes
@@ -131,8 +167,18 @@ class S7ConnectionManager:
         AttributeError alongside OSError/RuntimeError.  We skip the
         is_connected guard because pyS7.disconnect() already returns early
         when the state is DISCONNECTED.
+
+        Error cleanup only closes the session that failed. Explicit lifecycle
+        closes omit error and remain unconditional, including strict resets.
         """
+        failed_transport = self._failed_transport(error)
         async with self._transport_lock, self._connection_lock:
+            if failed_transport is not None and (
+                failed_transport.closed
+                or failed_transport is not self._transport_cleanup
+                or failed_transport.client is not self.client
+            ):
+                return
             await self._disconnect_client(
                 self.client, strict=strict or self._transport_reset_failed
             )
@@ -141,6 +187,7 @@ class S7ConnectionManager:
         self, client: Any | None, *, strict: bool = False
     ) -> None:
         """Close a captured client while the caller owns the connection lock."""
+        transport = self._transport_cleanup
         self._transport_generation += 1
         if client is not None:
             try:
@@ -151,6 +198,9 @@ class S7ConnectionManager:
                 _LOGGER.debug("Error during PLC disconnect: %s", err)
                 if strict:
                     raise
+            else:
+                if transport is not None and transport.client is client:
+                    transport.closed = not getattr(client, "is_connected", False)
 
     async def ensure_connected(self) -> None:
         """Await the shared handshake without transferring ownership to callers."""
@@ -210,6 +260,7 @@ class S7ConnectionManager:
                         continue
                     self.check_available()
                     client = self.client
+                    transport = self._transport_cleanup = _TransportCleanup(client)
                     try:
                         await client.connect()
                         self.check_available()
@@ -241,10 +292,14 @@ class S7ConnectionManager:
                         S7CommunicationError,
                         S7ConnectionError,
                     ) as err:
+                        self._mark_failed_transport(err, transport)
                         await self._disconnect_client(client)
                         raise RuntimeError(
                             f"Connection to PLC {self._host} failed: {err}"
                         ) from err
+                    except Exception as err:
+                        self._mark_failed_transport(err, transport)
+                        raise
 
                     if self._local_tsap and self._remote_tsap:
                         _LOGGER.info(
@@ -418,6 +473,7 @@ class S7ConnectionManager:
                     ):
                         continue
                     self.check_available()
+                    transport = self._capture_transport()
                     try:
                         result = func(*args, **kwargs)
                         if asyncio.iscoroutine(result):
@@ -425,6 +481,9 @@ class S7ConnectionManager:
                     except asyncio.CancelledError:
                         if not self._io_stopping:
                             reset = self._start_transport_reset()
+                        raise
+                    except Exception as err:
+                        self._mark_failed_transport(err, transport)
                         raise
                     self.check_available()
                     return result

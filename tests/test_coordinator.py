@@ -27,7 +27,7 @@ def make_coordinator(monkeypatch, **kwargs):
     coord = S7Coordinator(hass, host="plc.local", **kwargs)
 
     # Async no-ops for connection methods
-    async def _noop():
+    async def _noop(*, error=None):
         pass
 
     monkeypatch.setattr(coord._connection, "ensure_connected", _noop)
@@ -69,7 +69,7 @@ async def test_retry_retries_until_success(coord_factory):
         nonlocal ensure_calls
         ensure_calls += 1
 
-    async def fake_drop():
+    async def fake_drop(*, error=None):
         nonlocal drop_calls
         drop_calls += 1
 
@@ -102,7 +102,7 @@ async def test_retry_raises_after_exhaustion(coord_factory):
     drop_calls = 0
     sleep_calls = []
 
-    async def fake_drop():
+    async def fake_drop(*, error=None):
         nonlocal drop_calls
         drop_calls += 1
 
@@ -126,7 +126,7 @@ async def test_retry_handles_struct_error(coord_factory):
 
     drop_calls = 0
 
-    async def fake_drop():
+    async def fake_drop(*, error=None):
         nonlocal drop_calls
         drop_calls += 1
 
@@ -298,7 +298,7 @@ async def test_read_all_raises_update_failed_on_read_error(coord_factory, dummy_
 
     drop_calls: list[bool] = []
 
-    async def fake_drop():
+    async def fake_drop(*, error=None):
         drop_calls.append(True)
 
     coord._connection.drop_connection = fake_drop

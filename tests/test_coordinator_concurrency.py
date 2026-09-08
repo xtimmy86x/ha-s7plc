@@ -156,7 +156,7 @@ async def test_unload_cancels_retry_sleep():
     async def fake_ensure():
         pass
 
-    async def fake_drop():
+    async def fake_drop(*, error=None):
         pass
 
     coord._connection.ensure_connected = fake_ensure
@@ -328,7 +328,7 @@ async def test_stale_read_discarded_after_reconnect():
 
     coord._connection.client = OldClient()
 
-    async def drop_and_swap():
+    async def drop_and_swap(*, error=None):
         nonlocal reconnect_happened
         if coord._connection.client is not None:
             try:

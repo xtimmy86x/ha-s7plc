@@ -1,8 +1,4 @@
-"""Characterize retry policy before consolidating coordinator error handling.
-
-Disconnect counts below describe current behavior, including redundant closes;
-they are not a recommendation that future cleanup must retain duplicate work.
-"""
+"""Retry policy and error cleanup contracts across coordinator entry points."""
 
 import logging
 import struct
@@ -194,17 +190,15 @@ async def test_initial_handshake_failure_is_outside_retry_budget(rig, operation)
             await invoke(rig.coord, operation)
         assert caught.value.__cause__.__cause__ is failure
 
-    # The handshake owns its failed-connect close. Only writes and ad-hoc
-    # reads currently add a second close in their outer error handler.
-    extra_close = operation in ("write", "write_multi", "read_one")
-    assert rig.events == ["connect", "disconnect"] + ["disconnect"] * extra_close
+    # The handshake already closed this failed session successfully.
+    assert rig.events == ["connect", "disconnect"]
     assert rig.coord.last_error_category is None
     assert rig.coord.error_count_by_category == {}
     assert_no_operations(rig.coord)
 
 
 @pytest.mark.parametrize("operation", OPERATIONS)
-async def test_exhausted_io_records_current_outer_cleanup_behavior(rig, operation):
+async def test_exhausted_io_closes_the_failed_session_once(rig, operation):
     failure = OSError("offline")
     rig.io_errors.append(failure)
 
@@ -218,9 +212,7 @@ async def test_exhausted_io_records_current_outer_cleanup_behavior(rig, operatio
         assert caught.value.__cause__.__cause__ is failure
 
     driver_call = "write" if operation in ("write", "write_multi") else "read"
-    # Planned string errors already avoid the additional adapter disconnect.
-    closes = 1 if operation == "string_poll" else 2
-    assert rig.events == [driver_call] + ["disconnect"] * closes
+    assert rig.events == [driver_call, "disconnect"]
     assert rig.coord.last_error_category == "network"
     assert rig.coord.error_count_by_category == {"network": 1}
     assert_no_operations(rig.coord)
@@ -238,8 +230,6 @@ async def test_reconnect_failure_within_retry_consumes_remaining_attempt(rig):
         "disconnect",
         ("sleep", 0.125),
         "connect",
-        "disconnect",
-        "disconnect",
         "disconnect",
     ]
     rig.client.write.assert_awaited_once()
