@@ -28,7 +28,7 @@ def make_coordinator():
     client.connect = AsyncMock(side_effect=connect)
     client.disconnect = AsyncMock(side_effect=disconnect)
     client.write = AsyncMock()
-    coord._client = client
+    coord._connection.client = client
     coord.async_request_refresh = AsyncMock()
     coord.async_set_updated_data = MagicMock()
     coord.hass.services.async_call = AsyncMock()
@@ -36,8 +36,8 @@ def make_coordinator():
 
 
 def assert_clean(coord):
-    assert not coord._io_tasks
-    assert not coord._io_completions
+    assert not coord._connection._io_tasks
+    assert not coord._connection._io_completions
     assert not coord._write_manager._flush_tasks
     assert not coord._write_manager._buffer
     assert not coord._write_manager._inflight_waiters
@@ -319,9 +319,9 @@ async def test_shutdown_drains_nonbatched_and_service_writes(batching):
     await asyncio.sleep(0)
     await asyncio.sleep(0)
     try:
-        assert coord._shutdown
+        assert coord._connection.shutdown
         assert not shutdown.done()
-        assert caller in coord._io_tasks
+        assert caller in coord._connection._io_tasks
     finally:
         release.set()
         with pytest.raises(HomeAssistantError, match="shut down"):
@@ -417,13 +417,13 @@ async def test_stop_or_cancel_during_retry_backoff_prevents_reconnect(cancel):
     coord._max_retries = 2
     client.write.side_effect = OSError("offline")
     entered = asyncio.Event()
-    real_sleep = coord._sleep
+    real_sleep = coord._connection.sleep
 
     async def backoff(_):
         entered.set()
         await real_sleep(60)
 
-    coord._sleep = backoff
+    coord._connection.sleep = backoff
     caller = await _enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
@@ -474,7 +474,7 @@ async def test_disconnect_during_failing_write_does_not_retry_stale_epoch():
 async def test_normal_write_failure_still_reconnects_and_retries():
     coord, _, _, client = make_coordinator()
     coord._max_retries = 1
-    coord._sleep = AsyncMock()
+    coord._connection.sleep = AsyncMock()
     client.write.side_effect = [OSError("temporary"), None]
     assert await coord.write_multi([("DB1,W0", 1)]) == {"DB1,W0": True}
     assert client.write.await_count == 2
@@ -603,13 +603,13 @@ async def test_shutdown_of_one_coordinator_does_not_affect_another():
     second, second_scheduler, second_tasks, second_client = make_coordinator()
     first_caller = await _enqueue(first, "DB1,W0", 1)
     second_caller = await _enqueue(second, "DB1,W0", 2)
-    generation = second._io_generation
+    generation = second._connection.generation
     await first.async_shutdown()
     with pytest.raises(HomeAssistantError):
         await first_caller
     assert not second_caller.done()
     assert not second_scheduler.timers[-1].cancelled
-    assert second._io_generation == generation
+    assert second._connection.generation == generation
     assert second.connection_enabled
     second_scheduler.timers[-1].fire()
     assert await second_caller is None
@@ -634,14 +634,14 @@ async def test_real_coordinator_unload_only_stops_after_platform_success(unload_
     hass.data[DOMAIN] = {}
 
     async def unload(*_):
-        assert not coord._shutdown
+        assert not coord._connection.shutdown
         assert await coord.write("DB1,W0", 1)
         return unload_ok
 
     hass.config_entries.async_unload_platforms = unload
     hass.config_entries.async_entries = lambda _: [entry]
     assert await s7init.async_unload_entry(hass, entry) is unload_ok
-    assert coord._shutdown is unload_ok
+    assert coord._connection.shutdown is unload_ok
     if unload_ok:
         client.disconnect.assert_awaited_once()
     else:

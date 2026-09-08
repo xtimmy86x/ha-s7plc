@@ -245,7 +245,7 @@ async def test_number_conversion_precedes_batching_and_payload_normalization(
         def write(self, tags, payloads):
             written_payloads.extend(payloads)
 
-    coord._client = Client()
+    coord._connection.client = Client()
 
     async def no_op():
         return None
@@ -253,7 +253,7 @@ async def test_number_conversion_precedes_batching_and_payload_normalization(
     async def retry_once(func):
         return func()
 
-    coord._ensure_connected = no_op
+    coord._connection.ensure_connected = no_op
     coord._retry = retry_once
     coord.async_request_refresh = AsyncMock()
     batched_inputs = []

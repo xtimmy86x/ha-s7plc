@@ -1,4 +1,4 @@
-"""Batch PLC writes while leaving transport and I/O lifecycle to the coordinator."""
+"""Batch PLC writes through the coordinator's managed transport."""
 
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ class S7WriteManager:
     """Own batch queues, waiters, timers and flush tasks for a single PLC.
 
     The coordinator supplies write execution, admission checks and the shared
-    I/O generation. It owns connection/retry/serialization and drains this
-    manager's tasks alongside all other PLC operations during lifecycle changes.
+    I/O generation. It owns retry policy and asks its connection manager to drain
+    flush tasks alongside other PLC operations during lifecycle changes.
     The shared state lock preserves atomic snapshots and batch invalidation.
     """
 

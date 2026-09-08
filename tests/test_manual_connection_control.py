@@ -42,13 +42,13 @@ async def test_real_setup_restores_connection_control_state(
 
     def coordinator_factory(*args, **kwargs):
         coordinator = real_coordinator(*args, **kwargs)
-        coordinator._ensure_connected = ensure_connected
+        coordinator._connection.ensure_connected = ensure_connected
 
         async def first_refresh():
             await coordinator.add_item("setup:probe", "DB1,BYTE0")
 
             async def read_all(*_args):
-                await coordinator._ensure_connected()
+                await coordinator._connection.ensure_connected()
                 return {"setup:probe": 0}
 
             coordinator._read_all = read_all
@@ -78,14 +78,14 @@ async def test_real_setup_restores_connection_control_state(
     assert coordinator.connection_enabled is expected_enabled
     assert control.is_on is expected_enabled
     assert control.available is True
-    assert coordinator._client is None
+    assert coordinator._connection.client is None
     assert ensure_connected.await_count == expected_connects
     assert coordinator._write_manager._timer is None
     assert not coordinator._write_manager._buffer
     assert not coordinator._write_manager._waiters
     assert not coordinator._write_manager._inflight_waiters
     coordinator.async_set_updated_data = MagicMock()
-    coordinator._drop_connection = AsyncMock()
+    coordinator._connection.drop_connection = AsyncMock()
     await coordinator.async_shutdown()
 
 
@@ -94,14 +94,14 @@ async def test_disabled_coordinator_skips_polling_and_rejects_writes(fake_hass):
     coordinator = S7Coordinator(fake_hass, "192.0.2.1", connection_enabled=False)
     coordinator._items["test"] = "DB1.DBX0.0"
     coordinator._item_next_read["test"] = 0
-    coordinator._ensure_connected = AsyncMock()
+    coordinator._connection.ensure_connected = AsyncMock()
 
     assert await coordinator._async_update_data() == {}
     with pytest.raises(HomeAssistantError, match="manually disabled"):
         await coordinator.write("DB1.DBX0.0", True)
     with pytest.raises(HomeAssistantError, match="manually disabled"):
         await coordinator.write_multi([("DB1.DBX0.0", True)])
-    coordinator._ensure_connected.assert_not_awaited()
+    coordinator._connection.ensure_connected.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -110,8 +110,8 @@ async def test_disable_closes_connection_and_cancels_retry(fake_hass):
         fake_hass, "192.0.2.1", backoff_initial=60, max_retries=2
     )
     coordinator.async_set_updated_data = MagicMock()
-    coordinator._ensure_connected = AsyncMock(side_effect=RuntimeError("offline"))
-    coordinator._drop_connection = AsyncMock()
+    coordinator._connection.ensure_connected = AsyncMock(side_effect=RuntimeError("offline"))
+    coordinator._connection.drop_connection = AsyncMock()
     retry = asyncio.create_task(coordinator._retry(lambda: None))
     await asyncio.sleep(0)
 
@@ -119,7 +119,7 @@ async def test_disable_closes_connection_and_cancels_retry(fake_hass):
 
     with pytest.raises(HomeAssistantError, match="manually disabled"):
         await retry
-    coordinator._drop_connection.assert_awaited()
+    coordinator._connection.drop_connection.assert_awaited()
 
 
 @pytest.mark.asyncio
@@ -299,7 +299,7 @@ async def test_disable_cancels_two_concurrent_inflight_flushes(fake_hass):
 async def test_repeated_disable_and_disconnect_are_idempotent(fake_hass):
     coordinator = S7Coordinator(fake_hass, "192.0.2.1")
     coordinator.async_set_updated_data = MagicMock()
-    coordinator._drop_connection = AsyncMock()
+    coordinator._connection.drop_connection = AsyncMock()
 
     await coordinator.async_disable_connection()
     await coordinator.async_disable_connection()
@@ -311,7 +311,7 @@ async def test_repeated_disable_and_disconnect_are_idempotent(fake_hass):
     assert not coordinator._write_manager._buffer
     assert not coordinator._write_manager._waiters
     assert not coordinator._write_manager._inflight_waiters
-    assert coordinator._drop_connection.await_count == 4
+    assert coordinator._connection.drop_connection.await_count == 4
 
 
 @pytest.mark.asyncio
@@ -321,7 +321,7 @@ async def test_shutdown_cleans_retry_queued_and_inflight_work(fake_hass):
     )
     coordinator._write_manager._delay = 60
     coordinator.async_set_updated_data = MagicMock()
-    coordinator._drop_connection = AsyncMock()
+    coordinator._connection.drop_connection = AsyncMock()
     entered = asyncio.Event()
     release = asyncio.Event()
 
@@ -337,7 +337,7 @@ async def test_shutdown_cleans_retry_queued_and_inflight_work(fake_hass):
         retry_started.set()
         raise RuntimeError("offline")
 
-    coordinator._ensure_connected = connection_failure
+    coordinator._connection.ensure_connected = connection_failure
     retry = asyncio.create_task(coordinator._retry(lambda: None))
     await retry_started.wait()
     write_inflight = asyncio.create_task(coordinator.write_batched("DB1.DBX0.0", True))
@@ -664,7 +664,7 @@ async def test_manual_control_option_full_off_remove_reenable_lifecycle(fake_has
         coordinator = real_coordinator(*args, **kwargs)
         coordinator.async_config_entry_first_refresh = AsyncMock()
         coordinator.async_set_updated_data = MagicMock()
-        coordinator._drop_connection = AsyncMock()
+        coordinator._connection.drop_connection = AsyncMock()
         coordinators.append(coordinator)
         return coordinator
 

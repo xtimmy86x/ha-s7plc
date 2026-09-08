@@ -29,8 +29,8 @@ def make_coordinator(monkeypatch, **kwargs):
     async def _noop():
         pass
 
-    monkeypatch.setattr(coord, "_ensure_connected", _noop)
-    monkeypatch.setattr(coord, "_drop_connection", _noop)
+    monkeypatch.setattr(coord._connection, "ensure_connected", _noop)
+    monkeypatch.setattr(coord._connection, "drop_connection", _noop)
     return coord
 
 
@@ -72,9 +72,9 @@ async def test_retry_retries_until_success(coord_factory):
         nonlocal drop_calls
         drop_calls += 1
 
-    coord._sleep = fake_sleep
-    coord._ensure_connected = fake_ensure
-    coord._drop_connection = fake_drop
+    coord._connection.sleep = fake_sleep
+    coord._connection.ensure_connected = fake_ensure
+    coord._connection.drop_connection = fake_drop
 
     attempts = []
 
@@ -108,8 +108,8 @@ async def test_retry_raises_after_exhaustion(coord_factory):
     async def fake_sleep(seconds):
         sleep_calls.append(seconds)
 
-    coord._drop_connection = fake_drop
-    coord._sleep = fake_sleep
+    coord._connection.drop_connection = fake_drop
+    coord._connection.sleep = fake_sleep
 
     with pytest.raises(RuntimeError):
         await coord._retry(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
@@ -129,7 +129,7 @@ async def test_retry_handles_struct_error(coord_factory):
         nonlocal drop_calls
         drop_calls += 1
 
-    coord._drop_connection = fake_drop
+    coord._connection.drop_connection = fake_drop
 
     with pytest.raises(RuntimeError):
         await coord._retry(lambda: (_ for _ in ()).throw(struct.error()))
@@ -157,7 +157,7 @@ async def test_read_batch_deduplicates_tags(coord_factory, dummy_tag, dummy_clie
     ]
 
     client = dummy_client([[10, 5]])
-    coord._client = client
+    coord._connection.client = client
 
     async def mock_retry(func):
         return func()
@@ -183,7 +183,7 @@ async def test_read_batch_raises_on_error(coord_factory, dummy_tag, dummy_client
     plans = [TagPlan("topic/a", tag), TagPlan("topic/b", tag)]
 
     client = dummy_client([OSError("boom")])
-    coord._client = client
+    coord._connection.client = client
 
     async def mock_retry(func):
         return func()
@@ -281,7 +281,7 @@ async def test_read_all_raises_update_failed_on_connection_error(coord_factory):
     async def raise_connect():
         raise RuntimeError("connect boom")
 
-    coord._ensure_connected = raise_connect
+    coord._connection.ensure_connected = raise_connect
 
     with pytest.raises(coordinator.UpdateFailed) as err:
         await coord._read_all([], [])
@@ -300,7 +300,7 @@ async def test_read_all_raises_update_failed_on_read_error(coord_factory, dummy_
     async def fake_drop():
         drop_calls.append(True)
 
-    coord._drop_connection = fake_drop
+    coord._connection.drop_connection = fake_drop
 
     async def raise_read(plans):
         raise RuntimeError("read boom")
@@ -455,7 +455,7 @@ async def test_write_handles_numeric_types(coord_factory, dummy_tag, monkeypatch
         def write(self, tags, values):
             writes.append((tags, values))
 
-    coord._client = DummyClient()
+    coord._connection.client = DummyClient()
 
     async def mock_retry(func):
         return func()
@@ -616,7 +616,7 @@ def test_is_connected_client_no_socket(monkeypatch):
     
     # Mock client that is not connected
     mock_client = type('MockClient', (), {'is_connected': False})()
-    coord._client = mock_client
+    coord._connection.client = mock_client
     
     assert coord.is_connected() is False
 
@@ -628,7 +628,7 @@ def test_is_connected_with_socket(monkeypatch):
     
     # Mock client that is connected
     mock_client = type('MockClient', (), {'is_connected': True})()
-    coord._client = mock_client
+    coord._connection.client = mock_client
     
     assert coord.is_connected() is True
 
@@ -644,7 +644,7 @@ async def test_connect_calls_ensure_connected(monkeypatch):
     async def fake_ensure():
         connected.append(True)
 
-    monkeypatch.setattr(coord, "_ensure_connected", fake_ensure)
+    monkeypatch.setattr(coord._connection, "ensure_connected", fake_ensure)
     
     await coord.connect()
     assert len(connected) == 1
@@ -661,7 +661,7 @@ async def test_disconnect_calls_drop_connection(monkeypatch):
     async def fake_drop():
         disconnected.append(True)
 
-    monkeypatch.setattr(coord, "_drop_connection", fake_drop)
+    monkeypatch.setattr(coord._connection, "drop_connection", fake_drop)
     
     await coord.disconnect()
     assert len(disconnected) == 1
@@ -674,8 +674,8 @@ async def test_drop_connection_no_client():
     """_drop_connection does nothing when _client is None."""
     hass = coordinator.HomeAssistant()
     coord = S7Coordinator(hass, host="plc.local")
-    coord._client = None
-    await coord._drop_connection()          # should not raise
+    coord._connection.client = None
+    await coord._connection.drop_connection()          # should not raise
 
 
 @pytest.mark.asyncio
@@ -689,8 +689,8 @@ async def test_drop_connection_calls_disconnect(monkeypatch):
         async def disconnect(self):
             calls.append(True)
 
-    coord._client = MC()
-    await coord._drop_connection()
+    coord._connection.client = MC()
+    await coord._connection.drop_connection()
     assert len(calls) == 1
 
 
@@ -704,8 +704,8 @@ async def test_drop_connection_already_disconnected():
         async def disconnect(self):
             pass
 
-    coord._client = MC()
-    await coord._drop_connection()          # should not raise
+    coord._connection.client = MC()
+    await coord._connection.drop_connection()          # should not raise
 
 
 @pytest.mark.asyncio
@@ -718,8 +718,8 @@ async def test_drop_connection_attribute_error():
         async def disconnect(self):
             raise AttributeError("'NoneType' object has no attribute 'close'")
 
-    coord._client = MC()
-    await coord._drop_connection()          # should not raise
+    coord._connection.client = MC()
+    await coord._connection.drop_connection()          # should not raise
 
 
 @pytest.mark.asyncio
@@ -732,8 +732,8 @@ async def test_drop_connection_os_error():
         async def disconnect(self):
             raise OSError("socket closed")
 
-    coord._client = MC()
-    await coord._drop_connection()          # should not raise
+    coord._connection.client = MC()
+    await coord._connection.drop_connection()          # should not raise
 
 
 @pytest.mark.asyncio
@@ -746,8 +746,8 @@ async def test_drop_connection_runtime_error():
         async def disconnect(self):
             raise RuntimeError("something went wrong")
 
-    coord._client = MC()
-    await coord._drop_connection()          # should not raise
+    coord._connection.client = MC()
+    await coord._connection.drop_connection()          # should not raise
 
 
 def test_host_property():
@@ -934,7 +934,7 @@ async def test_write_multi_single_write(coord_factory, monkeypatch):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
 
     async def mock_retry(func):
         return func()
@@ -943,8 +943,8 @@ async def test_write_multi_single_write(coord_factory, monkeypatch):
     
     result = await coord.write_multi([('DB1,X0.0', True)])
     
-    coord._client.write.assert_called_once()
-    tags, payloads = coord._client.write.call_args[0]
+    coord._connection.client.write.assert_called_once()
+    tags, payloads = coord._connection.client.write.call_args[0]
     assert len(tags) == 1
     assert payloads == [True]
     assert result == {'DB1,X0.0': True}
@@ -956,7 +956,7 @@ async def test_write_multi_multiple_writes(coord_factory, monkeypatch):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
 
     async def mock_retry(func):
         return func()
@@ -972,8 +972,8 @@ async def test_write_multi_multiple_writes(coord_factory, monkeypatch):
     result = await coord.write_multi(writes)
     
     # Should be single batch write
-    coord._client.write.assert_called_once()
-    tags, payloads = coord._client.write.call_args[0]
+    coord._connection.client.write.assert_called_once()
+    tags, payloads = coord._connection.client.write.call_args[0]
     assert len(tags) == 3
     assert payloads == [True, 42, 3.14]
     assert result == {
@@ -989,7 +989,7 @@ async def test_write_multi_type_conversion(coord_factory, monkeypatch):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
 
     async def mock_retry(func):
         return func()
@@ -1005,8 +1005,8 @@ async def test_write_multi_type_conversion(coord_factory, monkeypatch):
     
     await coord.write_multi(writes)
     
-    coord._client.write.assert_called_once()
-    tags, payloads = coord._client.write.call_args[0]
+    coord._connection.client.write.assert_called_once()
+    tags, payloads = coord._connection.client.write.call_args[0]
     assert payloads[0] is True           # bool
     assert payloads[1] == 43             # rounded to int
     assert payloads[2] == 3.14           # float
@@ -1019,7 +1019,7 @@ async def test_write_multi_invalid_address(coord_factory):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
 
     async def mock_retry(func):
         return func()
@@ -1044,7 +1044,7 @@ async def test_write_multi_type_mismatch(coord_factory):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
     
     writes = [
         ('DB1,X0.0', 42),  # bool address with int value
@@ -1061,14 +1061,14 @@ async def test_write_multi_write_error(coord_factory, monkeypatch):
     from unittest.mock import MagicMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
-    coord._client.write.side_effect = OSError("Connection failed")
+    coord._connection.client = MagicMock()
+    coord._connection.client.write.side_effect = OSError("Connection failed")
     
     # Mock _sleep to avoid real delays during retry
     async def fake_sleep(seconds):
         pass
 
-    coord._sleep = fake_sleep
+    coord._connection.sleep = fake_sleep
     
     writes = [
         ('DB1,X0.0', True),
@@ -1088,7 +1088,7 @@ async def test_write_batched_creates_notification_on_error(coord_factory, monkey
     from unittest.mock import MagicMock, AsyncMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
     
     # Mock write_multi to return failures
     async def mock_write_multi(writes):
@@ -1122,7 +1122,7 @@ async def test_write_batched_no_notification_on_success(coord_factory, monkeypat
     from unittest.mock import MagicMock, AsyncMock
     
     coord = coord_factory()
-    coord._client = MagicMock()
+    coord._connection.client = MagicMock()
     
     # Mock write_multi to return success
     async def mock_write_multi(writes):

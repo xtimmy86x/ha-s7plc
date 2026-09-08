@@ -330,53 +330,50 @@ class TestAllMetricsValues:
 class TestCoordinatorMetricsProperties:
     """Tests for pys7_metrics / pys7_metrics_dict on the real coordinator."""
 
-    def test_pys7_metrics_returns_client_metrics(self, monkeypatch):
+    def test_pys7_metrics_returns_client_metrics(self, fake_hass):
         from custom_components.s7plc.coordinator import S7Coordinator
 
-        hass = MagicMock()
-        hass.data = {}
-        coord = S7Coordinator.__new__(S7Coordinator)
-        # Minimal init for the properties
-        coord._client = MagicMock()
+        coord = S7Coordinator(fake_hass, "plc.local")
+        coord._connection.client = MagicMock()
         fake = FakePyS7Metrics()
-        coord._client.metrics = fake
+        coord._connection.client.metrics = fake
 
         assert coord.pys7_metrics is fake
 
-    def test_pys7_metrics_none_when_no_client(self, monkeypatch):
+    def test_pys7_metrics_none_when_no_client(self, fake_hass):
         from custom_components.s7plc.coordinator import S7Coordinator
 
-        coord = S7Coordinator.__new__(S7Coordinator)
-        coord._client = None
+        coord = S7Coordinator(fake_hass, "plc.local")
+        coord._connection.client = None
 
         assert coord.pys7_metrics is None
 
-    def test_pys7_metrics_none_when_client_has_no_metrics(self, monkeypatch):
+    def test_pys7_metrics_none_when_client_has_no_metrics(self, fake_hass):
         from custom_components.s7plc.coordinator import S7Coordinator
 
-        coord = S7Coordinator.__new__(S7Coordinator)
-        coord._client = MagicMock(spec=[])  # no 'metrics' attribute
+        coord = S7Coordinator(fake_hass, "plc.local")
+        coord._connection.client = MagicMock(spec=[])  # no 'metrics' attribute
 
         assert coord.pys7_metrics is None
 
-    def test_pys7_metrics_dict_returns_dict(self, monkeypatch):
+    def test_pys7_metrics_dict_returns_dict(self, fake_hass):
         from custom_components.s7plc.coordinator import S7Coordinator
 
-        coord = S7Coordinator.__new__(S7Coordinator)
-        coord._client = MagicMock()
+        coord = S7Coordinator(fake_hass, "plc.local")
+        coord._connection.client = MagicMock()
         fake = FakePyS7Metrics()
-        coord._client.metrics = fake
+        coord._connection.client.metrics = fake
 
         result = coord.pys7_metrics_dict
         assert isinstance(result, dict)
         assert "total_operations" in result
         assert result["total_operations"] == 600
 
-    def test_pys7_metrics_dict_empty_when_no_metrics(self, monkeypatch):
+    def test_pys7_metrics_dict_empty_when_no_metrics(self, fake_hass):
         from custom_components.s7plc.coordinator import S7Coordinator
 
-        coord = S7Coordinator.__new__(S7Coordinator)
-        coord._client = None
+        coord = S7Coordinator(fake_hass, "plc.local")
+        coord._connection.client = None
 
         assert coord.pys7_metrics_dict == {}
 
