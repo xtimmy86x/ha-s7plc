@@ -590,7 +590,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         *log_args,
                         exc_info=log_traceback,
                     )
-                    await self._connection.drop_connection()
+                    await self._connection.drop_connection(error=error)
 
                 self._connection.check_available()
                 # Check if we should retry
@@ -775,13 +775,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             S7ReadResponseError,
         ) as err:
             _LOGGER.exception("Read error")
-            await self._connection.drop_connection()
+            await self._connection.drop_connection(error=err)
             raise UpdateFailed(f"Read error: {err}") from err
         except HomeAssistantError:
             raise
         except Exception as err:  # pragma: no cover - catch unexpected errors
             _LOGGER.exception("Unexpected error during read")
-            await self._connection.drop_connection()
+            await self._connection.drop_connection(error=err)
             raise UpdateFailed(f"Unexpected read error: {err}") from err
 
         return results
@@ -871,13 +871,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             S7CommunicationError,
             S7ConnectionError,
             S7ReadResponseError,
-        ):
+        ) as err:
             _LOGGER.exception("Write error %s", address)
-            await self._connection.drop_connection()
+            await self._connection.drop_connection(error=err)
             return False
-        except Exception:  # pragma: no cover - catch unexpected errors
+        except Exception as err:  # pragma: no cover - catch unexpected errors
             _LOGGER.exception("Unexpected write error %s", address)
-            await self._connection.drop_connection()
+            await self._connection.drop_connection(error=err)
             return False
 
     async def _read_one(self, address: str) -> Any:
@@ -908,13 +908,13 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 S7ReadResponseError,
             ) as err:
                 _LOGGER.error("Read error for %s: %s", address, err)
-                await self._connection.drop_connection()
+                await self._connection.drop_connection(error=err)
                 raise RuntimeError(f"Failed to read {address}: {err}") from err
             except HomeAssistantError:
                 raise
             except Exception as err:  # pragma: no cover - catch unexpected errors
                 _LOGGER.exception("Unexpected read error for %s", address)
-                await self._connection.drop_connection()
+                await self._connection.drop_connection(error=err)
                 raise RuntimeError(
                     f"Unexpected error reading {address}: {err}"
                 ) from err
@@ -1007,15 +1007,15 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     S7CommunicationError,
                     S7ConnectionError,
                     S7ReadResponseError,
-                ):
+                ) as err:
                     _LOGGER.exception("Batch write error for %d tags", len(tags))
-                    await self._connection.drop_connection()
+                    await self._connection.drop_connection(error=err)
                     # Mark all as failed
                     for addr in addresses:
                         results[addr] = False
-                except Exception:  # pragma: no cover - catch unexpected errors
+                except Exception as err:  # pragma: no cover - catch unexpected errors
                     _LOGGER.exception("Unexpected batch write error")
-                    await self._connection.drop_connection()
+                    await self._connection.drop_connection(error=err)
                     for addr in addresses:
                         results[addr] = False
 
