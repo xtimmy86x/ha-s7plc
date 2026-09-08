@@ -75,7 +75,7 @@ async def make_coordinator(blocking="read"):
         HomeAssistant(), host="plc.local", op_timeout=0.5, max_retries=0
     )
     client = LockedClient(blocking)
-    coord._client = client
+    coord._connection.client = client
     coord.async_request_refresh = AsyncMock()
     coord.async_set_updated_data = MagicMock()
     coord.hass.services.async_call = AsyncMock()
@@ -132,9 +132,9 @@ async def test_stop_drains_reads_probes_and_connect_holding_driver_lock(
         assert client.cancelled
         assert coord.last_health_ok is False
         assert coord._data_cache == {"temperature": 12}
-        assert not coord._io_stopping
-        assert not coord._io_tasks
-        assert not coord._io_completions
+        assert not coord._connection.stopping
+        assert not coord._connection._io_tasks
+        assert not coord._connection._io_completions
 
         if stop == "async_shutdown":
             await coord.async_shutdown()
@@ -247,7 +247,7 @@ async def test_shutdown_clears_timer_rescheduled_by_refresh_finally(monkeypatch)
 @pytest.mark.asyncio
 async def test_failed_shutdown_cleanup_can_retry_without_reenabling_connection():
     coord, client = await make_coordinator(blocking=None)
-    real_drop = coord._drop_connection
+    real_drop = coord._connection.drop_connection
     calls = 0
 
     async def drop():
@@ -259,7 +259,7 @@ async def test_failed_shutdown_cleanup_can_retry_without_reenabling_connection()
 
     # Fail at the lifecycle boundary. A TimeoutError raised by the driver itself
     # is an OSError and is deliberately tolerated inside _drop_connection().
-    coord._drop_connection = drop
+    coord._connection.drop_connection = drop
     with pytest.raises((HomeAssistantError, TimeoutError)):
         await coord.async_shutdown()
     with pytest.raises(HomeAssistantError, match="shut down"):
@@ -270,9 +270,9 @@ async def test_failed_shutdown_cleanup_can_retry_without_reenabling_connection()
     await coord.async_shutdown()
     assert calls == 2
     assert not client.is_connected
-    assert not coord._io_stopping
-    assert not coord._io_tasks
-    assert not coord._io_completions
+    assert not coord._connection.stopping
+    assert not coord._connection._io_tasks
+    assert not coord._connection._io_completions
 
 
 @pytest.mark.asyncio
@@ -327,7 +327,7 @@ async def test_entry_unload_with_active_poll_then_new_coordinator_reload(
     hass.data[DOMAIN] = {}
 
     async def unload_platforms(*_):
-        assert not coord._shutdown
+        assert not coord._connection.shutdown
         assert client.lock.locked()
         return unload_ok
 
@@ -350,7 +350,7 @@ async def test_entry_unload_with_active_poll_then_new_coordinator_reload(
             assert next_client.calls == ["read"]
             await reloaded.async_shutdown()
         else:
-            assert not coord._shutdown
+            assert not coord._connection.shutdown
             assert not client.cancelled
             assert "disconnect" not in client.calls
             client.release.set()

@@ -73,7 +73,7 @@ async def make_reader():
             HomeAssistant(), host="plc.local", max_retries=0, **kwargs
         )
         client = ReadClient(responses)
-        coord._client = client
+        coord._connection.client = client
         coordinators.append(coord)
         return coord, client
 

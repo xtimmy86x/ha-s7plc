@@ -88,7 +88,7 @@ class Scenario:
             enable_write_batching=False,
         )
         self.client = ConnectingClient()
-        self.coord._client = self.client
+        self.coord._connection.client = self.client
         # The repository's HA stub omits state publication.
         self.coord.async_set_updated_data = MagicMock()
         self.tasks = []
@@ -261,9 +261,9 @@ async def test_stop_drains_handshake_and_rejects_every_waiter(
         ), results
         assert not case.coord.is_connected()
         assert not case.client.connecting
-        assert not case.coord._io_stopping
-        assert not case.coord._io_tasks
-        assert not case.coord._io_completions
+        assert not case.coord._connection.stopping
+        assert not case.coord._connection._io_tasks
+        assert not case.coord._connection._io_completions
         with pytest.raises(HomeAssistantError):
             await case.coord.connect()
 
@@ -352,7 +352,7 @@ async def test_cancelled_write_waiter_preserves_another_callers_handshake(
             await writer
         assert case.client.connecting
         assert not case.client.cancelled
-        assert not case.coord._io_stopping
+        assert not case.coord._connection.stopping
         case.client.release.set()
         await asyncio.wait_for(connector, timeout=3)
         assert case.coord.is_connected()
@@ -373,16 +373,16 @@ async def test_stop_owns_handshake_after_all_callers_cancel(monkeypatch, stop):
         assert case.client.cancelled
         assert not case.client.connecting
         assert not case.coord.is_connected()
-        assert case.coord._connect_task is None
-        assert not case.coord._io_tasks
-        assert not case.coord._io_completions
+        assert case.coord._connection._connect_task is None
+        assert not case.coord._connection._io_tasks
+        assert not case.coord._connection._io_completions
 
 
 async def test_failed_owned_handshake_without_waiters_allows_a_later_attempt():
     async with scenario() as case:
         case.client.error = OSError("orphaned handshake refused")
         caller = await case.first_connect()
-        attempt = case.coord._connect_task
+        attempt = case.coord._connection._connect_task
         finished = asyncio.Event()
         attempt.add_done_callback(lambda _: finished.set())
         caller.cancel()
@@ -390,7 +390,7 @@ async def test_failed_owned_handshake_without_waiters_allows_a_later_attempt():
             await caller
         case.client.release.set()
         await asyncio.wait_for(finished.wait(), timeout=3)
-        assert case.coord._connect_task is None
+        assert case.coord._connection._connect_task is None
         case.client.error = None
         await asyncio.wait_for(case.coord.connect(), timeout=3)
         assert case.coord.is_connected()
@@ -443,12 +443,12 @@ async def test_config_connection_check_always_shuts_down_its_temporary_coordinat
                     await asyncio.wait_for(task, timeout=3)
             else:
                 await asyncio.wait_for(task, timeout=3)
-        assert case.coord._shutdown
-        assert case.coord._connect_task is None
+        assert case.coord._connection.shutdown
+        assert case.coord._connection._connect_task is None
         assert not case.coord.is_connected()
         assert not case.client.connecting
-        assert not case.coord._io_tasks
-        assert not case.coord._io_completions
+        assert not case.coord._connection._io_tasks
+        assert not case.coord._connection._io_completions
 
 
 @pytest.mark.parametrize("stop", ["async_shutdown", "async_disable_connection"])
@@ -457,7 +457,7 @@ async def test_stop_owns_scheduled_handshake_before_io_registration(monkeypatch,
     async with scenario() as case:
         expire_first_drain(monkeypatch)
         scheduled = asyncio.Event()
-        original_connect = case.coord._connect
+        original_connect = case.coord._connection._connect
 
         async def delayed_start(generation):
             scheduled.set()
@@ -466,18 +466,18 @@ async def test_stop_owns_scheduled_handshake_before_io_registration(monkeypatch,
 
         # Delay dispatch only: this exercises the interval before _io_operation
         # can register the owned handshake, after its caller has been cancelled.
-        monkeypatch.setattr(case.coord, "_connect", delayed_start)
+        monkeypatch.setattr(case.coord._connection, "_connect", delayed_start)
         caller = await case.start(case.coord.connect)
         await asyncio.wait_for(scheduled.wait(), timeout=3)
-        attempt = case.coord._connect_task
+        attempt = case.coord._connection._connect_task
         caller.cancel()
         with pytest.raises(asyncio.CancelledError):
             await caller
-        assert not case.coord._io_tasks
-        assert not case.coord._io_completions
+        assert not case.coord._connection._io_tasks
+        assert not case.coord._connection._io_completions
         assert not attempt.done()
         await asyncio.wait_for(getattr(case.coord, stop)(), timeout=3)
         assert attempt.done()
-        assert case.coord._connect_task is None
+        assert case.coord._connection._connect_task is None
         assert case.client.connect_calls == 0
-        assert not case.coord._io_stopping
+        assert not case.coord._connection.stopping

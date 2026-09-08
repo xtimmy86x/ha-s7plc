@@ -84,7 +84,7 @@ async def scenario(address="DB1,W0"):
     )
     coord.async_set_updated_data = MagicMock()
     client = PacketClient()
-    coord._client = client
+    coord._connection.client = client
     await coord.add_item("value", address)
     coord._data_cache = {"value": "previous"}
     tasks = []
@@ -210,7 +210,7 @@ async def test_real_pys7_cancelled_read_closes_the_used_stream():
     reader, writer = Reader(), Writer()
     client._reader, client._writer = reader, writer
     client._set_connection_state(ConnectionState.CONNECTED)
-    coord._client = client
+    coord._connection.client = client
     task = asyncio.create_task(coord._read_one("DB1,W0"))
     try:
         await asyncio.wait_for(reader.entered.wait(), timeout=3)
@@ -297,10 +297,10 @@ async def test_stop_during_owned_cleanup_rejects_waiters_and_finishes(stop):
             for result in results
         )
         assert not coord.is_connected()
-        assert not coord._io_stopping
-        assert not coord._io_tasks
-        assert not coord._io_completions
-        assert coord._transport_reset_task is None
+        assert not coord._connection.stopping
+        assert not coord._connection._io_tasks
+        assert not coord._connection._io_completions
+        assert coord._connection._transport_reset_task is None
         assert client.calls == ["read"]
         assert client.connects == 0
 
@@ -314,7 +314,7 @@ async def test_failed_cleanup_keeps_admission_closed_until_explicit_stop_recover
         # The real 0.5 s timeout is exercised; 3 s is only a deadlock watchdog.
         with pytest.raises(asyncio.CancelledError):
             await asyncio.wait_for(first, timeout=3)
-        assert coord._io_stopping
+        assert coord._connection.stopping
         for operation in (
             coord.connect,
             lambda: coord._read_one("DB1,W2"),
@@ -325,7 +325,7 @@ async def test_failed_cleanup_keeps_admission_closed_until_explicit_stop_recover
         assert client.calls == ["read"]
         client.close_release.set()
         await asyncio.wait_for(coord.disconnect(), timeout=3)
-        assert not coord._io_stopping
+        assert not coord._connection.stopping
         assert await coord._read_one("DB1,W2") == 42
         assert client.contaminated == 0
 
@@ -378,14 +378,14 @@ async def test_cleanup_errors_cannot_be_swallowed_and_reopen_an_uncertain_stream
         first.cancel()
         with pytest.raises(asyncio.CancelledError):
             await first
-        assert coord._io_stopping
+        assert coord._connection.stopping
         with pytest.raises((OSError, RuntimeError, AttributeError)):
             await coord.disconnect()
-        assert coord._io_stopping
+        assert coord._connection.stopping
         with pytest.raises(HomeAssistantError):
             await coord._read_one("DB1,W2")
         client.disconnect = disconnect
         await coord.disconnect()
-        assert not coord._io_stopping
+        assert not coord._connection.stopping
         assert await coord._read_one("DB1,W2") == 42
         assert client.contaminated == 0

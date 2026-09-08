@@ -1,4 +1,4 @@
-"""Execute read plans while the coordinator owns transport and I/O lifecycle."""
+"""Execute read plans through the coordinator's managed transport."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class S7ReadExecutor:
     """Execute scalar and string reads for one PLC without owning its client.
 
     The supplied read callback owns retry and resolves the current client on
-    each attempt. Calls run within the coordinator's existing operation scope;
+    each attempt. Calls run within the connection manager's operation scope;
     this executor creates no tasks, connections, caches or lifecycle barriers.
     The coordinator supplies the cycle deadline and its monotonic clock.
     """
