@@ -164,7 +164,7 @@ async def test_read_batch_deduplicates_tags(coord_factory, dummy_tag, dummy_clie
 
     coord._retry = mock_retry
 
-    results = await coord._read_batch(plans)
+    results = await coord._read_executor.read_batch(plans)
 
     assert client.calls == [([tag_a, tag_b], True)]
     assert results == {
@@ -191,7 +191,7 @@ async def test_read_batch_raises_on_error(coord_factory, dummy_tag, dummy_client
     coord._retry = mock_retry
 
     with pytest.raises(OSError):
-        await coord._read_batch(plans)
+        await coord._read_executor.read_batch(plans)
 
 
 # ============================================================================
@@ -305,7 +305,7 @@ async def test_read_all_raises_update_failed_on_read_error(coord_factory, dummy_
     async def raise_read(plans):
         raise RuntimeError("read boom")
 
-    coord._read_batch = raise_read
+    coord._read_executor.read_batch = raise_read
 
     with pytest.raises(coordinator.UpdateFailed) as err:
         await coord._read_all(plans, [])
@@ -338,10 +338,10 @@ async def test_read_strings_raises_on_timeout(coord_factory, monkeypatch, caplog
         read_calls.append((db, start))
         return "value"
 
-    coord._read_s7_string = fake_read
+    coord._read_executor.read_s7_string = fake_read
 
     with pytest.raises(coordinator.UpdateFailed) as err:
-        await coord._read_strings(plans, deadline=50.0)
+        await coord._read_executor.read_strings(plans, deadline=50.0)
 
     assert "timeout" in str(err.value).lower()
     assert read_calls == [(1, 0)]
@@ -358,11 +358,11 @@ async def test_read_strings_raises_on_error(coord_factory, monkeypatch, caplog):
     async def fake_read(db, start, length, is_wstring=False):
         raise RuntimeError("boom")
 
-    coord._read_s7_string = fake_read
+    coord._read_executor.read_s7_string = fake_read
     monkeypatch.setattr(coordinator.time, "monotonic", lambda: 0.0)
 
     with pytest.raises(coordinator.UpdateFailed) as err:
-        await coord._read_strings(plans, deadline=50.0)
+        await coord._read_executor.read_strings(plans, deadline=50.0)
 
     assert "boom" in str(err.value)
     assert any("String read error" in message for message in caplog.messages)
@@ -381,8 +381,8 @@ async def test_read_all_propagates_string_failures(coord_factory):
     async def fake_read_strings(plans, deadline):
         raise coordinator.UpdateFailed("timeout")
 
-    coord._read_batch = fake_read_batch
-    coord._read_strings = fake_read_strings
+    coord._read_executor.read_batch = fake_read_batch
+    coord._read_executor.read_strings = fake_read_strings
 
     with pytest.raises(coordinator.UpdateFailed):
         await coord._read_all([], plans)
@@ -415,7 +415,7 @@ async def test_read_one_handles_bit_string_and_scalars(coord_factory, dummy_tag,
     async def fake_read_s7_string(db, start, length, is_wstring=False):
         return "test"
 
-    coord._read_s7_string = fake_read_s7_string
+    coord._read_executor.read_s7_string = fake_read_s7_string
     assert await coord._read_one("STRING") == "test"
 
     # Bit normalization
