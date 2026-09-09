@@ -1,24 +1,12 @@
-"""Pytest configuration and stubs for Home Assistant dependencies.
+"""Pytest configuration and lightweight Home Assistant doubles.
 
-Testing Approach:
------------------
-This test suite uses a stub-based approach with custom mocks instead of the
-official pytest-homeassistant-custom-component package. This choice provides:
+Home Assistant APIs are stubbed so integration logic can run without a full HA
+installation. These tests do not establish compatibility with real HA classes.
+Voluptuous and pyS7 are real dependencies: do not replace their validation with
+no-op mocks. Selector doubles preserve metadata but do not validate values.
 
-- Fast test execution: ~5 seconds for 254 tests
-- Full control over mock behavior
-- No version compatibility issues between HA versions
-- Lightweight fixtures focused on integration logic
-
-The official pytest-homeassistant-custom-component package was evaluated but
-rejected due to:
-- Version sensitivity requiring exact HA API alignment
-- Slower test execution (30-60s vs 5s)
-- Heavy auto-mocking that can obscure integration-specific issues
-- Additional maintenance burden tracking HA core changes
-
-All mocks are centralized in this file for consistency. Individual test files
-should import fixtures from here rather than defining local duplicates.
+Shared scenario helpers live in tests/support/; keep scenario-specific fakes
+local to the tests that need them.
 """
 
 from __future__ import annotations
@@ -638,7 +626,18 @@ class SelectSelectorConfig:  # pragma: no cover - simple stub
         self.mode = mode
 
 
-class SelectSelector:  # pragma: no cover - simple stub
+class _SelectorStub:
+    """Allow real voluptuous schemas to compile without emulating HA validation.
+
+    Selector-specific validation requires tests with real Home Assistant. These
+    doubles only preserve selector metadata and pass submitted values through.
+    """
+
+    def __call__(self, value):
+        return value
+
+
+class SelectSelector(_SelectorStub):  # pragma: no cover - simple stub
     def __init__(self, config):
         self.config = config
 
@@ -647,13 +646,13 @@ class SelectSelectorMode:  # pragma: no cover - simple stub
     DROPDOWN = "dropdown"
 
 
-class TextSelector:  # pragma: no cover - simple stub
+class TextSelector(_SelectorStub):  # pragma: no cover - simple stub
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
 
 
-class BooleanSelector:  # pragma: no cover - simple stub
+class BooleanSelector(_SelectorStub):  # pragma: no cover - simple stub
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -666,7 +665,7 @@ class NumberSelectorConfig:  # pragma: no cover - simple stub
         self.max = max
         self.step = step
 
-class NumberSelector:  # pragma: no cover - simple stub
+class NumberSelector(_SelectorStub):  # pragma: no cover - simple stub
     def __init__(self, config):
         self.config = config
 
@@ -680,7 +679,7 @@ class AreaSelectorConfig:  # pragma: no cover - simple stub
         pass
 
 
-class AreaSelector:  # pragma: no cover - simple stub
+class AreaSelector(_SelectorStub):  # pragma: no cover - simple stub
     def __init__(self, config):
         self.config = config
 
@@ -1059,80 +1058,6 @@ sensor.SensorEntity = SensorEntity
 sensor.SensorStateClass = SensorStateClass
 sys.modules["homeassistant.components.sensor"] = sensor
 components.sensor = sensor
-
-# voluptuous stub
-voluptuous = ModuleType("voluptuous")
-
-
-class _Schema:  # pragma: no cover - simple stub
-    def __init__(self, schema):
-        self.schema = schema
-
-    def __call__(self, value):
-        return value
-
-
-class _Marker(str):  # pragma: no cover - base class matching voluptuous.Marker
-    """Minimal Marker stub for schema key introspection."""
-    def __new__(cls, key, default=None, description=None):
-        obj = str.__new__(cls, key)
-        obj.schema = key  # real voluptuous stores the key name here
-        obj.default = default
-        obj.description = description
-        return obj
-
-    def __hash__(self):
-        return str.__hash__(self)
-
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return str.__eq__(self, other)
-        return NotImplemented
-
-
-def _optional_factory(base_cls):
-    class _Option(_Marker):  # pragma: no cover - simple stub
-        pass
-
-    return _Option
-
-
-voluptuous.Marker = _Marker
-
-def _all_factory(*validators):
-    def _validator(value):  # pragma: no cover - simple stub
-        result = value
-        for validator in validators:
-            result = validator(result)
-        return result
-
-    return _validator
-
-
-def _coerce_factory(target_type):
-    def _coerce(value):  # pragma: no cover - simple stub
-        return target_type(value)
-
-    return _coerce
-
-
-def _range_factory(min=None, max=None):
-    def _range(value):  # pragma: no cover - simple stub
-        if min is not None and value < min:
-            raise ValueError("value below minimum")
-        if max is not None and value > max:
-            raise ValueError("value above maximum")
-        return value
-
-    return _range
-
-voluptuous.Schema = lambda schema: _Schema(schema)
-voluptuous.Required = _optional_factory(str)
-voluptuous.Optional = _optional_factory(str)
-voluptuous.All = _all_factory
-voluptuous.Coerce = _coerce_factory
-voluptuous.Range = _range_factory
-sys.modules["voluptuous"] = voluptuous
 
 
 def pytest_configure(config):  # pragma: no cover - register custom marks
