@@ -94,6 +94,8 @@ describe("panel lifecycle", () => {
     expect(badge.target).toBe("_blank");
     expect(badge.rel).toBe("noopener noreferrer");
     expect(badge.getAttribute("aria-label")).toBe("Open ha-s7plc on GitHub");
+    expect(badge.querySelector('ha-icon[icon="mdi:github"]')
+      .getAttribute("aria-hidden")).toBe("true");
     expect(badge.textContent).toContain("@xtimmy86x");
     expect(badge.textContent).toContain("v7.3.0");
 

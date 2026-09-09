@@ -316,11 +316,16 @@ describe("entity editor", () => {
     expect(form.elements.light_mode.value).toBe("on_off");
     expect(isHidden(form, "brightness_state_address")).toBe(true);
     expect(isHidden(form, "brightness_command_address")).toBe(true);
+    for (const key of ["brightness_scale", "value_multiplier", "scale_raw_min", "scale_raw_max"]) {
+      expect(form.elements[key]).toBeUndefined();
+    }
 
     choose(form, "light_mode", "dimmable");
 
     expect(isHidden(form, "brightness_state_address")).toBe(false);
     expect(isHidden(form, "brightness_command_address")).toBe(false);
+    expect(() => panel.formEntity(form, entry.entities.lights[0], "lights"))
+      .toThrow(getTranslations("en").config_panel.errors.brightness_state_required_error);
     form.elements.brightness_state_address.value = "DB1,BYTE12";
     form.elements.brightness_command_address.value = "DB1,BYTE14";
     expect(panel.formEntity(form, entry.entities.lights[0], "lights")).toMatchObject({
@@ -351,6 +356,13 @@ describe("entity editor", () => {
     expect(form.elements.cover_control_mode.value).toBe("traditional");
     expect(isHidden(form, "close_command_address")).toBe(false);
     expect(isHidden(form, "operate_time")).toBe(false);
+    expect(form.querySelector('[name="toggle_mode"]')).toBeNull();
+    expect([...form.querySelectorAll('input[name="cover_control_mode"]')]
+      .map((input) => input.value)).toEqual(["traditional", "position", "toggle"]);
+    form.elements.close_command_address.value = "";
+    expect(() => panel.formEntity(form, entry.entities.covers[0], "covers"))
+      .toThrow(getTranslations("en").config_panel.errors.cover_commands_required_error);
+    form.elements.close_command_address.value = "DB1,X12.1";
 
     choose(form, "cover_control_mode", "toggle");
 
@@ -361,6 +373,10 @@ describe("entity editor", () => {
     expect(form.querySelector('[data-section="cover-options"]').classList.contains("hidden-field")).toBe(false);
     expect(form.elements.open_command_address.required).toBe(true);
     expect(form.elements.close_command_address.required).toBe(false);
+    expect(form.elements.toggle_pulse_duration.type).toBe("number");
+    expect(form.querySelector('[data-section="cover-options"]')
+      .contains(form.elements.toggle_pulse_duration)).toBe(true);
+    form.elements.toggle_pulse_duration.value = "0.75";
     form.elements.opening_state_address.value = "DB1,X13.0";
     form.elements.closing_state_address.value = "DB1,X13.1";
     form.elements.cover_opening_address.value = "DB1,X14.0";
@@ -369,6 +385,27 @@ describe("entity editor", () => {
     expect(entity.toggle_mode).toBe(true);
     expect(entity).not.toHaveProperty("close_command_address");
     expect(entity).not.toHaveProperty("operate_time");
+    expect(entity.toggle_pulse_duration).toBe(0.75);
+    expect(entity).not.toHaveProperty("cover_control_mode");
+    form.elements.open_command_address.value = "";
+    expect(() => panel.formEntity(form, entry.entities.covers[0], "covers"))
+      .toThrow(getTranslations("en").config_panel.errors.cover_commands_required_error);
+    form.elements.open_command_address.value = "DB1,X12.0";
+
+    entry.entities.covers[0] = entity;
+    currentDialog().remove();
+    panel.openEditor(0, "covers");
+    const reopened = currentDialog().querySelector("form");
+    expect(reopened.elements.cover_control_mode.value).toBe("toggle");
+    expect(reopened.elements.toggle_pulse_duration.value).toBe("0.75");
+    choose(reopened, "cover_control_mode", "traditional");
+    expect(isHidden(reopened, "toggle_pulse_duration")).toBe(true);
+    expect(reopened.querySelector('[data-section="cover-options"]')
+      .classList.contains("hidden-field")).toBe(true);
+    reopened.elements.close_command_address.value = "DB1,X12.1";
+    const traditional = panel.formEntity(reopened, entity, "covers");
+    expect(traditional.toggle_mode).toBe(false);
+    expect(traditional).not.toHaveProperty("toggle_pulse_duration");
   });
 
   test("rebuilds climate sections when switching from setpoint to direct control", () => {
