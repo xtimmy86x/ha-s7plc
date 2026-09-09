@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_asyncio
 from homeassistant.exceptions import HomeAssistantError
-from test_write_batching import _enqueue, _install_scheduler, _make_coordinator
+from support.write_batching import enqueue, install_scheduler, make_batch_coordinator
 
 from custom_components.s7plc.plc.address import parse_tag
 
@@ -19,7 +19,7 @@ GOOD_ADDRESS = "DB1,W10"
 
 @pytest_asyncio.fixture
 async def writer():
-    coord = _make_coordinator()
+    coord = make_batch_coordinator()
     client = SimpleNamespace(is_connected=True, write=AsyncMock())
 
     async def disconnect():
@@ -61,14 +61,14 @@ async def test_mixed_flush_preserves_results_when_notifying(
         coord.hass.services.async_call.side_effect = notification_error(
             "Notification unavailable"
         )
-    scheduler, background_tasks = _install_scheduler(coord)
+    scheduler, background_tasks = install_scheduler(coord)
     writes = [(BAD_ADDRESS, 42), (GOOD_ADDRESS, 7)]
     if not invalid_first:
         writes.reverse()
     callers = {}
     try:
         for address, value in writes:
-            callers[address] = await _enqueue(coord, address, value)
+            callers[address] = await enqueue(coord, address, value)
         scheduler.timers[-1].fire()
         results = await asyncio.wait_for(
             asyncio.gather(*callers.values(), return_exceptions=True), timeout=3
@@ -102,7 +102,7 @@ async def test_mixed_flush_preserves_results_when_notifying(
 
 async def test_cancelling_flush_during_notification_fails_pending_callers(writer):
     coord, client = writer
-    scheduler, background_tasks = _install_scheduler(coord)
+    scheduler, background_tasks = install_scheduler(coord)
     notifying = asyncio.Event()
 
     async def notify(*args, **kwargs):
@@ -113,7 +113,7 @@ async def test_cancelling_flush_during_notification_fails_pending_callers(writer
     callers = []
     try:
         for address, value in [(BAD_ADDRESS, 42), (GOOD_ADDRESS, 7)]:
-            callers.append(await _enqueue(coord, address, value))
+            callers.append(await enqueue(coord, address, value))
         scheduler.timers[-1].fire()
         await asyncio.wait_for(notifying.wait(), timeout=3)
         (flush,) = background_tasks
