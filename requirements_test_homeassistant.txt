@@ -1,0 +1,4 @@
+# Dedicated Python 3.14 environment; do not combine with requirements_dev.txt.
+-r requirements.txt
+pytest-homeassistant-custom-component==0.13.364
+home-assistant-frontend==20260826.6

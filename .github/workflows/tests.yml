@@ -78,3 +78,30 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
           retention-days: 7
+
+  homeassistant:
+    name: Home Assistant runtime tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements_test_homeassistant.txt
+            requirements.txt
+
+      - name: Install isolated Home Assistant test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements_test_homeassistant.txt
+          python -m pip check
+
+      - name: Run real Home Assistant tests
+        run: python -m pytest -c tests_homeassistant/pytest.ini tests_homeassistant -v

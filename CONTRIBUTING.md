@@ -115,9 +115,53 @@ Python schema tests use the installed `voluptuous` package. Apply the actual
 required fields, defaults, types, coercion, ranges and nested payloads. Calling a
 flow step or service handler directly does not exercise that schema validation.
 
-Home Assistant is still stubbed. Selector doubles retain their configuration and
-accept values unchanged; they do not cover HA selector validation, the real flow
-manager or service dispatch. These require tests with real Home Assistant.
+Home Assistant is stubbed in `tests/`. Selector doubles retain their configuration
+and accept values unchanged; they do not cover HA selector validation or the real
+flow manager. Runtime lifecycle and service dispatch have separate tests below.
+
+## Real Home Assistant runtime tests
+
+`tests_homeassistant/` is a small, separate suite using the installed Home Assistant
+runtime, config-entry manager, platforms, entity registry, state machine, storage
+and service dispatcher. Only the external pyS7 client is mocked; no PLC is needed.
+The integration's frontend/HTTP dependencies and panel registration also run,
+but these tests do not verify browser rendering or PLC protocol behavior.
+
+Use a **separate Python 3.14 virtual environment**. The pinned test plugin selects
+Home Assistant 2026.9.1; the frontend version matches that HA release. Update the
+plugin and frontend pins together when intentionally upgrading this test baseline.
+This baseline does not establish compatibility with older HA versions.
+
+```bash
+python3.14 -m venv .venv-ha
+.venv-ha/bin/python -m pip install -r requirements_test_homeassistant.txt
+.venv-ha/bin/python -m pip check
+.venv-ha/bin/python -m pytest -c tests_homeassistant/pytest.ini tests_homeassistant -v
+```
+
+On Windows, use `py -3.14 -m venv .venv-ha` and
+`.venv-ha\Scripts\python.exe` for the following commands.
+
+Do not install these dependencies in the stub suite's environment or collect both
+suites in one pytest process: `tests/conftest.py` replaces HA modules globally.
+The root `pytest.ini` defaults to `tests/`; the runtime suite has its own config
+and an explicit command. CI runs each suite in a separate job, keeping the existing
+coverage gate and lightweight dependencies unchanged.
+
+The runtime suite covers:
+
+- Setup, reload and unload through HA, including stable entity registration,
+  fresh runtime data, PLC disconnect and service cleanup.
+- A real failed coordinator refresh: the data sensor becomes unavailable while
+  the connection switch remains usable through `switch.turn_off`; its disabled
+  state survives reload without new PLC I/O.
+- `health_check` and `write_multi` through HA's dispatcher, including rejection
+  of invalid required fields and nested write payloads before PLC access.
+
+Platforms add read tags concurrently, so the fixtures explicitly await a real
+coordinator refresh after setup rather than relying on debounce timer timing.
+The offline test advances the fixture clock to make sensor reads due; it does not
+sleep or replace coordinator availability behavior.
 
 ## Python module boundaries
 
