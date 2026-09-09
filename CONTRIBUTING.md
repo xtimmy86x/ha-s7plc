@@ -90,6 +90,11 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
+Before removing a source-string check, identify its behavioral replacement and
+extend that DOM test if any scenario is missing. Keep catalog parity, asset and
+backend/frontend field-contract checks. CSS source checks are not evidence of
+actual browser layout; retain them until an equivalent layout check exists.
+
 Backend and integration tests remain under `tests/test_*.py`.
 
 Shared Python helpers live in `tests/support/`. Import reusable helpers from

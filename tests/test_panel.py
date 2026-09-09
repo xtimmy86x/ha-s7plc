@@ -115,24 +115,10 @@ def test_entry_payload_always_includes_profile_for_logo_family(family):
     assert payload["logo_profile"]["vm_areas"]
 
 
-def test_panel_displays_project_badge_in_banner() -> None:
+def test_project_badge_styles_and_translations() -> None:
+    """DOM tests cover the link and version; keep CSS and catalog checks here."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    banner = source.split("  banner(){", 1)[1].split("  panelActions(className){", 1)[0]
-    actions = source.split("  panelActions(className){", 1)[1].split("  syncMenuButtons()", 1)[0]
     styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
-
-    assert "this._panel?.config?.version" in source
-    assert 'class="project-badge"' in banner
-    assert 'href="https://github.com/xtimmy86x/ha-s7plc"' in banner
-    assert 'target="_blank"' in banner
-    assert 'rel="noopener noreferrer"' in banner
-    assert 'icon="mdi:github" aria-hidden="true"' in banner
-    assert "this.t('common.open_project_github')" in banner
-    assert "currentVersion=this.integrationVersion" in banner
-    assert "currentVersion?`<span>v${this.escape(currentVersion)}</span>`:''" in banner
-    assert "@xtimmy86x" in banner
-    assert "integration-version" not in actions
-    assert "integration-version" not in styles
     assert ".project-badge:focus-visible{outline:2px solid #fff" in styles
     assert ".project-badge{right:7px;bottom:7px;gap:4px" in styles
 
@@ -296,14 +282,6 @@ def test_connection_diagnostics_translations_are_complete() -> None:
     assert italian["connection_details"]["sections"]["other"] == "Altri parametri"
 
 
-def test_panel_supports_batch_entity_deletion() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert 'type="checkbox" data-select="${i}"' in source
-    assert "sort((a,b)=>b-a)" in source
-    assert "for(const index of sorted)await this._hass.callWS" in source
-
-
 
 
 
@@ -327,21 +305,6 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
     )
     # Other entity types continue to use the unchanged generic section classifier.
     assert "fields.filter(isAddress)" in source
-
-
-def test_light_mode_is_virtual_and_dimmer_fields_are_cleaned_on_save() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "delete entity.light_mode" in source
-    assert "if(lightMode==='on_off'){delete entity.brightness_state_address;delete entity.brightness_command_address;}" in source
-    assert (
-        "if(!entity.brightness_state_address)throw Error(this.t('errors.brightness_state_required_error'))"
-        in source
-    )
-    assert '["brightness_scale"' not in source
-    assert '["value_multiplier"' not in source
-    assert '["scale_raw_min"' not in source
-    assert '["scale_raw_max"' not in source
-    assert "['brightness_state_address','brightness_command_address'].forEach" in source
 
 
 def test_panel_control_mode_is_context_aware() -> None:
@@ -688,16 +651,11 @@ async def test_invalid_full_configuration_is_structured_and_not_saved(
     assert updates == []
 
 
-def test_list_is_lightweight_and_frontend_has_three_yaml_actions() -> None:
+def test_list_payload_omits_configuration_yaml() -> None:
     entry = SimpleNamespace(
         entry_id="entry-1", title="PLC", data={}, options={}, runtime_data=None
     )
     assert "configuration_yaml" not in _entry_payload(entry)
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert "import_yaml" in source
-    assert "export_current_yaml" in source
-    assert "download_backup" in source
-    assert "s7plc/config/get_configuration" in source
 
 
 class _Connection:
@@ -1163,13 +1121,6 @@ def test_entry_payload_maps_entity_ids(monkeypatch) -> None:
     assert payload["connection_entity_id"] == "binary_sensor.plc_connection"
 
 
-def test_panel_hides_uid_from_entity_summary() -> None:
-    """The internal UID is not rendered as a summary chip."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "k==='uid'" in source
-
-
 def test_panel_exposes_climate_mode_and_status_fields() -> None:
     """The visual editor lets you configure the HVAC mode <-> PLC value
     mapping (setpoint control mode), not just the mode/status addresses —
@@ -1554,19 +1505,6 @@ def test_panel_exposes_cover_status_and_tilt_fields() -> None:
     assert "cover_status_stopped_values" not in traditional_hidden_line
 
 
-def test_panel_keeps_boolean_status_fields_when_status_address_used() -> None:
-    """cover_status_address does NOT hide or strip the end-stop and boolean
-    movement-status addresses (or use_state_topics): the backend still
-    falls back to them (e.g. is_closed via opening/closing_state_address)
-    whenever the status word doesn't directly answer open/closed, so using
-    a status word for movement together with physical end-stops is a valid
-    configuration and the editor must not force them apart."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    assert "COVER_BOOL_STATUS_FIELDS" not in source
-    assert "COVER_MOTION_BOOL_FIELDS" not in source
-
-
 def test_panel_status_values_follow_explicit_movement_mode() -> None:
     """cover_status_open/closed_values and cover_status_opening/closing/
     stopped_values are scoped to whichever selector (position_feedback vs
@@ -1580,109 +1518,6 @@ def test_panel_status_values_follow_explicit_movement_mode() -> None:
         "ui.cover_movement_feedback==='status'&&!entity.cover_status_address" in source
     )
 
-
-def test_panel_tilt_fields_follow_explicit_virtual_toggle() -> None:
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert (
-        "if(control==='position'&&tilt)['tilt_state_address','tilt_command_address','invert_tilt']"
-        in source
-    )
-    assert "ui.cover_tilt_enabled===false" in source
-
-
-
-def test_panel_close_command_address_required_for_traditional() -> None:
-    """open_command_address is required for both traditional and toggle
-    (a toggle cover only ever has one command address); close_command_address
-    is required for traditional only - toggle's single relay has no use for
-    it."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    assert (
-        "(ui.cover_control_mode==='traditional'||ui.cover_control_mode==='toggle')"
-        "&&!entity.open_command_address"
-        in source
-    )
-    assert (
-        "ui.cover_control_mode==='traditional'&&!entity.close_command_address"
-        in source
-    )
-    assert "errors.cover_commands_required_error" in source
-
-
-def test_panel_toggle_pulse_duration_has_its_own_options_section() -> None:
-    """toggle_pulse_duration gets a dedicated "Opcje"/Options section, the
-    same treatment switches/lights already give their own pulse_duration
-    field, rather than being folded into the "Adresy PLC" section the way
-    stop_pulse_duration is for position covers."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    covers_line = next(
-        line for line in source.splitlines() if line.strip().startswith("covers:[")
-    )
-    assert '["toggle_pulse_duration","number"]' in covers_line
-
-    assert (
-        "section('cog-outline',this.t('sections.options.title'),"
-        "this.t('sections.options.description'),"
-        "byKeys(['toggle_pulse_duration']),'cover-options')"
-    ) in source
-
-    # syncMode(): visible only in toggle mode, both the field and the
-    # section that wraps it.
-    assert "if(control==='toggle')visible.add('toggle_pulse_duration');" in source
-    assert "'stop_pulse_duration','toggle_pulse_duration'];" in source
-    assert (
-        "form.querySelector('[data-section=\"cover-options\"]')"
-        ".classList.toggle('hidden-field',control!=='toggle');"
-    ) in source
-
-    # CLEAN_COVER_ENTITY: dropped whenever leaving toggle mode.
-    assert (
-        "if(ui.cover_control_mode!==\"toggle\")delete entity.toggle_pulse_duration;"
-    ) in source
-
-
-def test_panel_exposes_toggle_as_a_control_mode_choice() -> None:
-    """toggle is presented as a third cover_control_mode choice (radio
-    card, same section as traditional/position - "Sterowanie") rather
-    than a separate checkbox buried in the connection/addresses section.
-    The underlying toggle_mode boolean the backend reads is derived from
-    that choice, not from a dedicated form field, and cleared on save
-    when a different mode is picked."""
-    source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-
-    covers_line = next(
-        line for line in source.splitlines() if line.strip().startswith("covers:[")
-    )
-    assert '"toggle_mode"' not in covers_line, (
-        "toggle_mode should no longer be its own FIELDS.covers entry"
-    )
-    assert (
-        '["cover_control_mode","cover-selector",true,'
-        '["traditional","position","toggle"]]'
-    ) in source
-
-    # COVER_UI_FROM_ENTITY infers the "toggle" radio choice from the
-    # stored toggle_mode flag when reopening an existing item.
-    assert (
-        'const control=entity.position_state_address?"position":'
-        'entity.toggle_mode?"toggle":"traditional";'
-    ) in source
-
-    # On save: toggle_mode is derived from the selected control mode
-    # (not read from its own form field), and close_command_address is
-    # cleared for toggle covers (single-button, open_command_address only).
-    assert "entity.toggle_mode=ui.cover_control_mode==='toggle';" in source
-    assert (
-        "if(ui.cover_control_mode==='toggle'){delete entity.close_command_address;}"
-    ) in source
-
-    # CLEAN_COVER_ENTITY treats toggle like traditional for field
-    # governance (it still uses open/close-style addressing, not position).
-    assert (
-        'const isTraditionalLike=ui.cover_control_mode==="traditional"'
-        '||ui.cover_control_mode==="toggle";'
-    ) in source
 
 
 def _leaf_string_values(value):
@@ -1788,16 +1623,6 @@ def test_cover_and_climate_modes_have_autonomous_options() -> None:
         assert set(
             panel["entity_types"]["climates"]["fields"]["control_mode"]["options"]
         ) == {"direct", "setpoint"}
-
-
-def test_cover_endstop_panel_validation_matches_config_builder() -> None:
-    """Guard against either side relaxing the two-address requirement."""
-    panel = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
-    backend = Path("custom_components/s7plc/config_validation.py").read_text(
-        encoding="utf-8"
-    )
-    assert "['opening','both'].includes(ui.cover_position_feedback)" in panel
-    assert 'feedback_mode in {"opening", "both"}' in backend
 
 
 def test_cover_editor_sections_are_ordered_and_yaml_remains_raw() -> None:
@@ -1970,8 +1795,6 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
         "@media(max-width:500px)", 1
     )[0]
 
-    assert "${this.entityCards(entry,type,matches)}" in source
-    assert source.count("this.entityCards(entry,type,matches)") == 2
     assert ".entity-actions{display:none}" in mobile
     assert ".entity-overflow{display:block}" in mobile
     assert (
@@ -2140,8 +1963,6 @@ def test_value_conversion_translations_and_responsive_layout_are_complete() -> N
         assert required <= value.keys()
         assert set(value["titles"]) == titles
         assert set(value["directions"]) == {"title", "read", "write", "bidirectional_distinct", "bidirectional_same"}
-    assert "VALUE_CONVERSION_SUMMARY" not in source
-    assert 'this.t(`value_conversion.titles.${spec.label}`)' in source
     assert "@media(max-width:600px){.value-conversion summary" in source
     assert "overflow-wrap:anywhere" in source
     assert "grid-column:1/-1" in source
@@ -2177,7 +1998,7 @@ def test_expression_guidance_translations_and_documentation_are_complete() -> No
     assert "does not derive or automatically invert" in docs
     assert "[Value Conversions](docs/value-conversions.md)" in readme
 
-def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
+def test_linear_scale_clamp_translations_and_layout() -> None:
     """Every locale includes clamp feedback and CSS covers mobile/Safari."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     required = {"clamp", "clamp_description", "clamp_preview", "result_clamped",
@@ -2191,9 +2012,6 @@ def test_linear_scale_clamp_translations_layout_and_live_update() -> None:
     assert "align-items:start" in source
     assert ".conversion-clamp input{align-self:start" in source
     assert ".conversion-clamp:focus-within" in source
-    assert "input.type==='checkbox')input.addEventListener('change',sync)" in source
-    assert "preview.textContent=select.value==='linear_scale'" in source
-    assert "clamp:channel==='brightness'||Boolean(read('clamp')?.checked)" in source
 
 
 def test_entity_card_conversion_chips_have_responsive_layout() -> None:
@@ -2204,9 +2022,6 @@ def test_entity_card_conversion_chips_have_responsive_layout() -> None:
     assert ".details span.conversion-chip:focus-visible" in source
     assert ".details span{white-space:normal;overflow-wrap:anywhere}" in source
     assert ".details div,.toolbar p{display:none}" not in source
-    assert "const allChips=[...conversions,...metadata]" in source
-    assert "const visible=allChips.slice(0,ENTITY_CARD_CHIP_LIMIT)" in source
-    assert "clamp:channel==='brightness'||" in source
 def test_number_limit_copy_and_sensor_fields_are_consistent() -> None:
     """Panel copy presents HA limits and hides meaningless sensor bounds."""
     root = Path(__file__).parents[1]

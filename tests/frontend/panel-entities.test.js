@@ -18,10 +18,14 @@ afterEach(() => {
 describe("entity views and actions", () => {
   test("keeps sparse cards in the shared leading-details-side structure", () => {
     const entry = createEntry();
-    entry.entities.sensors = [{ name: "A very long entity name that must not widen the card" }];
+    entry.entities.sensors = [{
+      name: "A very long entity name that must not widen the card",
+      uid: "internal-uid-must-not-be-displayed",
+    }];
     entry.entity_ids.sensors = [];
     const panel = createPanel(entry);
     const article = panel.querySelector(".cards article");
+    expect(article.textContent).not.toContain("internal-uid-must-not-be-displayed");
 
     expect(article.children[0].className).toBe("entity-leading");
     expect(article.children[1].className).toBe("details");
@@ -193,8 +197,11 @@ describe("entity views and actions", () => {
     const panel = createPanel();
     panel.querySelector("[data-layout-toggle]").click();
     const sensor = panel.querySelector('[data-section-type="sensors"] [data-select="1"]');
+    const firstSensor = panel.querySelector('[data-section-type="sensors"] [data-select="0"]');
     const targetSwitch = panel.querySelector('[data-section-type="switches"] [data-select="0"]');
 
+    firstSensor.checked = true;
+    firstSensor.dispatchEvent(new Event("change", { bubbles: true }));
     sensor.checked = true;
     sensor.dispatchEvent(new Event("change", { bubbles: true }));
     targetSwitch.checked = true;
@@ -202,18 +209,28 @@ describe("entity views and actions", () => {
 
     const bulk = panel.querySelector("[data-batch-delete-global]");
     expect(bulk.hidden).toBe(false);
-    expect(bulk.textContent).toContain("(2)");
+    expect(bulk.textContent).toContain("(3)");
     expect(sensor.closest("article").classList.contains("selected")).toBe(true);
 
     const calls = [];
-    panel._hass.callWS = async (message) => calls.push(message);
+    let releaseFirst;
+    const pending = new Promise((resolve) => { releaseFirst = resolve; });
+    panel._hass.callWS = async (message) => {
+      calls.push(message);
+      if (calls.length === 1) await pending;
+    };
     panel.load = vi.fn(async () => {});
     bulk.click();
     const dialog = document.body.querySelector("ha-dialog");
-    await dialog.querySelector('[slot="primaryAction"]').onclick();
+    const deleting = dialog.querySelector('[slot="primaryAction"]').onclick();
+    await Promise.resolve();
+    expect(calls).toHaveLength(1);
+    releaseFirst();
+    await deleting;
 
     expect(calls).toEqual([
       { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "sensors", index: 1 },
+      { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "sensors", index: 0 },
       { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "switches", index: 0 },
     ]);
     expect(panel.selectedIndices.size).toBe(0);

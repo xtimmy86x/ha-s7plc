@@ -108,6 +108,8 @@ describe("advanced Cover and Climate editors", () => {
     choose(form, "cover_tilt_enabled", "enabled");
     expect(isHidden(form, "stop_command_address")).toBe(false);
     expect(isHidden(form, "tilt_state_address")).toBe(false);
+    expect(isHidden(form, "tilt_command_address")).toBe(false);
+    expect(isHidden(form, "invert_tilt")).toBe(false);
 
     setAddress(form, "stop_command_address", "DB1,X24.0");
     setAddress(form, "tilt_state_address", "DB1,BYTE26");
@@ -179,6 +181,8 @@ describe("advanced Cover and Climate editors", () => {
     });
 
     choose(form, "cover_position_feedback", "both");
+    expect(() => panel.formEntity(form, original, "covers"))
+      .toThrow("Open-end-stop feedback requires the fully-open address.");
     setAddress(form, "opening_state_address", "DB1,X0.2");
     expect(() => panel.formEntity(form, original, "covers"))
       .toThrow("Closed-end-stop feedback requires the fully-closed address.");
@@ -265,6 +269,9 @@ describe("advanced Cover and Climate editors", () => {
     });
     choose(accessories.form, "cover_stop_enabled", "disabled");
     choose(accessories.form, "cover_tilt_enabled", "disabled");
+    for (const key of ["tilt_state_address", "tilt_command_address", "invert_tilt"]) {
+      expect(isHidden(accessories.form, key)).toBe(true);
+    }
     const cleaned = accessories.panel.formEntity(
       accessories.form, accessories.original, "covers",
     );
