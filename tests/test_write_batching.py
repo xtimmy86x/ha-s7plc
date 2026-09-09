@@ -6,78 +6,17 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-
 from homeassistant.exceptions import HomeAssistantError
+from support.write_batching import enqueue, install_scheduler, make_batch_coordinator
 
-from custom_components.s7plc import coordinator as coordinator_module
-from custom_components.s7plc.coordinator import S7Coordinator
 from custom_components.s7plc.number import S7Number
-
-
-class _ControlledTimer:
-    """Timer handle whose callback is fired explicitly by a test."""
-
-    def __init__(self, delay, callback):
-        self.delay = delay
-        self.callback = callback
-        self.cancelled = False
-
-    def cancel(self):
-        self.cancelled = True
-
-    def fire(self):
-        assert not self.cancelled
-        self.callback()
-
-
-class _ControlledScheduler:
-    """Minimal deterministic replacement for loop.call_later."""
-
-    def __init__(self):
-        self.timers: list[_ControlledTimer] = []
-
-    def call_later(self, delay, callback):
-        timer = _ControlledTimer(delay, callback)
-        self.timers.append(timer)
-        return timer
-
-
-def _make_coordinator(*, batching=True):
-    hass = coordinator_module.HomeAssistant()
-    coord = S7Coordinator(
-        hass,
-        host="plc.local",
-        enable_write_batching=batching,
-        max_retries=0,
-    )
-    return coord
-
-
-def _install_scheduler(coord):
-    scheduler = _ControlledScheduler()
-    coord.hass.loop = scheduler
-    background_tasks = []
-
-    def create_background_task(coro, name=None):
-        task = asyncio.create_task(coro, name=name)
-        background_tasks.append(task)
-        return task
-
-    coord.hass.async_create_background_task = create_background_task
-    return scheduler, background_tasks
-
-
-async def _enqueue(coord, address, value):
-    task = asyncio.create_task(coord.write_batched(address, value))
-    await asyncio.sleep(0)
-    return task
 
 
 @pytest.mark.asyncio
 async def test_batching_disabled_writes_immediately_without_scheduling():
     """The non-batched path delegates once and does not wait for a timer."""
-    coord = _make_coordinator(batching=False)
-    scheduler, background_tasks = _install_scheduler(coord)
+    coord = make_batch_coordinator(batching=False)
+    scheduler, background_tasks = install_scheduler(coord)
     coord.write = AsyncMock(return_value=True)
 
     result = await coord.write_batched("DB1,W10", 42.7)
@@ -97,8 +36,8 @@ async def test_batching_disabled_exposes_write_errors_without_flush_side_effects
     write_result, write_error
 ):
     """Immediate failures keep the public error contract and create no batch work."""
-    coord = _make_coordinator(batching=False)
-    scheduler, background_tasks = _install_scheduler(coord)
+    coord = make_batch_coordinator(batching=False)
+    scheduler, background_tasks = install_scheduler(coord)
     coord.hass.services.async_call = AsyncMock()
     coord.write = AsyncMock(return_value=write_result, side_effect=write_error)
 
@@ -115,8 +54,8 @@ async def test_batching_disabled_exposes_write_errors_without_flush_side_effects
 @pytest.mark.parametrize("success", [True, False])
 async def test_same_address_last_value_wins_and_all_callers_share_outcome(success):
     """The superseded value is not written, but its caller gets the final outcome."""
-    coord = _make_coordinator()
-    scheduler, background_tasks = _install_scheduler(coord)
+    coord = make_batch_coordinator()
+    scheduler, background_tasks = install_scheduler(coord)
     batches = []
 
     async def write_multi(writes):
@@ -124,9 +63,9 @@ async def test_same_address_last_value_wins_and_all_callers_share_outcome(succes
         return {address: success for address, _ in writes}
 
     coord.write_multi = write_multi
-    first = await _enqueue(coord, "DB1,W10", 10)
+    first = await enqueue(coord, "DB1,W10", 10)
     first_timer = scheduler.timers[-1]
-    second = await _enqueue(coord, "DB1,W10", 20)
+    second = await enqueue(coord, "DB1,W10", 20)
 
     assert first_timer.cancelled
     scheduler.timers[-1].fire()
@@ -145,15 +84,13 @@ async def test_same_address_last_value_wins_and_all_callers_share_outcome(succes
 @pytest.mark.asyncio
 async def test_debounce_is_restarted_from_the_latest_enqueue():
     """A later enqueue cancels the old deadline and starts a fresh 50 ms delay."""
-    coord = _make_coordinator()
-    scheduler, background_tasks = _install_scheduler(coord)
-    coord.write_multi = AsyncMock(
-        return_value={"DB1,W10": True, "DB1,W12": True}
-    )
+    coord = make_batch_coordinator()
+    scheduler, background_tasks = install_scheduler(coord)
+    coord.write_multi = AsyncMock(return_value={"DB1,W10": True, "DB1,W12": True})
 
-    first = await _enqueue(coord, "DB1,W10", 10)
+    first = await enqueue(coord, "DB1,W10", 10)
     old_deadline = scheduler.timers[-1]
-    second = await _enqueue(coord, "DB1,W12", 12)
+    second = await enqueue(coord, "DB1,W12", 12)
     new_deadline = scheduler.timers[-1]
 
     assert old_deadline.cancelled
@@ -165,16 +102,14 @@ async def test_debounce_is_restarted_from_the_latest_enqueue():
     new_deadline.fire()
     assert await asyncio.gather(first, second) == [None, None]
     await asyncio.gather(*background_tasks)
-    coord.write_multi.assert_awaited_once_with(
-        [("DB1,W10", 10), ("DB1,W12", 12)]
-    )
+    coord.write_multi.assert_awaited_once_with([("DB1,W10", 10), ("DB1,W12", 12)])
 
 
 @pytest.mark.asyncio
 async def test_enqueue_during_flush_creates_a_second_generation():
     """Writes arriving after the flush snapshot are retained for the next flush."""
-    coord = _make_coordinator()
-    scheduler, background_tasks = _install_scheduler(coord)
+    coord = make_batch_coordinator()
+    scheduler, background_tasks = install_scheduler(coord)
     first_started = asyncio.Event()
     release_first = asyncio.Event()
     batches = []
@@ -187,11 +122,11 @@ async def test_enqueue_during_flush_creates_a_second_generation():
         return {address: True for address, _ in writes}
 
     coord.write_multi = write_multi
-    first = await _enqueue(coord, "DB1,W10", 10)
+    first = await enqueue(coord, "DB1,W10", 10)
     scheduler.timers[-1].fire()
     await first_started.wait()
 
-    second = await _enqueue(coord, "DB1,W12", 12)
+    second = await enqueue(coord, "DB1,W12", 12)
     assert batches == [[("DB1,W10", 10)]]
     assert not second.done()
     second_timer = scheduler.timers[-1]
@@ -209,15 +144,15 @@ async def test_enqueue_during_flush_creates_a_second_generation():
 @pytest.mark.asyncio
 async def test_coordinators_have_isolated_queues_waiters_and_failures():
     """Same-address batches on different coordinators never share state."""
-    good = _make_coordinator()
-    bad = _make_coordinator()
-    good_scheduler, good_background = _install_scheduler(good)
-    bad_scheduler, bad_background = _install_scheduler(bad)
+    good = make_batch_coordinator()
+    bad = make_batch_coordinator()
+    good_scheduler, good_background = install_scheduler(good)
+    bad_scheduler, bad_background = install_scheduler(bad)
     good.write_multi = AsyncMock(return_value={"DB1,W10": True})
     bad.write_multi = AsyncMock(return_value={"DB1,W10": False})
 
-    good_write = await _enqueue(good, "DB1,W10", 10)
-    bad_write = await _enqueue(bad, "DB1,W10", 99)
+    good_write = await enqueue(good, "DB1,W10", 10)
+    bad_write = await enqueue(bad, "DB1,W10", 99)
     good_scheduler.timers[-1].fire()
     assert await good_write is None
     assert not bad_write.done()
@@ -236,7 +171,7 @@ async def test_number_conversion_precedes_batching_and_payload_normalization(
     monkeypatch,
 ):
     """Semantic scaling occurs once before coordinator datatype coercion."""
-    coord = _make_coordinator(batching=False)
+    coord = make_batch_coordinator(batching=False)
     written_payloads = []
 
     class Client:

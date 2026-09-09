@@ -8,15 +8,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from test_write_batching import _enqueue, _install_scheduler, _make_coordinator
+from support.write_batching import enqueue, install_scheduler, make_batch_coordinator
 
 import custom_components.s7plc.__init__ as s7init
 from custom_components.s7plc.const import DOMAIN
 
 
 def make_coordinator():
-    coord = _make_coordinator()
-    scheduler, tasks = _install_scheduler(coord)
+    coord = make_batch_coordinator()
+    scheduler, tasks = install_scheduler(coord)
     client = SimpleNamespace(is_connected=True)
 
     async def connect():
@@ -106,7 +106,7 @@ async def test_shutdown_does_not_wait_for_unrelated_work_in_service_caller():
 @pytest.mark.asyncio
 async def test_disconnect_cancels_pending_and_obsolete_timer_callback():
     coord, scheduler, tasks, client = make_coordinator()
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     timer = scheduler.timers[-1]
     await coord.disconnect()
     with pytest.raises(HomeAssistantError, match="disconnected"):
@@ -133,7 +133,7 @@ async def test_stop_waits_for_natural_io_completion_without_late_success(stop):
         await release.wait()
 
     client.write.side_effect = write
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     stopping = asyncio.create_task(getattr(coord, stop)())
@@ -190,7 +190,7 @@ async def test_shutdown_deadline_cancels_and_drains_before_disconnect(monkeypatc
         return await real_wait(fs, timeout=timeout)
 
     monkeypatch.setattr(asyncio, "wait", controlled_wait)
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     await coord.async_shutdown()
@@ -256,7 +256,7 @@ async def test_cancelling_shutdown_caller_does_not_abandon_cleanup():
         await release.wait()
 
     client.write.side_effect = write
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     shutdown_caller = asyncio.create_task(coord.async_shutdown())
@@ -277,13 +277,13 @@ async def test_cancelling_shutdown_caller_does_not_abandon_cleanup():
 @pytest.mark.asyncio
 async def test_started_timer_task_cannot_capture_batch_after_disconnect():
     coord, scheduler, tasks, client = make_coordinator()
-    old = await _enqueue(coord, "DB1,W0", 1)
+    old = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     # No yield between scheduling and disconnect: the old task has not started.
     await coord.disconnect()
     with pytest.raises(HomeAssistantError):
         await old
-    new = await _enqueue(coord, "DB1,W0", 2)
+    new = await enqueue(coord, "DB1,W0", 2)
     assert not new.done()
     client.write.assert_not_awaited()
     scheduler.timers[-1].fire()
@@ -342,7 +342,7 @@ async def test_shutdown_rechecks_state_after_connect_before_sending():
         client.is_connected = True
 
     client.connect.side_effect = connect
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     shutdown = asyncio.create_task(coord.async_shutdown())
@@ -362,7 +362,7 @@ async def test_shutdown_rechecks_state_after_connect_before_sending():
 @pytest.mark.parametrize("started", [False, True])
 async def test_cancel_before_snapshot_completes_queued_callers(started):
     coord, scheduler, tasks, client = make_coordinator()
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     async with coord._async_lock:
         scheduler.timers[-1].fire()
         if started:
@@ -389,10 +389,10 @@ async def test_cancel_inflight_resolves_its_waiters_not_the_next_batch():
             await asyncio.Event().wait()
 
     client.write.side_effect = write
-    first = await _enqueue(coord, "DB1,W0", 1)
+    first = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
-    second = await _enqueue(coord, "DB1,W2", 2)
+    second = await enqueue(coord, "DB1,W2", 2)
     tasks[0].cancel()
     with pytest.raises(asyncio.CancelledError):
         await tasks[0]
@@ -424,7 +424,7 @@ async def test_stop_or_cancel_during_retry_backoff_prevents_reconnect(cancel):
         await real_sleep(60)
 
     coord._connection.sleep = backoff
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     if cancel:
@@ -454,7 +454,7 @@ async def test_disconnect_during_failing_write_does_not_retry_stale_epoch():
         raise OSError("connection dropped during write")
 
     client.write.side_effect = write
-    caller = await _enqueue(coord, "DB1,W0", 1)
+    caller = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
     stopping = asyncio.create_task(coord.disconnect())
@@ -496,10 +496,10 @@ async def test_serialization_covers_complete_writes_and_waiting_epoch():
             await release.wait()
 
     client.write.side_effect = write
-    first = await _enqueue(coord, "DB1,W0", 1)
+    first = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
-    second = await _enqueue(coord, "DB1,W2", 2)
+    second = await enqueue(coord, "DB1,W2", 2)
     scheduler.timers[-1].fire()
     await asyncio.sleep(0)
     try:
@@ -541,9 +541,9 @@ async def test_timeout_removes_only_its_waiter_and_keeps_shared_write(
         return await real_wait_for(awaitable, timeout)
 
     monkeypatch.setattr(asyncio, "wait_for", controlled_wait_for)
-    first = await _enqueue(coord, "DB1,W0", 1)
+    first = await enqueue(coord, "DB1,W0", 1)
     expired_waiter = coord._write_manager._waiters["DB1,W0"][0]
-    second = await _enqueue(coord, "DB1,W0", 2)
+    second = await enqueue(coord, "DB1,W0", 2)
     if inflight:
         scheduler.timers[-1].fire()
         await entered.wait()
@@ -577,10 +577,10 @@ async def test_queued_io_does_not_start_after_shutdown_invalidates_epoch():
         await release.wait()
 
     client.write.side_effect = write
-    first = await _enqueue(coord, "DB1,W0", 1)
+    first = await enqueue(coord, "DB1,W0", 1)
     scheduler.timers[-1].fire()
     await entered.wait()
-    second = await _enqueue(coord, "DB1,W2", 2)
+    second = await enqueue(coord, "DB1,W2", 2)
     scheduler.timers[-1].fire()
     await asyncio.sleep(0)
     assert len(coord._write_manager._inflight_waiters) == 2
@@ -601,8 +601,8 @@ async def test_queued_io_does_not_start_after_shutdown_invalidates_epoch():
 async def test_shutdown_of_one_coordinator_does_not_affect_another():
     first, first_scheduler, first_tasks, first_client = make_coordinator()
     second, second_scheduler, second_tasks, second_client = make_coordinator()
-    first_caller = await _enqueue(first, "DB1,W0", 1)
-    second_caller = await _enqueue(second, "DB1,W0", 2)
+    first_caller = await enqueue(first, "DB1,W0", 1)
+    second_caller = await enqueue(second, "DB1,W0", 2)
     generation = second._connection.generation
     await first.async_shutdown()
     with pytest.raises(HomeAssistantError):

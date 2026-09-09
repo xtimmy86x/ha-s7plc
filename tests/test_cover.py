@@ -3299,34 +3299,6 @@ def test_toggle_state_is_unknown_before_first_feedback(cover_factory, mock_coord
     assert cover._toggle_state() == "unknown"
 
 
-def test_toggle_state_still_infers_stopped_with_real_boolean_feedback(
-    cover_factory, mock_coordinator
-):
-    """Unchanged from before: real data (all gates reporting False, not
-    unset) still means a genuine mid-travel stop."""
-    cover = cover_factory(
-        toggle_mode=True,
-        close_command=None,
-        cover_opening_address="db1,b1",
-        cover_opening_topic="cover:opening:db1,b1",
-        cover_closing_address="db1,b2",
-        cover_closing_topic="cover:closing:db1,b2",
-        opened_state="db1,b3",
-        closed_state="db1,b4",
-        opened_topic="cover:opened:db1,b3",
-        closed_topic="cover:closed:db1,b4",
-        use_state_topics=True,
-    )
-    mock_coordinator.data = {
-        "cover:opening:db1,b1": False,
-        "cover:closing:db1,b2": False,
-        "cover:opened:db1,b3": False,
-        "cover:closed:db1,b4": False,
-    }
-
-    assert cover._toggle_state() == "stopped"
-
-
 @pytest.mark.asyncio
 async def test_toggle_open_refuses_when_state_is_unknown(
     cover_factory, mock_coordinator, monkeypatch

@@ -3,25 +3,22 @@
 import asyncio
 
 import pytest
-import test_retry_behavior as retry_tests
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from support.retry import assert_no_operations, invoke
+from support.retry import rig as rig  # noqa: PLC0414 - expose the shared pytest fixture
 
 pytestmark = pytest.mark.asyncio
-
-# Reuse the controlled client fixture and operation entry points from the
-# retry characterization suite; keep connection/lifecycle methods real.
-rig = retry_tests.rig
 
 
 async def assert_failed_operation(coord, operation):
     """Keep caller-visible outcomes in the cleanup scenarios explicit."""
     if operation in ("write", "write_multi"):
-        result = await retry_tests.invoke(coord, operation)
+        result = await invoke(coord, operation)
         assert result == (False if operation == "write" else {"DB1,W0": False})
     else:
         expected = RuntimeError if operation == "read_one" else UpdateFailed
         with pytest.raises(expected, match="offline"):
-            await retry_tests.invoke(coord, operation)
+            await invoke(coord, operation)
 
 
 @pytest.mark.parametrize("operation", ["write", "write_multi", "read_one"])
@@ -56,7 +53,7 @@ async def test_outer_cleanup_retries_a_failed_inner_close(
     assert rig.events == [initial_event, "disconnect-failed", "disconnect"]
     assert rig.client.disconnect.await_count == 2
     assert not rig.coord.is_connected()
-    retry_tests.assert_no_operations(rig.coord)
+    assert_no_operations(rig.coord)
 
 
 @pytest.mark.parametrize("operation", ["write", "write_multi", "read_one"])
@@ -69,7 +66,7 @@ async def test_outer_cleanup_handles_unexpected_handshake_failure(rig, operation
 
     assert rig.events == ["connect", "disconnect"]
     assert rig.coord.error_count_by_category == {}
-    retry_tests.assert_no_operations(rig.coord)
+    assert_no_operations(rig.coord)
 
 
 @pytest.mark.parametrize(
@@ -119,7 +116,7 @@ async def test_outer_cleanup_preserves_a_successfully_reconnected_transport(
         assert rig.events == [driver_call, "disconnect", "connect", "read"]
         assert rig.client.connect.await_count == 1
         assert rig.coord.is_connected()
-        retry_tests.assert_no_operations(rig.coord)
+        assert_no_operations(rig.coord)
     finally:
         release_close.set()
         for task in tasks:
@@ -150,7 +147,7 @@ async def test_outer_cleanup_requires_successful_disconnect(rig, close_outcome):
     assert await rig.coord.write("DB1,W0", 7) is False
     assert rig.client.disconnect.await_count == 2
     assert not rig.coord.is_connected()
-    retry_tests.assert_no_operations(rig.coord)
+    assert_no_operations(rig.coord)
 
 
 async def test_error_cleanup_skips_old_session_but_explicit_disconnect_closes_new(rig):
@@ -166,7 +163,7 @@ async def test_error_cleanup_skips_old_session_but_explicit_disconnect_closes_ne
     await rig.coord.disconnect()
     assert not rig.coord.is_connected()
     assert rig.client.disconnect.await_count == 2
-    retry_tests.assert_no_operations(rig.coord)
+    assert_no_operations(rig.coord)
 
 
 async def test_error_cleanup_rechecks_session_after_waiting_for_transport_lock(
@@ -208,7 +205,7 @@ async def test_error_cleanup_rechecks_session_after_waiting_for_transport_lock(
         # Only the original failed close was dispatched; the new session
         # must not be targeted, even though the old receipt was not cleaned.
         rig.client.disconnect.assert_awaited_once()
-        retry_tests.assert_no_operations(rig.coord)
+        assert_no_operations(rig.coord)
     finally:
         for task in tasks:
             if not task.done():
@@ -266,7 +263,7 @@ async def test_shared_handshake_waiters_share_cleanup_success(rig, first_close_f
         assert rig.client.disconnect.await_count == (2 if first_close_fails else 1)
         assert not rig.coord.is_connected()
         assert rig.coord.error_count_by_category == {}
-        retry_tests.assert_no_operations(rig.coord)
+        assert_no_operations(rig.coord)
     finally:
         release_connect.set()
         for task in tasks:

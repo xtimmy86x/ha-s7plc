@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import struct
 import time
 import pytest
 import asyncio
@@ -46,96 +45,6 @@ def coord_factory(monkeypatch):
     def _create_coordinator(**kwargs):
         return make_coordinator(monkeypatch, **kwargs)
     return _create_coordinator
-
-
-# ============================================================================
-# Retry Mechanism Tests
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_retry_retries_until_success(coord_factory):
-    """Test retry mechanism retries until success."""
-    coord = coord_factory()
-
-    sleep_calls: list[float] = []
-    ensure_calls = 0
-    drop_calls = 0
-
-    async def fake_sleep(seconds):
-        sleep_calls.append(seconds)
-
-    async def fake_ensure():
-        nonlocal ensure_calls
-        ensure_calls += 1
-
-    async def fake_drop(*, error=None):
-        nonlocal drop_calls
-        drop_calls += 1
-
-    coord._connection.sleep = fake_sleep
-    coord._connection.ensure_connected = fake_ensure
-    coord._connection.drop_connection = fake_drop
-
-    attempts = []
-
-    def flaky():
-        attempts.append("call")
-        if len(attempts) < 2:
-            raise RuntimeError("fail")
-        return "ok"
-
-    result = await coord._retry(flaky)
-
-    assert result == "ok"
-    assert ensure_calls == 2
-    assert drop_calls == 1
-    assert sleep_calls == [coord._backoff_initial]
-
-
-@pytest.mark.asyncio
-async def test_retry_raises_after_exhaustion(coord_factory):
-    """Test retry mechanism raises after exhausting retries."""
-    coord = coord_factory()
-    coord._max_retries = 1
-
-    drop_calls = 0
-    sleep_calls = []
-
-    async def fake_drop(*, error=None):
-        nonlocal drop_calls
-        drop_calls += 1
-
-    async def fake_sleep(seconds):
-        sleep_calls.append(seconds)
-
-    coord._connection.drop_connection = fake_drop
-    coord._connection.sleep = fake_sleep
-
-    with pytest.raises(RuntimeError):
-        await coord._retry(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
-
-    assert drop_calls == 2
-
-
-@pytest.mark.asyncio
-async def test_retry_handles_struct_error(coord_factory):
-    """Test retry mechanism handles struct errors."""
-    coord = coord_factory()
-    coord._max_retries = 0
-
-    drop_calls = 0
-
-    async def fake_drop(*, error=None):
-        nonlocal drop_calls
-        drop_calls += 1
-
-    coord._connection.drop_connection = fake_drop
-
-    with pytest.raises(RuntimeError):
-        await coord._retry(lambda: (_ for _ in ()).throw(struct.error()))
-
-    assert drop_calls == 1
 
 
 # ============================================================================

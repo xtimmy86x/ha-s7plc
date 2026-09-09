@@ -92,6 +92,19 @@ When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM 
 
 Backend and integration tests remain under `tests/test_*.py`.
 
+Shared Python helpers live in `tests/support/`. Import reusable helpers from
+there instead of importing another `test_*.py` module:
+
+- `support.write_batching` supplies the controlled scheduler and batch enqueue
+  helpers used by write behavior and lifecycle tests.
+- `support.retry` supplies the `rig` fixture, operation entry points and cleanup
+  assertions used by retry and error-cleanup tests. Import the fixture explicitly
+  (`from support.retry import rig as rig`) in each test module that uses it.
+
+Keep scenario-specific clients local to their tests. When consolidating tests,
+preserve distinct inputs and execution paths, including synchronous callbacks,
+and identify the retained test for every removed regression case.
+
 ## Python module boundaries
 
 `custom_components/s7plc/plc/` contains helpers that depend only on Python and

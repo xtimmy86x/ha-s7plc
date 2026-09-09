@@ -2,89 +2,57 @@
 
 import logging
 import struct
-from collections import deque
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
-import pytest_asyncio
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
-
-from custom_components.s7plc.coordinator import S7Coordinator
+from support.retry import assert_no_operations, invoke
+from support.retry import rig as rig  # noqa: PLC0414 - expose the shared pytest fixture
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest_asyncio.fixture
-async def rig(fake_hass):
-    """Keep managed I/O and reconnect real; control only the driver and delays."""
-    coord = S7Coordinator(
-        fake_hass,
-        "plc.local",
-        max_retries=0,
-        backoff_initial=0.125,
-        backoff_max=0.3,
-    )
-    events = []
-    io_errors = deque()
-    connect_errors = deque()
-    client = SimpleNamespace(is_connected=True)
+@pytest.mark.parametrize(
+    ("error_type", "max_retries", "succeeds", "category"),
+    [
+        pytest.param(RuntimeError, 1, True, "runtime", id="sync-success"),
+        pytest.param(RuntimeError, 1, False, "runtime", id="sync-exhausted"),
+        pytest.param(struct.error, 0, False, "data_parsing", id="sync-struct-error"),
+    ],
+)
+async def test_retry_supports_synchronous_callbacks(
+    rig, error_type, max_retries, succeeds, category
+):
+    """Retain the synchronous callback contracts from test_coordinator.py."""
+    rig.coord._max_retries = max_retries
+    failure = error_type("failure")
+    calls = 0
 
-    async def connect():
-        events.append("connect")
-        if connect_errors:
-            raise connect_errors.popleft()
-        client.is_connected = True
+    def callback():
+        nonlocal calls
+        calls += 1
+        rig.events.append("call")
+        if succeeds and calls == 2:
+            return "ok"
+        raise failure
 
-    async def disconnect():
-        events.append("disconnect")
-        client.is_connected = False
+    if succeeds:
+        assert await rig.coord._retry(callback) == "ok"
+        assert rig.coord.error_count_by_category == {}
+    else:
+        with pytest.raises(RuntimeError) as caught:
+            await rig.coord._retry(callback)
+        assert caught.value.__cause__ is failure
+        assert rig.coord.error_count_by_category == {category: 1}
 
-    async def io(operation):
-        assert client.is_connected, "I/O must follow a completed handshake"
-        events.append(operation)
-        if io_errors:
-            raise io_errors.popleft()
-
-    async def read(*args, **kwargs):
-        await io("read")
-        return [7]
-
-    async def write(*args, **kwargs):
-        await io("write")
-
-    async def probe():
-        await io("probe")
-        return {}
-
-    async def sleep(seconds):
-        events.append(("sleep", seconds))
-
-    client.connect = AsyncMock(side_effect=connect)
-    client.disconnect = AsyncMock(side_effect=disconnect)
-    client.read = AsyncMock(side_effect=read)
-    client.write = AsyncMock(side_effect=write)
-    client.get_cpu_info = AsyncMock(side_effect=probe)
-    coord._connection.client = client
-    coord._connection.sleep = sleep
-    try:
-        yield SimpleNamespace(
-            coord=coord,
-            client=client,
-            events=events,
-            io_errors=io_errors,
-            connect_errors=connect_errors,
-        )
-    finally:
-        await coord.async_shutdown()
-
-
-def assert_no_operations(coord):
-    """Each attempted operation must release its managed ownership scope."""
-    assert not coord._connection._io_tasks
-    assert not coord._connection._io_completions
-    assert coord._connection._connect_task is None
+    assert calls == max_retries + 1
+    expected = ["call", "disconnect"]
+    if max_retries:
+        expected.extend([("sleep", 0.125), "connect", "call"])
+        if not succeeds:
+            expected.append("disconnect")
+    assert rig.events == expected
+    assert_no_operations(rig.coord)
 
 
 @pytest.mark.parametrize(
@@ -156,19 +124,6 @@ async def test_non_retryable_error_escapes_retry_unchanged(rig):
     assert rig.events == ["read"]
     assert rig.coord.error_count_by_category == {}
     assert_no_operations(rig.coord)
-
-
-async def invoke(coord, operation):
-    """Exercise entry points through the real executor and retry layer."""
-    if operation == "write":
-        return await coord.write("DB1,W0", 7)
-    if operation == "write_multi":
-        return await coord.write_multi([("DB1,W0", 7)])
-    if operation == "read_one":
-        return await coord._read_one("DB1,W0")
-    address = "DB1,S0.12" if operation == "string_poll" else "DB1,W0"
-    await coord.add_item("value", address)
-    return await coord._async_update_data()
 
 
 OPERATIONS = ["write", "write_multi", "read_one", "scalar_poll", "string_poll"]
