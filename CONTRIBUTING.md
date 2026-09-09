@@ -110,6 +110,15 @@ Keep scenario-specific clients local to their tests. When consolidating tests,
 preserve distinct inputs and execution paths, including synchronous callbacks,
 and identify the retained test for every removed regression case.
 
+Python schema tests use the installed `voluptuous` package. Apply the actual
+`data_schema` returned by a flow or the schema registered by a service to test
+required fields, defaults, types, coercion, ranges and nested payloads. Calling a
+flow step or service handler directly does not exercise that schema validation.
+
+Home Assistant is still stubbed. Selector doubles retain their configuration and
+accept values unchanged; they do not cover HA selector validation, the real flow
+manager or service dispatch. These require tests with real Home Assistant.
+
 ## Python module boundaries
 
 `custom_components/s7plc/plc/` contains helpers that depend only on Python and

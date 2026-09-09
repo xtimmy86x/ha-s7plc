@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import Mock
 
-import custom_components.s7plc.__init__ as s7init
-from custom_components.s7plc import const
+import pytest
+import voluptuous as vol
 from conftest import DummyCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+import custom_components.s7plc.__init__ as s7init
+from custom_components.s7plc import const
 
 
 class DummyConfigEntry(ConfigEntry):
@@ -182,46 +186,86 @@ def test_update_listener_applies_area_to_new_entity_after_reload(monkeypatch):
     ]
 
 
-def test_write_multi_service_registration(monkeypatch):
-    """Test that write_multi service is registered."""
+@pytest.fixture
+def service_schemas(monkeypatch):
+    """Capture the real schemas registered during integration setup."""
     hass = HomeAssistant()
-    
-    service_calls = []
-    def fake_async_register(*args, **kwargs):
-        # args[0] = self (the services object)
-        # args[1] = domain
-        # args[2] = service
-        # args[3] = handler
-        if len(args) >= 3:
-            service_calls.append((args[1], args[2]))
-    hass.services = type('obj', (object,), {'async_register': fake_async_register})()
+    register = Mock(wraps=hass.services.async_register)
+    monkeypatch.setattr(hass.services, "async_register", register)
+    monkeypatch.setattr(s7init, "S7Coordinator", DummyCoordinator)
+    entry = DummyConfigEntry(data={s7init.CONF_HOST: "plc.local"}, entry_id="entry1")
+    assert asyncio.run(s7init.async_setup_entry(hass, entry)) is True
+    try:
+        assert register.call_count == 2
+        yield {
+            key: registration["schema"]
+            for key, registration in hass._services_registry.items()
+        }
+    finally:
+        assert asyncio.run(s7init.async_unload_entry(hass, entry)) is True
 
-    hass.config_entries.async_forward_entry_setups = lambda e, p: asyncio.sleep(0)
-    
-    def fake_coordinator(*args, **kwargs):
-        obj = DummyCoordinator(*args, **kwargs)
-        return obj
-    
-    monkeypatch.setattr(s7init, "S7Coordinator", fake_coordinator)
-    
-    entry = DummyConfigEntry(
-        data={
-            s7init.CONF_HOST: "plc.local",
-            s7init.CONF_RACK: 0,
-            s7init.CONF_SLOT: 1,
-        },
-        entry_id="entry1",
-    )
-    
-    hass.async_add_executor_job = lambda func, *args, **kwargs: func(*args, **kwargs)
-    
-    asyncio.run(s7init.async_setup_entry(hass, entry))
-    
-    # Should register both health_check and write_multi services
-    assert len(service_calls) == 2, f"Expected 2 services, got {len(service_calls)}: {service_calls}"
-    registered_services = [s for (d, s) in service_calls]
-    assert "health_check" in registered_services, f"health_check not in {registered_services}"
-    assert "write_multi" in registered_services, f"write_multi not in {registered_services}"
+
+def test_service_schemas_accept_valid_payloads_without_changing_values(service_schemas):
+    assert set(service_schemas) == {"s7plc.health_check", "s7plc.write_multi"}
+    health_payload = {"entry_id": "entry1"}
+    assert service_schemas["s7plc.health_check"](health_payload) == health_payload
+    payload = {
+        "entry_id": "entry1",
+        "writes": [
+            {"address": "DB1,X0.0", "value": False},
+            {"address": "DB1,REAL4", "value": 1.5},
+            {"address": "DB1,INT8", "value": 0},
+            {"address": "DB1,S10.8", "value": "hello"},
+        ],
+    }
+    assert service_schemas["s7plc.write_multi"](payload) == payload
+    # The schema leaves datatype validation to the write pipeline.
+    empty_batch = {"entry_id": "entry1", "writes": []}
+    assert service_schemas["s7plc.write_multi"](empty_batch) == empty_batch
+
+
+@pytest.mark.parametrize(
+    "service,payload,error_path",
+    [
+        ("health_check", {}, ["entry_id"]),
+        ("health_check", {"entry_id": 1}, ["entry_id"]),
+        ("health_check", {"entry_id": "entry1", "extra": True}, ["extra"]),
+        ("write_multi", {"writes": []}, ["entry_id"]),
+        ("write_multi", {"entry_id": 1, "writes": []}, ["entry_id"]),
+        ("write_multi", {"entry_id": "entry1"}, ["writes"]),
+        ("write_multi", {"entry_id": "entry1", "writes": {}}, ["writes"]),
+        ("write_multi", {"entry_id": "entry1", "writes": [None]}, ["writes", 0]),
+        (
+            "write_multi",
+            {"entry_id": "entry1", "writes": [{"value": 0}]},
+            ["writes", 0, "address"],
+        ),
+        (
+            "write_multi",
+            {"entry_id": "entry1", "writes": [{"address": "DB1,INT0"}]},
+            ["writes", 0, "value"],
+        ),
+        (
+            "write_multi",
+            {"entry_id": "entry1", "writes": [{"address": 1, "value": 0}]},
+            ["writes", 0, "address"],
+        ),
+        (
+            "write_multi",
+            {
+                "entry_id": "entry1",
+                "writes": [{"address": "DB1,INT0", "value": 0, "extra": True}],
+            },
+            ["writes", 0, "extra"],
+        ),
+    ],
+)
+def test_service_schemas_reject_malformed_payloads(
+    service_schemas, service, payload, error_path
+):
+    with pytest.raises(vol.Invalid) as exc:
+        service_schemas[f"s7plc.{service}"](payload)
+    assert exc.value.path == error_path
 
 
 def test_migrate_backfills_uid_for_legacy_items(monkeypatch):

@@ -5,6 +5,7 @@ import inspect
 from types import SimpleNamespace
 
 import pytest
+import voluptuous as vol
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 
@@ -137,8 +138,7 @@ def test_initial_config_flow_persists_logo_family_and_uses_verified_defaults():
         )
     )
     assert result["kwargs"]["step_id"] == "rack_slot"
-    schema = result["kwargs"]["data_schema"].schema
-    defaults = {key.schema: key.default for key in schema if hasattr(key, "default")}
+    defaults = result["kwargs"]["data_schema"]({CONF_HOST: "plc.local"})
     assert defaults[const.CONF_RACK] == 0
     assert defaults[const.CONF_SLOT] == 2
 
@@ -155,8 +155,7 @@ def test_initial_logo_0ba7_tsap_defaults_are_verified_values():
             }
         )
     )
-    schema = result["kwargs"]["data_schema"].schema
-    defaults = {key.schema: key.default for key in schema if hasattr(key, "default")}
+    defaults = result["kwargs"]["data_schema"]({CONF_HOST: "plc.local"})
     assert defaults[const.CONF_LOCAL_TSAP] == "10.00"
     assert defaults[const.CONF_REMOTE_TSAP] == "10.01"
 
@@ -182,7 +181,8 @@ def test_options_family_fallback_and_connection_compatible_choices():
     result = run_flow(legacy.async_step_connection())
     schema = result["kwargs"]["data_schema"].schema
     family_marker = next(key for key in schema if key.schema == const.CONF_PLC_FAMILY)
-    assert family_marker.default == const.PLC_FAMILY_S7
+    defaults = result["kwargs"]["data_schema"]({})
+    assert defaults[const.CONF_PLC_FAMILY] == const.PLC_FAMILY_S7
     choices = schema[family_marker].config.options
     assert const.PLC_FAMILY_LOGO_0BA7 not in {choice["value"] for choice in choices}
 
@@ -400,3 +400,82 @@ def test_options_connection_detects_duplicate_unique_id(monkeypatch):
 
     assert result["type"] == "form"
     assert result["kwargs"]["errors"]["base"] == "already_configured"
+
+
+@pytest.fixture(
+    params=["initial-rack_slot", "initial-tsap", "options-rack_slot", "options-tsap"]
+)
+def connection_schema(request):
+    """Return the actual schema shown by each supported connection form."""
+    stage, connection_type = request.param.split("-", 1)
+    if stage == "initial":
+        flow = config_flow.S7PLCConfigFlow()
+        flow.hass = HomeAssistant()
+        flow._discovered_hosts = []
+        result = run_flow(
+            flow.async_step_user({const.CONF_CONNECTION_TYPE: connection_type})
+        )
+    else:
+        flow = config_flow.S7PLCOptionsFlow(
+            make_config_entry(
+                data=connection_data(**{const.CONF_CONNECTION_TYPE: connection_type})
+            )
+        )
+        flow.hass = HomeAssistant()
+        result = run_flow(flow.async_step_connection())
+    return result["kwargs"]["data_schema"]
+
+
+# These rules belong to voluptuous, not the pass-through HA selector doubles.
+_CONNECTION_SCHEMA_RANGES = [
+    (CONF_SCAN_INTERVAL, 0.05, 3600, float),
+    (const.CONF_OP_TIMEOUT, 0.5, 120, float),
+    (const.CONF_MAX_RETRIES, 0, 10, int),
+    (const.CONF_BACKOFF_INITIAL, 0.1, 30, float),
+    (const.CONF_BACKOFF_MAX, 0.1, 120, float),
+]
+
+
+def test_connection_schema_applies_defaults_and_coerces_boundaries(connection_schema):
+    submitted = {CONF_HOST: "plc.local"}
+    validated = connection_schema(submitted)
+    assert submitted == {CONF_HOST: "plc.local"}
+    assert validated[CONF_PORT] == const.DEFAULT_PORT
+    assert validated[const.CONF_OP_TIMEOUT] == const.DEFAULT_OP_TIMEOUT
+    assert (
+        validated[const.CONF_ENABLE_WRITE_BATCHING]
+        is const.DEFAULT_ENABLE_WRITE_BATCHING
+    )
+    for field, minimum, maximum, value_type in _CONNECTION_SCHEMA_RANGES:
+        for boundary in (minimum, maximum):
+            validated = connection_schema({**submitted, field: str(boundary)})
+            assert validated[field] == boundary, (field, boundary)
+            assert type(validated[field]) is value_type, (field, boundary)
+
+
+def test_connection_schema_rejects_invalid_fields(connection_schema):
+    invalid_fields = [
+        (CONF_NAME, 123),
+        (CONF_PORT, "102"),  # This field uses int, not Coerce(int).
+        (const.CONF_ENABLE_WRITE_BATCHING, "false"),
+        ("unexpected_field", True),
+    ]
+    for field, minimum, maximum, _ in _CONNECTION_SCHEMA_RANGES:
+        invalid_fields.extend(
+            (field, value) for value in (minimum - 1, maximum + 1, "invalid")
+        )
+    for field, value in invalid_fields:
+        with pytest.raises(vol.Invalid) as exc:
+            connection_schema({CONF_HOST: "plc.local", field: value})
+        assert exc.value.path == [field], (field, value)
+
+
+@pytest.mark.parametrize("step", ["rack_slot", "tsap"])
+def test_initial_connection_schema_requires_host(step):
+    flow = config_flow.S7PLCConfigFlow()
+    flow.hass = HomeAssistant()
+    flow._discovered_hosts = []
+    result = run_flow(getattr(flow, f"async_step_{step}")())
+    with pytest.raises(vol.Invalid) as exc:
+        result["kwargs"]["data_schema"]({})
+    assert exc.value.path == [CONF_HOST]
