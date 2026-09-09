@@ -12,7 +12,7 @@ PLATFORMS = [
     "climate",
 ]
 
-VERSION = "7.4.0"
+VERSION = "7.4.1"
 FRONTEND_BUILD = "20260905.6"
 
 PANEL_URL = "s7plc-config"
