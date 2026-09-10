@@ -455,7 +455,7 @@ describe("value conversion editor", () => {
       },
     });
     logoEntry.entities.numbers = [{
-      name: "LOGO timer",
+      name: "LOGO clock",
       address: "DB1,WORD0",
       command_address: "DB1,WORD2",
       min_value: 0,
@@ -474,5 +474,44 @@ describe("value conversion editor", () => {
     expect(logoForm.elements.vc_value_type.querySelector(
       'option[value="logo_time_bcd"]',
     )).toBeNull();
+
+    logoForm.elements.command_address.value = "DB1,WORD2";
+    logoForm.elements.address.value = "DB1,DWORD0";
+    logoPanel.syncValueConversions(logoForm);
+    expect(logoForm.elements.vc_value_type.querySelector(
+      'option[value="logo_time_bcd"]',
+    )).toBeNull();
+  });
+
+  test.each(["en", "it"])("saves a bidirectional LOGO VW4 Number with HHMM help (%s)", (language) => {
+    const entry = createEntry({
+      plc_family: "logo_0ba8",
+      data: { ...createEntry().data, plc_family: "logo_0ba8" },
+      logo_profile: {
+        family: "logo_0ba8",
+        areas: [],
+        vm_areas: [{ name: "VW", first: 0, last: 849, data_type: "WORD", width: 2 }],
+      },
+    });
+    const item = { address: "DB1,WORD4", uid: "clock" };
+    entry.entities.numbers = [item];
+    const panel = createPanel(entry);
+    panel.panelTranslations = getTranslations(language);
+    panel.openEditor(0, "numbers");
+    const form = document.body.querySelector("ha-dialog form");
+    const row = form.querySelector('[data-value-conversion="value"]');
+    selectKind(form, "logo_time_bcd");
+
+    expect(row.dataset.direction).toBe("bidirectional_same");
+    expect(row.querySelector('[data-direction-read]').hidden).toBe(false);
+    expect(row.querySelector('[data-direction-write]').hidden).toBe(false);
+    const help = row.querySelector('[data-kind="logo_time_bcd"]');
+    expect(help.hidden).toBe(false);
+    expect(help.textContent).toContain("830 = 08:30");
+    expect(panel.formEntity(form, item, "numbers")).toMatchObject({
+      address: "DB1,WORD4",
+      uid: "clock",
+      value_conversions: { value: { type: "logo_time_bcd" } },
+    });
   });
 });

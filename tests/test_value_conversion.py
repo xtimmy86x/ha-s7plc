@@ -6,8 +6,8 @@ import pytest
 
 from custom_components.s7plc.plc.address import DataType
 from custom_components.s7plc.value_conversion import (
-    ConversionContext,
     VALUE_CHANNEL_SPECS,
+    ConversionContext,
     ValueConversionError,
     convert_enum_from_plc,
     convert_from_plc,
@@ -176,11 +176,44 @@ def test_logo_time_invalid(value):
         convert_to_plc(value, {"type": "logo_time_bcd"}, ctx(DataType.WORD, "write"))
 
 
-def test_logo_requires_writable_word():
+def test_logo_time_all_minutes_round_trip():
+    """Every clock minute has one numeric HHMM and one packed BCD value."""
+    conversion = {"type": "logo_time_bcd"}
+    for hour in range(24):
+        for minute in range(60):
+            hhmm = hour * 100 + minute
+            packed = int(f"{hour:02d}{minute:02d}", 16)
+            assert convert_from_plc(packed, conversion, ctx(direction="read")) == hhmm
+            assert (
+                convert_to_plc(float(hhmm), conversion, ctx(direction="write"))
+                == packed
+            )
+
+
+@pytest.mark.parametrize(
+    "value", [True, -1, 60, 860, 2399, 2400, 830.5, float("nan"), float("inf")]
+)
+def test_logo_time_rejects_invalid_numeric_hhmm(value):
+    with pytest.raises(ValueConversionError):
+        convert_to_plc(value, {"type": "logo_time_bcd"}, ctx())
+
+
+@pytest.mark.parametrize(
+    "value",
+    [True, -1, 0x10000, 0x0A00, 0x00A0, 0x000A, 0x0860, 0x2400, 2096.5, float("nan")],
+)
+def test_logo_time_rejects_invalid_plc_bcd(value):
+    with pytest.raises(ValueConversionError):
+        convert_from_plc(value, {"type": "logo_time_bcd"}, ctx())
+
+
+@pytest.mark.parametrize("direction", ["read", "write", "bidirectional"])
+def test_logo_requires_word_in_each_direction(direction):
+    validate_value_conversion({"type": "logo_time_bcd"}, ctx(DataType.WORD, direction))
     with pytest.raises(ValueConversionError, match="WORD"):
-        validate_value_conversion({"type": "logo_time_bcd"}, ctx(DataType.INT, "write"))
-    with pytest.raises(ValueConversionError, match="WORD"):
-        validate_value_conversion({"type": "logo_time_bcd"}, ctx(DataType.WORD, "read"))
+        validate_value_conversion(
+            {"type": "logo_time_bcd"}, ctx(DataType.INT, direction)
+        )
 
 
 def test_expression_both_directions_and_functions():
