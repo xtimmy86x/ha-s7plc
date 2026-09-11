@@ -368,7 +368,7 @@ test.each(["number", "input_number"])("HHMM %s writes HA units and waits for mat
     min: 0, max: 2359, step: 1,
     ...(domain === "number" ? {s7_raw_word: false, s7_time_format: "hhmm"} : {}),
   }};
-  card.setConfig({time_format: "hhmm", show_raw: true, rows: [{on_entity: id}]});
+  card.setConfig({...(domain === "input_number" ? {time_format: "hhmm"} : {}), show_raw: true, rows: [{on_entity: id}]});
   card.hass = hass;
   expect(fields(card)[0].value).toBe("04");
   expect(card.shadowRoot.textContent).toContain("HHMM 400");
@@ -391,10 +391,11 @@ test("S7 metadata prevents double conversion and HHMM limits use HA values", asy
   const {card, hass, update} = setup();
   const rows = [{on_entity: "number.on_0"}];
   card.setConfig({time_format: "hhmm", rows}); card.hass = hass;
-  expect(fields(card)[0].disabled).toBe(true); // Raw S7 WORD in HHMM mode.
+  expect(fields(card)[0].value).toBe("04"); // Metadata overrides the old HHMM card setting.
+  expect(fields(card)[0].disabled).toBe(false);
   hass.states["number.on_0"].attributes = {min: 0, max: 2359, step: 1, s7_raw_word: false, s7_time_format: "hhmm"};
   card.setConfig({rows}); card.hass = hass;
-  expect(fields(card)[0].disabled).toBe(true); // Converted S7 value in default BCD mode.
+  expect(fields(card)[0].disabled).toBe(false); // Converted S7 works without a format setting.
   card.setConfig({time_format: "hhmm", rows}); update("number.on_0", 400);
   edit(fields(card)[1], "60");
   await card._saveChanges(); expect(hass.callService).not.toHaveBeenCalled();
@@ -410,33 +411,30 @@ test("S7 metadata prevents double conversion and HHMM limits use HA values", asy
   await card._saveChanges(); expect(hass.callService).not.toHaveBeenCalled();
 });
 
-test("editor selects HHMM explicitly, filters S7 formats and updates summaries", () => {
+test("editor automatically lists both S7 formats with no format selectors", () => {
   const {hass} = setup();
   hass.states["number.logo"] = {state: "430", attributes: {s7_raw_word: false, s7_time_format: "hhmm", friendly_name: "LOGO clock"}};
   hass.states["number.scaled"] = {state: "430", attributes: {s7_raw_word: false}};
   hass.entities = {"number.logo": {device_id: "logo"}};
   hass.devices = {logo: {name: "LOGO garden"}};
   const {editor, configs} = setupEditor(hass, [{on_entity: "number.logo", off_entity: "number.off_0"}]);
-  const format = editor.shadowRoot.querySelector(".time-format");
-  expect(format.value).toBe("bcd");
-  expect(editor.shadowRoot.querySelector(".picker-note").textContent).toContain("incompatible");
-  choose(format, "hhmm");
-  expect(configs.at(-1).time_format).toBe("hhmm");
-  expect(configs.at(-1).rows[0]).toEqual({on_entity: "number.logo", off_entity: "number.off_0"});
+  expect(editor.shadowRoot.querySelector(".time-format")).toBeNull();
+  expect(editor.shadowRoot.querySelector(".entity-format")).toBeNull();
+  expect(editor.shadowRoot.querySelector(".picker-note").textContent).toBe("");
   expect(editor.shadowRoot.querySelector("summary").textContent).toContain("04:30");
   expect(editor.shadowRoot.querySelector(".plc-filter").textContent).toContain("LOGO garden");
   const on = editor.shadowRoot.querySelector(".entity-select");
-  expect([...on.options].map(o => o.value)).toEqual(["", "number.logo"]);
-  choose(format, "bcd");
-  expect(configs.at(-1).time_format).toBe("bcd");
-  expect([...on.options].some(o => o.value === "number.on_0")).toBe(true);
+  expect([...on.options].map(o => o.value).sort()).toEqual(["", "number.logo", "number.on_0"]);
+  choose(on, "number.on_0");
+  expect(configs.at(-1).rows[0]).toEqual({on_entity: "number.on_0", off_entity: "number.off_0"});
+  expect(configs.at(-1)).not.toHaveProperty("time_format");
   expect(hass.callService).not.toHaveBeenCalled();
 });
 
-test("one mixed row sends BCD and HHMM independently and tracks partial failure and feedback", async () => {
+test.each([false, true])("mixed row reads/writes automatically, including obsolete format choices (%s)", async legacy => {
   const {card, hass, update} = setup({delayed: true, reject: true});
   hass.states["number.off_0"].attributes = {min: 0, max: 2359, step: 1, s7_raw_word: false, s7_time_format: "hhmm"};
-  card.setConfig({time_format: "auto", show_raw: true, rows: [{on_entity: "number.on_0", off_entity: "number.off_0"}]});
+  card.setConfig({...(legacy ? {time_format: "bcd"} : {}), show_raw: true, rows: [{on_entity: "number.on_0", off_entity: "number.off_0", ...(legacy ? {on_format: "hhmm", off_format: "bcd"} : {})}]});
   card.hass = hass;
   // Identical numeric states have different meanings; only metadata decides.
   expect(fields(card).map(f => f.value)).toEqual(["04", "00", "10", "24"]);
@@ -467,7 +465,6 @@ test.each([false, true])("mixed editor exposes raw and converted entities (nativ
   hass.entities = Object.fromEntries(["number.on_0", "number.off_0", "number.logo"].map(id => [id, {device_id: "plc"}]));
   hass.devices = {plc: {name: "Mixed PLC"}};
   const {editor, configs} = setupEditor(hass, [{on_entity: "", off_entity: ""}]);
-  choose(editor.shadowRoot.querySelector(".time-format"), "auto");
   choose(editor.shadowRoot.querySelector(".plc-filter"), "plc");
   const pickers = [...editor.shadowRoot.querySelectorAll(native ? "ha-entity-picker" : ".entity-select")];
   const choices = picker => native ? picker.includeEntities : [...picker.options].map(o => o.value).filter(Boolean);
@@ -482,13 +479,13 @@ test.each([false, true])("mixed editor exposes raw and converted entities (nativ
   expect(hass.callService).not.toHaveBeenCalled();
 });
 
-test("field overrides round-trip through the editor and support mixed external helpers", async () => {
+test("legacy helper formats survive editor changes without exposing manual selectors", async () => {
   const {card, hass, update} = setup({delayed: true});
   hass.states["input_number.raw"] = {state: "1024", attributes: {min: 0, max: 65535, step: 1}};
   hass.states["input_number.clock"] = {state: "400", attributes: {min: 0, max: 2359, step: 1}};
-  const {editor, configs} = setupEditor(hass, [{on_entity: "input_number.raw", off_entity: "input_number.clock"}]);
-  const overrides = editor.shadowRoot.querySelectorAll(".entity-format");
-  choose(overrides[1], "hhmm");
+  const {editor, configs} = setupEditor(hass, [{on_entity: "input_number.raw", off_entity: "input_number.clock", off_format: "hhmm"}]);
+  expect(editor.shadowRoot.querySelector(".entity-format")).toBeNull();
+  edit(editor.shadowRoot.querySelector(".slot fieldset input"), "Helpers");
   expect(configs.at(-1).rows[0].off_format).toBe("hhmm");
   expect(editor.shadowRoot.querySelector("summary").textContent.match(/04:00/g)).toHaveLength(2);
   card.setConfig(configs.at(-1)); card.hass = hass;
@@ -498,14 +495,12 @@ test("field overrides round-trip through the editor and support mixed external h
   expect(hass.callService).toHaveBeenNthCalledWith(2, "input_number", "set_value", {entity_id: "input_number.clock", value: 430});
   update("input_number.raw", 1072); update("input_number.clock", 430);
   expect(card._cells.every(c => !c.pending && !c.draft)).toBe(true);
-  choose(overrides[1], "");
-  expect(configs.at(-1).rows[0]).not.toHaveProperty("off_format");
   expect(() => card.setConfig({rows: [{on_format: "invalid"}]})).toThrow(/on_format/);
 });
 
 test("automatic format changes cannot reinterpret a draft or acknowledge another encoding", async () => {
   const {card, hass, update} = setup({delayed: true});
-  card.setConfig({time_format: "auto", confirmation_timeout: 1, rows: [{on_entity: "number.on_0"}]});
+  card.setConfig({confirmation_timeout: 1, rows: [{on_entity: "number.on_0"}]});
   card.hass = hass;
   fields(card)[0].focus();
   hass.states["number.on_0"].attributes = {s7_raw_word: false, s7_time_format: "hhmm"};
@@ -541,7 +536,6 @@ test("bulk wizard previews 12 naturally ordered mixed pairs and appends them onl
   }
   const existing = {name: "Keep me", on_entity: "number.on_0", off_entity: "number.off_0", on_format: "bcd"};
   const {editor, configs} = setupEditor(hass, [existing]);
-  choose(editor.shadowRoot.querySelector(".time-format"), "auto"); configs.length = 0;
   bulkSelect(editor, "on", "number.on_");
   expect(editor.shadowRoot.querySelector(".bulk-apply").disabled).toBe(true);
   bulkSelect(editor, "off", "number.off_");
@@ -557,7 +551,7 @@ test("bulk wizard previews 12 naturally ordered mixed pairs and appends them onl
   expect(configs[0].rows).toHaveLength(13);
   expect(configs[0].rows[0]).toEqual(existing);
   expect(configs[0].rows.slice(1)).toEqual(Array.from({length: 12}, (_, i) => ({name: "", on_entity: `number.on_${i + 1}`, off_entity: `number.off_${i + 1}`})));
-  expect(Object.keys(configs[0]).sort()).toEqual(["rows", "show_raw", "time_format", "type"]);
+  expect(Object.keys(configs[0]).sort()).toEqual(["rows", "show_raw", "type"]);
   expect(editor.shadowRoot.querySelector("details.bulk").open).toBe(false);
   expect(editor.shadowRoot.activeElement).toBe(editor.shadowRoot.querySelectorAll("details.slot")[1].querySelector("summary"));
   editor.shadowRoot.querySelector(".bulk-apply").click(); expect(configs).toHaveLength(1);

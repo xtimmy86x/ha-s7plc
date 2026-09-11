@@ -19,21 +19,16 @@
       failed_count: "{sent} sends succeeded, {failed} failed. Check the highlighted fields.",
       invalid_count: "{count} modified times. Correct the highlighted fields.",
       dirty_count: "{count} modified times. Press Save changes to send them.",
-      incompatible: "This S7 entity is incompatible with the selected value format. Check datatype and conversions.",
+      incompatible: "This S7 entity is not a supported clock value. Check datatype and conversions.",
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
       editor_title: "Title", editor_name: "Slot name", editor_raw: "Show entity values",
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
-      editor_format: "Entity value format", editor_bcd: "Raw BCD WORD (1024 = 04:00)",
-      editor_hhmm: "Converted HHMM (400 = 04:00)",
-      editor_auto: "Automatic — mixed S7 entities", editor_inherit: "Use card setting",
-      editor_hint_auto: "Each S7 entity uses its own format. For other entities, BCD is the default; select HHMM below when needed.",
-      editor_hint_hhmm: "Select numbers using the LOGO! time BCD conversion, or HHMM helpers. HA writes HHMM; the integration packs the PLC WORD.",
       editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
       editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
       editor_expand: "Expand all", editor_collapse: "Collapse all",
       editor_incomplete: "Select both entities", editor_in_use: "Already assigned to another time",
       editor_up: "Move up", editor_down: "Move down", editor_choose: "Select a number entity…",
-      editor_hint: "Select raw WORD entities with step 1 and no conversion. The PLC executes the schedule.",
+      editor_hint: "Time formats are detected automatically from S7 entity attributes. The PLC executes the schedule.",
       editor_unavailable: "Unavailable or incompatible", editor_timeout_error: "Enter a timeout from 1 to 300 seconds.",
       bulk_title: "Add multiple slots", bulk_hint: "Select on and off entities, then review each pair. Initial order follows entity IDs (1, 2, …, 12); use the arrows to adjust it.",
       bulk_all: "Select results", bulk_clear: "Clear selection", bulk_preview: "Pairing preview",
@@ -57,21 +52,16 @@
       failed_count: "{sent} invii riusciti, {failed} non riusciti. Controlla i campi segnalati.",
       invalid_count: "{count} orari modificati. Correggi i campi segnalati.",
       dirty_count: "{count} orari modificati. Premi Salva modifiche per inviarli.",
-      incompatible: "Questa entità S7 non è compatibile con il formato scelto. Verifica tipo e conversioni.",
+      incompatible: "Questa entità S7 non espone un orario supportato. Verifica tipo e conversioni.",
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
       editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori delle entità",
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
-      editor_format: "Formato valori delle entità", editor_bcd: "WORD BCD grezzo (1024 = 04:00)",
-      editor_hhmm: "HHMM convertito (400 = 04:00)",
-      editor_auto: "Automatico — entità S7 miste", editor_inherit: "Usa impostazione card",
-      editor_hint_auto: "Ogni entità S7 usa il proprio formato. Per le altre entità il predefinito è BCD; seleziona HHMM nel singolo campo quando necessario.",
-      editor_hint_hhmm: "Seleziona number con conversione LOGO! time BCD o helper HHMM. HA invia HHMM; l’integrazione converte nel WORD del PLC.",
       editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
       editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
       editor_expand: "Espandi tutte", editor_collapse: "Chiudi tutte",
       editor_incomplete: "Seleziona entrambe le entità", editor_in_use: "Già assegnata a un altro orario",
       editor_up: "Sposta su", editor_down: "Sposta giù", editor_choose: "Seleziona un'entità number…",
-      editor_hint: "Seleziona entità WORD grezze con passo 1 e senza conversioni. La programmazione è eseguita dal PLC.",
+      editor_hint: "Il formato degli orari viene riconosciuto automaticamente dagli attributi delle entità S7. La programmazione è eseguita dal PLC.",
       editor_unavailable: "Non disponibile o incompatibile", editor_timeout_error: "Inserisci un tempo tra 1 e 300 secondi.",
       bulk_title: "Configurazione multipla guidata", bulk_hint: "Seleziona accensioni e spegnimenti, poi controlla ogni coppia. L’ordine iniziale segue gli ID entità (1, 2, …, 12); usa le frecce per modificarlo.",
       bulk_all: "Seleziona risultati", bulk_clear: "Svuota selezione", bulk_preview: "Anteprima abbinamenti",
@@ -92,11 +82,16 @@
     const n = Number(text);
     return Number.isInteger(n) && n >= 0 && n <= 65535 ? n : null;
   };
-  const valueFormat = config => config?.time_format ?? "bcd";
+  const legacyFormat = config => config?.time_format ?? "bcd";
   const formatKey = key => key.replace("_entity", "_format");
-  const fieldMode = (config, row, key) => row?.[formatKey(key)] ?? valueFormat(config);
-  const resolveFormat = (state, mode) => mode === "auto" ?
-    (state?.attributes?.s7_time_format === "hhmm" ? "hhmm" : "bcd") : mode;
+  const legacyFieldFormat = (config, row, key) => row?.[formatKey(key)] ?? legacyFormat(config);
+  const resolveFormat = (state, legacy) => {
+    const attrs = state?.attributes ?? {};
+    if (attrs.s7_time_format === "hhmm") return "hhmm";
+    if (attrs.s7_raw_word != null || attrs.s7_time_format != null) return "bcd";
+    // Preserve existing external-helper configurations; S7 metadata always wins.
+    return legacy === "hhmm" ? "hhmm" : "bcd";
+  };
   const compatible = (state, format) => {
     const attrs = state?.attributes ?? {};
     if (attrs.s7_time_format != null) return attrs.s7_time_format === format;
@@ -151,12 +146,12 @@
       if (!config || !Array.isArray(config.rows)) {
         throw new Error("Configure rows with name, on_entity and off_entity.");
       }
-      if (!["auto", "bcd", "hhmm"].includes(valueFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
+      if (!["auto", "bcd", "hhmm"].includes(legacyFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
       const seen = new Set();
       const rows = config.rows.map((row, i) => {
         if (!row || typeof row !== "object") throw new Error(`Invalid row ${i + 1}.`);
         for (const key of ["on_entity", "off_entity"]) {
-          if (!["auto", "bcd", "hhmm"].includes(fieldMode(config, row, key))) {
+          if (!["auto", "bcd", "hhmm"].includes(legacyFieldFormat(config, row, key))) {
             throw new Error(`Row ${i + 1}: ${formatKey(key)} must be auto, bcd or hhmm.`);
           }
           if (row[key] != null && row[key] !== "" && (typeof row[key] !== "string" || !/^(number|input_number)\.[a-z0-9_]+$/.test(row[key]))) {
@@ -191,7 +186,7 @@
     }
     _t(key, values) { return translate(this._hass, key, values); }
     static getConfigElement() { return document.createElement("s7plc-schedule-card-editor"); }
-    static getStubConfig() { return { rows: [], time_format: "auto" }; }
+    static getStubConfig() { return { rows: [] }; }
     get hass() { return this._hass; }
     getCardSize() { return Math.ceil(((this._config?.rows.length ?? 12) * 66 + 170) / 50); }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
@@ -276,7 +271,7 @@
           const td = el("td"), group = el("div", "time");
           const hours = el("input"), minutes = el("input");
           const note = el("span", "note"), raw = el("span", "raw");
-          const cell = { entity: row[key], mode: fieldMode(this._config, row, key), td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
+          const cell = { entity: row[key], legacyFormat: legacyFieldFormat(this._config, row, key), td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
           for (const [input, part, max] of [[hours, this._t("hours"), 23], [minutes, this._t("minutes"), 59]]) {
             input.type = "text";
             input.inputMode = "numeric";
@@ -333,7 +328,7 @@
       const raw = state?.state;
       const available = Boolean(state) && raw !== "unknown" && raw !== "unavailable";
       const value = parseWord(raw);
-      const format = resolveFormat(state, cell.mode), isCompatible = compatible(state, format);
+      const format = resolveFormat(state, cell.legacyFormat), isCompatible = compatible(state, format);
       return { state, raw, available, value, format, compatible: isCompatible,
         time: isCompatible ? decode(raw, format) : null, key: value ?? String(raw) };
     }
@@ -461,7 +456,7 @@
     constructor() {
       super();
       this.attachShadow({mode: "open"});
-      this._config = {type: "custom:s7plc-schedule-card", rows: [], time_format: "auto"};
+      this._config = {type: "custom:s7plc-schedule-card", rows: []};
       this._rowUI = [];
       this._plc = "";
       this._groups = [];
@@ -535,7 +530,7 @@
       }
       return options.filter(([id]) => {
         const state = this._hass.states[id];
-        return compatible(state, resolveFormat(state, fieldMode(this._config, row, key))) &&
+        return compatible(state, resolveFormat(state, legacyFieldFormat(this._config, row, key))) &&
           !used.has(id) && (!this._plc || this._deviceId(id) === this._plc);
       });
     }
@@ -560,8 +555,7 @@
     _refresh() {
       if (!this._plcSelect) return;
       const options = this._options();
-      const mode = valueFormat(this._config);
-      this._formatHint.textContent = this._t(mode === "bcd" ? "editor_hint" : `editor_hint_${mode}`);
+      this._formatHint.textContent = this._t("editor_hint");
       const devices = new Map();
       for (const [id] of options) {
         const attrs = this._hass.states[id].attributes;
@@ -587,7 +581,7 @@
         warning.textContent = !row.on_entity || !row.off_entity ? this._t("editor_incomplete") : "";
         for (const {key, caption, picker, search, note} of fields) {
           const id = row[key] ?? "", state = this._hass?.states?.[id];
-          const format = resolveFormat(state, fieldMode(this._config, row, key));
+          const format = resolveFormat(state, legacyFieldFormat(this._config, row, key));
           const isCompatible = compatible(state, format);
           const time = isCompatible ? decode(state?.state, format) : null;
           descriptions[key].textContent = `${this._t(caption)}: ${state?.attributes?.friendly_name || id || "—"}${time ? ` · ${time.hours}:${time.minutes}` : ""}`;
@@ -635,7 +629,7 @@
     _bulkAvailable(id) {
       const state = this._hass?.states?.[id];
       return /^(number|input_number)\./.test(id) && Boolean(state) &&
-        compatible(state, resolveFormat(state, valueFormat(this._config))) &&
+        compatible(state, resolveFormat(state, legacyFormat(this._config))) &&
         !this._config.rows.some(row => row.on_entity === id || row.off_entity === id);
     }
 
@@ -731,7 +725,7 @@
       this._bulkStatus.textContent = problem || this._t("bulk_ready"); this._bulkStatus.classList.toggle("warning", Boolean(problem));
       this._bulkApply.textContent = this._t("bulk_add", {count: this._bulk.on.length}); this._bulkApply.disabled = Boolean(problem);
       const signature = JSON.stringify([this._bulk.on, this._bulk.off, this._config.rows.length,
-        ids.map(id => [this._hass?.states?.[id], this._bulkAvailable(id)]), valueFormat(this._config)]);
+        ids.map(id => [this._hass?.states?.[id], this._bulkAvailable(id)]), legacyFormat(this._config)]);
       if (this._bulkPreview._signature === signature) return;
       const active = this.shadowRoot.activeElement;
       const focus = this._bulkPreview.contains(active) && active?.classList.contains("bulk-move") ? {...active.dataset} : null;
@@ -747,7 +741,7 @@
           const td = el("td"), id = this._bulk[key][index], state = this._hass?.states?.[id];
           if (!id) {td.textContent = "—"; tr.append(td); continue;}
           const valid = this._bulkAvailable(id) && ids.filter(value => value === id).length === 1;
-          const time = valid ? decode(state?.state, resolveFormat(state, valueFormat(this._config))) : null;
+          const time = valid ? decode(state?.state, resolveFormat(state, legacyFormat(this._config))) : null;
           td.append(el("span", "", state?.attributes?.friendly_name || id), el("small", "", id));
           if (time) td.append(el("small", "", `${time.hours}:${time.minutes}`));
           if (!valid) td.append(el("small", "warning", this._t("editor_unavailable")));
@@ -830,15 +824,6 @@
         if (title.value) this._config.title = title.value; else delete this._config.title;
         this._emit();
       });
-      const format = field(this.shadowRoot, this._t("editor_format"), el("select", "time-format"));
-      for (const value of ["auto", "bcd", "hhmm"]) {
-        const option = el("option", "", this._t(`editor_${value}`)); option.value = value; format.append(option);
-      }
-      format.value = valueFormat(this._config);
-      format.addEventListener("change", () => {
-        this._config.time_format = format.value;
-        this._emit();
-      });
       const timeout = field(this.shadowRoot, this._t("editor_timeout"), el("input"));
       timeout.type = "number"; timeout.min = "1"; timeout.max = "300"; timeout.step = "1";
       timeout.value = this._config.confirmation_timeout ?? 15;
@@ -878,16 +863,6 @@
         name.addEventListener("input", () => {row.name = name.value; this._emit();});
         const fields = [];
         for (const [key, caption] of [["on_entity", "on"], ["off_entity", "off"]]) {
-          const override = field(group, `${this._t(caption)} — ${this._t("editor_format")}`, el("select", "entity-format"));
-          for (const mode of ["", "auto", "bcd", "hhmm"]) {
-            const option = el("option", "", this._t(mode ? `editor_${mode}` : "editor_inherit"));
-            option.value = mode; override.append(option);
-          }
-          override.value = row[formatKey(key)] ?? "";
-          override.addEventListener("change", () => {
-            if (override.value) row[formatKey(key)] = override.value; else delete row[formatKey(key)];
-            this._emit();
-          });
           let picker, search;
           if (this._nativePicker) {
             picker = el("ha-entity-picker");
