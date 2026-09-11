@@ -228,6 +228,7 @@
         throw new Error("confirmation_timeout must be between 1 and 300 seconds.");
       }
       this._config = { ...config, rows, confirmation_timeout: timeout };
+      this._openSlots = new Set();
       this._copyState = {source: 0, mode: "times", targets: new Set(), open: false};
       this._generation++;
       this._saving = false;
@@ -257,8 +258,9 @@
     get hass() { return this._hass; }
     getCardSize() {
       const rows = this._config?.rows.length ?? 12;
-      const dayRows = this._config?.rows.filter(row => row.days_entity).length ?? 0;
-      return Math.ceil((rows * 66 + dayRows * 150 + 170 + (rows > 1 ? 50 : 0) + (this._config?.show_timeline ? rows * 65 + 230 : 0)) / 50);
+      const expandedHeight = (this._config?.rows ?? []).reduce((height, row) =>
+        height + (this._openSlots?.has(row.index) ? 66 + (row.days_entity ? 150 : 0) : 0), 0);
+      return Math.ceil((rows * 80 + expandedHeight + 170 + (rows > 1 ? 100 : 0) + (this._config?.show_timeline ? rows * 65 + 230 : 0)) / 50);
     }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
     connectedCallback() {
@@ -292,6 +294,22 @@
         tbody th { text-align:left; font-size:13px; font-weight:500; padding-left:20px; overflow-wrap:anywhere; }
         td { text-align:center; vertical-align:top; }
         tr:last-child th, tr:last-child td { border-bottom:0; }
+        tr[hidden] { display:none; }
+        .slot-summary th { padding:0; }
+        .slot-toggle { display:block; width:100%; min-height:44px; padding:12px 8px; border-radius:0;
+          background:transparent; color:inherit; text-align:left; }
+        .slot-top { display:grid; grid-template-columns:29% 35.5% 35.5%; align-items:center; }
+        .slot-name { padding-left:12px; overflow-wrap:anywhere; }
+        .slot-name::before { content:"▸"; display:inline-block; margin-inline-end:6px; }
+        .slot-toggle[aria-expanded=true] .slot-name::before { content:"▾"; }
+        .slot-clock { text-align:center; font-variant-numeric:tabular-nums; }
+        .slot-days, .slot-feedback { display:block; margin:6px 12px 0; font-size:12px; line-height:1.4;
+          color:var(--secondary-text-color,#647887); overflow-wrap:anywhere; }
+        .slot-feedback:empty { display:none; }
+        .slot-summary[data-error] .slot-feedback { color:var(--error-color,#c33b39); }
+        .slot-summary[data-dirty] .slot-name { color:var(--primary-color,#0288d1); }
+        .slot-actions { display:flex; flex-wrap:wrap; gap:4px; margin-top:12px; }
+        .slot-actions button { background:transparent; color:var(--primary-color,#0288d1); min-height:44px; }
         .time { display:inline-flex; align-items:center; justify-content:center; gap:3px; }
         input { width:35px; height:38px; min-width:0; padding:0 2px; text-align:center; font-weight:500;
           font-family:inherit; font-size:16px; font-variant-numeric:tabular-nums; border-radius:6px;
@@ -313,6 +331,7 @@
         button { min-height:40px; padding:8px 14px; border-radius:8px; border:0; font-weight:500;
           font-family:inherit; font-size:14px; cursor:pointer; }
         button:focus-visible { outline:2px solid var(--primary-color,#0288d1); outline-offset:2px; }
+        .slot-toggle:focus-visible { outline-offset:-2px; }
         .save { background:var(--primary-color,#0288d1); color:var(--text-primary-color,#fff); }
         .reset { background:transparent; color:var(--primary-color,#0288d1); }
         button:disabled { opacity:.45; cursor:default; }
@@ -373,6 +392,7 @@
             overflow-y:auto; scroll-padding-block:48px 12px; }
           thead th { position:sticky; top:0; z-index:1; }
           thead th:first-child { width:24%; }
+          .slot-top { grid-template-columns:24% 38% 38%; }
           thead th:first-child, tbody th { padding-left:12px; }
           th, td { padding-left:4px; padding-right:4px; }
           .time { gap:2px; }
@@ -386,6 +406,18 @@
       const header = el("header");
       header.append(el("h2", "", (this._config.title ?? this._t("title"))),
         el("div", "subtitle", this._t("subtitle", {count: this._config.rows.length})));
+      if (this._config.rows.length > 1) {
+        const actions = el("div", "slot-actions");
+        for (const [key, open] of [["editor_expand", true], ["editor_collapse", false]]) {
+          const button = el("button", open ? "slots-expand" : "slots-collapse", this._t(key)); button.type = "button";
+          button.addEventListener("click", () => {
+            button.focus();
+            for (const row of this._config.rows) this._setSlotOpen(row.index, open);
+          });
+          actions.append(button);
+        }
+        header.append(actions);
+      }
       const scroll = el("div", "scroll");
       const table = el("table");
       table.setAttribute("aria-label", (this._config.title ?? this._t("title")));
@@ -397,8 +429,22 @@
       const body = el("tbody");
       this._cells = [];
       this._dayCells = [];
+      this._slots = [];
       for (const row of this._config.rows) {
         const tr = el("tr"), label = el("th", "", (row.name || `${this._t("row")} ${pad(row.index + 1)}`));
+        tr.id = `slot-times-${row.index}`;
+        const summaryRow = el("tr", "slot-summary"), summaryCell = el("th"); summaryCell.colSpan = 3;
+        const toggle = el("button", "slot-toggle"), top = el("span", "slot-top"); toggle.type = "button";
+        const clocks = [el("span", "slot-clock"), el("span", "slot-clock")];
+        top.append(el("span", "slot-name", label.textContent), ...clocks);
+        const days = el("span", "slot-days"), feedback = el("span", "slot-feedback");
+        toggle.append(top, days, feedback); summaryCell.append(toggle); summaryRow.append(summaryCell); body.append(summaryRow);
+        const slot = {index: row.index, summaryRow, toggle, clocks, days, feedback, rows: [tr]};
+        this._slots.push(slot);
+        toggle.addEventListener("click", () => {
+          toggle.focus(); // Finish any active time edit before hiding its fields.
+          this._setSlotOpen(row.index, !this._openSlots.has(row.index));
+        });
         label.scope = "row";
         tr.append(label);
         for (const [key, caption] of [["on_entity", this._t("on")], ["off_entity", this._t("off")]]) {
@@ -451,6 +497,7 @@
         body.append(tr);
         if (row.days_entity) {
           const daysRow = el("tr", "days-row"), td = el("td"); td.colSpan = 3;
+          daysRow.id = `slot-days-${row.index}`; slot.rows.push(daysRow);
           const group = el("div", "days"), note = el("span", "note"), raw = el("span", "raw");
           const caption = `${label.textContent} — ${this._t("days")}`;
           group.setAttribute("role", "group"); group.setAttribute("aria-label", caption);
@@ -473,6 +520,8 @@
           td.append(el("span", "days-label", caption), group, presets, summary, raw, note); daysRow.append(td);
           body.append(daysRow); this._dayCells.push(cell);
         }
+        toggle.setAttribute("aria-controls", slot.rows.map(node => node.id).join(" "));
+        this._setSlotOpen(row.index, this._openSlots.has(row.index));
       }
       table.append(head, body); scroll.append(table);
       const footer = el("footer");
@@ -625,6 +674,32 @@
         this._message || this._t(this._config.rows.length ? "hint" : "configure");
       this._syncTimeline();
       this._syncCopy();
+      this._syncSlots();
+    }
+
+    _setSlotOpen(index, open) {
+      if (open) this._openSlots.add(index); else this._openSlots.delete(index);
+      const slot = this._slots[index];
+      slot.toggle.setAttribute("aria-expanded", String(open));
+      for (const row of slot.rows) row.hidden = !open;
+    }
+
+    _syncSlots() {
+      for (const slot of this._slots) {
+        const times = this._cells.slice(slot.index * 2, slot.index * 2 + 2);
+        const days = this._dayCells.find(cell => cell.index === slot.index);
+        const cells = days ? [...times, days] : times;
+        times.forEach((cell, index) => {
+          const info = this._info(cell);
+          slot.clocks[index].textContent = info.available && info.compatible ? this._copyText(cell) : "—";
+        });
+        slot.days.textContent = days ? `${this._t("days")}: ${days.summary.textContent}` : this._t("timeline_daily");
+        // Keep field-specific problems and draft/write status visible while closed.
+        slot.feedback.textContent = cells.filter(cell => cell.note.textContent).map(cell =>
+          `${this._t(cell.kind === "days" ? "days" : cell === times[0] ? "on" : "off")}: ${cell.note.textContent}`).join(" · ");
+        slot.summaryRow.toggleAttribute("data-error", cells.some(cell => cell.td.hasAttribute("data-error")));
+        slot.summaryRow.toggleAttribute("data-dirty", cells.some(cell => cell.draft));
+      }
     }
 
     _buildCopy(card) {

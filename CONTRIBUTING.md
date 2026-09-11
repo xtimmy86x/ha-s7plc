@@ -122,6 +122,11 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   before/after previews, all-or-nothing staging, conflicts, live updates and
   explicit Save/Cancel. Check touch/keyboard activation and wrapped copy controls
   in HA; DOM tests do not validate actual browser layout.
+- `schedule-collapse.test.js` covers collapsed dashboard summaries, individual
+  and bulk expansion, retained drafts/focus, live updates, copy, Save/Cancel and
+  visible errors/pending feedback in closed slots. Check summary wrapping, keyboard
+  activation, touch targets and scrolling in HA on narrow/wide Safari/Chrome;
+  jsdom cannot establish actual layout or native keyboard activation.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
