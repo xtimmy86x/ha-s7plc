@@ -58,6 +58,7 @@ Take our short voluntary survey and help us understand which PLC models and firm
 - 🪶 **Lightweight**: Minimal overhead, no broker/services required
 - 🛠️ **Full UI configuration**: Set up and manage entirely from Home Assistant's UI
 - 🖥️ **Native side panel**: Manage every PLC entity from the Home Assistant sidebar with visual and YAML editors, live states, and validation
+- 🕒 **Schedule dashboard card**: Edit BCD WORD on/off times with a visual card editor, automatically loaded with the integration ([guide](docs/schedule-card.md))
 - 🔍 **Optional auto-discovery**: Pre-populates PLCs found on your local network
 - 📄 **S7 STRING support** for text sensors
 - 🔄 **State synchronization**: Bidirectional sync for switches and lights with physical controls
