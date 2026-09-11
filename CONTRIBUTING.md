@@ -94,6 +94,8 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   property/event contract; they do not establish actual picker rendering.
   Both BCD and HHMM formats cover clock validation, HA-unit service values,
   confirmation, metadata compatibility and editor selection.
+  Mixed rows exercise per-entity encoding, partial failure, both picker paths,
+  manual overrides and format changes during editing/confirmation.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
@@ -180,7 +182,9 @@ When changing `s7plc-schedule-card.js`, increment
 update the relevant DOM tests. `s7_raw_word` on number entities describes scalar
 WORD read/write channels without value conversion; the card still validates
 the HA numeric bounds and step separately. LOGO-converted writable WORD numbers
-expose `s7_time_format: hhmm`; the card format is explicit and defaults to BCD.
+expose `s7_time_format: hhmm`. New cards use metadata-based `auto` mode; omitted
+`time_format` preserves BCD behavior. Per-row `on_format`/`off_format` overrides
+take precedence. Never infer encoding from the numeric state itself.
 Do not use the administration panel's WebSocket endpoints for normal dashboard
 reads or writes.
 

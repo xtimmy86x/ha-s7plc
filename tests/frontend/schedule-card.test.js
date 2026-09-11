@@ -358,7 +358,7 @@ test("HHMM validates every minute and never guesses the encoding from the value"
   expect(Card.decodeHHMM(1024)).toEqual({hours: "10", minutes: "24"});
   expect(Card.decodeWord(1024)).toEqual({hours: "04", minutes: "00"});
   for (const raw of ["", null, true, -1, 60, 1260, 2399, 2400, 65535, "400.5", "04:00", "unknown"]) expect(Card.decodeHHMM(raw)).toBeNull();
-  expect(() => new Card().setConfig({rows: [], time_format: "auto"})).toThrow(/time_format/);
+  expect(() => new Card().setConfig({rows: [], time_format: "unknown"})).toThrow(/time_format/);
 });
 
 test.each(["number", "input_number"])("HHMM %s writes HA units and waits for matching feedback", async domain => {
@@ -431,4 +431,99 @@ test("editor selects HHMM explicitly, filters S7 formats and updates summaries",
   expect(configs.at(-1).time_format).toBe("bcd");
   expect([...on.options].some(o => o.value === "number.on_0")).toBe(true);
   expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("one mixed row sends BCD and HHMM independently and tracks partial failure and feedback", async () => {
+  const {card, hass, update} = setup({delayed: true, reject: true});
+  hass.states["number.off_0"].attributes = {min: 0, max: 2359, step: 1, s7_raw_word: false, s7_time_format: "hhmm"};
+  card.setConfig({time_format: "auto", show_raw: true, rows: [{on_entity: "number.on_0", off_entity: "number.off_0"}]});
+  card.hass = hass;
+  // Identical numeric states have different meanings; only metadata decides.
+  expect(fields(card).map(f => f.value)).toEqual(["04", "00", "10", "24"]);
+  expect(card.shadowRoot.textContent).toContain("WORD 1024");
+  expect(card.shadowRoot.textContent).toContain("HHMM 1024");
+  for (const offset of [0, 2]) {edit(fields(card)[offset], "23"); edit(fields(card)[offset + 1], "59");}
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenNthCalledWith(1, "number", "set_value", {entity_id: "number.on_0", value: 9049});
+  expect(hass.callService).toHaveBeenNthCalledWith(2, "number", "set_value", {entity_id: "number.off_0", value: 2359});
+  expect(card._cells[0].pending).not.toBeNull();
+  expect(card._cells[1].error).toContain("PLC offline");
+  update("number.on_0", 9049);
+  expect(card._cells[0].draft).toBeNull();
+  expect(fields(card)[2].value).toBe("23");
+  hass.callService.mockImplementation(async () => {});
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenCalledTimes(3);
+  expect(hass.callService).toHaveBeenLastCalledWith("number", "set_value", {entity_id: "number.off_0", value: 2359});
+  update("number.off_0", 2359);
+  expect(card._cells.every(c => !c.pending && !c.draft)).toBe(true);
+});
+
+test.each([false, true])("mixed editor exposes raw and converted entities (native picker: %s)", native => {
+  if (native) mockNativePicker();
+  const {hass} = setup();
+  hass.states["number.logo"] = {state: "430", attributes: {s7_raw_word: false, s7_time_format: "hhmm"}};
+  hass.states["number.scaled"] = {state: "430", attributes: {s7_raw_word: false}};
+  hass.entities = Object.fromEntries(["number.on_0", "number.off_0", "number.logo"].map(id => [id, {device_id: "plc"}]));
+  hass.devices = {plc: {name: "Mixed PLC"}};
+  const {editor, configs} = setupEditor(hass, [{on_entity: "", off_entity: ""}]);
+  choose(editor.shadowRoot.querySelector(".time-format"), "auto");
+  choose(editor.shadowRoot.querySelector(".plc-filter"), "plc");
+  const pickers = [...editor.shadowRoot.querySelectorAll(native ? "ha-entity-picker" : ".entity-select")];
+  const choices = picker => native ? picker.includeEntities : [...picker.options].map(o => o.value).filter(Boolean);
+  expect(choices(pickers[0]).sort()).toEqual(["number.logo", "number.off_0", "number.on_0"]);
+  (native ? nativeChoice : choose)(pickers[0], "number.on_0");
+  (native ? nativeChoice : choose)(pickers[1], "number.logo");
+  expect(configs.at(-1).rows[0]).toEqual({on_entity: "number.on_0", off_entity: "number.logo"});
+  expect(choices(pickers[1])).not.toContain("number.on_0");
+  expect(editor.shadowRoot.querySelector("summary").textContent).toContain("04:00");
+  expect(editor.shadowRoot.querySelector("summary").textContent).toContain("04:30");
+  expect([...editor.shadowRoot.querySelectorAll(".picker-note")].every(n => !n.textContent)).toBe(true);
+  expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("field overrides round-trip through the editor and support mixed external helpers", async () => {
+  const {card, hass, update} = setup({delayed: true});
+  hass.states["input_number.raw"] = {state: "1024", attributes: {min: 0, max: 65535, step: 1}};
+  hass.states["input_number.clock"] = {state: "400", attributes: {min: 0, max: 2359, step: 1}};
+  const {editor, configs} = setupEditor(hass, [{on_entity: "input_number.raw", off_entity: "input_number.clock"}]);
+  const overrides = editor.shadowRoot.querySelectorAll(".entity-format");
+  choose(overrides[1], "hhmm");
+  expect(configs.at(-1).rows[0].off_format).toBe("hhmm");
+  expect(editor.shadowRoot.querySelector("summary").textContent.match(/04:00/g)).toHaveLength(2);
+  card.setConfig(configs.at(-1)); card.hass = hass;
+  edit(fields(card)[1], "30"); edit(fields(card)[3], "30");
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenNthCalledWith(1, "input_number", "set_value", {entity_id: "input_number.raw", value: 1072});
+  expect(hass.callService).toHaveBeenNthCalledWith(2, "input_number", "set_value", {entity_id: "input_number.clock", value: 430});
+  update("input_number.raw", 1072); update("input_number.clock", 430);
+  expect(card._cells.every(c => !c.pending && !c.draft)).toBe(true);
+  choose(overrides[1], "");
+  expect(configs.at(-1).rows[0]).not.toHaveProperty("off_format");
+  expect(() => card.setConfig({rows: [{on_format: "invalid"}]})).toThrow(/on_format/);
+});
+
+test("automatic format changes cannot reinterpret a draft or acknowledge another encoding", async () => {
+  const {card, hass, update} = setup({delayed: true});
+  card.setConfig({time_format: "auto", confirmation_timeout: 1, rows: [{on_entity: "number.on_0"}]});
+  card.hass = hass;
+  fields(card)[0].focus();
+  hass.states["number.on_0"].attributes = {s7_raw_word: false, s7_time_format: "hhmm"};
+  update("number.on_0", 1024);
+  edit(fields(card)[1], "30");
+  await card._saveChanges();
+  expect(hass.callService).not.toHaveBeenCalled();
+  expect(card.shadowRoot.textContent).toContain("Value changed in HA");
+  const cancel = card.shadowRoot.querySelector(".reset"); cancel.focus(); cancel.click();
+  edit(fields(card)[0], "00"); edit(fields(card)[1], "00");
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenLastCalledWith("number", "set_value", {entity_id: "number.on_0", value: 0});
+  hass.states["number.on_0"].attributes = {s7_raw_word: true};
+  update("number.on_0", 0); // Midnight has the same number in either encoding.
+  expect(card._cells[0].pending).not.toBeNull();
+  vi.useFakeTimers(); vi.setSystemTime(Date.now() + 2000); card.hass = {...hass};
+  expect(card._cells[0].pending).toBeNull();
+  expect(card._cells[0].draft).not.toBeNull();
+  await card._saveChanges();
+  expect(hass.callService).toHaveBeenCalledTimes(1);
 });

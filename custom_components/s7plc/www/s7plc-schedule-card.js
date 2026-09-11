@@ -25,6 +25,8 @@
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
       editor_format: "Entity value format", editor_bcd: "Raw BCD WORD (1024 = 04:00)",
       editor_hhmm: "Converted HHMM (400 = 04:00)",
+      editor_auto: "Automatic — mixed S7 entities", editor_inherit: "Use card setting",
+      editor_hint_auto: "Each S7 entity uses its own format. For other entities, BCD is the default; select HHMM below when needed.",
       editor_hint_hhmm: "Select numbers using the LOGO! time BCD conversion, or HHMM helpers. HA writes HHMM; the integration packs the PLC WORD.",
       editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
       editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
@@ -56,6 +58,8 @@
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
       editor_format: "Formato valori delle entità", editor_bcd: "WORD BCD grezzo (1024 = 04:00)",
       editor_hhmm: "HHMM convertito (400 = 04:00)",
+      editor_auto: "Automatico — entità S7 miste", editor_inherit: "Usa impostazione card",
+      editor_hint_auto: "Ogni entità S7 usa il proprio formato. Per le altre entità il predefinito è BCD; seleziona HHMM nel singolo campo quando necessario.",
       editor_hint_hhmm: "Seleziona number con conversione LOGO! time BCD o helper HHMM. HA invia HHMM; l’integrazione converte nel WORD del PLC.",
       editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
       editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
@@ -79,6 +83,10 @@
     return Number.isInteger(n) && n >= 0 && n <= 65535 ? n : null;
   };
   const valueFormat = config => config?.time_format ?? "bcd";
+  const formatKey = key => key.replace("_entity", "_format");
+  const fieldMode = (config, row, key) => row?.[formatKey(key)] ?? valueFormat(config);
+  const resolveFormat = (state, mode) => mode === "auto" ?
+    (state?.attributes?.s7_time_format === "hhmm" ? "hhmm" : "bcd") : mode;
   const compatible = (state, format) => {
     const attrs = state?.attributes ?? {};
     if (attrs.s7_time_format != null) return attrs.s7_time_format === format;
@@ -133,11 +141,14 @@
       if (!config || !Array.isArray(config.rows)) {
         throw new Error("Configure rows with name, on_entity and off_entity.");
       }
-      if (!["bcd", "hhmm"].includes(valueFormat(config))) throw new Error("time_format must be bcd or hhmm.");
+      if (!["auto", "bcd", "hhmm"].includes(valueFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
       const seen = new Set();
       const rows = config.rows.map((row, i) => {
         if (!row || typeof row !== "object") throw new Error(`Invalid row ${i + 1}.`);
         for (const key of ["on_entity", "off_entity"]) {
+          if (!["auto", "bcd", "hhmm"].includes(fieldMode(config, row, key))) {
+            throw new Error(`Row ${i + 1}: ${formatKey(key)} must be auto, bcd or hhmm.`);
+          }
           if (row[key] != null && row[key] !== "" && (typeof row[key] !== "string" || !/^(number|input_number)\.[a-z0-9_]+$/.test(row[key]))) {
             throw new Error(`Row ${i + 1}: ${key} must be a number or input_number entity.`);
           }
@@ -170,7 +181,7 @@
     }
     _t(key, values) { return translate(this._hass, key, values); }
     static getConfigElement() { return document.createElement("s7plc-schedule-card-editor"); }
-    static getStubConfig() { return { rows: [] }; }
+    static getStubConfig() { return { rows: [], time_format: "auto" }; }
     get hass() { return this._hass; }
     getCardSize() { return Math.ceil(((this._config?.rows.length ?? 12) * 66 + 170) / 50); }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
@@ -255,7 +266,7 @@
           const td = el("td"), group = el("div", "time");
           const hours = el("input"), minutes = el("input");
           const note = el("span", "note"), raw = el("span", "raw");
-          const cell = { entity: row[key], td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
+          const cell = { entity: row[key], mode: fieldMode(this._config, row, key), td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
           for (const [input, part, max] of [[hours, this._t("hours"), 23], [minutes, this._t("minutes"), 59]]) {
             input.type = "text";
             input.inputMode = "numeric";
@@ -266,7 +277,10 @@
             input.setAttribute("aria-label", `${(row.name || `${this._t("row")} ${pad(row.index + 1)}`)} — ${caption}: ${part}`);
             input.title = `${row[key]} · ${part} 00–${max}`;
             input.addEventListener("focus", (event) => {
-              if (!cell.draft && ![hours, minutes].includes(event.relatedTarget)) cell.focusBase = this._info(cell).key;
+              if (!cell.draft && ![hours, minutes].includes(event.relatedTarget)) {
+                const info = this._info(cell);
+                cell.focusBase = info.key; cell.focusFormat = info.format;
+              }
             });
             input.addEventListener("input", () => this._edit(cell));
             input.addEventListener("blur", () => {
@@ -309,8 +323,8 @@
       const raw = state?.state;
       const available = Boolean(state) && raw !== "unknown" && raw !== "unavailable";
       const value = parseWord(raw);
-      const format = valueFormat(this._config), isCompatible = compatible(state, format);
-      return { state, raw, available, value, compatible: isCompatible,
+      const format = resolveFormat(state, cell.mode), isCompatible = compatible(state, format);
+      return { state, raw, available, value, format, compatible: isCompatible,
         time: isCompatible ? decode(raw, format) : null, key: value ?? String(raw) };
     }
 
@@ -319,10 +333,11 @@
       const info = this._info(cell);
       cell.draft = {
         base: cell.draft?.base ?? cell.focusBase ?? info.key,
+        format: cell.draft?.format ?? cell.focusFormat ?? info.format,
         hours: cell.hours.value, minutes: cell.minutes.value,
       };
       cell.error = "";
-      if (encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config)) === info.value && info.value !== null) cell.draft = null;
+      if (cell.draft.format === info.format && encode(cell.draft.hours, cell.draft.minutes, info.format) === info.value && info.value !== null) cell.draft = null;
       this._message = "";
       this._sync();
     }
@@ -332,7 +347,8 @@
       const info = this._info(cell);
       if (!info.compatible) return this._t("incompatible");
       if (!info.available) return this._t("unavailable");
-      const value = encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config));
+      if (info.format !== cell.draft.format) return this._t("conflict");
+      const value = encode(cell.draft.hours, cell.draft.minutes, info.format);
       if (value === null) return this._t("invalid_time");
       if (info.key !== cell.draft.base && info.value !== value) {
         return this._t("conflict");
@@ -353,7 +369,7 @@
       let dirty = 0, pending = 0, invalid = 0;
       for (const c of this._cells) {
         const info = this._info(c);
-        if (c.pending?.accepted && info.available && info.compatible && info.value === c.pending.value) {
+        if (c.pending?.accepted && info.available && info.compatible && info.format === c.pending.format && info.value === c.pending.value) {
           c.pending = null; c.draft = null; c.error = "";
         } else if (c.pending?.accepted && Date.now() > c.pending.deadline) {
           c.pending = null;
@@ -368,13 +384,13 @@
         let problem = c.pending ? "" : (c.error || this._validate(c));
         if (!info.compatible) problem = this._t("incompatible");
         else if (!info.available) problem = !c.entity ? this._t("choose_entity") : info.state ? this._t("unavailable") : this._t("missing");
-        else if (!c.draft && !info.time) problem = this._t(valueFormat(this._config) === "hhmm" ? "invalid_hhmm" : "invalid_bcd", {raw: String(info.raw)});
+        else if (!c.draft && !info.time) problem = this._t(info.format === "hhmm" ? "invalid_hhmm" : "invalid_bcd", {raw: String(info.raw)});
         c.note.textContent = problem || (c.pending ? (c.pending.accepted ? this._t("waiting") : this._t("sending")) : c.draft ? this._t("modified") : "");
         c.td.toggleAttribute("data-error", Boolean(problem));
         c.td.toggleAttribute("data-dirty", Boolean(c.draft));
         c.hours.setAttribute("aria-invalid", String(Boolean(problem)));
         c.minutes.setAttribute("aria-invalid", String(Boolean(problem)));
-        c.raw.textContent = this._config.show_raw && info.available ? `${valueFormat(this._config) === "hhmm" ? "HHMM" : "WORD"} ${String(info.raw)}` : "";
+        c.raw.textContent = this._config.show_raw && info.available ? `${info.format === "hhmm" ? "HHMM" : "WORD"} ${String(info.raw)}` : "";
         if (c.draft && !c.pending) { dirty++; if (this._validate(c)) invalid++; }
         if (c.pending) pending++;
       }
@@ -402,10 +418,11 @@
         // Recheck after each await: availability and values can change mid-save.
         const problem = this._validate(cell);
         if (problem) { cell.error = problem; failed++; continue; }
-        const value = encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config));
+        const format = this._info(cell).format;
+        const value = encode(cell.draft.hours, cell.draft.minutes, format);
         if (this._info(cell).value === value) { cell.draft = null; cell.error = ""; continue; }
         cell.error = "";
-        cell.pending = { value, accepted: false };
+        cell.pending = { value, format, accepted: false };
         this._sync();
         try {
           await this._hass.callService(cell.entity.split(".")[0], "set_value", {
@@ -434,7 +451,7 @@
     constructor() {
       super();
       this.attachShadow({mode: "open"});
-      this._config = {type: "custom:s7plc-schedule-card", rows: []};
+      this._config = {type: "custom:s7plc-schedule-card", rows: [], time_format: "auto"};
       this._rowUI = [];
       this._plc = "";
       this._groups = [];
@@ -493,7 +510,7 @@
 
     _options() {
       return Object.entries(this._hass?.states ?? {})
-        .filter(([id, state]) => /^(number|input_number)\./.test(id) && compatible(state, valueFormat(this._config)))
+        .filter(([id]) => /^(number|input_number)\./.test(id))
         .map(([id, state]) => [id, state.attributes?.friendly_name || id])
         .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
     }
@@ -505,7 +522,11 @@
       for (const other of this._config.rows) for (const field of ["on_entity", "off_entity"]) {
         if (other !== row || field !== key) used.add(other[field]);
       }
-      return options.filter(([id]) => !used.has(id) && (!this._plc || this._deviceId(id) === this._plc));
+      return options.filter(([id]) => {
+        const state = this._hass.states[id];
+        return compatible(state, resolveFormat(state, fieldMode(this._config, row, key))) &&
+          !used.has(id) && (!this._plc || this._deviceId(id) === this._plc);
+      });
     }
 
     _emit(render = false) {
@@ -528,7 +549,8 @@
     _refresh() {
       if (!this._plcSelect) return;
       const options = this._options();
-      this._formatHint.textContent = this._t(valueFormat(this._config) === "hhmm" ? "editor_hint_hhmm" : "editor_hint");
+      const mode = valueFormat(this._config);
+      this._formatHint.textContent = this._t(mode === "bcd" ? "editor_hint" : `editor_hint_${mode}`);
       const devices = new Map();
       for (const [id] of options) {
         const attrs = this._hass.states[id].attributes;
@@ -554,8 +576,9 @@
         warning.textContent = !row.on_entity || !row.off_entity ? this._t("editor_incomplete") : "";
         for (const {key, caption, picker, search, note} of fields) {
           const id = row[key] ?? "", state = this._hass?.states?.[id];
-          const isCompatible = compatible(state, valueFormat(this._config));
-          const time = isCompatible ? decode(state?.state, valueFormat(this._config)) : null;
+          const format = resolveFormat(state, fieldMode(this._config, row, key));
+          const isCompatible = compatible(state, format);
+          const time = isCompatible ? decode(state?.state, format) : null;
           descriptions[key].textContent = `${this._t(caption)}: ${state?.attributes?.friendly_name || id || "—"}${time ? ` · ${time.hours}:${time.minutes}` : ""}`;
           descriptions[key].title = id;
           const duplicate = id && this._config.rows.some(other =>
@@ -642,7 +665,7 @@
         this._emit();
       });
       const format = field(this.shadowRoot, this._t("editor_format"), el("select", "time-format"));
-      for (const value of ["bcd", "hhmm"]) {
+      for (const value of ["auto", "bcd", "hhmm"]) {
         const option = el("option", "", this._t(`editor_${value}`)); option.value = value; format.append(option);
       }
       format.value = valueFormat(this._config);
@@ -689,6 +712,16 @@
         name.addEventListener("input", () => {row.name = name.value; this._emit();});
         const fields = [];
         for (const [key, caption] of [["on_entity", "on"], ["off_entity", "off"]]) {
+          const override = field(group, `${this._t(caption)} — ${this._t("editor_format")}`, el("select", "entity-format"));
+          for (const mode of ["", "auto", "bcd", "hhmm"]) {
+            const option = el("option", "", this._t(mode ? `editor_${mode}` : "editor_inherit"));
+            option.value = mode; override.append(option);
+          }
+          override.value = row[formatKey(key)] ?? "";
+          override.addEventListener("change", () => {
+            if (override.value) row[formatKey(key)] = override.value; else delete row[formatKey(key)];
+            this._emit();
+          });
           let picker, search;
           if (this._nativePicker) {
             picker = el("ha-entity-picker");

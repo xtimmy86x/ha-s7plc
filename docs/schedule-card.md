@@ -58,9 +58,16 @@ or send any command to the PLC.
 
 ## Entity value format
 
-Choose the format explicitly in the visual editor or with `time_format` in
-YAML. It applies to every entity in the card. The default is `bcd`, preserving
-existing configurations. Use separate cards for entities with different formats.
+Raw BCD and converted HHMM entities can share one card, including the on/off
+fields of the same slot. Choose **Automatic — mixed S7 entities** in the visual
+editor (`time_format: auto`) to resolve each S7 entity's format from its metadata.
+New cards start in this mode. Existing configurations without `time_format`
+retain BCD behavior; change this setting to `auto` to enable mixed selection.
+
+The card setting can also be fixed to `bcd` or `hhmm`. Each on/off field has its
+own format selector: **Use card setting**, **Automatic**, **Raw BCD WORD** or
+**Converted HHMM**. These overrides are stored as `on_format` and `off_format`
+within the corresponding row and take precedence over the card setting.
 
 | Displayed time | HA state: `bcd` | HA state: `hhmm` | PLC BCD WORD |
 | --- | ---: | ---: | --- |
@@ -73,7 +80,15 @@ existing configurations. Use separate cards for entities with different formats.
 The format is never guessed from a numeric value: `1024` means 04:00 in BCD
 mode but 10:24 in HHMM mode.
 
-### Raw BCD WORD (`time_format: bcd`, default)
+### Automatic mixed mode (`time_format: auto`)
+
+S7 entities with `s7_time_format: hhmm` use HHMM; unconverted writable WORDs
+with `s7_raw_word: true` use BCD. Both appear in the same entity picker. Other
+S7 conversions remain excluded. For external numbers/helpers without S7
+metadata, automatic mode uses BCD as a fallback; select HHMM for the individual
+field if that entity exposes converted clock values.
+
+### Raw BCD WORD (`bcd`)
 
 Use `number` entities that expose the **raw decimal WORD**, without any value
 conversion. A typical entity configuration has `min_value: 0`,
@@ -81,7 +96,7 @@ conversion. A typical entity configuration has `min_value: 0`,
 The entity's maximum must be at least 9049 to represent every time of day;
 2359 is insufficient for raw BCD.
 
-### Converted HHMM (`time_format: hhmm`)
+### Converted HHMM (`hhmm`)
 
 For S7 PLC numbers, enable the **LOGO! time BCD** value conversion in the S7 PLC
 configuration panel (`value_conversions.value.type: logo_time_bcd`). The entity
@@ -121,7 +136,9 @@ recreating the card or reloading the page.
 
 Incoming HA updates do not replace fields while typing. If an entity changes
 externally during editing, saving its stale value is blocked. Cancel and edit
-again using the latest value. Offline entities are disabled. Invalid BCD/HHMM is
+again using the latest value. This also applies if the detected format changes;
+pending writes require feedback in the same format that was sent.
+Offline entities are disabled. Invalid BCD/HHMM is
 reported explicitly and can be replaced with a valid time when the entity is
 available and compatible.
 
@@ -141,7 +158,7 @@ sent to the PLC.
 ```yaml
 type: custom:s7plc-schedule-card
 title: Programmazione oraria
-time_format: bcd  # Use hhmm for numbers with LOGO! time BCD conversion
+time_format: auto  # Mix raw BCD and LOGO-converted HHMM S7 numbers
 show_raw: false
 confirmation_timeout: 15
 rows:
@@ -155,9 +172,23 @@ rows:
 
 Append more rows or use the visual editor. Entity IDs must be distinct across
 the card. `title` is optional and otherwise follows the frontend language.
-`time_format` accepts `bcd` (default) or `hhmm`. `show_raw` defaults to `false`
+`time_format` accepts `auto`, `bcd` or `hhmm`; omitting it preserves legacy BCD
+behavior. `show_raw` defaults to `false`
 and displays the HA entity value labelled WORD or HHMM. `confirmation_timeout`
 defaults to 15 seconds and accepts 1–300 seconds.
+
+For external helpers using different encodings, override each field as needed:
+
+```yaml
+type: custom:s7plc-schedule-card
+time_format: auto
+rows:
+  - name: Mixed helpers
+    on_entity: input_number.raw_clock
+    on_format: bcd
+    off_entity: input_number.converted_clock
+    off_format: hhmm
+```
 
 ## Moving from the standalone BCD card
 
@@ -186,9 +217,11 @@ resource only after no dashboard uses the standalone card anymore.
   module, add the URL as a `module` under `lovelace.resources` in
   `configuration.yaml`, reload resources and refresh. Use the versioned URL
   from `SCHEDULE_CARD_MODULE` in `frontend.py` for consistent cache invalidation.
-- If a selected S7 entity is incompatible, check its scalar WORD read/write
-  addresses and match the card format to the entity: `bcd` without conversion,
-  or `hhmm` with **LOGO! time BCD** conversion. Converted S7 entities require
+- If converted S7 entities are absent from the picker, select **Automatic —
+  mixed S7 entities** and check that the field has no conflicting format override
+  or PLC filter. Both read/write addresses must be scalar WORD channels.
+  Manual formats are `bcd` without conversion or `hhmm` with **LOGO! time BCD**.
+  Converted S7 entities require
   `s7_time_format: hhmm`; update the integration and restart HA if it is missing.
 - If saving reports a range or step error, adjust the number entity's limits
   and step in the S7 PLC configuration panel.
