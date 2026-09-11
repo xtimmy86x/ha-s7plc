@@ -13,7 +13,7 @@ continues to execute the schedule, including when the dashboard is closed.
 1. Install this version of ha-s7plc and restart Home Assistant.
 2. Refresh the browser or reload the Companion app frontend.
 3. Edit your dashboard, choose **Add card**, and search for **S7 PLC — Schedule**.
-4. Add slots and select the on/off number entity for each. Names, order, entity-value display and confirmation timeout
+4. Add slots and select the on/off number entity for each. Names, order, entity-value display, daily timeline and confirmation timeout
    are configurable.
 
 The integration automatically serves the module and registers it in Lovelace's
@@ -204,12 +204,43 @@ Some writes can succeed while others fail. Confirmed edits are cleared; failed
 edits remain visible for correction or retry. Cancel cannot undo writes already
 sent to the PLC.
 
+## Optional daily timeline
+
+Enable **Show daily timeline** in the visual editor, or set `show_timeline: true`
+in YAML. It is disabled by default. The timeline appears below Save/Cancel and
+shows one labelled track per slot, from 00:00 to 24:00. It uses each entity's
+automatically detected time format, including mixed BCD and converted HHMM pairs.
+
+- An interval such as 22:00–02:00 is split into 22:00–24:00 and 00:00–02:00,
+  with a note that it crosses midnight.
+- Overlapping slots have a text label and an accent beside their name. A separate
+  summary track shows the exact overlapping intervals. Touching endpoints, such
+  as 04:00–05:00 and 05:00–06:00, do not overlap. These indications do not block Save.
+- Identical on/off times have no bar and are labelled explicitly. The card does
+  not infer whether the PLC treats them as disabled, a full day or something else.
+- Missing, unavailable, incompatible or invalid values omit the affected slot's
+  bars. Conflicted drafts, failed writes and writes whose confirmation timed out also omit those bars;
+  check the corresponding table fields. Other valid intervals remain visible.
+
+Valid local edits update the timeline immediately with striped bars and a preview
+message. Submitted values remain a preview until HA confirms them. Cancel restores
+the latest HA values. The timeline is read-only and does not send commands by
+itself; it does not change the existing explicit save and confirmation flow.
+
+This is a recurring 24-hour view of the on/off pairs, not live PLC output state.
+It does not read enable bits, weekdays, holidays or PLC priority rules. Overlaps
+are comparisons between the configured pairs even if they control different loads.
+Labels include exact times and status, so color or bar width is not the only way
+to read short intervals or identify overlaps. The 24:00 axis endpoint is only for
+display; editable times still end at 23:59.
+
 ## YAML configuration
 
 ```yaml
 type: custom:s7plc-schedule-card
 title: Programmazione oraria
 show_raw: false
+show_timeline: false
 confirmation_timeout: 15
 rows:
   - name: Fascia 01
@@ -224,7 +255,8 @@ Append more rows or use the visual editor. Entity IDs must be distinct across
 the card. `title` is optional and otherwise follows the frontend language.
 S7 formats are detected automatically; no format configuration is needed.
 `show_raw` defaults to `false` and displays the HA entity value labelled WORD or
-HHMM. `confirmation_timeout` defaults to 15 seconds and accepts 1–300 seconds.
+HHMM. `show_timeline` is a boolean and defaults to `false`.
+`confirmation_timeout` defaults to 15 seconds and accepts 1–300 seconds.
 
 ## Troubleshooting
 
