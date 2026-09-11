@@ -1253,6 +1253,7 @@
       "read_expression": "Wyrażenie odczytu",
       "write_expression": "Wyrażenie zapisu",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "logo_hhmm": "Number używa liczbowego HHMM w obu kierunkach: 830 = 08:30, 2359 = 23:59. Wpisz całkowitą liczbę godzin i minut (minuty 00-59); domyślne granice 0-2359, krok 1. To godzina, a nie czas trwania.",
       "preview_help": "Preview updates locally and never writes to the PLC.",
       "scale": "Skala",
       "expressions_independent": "Wyrażenia odczytu i zapisu są od siebie niezależne.",

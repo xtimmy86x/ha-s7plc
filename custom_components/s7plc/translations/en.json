@@ -1253,6 +1253,7 @@
       "read_expression": "Read expression",
       "write_expression": "Write expression",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "logo_hhmm": "Number uses numeric HHMM in both directions: 830 = 08:30, 2359 = 23:59. Enter whole hours/minutes (minutes 00-59); default limits are 0-2359, step 1. This is a clock time, not a duration.",
       "preview_help": "Preview updates locally and never writes to the PLC.",
       "scale": "Scale",
       "expressions_independent": "The read and write expressions are independent.",

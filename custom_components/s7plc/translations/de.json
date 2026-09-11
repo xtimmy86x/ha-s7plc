@@ -1253,6 +1253,7 @@
       "read_expression": "Leseausdruck",
       "write_expression": "Schreibausdruck",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "logo_hhmm": "Number verwendet numerisches HHMM in beide Richtungen: 830 = 08:30, 2359 = 23:59. Ganze Zahlen für Stunden/Minuten eingeben (Minuten 00-59); Standardgrenzen 0-2359, Schrittweite 1. Dies ist eine Uhrzeit, keine Dauer.",
       "preview_help": "Preview updates locally and never writes to the PLC.",
       "scale": "Skala",
       "expressions_independent": "Lese- und Schreibausdruck sind voneinander unabhängig.",
