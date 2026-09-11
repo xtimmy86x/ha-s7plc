@@ -63,3 +63,50 @@ async def test_logo_clock_ha_state_metadata_and_service(
             "number", "set_value", {"entity_id": entity_id, "value": 1260}, blocking=True
         )
     assert plc_client.write.await_count == 1
+
+
+async def test_weekday_byte_metadata_and_write_preserve_full_mask(
+    hass, config_entry, plc_client, freezer
+):
+    item, errors = build_entity_item(
+        "numbers", {"name": "Schedule days", "address": "DB1,BYTE8"}, options={}
+    )
+    assert not errors
+    item["uid"] = "schedule-days"
+    hass.config_entries.async_update_entry(
+        config_entry,
+        data={**config_entry.data, CONF_ENABLE_WRITE_BATCHING: False},
+        options={"numbers": [item]},
+    )
+    mask = 128
+    plc_client.read.side_effect = lambda tags, **kwargs: [mask] * len(tags)
+
+    async def write(tags, values):
+        nonlocal mask
+        mask = values[0]
+
+    plc_client.write.side_effect = write
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    entity_id = er.async_get(hass).async_get_entity_id("number", DOMAIN, "schedule-days")
+    state = hass.states.get(entity_id)
+    assert float(state.state) == 128
+    assert state.attributes["s7_raw_byte"] is True
+    assert state.attributes["s7_raw_word"] is False
+    assert "s7_time_format" not in state.attributes
+    assert state.attributes["min"] == 0
+    assert state.attributes["max"] == 255
+    plc_client.write.assert_not_awaited()
+
+    # Weekdays 62 plus preserved bit 7, exactly as sent by the card.
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": entity_id, "value": 190}, blocking=True
+    )
+    await hass.async_block_till_done()
+    plc_client.write.assert_awaited_once_with([parse_tag("DB1,BYTE8")], [190])
+    freezer.tick(3601)
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert float(hass.states.get(entity_id).state) == 190
