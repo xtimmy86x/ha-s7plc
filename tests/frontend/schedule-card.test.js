@@ -165,7 +165,7 @@ test("visual editor adds, edits, reorders and removes pairs with config-changed"
   button("Add slot").click();
   const name = editor.shadowRoot.querySelector("fieldset input"); edit(name, "Pump");
   expect(editor.shadowRoot.querySelector("fieldset input")).toBe(name);
-  let selects = editor.shadowRoot.querySelectorAll("select");
+  let selects = editor.shadowRoot.querySelectorAll(".entity-select");
   selects[0].value = "number.on_0"; selects[0].dispatchEvent(new Event("change"));
   selects[1].value = "number.off_0"; selects[1].dispatchEvent(new Event("change"));
   expect(events.at(-1).rows[0]).toEqual({name: "Pump", on_entity: "number.on_0", off_entity: "number.off_0"});
@@ -179,11 +179,170 @@ test("editor filters incompatible S7 entities, retains missing selections and up
   const {hass} = setup(); hass.states["number.converted"] = {state: "4", attributes: {s7_raw_word: false}};
   const editor = Card.getConfigElement(); editor.hass = {...hass, language: "it"};
   editor.setConfig({rows: [{on_entity: "number.missing", off_entity: "number.off_0"}]}); document.body.append(editor);
-  let select = editor.shadowRoot.querySelector("select");
+  let select = editor.shadowRoot.querySelector(".entity-select");
   expect(select.value).toBe("number.missing");
   expect([...select.options].some(o => o.value === "number.converted")).toBe(false);
   expect(editor.shadowRoot.textContent).toContain("Aggiungi fascia");
   hass.states["number.new"] = {state: "0", attributes: {friendly_name: "New"}};
-  editor.hass = {...hass, language: "it"}; select = editor.shadowRoot.querySelector("select");
+  editor.hass = {...hass, language: "it"}; select = editor.shadowRoot.querySelector(".entity-select");
   expect([...select.options].some(o => o.value === "number.new")).toBe(true);
+});
+
+function setupEditor(hass, rows) {
+  const editor = Card.getConfigElement();
+  editor.hass = hass;
+  editor.setConfig({type: "custom:s7plc-schedule-card", rows, show_raw: true});
+  const configs = [];
+  editor.addEventListener("config-changed", event => {
+    configs.push(event.detail.config);
+    editor.setConfig(event.detail.config);
+  });
+  document.body.append(editor);
+  return {editor, configs};
+}
+const editorButton = (editor, text) => [...editor.shadowRoot.querySelectorAll("button")].find(b => b.textContent === text);
+const choose = (select, value) => {select.value = value; select.dispatchEvent(new Event("change"));};
+const nativeChoice = (picker, value) => picker.dispatchEvent(new CustomEvent("value-changed", {detail: {value}, bubbles: true, composed: true}));
+function mockNativePicker(ready = () => true) {
+  const get = customElements.get.bind(customElements);
+  vi.spyOn(customElements, "get").mockImplementation(name => name === "ha-entity-picker" ? (ready() ? HTMLElement : undefined) : get(name));
+}
+
+test("slot sections keep their state, summary and focus through edits and reordering", () => {
+  const {hass} = setup({count: 12});
+  const rows = Array.from({length: 12}, (_, i) => ({name: `Pump ${i}`, on_entity: `number.on_${i}`, off_entity: `number.off_${i}`}));
+  const {editor, configs} = setupEditor(hass, rows);
+  let sections = [...editor.shadowRoot.querySelectorAll("details")];
+  expect(sections.filter(d => d.open)).toHaveLength(1);
+  expect(sections[0].querySelector("summary").textContent).toContain("04:00");
+  editorButton(editor, "Collapse all").click();
+  expect(sections.every(d => !d.open)).toBe(true);
+  expect(configs).toHaveLength(0);
+  sections[0].open = true;
+  sections[0].dispatchEvent(new Event("toggle"));
+  const name = sections[0].querySelector("input"); edit(name, "<b>Heating</b>");
+  editor.hass = {...hass};
+  expect(editor.shadowRoot.activeElement).toBe(name);
+  expect(sections[0].querySelector("summary").textContent).toContain("<b>Heating</b>");
+  expect(sections[0].querySelector("summary b")).toBeNull();
+  editorButton(editor, "Move down").click();
+  sections = [...editor.shadowRoot.querySelectorAll("details")];
+  expect(sections[1].open).toBe(true);
+  expect(sections[0].open).toBe(false);
+  expect(editor.shadowRoot.activeElement).toBe(sections[1].querySelector("summary"));
+  expect(configs.at(-1).rows[1]).toEqual({...rows[0], name: "<b>Heating</b>"});
+  expect(Object.keys(configs.at(-1)).sort()).toEqual(["rows", "show_raw", "type"]);
+  editorButton(editor, "Expand all").click();
+  expect(sections.every(d => d.open)).toBe(true);
+  editorButton(editor, "Add slot").click();
+  expect(editor.shadowRoot.querySelectorAll("details")[12].open).toBe(true);
+  expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("fallback searches names and IDs without losing focus or clearing a filtered selection", () => {
+  const {hass} = setup({count: 2});
+  hass.states["number.on_1"].attributes.friendly_name = "Boiler morning";
+  const {editor, configs} = setupEditor(hass, [{on_entity: "number.on_0", off_entity: "number.off_0"}]);
+  const search = editor.shadowRoot.querySelector(".entity-search");
+  const select = editor.shadowRoot.querySelector(".entity-select");
+  edit(search, "BOILER");
+  expect([...select.options].map(o => o.value)).toEqual(["", "number.on_0", "number.on_1"]);
+  expect(select.value).toBe("number.on_0");
+  expect(configs).toHaveLength(0);
+  hass.states["number.extra"] = {state: "1024", attributes: {friendly_name: "Boiler evening"}};
+  editor.hass = {...hass};
+  expect(editor.shadowRoot.activeElement).toBe(search);
+  expect(search.value).toBe("BOILER");
+  expect([...select.options].some(o => o.value === "number.extra")).toBe(true);
+  edit(search, "number.off_1");
+  expect([...select.options].map(o => o.value)).toEqual(["", "number.on_0", "number.off_1"]);
+  choose(select, "number.off_1");
+  expect(configs.at(-1).rows[0].on_entity).toBe("number.off_1");
+  edit(search, "no-such-entity");
+  expect(select.value).toBe("number.off_1");
+  expect(select.textContent).toContain("No matching entities");
+  expect(configs).toHaveLength(1);
+  expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("PLC filter uses device registries and preserves selections from another PLC", () => {
+  const {hass} = setup({count: 2});
+  hass.entities = Object.fromEntries([0, 1].flatMap(i => ["on", "off"].map(key => [`number.${key}_${i}`, {device_id: `plc-${i}`}])));
+  hass.devices = {"plc-0": {name: "PLC basement"}, "plc-1": {name: "PLC old", name_by_user: "PLC garden"}};
+  const {editor, configs} = setupEditor(hass, [{on_entity: "number.on_0", off_entity: "number.off_0"}]);
+  const filter = editor.shadowRoot.querySelector(".plc-filter");
+  expect(filter.parentElement.hidden).toBe(false);
+  expect(filter.textContent).toContain("PLC garden");
+  choose(filter, "plc-1");
+  const select = editor.shadowRoot.querySelector(".entity-select");
+  expect(select.value).toBe("number.on_0");
+  expect([...select.options].map(o => o.value).sort()).toEqual(["", "number.off_1", "number.on_0", "number.on_1"]);
+  expect(configs).toHaveLength(0);
+  choose(select, "number.on_1");
+  expect(configs.at(-1).rows[0]).toEqual({on_entity: "number.on_1", off_entity: "number.off_0"});
+  expect(configs.at(-1)).not.toHaveProperty("plc");
+});
+
+test("native picker contract rejects stale duplicate choices and retains missing selections", () => {
+  mockNativePicker();
+  const {hass} = setup({count: 2});
+  hass.states["number.converted"] = {state: "400", attributes: {s7_raw_word: false}};
+  const {editor, configs} = setupEditor(hass, [
+    {on_entity: "number.on_0", off_entity: "number.off_0"},
+    {on_entity: "number.missing", off_entity: "number.off_1"},
+  ]);
+  const pickers = editor.shadowRoot.querySelectorAll("ha-entity-picker");
+  expect(pickers[0].includeDomains).toEqual(["number", "input_number"]);
+  expect(pickers[0].includeEntities).toEqual(["number.on_0", "number.on_1"]);
+  expect(pickers[0].allowCustomEntity).toBe(false);
+  expect(pickers[0].entityFilter({entity_id: "number.off_1"})).toBe(false);
+  expect(pickers[2].value).toBe("number.missing");
+  expect(editor.shadowRoot.querySelectorAll(".warning")[1].textContent).toContain("Unavailable");
+  nativeChoice(pickers[0], "number.on_1");
+  expect(configs.at(-1).rows[0].on_entity).toBe("number.on_1");
+  expect(pickers[2].includeEntities).not.toContain("number.on_1");
+  // A stale popup must not bypass duplicate/domain/conversion filtering.
+  nativeChoice(pickers[2], "number.on_1");
+  nativeChoice(pickers[2], "sensor.invalid");
+  nativeChoice(pickers[2], "number.converted");
+  expect(configs).toHaveLength(1);
+  nativeChoice(pickers[2], undefined);
+  expect(configs.at(-1).rows[1].on_entity).toBe("");
+  editor.hass = {...hass};
+  expect(editor.shadowRoot.querySelector("ha-entity-picker")).toBe(pickers[0]);
+  expect(pickers[0].hass).toBe(editor._hass);
+  expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("lazy native picker loading waits until a focused fallback field is left", async () => {
+  let ready = false, finish;
+  mockNativePicker(() => ready);
+  const loaded = new Promise(resolve => {finish = () => {ready = true; resolve();};});
+  const loadEditor = vi.fn(() => loaded);
+  window.loadCardHelpers = vi.fn(async () => ({createCardElement: () => ({constructor: {getConfigElement: loadEditor}})}));
+  try {
+    const {hass} = setup();
+    const {editor} = setupEditor(hass, [{on_entity: "number.on_0", off_entity: "number.off_0"}]);
+    const search = editor.shadowRoot.querySelector(".entity-search"); edit(search, "pump");
+    await vi.waitFor(() => expect(loadEditor).toHaveBeenCalledOnce());
+    finish(); await Promise.resolve(); await Promise.resolve();
+    expect(editor.shadowRoot.activeElement).toBe(search);
+    expect(editor.shadowRoot.querySelector("ha-entity-picker")).toBeNull();
+    search.blur();
+    await vi.waitFor(() => expect(editor.shadowRoot.querySelector("ha-entity-picker")).not.toBeNull());
+    expect(editor.shadowRoot.querySelector("ha-entity-picker").value).toBe("number.on_0");
+  } finally {delete window.loadCardHelpers;}
+});
+
+test("picker helper failure leaves searchable HTML controls usable", async () => {
+  window.loadCardHelpers = vi.fn().mockRejectedValue(new Error("Unavailable"));
+  try {
+    const {hass} = setup();
+    const {editor, configs} = setupEditor(hass, [{on_entity: "", off_entity: "number.off_0"}]);
+    await vi.waitFor(() => expect(editor._loadingPicker).toBe(false));
+    const select = editor.shadowRoot.querySelector(".entity-select");
+    choose(select, "number.on_0");
+    expect(configs.at(-1).rows[0].on_entity).toBe("number.on_0");
+    expect(editor.shadowRoot.querySelector(".entity-search")).not.toBeNull();
+  } finally {delete window.loadCardHelpers;}
 });

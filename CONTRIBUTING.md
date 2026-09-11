@@ -89,6 +89,9 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
 - The remaining files cover address handling, YAML, connection details, entities, helpers, and value conversions.
 - `schedule-card.test.js` covers the bundled schedule card and its visual editor,
   including BCD conversion, DOM editing, conflicts, service calls and confirmation.
+  Editor checks cover collapsible slots, search, PLC filtering, duplicate
+  prevention and lazy picker loading. Native HA picker tests exercise the
+  property/event contract; they do not establish actual picker rendering.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
