@@ -164,6 +164,19 @@ ordering is unrestricted to allow overnight schedules.
 
 ## Editing and confirmation
 
+Dashboard slots start collapsed, showing their name, decoded on/off times and
+weekdays. Press a slot summary to open its time fields and weekday controls;
+press it again to close them. **Expand all / Collapse all** controls are available
+above tables with multiple slots. Summary buttons support keyboard activation
+and report their expanded state to assistive technology.
+
+Closing a slot retains its local edits. Summaries show draft values and identify
+modified fields, pending writes and field-specific errors, including conflicts
+and unavailable entities. Copying values also updates closed summaries. Save and
+Cancel apply to all slots, including closed ones. Opening and closing never sends
+commands or changes dashboard YAML. Open slots remain open during HA state
+updates; recreating or reconfiguring the card resets them to collapsed.
+
 On screens up to 600 px wide or devices with a coarse pointer (touch), time
 fields have 44 × 44 px touch targets and Save/Cancel buttons are at least 44 px
 high, including hybrid computers with both a touchscreen and a mouse.

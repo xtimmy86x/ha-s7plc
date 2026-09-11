@@ -57,7 +57,7 @@ test("standalone module registers card/editor once; stub works without a panel",
 
 test("12 pairs display 48 fields; localization and names are rendered safely", () => {
   const {card, hass} = setup({count: 12});
-  expect(card.shadowRoot.querySelectorAll("tbody tr")).toHaveLength(12);
+  expect(card.shadowRoot.querySelectorAll("tbody tr:not(.slot-summary)")).toHaveLength(12);
   expect(fields(card)).toHaveLength(48);
   expect(fields(card)[0].value).toBe("04");
   card.hass = {...hass, language: "it-IT"};
