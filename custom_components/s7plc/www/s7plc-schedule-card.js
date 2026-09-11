@@ -248,6 +248,20 @@
         @media (max-width:380px) { header { padding:18px 12px 14px; }
           thead th:first-child, tbody th { padding-left:12px; } th,td { padding-left:4px; padding-right:4px; }
           footer { padding-left:12px; padding-right:12px; } }
+        @media (max-width:600px), (any-pointer:coarse) {
+          .scroll { max-height:min(50vh,420px); max-height:min(50dvh,420px);
+            overflow-y:auto; scroll-padding-block:48px 12px; }
+          thead th { position:sticky; top:0; z-index:1; }
+          thead th:first-child { width:24%; }
+          thead th:first-child, tbody th { padding-left:12px; }
+          th, td { padding-left:4px; padding-right:4px; }
+          .time { gap:2px; }
+          input { width:44px; height:44px; }
+          header { padding:18px 12px 14px; }
+          footer { padding:12px; }
+          .buttons { margin-top:8px; }
+          button { min-height:44px; flex:1 1 100px; }
+        }
       `;
       const card = el("ha-card");
       const header = el("header");
@@ -281,14 +295,27 @@
             input.autocomplete = "off";
             input.setAttribute("aria-label", `${(row.name || `${this._t("row")} ${pad(row.index + 1)}`)} — ${caption}: ${part}`);
             input.title = `${row[key]} · ${part} 00–${max}`;
+            let selectAfterClick = false;
+            input.addEventListener("pointerdown", () => {
+              selectAfterClick = this.shadowRoot.activeElement !== input;
+            });
+            input.addEventListener("pointercancel", () => {selectAfterClick = false;});
             input.addEventListener("focus", (event) => {
               if (!cell.draft && ![hours, minutes].includes(event.relatedTarget)) {
                 const info = this._info(cell);
                 cell.focusBase = info.key; cell.focusFormat = info.format;
               }
+              input.select();
+            });
+            input.addEventListener("click", () => {
+              // Touch/click default handling can collapse the focus selection.
+              // Reapply it on first entry only; later taps may position a caret.
+              if (selectAfterClick) input.select();
+              selectAfterClick = false;
             });
             input.addEventListener("input", () => this._edit(cell));
             input.addEventListener("blur", () => {
+              selectAfterClick = false;
               if (/^\d{1,2}$/.test(input.value)) input.value = pad(input.value);
               if (cell.draft) {
                 cell.draft.hours = hours.value; cell.draft.minutes = minutes.value;

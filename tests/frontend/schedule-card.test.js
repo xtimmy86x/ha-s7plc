@@ -81,6 +81,43 @@ test("typing survives HA updates and only explicit Save writes the edited WORD",
   expect(card._cells[0].draft).toBeNull();
 });
 
+test("first pointer entry selects both digits while later taps preserve the chosen caret", () => {
+  const {card, hass} = setup();
+  for (const input of fields(card).slice(0, 2)) {
+    input.dispatchEvent(new Event("pointerdown")); input.focus();
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 2]);
+    // Simulate the browser placing its caret before dispatching click.
+    input.setSelectionRange(2, 2); input.click();
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 2]);
+    input.dispatchEvent(new Event("pointerdown")); input.setSelectionRange(1, 1); input.click();
+    expect([input.selectionStart, input.selectionEnd]).toEqual([1, 1]);
+  }
+  expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("keyboard focus selects digits; editing the last slot survives updates and still requires Save", async () => {
+  const {card, hass, update} = setup({count: 12});
+  const hours = fields(card)[44], minutes = fields(card)[45];
+  const replace = (input, value) => {
+    input.focus(); expect([input.selectionStart, input.selectionEnd]).toEqual([0, 2]);
+    input.setRangeText(value, input.selectionStart, input.selectionEnd, "end");
+    input.dispatchEvent(new Event("input", {bubbles: true}));
+  };
+  replace(hours, "23");
+  update("number.on_0", 1280);
+  expect(card.shadowRoot.activeElement).toBe(hours);
+  expect([hours.selectionStart, hours.selectionEnd]).toEqual([2, 2]);
+  expect(hours.value).toBe("23");
+  replace(minutes, "59");
+  expect(hass.callService).not.toHaveBeenCalled();
+  const cancel = card.shadowRoot.querySelector(".reset"); cancel.focus(); cancel.click();
+  expect([hours.value, minutes.value]).toEqual(["04", "00"]);
+  replace(hours, "23"); replace(minutes, "59");
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenCalledExactlyOnceWith("number", "set_value", {entity_id: "number.on_11", value: 9049});
+  expect(card._cells[22].draft).toBeNull();
+});
+
 test("remote change between focusing hours and editing minutes prevents stale overwrite", async () => {
   const {card, hass, update} = setup();
   fields(card)[0].focus(); update("number.on_0", 1280); edit(fields(card)[1], "45");
