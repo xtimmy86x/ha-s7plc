@@ -106,6 +106,12 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   mobile Safari/Chrome when changing these styles. Also check a wide hybrid
   touchscreen/mouse desktop: targets should be enlarged while the table keeps
   its full height and the desktop layout.
+- `schedule-timeline.test.js` covers the optional daily timeline: mixed time
+  formats, overnight ranges, exact overlap intervals, touching endpoints,
+  identical times, invalid/missing entities, drafts, explicit Save/Cancel and
+  confirmation/failure states. It also checks editor opt-in and accessible,
+  localized labels. These DOM tests verify data and interaction, not browser
+  rendering; check the timeline in HA with narrow/wide cards and light/dark themes.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 

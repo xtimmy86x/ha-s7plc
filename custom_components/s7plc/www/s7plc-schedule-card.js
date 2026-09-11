@@ -22,6 +22,12 @@
       incompatible: "This S7 entity is not a supported clock value. Check datatype and conversions.",
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
       editor_title: "Title", editor_name: "Slot name", editor_raw: "Show entity values",
+      editor_timeline: "Show daily timeline", timeline_title: "Daily timeline",
+      timeline_hint: "Daily intervals from HA times. The PLC executes the schedule.",
+      timeline_preview: "Preview includes local or unconfirmed changes.",
+      timeline_overlap: "Overlapping slots", timeline_clear: "No overlaps among displayed intervals.",
+      timeline_overnight: "Crosses midnight", timeline_equal: "Identical times: interval not inferred.",
+      timeline_omitted: "Interval not shown: check the time fields.",
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
       editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
       editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
@@ -55,6 +61,12 @@
       incompatible: "Questa entità S7 non espone un orario supportato. Verifica tipo e conversioni.",
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
       editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori delle entità",
+      editor_timeline: "Mostra timeline giornaliera", timeline_title: "Timeline giornaliera",
+      timeline_hint: "Intervalli giornalieri dagli orari di HA. La programmazione è eseguita dal PLC.",
+      timeline_preview: "L’anteprima include modifiche locali o non ancora confermate.",
+      timeline_overlap: "Fasce sovrapposte", timeline_clear: "Nessuna sovrapposizione tra gli intervalli visualizzati.",
+      timeline_overnight: "Attraversa mezzanotte", timeline_equal: "Orari uguali: intervallo non dedotto.",
+      timeline_omitted: "Intervallo non mostrato: controlla i campi orario.",
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
       editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
       editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
@@ -146,6 +158,9 @@
       if (!config || !Array.isArray(config.rows)) {
         throw new Error("Configure rows with name, on_entity and off_entity.");
       }
+      if (config.show_timeline != null && typeof config.show_timeline !== "boolean") {
+        throw new Error("show_timeline must be a boolean.");
+      }
       if (!["auto", "bcd", "hhmm"].includes(legacyFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
       const seen = new Set();
       const rows = config.rows.map((row, i) => {
@@ -188,7 +203,10 @@
     static getConfigElement() { return document.createElement("s7plc-schedule-card-editor"); }
     static getStubConfig() { return { rows: [] }; }
     get hass() { return this._hass; }
-    getCardSize() { return Math.ceil(((this._config?.rows.length ?? 12) * 66 + 170) / 50); }
+    getCardSize() {
+      const rows = this._config?.rows.length ?? 12;
+      return Math.ceil((rows * 66 + 170 + (this._config?.show_timeline ? rows * 65 + 180 : 0)) / 50);
+    }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
     connectedCallback() {
       if (!this._timer) this._timer = setInterval(() => {
@@ -245,6 +263,23 @@
         .save { background:var(--primary-color,#0288d1); color:var(--text-primary-color,#fff); }
         .reset { background:transparent; color:var(--primary-color,#0288d1); }
         button:disabled { opacity:.45; cursor:default; }
+        .timeline { padding:16px 12px; border-top:1px solid var(--divider-color,#e7edf0); }
+        .timeline h3 { margin:0 0 6px; font-size:16px; }
+        .timeline p { margin:6px 0 12px; font-size:12px; color:var(--secondary-text-color,#647887); }
+        .timeline-axis { display:flex; justify-content:space-between; direction:ltr; font-size:11px;
+          color:var(--secondary-text-color,#647887); margin:12px 0 8px; }
+        .timeline-row { margin:12px 0; }
+        .timeline-label { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px;
+          font-size:12px; margin-bottom:5px; overflow-wrap:anywhere; }
+        .timeline-detail { color:var(--secondary-text-color,#647887); }
+        .timeline-track { height:14px; position:relative; overflow:hidden; border-radius:3px; direction:ltr;
+          background:repeating-linear-gradient(to right, var(--divider-color,#e7edf0) 0 1px, transparent 1px 25%),
+            var(--secondary-background-color,#f4f7f9); }
+        .timeline-bar { position:absolute; top:0; bottom:0; min-width:1px; background:var(--primary-color,#0288d1); }
+        .timeline-row[data-preview] .timeline-bar { background:repeating-linear-gradient(135deg,
+          var(--primary-color,#0288d1) 0 4px, var(--card-background-color,#fff) 4px 6px); }
+        .timeline-overlaps .timeline-bar { background:var(--warning-color,#c87800); }
+        .timeline-row[data-overlap] .timeline-label { border-inline-start:3px solid var(--warning-color,#c87800); padding-inline-start:6px; }
         @media (max-width:380px) { header { padding:18px 12px 14px; }
           thead th:first-child, tbody th { padding-left:12px; } th,td { padding-left:4px; padding-right:4px; }
           footer { padding-left:12px; padding-right:12px; } }
@@ -350,7 +385,14 @@
       });
       this._save.addEventListener("click", () => void this._saveChanges());
       buttons.append(this._reset, this._save); footer.append(this._status, buttons);
-      card.append(header, scroll, footer); this.shadowRoot.append(style, card);
+      card.append(header, scroll, footer);
+      this._timeline = null; this._timelineSignature = null;
+      if (this._config.show_timeline) {
+        this._timeline = el("section", "timeline");
+        this._timeline.setAttribute("aria-label", this._t("timeline_title"));
+        card.append(this._timeline);
+      }
+      this.shadowRoot.append(style, card);
     }
 
     _info(cell) {
@@ -436,6 +478,86 @@
         pending ? this._t("pending_count", {count: pending}) :
         dirty ? this._t(invalid ? "invalid_count" : "dirty_count", {count: dirty}) :
         this._message || this._t(this._config.rows.length ? "hint" : "configure");
+      this._syncTimeline();
+    }
+
+    _syncTimeline() {
+      if (!this._timeline) return;
+      const rows = this._config.rows.map((row, index) => {
+        const cells = this._cells.slice(index * 2, index * 2 + 2);
+        const times = cells.map(cell => {
+          const info = this._info(cell), time = cell.draft ?? info.time;
+          if (!info.available || !info.compatible || this._validate(cell) || cell.error ||
+              !time || encode(time.hours, time.minutes) === null) return null;
+          return Number(time.hours) * 60 + Number(time.minutes);
+        });
+        const [start, end] = times;
+        const valid = times.every(time => time !== null);
+        const ranges = !valid || start === end ? [] : start < end ? [[start, end]] :
+          [[0, end], [start, 1440]].filter(([a, b]) => a < b);
+        return {name: row.name || `${this._t("row")} ${pad(index + 1)}`, start, end, valid, ranges,
+          preview: cells.some(cell => cell.draft || cell.pending),
+          pending: cells.some(cell => cell.pending)};
+      });
+      const signature = JSON.stringify([language(this._hass), rows]);
+      if (signature === this._timelineSignature) return;
+      this._timelineSignature = signature;
+      // Half-open intervals: touching endpoints do not overlap. Split overnight
+      // slots at midnight, then sweep endpoints without assuming PLC enable state.
+      const events = new Map();
+      for (const row of rows) for (const [start, end] of row.ranges) {
+        events.set(start, (events.get(start) ?? 0) + 1);
+        events.set(end, (events.get(end) ?? 0) - 1);
+      }
+      const overlaps = [];
+      let active = 0, previous = 0;
+      for (const [minute, delta] of [...events].sort(([a], [b]) => a - b)) {
+        if (active > 1 && previous < minute) {
+          const last = overlaps.at(-1);
+          if (last?.[1] === previous) last[1] = minute;
+          else overlaps.push([previous, minute]);
+        }
+        active += delta; previous = minute;
+      }
+      const clock = minute => `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+      const track = (ranges, label) => {
+        const node = el("div", "timeline-track");
+        node.setAttribute("role", "img"); node.setAttribute("aria-label", label);
+        for (const [start, end] of ranges) {
+          const bar = el("span", "timeline-bar"); bar.setAttribute("aria-hidden", "true");
+          bar.dataset.start = start; bar.dataset.end = end;
+          bar.style.left = `${start / 1440 * 100}%`; bar.style.width = `${(end - start) / 1440 * 100}%`;
+          node.append(bar);
+        }
+        return node;
+      };
+      const nodes = [el("h3", "", this._t("timeline_title")),
+        el("p", "timeline-hint", this._t(rows.some(row => row.preview) ? "timeline_preview" : "timeline_hint"))];
+      const axis = el("div", "timeline-axis"); axis.setAttribute("aria-hidden", "true");
+      for (const minute of [0, 360, 720, 1080, 1440]) axis.append(el("span", "", clock(minute)));
+      nodes.push(axis);
+      for (const row of rows) {
+        const overlap = row.ranges.some(([a, b]) => overlaps.some(([c, d]) => a < d && c < b));
+        const node = el("div", "timeline-row");
+        node.toggleAttribute("data-preview", row.preview); node.toggleAttribute("data-overlap", overlap);
+        const details = [];
+        if (!row.valid) details.push(this._t("timeline_omitted"));
+        else {
+          details.push(`${clock(row.start)}–${clock(row.end)}`);
+          if (row.start === row.end) details.push(this._t("timeline_equal"));
+          else if (row.start > row.end) details.push(this._t("timeline_overnight"));
+          if (overlap) details.push(this._t("timeline_overlap"));
+        }
+        if (row.preview) details.push(this._t(row.pending ? "waiting" : "modified"));
+        const label = el("div", "timeline-label");
+        label.append(el("span", "", row.name), el("span", "timeline-detail", details.join(" · ")));
+        node.append(label, track(row.ranges, `${row.name}: ${details.join(" · ")}`)); nodes.push(node);
+      }
+      if (overlaps.length) {
+        const label = `${this._t("timeline_overlap")}: ${overlaps.map(([a, b]) => `${clock(a)}–${clock(b)}`).join(", ")}`;
+        const node = el("div", "timeline-overlaps"); node.append(el("p", "", label), track(overlaps, label)); nodes.push(node);
+      } else nodes.push(el("p", "timeline-clear", this._t("timeline_clear")));
+      this._timeline.replaceChildren(...nodes);
     }
 
     async _saveChanges() {
@@ -866,6 +988,9 @@
       const raw = field(this.shadowRoot, this._t("editor_raw"), el("input"));
       raw.type = "checkbox"; raw.checked = Boolean(this._config.show_raw);
       raw.addEventListener("change", () => {this._config.show_raw = raw.checked; this._emit();});
+      const timeline = field(this.shadowRoot, this._t("editor_timeline"), el("input", "show-timeline"));
+      timeline.type = "checkbox"; timeline.checked = this._config.show_timeline === true;
+      timeline.addEventListener("change", () => {this._config.show_timeline = timeline.checked; this._emit();});
       this._plcSelect = field(this.shadowRoot, this._t("editor_plc"), el("select", "plc-filter"));
       this._plcSelect.addEventListener("change", () => { this._plc = this._plcSelect.value; this._refresh(); });
       const sections = el("div", "actions");
