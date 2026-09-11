@@ -226,16 +226,6 @@ S7 formats are detected automatically; no format configuration is needed.
 `show_raw` defaults to `false` and displays the HA entity value labelled WORD or
 HHMM. `confirmation_timeout` defaults to 15 seconds and accepts 1–300 seconds.
 
-## Moving from the standalone BCD card
-
-The standalone `custom:bcd-schedule-card` and bundled
-`custom:s7plc-schedule-card` have different names and can coexist.
-
-To migrate an existing card, keep its configuration and change only `type` to
-`custom:s7plc-schedule-card`. The existing `rows`, names, entity IDs, `show_raw`
-and timeout remain supported. Remove the old `/local/bcd-schedule-card.js`
-resource only after no dashboard uses the standalone card anymore.
-
 ## Troubleshooting
 
 - If the card is not listed, confirm that the installed integration contains
