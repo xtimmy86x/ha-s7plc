@@ -346,3 +346,89 @@ test("picker helper failure leaves searchable HTML controls usable", async () =>
     expect(editor.shadowRoot.querySelector(".entity-search")).not.toBeNull();
   } finally {delete window.loadCardHelpers;}
 });
+
+test("HHMM validates every minute and never guesses the encoding from the value", () => {
+  let valid = 0;
+  for (let n = 0; n <= 2359; n++) {
+    const time = Card.decodeHHMM(n);
+    if (time) {valid++; expect(Card.encodeTime(time.hours, time.minutes, "hhmm")).toBe(n);}
+  }
+  expect(valid).toBe(1440);
+  expect(Card.decodeHHMM("400.0")).toEqual({hours: "04", minutes: "00"});
+  expect(Card.decodeHHMM(1024)).toEqual({hours: "10", minutes: "24"});
+  expect(Card.decodeWord(1024)).toEqual({hours: "04", minutes: "00"});
+  for (const raw of ["", null, true, -1, 60, 1260, 2399, 2400, 65535, "400.5", "04:00", "unknown"]) expect(Card.decodeHHMM(raw)).toBeNull();
+  expect(() => new Card().setConfig({rows: [], time_format: "auto"})).toThrow(/time_format/);
+});
+
+test.each(["number", "input_number"])("HHMM %s writes HA units and waits for matching feedback", async domain => {
+  const {card, hass, update} = setup({delayed: true});
+  const id = `${domain}.clock`;
+  hass.states[id] = {state: "400", attributes: {
+    min: 0, max: 2359, step: 1,
+    ...(domain === "number" ? {s7_raw_word: false, s7_time_format: "hhmm"} : {}),
+  }};
+  card.setConfig({time_format: "hhmm", show_raw: true, rows: [{on_entity: id}]});
+  card.hass = hass;
+  expect(fields(card)[0].value).toBe("04");
+  expect(card.shadowRoot.textContent).toContain("HHMM 400");
+  edit(fields(card)[0], "23"); edit(fields(card)[1], "59");
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenCalledExactlyOnceWith(domain, "set_value", {entity_id: id, value: 2359});
+  update(id, 400);
+  expect(fields(card)[0].disabled).toBe(true);
+  expect(fields(card)[0].value).toBe("23");
+  update(id, 2359);
+  expect(card._cells[0].draft).toBeNull();
+  expect(fields(card)[0].disabled).toBe(false);
+  edit(fields(card)[0], "00"); edit(fields(card)[1], "00");
+  await clickSave(card);
+  expect(hass.callService).toHaveBeenLastCalledWith(domain, "set_value", {entity_id: id, value: 0});
+  update(id, 0); expect(card._cells[0].pending).toBeNull();
+});
+
+test("S7 metadata prevents double conversion and HHMM limits use HA values", async () => {
+  const {card, hass, update} = setup();
+  const rows = [{on_entity: "number.on_0"}];
+  card.setConfig({time_format: "hhmm", rows}); card.hass = hass;
+  expect(fields(card)[0].disabled).toBe(true); // Raw S7 WORD in HHMM mode.
+  hass.states["number.on_0"].attributes = {min: 0, max: 2359, step: 1, s7_raw_word: false, s7_time_format: "hhmm"};
+  card.setConfig({rows}); card.hass = hass;
+  expect(fields(card)[0].disabled).toBe(true); // Converted S7 value in default BCD mode.
+  card.setConfig({time_format: "hhmm", rows}); update("number.on_0", 400);
+  edit(fields(card)[1], "60");
+  await card._saveChanges(); expect(hass.callService).not.toHaveBeenCalled();
+  edit(fields(card)[1], "30"); hass.states["number.on_0"].attributes.max = 429; card.hass = {...hass};
+  expect(card.shadowRoot.textContent).toContain("Value 430 exceeds maximum 429");
+  await card._saveChanges(); expect(hass.callService).not.toHaveBeenCalled();
+  hass.states["number.on_0"].attributes.max = 2359;
+  hass.states["number.on_0"].attributes.step = 100; card.hass = {...hass};
+  expect(card.shadowRoot.textContent).toContain("Incompatible entity step");
+  hass.states["number.on_0"].attributes.step = 1;
+  update("number.on_0", 500);
+  expect(card.shadowRoot.textContent).toContain("Value changed in HA");
+  await card._saveChanges(); expect(hass.callService).not.toHaveBeenCalled();
+});
+
+test("editor selects HHMM explicitly, filters S7 formats and updates summaries", () => {
+  const {hass} = setup();
+  hass.states["number.logo"] = {state: "430", attributes: {s7_raw_word: false, s7_time_format: "hhmm", friendly_name: "LOGO clock"}};
+  hass.states["number.scaled"] = {state: "430", attributes: {s7_raw_word: false}};
+  hass.entities = {"number.logo": {device_id: "logo"}};
+  hass.devices = {logo: {name: "LOGO garden"}};
+  const {editor, configs} = setupEditor(hass, [{on_entity: "number.logo", off_entity: "number.off_0"}]);
+  const format = editor.shadowRoot.querySelector(".time-format");
+  expect(format.value).toBe("bcd");
+  expect(editor.shadowRoot.querySelector(".picker-note").textContent).toContain("incompatible");
+  choose(format, "hhmm");
+  expect(configs.at(-1).time_format).toBe("hhmm");
+  expect(configs.at(-1).rows[0]).toEqual({on_entity: "number.logo", off_entity: "number.off_0"});
+  expect(editor.shadowRoot.querySelector("summary").textContent).toContain("04:30");
+  expect(editor.shadowRoot.querySelector(".plc-filter").textContent).toContain("LOGO garden");
+  const on = editor.shadowRoot.querySelector(".entity-select");
+  expect([...on.options].map(o => o.value)).toEqual(["", "number.logo"]);
+  choose(format, "bcd");
+  expect(configs.at(-1).time_format).toBe("bcd");
+  expect([...on.options].some(o => o.value === "number.on_0")).toBe(true);
+  expect(hass.callService).not.toHaveBeenCalled();
+});

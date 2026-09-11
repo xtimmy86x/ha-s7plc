@@ -9,20 +9,23 @@
       cancelled: "Local changes discarded.", unavailable: "Unavailable", missing: "Entity not found",
       invalid_time: "Enter hours 00–23 and minutes 00–59.",
       conflict: "Value changed in HA. Cancel and read it again before editing.",
-      below_min: "WORD {word} is below minimum {min}.", above_max: "WORD {word} exceeds maximum {max}.",
-      invalid_step: "Incompatible entity step: use step 1 for the raw WORD.",
+      below_min: "Value {value} is below minimum {min}.", above_max: "Value {value} exceeds maximum {max}.",
+      invalid_step: "Incompatible entity step: use step 1 for clock values.",
       unconfirmed: "Value sent but not confirmed by HA. Check before retrying.",
       waiting: "Waiting for HA…", sending: "Sending…", modified: "Modified", saving: "Saving…",
       saving_status: "Sending changes to Home Assistant…", hint: "Edit hours and minutes, then save.",
-      saved: "Times updated in Home Assistant.", invalid_bcd: "Invalid BCD ({raw}).",
+      saved: "Times updated in Home Assistant.", invalid_bcd: "Invalid BCD ({raw}).", invalid_hhmm: "Invalid HHMM ({raw}).",
       write_failed: "Write failed: {error}", pending_count: "{count} times awaiting confirmation from Home Assistant…",
       failed_count: "{sent} sends succeeded, {failed} failed. Check the highlighted fields.",
       invalid_count: "{count} modified times. Correct the highlighted fields.",
       dirty_count: "{count} modified times. Press Save changes to send them.",
-      incompatible: "This S7 entity is not a raw writable WORD. Check datatype and conversions.",
+      incompatible: "This S7 entity is incompatible with the selected value format. Check datatype and conversions.",
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
-      editor_title: "Title", editor_name: "Slot name", editor_raw: "Show raw WORD values",
+      editor_title: "Title", editor_name: "Slot name", editor_raw: "Show entity values",
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
+      editor_format: "Entity value format", editor_bcd: "Raw BCD WORD (1024 = 04:00)",
+      editor_hhmm: "Converted HHMM (400 = 04:00)",
+      editor_hint_hhmm: "Select numbers using the LOGO! time BCD conversion, or HHMM helpers. HA writes HHMM; the integration packs the PLC WORD.",
       editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
       editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
       editor_expand: "Expand all", editor_collapse: "Collapse all",
@@ -37,20 +40,23 @@
       cancelled: "Modifiche locali annullate.", unavailable: "Non disponibile", missing: "Entità non trovata",
       invalid_time: "Inserisci ore 00–23 e minuti 00–59.",
       conflict: "Valore cambiato in HA. Annulla e rileggi prima di modificare.",
-      below_min: "WORD {word} inferiore al minimo {min}.", above_max: "WORD {word} superiore al massimo {max}.",
-      invalid_step: "Passo dell'entità incompatibile: usa step 1 per il WORD.",
+      below_min: "Valore {value} inferiore al minimo {min}.", above_max: "Valore {value} superiore al massimo {max}.",
+      invalid_step: "Passo dell'entità incompatibile: usa step 1 per gli orari.",
       unconfirmed: "Valore inviato, ma non confermato da HA. Verifica prima di riprovare.",
       waiting: "In attesa di HA…", sending: "Invio…", modified: "Modificato", saving: "Salvataggio…",
       saving_status: "Invio delle modifiche a Home Assistant…", hint: "Modifica ore e minuti, poi salva.",
-      saved: "Orari aggiornati in Home Assistant.", invalid_bcd: "BCD non valido ({raw}).",
+      saved: "Orari aggiornati in Home Assistant.", invalid_bcd: "BCD non valido ({raw}).", invalid_hhmm: "HHMM non valido ({raw}).",
       write_failed: "Scrittura fallita: {error}", pending_count: "{count} orari in attesa di conferma da Home Assistant…",
       failed_count: "{sent} invii riusciti, {failed} non riusciti. Controlla i campi segnalati.",
       invalid_count: "{count} orari modificati. Correggi i campi segnalati.",
       dirty_count: "{count} orari modificati. Premi Salva modifiche per inviarli.",
-      incompatible: "Questa entità S7 non è un WORD grezzo scrivibile. Verifica tipo e conversioni.",
+      incompatible: "Questa entità S7 non è compatibile con il formato scelto. Verifica tipo e conversioni.",
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
-      editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori WORD grezzi",
+      editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori delle entità",
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
+      editor_format: "Formato valori delle entità", editor_bcd: "WORD BCD grezzo (1024 = 04:00)",
+      editor_hhmm: "HHMM convertito (400 = 04:00)",
+      editor_hint_hhmm: "Seleziona number con conversione LOGO! time BCD o helper HHMM. HA invia HHMM; l’integrazione converte nel WORD del PLC.",
       editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
       editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
       editor_expand: "Espandi tutte", editor_collapse: "Chiudi tutte",
@@ -72,9 +78,20 @@
     const n = Number(text);
     return Number.isInteger(n) && n >= 0 && n <= 65535 ? n : null;
   };
-  const decode = (raw) => {
+  const valueFormat = config => config?.time_format ?? "bcd";
+  const compatible = (state, format) => {
+    const attrs = state?.attributes ?? {};
+    if (attrs.s7_time_format != null) return attrs.s7_time_format === format;
+    if (attrs.s7_raw_word === true) return format === "bcd";
+    return attrs.s7_raw_word !== false;
+  };
+  const decode = (raw, format = "bcd") => {
     const n = parseWord(raw);
     if (n === null) return null;
+    if (format === "hhmm") {
+      const hours = Math.floor(n / 100), minutes = n % 100;
+      return hours <= 23 && minutes <= 59 ? {hours: pad(hours), minutes: pad(minutes)} : null;
+    }
     const digits = [n >> 12, (n >> 8) & 15, (n >> 4) & 15, n & 15];
     if (digits.some((d) => d > 9)) return null;
     const hours = digits[0] * 10 + digits[1];
@@ -82,10 +99,11 @@
     if (hours > 23 || minutes > 59) return null;
     return { hours: pad(hours), minutes: pad(minutes) };
   };
-  const encode = (hours, minutes) => {
+  const encode = (hours, minutes, format = "bcd") => {
     if (!/^\d{1,2}$/.test(String(hours)) || !/^\d{1,2}$/.test(String(minutes))) return null;
     const h = Number(hours), m = Number(minutes);
     if (h > 23 || m > 59) return null;
+    if (format === "hhmm") return h * 100 + m;
     return (Math.floor(h / 10) << 12) | ((h % 10) << 8) |
       (Math.floor(m / 10) << 4) | (m % 10);
   };
@@ -108,12 +126,14 @@
 
     // These pure helpers also make the encoding independently testable.
     static decodeWord(raw) { return decode(raw); }
-    static encodeTime(hours, minutes) { return encode(hours, minutes); }
+    static encodeTime(hours, minutes, format = "bcd") { return encode(hours, minutes, format); }
+    static decodeHHMM(raw) { return decode(raw, "hhmm"); }
 
     setConfig(config) {
       if (!config || !Array.isArray(config.rows)) {
         throw new Error("Configure rows with name, on_entity and off_entity.");
       }
+      if (!["bcd", "hhmm"].includes(valueFormat(config))) throw new Error("time_format must be bcd or hhmm.");
       const seen = new Set();
       const rows = config.rows.map((row, i) => {
         if (!row || typeof row !== "object") throw new Error(`Invalid row ${i + 1}.`);
@@ -288,8 +308,10 @@
       const state = this._hass?.states?.[cell.entity];
       const raw = state?.state;
       const available = Boolean(state) && raw !== "unknown" && raw !== "unavailable";
-      const word = parseWord(raw);
-      return { state, raw, available, word, time: decode(raw), key: word ?? String(raw) };
+      const value = parseWord(raw);
+      const format = valueFormat(this._config), isCompatible = compatible(state, format);
+      return { state, raw, available, value, compatible: isCompatible,
+        time: isCompatible ? decode(raw, format) : null, key: value ?? String(raw) };
     }
 
     _edit(cell) {
@@ -300,7 +322,7 @@
         hours: cell.hours.value, minutes: cell.minutes.value,
       };
       cell.error = "";
-      if (encode(cell.draft.hours, cell.draft.minutes) === info.word && info.word !== null) cell.draft = null;
+      if (encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config)) === info.value && info.value !== null) cell.draft = null;
       this._message = "";
       this._sync();
     }
@@ -308,19 +330,19 @@
     _validate(cell) {
       if (!cell.draft) return "";
       const info = this._info(cell);
-      if (info.state?.attributes?.s7_raw_word === false) return this._t("incompatible");
+      if (!info.compatible) return this._t("incompatible");
       if (!info.available) return this._t("unavailable");
-      const word = encode(cell.draft.hours, cell.draft.minutes);
-      if (word === null) return this._t("invalid_time");
-      if (info.key !== cell.draft.base && info.word !== word) {
+      const value = encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config));
+      if (value === null) return this._t("invalid_time");
+      if (info.key !== cell.draft.base && info.value !== value) {
         return this._t("conflict");
       }
       const attrs = info.state.attributes ?? {};
-      if (attrs.min != null && word < Number(attrs.min)) return this._t("below_min", {word, min: attrs.min});
-      if (attrs.max != null && word > Number(attrs.max)) return this._t("above_max", {word, max: attrs.max});
+      if (attrs.min != null && value < Number(attrs.min)) return this._t("below_min", {value, min: attrs.min});
+      if (attrs.max != null && value > Number(attrs.max)) return this._t("above_max", {value, max: attrs.max});
       const step = Number(attrs.step);
       if (Number.isFinite(step) && step > 0) {
-        const steps = (word - Number(attrs.min ?? 0)) / step;
+        const steps = (value - Number(attrs.min ?? 0)) / step;
         if (Math.abs(steps - Math.round(steps)) > 1e-6) return this._t("invalid_step");
       }
       return "";
@@ -331,7 +353,7 @@
       let dirty = 0, pending = 0, invalid = 0;
       for (const c of this._cells) {
         const info = this._info(c);
-        if (c.pending?.accepted && info.available && info.word === c.pending.word) {
+        if (c.pending?.accepted && info.available && info.compatible && info.value === c.pending.value) {
           c.pending = null; c.draft = null; c.error = "";
         } else if (c.pending?.accepted && Date.now() > c.pending.deadline) {
           c.pending = null;
@@ -342,17 +364,17 @@
           const value = c.draft ?? info.time;
           c.hours.value = value?.hours ?? ""; c.minutes.value = value?.minutes ?? "";
         }
-        c.hours.disabled = c.minutes.disabled = !info.available || info.state?.attributes?.s7_raw_word === false || this._saving || Boolean(c.pending);
+        c.hours.disabled = c.minutes.disabled = !info.available || !info.compatible || this._saving || Boolean(c.pending);
         let problem = c.pending ? "" : (c.error || this._validate(c));
-        if (info.state?.attributes?.s7_raw_word === false) problem = this._t("incompatible");
+        if (!info.compatible) problem = this._t("incompatible");
         else if (!info.available) problem = !c.entity ? this._t("choose_entity") : info.state ? this._t("unavailable") : this._t("missing");
-        else if (!c.draft && !info.time) problem = this._t("invalid_bcd", {raw: String(info.raw)});
+        else if (!c.draft && !info.time) problem = this._t(valueFormat(this._config) === "hhmm" ? "invalid_hhmm" : "invalid_bcd", {raw: String(info.raw)});
         c.note.textContent = problem || (c.pending ? (c.pending.accepted ? this._t("waiting") : this._t("sending")) : c.draft ? this._t("modified") : "");
         c.td.toggleAttribute("data-error", Boolean(problem));
         c.td.toggleAttribute("data-dirty", Boolean(c.draft));
         c.hours.setAttribute("aria-invalid", String(Boolean(problem)));
         c.minutes.setAttribute("aria-invalid", String(Boolean(problem)));
-        c.raw.textContent = this._config.show_raw && info.available ? `WORD ${String(info.raw)}` : "";
+        c.raw.textContent = this._config.show_raw && info.available ? `${valueFormat(this._config) === "hhmm" ? "HHMM" : "WORD"} ${String(info.raw)}` : "";
         if (c.draft && !c.pending) { dirty++; if (this._validate(c)) invalid++; }
         if (c.pending) pending++;
       }
@@ -380,14 +402,14 @@
         // Recheck after each await: availability and values can change mid-save.
         const problem = this._validate(cell);
         if (problem) { cell.error = problem; failed++; continue; }
-        const word = encode(cell.draft.hours, cell.draft.minutes);
-        if (this._info(cell).word === word) { cell.draft = null; cell.error = ""; continue; }
+        const value = encode(cell.draft.hours, cell.draft.minutes, valueFormat(this._config));
+        if (this._info(cell).value === value) { cell.draft = null; cell.error = ""; continue; }
         cell.error = "";
-        cell.pending = { word, accepted: false };
+        cell.pending = { value, accepted: false };
         this._sync();
         try {
           await this._hass.callService(cell.entity.split(".")[0], "set_value", {
-            entity_id: cell.entity, value: word,
+            entity_id: cell.entity, value,
           });
           if (generation !== this._generation) return;
           cell.pending.accepted = true;
@@ -471,7 +493,7 @@
 
     _options() {
       return Object.entries(this._hass?.states ?? {})
-        .filter(([id, state]) => /^(number|input_number)\./.test(id) && state.attributes?.s7_raw_word !== false)
+        .filter(([id, state]) => /^(number|input_number)\./.test(id) && compatible(state, valueFormat(this._config)))
         .map(([id, state]) => [id, state.attributes?.friendly_name || id])
         .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
     }
@@ -506,9 +528,11 @@
     _refresh() {
       if (!this._plcSelect) return;
       const options = this._options();
+      this._formatHint.textContent = this._t(valueFormat(this._config) === "hhmm" ? "editor_hint_hhmm" : "editor_hint");
       const devices = new Map();
       for (const [id] of options) {
-        if (this._hass.states[id].attributes?.s7_raw_word !== true) continue;
+        const attrs = this._hass.states[id].attributes;
+        if (attrs?.s7_raw_word !== true && attrs?.s7_time_format !== "hhmm") continue;
         const deviceId = this._deviceId(id), device = this._hass?.devices?.[deviceId];
         if (device) devices.set(deviceId, device.name_by_user || device.name || deviceId);
       }
@@ -530,12 +554,13 @@
         warning.textContent = !row.on_entity || !row.off_entity ? this._t("editor_incomplete") : "";
         for (const {key, caption, picker, search, note} of fields) {
           const id = row[key] ?? "", state = this._hass?.states?.[id];
-          const time = decode(state?.state);
+          const isCompatible = compatible(state, valueFormat(this._config));
+          const time = isCompatible ? decode(state?.state, valueFormat(this._config)) : null;
           descriptions[key].textContent = `${this._t(caption)}: ${state?.attributes?.friendly_name || id || "—"}${time ? ` · ${time.hours}:${time.minutes}` : ""}`;
           descriptions[key].title = id;
           const duplicate = id && this._config.rows.some(other =>
             ["on_entity", "off_entity"].some(field => (other !== row || field !== key) && other[field] === id));
-          const problem = id && (!state || state.attributes?.s7_raw_word === false) ? this._t("editor_unavailable") :
+          const problem = id && (!state || !isCompatible) ? this._t("editor_unavailable") :
             duplicate ? this._t("editor_in_use") : "";
           note.textContent = problem;
           if (problem) warning.textContent = problem;
@@ -604,7 +629,8 @@
         button:focus-visible, summary:focus-visible { outline:2px solid var(--primary-color,#0288d1); outline-offset:2px; }
         .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
       `;
-      this.shadowRoot.append(style, el("p", "hint", this._t("editor_hint")));
+      this._formatHint = el("p", "hint");
+      this.shadowRoot.append(style, this._formatHint);
       const field = (parent, text, input) => {
         const label = el("label", "", text); label.append(input); parent.append(label); return input;
       };
@@ -613,6 +639,15 @@
       title.placeholder = this._t("title");
       title.addEventListener("input", () => {
         if (title.value) this._config.title = title.value; else delete this._config.title;
+        this._emit();
+      });
+      const format = field(this.shadowRoot, this._t("editor_format"), el("select", "time-format"));
+      for (const value of ["bcd", "hhmm"]) {
+        const option = el("option", "", this._t(`editor_${value}`)); option.value = value; format.append(option);
+      }
+      format.value = valueFormat(this._config);
+      format.addEventListener("change", () => {
+        this._config.time_format = format.value;
         this._emit();
       });
       const timeout = field(this.shadowRoot, this._t("editor_timeout"), el("input"));
@@ -711,7 +746,7 @@
   window.customCards = window.customCards || [];
   if (!window.customCards.some((card) => card.type === "s7plc-schedule-card")) {
     window.customCards.push({ type: "s7plc-schedule-card", name: "S7 PLC — Schedule",
-      description: "Editable on/off schedule stored in raw BCD WORD entities.", preview: false,
+      description: "Editable on/off schedule using BCD WORD or converted HHMM entities.", preview: false,
       documentationURL: "https://github.com/xtimmy86x/ha-s7plc/blob/main/docs/schedule-card.md" });
   }
 })();

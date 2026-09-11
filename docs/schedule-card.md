@@ -1,8 +1,9 @@
 # Schedule dashboard card
 
-**S7 PLC — Schedule** edits on/off times stored in raw BCD WORD entities. Each
-row contains a name, an on time and an off time, with separate hour and minute
-fields. The number of rows is configurable; it is not limited to twelve.
+**S7 PLC — Schedule** edits on/off times stored in raw BCD WORD or converted
+HHMM entities. Each row contains a name, an on time and an off time, with
+separate hour and minute fields. The number of rows is configurable; it is not
+limited to twelve.
 
 The card changes the PLC's schedule parameters. The existing PLC program
 continues to execute the schedule, including when the dashboard is closed.
@@ -12,8 +13,9 @@ continues to execute the schedule, including when the dashboard is closed.
 1. Install this version of ha-s7plc and restart Home Assistant.
 2. Refresh the browser or reload the Companion app frontend.
 3. Edit your dashboard, choose **Add card**, and search for **S7 PLC — Schedule**.
-4. In the visual editor, add slots and select the on/off number entity for each.
-   Names, order, raw-value display and confirmation timeout are configurable.
+4. Choose **Entity value format**, then add slots and select the on/off number
+   entity for each. Names, order, entity-value display and confirmation timeout
+   are configurable.
 
 The integration automatically serves the module and registers it in Lovelace's
 resource collection. With UI-managed resources, it appears in **Settings →
@@ -54,37 +56,61 @@ and a standard select for each time. Search matches friendly names and entity
 IDs. Typing a search or expanding a slot does not change the card configuration
 or send any command to the PLC.
 
-## Entity requirements
+## Entity value format
+
+Choose the format explicitly in the visual editor or with `time_format` in
+YAML. It applies to every entity in the card. The default is `bcd`, preserving
+existing configurations. Use separate cards for entities with different formats.
+
+| Displayed time | HA state: `bcd` | HA state: `hhmm` | PLC BCD WORD |
+| --- | ---: | ---: | --- |
+| 00:00 | 0 | 0 | `0x0000` |
+| 04:00 | 1024 | 400 | `0x0400` |
+| 04:30 | 1072 | 430 | `0x0430` |
+| 12:45 | 4677 | 1245 | `0x1245` |
+| 23:59 | 9049 | 2359 | `0x2359` |
+
+The format is never guessed from a numeric value: `1024` means 04:00 in BCD
+mode but 10:24 in HHMM mode.
+
+### Raw BCD WORD (`time_format: bcd`, default)
 
 Use `number` entities that expose the **raw decimal WORD**, without any value
 conversion. A typical entity configuration has `min_value: 0`,
-`max_value: 65535`, and `step: 1`. A separate command address is supported when
-both the read and write addresses are scalar WORD channels.
-
-The HA state is not decimal HHMM and is not elapsed time:
-
-| Displayed time | Packed BCD WORD | Decimal entity state |
-| --- | --- | ---: |
-| 00:00 | `0x0000` | 0 |
-| 04:00 | `0x0400` | 1024 |
-| 04:30 | `0x0430` | 1072 |
-| 12:45 | `0x1245` | 4677 |
-| 23:59 | `0x2359` | 9049 |
-
+`max_value: 65535`, and `step: 1`. The card packs and unpacks the BCD digits.
 The entity's maximum must be at least 9049 to represent every time of day;
-2359 is insufficient. The card checks configured limits and step before saving.
-It accepts hours 00–23 and minutes 00–59. `00:00` is midnight, not a disabled
-slot; `24:00` and special sentinel values such as 65535 are not valid times.
-On/off ordering is unrestricted to allow overnight schedules.
+2359 is insufficient for raw BCD.
 
-S7 number entities expose `s7_raw_word` to let the card reject incompatible
-datatypes, array channels, missing command addresses and configured conversions.
-Those entities are excluded from the editor's choices. An existing incompatible
-selection is retained and flagged so it can be corrected.
+### Converted HHMM (`time_format: hhmm`)
+
+For S7 PLC numbers, enable the **LOGO! time BCD** value conversion in the S7 PLC
+configuration panel (`value_conversions.value.type: logo_time_bcd`). The entity
+then exposes an integer HHMM in Home Assistant. Default limits are 0–2359 with
+step 1. The card displays and sends HHMM; the integration converts between HHMM
+and the PLC's BCD WORD. For example, editing 04:30 sends `430` to
+`number.set_value`, and the integration writes `0x0430` (decimal 1072) to the PLC.
+
+HHMM represents a clock time, not elapsed minutes. Values such as 1260 or 2399
+are invalid, even though they fall within the numeric limits.
+
+### Compatibility and validation
+
+Both formats support separate read and command addresses when both are scalar
+WORD channels. S7 numbers expose `s7_raw_word` for unconverted writable WORDs;
+LOGO clock numbers additionally expose `s7_time_format: hhmm`. The card uses
+these attributes to reject the wrong selected format, other conversions,
+incompatible datatypes, array channels and missing command addresses. This
+prevents applying BCD conversion twice. Incompatible entities are excluded from
+the editor's choices; existing selections remain visible with a warning.
 
 Other `number` entities and `input_number` helpers are also supported. Their
-underlying encoding cannot be verified by ha-s7plc; ensure they hold raw WORDs.
-An `input_number` helper alone does not write to a PLC.
+encoding cannot be verified by ha-s7plc: select the format matching their HA
+state and write interface. An `input_number` helper alone does not write to a PLC.
+
+The card checks entity limits and step in the selected HA value format before
+saving. Hours must be 00–23 and minutes 00–59. `00:00` is midnight, not a disabled
+slot; `24:00` and special sentinel values such as 65535 are invalid. On/off
+ordering is unrestricted to allow overnight schedules.
 
 ## Editing and confirmation
 
@@ -95,7 +121,7 @@ recreating the card or reloading the page.
 
 Incoming HA updates do not replace fields while typing. If an entity changes
 externally during editing, saving its stale value is blocked. Cancel and edit
-again using the latest value. Offline entities are disabled. Invalid BCD is
+again using the latest value. Offline entities are disabled. Invalid BCD/HHMM is
 reported explicitly and can be replaced with a valid time when the entity is
 available and compatible.
 
@@ -115,6 +141,7 @@ sent to the PLC.
 ```yaml
 type: custom:s7plc-schedule-card
 title: Programmazione oraria
+time_format: bcd  # Use hhmm for numbers with LOGO! time BCD conversion
 show_raw: false
 confirmation_timeout: 15
 rows:
@@ -128,8 +155,9 @@ rows:
 
 Append more rows or use the visual editor. Entity IDs must be distinct across
 the card. `title` is optional and otherwise follows the frontend language.
-`show_raw` defaults to `false`; `confirmation_timeout` defaults to 15 seconds
-and accepts 1–300 seconds.
+`time_format` accepts `bcd` (default) or `hhmm`. `show_raw` defaults to `false`
+and displays the HA entity value labelled WORD or HHMM. `confirmation_timeout`
+defaults to 15 seconds and accepts 1–300 seconds.
 
 ## Moving from the standalone BCD card
 
@@ -158,8 +186,10 @@ resource only after no dashboard uses the standalone card anymore.
   module, add the URL as a `module` under `lovelace.resources` in
   `configuration.yaml`, reload resources and refresh. Use the versioned URL
   from `SCHEDULE_CARD_MODULE` in `frontend.py` for consistent cache invalidation.
-- If a selected S7 entity is incompatible, use scalar WORD read/write addresses
-  and remove its value conversion. The card performs the BCD conversion itself.
+- If a selected S7 entity is incompatible, check its scalar WORD read/write
+  addresses and match the card format to the entity: `bcd` without conversion,
+  or `hhmm` with **LOGO! time BCD** conversion. Converted S7 entities require
+  `s7_time_format: hhmm`; update the integration and restart HA if it is missing.
 - If saving reports a range or step error, adjust the number entity's limits
   and step in the S7 PLC configuration panel.
 - If a write is not confirmed, check PLC connectivity and polling interval

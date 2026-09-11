@@ -138,17 +138,24 @@ class S7Number(S7BaseEntity, NumberEntity):
         )
         self._command_address = command_address
         self._value_conversion = value_conversion
-        # Expose a small capability flag for dashboard editors. A raw WORD must
-        # use scalar WORD addresses in both directions and have no conversion.
-        self._raw_word = False
-        if command_address and not value_conversion:
+        # Dashboard metadata describes the HA value, not just the PLC datatype.
+        writable_word = False
+        if command_address:
             try:
                 tags = (parse_tag(address), parse_tag(command_address))
-                self._raw_word = all(
+                writable_word = all(
                     tag.data_type == DataType.WORD and tag.length == 1 for tag in tags
                 )
             except (RuntimeError, ValueError):
                 pass
+        self._raw_word = writable_word and not value_conversion
+        self._time_format = (
+            "hhmm"
+            if writable_word
+            and value_conversion
+            and value_conversion.get("type") == "logo_time_bcd"
+            else None
+        )
         self._conversion_context = ConversionContext.from_address(
             "value", command_address or address, "bidirectional"
         )
@@ -273,5 +280,7 @@ class S7Number(S7BaseEntity, NumberEntity):
             attrs["s7_command_address"] = self._command_address.upper()
         attrs["step"] = self._attr_native_step
         attrs["s7_raw_word"] = self._raw_word
+        if self._time_format:
+            attrs["s7_time_format"] = self._time_format
         # min and max are exposed automatically by NumberEntity
         return attrs

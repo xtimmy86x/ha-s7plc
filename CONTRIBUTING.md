@@ -92,6 +92,8 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   Editor checks cover collapsible slots, search, PLC filtering, duplicate
   prevention and lazy picker loading. Native HA picker tests exercise the
   property/event contract; they do not establish actual picker rendering.
+  Both BCD and HHMM formats cover clock validation, HA-unit service values,
+  confirmation, metadata compatibility and editor selection.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
@@ -165,6 +167,8 @@ The runtime suite covers:
 - Schedule-card registration through HA's actual frontend URL manager and
   Lovelace resource collection, including persisted resource updates, YAML
   resource handling, repeated setup, reload and serving the JavaScript over HTTP.
+- LOGO clock number metadata, HHMM state and `number.set_value` dispatch through
+  the real HA runtime, with exactly one BCD conversion before PLC transport.
 
 The dashboard asset is registered by `frontend.py` during integration setup,
 independently of `panel.py`. Lovelace is a setup dependency so its resource
@@ -175,8 +179,10 @@ When changing `s7plc-schedule-card.js`, increment
 `SCHEDULE_CARD_BUILD` in `frontend.py` to invalidate browser module caches and
 update the relevant DOM tests. `s7_raw_word` on number entities describes scalar
 WORD read/write channels without value conversion; the card still validates
-the HA numeric bounds and step separately. Do not use the administration panel's
-WebSocket endpoints for normal dashboard reads or writes.
+the HA numeric bounds and step separately. LOGO-converted writable WORD numbers
+expose `s7_time_format: hhmm`; the card format is explicit and defaults to BCD.
+Do not use the administration panel's WebSocket endpoints for normal dashboard
+reads or writes.
 
 Platforms add read tags concurrently, so the fixtures explicitly await a real
 coordinator refresh after setup rather than relying on debounce timer timing.

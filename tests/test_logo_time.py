@@ -38,6 +38,8 @@ async def test_logo_number_setup_reads_and_writes_hhmm(
     assert entity.native_min_value == 0
     assert entity.native_max_value == 2359
     assert entity._attr_native_step == 1
+    assert entity.extra_state_attributes["s7_time_format"] == "hhmm"
+    assert entity.extra_state_attributes["s7_raw_word"] is False
 
     # Feedback always comes from the state address; reading must never write.
     topic = "number:DB1,WORD4"
