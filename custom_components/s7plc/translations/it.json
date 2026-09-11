@@ -1253,6 +1253,7 @@
       "read_expression": "Espressione in lettura",
       "write_expression": "Espressione in scrittura",
       "logo_seconds": "La conversione LOGO! utilizza ore e minuti; i secondi non vengono scritti.",
+      "logo_hhmm": "Il Number usa HHMM numerico in entrambe le direzioni: 830 = 08:30, 2359 = 23:59. Inserisci un intero con ore e minuti (minuti 00-59); limiti predefiniti 0-2359, passo 1. È un orario, non una durata.",
       "preview_help": "L’anteprima si aggiorna localmente e non scrive mai nel PLC.",
       "scale": "Scala",
       "expressions_independent": "Le espressioni in lettura e in scrittura sono indipendenti.",

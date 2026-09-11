@@ -137,6 +137,7 @@ from .const import (
 )
 from .helpers import parse_pulse_duration
 from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
+from .value_conversion import LOGO_TIME_HHMM_LIMITS, normalize_value_conversion
 
 
 def _select_value_limits(tag) -> tuple[float, float] | None:
@@ -1426,9 +1427,12 @@ class EntityConfigBuilder:
             return None, {"base": "min_max_required_for_real"}
 
         # Validate the effective Home Assistant range. Missing limits are
-        # derived at runtime from the state address datatype, but are not
-        # persisted in the configuration.
+        # derived at runtime from HHMM for clocks or the state datatype, but
+        # are not persisted in the configuration.
         datatype_limits = get_numeric_limits(address_tag.data_type)
+        conversion = normalize_value_conversion(user_input, "value")
+        if conversion and conversion.get("type") == "logo_time_bcd":
+            datatype_limits = LOGO_TIME_HHMM_LIMITS
         fallback_min = datatype_limits[0] if datatype_limits is not None else None
         fallback_max = datatype_limits[1] if datatype_limits is not None else None
         effective_min = min_value if min_value is not None else fallback_min
@@ -2077,7 +2081,7 @@ def build_entity_item(
             }
         try:
             canonical_conversions = {}
-            for channel, conversion in conversions.items():
+            for channel in conversions:
                 # Do not collapse state/command with ``or``: differing PLC
                 # datatypes must both support and validate the conversion.
                 contexts = conversion_contexts(entity_type, item, channel)

@@ -6,11 +6,14 @@ import ast
 import math
 import operator
 import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from .plc.address import DataType, get_numeric_limits, parse_tag
+
+LOGO_TIME_HHMM_LIMITS = (0, 2359)
 
 NUMERIC_DATA_TYPES = frozenset(
     value
@@ -298,6 +301,14 @@ def evaluate_expression(expression: str, value: Any) -> float:
 
 
 def _logo_time(value: Any) -> int:
+    """Pack a numeric HHMM or an Entity Sync clock string into a BCD WORD."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        number = _finite(value, "LOGO! time HHMM")
+        if not number.is_integer() or not 0 <= number <= LOGO_TIME_HHMM_LIMITS[1]:
+            raise ValueConversionError("LOGO! time must be an integer HHMM in 0-2359")
+        hour, minute = divmod(int(number), 100)
+        # Share clock validation and packing with the existing string format.
+        value = f"{hour:02d}:{minute:02d}"
     if value is None:
         raise ValueConversionError("LOGO! time value is empty")
     text = str(value).strip()
@@ -316,6 +327,22 @@ def _logo_time(value: Any) -> int:
     return (
         ((hour // 10) << 12) | ((hour % 10) << 8) | ((minute // 10) << 4) | minute % 10
     )
+
+
+def _logo_time_from_plc(value: Any) -> int:
+    """Decode a valid BCD clock WORD to the numeric HHMM shown by a Number."""
+    number = _finite(value, "LOGO! time BCD")
+    if isinstance(value, bool) or not number.is_integer() or not 0 <= number <= 0xFFFF:
+        raise ValueConversionError("LOGO! time BCD must be an unsigned 16-bit integer")
+    packed = int(number)
+    digits = [(packed >> shift) & 0xF for shift in (12, 8, 4, 0)]
+    if any(digit > 9 for digit in digits):
+        raise ValueConversionError("LOGO! time BCD contains an invalid decimal digit")
+    hour = digits[0] * 10 + digits[1]
+    minute = digits[2] * 10 + digits[3]
+    if hour > 23 or minute > 59:
+        raise ValueConversionError("LOGO! time BCD is outside 00:00-23:59")
+    return hour * 100 + minute
 
 
 def validate_value_conversion(
@@ -357,12 +384,8 @@ def validate_value_conversion(
                 "and clamp true"
             )
     elif kind == "logo_time_bcd":
-        if not context.can_write or context.data_type != getattr(
-            DataType, "WORD", None
-        ):
-            raise ValueConversionError(
-                "LOGO! time BCD requires a writable WORD channel"
-            )
+        if context.data_type != getattr(DataType, "WORD", None):
+            raise ValueConversionError("LOGO! time BCD requires a WORD channel")
     elif kind == "expression":
         if context.can_read:
             evaluate_expression(str(config.get("read_expression", "")), 1)
@@ -396,6 +419,8 @@ def convert_from_plc(
             return value
         validate_value_conversion(config, context)
         kind = config["type"]
+        if kind == "logo_time_bcd":
+            return _logo_time_from_plc(value)
         if kind == "enum_map":
             mappings = normalize_enum_mappings(config["mappings"], context.data_type)
             return convert_enum_from_plc(

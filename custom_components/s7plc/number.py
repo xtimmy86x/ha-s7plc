@@ -39,6 +39,7 @@ from .plc.address import (
     time_to_seconds,
 )
 from .value_conversion import (
+    LOGO_TIME_HHMM_LIMITS,
     ConversionContext,
     ValueConversionError,
     convert_from_plc,
@@ -187,9 +188,11 @@ class S7Number(S7BaseEntity, NumberEntity):
             tag = None
         if tag is not None:
             numeric_limits = get_numeric_limits(tag.data_type)
+        if value_conversion and value_conversion.get("type") == "logo_time_bcd":
+            numeric_limits = LOGO_TIME_HHMM_LIMITS
 
         # Explicit bounds are Home Assistant entity limits, not PLC datatype or
-        # conversion endpoints. Only defaults come from the PLC datatype.
+        # conversion endpoints. Defaults use HHMM for clocks, otherwise datatype.
         min_value_limit = float(min_value) if min_value is not None else None
         max_value_limit = float(max_value) if max_value is not None else None
 

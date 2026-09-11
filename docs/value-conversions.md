@@ -105,10 +105,42 @@ and `0`. The editor preview is local only and never writes to the PLC.
 Integer targets support `half_even` (default), `half_up`, `floor`, and `ceil`
 rounding.
 
-`logo_time_bcd` is write-only and requires WORD. The visual editor offers this shortcut only for LOGO! connections (`plc_family` beginning with `logo_`) that have an available WORD write channel; runtime and YAML validation remain based on direction and datatype. It accepts `HH:MM` or
-`HH:MM:SS`, validates seconds but packs only hours/minutes (`08:30` becomes
-`0x0830`, decimal 2096). It uses the normal pyS7 WORD write without an extra
-byte swap.
+`logo_time_bcd` reads and writes clock times packed in a WORD. Each configured
+read and write address must use WORD. The visual editor offers this shortcut
+for LOGO! connections (`plc_family` beginning with `logo_`) with a WORD write
+address and either no read address or a WORD read address. Runtime and YAML
+validation use the channel datatypes.
+
+For a **Number**, Home Assistant displays and accepts an integer in **HHMM**:
+`830` means `08:30`, `1245` means `12:45`, and `0` means midnight. The PLC holds
+packed BCD: `830` in Home Assistant is `0x0830` (decimal `2096`) in the PLC.
+Changes made in the PLC update the Number on its normal scan interval; changing
+the Number in Home Assistant writes the packed value and requests a refresh.
+Reading feedback does not trigger a write back to the PLC.
+
+```yaml
+numbers:
+  - name: LOGO clock setting
+    address: DB1,WORD4  # VW4 in the LOGO address builder
+    value_conversions:
+      value:
+        type: logo_time_bcd
+```
+
+The command address defaults to the state address. To use separate registers,
+add a WORD `command_address`. Number defaults are `min_value: 0`,
+`max_value: 2359`, and `step: 1`; explicitly configured limits remain in effect.
+HHMM is a clock representation, **not a duration or decimal hours**. Minutes
+must be `00-59`, so values such as `860`, `2399`, fractional values and times
+outside `00:00-23:59` are rejected before writing. Numeric increments are not
+clock arithmetic: after `859`, enter `900` for `09:00`. Invalid BCD digits or
+out-of-range clock values read from the PLC produce an unknown Number state
+and a log warning; valid subsequent feedback restores the state.
+
+Existing **Entity Sync** configurations still accept `HH:MM` or `HH:MM:SS`
+from an `input_datetime`. Seconds are validated but only hours/minutes are
+packed. Entity Sync remains HA-to-PLC only. Both formats use the normal pyS7
+WORD write without an extra byte swap.
 
 Expressions require explicit directions:
 

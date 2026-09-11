@@ -1253,6 +1253,7 @@
       "read_expression": "Výraz pro čtení",
       "write_expression": "Výraz pro zápis",
       "logo_seconds": "LOGO! conversion uses hours and minutes; seconds are not written.",
+      "logo_hhmm": "Number používá číselný formát HHMM v obou směrech: 830 = 08:30, 2359 = 23:59. Zadejte celé číslo hodin a minut (minuty 00-59); výchozí rozsah 0-2359, krok 1. Jde o denní čas, nikoli dobu trvání.",
       "preview_help": "Preview updates locally and never writes to the PLC.",
       "scale": "Stupnice",
       "expressions_independent": "Výrazy pro čtení a zápis jsou na sobě nezávislé.",
