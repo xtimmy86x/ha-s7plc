@@ -866,6 +866,7 @@ def test_number_reports_raw_word_capability(
         value_conversion=conversion,
     )
     assert entity.extra_state_attributes["s7_raw_word"] is expected
+    assert "s7_time_format" not in entity.extra_state_attributes
 
 
 @pytest.mark.parametrize(
