@@ -99,6 +99,13 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   Bulk configuration tests exercise twelve mixed pairs, natural ordering,
   per-column reorder, retained selections/focus, duplicate exclusion and final
   validation before appending rows. Wizard interaction must not call HA services.
+  Input-selection tests cover first pointer entry, subsequent caret placement,
+  keyboard replacement and explicit save/cancel on the last of twelve slots.
+  jsdom does not validate responsive layout or native mobile keyboard behavior;
+  check touch target sizing, inner scrolling and footer reachability in HA on
+  mobile Safari/Chrome when changing these styles. Also check a wide hybrid
+  touchscreen/mouse desktop: targets should be enlarged while the table keeps
+  its full height and the desktop layout.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 

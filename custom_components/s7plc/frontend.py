@@ -8,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, VERSION
 
-SCHEDULE_CARD_BUILD = "20260911.7"
+SCHEDULE_CARD_BUILD = "20260911.9"
 SCHEDULE_CARD_PATH = "/s7plc_static/s7plc-schedule-card.js"
 SCHEDULE_CARD_MODULE = f"{SCHEDULE_CARD_PATH}?v={VERSION}&build={SCHEDULE_CARD_BUILD}"
 _REGISTERED = "_schedule_card_registered"

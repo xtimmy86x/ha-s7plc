@@ -164,6 +164,22 @@ ordering is unrestricted to allow overnight schedules.
 
 ## Editing and confirmation
 
+On screens up to 600 px wide or devices with a coarse pointer (touch), time
+fields have 44 × 44 px touch targets and Save/Cancel buttons are at least 44 px
+high, including hybrid computers with both a touchscreen and a mouse.
+
+Only on screens up to 600 px wide, long tables scroll vertically within the card,
+up to half the viewport height (capped at 420 px). Column headings stay visible inside this scrolling
+area; the status and Save/Cancel controls remain outside it, below the table.
+You can reach the actions without scrolling through all the slots. The card
+itself follows normal dashboard scrolling. Wider screens retain the full-height
+table and desktop layout, including touchscreen and hybrid computers.
+
+Entering an hour or minute field selects its digits, both by keyboard focus
+and on the first tap/click. Type to replace the value directly. Further taps
+within the focused field position the cursor normally. Incoming HA updates
+preserve the current input and selection while editing.
+
 Changes remain local until **Save changes** is pressed. Only edited times are
 sent, through `number.set_value` or `input_number.set_value`. **Cancel** discards
 unsaved edits and displays the latest HA states. Unsaved edits do not survive
