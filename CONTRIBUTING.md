@@ -96,6 +96,9 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   confirmation, metadata compatibility and editor selection.
   Mixed rows exercise per-entity encoding, partial failure, both picker paths,
   manual overrides and format changes during editing/confirmation.
+  Bulk configuration tests exercise twelve mixed pairs, natural ordering,
+  per-column reorder, retained selections/focus, duplicate exclusion and final
+  validation before appending rows. Wizard interaction must not call HA services.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 

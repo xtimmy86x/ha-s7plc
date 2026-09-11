@@ -56,6 +56,39 @@ and a standard select for each time. Search matches friendly names and entity
 IDs. Typing a search or expanding a slot does not change the card configuration
 or send any command to the PLC.
 
+## Add multiple slots with a pairing preview
+
+Open **Add multiple slots** at the bottom of the visual editor. This prepares
+new pairs without changing existing rows:
+
+1. Search the on-entity list by name or ID and check the desired entities, or
+   use **Select results** to select all matching results. Repeat for off entities.
+   The editor's PLC filter and card value format also apply to these lists.
+2. Review **Pairing preview**. Initial ordering is natural entity-ID order
+   (`1, 2, …, 12`); the first on entity pairs with the first off entity, and so
+   on. This is positional pairing, not automatic inference from PLC addresses
+   or entity names. Use the arrows in either column to adjust the pairs.
+3. Press **Add N slots** to append the previewed pairs. Existing rows, names,
+   assignments and per-field formats are preserved. Review the new rows, then
+   save the card configuration in Home Assistant.
+
+For twelve pairs, select twelve on entities and twelve off entities. The two
+lists must have equal non-zero counts. Entities already used in the card or
+selected for the other side are excluded. Missing or newly incompatible
+selections remain in the preview with a warning and block additions until
+corrected. The final click revalidates the entire selection before appending
+any rows.
+
+Searches and PLC filters do not discard selections; **Clear selection** clears
+one side. Changing selections sorts that side by entity ID again, so adjust
+the preview order after completing selection. Use automatic card format for
+mixed S7 BCD/HHMM numbers. External HHMM helpers require the appropriate card
+format or a per-field override in the added rows before using the card.
+
+The wizard's selections, searches and preview remain local to the editor.
+Only **Add N slots** emits a card configuration change; this workflow never
+sends PLC commands and does not copy time values between entities.
+
 ## Entity value format
 
 Raw BCD and converted HHMM entities can share one card, including the on/off

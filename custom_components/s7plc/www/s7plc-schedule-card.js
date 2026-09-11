@@ -35,6 +35,11 @@
       editor_up: "Move up", editor_down: "Move down", editor_choose: "Select a number entity…",
       editor_hint: "Select raw WORD entities with step 1 and no conversion. The PLC executes the schedule.",
       editor_unavailable: "Unavailable or incompatible", editor_timeout_error: "Enter a timeout from 1 to 300 seconds.",
+      bulk_title: "Add multiple slots", bulk_hint: "Select on and off entities, then review each pair. Initial order follows entity IDs (1, 2, …, 12); use the arrows to adjust it.",
+      bulk_all: "Select results", bulk_clear: "Clear selection", bulk_preview: "Pairing preview",
+      bulk_counts: "{on} on entities · {off} off entities", bulk_incomplete: "Select the same non-zero number of on and off entities.",
+      bulk_invalid: "Some selected entities are missing, incompatible or already assigned. Review the highlighted pairs.",
+      bulk_add: "Add {count} slots", bulk_ready: "Adds these pairs after the existing slots. Review and save the card configuration in HA.",
     },
     it: {
       title: "Programmazione oraria", row: "Fascia", on: "Accensione", off: "Spegnimento", hours: "ore", minutes: "minuti",
@@ -68,6 +73,11 @@
       editor_up: "Sposta su", editor_down: "Sposta giù", editor_choose: "Seleziona un'entità number…",
       editor_hint: "Seleziona entità WORD grezze con passo 1 e senza conversioni. La programmazione è eseguita dal PLC.",
       editor_unavailable: "Non disponibile o incompatibile", editor_timeout_error: "Inserisci un tempo tra 1 e 300 secondi.",
+      bulk_title: "Configurazione multipla guidata", bulk_hint: "Seleziona accensioni e spegnimenti, poi controlla ogni coppia. L’ordine iniziale segue gli ID entità (1, 2, …, 12); usa le frecce per modificarlo.",
+      bulk_all: "Seleziona risultati", bulk_clear: "Svuota selezione", bulk_preview: "Anteprima abbinamenti",
+      bulk_counts: "{on} accensioni · {off} spegnimenti", bulk_incomplete: "Seleziona lo stesso numero di accensioni e spegnimenti, almeno una per tipo.",
+      bulk_invalid: "Alcune entità selezionate sono mancanti, incompatibili o già assegnate. Controlla le coppie evidenziate.",
+      bulk_add: "Aggiungi {count} fasce", bulk_ready: "Aggiunge queste coppie dopo le fasce esistenti. Controlla e salva la configurazione della card in HA.",
     },
   };
   const language = (hass) => String(hass?.locale?.language || hass?.language || "en").split(/[-_]/)[0];
@@ -455,12 +465,13 @@
       this._rowUI = [];
       this._plc = "";
       this._groups = [];
+      this._bulk = {on: [], off: [], queries: {on: "", off: ""}, open: false};
       this.shadowRoot.addEventListener("focusout", () => queueMicrotask(() => {
         if (this.isConnected && !this.shadowRoot.activeElement && this._needsRender()) this._render();
       }));
     }
 
-    _t(key) { return translate(this._hass, key); }
+    _t(key, values) { return translate(this._hass, key, values); }
 
     connectedCallback() {
       if (this._needsRender()) this._render(); else this._refresh();
@@ -618,6 +629,147 @@
           }
         }
       }
+      this._refreshBulk(options);
+    }
+
+    _bulkAvailable(id) {
+      const state = this._hass?.states?.[id];
+      return /^(number|input_number)\./.test(id) && Boolean(state) &&
+        compatible(state, resolveFormat(state, valueFormat(this._config))) &&
+        !this._config.rows.some(row => row.on_entity === id || row.off_entity === id);
+    }
+
+    _bulkMatches(key, entries = this._options()) {
+      const other = key === "on" ? "off" : "on", query = this._bulk.queries[key].trim().toLocaleLowerCase();
+      const options = new Map(entries);
+      for (const id of this._bulk[key]) if (!options.has(id)) options.set(id, id);
+      return [...options].filter(([id, name]) =>
+        (this._bulk[key].includes(id) || (this._bulkAvailable(id) && !this._bulk[other].includes(id))) &&
+        (!this._plc || this._deviceId(id) === this._plc) && `${name} ${id}`.toLocaleLowerCase().includes(query))
+        .sort(([a], [b]) => a.localeCompare(b, "en", {numeric: true}));
+    }
+
+    _bulkProblem() {
+      const {on, off} = this._bulk, ids = [...on, ...off];
+      if (new Set(ids).size !== ids.length || ids.some(id => !this._bulkAvailable(id))) return this._t("bulk_invalid");
+      return !on.length || on.length !== off.length ? this._t("bulk_incomplete") : "";
+    }
+
+    _bulkAdd() {
+      // Revalidate at the final click, including changes made in other editor fields.
+      if (this._bulkProblem()) { this._refresh(); return; }
+      const first = this._config.rows.length;
+      const rows = this._bulk.on.map((id, index) => ({name: "", on_entity: id, off_entity: this._bulk.off[index]}));
+      this._groups.forEach((g, i) => {this._rowUI[i].open = g.details.open;});
+      this._config.rows = [...this._config.rows, ...rows];
+      this._rowUI.push(...rows.map((_, index) => ({open: index === 0, queries: {}})));
+      this._bulk = {on: [], off: [], queries: {on: "", off: ""}, open: false};
+      this._emit(true);
+      this._groups[first]?.details.querySelector("summary").focus();
+    }
+
+    _buildBulk(field) {
+      this._bulkDetails = el("details", "bulk"); this._bulkDetails.open = this._bulk.open;
+      this._bulkDetails.addEventListener("toggle", () => {this._bulk.open = this._bulkDetails.open;});
+      this._bulkDetails.append(el("summary", "", this._t("bulk_title")));
+      const content = el("div", "bulk-content"), columns = el("div", "bulk-columns");
+      content.append(el("p", "hint", this._t("bulk_hint")));
+      this._bulkUI = {};
+      for (const key of ["on", "off"]) {
+        const column = el("div", "bulk-column");
+        column.append(el("strong", "", this._t(key)));
+        const search = field(column, this._t("editor_search"), el("input", `bulk-search-${key}`));
+        search.type = "search"; search.value = this._bulk.queries[key]; search.autocomplete = "off";
+        search.addEventListener("input", () => {this._bulk.queries[key] = search.value; this._refresh();});
+        const actions = el("div", "actions"), all = el("button", `bulk-all-${key}`, this._t("bulk_all"));
+        const clear = el("button", `bulk-clear-${key}`, this._t("bulk_clear")); all.type = clear.type = "button";
+        all.addEventListener("click", () => {
+          this._bulk[key] = [...new Set([...this._bulk[key], ...this._bulkMatches(key).map(([id]) => id)])]
+            .sort((a, b) => a.localeCompare(b, "en", {numeric: true}));
+          this._refresh();
+        });
+        clear.addEventListener("click", () => {this._bulk[key] = []; this._refresh();});
+        actions.append(all, clear);
+        const list = el("div", `bulk-list bulk-list-${key}`); list.setAttribute("role", "group"); list.setAttribute("aria-label", this._t(key));
+        column.append(actions, list); columns.append(column); this._bulkUI[key] = {list, all, clear};
+      }
+      content.append(columns);
+      this._bulkCount = el("p", "hint"); this._bulkCount.setAttribute("role", "status");
+      this._bulkPreview = el("div", "bulk-preview");
+      this._bulkStatus = el("p", "hint"); this._bulkStatus.setAttribute("role", "status");
+      this._bulkApply = el("button", "bulk-apply"); this._bulkApply.type = "button";
+      this._bulkApply.addEventListener("click", () => this._bulkAdd());
+      content.append(this._bulkCount, this._bulkPreview, this._bulkStatus, this._bulkApply);
+      this._bulkDetails.append(content); this.shadowRoot.append(this._bulkDetails);
+    }
+
+    _refreshBulk(options) {
+      if (!this._bulkUI) return;
+      for (const key of ["on", "off"]) {
+        const {list, all, clear} = this._bulkUI[key], matches = this._bulkMatches(key, options);
+        const signature = JSON.stringify(matches.map(([id, name]) => [id, name, this._bulk[key].includes(id)]));
+        all.disabled = !matches.some(([id]) => !this._bulk[key].includes(id)); clear.disabled = !this._bulk[key].length;
+        if (list._signature === signature) continue;
+        list._signature = signature;
+        const focusedId = list.contains(this.shadowRoot.activeElement) ? this.shadowRoot.activeElement.dataset.entity : null;
+        list.replaceChildren();
+        if (!matches.length) list.append(el("p", "hint", this._t("editor_no_results")));
+        for (const [id, name] of matches) {
+          const label = el("label"), checkbox = el("input"); checkbox.type = "checkbox"; checkbox.checked = this._bulk[key].includes(id);
+          checkbox.dataset.entity = id;
+          checkbox.addEventListener("change", () => {
+            this._bulk[key] = checkbox.checked ? [...this._bulk[key], id].sort((a, b) => a.localeCompare(b, "en", {numeric: true})) :
+              this._bulk[key].filter(value => value !== id);
+            this._refresh();
+          });
+          const text = el("span", "", name); text.append(el("small", "", id)); label.append(checkbox, text); list.append(label);
+          if (focusedId === id) checkbox.focus();
+        }
+      }
+      const ids = [...this._bulk.on, ...this._bulk.off], problem = this._bulkProblem();
+      this._bulkCount.textContent = this._t("bulk_counts", {on: this._bulk.on.length, off: this._bulk.off.length});
+      this._bulkStatus.textContent = problem || this._t("bulk_ready"); this._bulkStatus.classList.toggle("warning", Boolean(problem));
+      this._bulkApply.textContent = this._t("bulk_add", {count: this._bulk.on.length}); this._bulkApply.disabled = Boolean(problem);
+      const signature = JSON.stringify([this._bulk.on, this._bulk.off, this._config.rows.length,
+        ids.map(id => [this._hass?.states?.[id], this._bulkAvailable(id)]), valueFormat(this._config)]);
+      if (this._bulkPreview._signature === signature) return;
+      const active = this.shadowRoot.activeElement;
+      const focus = this._bulkPreview.contains(active) && active?.classList.contains("bulk-move") ? {...active.dataset} : null;
+      this._bulkPreview._signature = signature; this._bulkPreview.replaceChildren();
+      if (!ids.length) return;
+      const table = el("table"), head = el("thead"), headings = el("tr"), body = el("tbody");
+      table.append(el("caption", "", this._t("bulk_preview")));
+      for (const key of ["row", "on", "off"]) { const th = el("th", "", this._t(key)); th.scope = "col"; headings.append(th); }
+      head.append(headings);
+      for (let index = 0; index < Math.max(this._bulk.on.length, this._bulk.off.length); index++) {
+        const tr = el("tr"), th = el("th", "", pad(this._config.rows.length + index + 1)); th.scope = "row"; tr.append(th);
+        for (const key of ["on", "off"]) {
+          const td = el("td"), id = this._bulk[key][index], state = this._hass?.states?.[id];
+          if (!id) {td.textContent = "—"; tr.append(td); continue;}
+          const valid = this._bulkAvailable(id) && ids.filter(value => value === id).length === 1;
+          const time = valid ? decode(state?.state, resolveFormat(state, valueFormat(this._config))) : null;
+          td.append(el("span", "", state?.attributes?.friendly_name || id), el("small", "", id));
+          if (time) td.append(el("small", "", `${time.hours}:${time.minutes}`));
+          if (!valid) td.append(el("small", "warning", this._t("editor_unavailable")));
+          const actions = el("div", "actions");
+          for (const delta of [-1, 1]) {
+            const button = el("button", "bulk-move", delta < 0 ? "↑" : "↓"); button.type = "button";
+            button.dataset.key = key; button.dataset.index = String(index); button.dataset.delta = String(delta);
+            button.setAttribute("aria-label", `${this._t(delta < 0 ? "editor_up" : "editor_down")} — ${this._t(key)}: ${id}`);
+            button.disabled = index + delta < 0 || index + delta >= this._bulk[key].length;
+            button.addEventListener("click", () => {
+              const values = this._bulk[key]; [values[index], values[index + delta]] = [values[index + delta], values[index]];
+              this._refresh();
+              this._bulkPreview.querySelector(`button[data-key="${key}"][data-index="${index + delta}"][data-delta="${-delta}"]`)?.focus();
+            });
+            actions.append(button);
+          }
+          td.append(actions); tr.append(td);
+        }
+        body.append(tr);
+      }
+      table.append(head, body); this._bulkPreview.append(table);
+      if (focus) this._bulkPreview.querySelector(`button[data-key="${focus.key}"][data-index="${focus.index}"][data-delta="${focus.delta}"]:not(:disabled)`)?.focus();
     }
 
     _render() {
@@ -651,6 +803,20 @@
         button:disabled { opacity:.4; cursor:default; }
         button:focus-visible, summary:focus-visible { outline:2px solid var(--primary-color,#0288d1); outline-offset:2px; }
         .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+        .bulk-content { padding:0 12px 12px; }
+        .bulk-columns { display:flex; flex-wrap:wrap; gap:12px; }
+        .bulk-column { flex:1 1 180px; min-width:0; }
+        .bulk-list { max-height:220px; overflow:auto; margin-top:10px; }
+        .bulk-list label { display:flex; align-items:center; gap:8px; min-height:44px; margin:0; padding:4px; }
+        .bulk-list input { flex:none; width:20px; height:20px; }
+        .bulk small { display:block; font-size:11px; color:var(--secondary-text-color); overflow-wrap:anywhere; }
+        .bulk-list span, .bulk-preview td { overflow-wrap:anywhere; }
+        .bulk-preview table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; }
+        .bulk-preview caption { text-align:left; font-weight:600; margin-bottom:8px; }
+        .bulk-preview th, .bulk-preview td { padding:6px; border-bottom:1px solid var(--divider-color,#aaa); vertical-align:top; }
+        .bulk-preview th:first-child { width:36px; }
+        .bulk-preview .actions { gap:4px; margin-top:4px; }
+        .bulk-preview .warning { color:var(--error-color,#c33b39); }
       `;
       this._formatHint = el("p", "hint");
       this.shadowRoot.append(style, this._formatHint);
@@ -770,6 +936,7 @@
         this._groups.at(-1).details.querySelector("fieldset input").focus();
       });
       this.shadowRoot.append(this._add);
+      this._buildBulk(field);
       this._refresh();
     }
   }
