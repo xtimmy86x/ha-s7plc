@@ -31,6 +31,29 @@ permissions.
 English and Italian labels are included. Other frontend languages fall back to
 English. Theme colors follow the Home Assistant theme.
 
+## Configure many slots
+
+The visual editor starts with the first slot expanded. Each slot has a
+collapsible summary showing its name, selected entities and current decoded
+times. Open individual slots or use **Expand all / Collapse all**. New slots
+open automatically. Renaming, reordering and HA state updates preserve the
+editor's open sections; these preferences are not saved in dashboard YAML.
+
+The on/off fields use Home Assistant's searchable entity picker, displaying
+entity IDs alongside names. Already assigned entities are excluded from other
+fields to prevent duplicate assignments. Existing missing or incompatible
+selections remain visible with a warning so they can be corrected.
+
+When Home Assistant's entity/device registries identify S7 PLC devices, a
+**Filter by PLC** field narrows the available choices. **All entities** includes
+other compatible numbers and helpers. Filtering does not clear selections from
+another PLC and is not saved in the card configuration.
+
+If Home Assistant's picker cannot be loaded, the editor provides a search field
+and a standard select for each time. Search matches friendly names and entity
+IDs. Typing a search or expanding a slot does not change the card configuration
+or send any command to the PLC.
+
 ## Entity requirements
 
 Use `number` entities that expose the **raw decimal WORD**, without any value

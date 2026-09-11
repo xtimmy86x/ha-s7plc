@@ -23,6 +23,10 @@
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
       editor_title: "Title", editor_name: "Slot name", editor_raw: "Show raw WORD values",
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
+      editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
+      editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
+      editor_expand: "Expand all", editor_collapse: "Collapse all",
+      editor_incomplete: "Select both entities", editor_in_use: "Already assigned to another time",
       editor_up: "Move up", editor_down: "Move down", editor_choose: "Select a number entity…",
       editor_hint: "Select raw WORD entities with step 1 and no conversion. The PLC executes the schedule.",
       editor_unavailable: "Unavailable or incompatible", editor_timeout_error: "Enter a timeout from 1 to 300 seconds.",
@@ -47,6 +51,10 @@
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
       editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori WORD grezzi",
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
+      editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
+      editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
+      editor_expand: "Espandi tutte", editor_collapse: "Chiudi tutte",
+      editor_incomplete: "Seleziona entrambe le entità", editor_in_use: "Già assegnata a un altro orario",
       editor_up: "Sposta su", editor_down: "Sposta giù", editor_choose: "Seleziona un'entità number…",
       editor_hint: "Seleziona entità WORD grezze con passo 1 e senza conversioni. La programmazione è eseguita dal PLC.",
       editor_unavailable: "Non disponibile o incompatibile", editor_timeout_error: "Inserisci un tempo tra 1 e 300 secondi.",
@@ -405,26 +413,60 @@
       super();
       this.attachShadow({mode: "open"});
       this._config = {type: "custom:s7plc-schedule-card", rows: []};
+      this._rowUI = [];
+      this._plc = "";
+      this._groups = [];
+      this.shadowRoot.addEventListener("focusout", () => queueMicrotask(() => {
+        if (this.isConnected && !this.shadowRoot.activeElement && this._needsRender()) this._render();
+      }));
     }
 
     _t(key) { return translate(this._hass, key); }
 
+    connectedCallback() {
+      if (this._needsRender()) this._render(); else this._refresh();
+      // Load the built-in entities editor through HA's public card helpers.
+      // Its imports register ha-entity-picker even on a fresh dashboard session.
+      this._loadPicker();
+    }
+
+    async _loadPicker() {
+      if (customElements.get("ha-entity-picker") || this._loadingPicker || !window.loadCardHelpers) return;
+      this._loadingPicker = true;
+      try {
+        const helpers = await window.loadCardHelpers();
+        const card = helpers.createCardElement({type: "entities", entities: []});
+        await card.constructor.getConfigElement();
+        if (this.isConnected && !this.shadowRoot.activeElement && this._needsRender()) this._render();
+      } catch {
+        // The searchable HTML controls remain usable if HA helpers cannot load.
+      } finally {
+        this._loadingPicker = false;
+      }
+    }
+
+    _needsRender() {
+      return this._renderLanguage !== language(this._hass) ||
+        this._nativePicker !== Boolean(customElements.get("ha-entity-picker"));
+    }
+
     setConfig(config) {
-      // HA echoes config-changed. Keep the focused field alive on that echo.
       const next = {...config, rows: (config.rows ?? []).map(row => ({...row}))};
+      // HA echoes config-changed. Keep open sections, picker search and focus.
       if (this.shadowRoot.childNodes.length && JSON.stringify(next) === JSON.stringify(this._config)) return;
+      const remaining = this._config.rows.map((row, i) => ({row, ui: this._rowUI[i]}));
+      this._rowUI = next.rows.map((row, index) => {
+        const match = remaining.findIndex(old => old.row.on_entity === row.on_entity && old.row.off_entity === row.off_entity);
+        return (match >= 0 ? remaining.splice(match, 1)[0].ui : null) ?? {open: index === 0, queries: {}};
+      });
       this._config = next;
       this._render();
     }
 
     set hass(hass) {
       this._hass = hass;
-      const options = this._options();
-      const signature = JSON.stringify([language(hass), options]);
-      if (signature !== this._signature) {
-        // Do not rebuild while editing a name/title as HA states update.
-        if (!this.shadowRoot.activeElement) this._render();
-      }
+      if (!this.shadowRoot.activeElement && this._needsRender()) this._render();
+      else this._refresh();
     }
 
     _options() {
@@ -434,32 +476,132 @@
         .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
     }
 
+    _deviceId(id) { return this._hass?.entities?.[id]?.device_id ?? ""; }
+
+    _choices(row, key, options) {
+      const used = new Set();
+      for (const other of this._config.rows) for (const field of ["on_entity", "off_entity"]) {
+        if (other !== row || field !== key) used.add(other[field]);
+      }
+      return options.filter(([id]) => !used.has(id) && (!this._plc || this._deviceId(id) === this._plc));
+    }
+
     _emit(render = false) {
       this._config = {...this._config, type: "custom:s7plc-schedule-card"};
       this.dispatchEvent(new CustomEvent("config-changed", {
         detail: {config: {...this._config, rows: this._config.rows.map(row => ({...row}))}},
         bubbles: true, composed: true,
       }));
-      if (render) this._render();
+      if (render) this._render(); else this._refresh();
+    }
+
+    _select(row, key, value) {
+      const next = value ?? "";
+      if (typeof next !== "string" || next === (row[key] ?? "")) return;
+      if (next && !this._choices(row, key, this._options()).some(([id]) => id === next)) { this._refresh(); return; }
+      row[key] = next;
+      this._emit();
+    }
+
+    _refresh() {
+      if (!this._plcSelect) return;
+      const options = this._options();
+      const devices = new Map();
+      for (const [id] of options) {
+        if (this._hass.states[id].attributes?.s7_raw_word !== true) continue;
+        const deviceId = this._deviceId(id), device = this._hass?.devices?.[deviceId];
+        if (device) devices.set(deviceId, device.name_by_user || device.name || deviceId);
+      }
+      // Keep a temporarily missing filter visible until the user clears it.
+      if (this._plc && !devices.has(this._plc)) devices.set(this._plc, this._plc);
+      const deviceOptions = [["", this._t("editor_all_plcs")], ...[...devices].sort((a, b) => a[1].localeCompare(b[1]))];
+      const deviceSignature = JSON.stringify(deviceOptions);
+      if (this._deviceSignature !== deviceSignature) {
+        this._deviceSignature = deviceSignature;
+        this._plcSelect.replaceChildren(...deviceOptions.map(([id, name]) => {
+          const option = el("option", "", name); option.value = id; return option;
+        }));
+        this._plcSelect.value = this._plc;
+      }
+      this._plcSelect.parentElement.hidden = devices.size === 0;
+      for (const group of this._groups) {
+        const {row, index, title, descriptions, warning, fields} = group;
+        title.textContent = `${this._t("row")} ${pad(index + 1)}${row.name ? ` — ${row.name}` : ""}`;
+        warning.textContent = !row.on_entity || !row.off_entity ? this._t("editor_incomplete") : "";
+        for (const {key, caption, picker, search, note} of fields) {
+          const id = row[key] ?? "", state = this._hass?.states?.[id];
+          const time = decode(state?.state);
+          descriptions[key].textContent = `${this._t(caption)}: ${state?.attributes?.friendly_name || id || "—"}${time ? ` · ${time.hours}:${time.minutes}` : ""}`;
+          descriptions[key].title = id;
+          const duplicate = id && this._config.rows.some(other =>
+            ["on_entity", "off_entity"].some(field => (other !== row || field !== key) && other[field] === id));
+          const problem = id && (!state || state.attributes?.s7_raw_word === false) ? this._t("editor_unavailable") :
+            duplicate ? this._t("editor_in_use") : "";
+          note.textContent = problem;
+          if (problem) warning.textContent = problem;
+          const choices = this._choices(row, key, options);
+          if (this._nativePicker) {
+            picker.hass = this._hass;
+            picker.value = id;
+            const allowed = choices.map(([entity]) => entity);
+            const signature = JSON.stringify(allowed);
+            if (picker._choicesSignature !== signature) {
+              picker._choicesSignature = signature;
+              picker.includeEntities = allowed;
+              const ids = new Set(allowed);
+              picker.entityFilter = entity => ids.has(entity.entity_id);
+            }
+          } else {
+            const query = search.value.trim().toLocaleLowerCase();
+            const matches = choices.filter(([entity, name]) => `${name} ${entity}`.toLocaleLowerCase().includes(query));
+            const signature = JSON.stringify([id, matches, problem]);
+            if (picker._choicesSignature === signature) continue;
+            picker._choicesSignature = signature;
+            const blank = el("option", "", matches.length ? this._t("editor_choose") : this._t("editor_no_results"));
+            blank.value = "";
+            const items = matches.map(([entity, name]) => {
+              const option = el("option", "", `${name} (${entity})`); option.value = entity; return option;
+            });
+            if (id && !matches.some(([entity]) => entity === id)) {
+              const selected = el("option", "", `${state?.attributes?.friendly_name || id} (${id})${problem ? ` — ${problem}` : ""}`);
+              selected.value = id; items.unshift(selected);
+            }
+            picker.replaceChildren(blank, ...items); picker.value = id;
+          }
+        }
+      }
     }
 
     _render() {
-      this._signature = JSON.stringify([language(this._hass), this._options()]);
+      this._renderLanguage = language(this._hass);
+      this._nativePicker = Boolean(customElements.get("ha-entity-picker"));
+      this._deviceSignature = null;
+      this._groups = [];
       this.shadowRoot.replaceChildren();
       const style = el("style");
       style.textContent = `
         :host { display:block; color:var(--primary-text-color); font-family:inherit; }
         * { box-sizing:border-box; }
-        .hint { font-size:13px; line-height:1.5; color:var(--secondary-text-color); }
+        [hidden] { display:none !important; }
+        .hint, .slot-entity, .warning, .picker-note { font-size:13px; line-height:1.5; color:var(--secondary-text-color); }
         label { display:block; font-size:13px; margin:10px 0; }
-        input:not([type=checkbox]),select { display:block; width:100%; min-width:0; min-height:40px; margin-top:5px;
+        input:not([type=checkbox]),select { display:block; width:100%; min-width:0; min-height:44px; margin-top:5px;
           padding:8px; border:1px solid var(--divider-color,#aaa); border-radius:6px; font:inherit;
           color:var(--primary-text-color,#222); background:var(--card-background-color,#fff); }
-        fieldset { min-width:0; border:1px solid var(--divider-color,#aaa); border-radius:8px; margin:16px 0; padding:12px; }
-        legend { font-weight:600; font-size:14px; }
-        button { min-height:36px; padding:6px 12px; border:1px solid var(--divider-color,#aaa); border-radius:6px;
+        details { min-width:0; border:1px solid var(--divider-color,#aaa); border-radius:8px; margin:12px 0; }
+        summary { padding:12px; cursor:pointer; min-height:44px; }
+        .slot-title { font-weight:600; font-size:14px; overflow-wrap:anywhere; }
+        .slot-entity { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-inline-start:18px; }
+        .warning { display:block; color:var(--error-color,#c33b39); }
+        .warning:empty, .picker-note:empty { display:none; }
+        fieldset { min-width:0; border:0; margin:0; padding:0 12px 12px; }
+        legend { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+        ha-entity-picker { display:block; margin:14px 0 4px; }
+        .picker-note { color:var(--error-color,#c33b39); }
+        button { min-height:40px; padding:6px 12px; border:1px solid var(--divider-color,#aaa); border-radius:6px;
           background:var(--card-background-color,#fff); color:var(--primary-color,#0288d1); font:inherit; cursor:pointer; }
         button:disabled { opacity:.4; cursor:default; }
+        button:focus-visible, summary:focus-visible { outline:2px solid var(--primary-color,#0288d1); outline-offset:2px; }
         .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
       `;
       this.shadowRoot.append(style, el("p", "hint", this._t("editor_hint")));
@@ -485,25 +627,49 @@
       const raw = field(this.shadowRoot, this._t("editor_raw"), el("input"));
       raw.type = "checkbox"; raw.checked = Boolean(this._config.show_raw);
       raw.addEventListener("change", () => {this._config.show_raw = raw.checked; this._emit();});
-      const options = this._options();
+      this._plcSelect = field(this.shadowRoot, this._t("editor_plc"), el("select", "plc-filter"));
+      this._plcSelect.addEventListener("change", () => { this._plc = this._plcSelect.value; this._refresh(); });
+      const sections = el("div", "actions");
+      for (const [key, open] of [["editor_expand", true], ["editor_collapse", false]]) {
+        const button = el("button", "", this._t(key)); button.type = "button";
+        button.disabled = !this._config.rows.length;
+        button.addEventListener("click", () => {
+          this._groups.forEach((group, i) => {group.details.open = open; this._rowUI[i].open = open;});
+        });
+        sections.append(button);
+      }
+      this.shadowRoot.append(sections);
       this._config.rows.forEach((row, index) => {
+        const ui = this._rowUI[index];
+        const details = el("details", "slot"), summary = el("summary");
+        details.open = ui.open;
+        details.addEventListener("toggle", () => {ui.open = details.open;});
+        const summaryTitle = el("span", "slot-title"), warning = el("span", "warning");
+        const descriptions = {on_entity: el("span", "slot-entity"), off_entity: el("span", "slot-entity")};
+        summary.append(summaryTitle, descriptions.on_entity, descriptions.off_entity, warning);
         const group = el("fieldset");
         group.append(el("legend", "", `${this._t("row")} ${index + 1}`));
         const name = field(group, this._t("editor_name"), el("input"));
         name.value = row.name ?? "";
         name.addEventListener("input", () => {row.name = name.value; this._emit();});
+        const fields = [];
         for (const [key, caption] of [["on_entity", "on"], ["off_entity", "off"]]) {
-          const select = field(group, this._t(caption), el("select"));
-          const blank = el("option", "", this._t("editor_choose")); blank.value = ""; select.append(blank);
-          for (const [id, label] of options) {
-            const option = el("option", "", `${label} (${id})`); option.value = id; select.append(option);
+          let picker, search;
+          if (this._nativePicker) {
+            picker = el("ha-entity-picker");
+            picker.label = this._t(caption); picker.includeDomains = ["number", "input_number"];
+            picker.allowCustomEntity = false; picker.showEntityId = true;
+            picker.addEventListener("value-changed", event => {event.stopPropagation(); this._select(row, key, event.detail?.value);});
+            group.append(picker);
+          } else {
+            search = field(group, `${this._t(caption)} — ${this._t("editor_search")}`, el("input", "entity-search"));
+            search.type = "search"; search.autocomplete = "off"; search.value = ui.queries[key] ?? "";
+            search.addEventListener("input", () => {ui.queries[key] = search.value; this._refresh();});
+            picker = field(group, this._t(caption), el("select", "entity-select"));
+            picker.addEventListener("change", () => this._select(row, key, picker.value));
           }
-          if (row[key] && !options.some(([id]) => id === row[key])) {
-            const option = el("option", "", `${row[key]} — ${this._t("editor_unavailable")}`);
-            option.value = row[key]; select.append(option);
-          }
-          select.value = row[key] ?? "";
-          select.addEventListener("change", () => {row[key] = select.value; this._emit();});
+          const note = el("div", "picker-note"); note.setAttribute("role", "status"); group.append(note);
+          fields.push({key, caption, picker, search, note});
         }
         const actions = el("div", "actions");
         for (const [key, delta] of [["editor_up", -1], ["editor_down", 1], ["editor_remove", 0]]) {
@@ -511,20 +677,32 @@
           button.setAttribute("aria-label", `${this._t(key)} ${index + 1}`);
           button.disabled = delta !== 0 && (index + delta < 0 || index + delta >= this._config.rows.length);
           button.addEventListener("click", () => {
-            if (!delta) this._config.rows.splice(index, 1);
-            else [this._config.rows[index], this._config.rows[index + delta]] =
-              [this._config.rows[index + delta], this._config.rows[index]];
+            // Capture native toggle state before moving the corresponding row.
+            this._groups.forEach((g, i) => {this._rowUI[i].open = g.details.open;});
+            const target = index + delta;
+            if (!delta) {this._config.rows.splice(index, 1); this._rowUI.splice(index, 1);}
+            else {
+              [this._config.rows[index], this._config.rows[target]] = [this._config.rows[target], this._config.rows[index]];
+              [this._rowUI[index], this._rowUI[target]] = [this._rowUI[target], this._rowUI[index]];
+            }
             this._emit(true);
+            const focus = this._groups[Math.min(Math.max(target, 0), this._groups.length - 1)]?.details.querySelector("summary");
+            (focus ?? this._add).focus();
           });
           actions.append(button);
         }
-        group.append(actions); this.shadowRoot.append(group);
+        group.append(actions); details.append(summary, group); this.shadowRoot.append(details);
+        this._groups.push({row, index, details, title: summaryTitle, descriptions, warning, fields});
       });
-      const add = el("button", "", this._t("editor_add")); add.type = "button";
-      add.addEventListener("click", () => {
-        this._config.rows.push({name: "", on_entity: "", off_entity: ""}); this._emit(true);
+      this._add = el("button", "", this._t("editor_add")); this._add.type = "button";
+      this._add.addEventListener("click", () => {
+        this._groups.forEach((g, i) => {this._rowUI[i].open = g.details.open;});
+        this._config.rows.push({name: "", on_entity: "", off_entity: ""});
+        this._rowUI.push({open: true, queries: {}}); this._emit(true);
+        this._groups.at(-1).details.querySelector("fieldset input").focus();
       });
-      this.shadowRoot.append(add);
+      this.shadowRoot.append(this._add);
+      this._refresh();
     }
   }
 
