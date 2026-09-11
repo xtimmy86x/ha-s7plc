@@ -328,7 +328,7 @@ test("native picker contract rejects stale duplicate choices and retains missing
     {on_entity: "number.on_0", off_entity: "number.off_0"},
     {on_entity: "number.missing", off_entity: "number.off_1"},
   ]);
-  const pickers = editor.shadowRoot.querySelectorAll("ha-entity-picker");
+  const pickers = editor.shadowRoot.querySelectorAll('ha-entity-picker:not([data-field="days_entity"])');
   expect(pickers[0].includeDomains).toEqual(["number", "input_number"]);
   expect(pickers[0].includeEntities).toEqual(["number.on_0", "number.on_1"]);
   expect(pickers[0].allowCustomEntity).toBe(false);

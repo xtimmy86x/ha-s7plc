@@ -112,6 +112,11 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   confirmation/failure states. It also checks editor opt-in and accessible,
   localized labels. These DOM tests verify data and interaction, not browser
   rendering; check the timeline in HA with narrow/wide cards and light/dark themes.
+- `schedule-days.test.js` covers BYTE masks, bit-7 preservation, day selection,
+  mixed time/day writes, conflicts and feedback, optional entity picking and
+  weekday-aware overnight/overlap previews. The fixed mask uses Sunday bit 0
+  through Saturday bit 6. Timeline weekdays identify interval start days.
+  Check wrapped weekday controls and the day selector on real Safari/Chrome.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
@@ -187,6 +192,8 @@ The runtime suite covers:
   resource handling, repeated setup, reload and serving the JavaScript over HTTP.
 - LOGO clock number metadata, HHMM state and `number.set_value` dispatch through
   the real HA runtime, with exactly one BCD conversion before PLC transport.
+- Raw BYTE weekday metadata and full-mask `number.set_value` dispatch without
+  conversion, including preservation of bit 7 in the payload supplied by the card.
 
 The dashboard asset is registered by `frontend.py` during integration setup,
 independently of `panel.py`. Lovelace is a setup dependency so its resource
@@ -198,8 +205,12 @@ When changing `s7plc-schedule-card.js`, increment
 update the relevant DOM tests. `s7_raw_word` on number entities describes scalar
 WORD read/write channels without value conversion; the card still validates
 the HA numeric bounds and step separately. LOGO-converted writable WORD numbers
-expose `s7_time_format: hhmm`. S7 format detection is always automatic and
-metadata takes precedence over any old card/row format settings. Keep those
+expose `s7_time_format: hhmm`. S7 format detection is always automatic.
+`s7_raw_byte` identifies scalar BYTE read/write channels without conversions for
+the optional weekday picker. Unknown external helpers are validated as raw BYTE
+values at edit/save time; do not infer S7 capabilities from their current state.
+For clock entities, format metadata takes precedence over any old card/row
+format settings. Keep those
 legacy settings only as a fallback for external helpers without S7 metadata;
 the editor must not expose format selectors or generate new settings.
 Never infer encoding from the numeric state itself.

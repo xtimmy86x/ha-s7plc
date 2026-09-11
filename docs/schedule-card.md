@@ -204,12 +204,65 @@ Some writes can succeed while others fail. Confirmed edits are cleared; failed
 edits remain visible for correction or retry. Cancel cannot undo writes already
 sent to the PLC.
 
+## Weekdays per slot (optional BYTE)
+
+Select **Weekday BYTE entity (optional)** in each slot's editor, or set its
+`days_entity` in YAML. Each slot can use its own `number`; external `input_number`
+helpers holding the same raw mask are also supported. The seven buttons appear
+below that slot's times, in Monday–Sunday order, and wrap on narrow cards.
+The existing bulk wizard still pairs on/off entities; assign weekday entities
+individually afterwards.
+
+The weekday mask uses this fixed bit mapping:
+
+| Day | Bit | Decimal value |
+| --- | --- | --- |
+| Sunday | 0 | 1 |
+| Monday | 1 | 2 |
+| Tuesday | 2 | 4 |
+| Wednesday | 3 | 8 |
+| Thursday | 4 | 16 |
+| Friday | 5 | 32 |
+| Saturday | 6 | 64 |
+
+Sum the selected day values: Monday–Friday is `62`, Saturday–Sunday is `65`,
+all days is `127`, and no days is `0`. Bit 7 (`128`) is preserved when editing;
+the card does not interpret it as an enable bit. Thus a BYTE value of `190`
+shows Monday–Friday with bit 7 retained.
+
+For S7 entities, both read and write addresses must be scalar BYTE channels
+without value conversions. They expose `s7_raw_byte: true` after restarting HA
+with the updated integration. Configure min/max/step as `0`/`255`/`1` to allow
+all masks, including the preserved bit. S7 WORDs, clock-converted numbers and
+scaled BYTE values are not offered in this picker. It supports name/ID search,
+PLC filtering and duplicate protection like the time pickers.
+
+Day changes stay local until **Save changes**; **Cancel** restores current HA
+values. Saving uses the entity's normal `set_value` service with the full BYTE,
+waits for exact feedback and checks min/max/step and concurrent changes. A change
+to any bit, including bit 7, prevents overwriting a stale draft. Invalid values
+outside 0–255, missing/incompatible entities and unavailable states disable day
+editing. Multiple time/day writes are sequential, not an atomic PLC transaction;
+confirmed writes are not resent after a partial failure.
+
+Slots without `days_entity` keep the existing daily behavior. Clearing the
+picker removes weekday control from the card; it does not change the PLC mask.
+
 ## Optional daily timeline
 
 Enable **Show daily timeline** in the visual editor, or set `show_timeline: true`
 in YAML. It is disabled by default. The timeline appears below Save/Cancel and
 shows one labelled track per slot, from 00:00 to 24:00. It uses each entity's
 automatically detected time format, including mixed BCD and converted HHMM pairs.
+
+When any slot has a weekday entity, a **Day** selector appears (initially Monday).
+Only intervals for the selected day contribute to the tracks and overlap summary.
+The visualization treats selected weekdays as **start days**: Monday 22:00–02:00
+appears on Monday from 22:00 to 24:00 and on Tuesday from 00:00 to 02:00. The same
+rule carries Sunday intervals into Monday. This is the card's display convention;
+the PLC program remains responsible for execution. A zero weekday mask has no
+intervals, while slots without a weekday entity are shown every day and labelled
+accordingly. Weekday drafts also update the preview before saving.
 
 - An interval such as 22:00–02:00 is split into 22:00–24:00 and 00:00–02:00,
   with a note that it crosses midnight.
@@ -228,7 +281,7 @@ the latest HA values. The timeline is read-only and does not send commands by
 itself; it does not change the existing explicit save and confirmation flow.
 
 This is a recurring 24-hour view of the on/off pairs, not live PLC output state.
-It does not read enable bits, weekdays, holidays or PLC priority rules. Overlaps
+It does not read enable bits, holidays or PLC priority rules. Overlaps
 are comparisons between the configured pairs even if they control different loads.
 Labels include exact times and status, so color or bar width is not the only way
 to read short intervals or identify overlaps. The 24:00 axis endpoint is only for
@@ -246,6 +299,7 @@ rows:
   - name: Fascia 01
     on_entity: number.ora_accensione_01
     off_entity: number.ora_spegnimento_01
+    days_entity: number.giorni_fascia_01
   - name: Fascia 02
     on_entity: number.ora_accensione_02
     off_entity: number.ora_spegnimento_02
