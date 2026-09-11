@@ -19,22 +19,22 @@
       failed_count: "{sent} sends succeeded, {failed} failed. Check the highlighted fields.",
       invalid_count: "{count} modified times. Correct the highlighted fields.",
       dirty_count: "{count} modified times. Press Save changes to send them.",
-      incompatible: "This S7 entity is incompatible with the selected value format. Check datatype and conversions.",
+      incompatible: "This S7 entity is not a supported clock value. Check datatype and conversions.",
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
       editor_title: "Title", editor_name: "Slot name", editor_raw: "Show entity values",
       editor_timeout: "Confirmation timeout (seconds)", editor_add: "Add slot", editor_remove: "Remove slot",
-      editor_format: "Entity value format", editor_bcd: "Raw BCD WORD (1024 = 04:00)",
-      editor_hhmm: "Converted HHMM (400 = 04:00)",
-      editor_auto: "Automatic — mixed S7 entities", editor_inherit: "Use card setting",
-      editor_hint_auto: "Each S7 entity uses its own format. For other entities, BCD is the default; select HHMM below when needed.",
-      editor_hint_hhmm: "Select numbers using the LOGO! time BCD conversion, or HHMM helpers. HA writes HHMM; the integration packs the PLC WORD.",
       editor_search: "Search by name or entity ID", editor_no_results: "No matching entities",
       editor_plc: "Filter by PLC", editor_all_plcs: "All entities",
       editor_expand: "Expand all", editor_collapse: "Collapse all",
       editor_incomplete: "Select both entities", editor_in_use: "Already assigned to another time",
       editor_up: "Move up", editor_down: "Move down", editor_choose: "Select a number entity…",
-      editor_hint: "Select raw WORD entities with step 1 and no conversion. The PLC executes the schedule.",
+      editor_hint: "Time formats are detected automatically from S7 entity attributes. The PLC executes the schedule.",
       editor_unavailable: "Unavailable or incompatible", editor_timeout_error: "Enter a timeout from 1 to 300 seconds.",
+      bulk_title: "Add multiple slots", bulk_hint: "Select on and off entities, then review each pair. Initial order follows entity IDs (1, 2, …, 12); use the arrows to adjust it.",
+      bulk_all: "Select results", bulk_clear: "Clear selection", bulk_preview: "Pairing preview",
+      bulk_counts: "{on} on entities · {off} off entities", bulk_incomplete: "Select the same non-zero number of on and off entities.",
+      bulk_invalid: "Some selected entities are missing, incompatible or already assigned. Review the highlighted pairs.",
+      bulk_add: "Add {count} slots", bulk_ready: "Adds these pairs after the existing slots. Review and save the card configuration in HA.",
     },
     it: {
       title: "Programmazione oraria", row: "Fascia", on: "Accensione", off: "Spegnimento", hours: "ore", minutes: "minuti",
@@ -52,22 +52,22 @@
       failed_count: "{sent} invii riusciti, {failed} non riusciti. Controlla i campi segnalati.",
       invalid_count: "{count} orari modificati. Correggi i campi segnalati.",
       dirty_count: "{count} orari modificati. Premi Salva modifiche per inviarli.",
-      incompatible: "Questa entità S7 non è compatibile con il formato scelto. Verifica tipo e conversioni.",
+      incompatible: "Questa entità S7 non espone un orario supportato. Verifica tipo e conversioni.",
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
       editor_title: "Titolo", editor_name: "Nome fascia", editor_raw: "Mostra valori delle entità",
       editor_timeout: "Tempo di conferma (secondi)", editor_add: "Aggiungi fascia", editor_remove: "Elimina fascia",
-      editor_format: "Formato valori delle entità", editor_bcd: "WORD BCD grezzo (1024 = 04:00)",
-      editor_hhmm: "HHMM convertito (400 = 04:00)",
-      editor_auto: "Automatico — entità S7 miste", editor_inherit: "Usa impostazione card",
-      editor_hint_auto: "Ogni entità S7 usa il proprio formato. Per le altre entità il predefinito è BCD; seleziona HHMM nel singolo campo quando necessario.",
-      editor_hint_hhmm: "Seleziona number con conversione LOGO! time BCD o helper HHMM. HA invia HHMM; l’integrazione converte nel WORD del PLC.",
       editor_search: "Cerca per nome o ID entità", editor_no_results: "Nessuna entità trovata",
       editor_plc: "Filtra per PLC", editor_all_plcs: "Tutte le entità",
       editor_expand: "Espandi tutte", editor_collapse: "Chiudi tutte",
       editor_incomplete: "Seleziona entrambe le entità", editor_in_use: "Già assegnata a un altro orario",
       editor_up: "Sposta su", editor_down: "Sposta giù", editor_choose: "Seleziona un'entità number…",
-      editor_hint: "Seleziona entità WORD grezze con passo 1 e senza conversioni. La programmazione è eseguita dal PLC.",
+      editor_hint: "Il formato degli orari viene riconosciuto automaticamente dagli attributi delle entità S7. La programmazione è eseguita dal PLC.",
       editor_unavailable: "Non disponibile o incompatibile", editor_timeout_error: "Inserisci un tempo tra 1 e 300 secondi.",
+      bulk_title: "Configurazione multipla guidata", bulk_hint: "Seleziona accensioni e spegnimenti, poi controlla ogni coppia. L’ordine iniziale segue gli ID entità (1, 2, …, 12); usa le frecce per modificarlo.",
+      bulk_all: "Seleziona risultati", bulk_clear: "Svuota selezione", bulk_preview: "Anteprima abbinamenti",
+      bulk_counts: "{on} accensioni · {off} spegnimenti", bulk_incomplete: "Seleziona lo stesso numero di accensioni e spegnimenti, almeno una per tipo.",
+      bulk_invalid: "Alcune entità selezionate sono mancanti, incompatibili o già assegnate. Controlla le coppie evidenziate.",
+      bulk_add: "Aggiungi {count} fasce", bulk_ready: "Aggiunge queste coppie dopo le fasce esistenti. Controlla e salva la configurazione della card in HA.",
     },
   };
   const language = (hass) => String(hass?.locale?.language || hass?.language || "en").split(/[-_]/)[0];
@@ -82,11 +82,16 @@
     const n = Number(text);
     return Number.isInteger(n) && n >= 0 && n <= 65535 ? n : null;
   };
-  const valueFormat = config => config?.time_format ?? "bcd";
+  const legacyFormat = config => config?.time_format ?? "bcd";
   const formatKey = key => key.replace("_entity", "_format");
-  const fieldMode = (config, row, key) => row?.[formatKey(key)] ?? valueFormat(config);
-  const resolveFormat = (state, mode) => mode === "auto" ?
-    (state?.attributes?.s7_time_format === "hhmm" ? "hhmm" : "bcd") : mode;
+  const legacyFieldFormat = (config, row, key) => row?.[formatKey(key)] ?? legacyFormat(config);
+  const resolveFormat = (state, legacy) => {
+    const attrs = state?.attributes ?? {};
+    if (attrs.s7_time_format === "hhmm") return "hhmm";
+    if (attrs.s7_raw_word != null || attrs.s7_time_format != null) return "bcd";
+    // Preserve existing external-helper configurations; S7 metadata always wins.
+    return legacy === "hhmm" ? "hhmm" : "bcd";
+  };
   const compatible = (state, format) => {
     const attrs = state?.attributes ?? {};
     if (attrs.s7_time_format != null) return attrs.s7_time_format === format;
@@ -141,12 +146,12 @@
       if (!config || !Array.isArray(config.rows)) {
         throw new Error("Configure rows with name, on_entity and off_entity.");
       }
-      if (!["auto", "bcd", "hhmm"].includes(valueFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
+      if (!["auto", "bcd", "hhmm"].includes(legacyFormat(config))) throw new Error("time_format must be auto, bcd or hhmm.");
       const seen = new Set();
       const rows = config.rows.map((row, i) => {
         if (!row || typeof row !== "object") throw new Error(`Invalid row ${i + 1}.`);
         for (const key of ["on_entity", "off_entity"]) {
-          if (!["auto", "bcd", "hhmm"].includes(fieldMode(config, row, key))) {
+          if (!["auto", "bcd", "hhmm"].includes(legacyFieldFormat(config, row, key))) {
             throw new Error(`Row ${i + 1}: ${formatKey(key)} must be auto, bcd or hhmm.`);
           }
           if (row[key] != null && row[key] !== "" && (typeof row[key] !== "string" || !/^(number|input_number)\.[a-z0-9_]+$/.test(row[key]))) {
@@ -181,7 +186,7 @@
     }
     _t(key, values) { return translate(this._hass, key, values); }
     static getConfigElement() { return document.createElement("s7plc-schedule-card-editor"); }
-    static getStubConfig() { return { rows: [], time_format: "auto" }; }
+    static getStubConfig() { return { rows: [] }; }
     get hass() { return this._hass; }
     getCardSize() { return Math.ceil(((this._config?.rows.length ?? 12) * 66 + 170) / 50); }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
@@ -266,7 +271,7 @@
           const td = el("td"), group = el("div", "time");
           const hours = el("input"), minutes = el("input");
           const note = el("span", "note"), raw = el("span", "raw");
-          const cell = { entity: row[key], mode: fieldMode(this._config, row, key), td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
+          const cell = { entity: row[key], legacyFormat: legacyFieldFormat(this._config, row, key), td, hours, minutes, note, raw, draft: null, pending: null, error: "" };
           for (const [input, part, max] of [[hours, this._t("hours"), 23], [minutes, this._t("minutes"), 59]]) {
             input.type = "text";
             input.inputMode = "numeric";
@@ -323,7 +328,7 @@
       const raw = state?.state;
       const available = Boolean(state) && raw !== "unknown" && raw !== "unavailable";
       const value = parseWord(raw);
-      const format = resolveFormat(state, cell.mode), isCompatible = compatible(state, format);
+      const format = resolveFormat(state, cell.legacyFormat), isCompatible = compatible(state, format);
       return { state, raw, available, value, format, compatible: isCompatible,
         time: isCompatible ? decode(raw, format) : null, key: value ?? String(raw) };
     }
@@ -451,16 +456,17 @@
     constructor() {
       super();
       this.attachShadow({mode: "open"});
-      this._config = {type: "custom:s7plc-schedule-card", rows: [], time_format: "auto"};
+      this._config = {type: "custom:s7plc-schedule-card", rows: []};
       this._rowUI = [];
       this._plc = "";
       this._groups = [];
+      this._bulk = {on: [], off: [], queries: {on: "", off: ""}, open: false};
       this.shadowRoot.addEventListener("focusout", () => queueMicrotask(() => {
         if (this.isConnected && !this.shadowRoot.activeElement && this._needsRender()) this._render();
       }));
     }
 
-    _t(key) { return translate(this._hass, key); }
+    _t(key, values) { return translate(this._hass, key, values); }
 
     connectedCallback() {
       if (this._needsRender()) this._render(); else this._refresh();
@@ -524,7 +530,7 @@
       }
       return options.filter(([id]) => {
         const state = this._hass.states[id];
-        return compatible(state, resolveFormat(state, fieldMode(this._config, row, key))) &&
+        return compatible(state, resolveFormat(state, legacyFieldFormat(this._config, row, key))) &&
           !used.has(id) && (!this._plc || this._deviceId(id) === this._plc);
       });
     }
@@ -549,8 +555,7 @@
     _refresh() {
       if (!this._plcSelect) return;
       const options = this._options();
-      const mode = valueFormat(this._config);
-      this._formatHint.textContent = this._t(mode === "bcd" ? "editor_hint" : `editor_hint_${mode}`);
+      this._formatHint.textContent = this._t("editor_hint");
       const devices = new Map();
       for (const [id] of options) {
         const attrs = this._hass.states[id].attributes;
@@ -576,7 +581,7 @@
         warning.textContent = !row.on_entity || !row.off_entity ? this._t("editor_incomplete") : "";
         for (const {key, caption, picker, search, note} of fields) {
           const id = row[key] ?? "", state = this._hass?.states?.[id];
-          const format = resolveFormat(state, fieldMode(this._config, row, key));
+          const format = resolveFormat(state, legacyFieldFormat(this._config, row, key));
           const isCompatible = compatible(state, format);
           const time = isCompatible ? decode(state?.state, format) : null;
           descriptions[key].textContent = `${this._t(caption)}: ${state?.attributes?.friendly_name || id || "—"}${time ? ` · ${time.hours}:${time.minutes}` : ""}`;
@@ -618,6 +623,147 @@
           }
         }
       }
+      this._refreshBulk(options);
+    }
+
+    _bulkAvailable(id) {
+      const state = this._hass?.states?.[id];
+      return /^(number|input_number)\./.test(id) && Boolean(state) &&
+        compatible(state, resolveFormat(state, legacyFormat(this._config))) &&
+        !this._config.rows.some(row => row.on_entity === id || row.off_entity === id);
+    }
+
+    _bulkMatches(key, entries = this._options()) {
+      const other = key === "on" ? "off" : "on", query = this._bulk.queries[key].trim().toLocaleLowerCase();
+      const options = new Map(entries);
+      for (const id of this._bulk[key]) if (!options.has(id)) options.set(id, id);
+      return [...options].filter(([id, name]) =>
+        (this._bulk[key].includes(id) || (this._bulkAvailable(id) && !this._bulk[other].includes(id))) &&
+        (!this._plc || this._deviceId(id) === this._plc) && `${name} ${id}`.toLocaleLowerCase().includes(query))
+        .sort(([a], [b]) => a.localeCompare(b, "en", {numeric: true}));
+    }
+
+    _bulkProblem() {
+      const {on, off} = this._bulk, ids = [...on, ...off];
+      if (new Set(ids).size !== ids.length || ids.some(id => !this._bulkAvailable(id))) return this._t("bulk_invalid");
+      return !on.length || on.length !== off.length ? this._t("bulk_incomplete") : "";
+    }
+
+    _bulkAdd() {
+      // Revalidate at the final click, including changes made in other editor fields.
+      if (this._bulkProblem()) { this._refresh(); return; }
+      const first = this._config.rows.length;
+      const rows = this._bulk.on.map((id, index) => ({name: "", on_entity: id, off_entity: this._bulk.off[index]}));
+      this._groups.forEach((g, i) => {this._rowUI[i].open = g.details.open;});
+      this._config.rows = [...this._config.rows, ...rows];
+      this._rowUI.push(...rows.map((_, index) => ({open: index === 0, queries: {}})));
+      this._bulk = {on: [], off: [], queries: {on: "", off: ""}, open: false};
+      this._emit(true);
+      this._groups[first]?.details.querySelector("summary").focus();
+    }
+
+    _buildBulk(field) {
+      this._bulkDetails = el("details", "bulk"); this._bulkDetails.open = this._bulk.open;
+      this._bulkDetails.addEventListener("toggle", () => {this._bulk.open = this._bulkDetails.open;});
+      this._bulkDetails.append(el("summary", "", this._t("bulk_title")));
+      const content = el("div", "bulk-content"), columns = el("div", "bulk-columns");
+      content.append(el("p", "hint", this._t("bulk_hint")));
+      this._bulkUI = {};
+      for (const key of ["on", "off"]) {
+        const column = el("div", "bulk-column");
+        column.append(el("strong", "", this._t(key)));
+        const search = field(column, this._t("editor_search"), el("input", `bulk-search-${key}`));
+        search.type = "search"; search.value = this._bulk.queries[key]; search.autocomplete = "off";
+        search.addEventListener("input", () => {this._bulk.queries[key] = search.value; this._refresh();});
+        const actions = el("div", "actions"), all = el("button", `bulk-all-${key}`, this._t("bulk_all"));
+        const clear = el("button", `bulk-clear-${key}`, this._t("bulk_clear")); all.type = clear.type = "button";
+        all.addEventListener("click", () => {
+          this._bulk[key] = [...new Set([...this._bulk[key], ...this._bulkMatches(key).map(([id]) => id)])]
+            .sort((a, b) => a.localeCompare(b, "en", {numeric: true}));
+          this._refresh();
+        });
+        clear.addEventListener("click", () => {this._bulk[key] = []; this._refresh();});
+        actions.append(all, clear);
+        const list = el("div", `bulk-list bulk-list-${key}`); list.setAttribute("role", "group"); list.setAttribute("aria-label", this._t(key));
+        column.append(actions, list); columns.append(column); this._bulkUI[key] = {list, all, clear};
+      }
+      content.append(columns);
+      this._bulkCount = el("p", "hint"); this._bulkCount.setAttribute("role", "status");
+      this._bulkPreview = el("div", "bulk-preview");
+      this._bulkStatus = el("p", "hint"); this._bulkStatus.setAttribute("role", "status");
+      this._bulkApply = el("button", "bulk-apply"); this._bulkApply.type = "button";
+      this._bulkApply.addEventListener("click", () => this._bulkAdd());
+      content.append(this._bulkCount, this._bulkPreview, this._bulkStatus, this._bulkApply);
+      this._bulkDetails.append(content); this.shadowRoot.append(this._bulkDetails);
+    }
+
+    _refreshBulk(options) {
+      if (!this._bulkUI) return;
+      for (const key of ["on", "off"]) {
+        const {list, all, clear} = this._bulkUI[key], matches = this._bulkMatches(key, options);
+        const signature = JSON.stringify(matches.map(([id, name]) => [id, name, this._bulk[key].includes(id)]));
+        all.disabled = !matches.some(([id]) => !this._bulk[key].includes(id)); clear.disabled = !this._bulk[key].length;
+        if (list._signature === signature) continue;
+        list._signature = signature;
+        const focusedId = list.contains(this.shadowRoot.activeElement) ? this.shadowRoot.activeElement.dataset.entity : null;
+        list.replaceChildren();
+        if (!matches.length) list.append(el("p", "hint", this._t("editor_no_results")));
+        for (const [id, name] of matches) {
+          const label = el("label"), checkbox = el("input"); checkbox.type = "checkbox"; checkbox.checked = this._bulk[key].includes(id);
+          checkbox.dataset.entity = id;
+          checkbox.addEventListener("change", () => {
+            this._bulk[key] = checkbox.checked ? [...this._bulk[key], id].sort((a, b) => a.localeCompare(b, "en", {numeric: true})) :
+              this._bulk[key].filter(value => value !== id);
+            this._refresh();
+          });
+          const text = el("span", "", name); text.append(el("small", "", id)); label.append(checkbox, text); list.append(label);
+          if (focusedId === id) checkbox.focus();
+        }
+      }
+      const ids = [...this._bulk.on, ...this._bulk.off], problem = this._bulkProblem();
+      this._bulkCount.textContent = this._t("bulk_counts", {on: this._bulk.on.length, off: this._bulk.off.length});
+      this._bulkStatus.textContent = problem || this._t("bulk_ready"); this._bulkStatus.classList.toggle("warning", Boolean(problem));
+      this._bulkApply.textContent = this._t("bulk_add", {count: this._bulk.on.length}); this._bulkApply.disabled = Boolean(problem);
+      const signature = JSON.stringify([this._bulk.on, this._bulk.off, this._config.rows.length,
+        ids.map(id => [this._hass?.states?.[id], this._bulkAvailable(id)]), legacyFormat(this._config)]);
+      if (this._bulkPreview._signature === signature) return;
+      const active = this.shadowRoot.activeElement;
+      const focus = this._bulkPreview.contains(active) && active?.classList.contains("bulk-move") ? {...active.dataset} : null;
+      this._bulkPreview._signature = signature; this._bulkPreview.replaceChildren();
+      if (!ids.length) return;
+      const table = el("table"), head = el("thead"), headings = el("tr"), body = el("tbody");
+      table.append(el("caption", "", this._t("bulk_preview")));
+      for (const key of ["row", "on", "off"]) { const th = el("th", "", this._t(key)); th.scope = "col"; headings.append(th); }
+      head.append(headings);
+      for (let index = 0; index < Math.max(this._bulk.on.length, this._bulk.off.length); index++) {
+        const tr = el("tr"), th = el("th", "", pad(this._config.rows.length + index + 1)); th.scope = "row"; tr.append(th);
+        for (const key of ["on", "off"]) {
+          const td = el("td"), id = this._bulk[key][index], state = this._hass?.states?.[id];
+          if (!id) {td.textContent = "—"; tr.append(td); continue;}
+          const valid = this._bulkAvailable(id) && ids.filter(value => value === id).length === 1;
+          const time = valid ? decode(state?.state, resolveFormat(state, legacyFormat(this._config))) : null;
+          td.append(el("span", "", state?.attributes?.friendly_name || id), el("small", "", id));
+          if (time) td.append(el("small", "", `${time.hours}:${time.minutes}`));
+          if (!valid) td.append(el("small", "warning", this._t("editor_unavailable")));
+          const actions = el("div", "actions");
+          for (const delta of [-1, 1]) {
+            const button = el("button", "bulk-move", delta < 0 ? "↑" : "↓"); button.type = "button";
+            button.dataset.key = key; button.dataset.index = String(index); button.dataset.delta = String(delta);
+            button.setAttribute("aria-label", `${this._t(delta < 0 ? "editor_up" : "editor_down")} — ${this._t(key)}: ${id}`);
+            button.disabled = index + delta < 0 || index + delta >= this._bulk[key].length;
+            button.addEventListener("click", () => {
+              const values = this._bulk[key]; [values[index], values[index + delta]] = [values[index + delta], values[index]];
+              this._refresh();
+              this._bulkPreview.querySelector(`button[data-key="${key}"][data-index="${index + delta}"][data-delta="${-delta}"]`)?.focus();
+            });
+            actions.append(button);
+          }
+          td.append(actions); tr.append(td);
+        }
+        body.append(tr);
+      }
+      table.append(head, body); this._bulkPreview.append(table);
+      if (focus) this._bulkPreview.querySelector(`button[data-key="${focus.key}"][data-index="${focus.index}"][data-delta="${focus.delta}"]:not(:disabled)`)?.focus();
     }
 
     _render() {
@@ -651,6 +797,20 @@
         button:disabled { opacity:.4; cursor:default; }
         button:focus-visible, summary:focus-visible { outline:2px solid var(--primary-color,#0288d1); outline-offset:2px; }
         .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+        .bulk-content { padding:0 12px 12px; }
+        .bulk-columns { display:flex; flex-wrap:wrap; gap:12px; }
+        .bulk-column { flex:1 1 180px; min-width:0; }
+        .bulk-list { max-height:220px; overflow:auto; margin-top:10px; }
+        .bulk-list label { display:flex; align-items:center; gap:8px; min-height:44px; margin:0; padding:4px; }
+        .bulk-list input { flex:none; width:20px; height:20px; }
+        .bulk small { display:block; font-size:11px; color:var(--secondary-text-color); overflow-wrap:anywhere; }
+        .bulk-list span, .bulk-preview td { overflow-wrap:anywhere; }
+        .bulk-preview table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; }
+        .bulk-preview caption { text-align:left; font-weight:600; margin-bottom:8px; }
+        .bulk-preview th, .bulk-preview td { padding:6px; border-bottom:1px solid var(--divider-color,#aaa); vertical-align:top; }
+        .bulk-preview th:first-child { width:36px; }
+        .bulk-preview .actions { gap:4px; margin-top:4px; }
+        .bulk-preview .warning { color:var(--error-color,#c33b39); }
       `;
       this._formatHint = el("p", "hint");
       this.shadowRoot.append(style, this._formatHint);
@@ -662,15 +822,6 @@
       title.placeholder = this._t("title");
       title.addEventListener("input", () => {
         if (title.value) this._config.title = title.value; else delete this._config.title;
-        this._emit();
-      });
-      const format = field(this.shadowRoot, this._t("editor_format"), el("select", "time-format"));
-      for (const value of ["auto", "bcd", "hhmm"]) {
-        const option = el("option", "", this._t(`editor_${value}`)); option.value = value; format.append(option);
-      }
-      format.value = valueFormat(this._config);
-      format.addEventListener("change", () => {
-        this._config.time_format = format.value;
         this._emit();
       });
       const timeout = field(this.shadowRoot, this._t("editor_timeout"), el("input"));
@@ -712,16 +863,6 @@
         name.addEventListener("input", () => {row.name = name.value; this._emit();});
         const fields = [];
         for (const [key, caption] of [["on_entity", "on"], ["off_entity", "off"]]) {
-          const override = field(group, `${this._t(caption)} — ${this._t("editor_format")}`, el("select", "entity-format"));
-          for (const mode of ["", "auto", "bcd", "hhmm"]) {
-            const option = el("option", "", this._t(mode ? `editor_${mode}` : "editor_inherit"));
-            option.value = mode; override.append(option);
-          }
-          override.value = row[formatKey(key)] ?? "";
-          override.addEventListener("change", () => {
-            if (override.value) row[formatKey(key)] = override.value; else delete row[formatKey(key)];
-            this._emit();
-          });
           let picker, search;
           if (this._nativePicker) {
             picker = el("ha-entity-picker");
@@ -770,6 +911,7 @@
         this._groups.at(-1).details.querySelector("fieldset input").focus();
       });
       this.shadowRoot.append(this._add);
+      this._buildBulk(field);
       this._refresh();
     }
   }

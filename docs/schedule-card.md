@@ -13,8 +13,7 @@ continues to execute the schedule, including when the dashboard is closed.
 1. Install this version of ha-s7plc and restart Home Assistant.
 2. Refresh the browser or reload the Companion app frontend.
 3. Edit your dashboard, choose **Add card**, and search for **S7 PLC — Schedule**.
-4. Choose **Entity value format**, then add slots and select the on/off number
-   entity for each. Names, order, entity-value display and confirmation timeout
+4. Add slots and select the on/off number entity for each. Names, order, entity-value display and confirmation timeout
    are configurable.
 
 The integration automatically serves the module and registers it in Lovelace's
@@ -56,18 +55,44 @@ and a standard select for each time. Search matches friendly names and entity
 IDs. Typing a search or expanding a slot does not change the card configuration
 or send any command to the PLC.
 
+## Add multiple slots with a pairing preview
+
+Open **Add multiple slots** at the bottom of the visual editor. This prepares
+new pairs without changing existing rows:
+
+1. Search the on-entity list by name or ID and check the desired entities, or
+   use **Select results** to select all matching results. Repeat for off entities.
+   The editor's PLC filter and automatic S7 format detection also apply to these lists.
+2. Review **Pairing preview**. Initial ordering is natural entity-ID order
+   (`1, 2, …, 12`); the first on entity pairs with the first off entity, and so
+   on. This is positional pairing, not automatic inference from PLC addresses
+   or entity names. Use the arrows in either column to adjust the pairs.
+3. Press **Add N slots** to append the previewed pairs. Existing rows, names,
+   assignments and per-field formats are preserved. Review the new rows, then
+   save the card configuration in Home Assistant.
+
+For twelve pairs, select twelve on entities and twelve off entities. The two
+lists must have equal non-zero counts. Entities already used in the card or
+selected for the other side are excluded. Missing or newly incompatible
+selections remain in the preview with a warning and block additions until
+corrected. The final click revalidates the entire selection before appending
+any rows.
+
+Searches and PLC filters do not discard selections; **Clear selection** clears
+one side. Changing selections sorts that side by entity ID again, so adjust
+the preview order after completing selection. Mixed S7 BCD/HHMM numbers are
+recognized automatically in both lists and in the preview.
+
+The wizard's selections, searches and preview remain local to the editor.
+Only **Add N slots** emits a card configuration change; this workflow never
+sends PLC commands and does not copy time values between entities.
+
 ## Entity value format
 
 Raw BCD and converted HHMM entities can share one card, including the on/off
-fields of the same slot. Choose **Automatic — mixed S7 entities** in the visual
-editor (`time_format: auto`) to resolve each S7 entity's format from its metadata.
-New cards start in this mode. Existing configurations without `time_format`
-retain BCD behavior; change this setting to `auto` to enable mixed selection.
-
-The card setting can also be fixed to `bcd` or `hhmm`. Each on/off field has its
-own format selector: **Use card setting**, **Automatic**, **Raw BCD WORD** or
-**Converted HHMM**. These overrides are stored as `on_format` and `off_format`
-within the corresponding row and take precedence over the card setting.
+fields of the same slot. The card, individual entity pickers and bulk wizard
+all detect S7 formats automatically from entity attributes. There are no
+card-wide or per-field format selectors.
 
 | Displayed time | HA state: `bcd` | HA state: `hhmm` | PLC BCD WORD |
 | --- | ---: | ---: | --- |
@@ -80,13 +105,23 @@ within the corresponding row and take precedence over the card setting.
 The format is never guessed from a numeric value: `1024` means 04:00 in BCD
 mode but 10:24 in HHMM mode.
 
-### Automatic mixed mode (`time_format: auto`)
+### Automatic detection
 
 S7 entities with `s7_time_format: hhmm` use HHMM; unconverted writable WORDs
 with `s7_raw_word: true` use BCD. Both appear in the same entity picker. Other
-S7 conversions remain excluded. For external numbers/helpers without S7
-metadata, automatic mode uses BCD as a fallback; select HHMM for the individual
-field if that entity exposes converted clock values.
+S7 conversions remain excluded. Detection uses metadata, never the numeric
+value, entity name or numeric limits.
+
+Existing `time_format`, `on_format` and `off_format` settings no longer override
+S7 metadata. They can remain in old YAML; no changes are needed for existing
+S7 cards to use automatic detection.
+
+For external numbers/helpers without S7 metadata, BCD remains the fallback.
+Previously saved format settings are honored only for those external entities
+to preserve their existing encoding. The editor retains these old settings when
+editing the card but does not offer format controls or generate new settings.
+Without metadata or an existing format setting, external HHMM cannot be inferred
+reliably from the state alone.
 
 ### Raw BCD WORD (`bcd`)
 
@@ -113,16 +148,16 @@ are invalid, even though they fall within the numeric limits.
 Both formats support separate read and command addresses when both are scalar
 WORD channels. S7 numbers expose `s7_raw_word` for unconverted writable WORDs;
 LOGO clock numbers additionally expose `s7_time_format: hhmm`. The card uses
-these attributes to reject the wrong selected format, other conversions,
+these attributes to recognize the format and reject other conversions,
 incompatible datatypes, array channels and missing command addresses. This
 prevents applying BCD conversion twice. Incompatible entities are excluded from
 the editor's choices; existing selections remain visible with a warning.
 
 Other `number` entities and `input_number` helpers are also supported. Their
-encoding cannot be verified by ha-s7plc: select the format matching their HA
-state and write interface. An `input_number` helper alone does not write to a PLC.
+encoding cannot be verified by ha-s7plc; the fallback and legacy compatibility
+rules above apply. An `input_number` helper alone does not write to a PLC.
 
-The card checks entity limits and step in the selected HA value format before
+The card checks entity limits and step in the detected HA value format before
 saving. Hours must be 00–23 and minutes 00–59. `00:00` is midnight, not a disabled
 slot; `24:00` and special sentinel values such as 65535 are invalid. On/off
 ordering is unrestricted to allow overnight schedules.
@@ -158,7 +193,6 @@ sent to the PLC.
 ```yaml
 type: custom:s7plc-schedule-card
 title: Programmazione oraria
-time_format: auto  # Mix raw BCD and LOGO-converted HHMM S7 numbers
 show_raw: false
 confirmation_timeout: 15
 rows:
@@ -172,23 +206,9 @@ rows:
 
 Append more rows or use the visual editor. Entity IDs must be distinct across
 the card. `title` is optional and otherwise follows the frontend language.
-`time_format` accepts `auto`, `bcd` or `hhmm`; omitting it preserves legacy BCD
-behavior. `show_raw` defaults to `false`
-and displays the HA entity value labelled WORD or HHMM. `confirmation_timeout`
-defaults to 15 seconds and accepts 1–300 seconds.
-
-For external helpers using different encodings, override each field as needed:
-
-```yaml
-type: custom:s7plc-schedule-card
-time_format: auto
-rows:
-  - name: Mixed helpers
-    on_entity: input_number.raw_clock
-    on_format: bcd
-    off_entity: input_number.converted_clock
-    off_format: hhmm
-```
+S7 formats are detected automatically; no format configuration is needed.
+`show_raw` defaults to `false` and displays the HA entity value labelled WORD or
+HHMM. `confirmation_timeout` defaults to 15 seconds and accepts 1–300 seconds.
 
 ## Moving from the standalone BCD card
 
@@ -217,12 +237,10 @@ resource only after no dashboard uses the standalone card anymore.
   module, add the URL as a `module` under `lovelace.resources` in
   `configuration.yaml`, reload resources and refresh. Use the versioned URL
   from `SCHEDULE_CARD_MODULE` in `frontend.py` for consistent cache invalidation.
-- If converted S7 entities are absent from the picker, select **Automatic —
-  mixed S7 entities** and check that the field has no conflicting format override
-  or PLC filter. Both read/write addresses must be scalar WORD channels.
-  Manual formats are `bcd` without conversion or `hhmm` with **LOGO! time BCD**.
-  Converted S7 entities require
-  `s7_time_format: hhmm`; update the integration and restart HA if it is missing.
+- If converted S7 entities are absent from the picker, check the PLC filter
+  and that both read/write addresses are scalar WORD channels. Converted S7
+  entities require `s7_time_format: hhmm`; update the integration and restart HA
+  if it is missing. The format is detected automatically.
 - If saving reports a range or step error, adjust the number entity's limits
   and step in the S7 PLC configuration panel.
 - If a write is not confirmed, check PLC connectivity and polling interval
