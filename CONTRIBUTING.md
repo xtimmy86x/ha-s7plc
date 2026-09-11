@@ -117,6 +117,11 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
   weekday-aware overnight/overlap previews. The fixed mask uses Sunday bit 0
   through Saturday bit 6. Timeline weekdays identify interval start days.
   Check wrapped weekday controls and the day selector on real Safari/Chrome.
+- `schedule-shortcuts.test.js` covers weekday presets and value copying:
+  per-destination bit-7 preservation, mixed encodings, source/existing drafts,
+  before/after previews, all-or-nothing staging, conflicts, live updates and
+  explicit Save/Cancel. Check touch/keyboard activation and wrapped copy controls
+  in HA; DOM tests do not validate actual browser layout.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
