@@ -185,8 +185,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.data.setdefault(DOMAIN, {})
     # Lightweight test harnesses and config validation do not expose HTTP.
     if hasattr(hass, "http"):
+        from .frontend import async_setup_dashboard
         from .panel import async_setup_panel
 
+        await async_setup_dashboard(hass)
         await async_setup_panel(hass)
     return True
 

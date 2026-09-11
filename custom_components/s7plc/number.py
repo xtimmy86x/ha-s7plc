@@ -31,6 +31,7 @@ from .helpers import (
     get_coordinator_and_device_info,
 )
 from .plc.address import (
+    DataType,
     get_numeric_limits,
     is_time_data_type,
     parse_tag,
@@ -136,6 +137,17 @@ class S7Number(S7BaseEntity, NumberEntity):
         )
         self._command_address = command_address
         self._value_conversion = value_conversion
+        # Expose a small capability flag for dashboard editors. A raw WORD must
+        # use scalar WORD addresses in both directions and have no conversion.
+        self._raw_word = False
+        if command_address and not value_conversion:
+            try:
+                tags = (parse_tag(address), parse_tag(command_address))
+                self._raw_word = all(
+                    tag.data_type == DataType.WORD and tag.length == 1 for tag in tags
+                )
+            except (RuntimeError, ValueError):
+                pass
         self._conversion_context = ConversionContext.from_address(
             "value", command_address or address, "bidirectional"
         )
@@ -257,5 +269,6 @@ class S7Number(S7BaseEntity, NumberEntity):
         if self._command_address:
             attrs["s7_command_address"] = self._command_address.upper()
         attrs["step"] = self._attr_native_step
+        attrs["s7_raw_word"] = self._raw_word
         # min and max are exposed automatically by NumberEntity
         return attrs

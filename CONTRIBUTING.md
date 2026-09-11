@@ -87,6 +87,8 @@ Frontend tests live in `tests/frontend/` and use Vitest with jsdom.
 - `panel-search.test.js` covers filtering and search-state preservation.
 - `panel-editor.test.js` and `panel-complex-editors.test.js` cover entity editor workflows.
 - The remaining files cover address handling, YAML, connection details, entities, helpers, and value conversions.
+- `schedule-card.test.js` covers the bundled schedule card and its visual editor,
+  including BCD conversion, DOM editing, conflicts, service calls and confirmation.
 
 When changing `custom_components/s7plc/www/s7plc-panel.js`, add or update a DOM test in the closest matching frontend test file. Prefer testing rendered behavior and user interactions over checking source-code strings.
 
@@ -157,6 +159,16 @@ The runtime suite covers:
   state survives reload without new PLC I/O.
 - `health_check` and `write_multi` through HA's dispatcher, including rejection
   of invalid required fields and nested write payloads before PLC access.
+- Schedule-card module registration through HA's actual frontend URL manager,
+  including repeated setup and config-entry reload without duplicate modules.
+
+The dashboard asset is registered by `frontend.py` during integration setup,
+independently of `panel.py`. When changing `s7plc-schedule-card.js`, increment
+`SCHEDULE_CARD_BUILD` in `frontend.py` to invalidate browser module caches and
+update the relevant DOM tests. `s7_raw_word` on number entities describes scalar
+WORD read/write channels without value conversion; the card still validates
+the HA numeric bounds and step separately. Do not use the administration panel's
+WebSocket endpoints for normal dashboard reads or writes.
 
 Platforms add read tags concurrently, so the fixtures explicitly await a real
 coordinator refresh after setup rather than relying on debounce timer timing.

@@ -838,6 +838,37 @@ def test_number_preserves_configured_ha_limits(mock_coordinator):
 
 
 @pytest.mark.parametrize(
+    ("address", "command", "conversion", "expected"),
+    [
+        ("DB1,W0", "DB1,WORD2", None, True),
+        ("MW0", "MW2", None, True),
+        ("DB1,W0", None, None, False),
+        ("DB1,INT0", "DB1,INT2", None, False),
+        ("DB1,W0", "DB1,DWORD2", None, False),
+        ("DB1,TIME0", "DB1,TIME4", None, False),
+        ("DB1,W0", "DB1,W2", {"type": "multiplier", "factor": 2}, False),
+    ],
+)
+def test_number_reports_raw_word_capability(
+    mock_coordinator, address, command, conversion, expected
+):
+    entity = S7Number(
+        mock_coordinator,
+        "Schedule",
+        "schedule",
+        {},
+        "number:schedule",
+        address,
+        command,
+        0,
+        65535,
+        1,
+        value_conversion=conversion,
+    )
+    assert entity.extra_state_attributes["s7_raw_word"] is expected
+
+
+@pytest.mark.parametrize(
     ("address", "datatype_min", "datatype_max"),
     [
         ("db1,byte0", 0.0, 255.0),
