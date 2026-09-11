@@ -249,6 +249,10 @@
           thead th:first-child, tbody th { padding-left:12px; } th,td { padding-left:4px; padding-right:4px; }
           footer { padding-left:12px; padding-right:12px; } }
         @media (max-width:600px), (any-pointer:coarse) {
+          input { width:44px; height:44px; }
+          button { min-height:44px; }
+        }
+        @media (max-width:600px) {
           .scroll { max-height:min(50vh,420px); max-height:min(50dvh,420px);
             overflow-y:auto; scroll-padding-block:48px 12px; }
           thead th { position:sticky; top:0; z-index:1; }
@@ -256,11 +260,10 @@
           thead th:first-child, tbody th { padding-left:12px; }
           th, td { padding-left:4px; padding-right:4px; }
           .time { gap:2px; }
-          input { width:44px; height:44px; }
           header { padding:18px 12px 14px; }
           footer { padding:12px; }
           .buttons { margin-top:8px; }
-          button { min-height:44px; flex:1 1 100px; }
+          button { flex:1 1 100px; }
         }
       `;
       const card = el("ha-card");
