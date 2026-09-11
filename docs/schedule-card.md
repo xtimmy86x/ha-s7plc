@@ -15,11 +15,18 @@ continues to execute the schedule, including when the dashboard is closed.
 4. In the visual editor, add slots and select the on/off number entity for each.
    Names, order, raw-value display and confirmation timeout are configurable.
 
-The integration automatically serves and loads the module through Home
-Assistant's frontend. There is no file to copy to `www`, no manual resource
-registration, and no need to open the S7 PLC administration panel first. This
-also works with dashboards configured in YAML. The card uses normal HA entity
-states and service calls, including HA's user permissions.
+The integration automatically serves the module and registers it in Lovelace's
+resource collection. With UI-managed resources, it appears in **Settings →
+Dashboards → Resources** as `/s7plc_static/s7plc-schedule-card.js` with version
+and build query parameters, type **JavaScript Module**. Existing registrations
+for this path are updated in place when the integration changes.
+
+There is no file to copy to `www`, no manual resource registration, and no need
+to open the S7 PLC administration panel first. The module is also advertised to
+Home Assistant's frontend. This provides automatic loading when resources are
+managed in YAML; in that mode the integration does not modify the resource list.
+The card uses normal HA entity states and service calls, including HA's user
+permissions.
 
 English and Italian labels are included. Other frontend languages fall back to
 English. Theme colors follow the Home Assistant theme.
@@ -113,9 +120,21 @@ resource only after no dashboard uses the standalone card anymore.
 
 ## Troubleshooting
 
-- If the card is not listed, confirm the integration has started, then fully
-  refresh the frontend. The module URL is
-  `/s7plc_static/s7plc-schedule-card.js` with version/build query parameters.
+- If the card is not listed, confirm that the installed integration contains
+  `frontend.py` and `www/s7plc-schedule-card.js`, then restart Home Assistant and
+  refresh the frontend. Reloading just the PLC entry does not install new code.
+- With UI-managed resources, check **Settings → Dashboards → Resources** for
+  `/s7plc_static/s7plc-schedule-card.js` with version/build query parameters and
+  type **JavaScript Module**. Enable advanced mode in your profile if the
+  Resources menu is hidden. Early preview builds used only an extra frontend
+  module and did not appear in this list; update to the current branch.
+- Open `/s7plc_static/s7plc-schedule-card.js` on the same Home Assistant host.
+  It must return JavaScript beginning with `S7 PLC Schedule Card`, not a 404 or
+  the HA page. If it does not, check the installation and S7 PLC startup logs.
+- For YAML-managed resources, if a cached frontend still misses the extra
+  module, add the URL as a `module` under `lovelace.resources` in
+  `configuration.yaml`, reload resources and refresh. Use the versioned URL
+  from `SCHEDULE_CARD_MODULE` in `frontend.py` for consistent cache invalidation.
 - If a selected S7 entity is incompatible, use scalar WORD read/write addresses
   and remove its value conversion. The card performs the BCD conversion itself.
 - If saving reports a range or step error, adjust the number entity's limits

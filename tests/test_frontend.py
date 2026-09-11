@@ -26,8 +26,15 @@ def dashboard_hass(monkeypatch):
         url=url, path=path, **kwargs
     )
     monkeypatch.setitem(sys.modules, http.__name__, http)
+    lovelace = ModuleType("homeassistant.components.lovelace")
+    lovelace.LOVELACE_DATA = "lovelace"
+    monkeypatch.setitem(sys.modules, lovelace.__name__, lovelace)
+    resources = ModuleType("homeassistant.components.lovelace.resources")
+    resources.ResourceStorageCollection = type("ResourceStorageCollection", (), {})
+    monkeypatch.setitem(sys.modules, resources.__name__, resources)
     hass = SimpleNamespace(
-        data={}, http=SimpleNamespace(async_register_static_paths=AsyncMock())
+        data={"lovelace": SimpleNamespace(resources=object())},
+        http=SimpleNamespace(async_register_static_paths=AsyncMock()),
     )
     return hass, frontend.add_extra_js_url
 
@@ -45,8 +52,8 @@ async def test_setup_loads_card_independently_of_panel(dashboard_hass, monkeypat
     assert Path(asset.path).is_file()
     assert asset.cache_headers is False
     panel.assert_awaited_once_with(hass)
-    # No dependency on Lovelace's storage collection or any configured PLC.
-    assert list(hass.data) == [DOMAIN]
+    # YAML-managed resources do not require storage writes or a configured PLC.
+    assert set(hass.data) == {"lovelace", DOMAIN}
 
 
 @pytest.mark.asyncio
@@ -68,3 +75,30 @@ async def test_failed_static_registration_does_not_claim_success(dashboard_hass)
     hass.http.async_register_static_paths.side_effect = None
     await async_setup_dashboard(hass)
     add_module.assert_called_once_with(hass, SCHEDULE_CARD_MODULE)
+
+
+@pytest.mark.asyncio
+async def test_resource_storage_failure_keeps_module_and_can_retry(
+    dashboard_hass, caplog
+):
+    from homeassistant.components.lovelace.resources import ResourceStorageCollection
+
+    hass, add_module = dashboard_hass
+    resources = ResourceStorageCollection()
+    resources.async_get_info = AsyncMock(side_effect=OSError("Storage unavailable"))
+    resources.async_items = Mock(return_value=[])
+    resources.async_create_item = AsyncMock()
+    hass.data["lovelace"].resources = resources
+
+    await async_setup_dashboard(hass)
+    add_module.assert_called_once_with(hass, SCHEDULE_CARD_MODULE)
+    assert "Storage unavailable" in caplog.text
+    resources.async_create_item.assert_not_awaited()
+
+    resources.async_get_info.side_effect = None
+    await async_setup_dashboard(hass)
+    resources.async_create_item.assert_awaited_once_with(
+        {"url": SCHEDULE_CARD_MODULE, "res_type": "module"}
+    )
+    hass.http.async_register_static_paths.assert_awaited_once()
+    add_module.assert_called_once()

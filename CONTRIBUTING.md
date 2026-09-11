@@ -159,11 +159,16 @@ The runtime suite covers:
   state survives reload without new PLC I/O.
 - `health_check` and `write_multi` through HA's dispatcher, including rejection
   of invalid required fields and nested write payloads before PLC access.
-- Schedule-card module registration through HA's actual frontend URL manager,
-  including repeated setup and config-entry reload without duplicate modules.
+- Schedule-card registration through HA's actual frontend URL manager and
+  Lovelace resource collection, including persisted resource updates, YAML
+  resource handling, repeated setup, reload and serving the JavaScript over HTTP.
 
 The dashboard asset is registered by `frontend.py` during integration setup,
-independently of `panel.py`. When changing `s7plc-schedule-card.js`, increment
+independently of `panel.py`. Lovelace is a setup dependency so its resource
+collection exists before registration. UI-managed resources are created or
+updated through the collection API, after loading existing storage. The extra
+frontend module supports YAML-managed resources without editing the user's YAML.
+When changing `s7plc-schedule-card.js`, increment
 `SCHEDULE_CARD_BUILD` in `frontend.py` to invalidate browser module caches and
 update the relevant DOM tests. `s7_raw_word` on number entities describes scalar
 WORD read/write channels without value conversion; the card still validates
