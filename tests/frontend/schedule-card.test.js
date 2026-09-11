@@ -26,7 +26,7 @@ function setup({count = 1, delayed = false, reject = false} = {}) {
   card.hass = hass; document.body.append(card);
   return {card, hass, update};
 }
-const fields = card => [...card.shadowRoot.querySelectorAll("input")];
+const fields = card => [...card.shadowRoot.querySelectorAll(".time input")];
 const edit = (input, value) => {input.focus(); input.value = value; input.dispatchEvent(new Event("input", {bubbles: true}));};
 const clickSave = async card => {
   const button = card.shadowRoot.querySelector(".save"); button.focus(); button.click();

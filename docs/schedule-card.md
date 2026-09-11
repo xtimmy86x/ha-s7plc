@@ -248,6 +248,42 @@ confirmed writes are not resent after a partial failure.
 Slots without `days_entity` keep the existing daily behavior. Clearing the
 picker removes weekday control from the card; it does not change the PLC mask.
 
+### Quick weekday selections
+
+Each weekday control includes **All**, **Mon–Fri**, **Sat–Sun** and **None**.
+These replace the seven weekday bits with `127`, `62`, `65` or `0`, preserving
+that slot's bit 7. They update the local draft and timeline preview immediately;
+use **Save changes** to send them or **Cancel** to discard them. The same
+availability, limits, conflict and confirmation checks apply as for individual days.
+
+## Copy settings between slots
+
+With two or more slots, open **Copy between slots** below Save/Cancel:
+
+1. Select the source slot and **Times only**, **Days only**, or **Times and days**.
+2. Check the destination slots. The source cannot also be a destination.
+3. Review the before/after values shown for each destination.
+4. Press **Apply to selected slots** to replace those local values. Press
+   **Save changes** to send them to HA, or **Cancel** to restore the latest HA values.
+
+Copying uses valid source drafts when present, otherwise current entity values.
+Times are copied as hours/minutes and encoded separately for each destination's
+detected BCD/HHMM format. Only weekday bits are copied; each destination retains
+its own bit 7. Days-only copying leaves times untouched, and times-only copying
+leaves weekday masks untouched. Non-selected slots are unaffected.
+
+Apply intentionally replaces existing local edits in the selected fields, as
+shown in the preview. It does not bypass conflicts or errors: invalid/missing
+source values, incompatible/offline destinations, failed writes, destination
+limits or stale drafts block the whole copy before any draft is changed. Modes
+including days require weekday entities on the source and every selected
+destination. Copies are disabled while writes await confirmation. The final
+click rechecks current state, and Save still performs its normal validation.
+
+This control copies values, separately from the editor's bulk wizard, which
+assigns entity pairs. Copy choices are temporary and are not stored in dashboard
+YAML. Apply itself does not call HA services or modify the card configuration.
+
 ## Optional daily timeline
 
 Enable **Show daily timeline** in the visual editor, or set `show_timeline: true`

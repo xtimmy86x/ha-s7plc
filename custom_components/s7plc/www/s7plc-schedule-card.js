@@ -22,6 +22,13 @@
       incompatible: "This S7 entity is not a supported clock value. Check datatype and conversions.",
       choose_entity: "Choose an entity", configure: "Open the card editor and add your on/off entity pairs.",
       days: "Days", editor_days: "Weekday BYTE entity (optional)", days_none: "No days selected",
+      days_all: "All", days_work: "Mon–Fri", days_weekend: "Sat–Sun", days_clear: "None",
+      copy_title: "Copy between slots", copy_source: "Copy from", copy_mode: "What to copy",
+      copy_times: "Times only", copy_days: "Days only", copy_both: "Times and days",
+      copy_targets: "Destination slots", copy_apply: "Apply to selected slots",
+      copy_hint: "Review before/after values. Apply replaces selected local values; press Save changes to send them to HA.",
+      copy_select: "Select at least one destination slot.", copy_missing_days: "A weekday entity is required for this copy mode.",
+      copy_applied: "Copy applied locally. Press Save changes to send it to HA.", copy_no_changes: "Selected values already match.",
       invalid_days: "Expected an integer BYTE from 0 to 255. Check the entity value.",
       invalid_days_step: "Incompatible entity step for this weekday mask.",
       incompatible_days: "Choose a raw writable BYTE entity without conversions.",
@@ -67,6 +74,13 @@
       incompatible: "Questa entità S7 non espone un orario supportato. Verifica tipo e conversioni.",
       choose_entity: "Scegli un'entità", configure: "Apri l'editor della card e aggiungi le coppie accensione/spegnimento.",
       days: "Giorni", editor_days: "Entità BYTE dei giorni (opzionale)", days_none: "Nessun giorno selezionato",
+      days_all: "Tutti", days_work: "Lun–Ven", days_weekend: "Sab–Dom", days_clear: "Nessuno",
+      copy_title: "Copia tra fasce", copy_source: "Copia da", copy_mode: "Cosa copiare",
+      copy_times: "Solo orari", copy_days: "Solo giorni", copy_both: "Orari e giorni",
+      copy_targets: "Fasce destinatarie", copy_apply: "Applica alle fasce selezionate",
+      copy_hint: "Controlla i valori prima/dopo. Applica sostituisce i valori locali selezionati; premi Salva modifiche per inviarli a HA.",
+      copy_select: "Seleziona almeno una fascia destinataria.", copy_missing_days: "Questa modalità richiede un’entità dei giorni.",
+      copy_applied: "Copia applicata localmente. Premi Salva modifiche per inviarla a HA.", copy_no_changes: "I valori selezionati coincidono già.",
       invalid_days: "Serve un BYTE intero da 0 a 255. Controlla il valore dell’entità.",
       invalid_days_step: "Passo dell’entità incompatibile con questa maschera dei giorni.",
       incompatible_days: "Scegli un’entità BYTE scrivibile senza conversioni.",
@@ -214,6 +228,7 @@
         throw new Error("confirmation_timeout must be between 1 and 300 seconds.");
       }
       this._config = { ...config, rows, confirmation_timeout: timeout };
+      this._copyState = {source: 0, mode: "times", targets: new Set(), open: false};
       this._generation++;
       this._saving = false;
       this._message = "";
@@ -243,7 +258,7 @@
     getCardSize() {
       const rows = this._config?.rows.length ?? 12;
       const dayRows = this._config?.rows.filter(row => row.days_entity).length ?? 0;
-      return Math.ceil((rows * 66 + dayRows * 100 + 170 + (this._config?.show_timeline ? rows * 65 + 230 : 0)) / 50);
+      return Math.ceil((rows * 66 + dayRows * 150 + 170 + (rows > 1 ? 50 : 0) + (this._config?.show_timeline ? rows * 65 + 230 : 0)) / 50);
     }
     getGridOptions() { return { columns: 12, min_columns: 9 }; }
     connectedCallback() {
@@ -308,6 +323,24 @@
         .days button { flex:0 0 44px; width:44px; min-height:44px; padding:0;
           background:var(--secondary-background-color,#f4f7f9); color:var(--primary-text-color,#182a36); }
         .days button[aria-pressed=true] { background:var(--primary-color,#0288d1); color:var(--text-primary-color,#fff); }
+        .day-presets { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
+        .day-presets button { min-height:44px; background:transparent; color:var(--primary-color,#0288d1);
+          border:1px solid var(--divider-color,#e7edf0); font-size:12px; }
+        .day-presets button[aria-pressed=true] { border-color:var(--primary-color,#0288d1); }
+        .copy { border-top:1px solid var(--divider-color,#e7edf0); font-size:13px; }
+        .copy summary { cursor:pointer; padding:14px 12px; min-height:44px; }
+        .copy-content { padding:0 12px 14px; }
+        .copy label { display:block; margin:8px 0; }
+        .copy select { display:block; width:100%; min-height:44px; font:inherit; margin-top:4px;
+          background:var(--card-background-color,#fff); color:var(--primary-text-color,#182a36); }
+        .copy fieldset { min-width:0; margin:12px 0; padding:8px; border:1px solid var(--divider-color,#e7edf0); }
+        .copy .copy-target { display:flex; align-items:center; gap:8px; min-height:44px; overflow-wrap:anywhere; }
+        .copy .copy-target[hidden] { display:none; }
+        .copy input[type=checkbox] { flex:none; width:20px; height:20px; }
+        .copy small { display:block; color:var(--secondary-text-color,#647887); margin-top:4px; }
+        .copy .copy-problem { color:var(--error-color,#c33b39); }
+        .copy p { line-height:1.5; }
+        .copy-apply { background:var(--primary-color,#0288d1); color:var(--text-primary-color,#fff); }
         .timeline-day { display:block; margin-bottom:10px; font-size:13px; }
         .timeline-day select { font:inherit; color:var(--primary-text-color,#182a36);
           background:var(--card-background-color,#fff); min-height:44px; margin-inline-start:8px; }
@@ -430,7 +463,14 @@
             button.addEventListener("click", () => this._editDays(cell, bit));
             cell.buttons.push(button); group.append(button);
           }
-          td.append(el("span", "days-label", caption), group, summary, raw, note); daysRow.append(td);
+          const presets = el("div", "day-presets"); cell.presets = [];
+          for (const [key, mask] of [["days_all", 127], ["days_work", 62], ["days_weekend", 65], ["days_clear", 0]]) {
+            const button = el("button", "", this._t(key)); button.type = "button"; button.dataset.mask = mask;
+            button.setAttribute("aria-label", `${caption} — ${this._t(key)}`);
+            button.addEventListener("click", () => this._setDaysMask(cell, mask));
+            presets.append(button); cell.presets.push(button);
+          }
+          td.append(el("span", "days-label", caption), group, presets, summary, raw, note); daysRow.append(td);
           body.append(daysRow); this._dayCells.push(cell);
         }
       }
@@ -452,6 +492,8 @@
       this._save.addEventListener("click", () => void this._saveChanges());
       buttons.append(this._reset, this._save); footer.append(this._status, buttons);
       card.append(header, scroll, footer);
+      this._copyUI = null;
+      if (this._config.rows.length > 1) this._buildCopy(card);
       this._timeline = null; this._timelineSignature = null;
       if (this._config.show_timeline) {
         this._timeline = el("section", "timeline");
@@ -486,9 +528,14 @@
     }
 
     _editDays(cell, bit) {
+      const value = cell.draft?.value ?? this._info(cell).value;
+      if (value !== null) this._setDaysMask(cell, (value ^ (1 << bit)) & 127);
+    }
+
+    _setDaysMask(cell, mask) {
       const info = this._info(cell);
       if (this._saving || cell.pending || !info.available || !info.compatible || info.value === null) return;
-      const value = (cell.draft?.value ?? info.value) ^ (1 << bit);
+      const value = ((cell.draft?.value ?? info.value) & 128) | (mask & 127);
       cell.draft = {base: cell.draft?.base ?? info.key, format: "byte", value};
       cell.error = "";
       if (value === info.value) cell.draft = null;
@@ -548,11 +595,12 @@
           const value = c.draft ?? info.time;
           c.hours.value = value?.hours ?? ""; c.minutes.value = value?.minutes ?? "";
         }
-        const controls = isDays ? c.buttons : [c.hours, c.minutes];
+        const controls = isDays ? [...c.buttons, ...c.presets] : [c.hours, c.minutes];
         for (const control of controls) control.disabled = !info.available || !info.compatible || this._saving || Boolean(c.pending) || (isDays && info.value === null);
         if (isDays) {
           const value = c.draft?.value ?? info.value;
           for (const button of c.buttons) button.setAttribute("aria-pressed", String(value !== null && Boolean(value & (1 << Number(button.dataset.bit)))));
+          for (const button of c.presets) button.setAttribute("aria-pressed", String(value !== null && (value & 127) === Number(button.dataset.mask)));
           c.summary.textContent = info.available && info.compatible && value !== null ? daysText(this._hass, value) : "—";
         }
         let problem = c.pending ? "" : (c.error || this._validate(c));
@@ -576,6 +624,137 @@
         dirty ? this._t(invalid ? "invalid_count" : "dirty_count", {count: dirty}) :
         this._message || this._t(this._config.rows.length ? "hint" : "configure");
       this._syncTimeline();
+      this._syncCopy();
+    }
+
+    _buildCopy(card) {
+      const details = el("details", "copy"), content = el("div", "copy-content");
+      details.open = this._copyState.open;
+      details.append(el("summary", "", this._t("copy_title")));
+      details.addEventListener("toggle", () => {this._copyState.open = details.open; this._syncCopy();});
+      content.append(el("p", "", this._t("copy_hint")));
+      const field = (key, className) => {
+        const label = el("label", "", this._t(key)), select = el("select", className);
+        label.append(select); content.append(label); return select;
+      };
+      const name = i => this._config.rows[i].name || `${this._t("row")} ${pad(i + 1)}`;
+      const source = field("copy_source", "copy-source"), mode = field("copy_mode", "copy-mode");
+      this._config.rows.forEach((_, i) => {const option = el("option", "", name(i)); option.value = i; source.append(option);});
+      for (const [value, key] of [["times", "copy_times"], ["days", "copy_days"], ["both", "copy_both"]]) {
+        const option = el("option", "", this._t(key)); option.value = value; mode.append(option);
+      }
+      source.value = this._copyState.source; mode.value = this._copyState.mode;
+      source.addEventListener("change", () => {
+        this._copyState.source = Number(source.value); this._copyState.targets.delete(this._copyState.source); this._syncCopy();
+      });
+      mode.addEventListener("change", () => {this._copyState.mode = mode.value; this._syncCopy();});
+      const targets = el("fieldset"); targets.append(el("legend", "", this._t("copy_targets")));
+      const targetUI = this._config.rows.map((_, index) => {
+        const label = el("label", "copy-target"), input = el("input"), text = el("span", "", name(index));
+        input.type = "checkbox"; input.dataset.index = index;
+        const preview = el("small"); text.append(preview); label.append(input, text); targets.append(label);
+        input.addEventListener("change", () => {
+          if (input.checked) this._copyState.targets.add(index); else this._copyState.targets.delete(index);
+          this._syncCopy();
+        });
+        return {index, label, input, preview};
+      });
+      const description = el("p", "copy-description"), message = el("p", "copy-message"); message.setAttribute("role", "status");
+      const apply = el("button", "copy-apply", this._t("copy_apply")); apply.type = "button";
+      apply.addEventListener("click", () => this._applyCopy());
+      content.append(description, targets, message, apply); details.append(content); card.append(details);
+      this._copyUI = {details, source, mode, targets: targetUI, description, message, apply};
+    }
+
+    _copyCells(index) {
+      const times = this._cells.slice(index * 2, index * 2 + 2);
+      const days = this._dayCells.find(cell => cell.index === index);
+      return this._copyState.mode === "times" ? times : this._copyState.mode === "days" ? [days] : [...times, days];
+    }
+
+    _copyText(cell, draft = cell?.draft) {
+      if (!cell) return this._t("copy_missing_days");
+      const info = this._info(cell);
+      if (cell.kind === "days") {
+        const value = draft?.value ?? info.value;
+        return value === null ? "—" : daysText(this._hass, value);
+      }
+      const time = draft ?? info.time;
+      return time && encode(time.hours, time.minutes) !== null ? `${pad(time.hours)}:${pad(time.minutes)}` : "—";
+    }
+
+    _copyPlan() {
+      const source = this._copyCells(this._copyState.source);
+      const problem = cell => {
+        if (!cell) return this._t("copy_missing_days");
+        const info = this._info(cell);
+        return !info.available ? this._t("unavailable") : !info.compatible ? this._t(cell.kind === "days" ? "incompatible_days" : "incompatible") :
+          cell.pending ? this._t("waiting") : cell.error || "";
+      };
+      let error = this._saving || this._allCells().some(c => c.pending) ? this._t("waiting") : "";
+      for (const cell of source) {
+        error ||= problem(cell);
+        if (!error) error = this._validate(cell) || (this._copyText(cell) === "—" ? this._t(cell.kind === "days" ? "invalid_days" : "invalid_time") : "");
+      }
+      const changes = [], previews = new Map();
+      const sourceText = source.map(cell => this._copyText(cell)).join(" · ");
+      for (const index of this._copyState.targets) {
+        if (index === this._copyState.source) continue;
+        const cells = this._copyCells(index), proposed = [], lines = [];
+        let rowError = error;
+        cells.forEach((cell, offset) => {
+          rowError ||= problem(cell);
+          if (rowError) return;
+          const info = this._info(cell), from = source[offset], fromInfo = this._info(from);
+          const value = from.draft ?? fromInfo.time;
+          const draft = {base: cell.draft?.base ?? info.key, format: cell.draft?.format ?? info.format,
+            ...(cell.kind === "days" ? {value: ((cell.draft?.value ?? info.value) & 128) | ((from.draft?.value ?? fromInfo.value) & 127)} :
+              {hours: value.hours, minutes: value.minutes})};
+          const candidate = {...cell, draft};
+          rowError = this._validate(candidate);
+          lines.push(`${this._copyText(cell)} → ${this._copyText(cell, draft)}`);
+          proposed.push({cell, draft: this._draftValue(candidate) === info.value ? null : draft});
+        });
+        previews.set(index, {text: rowError || lines.join(" · "), error: Boolean(rowError)});
+        if (!rowError) changes.push(...proposed);
+      }
+      error ||= [...previews.values()].find(preview => preview.error)?.text || "";
+      error ||= !previews.size ? this._t("copy_select") : "";
+      const changed = changes.some(({cell, draft}) => JSON.stringify(cell.draft) !== JSON.stringify(draft));
+      return {error, changes, previews, sourceText, changed};
+    }
+
+    _syncCopy() {
+      const ui = this._copyUI;
+      if (!ui) return;
+      const busy = this._saving || this._allCells().some(c => c.pending);
+      ui.source.disabled = ui.mode.disabled = busy;
+      for (const item of ui.targets) {
+        item.label.hidden = item.index === this._copyState.source;
+        item.input.disabled = busy || item.index === this._copyState.source;
+        item.input.checked = this._copyState.targets.has(item.index);
+      }
+      if (!ui.details.open) return;
+      const plan = this._copyPlan();
+      ui.description.textContent = `${this._t("copy_source")}: ${plan.sourceText}`;
+      for (const item of ui.targets) {
+        const preview = plan.previews.get(item.index);
+        item.preview.textContent = preview?.text ?? ""; item.preview.classList.toggle("copy-problem", Boolean(preview?.error));
+      }
+      ui.message.textContent = plan.error || (plan.changed ? "" : this._t("copy_no_changes"));
+      ui.apply.disabled = Boolean(plan.error) || !plan.changed;
+    }
+
+    _applyCopy() {
+      // Finish the active time field before replacing its draft. Some click
+      // activation paths do not move focus, and a later blur would restore it.
+      this._copyUI?.apply.focus();
+      // Recompute synchronously at the final click; never partially stage a batch.
+      const plan = this._copyPlan();
+      if (plan.error || !plan.changed) {this._syncCopy(); return;}
+      for (const {cell, draft} of plan.changes) {cell.draft = draft; cell.error = "";}
+      this._message = this._t("copy_applied"); this._sync();
+      if (!this._save.disabled) this._save.focus();
     }
 
     _syncTimeline() {
