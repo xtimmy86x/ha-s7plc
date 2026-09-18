@@ -651,9 +651,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 "unavailable",
             ):
                 self._initial_write_pending = True
-                self.hass.async_create_task(
-                    self._async_write_to_plc(source_state)
-                )
+                self.hass.async_create_task(self._async_write_to_plc(source_state))
 
         super()._handle_coordinator_update()
 
