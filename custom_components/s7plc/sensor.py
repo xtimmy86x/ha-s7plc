@@ -594,6 +594,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         self._invert_state = invert_state
         self._value_conversion = value_conversion
         self._last_written_value: float | None = None
+        self._resync_required = True
         self._initial_write_pending: bool = False
         self._write_count = 0
         self._error_count = 0
@@ -638,27 +639,22 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """React to coordinator data updates.
+        """Resynchronize the source value after the PLC reconnects."""
+        if not self.coordinator.is_connected():
+            self._resync_required = True
 
-        On each coordinator poll, if we never managed to write the initial
-        source-entity value (e.g. PLC was not connected at startup), retry.
-        Once _last_written_value is set this check becomes a no-op.
-
-        _initial_write_pending prevents creating multiple concurrent tasks
-        when the coordinator polls faster than the write coroutine completes.
-        """
-        if (
-            self._last_written_value is None
-            and not self._initial_write_pending
-            and self.coordinator.is_connected()
-        ):
+        elif self._resync_required and not self._initial_write_pending:
             source_state = self.hass.states.get(self._source_entity)
+
             if source_state is not None and source_state.state not in (
                 "unknown",
                 "unavailable",
             ):
                 self._initial_write_pending = True
-                self.hass.async_create_task(self._async_write_to_plc(source_state))
+                self.hass.async_create_task(
+                    self._async_write_to_plc(source_state)
+                )
+
         super()._handle_coordinator_update()
 
     async def _async_write_to_plc(self, source_state: State) -> None:
@@ -701,6 +697,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             _LOGGER.debug(
                 "EntitySync %s: Cannot write, coordinator not connected", self.name
             )
+            self._resync_required = True
             self._error_count += 1
             self.async_write_ha_state()
             return
@@ -723,6 +720,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
             self._last_written_value = (
                 (1.0 if value else 0.0) if self._is_binary else value
             )
+            self._resync_required = False
             self._write_count += 1
             _LOGGER.debug(
                 "EntitySync %s: Successfully wrote %s to %s",
@@ -731,6 +729,7 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
                 self._address,
             )
         else:
+            self._resync_required = True
             self._error_count += 1
             _LOGGER.error(
                 "EntitySync %s: Failed to write %s to %s",

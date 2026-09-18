@@ -892,27 +892,35 @@ async def test_entity_sync_coordinator_update_writes_initial_value(entity_sync_f
 
 
 @pytest.mark.asyncio
-async def test_entity_sync_coordinator_update_no_retry_when_already_written(entity_sync_factory):
-    """Coordinator update does NOT retry when value was already written."""
+async def test_entity_sync_coordinator_update_no_retry_when_already_written(
+    entity_sync_factory,
+):
+    """Coordinator update does not retry after a successful write."""
     from conftest import DummyCoordinator
     from homeassistant.core import State
 
     coord = DummyCoordinator(connected=True)
     es = entity_sync_factory("db1,r0", DataType.REAL, coordinator=coord)
 
-    # Simulate a previous successful write
-    es._last_written_value = 10.0
+    source_state = State("sensor.test", "10.0")
+    es.hass.states.get = MagicMock(return_value=source_state)
 
-    mock_state = State("sensor.test", "10.0")
-    es.hass.states.get = MagicMock(return_value=mock_state)
+    # Perform a real successful synchronization.
+    await es._async_write_to_plc(source_state)
+
+    assert es._last_written_value == 10.0
+    assert es._resync_required is False
+
+    # Ignore the write used to prepare the scenario.
+    coord.write_calls.clear()
 
     created_tasks = []
     es.hass.async_create_task = lambda coro: created_tasks.append(coro)
 
     es._handle_coordinator_update()
 
-    # No retry should be scheduled
-    assert len(created_tasks) == 0
+    assert created_tasks == []
+    assert coord.write_calls == []
 
 
 @pytest.mark.asyncio
@@ -985,6 +993,61 @@ async def test_entity_sync_coordinator_update_no_duplicate_tasks(entity_sync_fac
     # After the task completes the flag is cleared; a new poll may retry
     await created_tasks[0]
     assert es._initial_write_pending is False
+
+
+@pytest.mark.asyncio
+async def test_entity_sync_rewrites_boolean_source_after_plc_reconnect(
+    entity_sync_factory,
+):
+    """A PLC restart resynchronizes an unchanged true source entity."""
+    from conftest import DummyCoordinator
+    from homeassistant.core import State
+
+    coord = DummyCoordinator(connected=True)
+    coord.plc_value = False
+
+    original_write_batched = coord.write_batched
+
+    async def write_batched(address, value):
+        await original_write_batched(address, value)
+        coord.plc_value = value
+
+    coord.write_batched = write_batched
+
+    es = entity_sync_factory(
+        "db1,x0.0",
+        DataType.BIT,
+        "binary_sensor.test",
+        coordinator=coord,
+    )
+    source_state = State("binary_sensor.test", "on")
+    es.hass.states.get = MagicMock(return_value=source_state)
+
+    # The source entity is true and has been synchronized to the running PLC.
+    await es._async_write_to_plc(source_state)
+    assert coord.plc_value is True
+
+    # The PLC restarts and loses the value while the HA source remains true.
+    coord.set_connected(False)
+    coord.plc_value = False
+    es._handle_coordinator_update()
+    assert coord.plc_value is False
+
+    # The first coordinator update after reconnect must restore the HA value.
+    created_tasks = []
+    es.hass.async_create_task = lambda coro: created_tasks.append(coro)
+    coord.set_connected(True)
+    es._handle_coordinator_update()
+
+    assert len(created_tasks) == 1
+    await created_tasks[0]
+
+    assert coord.write_calls == [
+        ("write_batched", "db1,x0.0", True),
+        ("write_batched", "db1,x0.0", True),
+    ]
+    assert coord.plc_value is True
+    assert es.native_value == "on"
 
 
 def test_sensor_enum_map_runtime_and_warning_dedup(
