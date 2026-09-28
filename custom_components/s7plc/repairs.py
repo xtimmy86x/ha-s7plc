@@ -32,6 +32,13 @@ class OrphanedEntitiesRepairFlow(RepairsFlow):
         self, user_input: dict[str, str] | None = None
     ) -> data_entry_flow.FlowResult:
         """Handle the confirm step."""
+        # Check both when opening the repair and when confirming it: the entry
+        # may have been removed while the confirmation form was open.
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry is None:
+            # Successful completion lets HA remove this now-obsolete issue.
+            return self.async_create_entry(data={})
+
         if user_input is not None:
             # Get the entity registry
             entity_reg = er.async_get(self.hass)
@@ -40,10 +47,6 @@ class OrphanedEntitiesRepairFlow(RepairsFlow):
             entities = er.async_entries_for_config_entry(entity_reg, self.entry_id)
 
             # Get expected unique_ids from config
-            entry = self.hass.config_entries.async_get_entry(self.entry_id)
-            if not entry:
-                return self.async_abort(reason="entry_not_found")
-
             expected_unique_ids = await self._get_expected_unique_ids(entry)
 
             # Remove orphaned entities
