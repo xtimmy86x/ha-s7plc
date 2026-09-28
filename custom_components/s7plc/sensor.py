@@ -39,6 +39,7 @@ from .helpers import (
     get_coordinator_and_device_info,
 )
 from .plc.address import DataType, is_time_data_type, parse_tag, time_to_seconds
+from .restore import decode_values, encode_values
 from .value_conversion import (
     ConversionContext,
     ValueConversionError,
@@ -497,7 +498,7 @@ class S7Sensor(S7BaseEntity, SensorEntity):
 
     @property
     def native_value(self):
-        value = (self.coordinator.data or {}).get(self._topic)
+        value = self._state_data.get(self._topic)
         if value is None:
             return value
         if isinstance(value, bool) and self._enum_lookup is None:
@@ -739,6 +740,17 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
         # Allow the next coordinator poll to schedule a fresh retry if needed.
         self._initial_write_pending = False
         self.async_write_ha_state()
+
+    @property
+    def _local_restore_state(self) -> dict[str, Any]:
+        return encode_values({"last_written_value": self._last_written_value})
+
+    def _restore_local_state(self, state: dict[str, Any]) -> None:
+        # Restore only the displayed result. The source must still be
+        # resynchronized normally on reconnect, even if its value is unchanged.
+        value = decode_values(state).get("last_written_value")
+        if isinstance(value, (int, float)):
+            self._last_written_value = value
 
     def _parse_binary_value(self, source_state: State) -> bool | None:
         """Parse a HA state to boolean for BIT addresses.

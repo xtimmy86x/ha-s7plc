@@ -108,7 +108,7 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        val = (self.coordinator.data or {}).get(self._topic)
+        val = self._state_data.get(self._topic)
         if val is None:
             return None
         result = bool(val)

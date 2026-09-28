@@ -182,6 +182,8 @@ class S7Light(S7BoolSyncEntity, LightEntity):
     def _is_dimmer(self) -> bool:
         return self._brightness_state_address is not None
 
+    _restore_topic_suffixes = ("brightness",)
+
     @property
     def color_mode(self) -> ColorMode | None:
         return ColorMode.BRIGHTNESS if self._is_dimmer else ColorMode.ONOFF
@@ -237,7 +239,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         """Return the current brightness (0-255) or None if not a dimmer."""
         if not self._is_dimmer:
             return None
-        data = self.coordinator.data or {}
+        data = self._state_data
         value = data.get(f"{self._topic}:brightness")
         if value is None:
             return None
