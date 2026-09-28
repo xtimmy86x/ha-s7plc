@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import pytest
 
-import custom_components.s7plc.repairs as repairs
+from custom_components.s7plc import repairs
 from custom_components.s7plc.const import DOMAIN
 
 
@@ -21,8 +21,9 @@ class RuntimeEntryData:
 @pytest.fixture
 def entry_with_orphans(monkeypatch):
     """Create a config entry with orphaned entities."""
-    from conftest import ConfigEntry, HomeAssistant
     import sys
+
+    from conftest import ConfigEntry, HomeAssistant
     
     # Get MockEntityRegistryEntry from the mock module
     MockEntityRegistryEntry = sys.modules["homeassistant.helpers.entity_registry"].MockEntityRegistryEntry
@@ -118,9 +119,11 @@ def test_async_step_init_redirects_to_confirm():
     assert confirm_called
 
 
-def test_async_step_confirm_shows_form_without_input():
+def test_async_step_confirm_shows_form_without_input(entry_with_orphans):
     """Test that confirm step shows form when no input provided."""
-    flow = repairs.OrphanedEntitiesRepairFlow("test_entry_id")
+    hass, entry, _ = entry_with_orphans
+    flow = repairs.OrphanedEntitiesRepairFlow(entry.entry_id)
+    flow.hass = hass
     flow.async_show_form = lambda step_id: {"type": "form", "step_id": step_id}
     
     result = asyncio.run(flow.async_step_confirm(user_input=None))
@@ -152,8 +155,9 @@ def test_async_step_confirm_removes_orphans(entry_with_orphans):
     assert result["type"] == "create_entry"
 
 
-def test_async_step_confirm_aborts_if_entry_not_found():
-    """Test that confirm step aborts if config entry not found."""
+@pytest.mark.parametrize("user_input", [None, {}])
+def test_async_step_confirm_completes_if_entry_not_found(user_input):
+    """A stale repair completes so HA's flow manager removes the issue."""
     from conftest import HomeAssistant
     
     hass = HomeAssistant()
@@ -161,11 +165,92 @@ def test_async_step_confirm_aborts_if_entry_not_found():
     
     flow = repairs.OrphanedEntitiesRepairFlow("nonexistent_entry")
     flow.hass = hass
-    flow.async_abort = lambda reason: {"type": "abort", "reason": reason}
+    flow.async_create_entry = lambda data: {"type": "create_entry", "data": data}
     
-    result = asyncio.run(flow.async_step_confirm(user_input={}))
-    assert result["type"] == "abort"
-    assert result["reason"] == "entry_not_found"
+    result = asyncio.run(flow.async_step_confirm(user_input=user_input))
+    assert result["type"] == "create_entry"
+    assert result["data"] == {}
+
+
+def test_entry_removed_while_repair_form_is_open(entry_with_orphans):
+    """Confirming after entry removal must finish without touching entities."""
+    hass, entry, entity_reg = entry_with_orphans
+    flow = repairs.OrphanedEntitiesRepairFlow(entry.entry_id)
+    flow.hass = hass
+    flow.async_show_form = lambda step_id: {"type": "form", "step_id": step_id}
+    flow.async_create_entry = lambda data: {"type": "create_entry", "data": data}
+
+    assert asyncio.run(flow.async_step_init())["type"] == "form"
+    hass.config_entries._entries.remove(entry)
+    before = dict(entity_reg.entities)
+
+    assert asyncio.run(flow.async_step_confirm({}))["type"] == "create_entry"
+    assert entity_reg.entities == before
+
+
+@pytest.mark.parametrize("keep_entities", [False, True])
+def test_check_clears_stale_repair_without_orphans(
+    entry_with_orphans, monkeypatch, keep_entities
+):
+    """Clear obsolete issues even when the entity registry is empty."""
+    from unittest.mock import Mock
+
+    import custom_components.s7plc as integration
+
+    hass, entry, entity_reg = entry_with_orphans
+    entity_reg.async_remove("sensor.old_sensor")
+    entity_reg.async_remove("switch.old_switch")
+    if not keep_entities:
+        entity_reg.entities.clear()
+    delete_issue = Mock()
+    create_issue = Mock()
+    monkeypatch.setattr(integration.ir, "async_delete_issue", delete_issue)
+    monkeypatch.setattr(integration.ir, "async_create_issue", create_issue)
+
+    asyncio.run(integration._async_check_orphaned_entities(hass, entry, None))
+
+    delete_issue.assert_called_once_with(
+        hass, DOMAIN, f"orphaned_entities_{entry.entry_id}"
+    )
+    create_issue.assert_not_called()
+
+
+def test_remove_entry_only_clears_its_own_repair(entry_with_orphans, monkeypatch):
+    """Removal is scoped to the PLC and works without runtime data."""
+    import custom_components.s7plc as integration
+
+    hass, entry, _ = entry_with_orphans
+    issue_key = (DOMAIN, f"orphaned_entities_{entry.entry_id}")
+    other_key = (DOMAIN, "orphaned_entities_other_plc")
+    issues = {issue_key, other_key}
+    monkeypatch.setattr(
+        integration.ir,
+        "async_delete_issue",
+        lambda hass, domain, issue_id: issues.discard((domain, issue_id)),
+    )
+    del entry.runtime_data
+
+    asyncio.run(integration.async_remove_entry(hass, entry))
+    asyncio.run(integration.async_remove_entry(hass, entry))
+
+    assert issues == {other_key}
+
+
+def test_unload_preserves_pending_repair(entry_with_orphans, monkeypatch):
+    """Unloading for a reload must not clear an unresolved issue."""
+    from unittest.mock import AsyncMock, Mock
+
+    import custom_components.s7plc as integration
+
+    hass, entry, _ = entry_with_orphans
+    hass.data[DOMAIN] = {}
+    entry.runtime_data.coordinator = Mock(async_shutdown=AsyncMock())
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    delete_issue = Mock()
+    monkeypatch.setattr(integration.ir, "async_delete_issue", delete_issue)
+
+    assert asyncio.run(integration.async_unload_entry(hass, entry))
+    delete_issue.assert_not_called()
 
 
 def test_get_expected_unique_ids_all_entity_types(entry_with_orphans):

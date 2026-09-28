@@ -381,6 +381,7 @@ async def _async_check_orphaned_entities(
     entities = er.async_entries_for_config_entry(entity_reg, entry.entry_id)
 
     if not entities:
+        ir.async_delete_issue(hass, DOMAIN, f"orphaned_entities_{entry.entry_id}")
         return
 
     device_id = entry.runtime_data.device_id
@@ -422,6 +423,11 @@ async def _async_check_orphaned_entities(
     else:
         # Delete repair issue if it exists but no orphaned entities found
         ir.async_delete_issue(hass, DOMAIN, f"orphaned_entities_{entry.entry_id}")
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the repair when its PLC config entry is permanently deleted."""
+    ir.async_delete_issue(hass, DOMAIN, f"orphaned_entities_{entry.entry_id}")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
