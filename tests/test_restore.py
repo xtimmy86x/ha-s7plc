@@ -130,7 +130,9 @@ async def test_entity_sync_restores_display_but_still_requires_resync(mock_coord
         return_value=entity.extra_restore_state_data
     )
     entity._last_written_value = None
+    mock_coordinator.set_connected(False)
     await S7BaseEntity.async_added_to_hass(entity)
+    assert entity.available
     assert entity.native_value == 12.5
     assert entity._resync_required
     assert not entity._initial_write_pending

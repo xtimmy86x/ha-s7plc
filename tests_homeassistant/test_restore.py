@@ -8,6 +8,84 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import restore_state
 
 from custom_components.s7plc.const import DOMAIN
+from custom_components.s7plc.plc.address import parse_tag
+
+
+@pytest.mark.parametrize("connection_disabled", [True, False])
+@pytest.mark.parametrize("source_value", [12.5, 18.5])
+async def test_entity_sync_restore_offline_and_resync(
+    hass, config_entry, plc_client, hass_storage, connection_disabled, source_value
+):
+    """Keep the published value over two offline starts; resync only the source."""
+    address = "DB1,REAL0"
+    source_id = "sensor.restore_source"
+    hass.states.async_set(source_id, "12.5")
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options={
+            **config_entry.options,
+            "entity_sync": [
+                {
+                    "uid": "restore-sync",
+                    "address": address,
+                    "source_entity": source_id,
+                    "availability_mode": "always",
+                }
+            ]
+        },
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("sensor", DOMAIN, "restore-sync")
+    assert entity_id is not None
+    assert hass.states.get(entity_id).state == "12.5"
+    plc_client.write.assert_awaited_once_with([parse_tag(address)], [12.5])
+    plc_client.write.reset_mock()
+
+    control_id = registry.async_get_entity_id(
+        "switch", DOMAIN, f"{config_entry.runtime_data.device_id}:connection_enable"
+    )
+    if connection_disabled:
+        await hass.services.async_call(
+            "switch", "turn_off", {"entity_id": control_id}, blocking=True
+        )
+        await hass.async_block_till_done()
+        assert hass.states.get(entity_id).state == "12.5"
+
+    restore_data = restore_state.async_get(hass)
+    connect = plc_client.connect.side_effect
+    for _ in range(2):
+        await restore_data.async_dump_states()
+        assert "core.restore_state" in hass_storage
+        assert await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
+        restore_data.last_states.clear()
+        await restore_data.async_load()
+        plc_client.connect.side_effect = OSError("PLC offline")
+        hass.states.async_set(source_id, str(source_value))
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+        coordinator = config_entry.runtime_data.coordinator
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert not coordinator.is_connected()
+        assert hass.states.get(entity_id).state == "12.5"
+        plc_client.write.assert_not_awaited()
+
+    plc_client.connect.side_effect = connect
+    if connection_disabled:
+        await hass.services.async_call(
+            "switch", "turn_on", {"entity_id": control_id}, blocking=True
+        )
+    else:
+        await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert coordinator.is_connected()
+    assert hass.states.get(entity_id).state == str(source_value)
+    plc_client.write.assert_awaited_once_with([parse_tag(address)], [source_value])
 
 
 @pytest.mark.parametrize(

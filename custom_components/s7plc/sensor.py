@@ -836,11 +836,6 @@ class S7EntitySync(S7BaseEntity, SensorEntity):
 
         return attrs
 
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.is_connected()
-
 
 class S7MetricsSensor(CoordinatorEntity, SensorEntity):
     """Diagnostic sensor exposing a single pyS7 metric."""
