@@ -381,6 +381,25 @@ disconnected. Commands are still rejected while disconnected. `bit` additionally
 requires a BIT value read from `availability_address` to be exactly true; a cached
 true bit can never make an entity available without a PLC connection.
 
+With `always`, the last readings are saved using Home Assistant's restore-state
+storage and restored after a restart or integration reload, including when the
+connection is manually disabled. Sensors, numbers, binary sensors, switches,
+text, selects, lights (including brightness), covers (including position/tilt)
+and climates retain their displayed values. Timed covers retain their last
+assumed open/closed position; pending movements and timers are not resumed.
+Buttons have no PLC state to restore.
+Entity Sync restores its last successfully written value for display, while
+still resynchronizing the current source entity normally on reconnection.
+
+Restored readings are display-only: they do not count as fresh PLC feedback or
+trigger state synchronization. The next PLC readings take precedence. Commands
+that depend on restored feedback wait for fresh readings. Values remain unknown
+when no saved reading exists; after installing this feature, connect to the PLC
+at least once to populate the saved values. Changing the entity configuration
+invalidates its old snapshot so values from a different address or conversion
+are not reused. Normal HA shutdown saves the snapshot; abrupt power loss may
+restore the last periodic HA snapshot instead.
+
 ```yaml
 name: Motor ready
 address: DB1,X0.0

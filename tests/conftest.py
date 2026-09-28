@@ -580,8 +580,17 @@ class RestoreEntity:  # pragma: no cover - stub implementation
         """Return None for last state in tests (no restored state)."""
         return None
 
+    async def async_get_last_extra_data(self):
+        return None
+
+
+class ExtraStoredData:  # pragma: no cover - serialization interface stub
+    def as_dict(self):
+        raise NotImplementedError
+
 
 restore_state.RestoreEntity = RestoreEntity
+restore_state.ExtraStoredData = ExtraStoredData
 sys.modules["homeassistant.helpers.restore_state"] = restore_state
 helpers.restore_state = restore_state
 

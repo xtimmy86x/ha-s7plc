@@ -15,7 +15,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import restore_state
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
@@ -341,7 +340,7 @@ async def async_setup_entry(
         await coord.async_request_refresh()
 
 
-class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateEntity):
+class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
     """Climate entity with direct heating/cooling output control.
 
     This mode allows Home Assistant to directly control PLC outputs for
@@ -350,6 +349,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
     """
 
     _address_attr_name = "s7_current_temp_address"
+    _restore_topic_suffixes = ("current_temp", "heating_action", "cooling_action")
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _enable_turn_on_off_backwards_compatibility = False
@@ -448,7 +448,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
     @property
     def current_temperature(self) -> float | None:
         """Return current temperature from PLC."""
-        data = self.coordinator.data or {}
+        data = self._state_data
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
@@ -486,7 +486,7 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         if self._hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
 
-        data = self.coordinator.data or {}
+        data = self._state_data
 
         # Check heating action if address is specified
         if self._heating_action_address:
@@ -569,6 +569,9 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         Outputs are written only on transitions (see _write_heating/_write_cooling),
         so a coordinator update without a relevant change produces no PLC traffic.
         """
+        if self._has_restored_feedback:
+            # Saved temperatures are display-only, never thermostat feedback.
+            return
         if self._hvac_mode == HVACMode.OFF:
             # Turn off all outputs
             await self._write_heating(False)
@@ -614,15 +617,21 @@ class S7ClimateDirectControl(S7BaseEntity, restore_state.RestoreEntity, ClimateE
         super()._handle_coordinator_update()
 
 
-class S7ClimateSetpointControl(
-    S7BaseEntity, restore_state.RestoreEntity, ClimateEntity
-):
+class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
     """Climate entity with PLC-managed setpoint control.
 
     This mode allows the PLC to manage heating/cooling autonomously.
     Home Assistant only writes the target temperature setpoint and reads
     the current temperature. The PLC handles all control logic.
     """
+
+    _restore_topic_suffixes = (
+        "current_temp",
+        "target_temp",
+        "on_off",
+        "preset_mode",
+        "hvac_status",
+    )
 
     _address_attr_name = "s7_current_temp_address"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
@@ -850,7 +859,7 @@ class S7ClimateSetpointControl(
     @property
     def current_temperature(self) -> float | None:
         """Return current temperature from PLC."""
-        data = self.coordinator.data or {}
+        data = self._state_data
         temp_topic = f"{self._topic}:current_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
@@ -875,7 +884,7 @@ class S7ClimateSetpointControl(
     @property
     def target_temperature(self) -> float | None:
         """Return target temperature read from PLC."""
-        data = self.coordinator.data or {}
+        data = self._state_data
         temp_topic = f"{self._topic}:target_temp"
         value = data.get(temp_topic)
         if value is not None and isinstance(value, (int, float)):
@@ -913,7 +922,7 @@ class S7ClimateSetpointControl(
         commanded from HA (or restored on startup) when no configured/
         enabled source yields a known mode.
         """
-        data = self.coordinator.data or {}
+        data = self._state_data
         on_off_value = (
             data.get(f"{self._topic}:on_off") if self._on_off_address else None
         )
@@ -958,7 +967,7 @@ class S7ClimateSetpointControl(
 
         # Use PLC status address if configured
         if self._hvac_status_address:
-            data = self.coordinator.data or {}
+            data = self._state_data
             status_topic = f"{self._topic}:hvac_status"
             status = data.get(status_topic)
             if status is not None:

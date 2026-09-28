@@ -180,7 +180,7 @@ class S7Select(S7SyncEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        value = (self.coordinator.data or {}).get(self._topic)
+        value = self._state_data.get(self._topic)
         if value is None:
             return None
         try:

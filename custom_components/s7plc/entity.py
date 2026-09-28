@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
 import time
 from typing import TYPE_CHECKING, Any
@@ -8,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -20,6 +23,7 @@ from .const import (
     SYNC_COMMAND_SETTLE_TIME,
 )
 from .plc.address import normalize_address
+from .restore import S7StoredData, decode_values, encode_values
 
 if TYPE_CHECKING:
     from .coordinator import S7Coordinator
@@ -38,12 +42,13 @@ async def async_configure_entity_availability(
             await entity.async_configure_availability(item, item.get("scan_interval"))
 
 
-class S7BaseEntity(CoordinatorEntity):
+class S7BaseEntity(CoordinatorEntity, RestoreEntity):
     """Base entity for the S7 PLC integration."""
 
     _attr_should_poll = False
     _attr_has_entity_name = True
     _address_attr_name: str = "s7_address"
+    _restore_topic_suffixes: tuple[str, ...] = ()
 
     def __init__(
         self,
@@ -76,8 +81,93 @@ class S7BaseEntity(CoordinatorEntity):
         self._address = address
         self._availability_mode = AVAILABILITY_MODE_CONNECTION
         self._availability_topic: str | None = None
+        self._restore_config: str | None = None
+        self._restored_values: dict[str, Any] = {}
         if suggested_area_id:
             self._attr_suggested_area_id = suggested_area_id
+
+    @property
+    def _restorable_topics(self) -> set[str]:
+        """Return this entity's read channels, excluding availability bits."""
+        if self._topic is None:
+            return set()
+        return {self._topic} | {
+            f"{self._topic}:{suffix}" for suffix in self._restore_topic_suffixes
+        }
+
+    @property
+    def _state_data(self) -> dict[str, Any]:
+        """Use restored values only for display until real readings arrive.
+
+        Never seed coordinator data or read revisions: control and sync code
+        must be able to distinguish real PLC feedback from saved values.
+        """
+        live = self.coordinator.data or {}
+        if (
+            self._availability_mode != AVAILABILITY_MODE_ALWAYS
+            or not self._has_restored_feedback
+        ):
+            return live
+        return self._restored_values | live
+
+    @property
+    def _has_restored_feedback(self) -> bool:
+        """Whether any saved channel is still waiting for its first PLC read."""
+        if not self._restored_values:
+            return False
+        live = self.coordinator.data or {}
+        return any(topic not in live for topic in self._restored_values)
+
+    @property
+    def _local_restore_state(self) -> dict[str, Any]:
+        """Additional entity-owned state, without pending commands or timers."""
+        return {}
+
+    def _restore_local_state(self, state: dict[str, Any]) -> None:
+        """Restore additional entity-owned state, if supported."""
+
+    @property
+    def extra_restore_state_data(self) -> S7StoredData | None:
+        if self._availability_mode != AVAILABILITY_MODE_ALWAYS:
+            return None
+        data = self._state_data
+        return S7StoredData(
+            {
+                "version": 1,
+                "unique_id": self._attr_unique_id,
+                "config": self._restore_config,
+                "values": encode_values(
+                    {
+                        topic: data[topic]
+                        for topic in self._restorable_topics
+                        if topic in data
+                    }
+                ),
+                "local_state": self._local_restore_state,
+            }
+        )
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self._availability_mode != AVAILABILITY_MODE_ALWAYS:
+            return
+        stored = await self.async_get_last_extra_data()
+        if stored is None:
+            return
+        data = stored.as_dict()
+        if (
+            data.get("version") != 1
+            or data.get("unique_id") != self._attr_unique_id
+            or data.get("config") != self._restore_config
+        ):
+            return
+        self._restored_values = {
+            topic: value
+            for topic, value in decode_values(data.get("values")).items()
+            if topic in self._restorable_topics
+        }
+        if isinstance(local_state := data.get("local_state"), dict):
+            self._restore_local_state(local_state)
 
     async def _ensure_connected(self) -> None:
         """Ensure PLC connection is active before command execution.
@@ -87,6 +177,10 @@ class S7BaseEntity(CoordinatorEntity):
         """
         if not self.coordinator.is_connected():
             raise HomeAssistantError("PLC not connected: cannot execute command.")
+        if self._has_restored_feedback:
+            raise HomeAssistantError(
+                "Waiting for fresh PLC feedback: cannot execute command."
+            )
 
     @property
     def available(self) -> bool:
@@ -119,6 +213,15 @@ class S7BaseEntity(CoordinatorEntity):
         self._availability_mode = item.get(
             CONF_AVAILABILITY_MODE, AVAILABILITY_MODE_CONNECTION
         )
+        # Do not reuse values after an address, conversion or entity type change.
+        identity = {
+            "type": type(self).__name__,
+            "device": sorted(self._attr_device_info.get("identifiers", ())),
+            "item": item,
+        }
+        self._restore_config = hashlib.sha256(
+            json.dumps(identity, sort_keys=True).encode()
+        ).hexdigest()
         address = item.get(CONF_AVAILABILITY_ADDRESS)
         if self._availability_mode == AVAILABILITY_MODE_BIT and address:
             # UID is permanent, unlike an entity's position in the options list.
@@ -440,11 +543,13 @@ class S7BoolSyncEntity(S7SyncEntity):
 
     @property
     def is_on(self) -> bool | None:
-        val = (self.coordinator.data or {}).get(self._topic)
+        val = self._state_data.get(self._topic)
         return None if val is None else bool(val)
 
     def _sync_value(self) -> bool | None:
-        return self.is_on
+        # Restored display state must never become synchronization feedback.
+        val = (self.coordinator.data or {}).get(self._topic)
+        return None if val is None else bool(val)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

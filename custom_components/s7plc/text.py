@@ -132,7 +132,7 @@ class S7Text(S7BaseEntity, TextEntity):
     @property
     def native_value(self) -> str | None:
         """Return the current text value."""
-        value = (self.coordinator.data or {}).get(self._topic)
+        value = self._state_data.get(self._topic)
         if value is None:
             return None
         return str(value)

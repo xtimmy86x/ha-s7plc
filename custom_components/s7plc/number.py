@@ -226,7 +226,7 @@ class S7Number(S7BaseEntity, NumberEntity):
 
     @property
     def native_value(self):
-        value = (self.coordinator.data or {}).get(self._topic)
+        value = self._state_data.get(self._topic)
         if value is None:
             return value
         if self._is_time:
