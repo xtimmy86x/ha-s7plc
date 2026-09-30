@@ -27,6 +27,34 @@ const isHidden = (form, field) => form
   .classList.contains("hidden-field");
 
 describe("entity editor", () => {
+  test.each([undefined, "auto", "box", "slider"])(
+    "edits number display mode %s and restores automatic mode",
+    (mode) => {
+      const entry = createEntry();
+      const original = {
+        address: "DB1,R0", min_value: 0, max_value: 20, step: 0.1,
+        ...(mode ? { mode } : {}),
+      };
+      entry.entities.numbers = [original];
+      const panel = createPanel(entry);
+      panel.openEditor(0, "numbers");
+      const form = currentDialog().querySelector("form");
+      const selector = form.elements.mode;
+      expect(selector.tagName).toBe("SELECT");
+      expect(selector.value).toBe(mode || "auto");
+      expect([...selector.options].map((option) => option.textContent))
+        .toEqual(["Automatic", "Numeric input", "Slider"]);
+      for (const selected of ["box", "slider", "auto"]) {
+        selector.value = selected;
+        const entity = panel.formEntity(form, original, "numbers");
+        expect(entity.mode).toBe(selected === "auto" ? undefined : selected);
+        expect(entity.min_value).toBe(0);
+        expect(entity.max_value).toBe(20);
+        expect(entity.step).toBe(0.1);
+      }
+    },
+  );
+
   test("opens an existing entity and switches between visual and YAML modes", () => {
     const panel = createPanel();
 
