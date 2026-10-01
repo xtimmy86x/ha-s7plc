@@ -651,6 +651,15 @@
             "label": "Passo",
             "description": "Incremento opzionale utilizzato per regolare il valore nell'interfaccia utente."
           },
+          "mode": {
+            "label": "Modalità di visualizzazione",
+            "description": "Scegli come Home Assistant mostra questo numero. I limiti e le scritture al PLC restano invariati.",
+            "options": {
+              "auto": "Automatica",
+              "box": "Campo numerico",
+              "slider": "Cursore"
+            }
+          },
           "real_precision": {
             "label": "Numero decimali REAL",
             "description": "Numero di cifre decimali da visualizzare per i valori REAL (valore predefinito dell’integrazione: 1)."
@@ -1171,7 +1180,8 @@
       "select_requires_integer_type": "Le entità selettore richiedono un tipo di dato PLC numerico discreto (BYTE, WORD, DWORD, SINT, USINT, INT, DINT o TIME).",
       "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME.",
       "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa.",
-      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
+      "invalid_number_mode": "Scegli auto, box o slider come modalità di visualizzazione del numero."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

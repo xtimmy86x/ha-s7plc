@@ -13,7 +13,7 @@ PLATFORMS = [
 ]
 
 VERSION = "7.5.1"
-FRONTEND_BUILD = "20260905.6"
+FRONTEND_BUILD = "20260930.1"
 
 PANEL_URL = "s7plc-config"
 
@@ -100,6 +100,8 @@ CONF_PULSE_DURATION = "pulse_duration"
 CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"
 CONF_STEP = "step"
+CONF_NUMBER_MODE = "mode"
+NUMBER_MODES = ("auto", "box", "slider")
 # Select entities: "value:label" pairs separated by ";" (e.g. "0:Off;1:Pump A")
 CONF_OPTIONS_MAP = "options_map"
 CONF_MIN_LENGTH = "min_length"

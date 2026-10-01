@@ -651,6 +651,15 @@
             "label": "Step",
             "description": "Optional increment used when adjusting the value in the UI."
           },
+          "mode": {
+            "label": "Display mode",
+            "description": "Choose how Home Assistant displays this number. Limits and PLC writes are unchanged.",
+            "options": {
+              "auto": "Automatic",
+              "box": "Numeric input",
+              "slider": "Slider"
+            }
+          },
           "real_precision": {
             "label": "REAL decimal precision",
             "description": "Number of decimal places for REAL values. Leave blank to use the default (1)."
@@ -1171,7 +1180,8 @@
       "select_requires_integer_type": "Select entities require a discrete numeric PLC data type (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, or TIME).",
       "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME.",
       "value_conversions_must_be_mapping": "Value conversions must be a mapping.",
-      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
+      "invalid_number_mode": "Choose auto, box or slider as the number display mode."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

@@ -796,7 +796,17 @@ sys.modules["homeassistant.components.button"] = button
 components.button = button
 
 
+class NumberMode(str, Enum):
+    AUTO = "auto"
+    BOX = "box"
+    SLIDER = "slider"
+
+
 class NumberEntity:  # pragma: no cover - simple stub
+    @property
+    def mode(self):
+        return getattr(self, "_attr_mode", NumberMode.AUTO)
+
     @property
     def native_min_value(self):
         return getattr(self, "_attr_native_min_value", None)
@@ -883,6 +893,7 @@ class NumberDeviceClass(metaclass=_NumberDeviceClassMeta):  # pragma: no cover -
 
 number = ModuleType("homeassistant.components.number")
 number.NumberEntity = NumberEntity
+number.NumberMode = NumberMode
 number.NumberDeviceClass = NumberDeviceClass
 sys.modules["homeassistant.components.number"] = number
 components.number = number
