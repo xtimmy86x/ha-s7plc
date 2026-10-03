@@ -86,6 +86,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SELECTS,
     CONF_SENSORS,
+    CONF_SINGLE_FIRE_COMMAND,
     CONF_SOURCE_ENTITY,
     CONF_STATE_ADDRESS,
     CONF_STATE_CLASS,
@@ -209,6 +210,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
+        CONF_SINGLE_FIRE_COMMAND,
         CONF_PULSE_DURATION,
     },
     CONF_COVERS: _COMMON_FIELDS
@@ -248,6 +250,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
+        CONF_SINGLE_FIRE_COMMAND,
         CONF_PULSE_DURATION,
         CONF_BRIGHTNESS_STATE_ADDRESS,
         CONF_BRIGHTNESS_COMMAND_ADDRESS,
@@ -769,6 +772,9 @@ class EntityConfigBuilder:
         # Add boolean flags — mutually exclusive
         sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
+        if single_fire_command and (sync_state or pulse_command):
+            return None, {"base": "single_fire_conflict"}
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
         if sync_state and (
@@ -779,6 +785,8 @@ class EntityConfigBuilder:
             return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
         item[CONF_PULSE_COMMAND] = pulse_command
+        if single_fire_command:
+            item[CONF_SINGLE_FIRE_COMMAND] = True
 
         # Add pulse duration only if pulse command is enabled
         if pulse_command:
@@ -1329,6 +1337,9 @@ class EntityConfigBuilder:
         # Add boolean flags — mutually exclusive
         sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
+        if single_fire_command and (sync_state or pulse_command):
+            return None, {"base": "single_fire_conflict"}
         if sync_state and pulse_command:
             return None, {"base": "sync_pulse_conflict"}
         if sync_state and (
@@ -1339,6 +1350,8 @@ class EntityConfigBuilder:
             return None, {"base": "sync_same_address"}
         item[CONF_SYNC_STATE] = sync_state
         item[CONF_PULSE_COMMAND] = pulse_command
+        if single_fire_command:
+            item[CONF_SINGLE_FIRE_COMMAND] = True
 
         # Add pulse duration only if pulse command is enabled
         if pulse_command:

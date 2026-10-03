@@ -507,6 +507,7 @@ class S7BoolSyncEntity(S7SyncEntity):
         sync_state: bool,
         pulse_command: bool = False,
         pulse_duration: float = 0.5,
+        single_fire_command: bool = False,
         suggested_area_id: str | None = None,
     ) -> None:
         """Initialize boolean sync entity.
@@ -522,6 +523,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             sync_state: Whether to sync state changes back to PLC
             pulse_command: Whether to send pulse instead of on/off commands
             pulse_duration: Duration of pulse in seconds
+            single_fire_command: Write True once; the PLC resets the command bit
             suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(
@@ -533,12 +535,15 @@ class S7BoolSyncEntity(S7SyncEntity):
             address=state_address,
             suggested_area_id=suggested_area_id,
         )
+        self._single_fire_command = single_fire_command
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
-        # Pulse and sync are mutually exclusive; pulse takes priority.
+        # Command modes do not synchronize PLC feedback back to the command bit.
         # Sync requires different state/command addresses to be useful.
         self._initialize_sync(
-            state_address, command_address, sync_state and not pulse_command
+            state_address,
+            command_address,
+            sync_state and not (pulse_command or single_fire_command),
         )
 
     @property
@@ -564,6 +569,8 @@ class S7BoolSyncEntity(S7SyncEntity):
                     "pulse_duration": self._pulse_duration,
                 }
             )
+        if self._single_fire_command:
+            attrs["single_fire_command"] = True
         if self._sync_state:
             attrs["sync_state"] = True
         return attrs
@@ -571,13 +578,12 @@ class S7BoolSyncEntity(S7SyncEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on by writing True to PLC.
 
-        If pulse_command is enabled, sends a pulse instead.
+        Pulse and single-fire modes send a guarded toggle command instead.
 
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
-        if self._pulse_command:
-            # Control current state is off, so send pulse to turn on
+        if self._pulse_command or self._single_fire_command:
             if not self.is_on:
                 await self._async_pulse()
         else:
@@ -594,13 +600,12 @@ class S7BoolSyncEntity(S7SyncEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off by writing False to PLC.
 
-        If pulse_command is enabled, sends a pulse instead.
+        Pulse and single-fire modes send a guarded toggle command instead.
 
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
-        if self._pulse_command:
-            # Control current state is on, so send pulse to turn off
+        if self._pulse_command or self._single_fire_command:
             if self.is_on:
                 await self._async_pulse()
         else:
@@ -615,13 +620,14 @@ class S7BoolSyncEntity(S7SyncEntity):
             await self.coordinator.async_request_refresh()
 
     async def _async_pulse(self) -> None:
-        """Send a pulse to the command address.
+        """Send a command, resetting it only for timed pulse mode.
 
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
         await self._ensure_connected()
         await self.coordinator.write_batched(self._command_address, True)
-        await asyncio.sleep(self._pulse_duration)
-        await self.coordinator.write_batched(self._command_address, False)
+        if not self._single_fire_command:
+            await asyncio.sleep(self._pulse_duration)
+            await self.coordinator.write_batched(self._command_address, False)
         await self.coordinator.async_request_refresh()

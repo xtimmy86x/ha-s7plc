@@ -161,6 +161,29 @@ Both features use the same underlying pulse mechanism, but differ in how they pr
 
 ---
 
+## Single-fire Command Mode
+
+Switches and lights offer a fourth **Single-fire control** option beside **Pulse control**
+in the panel's control behavior selector. Choose it when the PLC handles resetting
+its command bit after accepting a toggle command.
+
+Like pulse mode, `turn_on` sends a command only when the read state is off, and
+`turn_off` only when it is on. Both commands write `True` exactly once through the
+normal write batching path, then request a state refresh. There is no pulse delay,
+no `False` write and no command/state synchronization. The displayed state still
+comes from the state address. Brightness writes for dimmable lights are unchanged.
+
+Configure `single_fire_command: true` for the selected switch or light in YAML,
+or select **Single-fire control** in the panel. Use a feedback address representing
+the actual device state and a command bit that your PLC resets. This option cannot
+be combined with `pulse_command` or `sync_state`; `pulse_duration` is unused.
+
+This is opt-in. Existing direct, synchronized and timed-pulse configurations keep
+their behavior and do not require a migration. It removes the integration's pulse
+wait and reset write; total scene time still depends on HA dispatch and PLC writes.
+
+---
+
 ## Entity Sync
 
 Entity Sync provides a powerful way to send data from Home Assistant to your PLC by monitoring any entity and automatically writing its state to a configured PLC address whenever it changes.

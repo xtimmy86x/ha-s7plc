@@ -967,6 +967,10 @@
         "pulse": {
           "title": "Sterowanie impulsowe",
           "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest impuls (zał./wył.) zamiast zmiany stanu na przeciwny."
+        },
+        "single_fire": {
+          "title": "Polecenie jednorazowe",
+          "description": "Zapisuje ON jeden raz, tylko gdy żądany stan różni się od bieżącego. PLC resetuje bit polecenia; bez opóźnienia i zapisu OFF."
         }
       }
     },
@@ -1145,6 +1149,7 @@
       "scale_raw_requires_min_max": "Skalowanie wymaga podania wartości minimalnej i maksymalnej.",
       "scale_requires_all_four": "Funkcja skalowanie wymaga wszystkich czterech parametrów: wartość wejściowa min./maks. oraz wartość wyjściowa min./maks.",
       "text_requires_string_type": "Encje tekstowe wymagają adresów typu (STRING/WSTRING).",
+      "single_fire_conflict": "Polecenia jednorazowego nie można łączyć z synchronizacją stanu ani sterowaniem impulsowym.",
       "sync_pulse_conflict": "Synchronizacja stanu i tryb impulsu nie mogą być aktywne jednocześnie.",
       "sync_same_address": "Synchronizacja stanu wymaga adresu zapisu innego niż adres odczytu.",
       "invalid_integer": "Wprowadź liczbę całkowitą (wartości dziesiętne nie są dozwolone).",

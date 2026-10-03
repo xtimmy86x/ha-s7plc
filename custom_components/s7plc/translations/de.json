@@ -967,6 +967,10 @@
         "pulse": {
           "title": "Impulssteuerung",
           "description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten."
+        },
+        "single_fire": {
+          "title": "Einmaliger Befehl",
+          "description": "Schreibt ON einmal, nur wenn der gewünschte Zustand vom aktuellen Zustand abweicht. Die SPS setzt das Befehlsbit zurück; keine Wartezeit und kein OFF-Schreibvorgang."
         }
       }
     },
@@ -1145,6 +1149,7 @@
       "scale_raw_requires_min_max": "Wenn Skalierungs-Rohmin/-max gesetzt sind, müssen auch Min-Wert und Max-Wert angegeben werden.",
       "scale_requires_all_four": "Die Skalierung erfordert alle vier Parameter: Minimalwert, Maximalwert, Roh-Min und Roh-Max.",
       "text_requires_string_type": "Textentitäten erfordern STRING- oder WSTRING-Datentypenvariablen.",
+      "single_fire_conflict": "Einmalige Befehle können nicht mit Zustandssynchronisierung oder Impulssteuerung kombiniert werden.",
       "sync_pulse_conflict": "Statussynchronisierung und Impulsbefehl können nicht gleichzeitig aktiviert werden.",
       "sync_same_address": "Die Statussynchronisierung erfordert eine Befehlsadresse, die sich von der Statusadresse unterscheidet.",
       "invalid_integer": "Geben Sie eine ganze Zahl ein (Dezimalzahlen sind nicht zulässig).",

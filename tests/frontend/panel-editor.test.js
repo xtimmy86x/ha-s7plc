@@ -330,6 +330,57 @@ describe("entity editor", () => {
     });
   });
 
+  test.each(["switches", "lights"])("saves and reopens single-fire mode for %s", async (type) => {
+    const entry = createEntry();
+    entry.entities[type] = [{ uid: "stable", name: "Test", state_address: "DB1,X8.0", command_address: "DB1,X8.1" }];
+    const original = structuredClone(entry.entities[type][0]);
+    const panel = createPanel(entry);
+    panel.openEditor(0, type);
+    const dialog = currentDialog();
+    const form = dialog.querySelector("form");
+    expect([...form.querySelectorAll('input[name="control_behavior"]')].map(input => input.value))
+      .toEqual(["direct", "sync", "pulse", "single_fire"]);
+    const input = choose(form, "control_behavior", "single_fire");
+    expect(input.closest("label").textContent).toContain("Single-fire control");
+    expect(isHidden(form, "pulse_duration")).toBe(true);
+    expect(form.querySelector('[data-section="options"]').classList.contains("hidden-field")).toBe(true);
+    panel._hass.callWS = vi.fn(async message => {
+      entry.entities[type][0] = message.entity;
+      return { entities: entry.entities[type] };
+    });
+    panel.load = vi.fn(async () => {});
+    await dialog.querySelector('[slot="primaryAction"]').onclick();
+    expect(panel._hass.callWS).toHaveBeenCalledWith(expect.objectContaining({
+      type: "s7plc/config/save_entity", entity_type: type, index: 0,
+      entity: expect.objectContaining({ uid: "stable", single_fire_command: true, pulse_command: false, sync_state: false }),
+    }));
+    expect(original).not.toHaveProperty("single_fire_command");
+    dialog.remove();
+    panel.openEditor(0, type);
+    const reopened = currentDialog().querySelector("form");
+    expect(reopened.elements.control_behavior.value).toBe("single_fire");
+    choose(reopened, "control_behavior", "pulse");
+    expect(isHidden(reopened, "pulse_duration")).toBe(false);
+    const pulse = panel.formEntity(reopened, entry.entities[type][0], type);
+    expect(pulse.pulse_command).toBe(true);
+    expect(pulse).not.toHaveProperty("single_fire_command");
+  });
+
+  test.each(["direct", "sync", "pulse"])("keeps existing %s settings opt-out of single-fire", mode => {
+    const entry = createEntry();
+    const config = { ...entry.entities.switches[0], sync_state: mode === "sync", pulse_command: mode === "pulse", pulse_duration: 0.75 };
+    entry.entities.switches[0] = config;
+    const original = structuredClone(config);
+    const panel = createPanel(entry);
+    panel.openEditor(0, "switches");
+    const form = currentDialog().querySelector("form");
+    expect(form.elements.control_behavior.value).toBe(mode);
+    const saved = panel.formEntity(form, config, "switches");
+    expect(saved).toMatchObject(original);
+    expect(saved).not.toHaveProperty("single_fire_command");
+    expect(config).toEqual(original);
+  });
+
   test("reveals brightness addresses only for a dimmable light", () => {
     const entry = createEntry();
     entry.entities.lights = [{

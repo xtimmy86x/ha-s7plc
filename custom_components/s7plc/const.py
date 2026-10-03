@@ -13,7 +13,7 @@ PLATFORMS = [
 ]
 
 VERSION = "7.5.1"
-FRONTEND_BUILD = "20260930.1"
+FRONTEND_BUILD = "20261003.1"
 
 PANEL_URL = "s7plc-config"
 
@@ -96,6 +96,7 @@ CONF_SYNC_STATE = "sync_state"
 SYNC_COMMAND_SETTLE_TIME = 2.0
 CONF_BUTTON_PULSE = "button_pulse"
 CONF_PULSE_COMMAND = "pulse_command"
+CONF_SINGLE_FIRE_COMMAND = "single_fire_command"
 CONF_PULSE_DURATION = "pulse_duration"
 CONF_MIN_VALUE = "min_value"
 CONF_MAX_VALUE = "max_value"

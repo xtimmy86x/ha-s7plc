@@ -967,6 +967,10 @@
         "pulse": {
           "title": "Pulzní ovládání",
           "description": "Odešle časovaný pulz na příkazovou adresu namísto udržování hodnoty ON/OFF."
+        },
+        "single_fire": {
+          "title": "Jednorázový příkaz",
+          "description": "Zapíše ON jednou, pouze pokud se požadovaný stav liší od aktuálního. PLC resetuje příkazový bit; bez čekání a zápisu OFF."
         }
       }
     },
@@ -1145,6 +1149,7 @@
       "scale_raw_requires_min_max": "Pokud je nastaven surový rozsah škálování, musí být zadány také minimální a maximální hodnota.",
       "scale_requires_all_four": "Škálování vyžaduje všechny čtyři parametry: minimální hodnotu, maximální hodnotu, surový min a surový max.",
       "text_requires_string_type": "Textové entity vyžadují adresy typu STRING nebo WSTRING.",
+      "single_fire_conflict": "Jednorázový příkaz nelze kombinovat se synchronizací stavu ani pulzním ovládáním.",
       "sync_pulse_conflict": "Synchronizaci stavu a pulzní příkaz nelze aktivovat současně.",
       "sync_same_address": "Synchronizace stavu vyžaduje adresu příkazu odlišnou od adresy stavu.",
       "invalid_integer": "Zadejte celé číslo (desetinná čísla nejsou povolena).",

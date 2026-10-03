@@ -16,6 +16,7 @@ from .const import (
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
+    CONF_SINGLE_FIRE_COMMAND,
     CONF_STATE_ADDRESS,
     CONF_SWITCHES,
     CONF_SYNC_STATE,
@@ -52,6 +53,7 @@ async def async_setup_entry(
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
         pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
+        single_fire_command = bool(item.get(CONF_SINGLE_FIRE_COMMAND, False))
         pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
         name = item.get(CONF_NAME) or default_entity_name(state_address)
         area = item.get(CONF_AREA)
@@ -72,6 +74,7 @@ async def async_setup_entry(
                 pulse_command,
                 pulse_duration,
                 area,
+                single_fire_command=single_fire_command,
             )
         )
 
@@ -135,6 +138,7 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
         pulse_command: bool,
         pulse_duration: float,
         suggested_area_id: str | None = None,
+        single_fire_command: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -146,6 +150,7 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             command_address=command_address,
             sync_state=sync_state,
             pulse_command=pulse_command,
+            single_fire_command=single_fire_command,
             pulse_duration=pulse_duration,
             suggested_area_id=suggested_area_id,
         )
