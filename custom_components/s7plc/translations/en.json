@@ -958,6 +958,10 @@
         "pulse": {
           "title": "Pulse control",
           "description": "Send a timed pulse to the command address instead of maintaining the ON/OFF value."
+        },
+        "single_fire": {
+          "title": "Single-fire control",
+          "description": "Write ON once only when the requested state differs from the current state. The PLC resets the command bit; no timed pulse or OFF write is sent."
         }
       }
     },
@@ -1136,6 +1140,7 @@
       "scale_raw_requires_min_max": "Scale raw min/max require both min value and max value to be set.",
       "scale_requires_all_four": "Scaling requires all four parameters: min value, max value, scale raw min and scale raw max.",
       "text_requires_string_type": "Text entities require STRING or WSTRING data type addresses.",
+      "single_fire_conflict": "Single-fire control cannot be combined with sync state or pulse control.",
       "sync_pulse_conflict": "Sync state and pulse command cannot be enabled at the same time.",
       "sync_same_address": "Sync state requires a command address different from the state address.",
       "invalid_integer": "Enter a whole number (decimals are not allowed).",

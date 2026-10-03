@@ -19,6 +19,7 @@ from .const import (
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
+    CONF_SINGLE_FIRE_COMMAND,
     CONF_STATE_ADDRESS,
     CONF_SYNC_STATE,
     CONF_UID,
@@ -53,6 +54,7 @@ async def async_setup_entry(
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
         pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
+        single_fire_command = bool(item.get(CONF_SINGLE_FIRE_COMMAND, False))
         pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
 
         brightness_conversion = normalize_value_conversion(item, "brightness")
@@ -94,6 +96,7 @@ async def async_setup_entry(
                 brightness_command_address,
                 area,
                 brightness_conversion,
+                single_fire_command=single_fire_command,
             )
         )
 
@@ -131,6 +134,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         brightness_command_address: str | None = None,
         suggested_area_id: str | None = None,
         brightness_conversion: dict | None = None,
+        single_fire_command: bool = False,
     ):
         super().__init__(
             coordinator,
@@ -142,6 +146,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             command_address=command_address,
             sync_state=sync_state,
             pulse_command=pulse_command,
+            single_fire_command=single_fire_command,
             pulse_duration=pulse_duration,
             suggested_area_id=suggested_area_id,
         )

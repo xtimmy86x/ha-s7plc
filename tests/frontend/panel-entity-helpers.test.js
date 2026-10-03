@@ -22,6 +22,20 @@ describe("entity configuration helpers", () => {
     ]);
   });
 
+  test("single-fire is opt-in and clears when another mode is selected", () => {
+    const { APPLY_CONTROL_MODE, CONTROL_MODE_FROM_ENTITY } = getPanelTestHelpers();
+    const config = { uid: "stable", name: "Test", sync_state: false, pulse_command: false };
+    const single = APPLY_CONTROL_MODE(config, "single_fire");
+    expect(single).toEqual({ ...config, single_fire_command: true });
+    expect(CONTROL_MODE_FROM_ENTITY(single)).toBe("single_fire");
+    expect(config).not.toHaveProperty("single_fire_command");
+    for (const mode of ["direct", "sync", "pulse"]) {
+      const updated = APPLY_CONTROL_MODE(single, mode);
+      expect(updated).not.toHaveProperty("single_fire_command");
+      expect(CONTROL_MODE_FROM_ENTITY(updated)).toBe(mode);
+    }
+  });
+
   test("infers dimmable mode only from a brightness state address", () => {
     const { LIGHT_MODE_FROM_ENTITY } = getPanelTestHelpers();
     expect([

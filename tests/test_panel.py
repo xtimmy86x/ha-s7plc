@@ -327,7 +327,7 @@ def test_panel_control_mode_is_context_aware() -> None:
     assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
     assert 'name="pulse_command" type="checkbox"' not in source
-    assert "choices||['direct','sync','pulse']" in source
+    assert "choices||['direct','sync','pulse','single_fire']" in source
     assert "sync_requires_command" in source
     assert "data-sync-reason" in source
 
