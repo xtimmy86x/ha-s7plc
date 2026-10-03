@@ -18,6 +18,7 @@ from .const import (
     CONF_PLC_FAMILY,
     CONF_UID,
     DOMAIN,
+    FRONTEND_BUILD,
     FRONTEND_MODULE,
     OPTION_KEYS,
     PLC_FAMILY_S7,
@@ -597,6 +598,7 @@ async def async_setup_panel(hass: Any) -> None:
         config={
             "domain": DOMAIN,
             "version": VERSION,
+            "frontend_build": FRONTEND_BUILD,
         },
     )
     hass.data[DOMAIN][PANEL_DATA] = True

@@ -295,7 +295,14 @@ class S7PlcConfigurationPanel extends HTMLElement {
   selectedFor(type,index){return this.selectedIndices.has(this.selectionKey(type,index));}
   disconnectedCallback(){clearInterval(this._statusTimer);clearTimeout(this._searchTimer);this._statusTimer=this._searchTimer=null;this.searchQuery='';this.closeEntityOverflow();this.closeAddMenu();this.teardownCategoryNavigation();}
   set hass(value) { const previous=this.language,searchInput=this.searchQuery?this.querySelector('#entity-search-input'):null,searchFocused=Boolean(searchInput)&&searchInput===document.activeElement,selectionStart=searchFocused?searchInput.selectionStart:null,selectionEnd=searchFocused?searchInput.selectionEnd:null,previousResults=this.searchQuery?this.searchResultsFingerprint():null; this._hass = value; if (!this._loaded) this.load(); else if(previous!==this.language)this.loadPanelTranslations().then(()=>this.render()); else {if(this.searchQuery&&previousResults!==this.searchResultsFingerprint()){this.render();if(searchFocused){const next=this.querySelector('#entity-search-input');next?.focus();next?.setSelectionRange(selectionStart,selectionEnd);}}else this.updateStates();this.updateConnectionDialog();} this.syncMenuButtons(); }
-  set panel(value) { this._panel = value; if(this._loaded&&this.entries)this.render(); }
+  set panel(value) {
+    const previous=this.translationQuery;
+    this._panel=value;
+    if(this._loaded&&this.entries){
+      this.render();
+      if(previous!==this.translationQuery)this.loadPanelTranslations().then(()=>this.render());
+    }
+  }
   set narrow(value) { this._narrow = value; this.syncMenuButtons(); }
   menuButton(){return '<ha-menu-button></ha-menu-button>';}
   banner(){
@@ -311,13 +318,29 @@ class S7PlcConfigurationPanel extends HTMLElement {
   translation(path,source){return path.split('.').reduce((value,key)=>value?.[key],source);}
   t(path){return this.translation(`config_panel.${path}`,this.panelTranslations)??this.translation(path,ENGLISH_EMERGENCY_FALLBACK)??path.split('.').at(-1).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
   bt(key,values={}){const text=this.t(`actions.${key}`);return Object.entries(values).reduce((result,[name,value])=>result.replace(`{${name}}`,value),text);}
-  async loadPanelTranslations(){
-  const requested=this.language, languages=requested==="en"?["en"]:[requested,"en"];
-  this.panelTranslations=null;
-  for(const language of languages){
-  try{const response=await fetch(`/s7plc_translations/${language}.json`);if(!response.ok)throw Error(`HTTP ${response.status}`);this.panelTranslations=await response.json();return;}
-  catch(err){console.warn(`Unable to load S7 PLC translations for ${language}`,err);}
+  get translationQuery(){
+    const params=new URLSearchParams();
+    if(this.integrationVersion)params.set('v',this.integrationVersion);
+    if(this._panel?.config?.frontend_build)params.set('build',this._panel.config.frontend_build);
+    return params.size?`?${params}`:'';
   }
+  async loadPanelTranslations(){
+    const requested=this.language, languages=requested==="en"?["en"]:[requested,"en"];
+    const query=this.translationQuery;
+    const requestId=this._translationRequestId=(this._translationRequestId||0)+1;
+    this.panelTranslations=null;
+    for(const language of languages){
+      try{
+        const response=await fetch(`/s7plc_translations/${language}.json${query}`,{cache:'no-cache'});
+        if(!response.ok)throw Error(`HTTP ${response.status}`);
+        const translations=await response.json();
+        if(requestId===this._translationRequestId)this.panelTranslations=translations;
+        return;
+      }catch(err){
+        if(requestId!==this._translationRequestId)return;
+        console.warn(`Unable to load S7 PLC translations for ${language}`,err);
+      }
+    }
   }
   async load() {
   if (!this._hass) return; this._loaded = true;
