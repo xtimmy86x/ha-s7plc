@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 
-from homeassistant.components.number import NumberEntity
+from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -17,6 +17,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
+    CONF_NUMBER_MODE,
     CONF_NUMBERS,
     CONF_REAL_PRECISION,
     CONF_SCAN_INTERVAL,
@@ -94,6 +95,7 @@ async def async_setup_entry(
                 unit_of_measurement,
                 area,
                 value_conversion=normalize_value_conversion(item, "value"),
+                mode=item.get(CONF_NUMBER_MODE),
             )
         )
 
@@ -126,6 +128,7 @@ class S7Number(S7BaseEntity, NumberEntity):
         unit_of_measurement: str | None = None,
         suggested_area_id: str | None = None,
         value_conversion: dict | None = None,
+        mode: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -137,6 +140,11 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
+        try:
+            self._attr_mode = NumberMode(mode)
+        except (TypeError, ValueError):
+            # Missing or invalid legacy options keep Home Assistant's AUTO mode.
+            pass
         self._value_conversion = value_conversion
         # Dashboard metadata describes the HA value, not just the PLC datatype.
         writable_word = False

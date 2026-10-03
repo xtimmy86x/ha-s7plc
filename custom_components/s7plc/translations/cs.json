@@ -651,6 +651,15 @@
             "label": "Krok",
             "description": "Volitelný krok, o který se hodnota mění v UI."
           },
+          "mode": {
+            "label": "Režim zobrazení",
+            "description": "Vyberte, jak Home Assistant zobrazí toto číslo. Limity a zápisy do PLC zůstávají beze změny.",
+            "options": {
+              "auto": "Automatický",
+              "box": "Číselné pole",
+              "slider": "Posuvník"
+            }
+          },
           "real_precision": {
             "label": "Desetinná místa REAL",
             "description": "Počet desetinných míst pro hodnoty REAL. Ponechte prázdné pro použití výchozí hodnoty (1)."
@@ -1176,7 +1185,8 @@
       "select_requires_integer_type": "Entity výběru vyžadují diskrétní číselný datový typ PLC (BYTE, WORD, DWORD, SINT, USINT, INT, DINT nebo TIME).",
       "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME.",
       "value_conversions_must_be_mapping": "Převody hodnot musí být mapování.",
-      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
+      "invalid_number_mode": "Vyberte auto, box nebo slider jako režim zobrazení čísla."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

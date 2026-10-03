@@ -651,6 +651,15 @@
             "label": "Schritt",
             "description": "Schrittweite, die beim Anpassen des Werts in der Benutzeroberfläche verwendet wird (optional)."
           },
+          "mode": {
+            "label": "Anzeigemodus",
+            "description": "Wählen Sie, wie Home Assistant diese Zahl anzeigt. Grenzwerte und PLC-Schreibvorgänge bleiben unverändert.",
+            "options": {
+              "auto": "Automatisch",
+              "box": "Zahleneingabe",
+              "slider": "Schieberegler"
+            }
+          },
           "real_precision": {
             "label": "REAL-Dezimalstellen",
             "description": "Anzahl der Dezimalstellen für REAL-Werte. Leer lassen, um den Standardwert (1) zu verwenden."
@@ -1176,7 +1185,8 @@
       "select_requires_integer_type": "Auswahl-Entitäten benötigen einen diskreten numerischen SPS-Datentyp (BYTE, WORD, DWORD, SINT, USINT, INT, DINT oder TIME).",
       "select_command_type_mismatch": "Die Befehlsadresse muss genau dann TIME verwenden, wenn die Statusadresse TIME verwendet.",
       "value_conversions_must_be_mapping": "Wertkonvertierungen müssen eine Zuordnung sein.",
-      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required."
+      "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
+      "invalid_number_mode": "Wählen Sie auto, box oder slider als Anzeigemodus der Zahl."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

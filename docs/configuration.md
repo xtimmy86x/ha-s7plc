@@ -199,6 +199,7 @@ Position-based covers use a 0–100% numeric range instead of separate open/clos
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
 - **Address**: PLC address to read
 - **Command Address**: PLC address to write (optional, defaults to read address)
+- **Display Mode** (`mode`, optional): `auto` (default, Home Assistant chooses), `box` (numeric input), or `slider`. Select it in the side panel or set it in YAML, for example `mode: box`. It only changes the display, keeping limits, step and PLC writes unchanged.
 - **Device Class**: Optional number device class
   - To remove a previously set device class, select **"No device class"** from the dropdown
 - **Min/Max/Step**: Value constraints for Home Assistant (automatically clamped to PLC data type limits)

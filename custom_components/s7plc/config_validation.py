@@ -59,6 +59,7 @@ from .const import (
     CONF_MAX_VALUE,
     CONF_MIN_TEMP,
     CONF_MIN_VALUE,
+    CONF_NUMBER_MODE,
     CONF_NUMBERS,
     CONF_ON_OFF_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
@@ -135,6 +136,7 @@ from .const import (
     DEFAULT_PULSE_DURATION,
     DEFAULT_TEMP_STEP,
     DEFAULT_TOGGLE_MODE,
+    NUMBER_MODES,
 )
 from .helpers import parse_pulse_duration
 from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
@@ -264,6 +266,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_DEVICE_CLASS,
         CONF_UNIT_OF_MEASUREMENT,
         CONF_STEP,
+        CONF_NUMBER_MODE,
     },
     CONF_SELECTS: _COMMON_FIELDS
     | {
@@ -1417,6 +1420,14 @@ class EntityConfigBuilder:
         max_value: float | None = None
         step_value: float | None = None
 
+        mode = user_input.get(CONF_NUMBER_MODE)
+        if mode is not None:
+            if not isinstance(mode, str):
+                return None, {"base": "invalid_number_mode"}
+            mode = mode.strip()
+            if mode and mode not in NUMBER_MODES:
+                return None, {"base": "invalid_number_mode"}
+
         try:
             min_value = self._normalize_numeric_value(user_input.get(CONF_MIN_VALUE))
             max_value = self._normalize_numeric_value(user_input.get(CONF_MAX_VALUE))
@@ -1478,6 +1489,8 @@ class EntityConfigBuilder:
             item[CONF_MAX_VALUE] = max_value
         if step_value is not None:
             item[CONF_STEP] = step_value
+        if mode and mode != "auto":
+            item[CONF_NUMBER_MODE] = mode
 
         # Apply transformations
         self._apply_real_precision(item, user_input.get(CONF_REAL_PRECISION))
