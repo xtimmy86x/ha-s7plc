@@ -337,11 +337,15 @@
             "description": "Odwraca stan wynikowy, również wynik porównania liczbowego."
           },
           "binary_sensor_mode": {
-            "label": "Tryb czujnika",
+            "label": "Zachowanie czujnika binarnego",
             "description": "Odczytuj stan PLC bezpośrednio lub porównuj wartość liczbową.",
             "options": {
-              "direct": "Stan bezpośredni",
+              "direct": "Stan logiczny",
               "comparison": "Porównanie liczbowe"
+            },
+            "descriptions": {
+              "direct": "Odczytuje stan logiczny PLC bezpośrednio: włączony dla prawdy, wyłączony dla fałszu. To dotychczasowy tryb.",
+              "comparison": "Porównuje wartość liczbową PLC z progiem: włączony, gdy warunek jest spełniony, w przeciwnym razie wyłączony."
             }
           },
           "comparison_operator": {

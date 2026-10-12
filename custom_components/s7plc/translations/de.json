@@ -337,11 +337,15 @@
             "description": "Ergebniszustand umkehren, auch bei einem numerischen Vergleich."
           },
           "binary_sensor_mode": {
-            "label": "Sensormodus",
+            "label": "Verhalten des Binärsensors",
             "description": "PLC-Zustand direkt lesen oder einen Zahlenwert vergleichen.",
             "options": {
-              "direct": "Direkter Zustand",
+              "direct": "Boolescher Zustand",
               "comparison": "Numerischer Vergleich"
+            },
+            "descriptions": {
+              "direct": "Liest den booleschen PLC-Zustand direkt: ein bei wahr, aus bei falsch. Dies ist der bisherige Modus.",
+              "comparison": "Vergleicht einen numerischen PLC-Wert mit einem Schwellwert: ein, wenn die Bedingung erfüllt ist, sonst aus."
             }
           },
           "comparison_operator": {

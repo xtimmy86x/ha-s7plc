@@ -337,11 +337,15 @@
             "description": "Invert the resulting state, including the result of a numeric comparison."
           },
           "binary_sensor_mode": {
-            "label": "Sensor mode",
+            "label": "Binary sensor behavior",
             "description": "Read the PLC state directly or compare a numeric value.",
             "options": {
-              "direct": "Direct state",
+              "direct": "Boolean state",
               "comparison": "Numeric comparison"
+            },
+            "descriptions": {
+              "direct": "Reads the PLC boolean state directly: on when true, off when false. This is the traditional mode.",
+              "comparison": "Compares a numeric PLC value with a threshold: on when the condition is met, off otherwise."
             }
           },
           "comparison_operator": {

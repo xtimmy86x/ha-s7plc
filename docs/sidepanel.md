@@ -172,9 +172,9 @@ The same fields are supported by the visual and YAML editors.
 
 ## Numeric comparison binary sensors
 
-In **Binary sensors**, add or edit an entity and select **Sensor mode → Numeric
-comparison**. Enter a scalar numeric PLC address (for example `DB1,I10`), a
-comparison operator, and a numeric threshold. Supported operators are equal,
+In **Binary sensors**, add or edit an entity and select **Numeric comparison**
+under **Binary sensor behavior**. Enter a scalar numeric PLC address (for example
+`DB1,I10`), a comparison operator, and a numeric threshold. Supported operators are equal,
 not equal, greater than, greater than or equal, less than, and less than or equal.
 Negative and decimal thresholds are supported. The comparison uses the raw PLC
 value; equality is exact (there is no tolerance or hysteresis).
@@ -194,6 +194,6 @@ non-finite readings produce an unknown state, not a false comparison result;
 connection availability follows the entity's configured availability policy.
 **Invert state** inverts the comparison result. Device class and scan interval
 work as for other binary sensors. Existing sensors keep their direct-state
-behavior; switching back to **Direct state** removes the comparison settings.
+behavior; switching back to **Boolean state** removes the comparison settings.
 As with existing binary sensors, each address can be configured once per PLC
 within this entity type. A numeric sensor may read the same address separately.

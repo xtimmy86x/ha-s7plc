@@ -337,11 +337,15 @@
             "description": "Inverte lo stato risultante, anche quando deriva da un confronto numerico."
           },
           "binary_sensor_mode": {
-            "label": "Modalità sensore",
+            "label": "Comportamento del sensore binario",
             "description": "Leggi direttamente lo stato del PLC oppure confronta un valore numerico.",
             "options": {
-              "direct": "Stato diretto",
-              "comparison": "Confronto numerico"
+              "direct": "Stato booleano",
+              "comparison": "Comparazione numerica"
+            },
+            "descriptions": {
+              "direct": "Legge direttamente lo stato booleano del PLC: on quando è vero, off quando è falso. È la modalità tradizionale.",
+              "comparison": "Confronta un valore numerico del PLC con una soglia: on quando la condizione è soddisfatta, off altrimenti."
             }
           },
           "comparison_operator": {

@@ -19,14 +19,24 @@ const open = (entity) => {
   return { panel, form: document.querySelector("ha-dialog form") };
 };
 const changeMode = (form, mode) => {
-  form.elements.binary_sensor_mode.value = mode;
-  form.elements.binary_sensor_mode.dispatchEvent(new Event("change", { bubbles: true }));
+  const input = form.querySelector(`input[name="binary_sensor_mode"][value="${mode}"]`);
+  input.click();
 };
 
 test("existing direct sensors omit comparison configuration and require no threshold", () => {
   const original = { address: "DB1,X0.0", invert_state: true };
   const { panel, form } = open(original);
   expect(form.elements.binary_sensor_mode.value).toBe("direct");
+  expect([...form.querySelectorAll('.form-section')].map(section => section.dataset.section))
+    .toEqual(["binary-behavior", "addresses", "behavior", "ha"]);
+  const modeSection = form.querySelector('[data-section="binary-behavior"]');
+  expect(modeSection.querySelector('.section-head b').textContent).toBe("Binary sensor behavior");
+  expect([...modeSection.querySelectorAll('.control-card b')].map(label => label.textContent))
+    .toEqual(["Boolean state", "Numeric comparison"]);
+  expect(modeSection.querySelectorAll('.control-card input[type="radio"]')).toHaveLength(2);
+  expect([...modeSection.querySelectorAll('.control-card small')].every(help => help.textContent.length > 40)).toBe(true);
+  expect(form.elements.device_class.closest('.form-section').dataset.section).toBe("behavior");
+  expect(form.elements.invert_state.closest('.form-section').dataset.section).toBe("behavior");
   expect(form.elements.comparison_value.disabled).toBe(true);
   expect(form.elements.comparison_value.required).toBe(false);
   expect(form.querySelector('[data-field="comparison_value"]').classList.contains("hidden-field")).toBe(true);

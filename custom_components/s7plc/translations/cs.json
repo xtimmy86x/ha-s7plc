@@ -337,11 +337,15 @@
             "description": "Obrátí výsledný stav, včetně výsledku číselného porovnání."
           },
           "binary_sensor_mode": {
-            "label": "Režim senzoru",
+            "label": "Chování binárního senzoru",
             "description": "Čtěte stav PLC přímo nebo porovnávejte číselnou hodnotu.",
             "options": {
-              "direct": "Přímý stav",
+              "direct": "Logický stav",
               "comparison": "Číselné porovnání"
+            },
+            "descriptions": {
+              "direct": "Čte logický stav PLC přímo: zapnuto při pravdě, vypnuto při nepravdě. Toto je dosavadní režim.",
+              "comparison": "Porovnává číselnou hodnotu PLC s prahem: zapnuto při splnění podmínky, jinak vypnuto."
             }
           },
           "comparison_operator": {
