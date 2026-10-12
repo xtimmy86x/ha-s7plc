@@ -9,6 +9,7 @@ from .const import (
     AVAILABILITY_MODE_BIT,
     AVAILABILITY_MODE_CONNECTION,
     AVAILABILITY_MODES,
+    COMPARISON_OPERATORS,
     CONF_ADDRESS,
     CONF_AREA,
     CONF_AVAILABILITY_ADDRESS,
@@ -24,6 +25,8 @@ from .const import (
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
+    CONF_COMPARISON_OPERATOR,
+    CONF_COMPARISON_VALUE,
     CONF_COOLING_ACTION_ADDRESS,
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVER_CLOSING_ADDRESS,
@@ -202,7 +205,13 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
     | _LEGACY_CONVERSION_FIELDS
     | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_UNIT_OF_MEASUREMENT, CONF_STATE_CLASS},
     CONF_BINARY_SENSORS: _COMMON_FIELDS
-    | {CONF_ADDRESS, CONF_DEVICE_CLASS, CONF_INVERT_STATE},
+    | {
+        CONF_ADDRESS,
+        CONF_DEVICE_CLASS,
+        CONF_INVERT_STATE,
+        CONF_COMPARISON_OPERATOR,
+        CONF_COMPARISON_VALUE,
+    },
     CONF_SWITCHES: _COMMON_FIELDS
     | {
         CONF_ADDRESS,
@@ -711,6 +720,40 @@ class EntityConfigBuilder:
         if errors:
             return None, errors
 
+        comparison_operator = user_input.get(CONF_COMPARISON_OPERATOR)
+        comparison_value = None
+        if comparison_operator is not None:
+            if comparison_operator not in COMPARISON_OPERATORS:
+                return None, {"base": "invalid_comparison_operator"}
+            tag = parse_tag(address)
+            supported = {
+                getattr(DataType, name, None)
+                for name in (
+                    "BYTE",
+                    "WORD",
+                    "DWORD",
+                    "SINT",
+                    "USINT",
+                    "INT",
+                    "DINT",
+                    "REAL",
+                    "LREAL",
+                )
+            } - {None}
+            if tag.data_type not in supported or tag.length != 1:
+                return None, {"base": "comparison_requires_numeric_type"}
+            raw_value = user_input.get(CONF_COMPARISON_VALUE)
+            try:
+                if isinstance(raw_value, bool):
+                    raise ValueError("Boolean is not a numeric threshold")
+                comparison_value = self._normalize_numeric_value(raw_value)
+            except (ValueError, OverflowError):
+                return None, {"base": "invalid_comparison_value"}
+            if comparison_value is None:
+                return None, {"base": "invalid_comparison_value"}
+        elif CONF_COMPARISON_VALUE in user_input:
+            return None, {"base": "invalid_comparison_operator"}
+
         # Check for duplicates
         if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=skip_idx):
             return None, {"base": "duplicate_entry"}
@@ -724,6 +767,10 @@ class EntityConfigBuilder:
             CONF_DEVICE_CLASS,
             CONF_INVERT_STATE,
         )
+
+        if comparison_operator is not None:
+            item[CONF_COMPARISON_OPERATOR] = comparison_operator
+            item[CONF_COMPARISON_VALUE] = comparison_value
 
         # Apply specific transformations
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))

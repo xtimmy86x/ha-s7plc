@@ -969,3 +969,60 @@ def test_empty_value_conversions_are_omitted(conversions) -> None:
     again, errors = build_entity_item("sensors", item, options={})
     assert not errors
     assert again == item
+
+
+@pytest.mark.parametrize("comparison", ["eq", "ne", "gt", "ge", "lt", "le"])
+@pytest.mark.parametrize("value,expected", [(0, 0), (15, 15), (-2.5, -2.5), ("-2,5", -2.5)])
+def test_binary_comparison_validation(comparison, value, expected):
+    item, errors = build_entity_item("binary_sensors", {
+        "address": "DB1,I10", "comparison_operator": comparison,
+        "comparison_value": value,
+    }, options={})
+    assert not errors
+    assert item["comparison_operator"] == comparison
+    assert item["comparison_value"] == expected
+
+
+@pytest.mark.parametrize("address", ["DB1,B10", "DB1,W10", "DB1,DW10", "DB1,I10", "DB1,DI10", "DB1,R10", "DB1,LR10", "DB1,SINT10", "DB1,USINT10"])
+def test_binary_comparison_numeric_types(address):
+    item, errors = build_entity_item("binary_sensors", {
+        "address": address, "comparison_operator": "eq", "comparison_value": 15,
+    }, options={})
+    assert item is not None, errors
+
+
+@pytest.mark.parametrize("updates,error", [
+    ({"comparison_operator": "bad"}, "invalid_comparison_operator"),
+    ({"comparison_operator": None}, "invalid_comparison_operator"),
+    ({"comparison_value": None}, "invalid_comparison_value"),
+    ({"comparison_value": ""}, "invalid_comparison_value"),
+    ({"comparison_value": True}, "invalid_comparison_value"),
+    ({"comparison_value": "bad"}, "invalid_comparison_value"),
+    ({"comparison_value": float("nan")}, "invalid_comparison_value"),
+    ({"comparison_value": float("inf")}, "invalid_comparison_value"),
+    ({"address": "DB1,X0.0"}, "comparison_requires_numeric_type"),
+    ({"address": "DB1,S10.20"}, "comparison_requires_numeric_type"),
+    ({"address": "DB1,I10.2"}, "invalid_address"),
+])
+def test_binary_comparison_rejects_invalid_configuration(updates, error):
+    item, errors = build_entity_item("binary_sensors", {
+        "address": "DB1,I10", "comparison_operator": "eq", "comparison_value": 15,
+        **updates,
+    }, options={})
+    assert item is None
+    assert errors == {"base": error}
+
+
+def test_binary_comparison_preserves_duplicate_and_edit_validation():
+    original = {"address": "DB1,I10", "comparison_operator": "gt", "comparison_value": 15}
+    options = {"binary_sensors": [original]}
+    assert build_entity_item("binary_sensors", original, options=options)[1] == {"base": "duplicate_entry"}
+    edited, errors = build_entity_item("binary_sensors", {
+        **original, "comparison_value": 20,
+    }, options=options, skip_idx=0)
+    assert not errors
+    assert edited["comparison_value"] == 20
+    direct, errors = build_entity_item("binary_sensors", {"address": "DB1,X0.0"}, options={})
+    assert not errors
+    assert "comparison_operator" not in direct
+    assert "comparison_value" not in direct

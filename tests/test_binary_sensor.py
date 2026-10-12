@@ -465,3 +465,53 @@ async def test_async_setup_entry_with_invert_state(fake_hass, mock_coordinator, 
     binary_sensor = entities[1]
     assert isinstance(binary_sensor, S7BinarySensor)
     assert binary_sensor._invert_state is True
+
+
+@pytest.mark.parametrize("comparison,expected", [
+    ("eq", (False, True, False)), ("ne", (True, False, True)),
+    ("gt", (False, False, True)), ("ge", (False, True, True)),
+    ("lt", (True, False, False)), ("le", (True, True, False)),
+])
+@pytest.mark.parametrize("invert", [False, True])
+def test_numeric_comparison_boundaries(mock_coordinator, device_info, comparison, expected, invert):
+    sensor = S7BinarySensor(
+        mock_coordinator, "Comparison", "uid", device_info,
+        "binary_sensor:DB1,I10", "DB1,I10", None, invert,
+        comparison_operator=comparison, comparison_value=15,
+    )
+    for value, result in zip((14, 15, 16), expected):
+        mock_coordinator.data = {sensor._topic: value}
+        assert sensor.is_on is (not result if invert else result)
+
+
+@pytest.mark.parametrize("value", [None, float("nan"), float("inf"), -float("inf"), "15", True, [15]])
+@pytest.mark.parametrize("invert", [False, True])
+def test_numeric_comparison_invalid_readings_are_unknown(mock_coordinator, device_info, value, invert):
+    sensor = S7BinarySensor(
+        mock_coordinator, "Comparison", "uid", device_info,
+        "binary_sensor:DB1,R10", "DB1,R10", None, invert,
+        comparison_operator="ne", comparison_value=15,
+    )
+    mock_coordinator.data = {sensor._topic: value}
+    assert sensor.is_on is None
+
+
+@pytest.mark.asyncio
+async def test_numeric_comparison_setup(fake_hass, mock_coordinator, device_info):
+    entry = MagicMock()
+    entry.options = {CONF_BINARY_SENSORS: [{
+        CONF_ADDRESS: "DB1,R10", CONF_UID: "comparison", CONF_SCAN_INTERVAL: 2,
+        "comparison_operator": "lt", "comparison_value": -2.5,
+        "invert_state": True, CONF_DEVICE_CLASS: "door",
+    }]}
+    added = MagicMock()
+    with patch("custom_components.s7plc.binary_sensor.get_coordinator_and_device_info",
+               return_value=(mock_coordinator, device_info, "device")):
+        await async_setup_entry(fake_hass, entry, added)
+    sensor = added.call_args.args[0][1]
+    assert mock_coordinator.add_item_calls[0][0] == ("binary_sensor:DB1,R10", "DB1,R10", 2)
+    assert sensor._attr_device_class == BinarySensorDeviceClass.DOOR
+    mock_coordinator.data = {sensor._topic: -3.1}
+    assert sensor.is_on is False
+    mock_coordinator.data = {sensor._topic: -2.5}
+    assert sensor.is_on is True

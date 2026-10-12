@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import math
+import operator
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -15,6 +17,8 @@ from .const import (
     CONF_ADDRESS,
     CONF_AREA,
     CONF_BINARY_SENSORS,
+    CONF_COMPARISON_OPERATOR,
+    CONF_COMPARISON_VALUE,
     CONF_DEVICE_CLASS,
     CONF_INVERT_STATE,
     CONF_SCAN_INTERVAL,
@@ -27,6 +31,15 @@ from .helpers import default_entity_name, get_coordinator_and_device_info
 PARALLEL_UPDATES = 0
 
 _LOGGER = logging.getLogger(__name__)
+
+_COMPARISONS = {
+    "eq": operator.eq,
+    "ne": operator.ne,
+    "gt": operator.gt,
+    "ge": operator.ge,
+    "lt": operator.lt,
+    "le": operator.le,
+}
 
 
 async def async_setup_entry(
@@ -63,6 +76,8 @@ async def async_setup_entry(
                 device_class,
                 invert_state,
                 area,
+                comparison_operator=item.get(CONF_COMPARISON_OPERATOR),
+                comparison_value=item.get(CONF_COMPARISON_VALUE),
             )
         )
 
@@ -74,7 +89,7 @@ async def async_setup_entry(
 
 
 class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
-    """Binary sensor reading a boolean value from the PLC."""
+    """Binary sensor reading a boolean or comparing a numeric PLC value."""
 
     _address_attr_name = "s7_state_address"
 
@@ -89,6 +104,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         device_class: str | None,
         invert_state: bool = False,
         suggested_area_id: str | None = None,
+        *,
+        comparison_operator: str | None = None,
+        comparison_value: float | None = None,
     ):
         super().__init__(
             coordinator,
@@ -100,6 +118,8 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
             suggested_area_id=suggested_area_id,
         )
         self._invert_state = invert_state
+        self._comparison_operator = comparison_operator
+        self._comparison_value = comparison_value
         if device_class:
             try:
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
@@ -111,7 +131,21 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
         val = self._state_data.get(self._topic)
         if val is None:
             return None
-        result = bool(val)
+        if self._comparison_operator is not None:
+            compare = _COMPARISONS.get(self._comparison_operator)
+            if (
+                compare is None
+                or isinstance(val, bool)
+                or not isinstance(val, (int, float))
+                or not math.isfinite(val)
+                or isinstance(self._comparison_value, bool)
+                or not isinstance(self._comparison_value, (int, float))
+                or not math.isfinite(self._comparison_value)
+            ):
+                return None
+            result = compare(val, self._comparison_value)
+        else:
+            result = bool(val)
         return not result if self._invert_state else result
 
 
