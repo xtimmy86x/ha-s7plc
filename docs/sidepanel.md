@@ -195,5 +195,12 @@ connection availability follows the entity's configured availability policy.
 **Invert state** inverts the comparison result. Device class and scan interval
 work as for other binary sensors. Existing sensors keep their direct-state
 behavior; switching back to **Boolean state** removes the comparison settings.
-As with existing binary sensors, each address can be configured once per PLC
-within this entity type. A numeric sensor may read the same address separately.
+Multiple binary sensors may compare the same PLC address using different
+operators, thresholds or inversion settings. A numeric sensor may read that
+address too. Identical comparison rules are rejected as duplicates; direct-state
+binary sensors retain the one-per-address restriction.
+
+Each comparison keeps its own polling interval and cached feedback. When several
+entities are due in the same polling cycle, the PLC tag is read once and the value
+is distributed to all of them. Different intervals may require reads in separate
+cycles. Removing or editing one comparison does not replace another's settings.

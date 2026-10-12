@@ -1026,3 +1026,35 @@ def test_binary_comparison_preserves_duplicate_and_edit_validation():
     assert not errors
     assert "comparison_operator" not in direct
     assert "comparison_value" not in direct
+
+
+@pytest.mark.parametrize("change", [
+    {"comparison_operator": "lt"}, {"comparison_value": 20}, {"invert_state": True},
+])
+def test_multiple_binary_comparison_rules_share_address(change):
+    original = {"address": "DB1,I10", "comparison_operator": "gt", "comparison_value": 15}
+    item, errors = build_entity_item("binary_sensors", {**original, **change},
+                                     options={"binary_sensors": [original]})
+    assert item is not None and not errors
+
+
+@pytest.mark.parametrize("address", [" db1,i10 ", "DB1,INT10"])
+def test_identical_comparisons_rejected_across_address_aliases(address):
+    original = {"address": "DB1,I10", "comparison_operator": "eq", "comparison_value": 15}
+    item, errors = build_entity_item("binary_sensors", {
+        **original, "address": address, "comparison_value": "15,0", "name": "Other name",
+    }, options={"binary_sensors": [original]})
+    assert item is None
+    assert errors == {"base": "duplicate_entry"}
+
+
+def test_binary_comparison_edit_only_skips_edited_entity():
+    low = {"address": "DB1,I10", "comparison_operator": "lt", "comparison_value": 15}
+    high = {**low, "comparison_operator": "gt"}
+    options = {"binary_sensors": [low, high]}
+    assert not build_entity_item("binary_sensors", high, options=options, skip_idx=1)[1]
+    assert build_entity_item("binary_sensors", low, options=options, skip_idx=1)[1] == {"base": "duplicate_entry"}
+    direct = {"address": "DB1,I10"}
+    assert not build_entity_item("binary_sensors", direct, options=options)[1]
+    assert not build_entity_item("binary_sensors", low, options={"binary_sensors": [direct]})[1]
+    assert build_entity_item("binary_sensors", direct, options={"binary_sensors": [direct]})[1] == {"base": "duplicate_entry"}

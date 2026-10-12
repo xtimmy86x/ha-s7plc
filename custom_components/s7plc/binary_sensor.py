@@ -58,8 +58,12 @@ async def async_setup_entry(
             continue
         name = item.get(CONF_NAME) or default_entity_name(address)
         area = item.get(CONF_AREA)
-        topic = f"binary_sensor:{address}"
         unique_id = item[CONF_UID]
+        topic = f"binary_sensor:{address}"
+        if item.get(CONF_COMPARISON_OPERATOR) is not None:
+            # Each comparison owns its polling schedule and cached feedback.
+            # The read executor still deduplicates identical PLC tags per batch.
+            topic = f"{topic}:{unique_id}"
         device_class = item.get(CONF_DEVICE_CLASS)
         invert_state = item.get(CONF_INVERT_STATE, False)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
@@ -125,6 +129,12 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
                 self._attr_device_class = BinarySensorDeviceClass(device_class)
             except ValueError:
                 _LOGGER.warning("Invalid device class %s", device_class)
+
+    @property
+    def _restore_topic_aliases(self) -> dict[str, str]:
+        if self._comparison_operator is not None and self._address and self._topic:
+            return {f"binary_sensor:{self._address}": self._topic}
+        return {}
 
     @property
     def is_on(self) -> bool | None:

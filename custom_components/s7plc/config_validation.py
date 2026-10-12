@@ -709,6 +709,46 @@ class EntityConfigBuilder:
 
         return item, errors
 
+    def _has_duplicate_binary_sensor(
+        self,
+        address: str,
+        comparison_operator: str | None,
+        comparison_value: float | None,
+        invert_state: bool,
+        skip_idx: int | None,
+    ) -> bool:
+        """Allow distinct comparisons of one tag, but reject identical rules."""
+        tag = parse_tag(address)
+        for idx, existing in enumerate(self._options.get(CONF_BINARY_SENSORS, [])):
+            if idx == skip_idx:
+                continue
+            existing_address = self._sanitize_address(existing.get(CONF_ADDRESS))
+            if not existing_address:
+                continue
+            try:
+                if parse_tag(existing_address) != tag:
+                    continue
+            except ValueError:
+                continue
+            existing_operator = existing.get(CONF_COMPARISON_OPERATOR)
+            if existing_operator != comparison_operator:
+                continue
+            # Preserve the existing one-direct-state-sensor-per-address rule.
+            if comparison_operator is None:
+                return True
+            try:
+                existing_value = self._normalize_numeric_value(
+                    existing.get(CONF_COMPARISON_VALUE)
+                )
+            except (ValueError, OverflowError):
+                continue
+            if (
+                existing_value == comparison_value
+                and bool(existing.get(CONF_INVERT_STATE, False)) == invert_state
+            ):
+                return True
+        return False
+
     def _build_binary_sensor_item(
         self,
         user_input: dict[str, Any],
@@ -755,7 +795,13 @@ class EntityConfigBuilder:
             return None, {"base": "invalid_comparison_operator"}
 
         # Check for duplicates
-        if self._has_duplicate(CONF_BINARY_SENSORS, address, skip_idx=skip_idx):
+        if self._has_duplicate_binary_sensor(
+            address,
+            comparison_operator,
+            comparison_value,
+            bool(user_input.get(CONF_INVERT_STATE, False)),
+            skip_idx,
+        ):
             return None, {"base": "duplicate_entry"}
 
         # Build item with optional fields

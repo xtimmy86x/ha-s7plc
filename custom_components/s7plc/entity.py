@@ -96,6 +96,11 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
         }
 
     @property
+    def _restore_topic_aliases(self) -> dict[str, str]:
+        """Map legacy saved channel names to their current entity-owned names."""
+        return {}
+
+    @property
     def _state_data(self) -> dict[str, Any]:
         """Use restored values only for display until real readings arrive.
 
@@ -161,10 +166,11 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
             or data.get("config") != self._restore_config
         ):
             return
+        aliases = self._restore_topic_aliases
         self._restored_values = {
-            topic: value
+            aliases.get(topic, topic): value
             for topic, value in decode_values(data.get("values")).items()
-            if topic in self._restorable_topics
+            if aliases.get(topic, topic) in self._restorable_topics
         }
         if isinstance(local_state := data.get("local_state"), dict):
             self._restore_local_state(local_state)

@@ -183,3 +183,28 @@ async def test_climate_control_waits_for_real_temperature(mock_coordinator):
     mock_coordinator.data = {"climate:current_temp": 25}
     await entity._update_outputs()
     assert mock_coordinator.write_calls == [("write_batched", "DB1,X4.0", False)]
+
+
+@pytest.mark.asyncio
+async def test_comparison_restores_legacy_topic_after_uid_topic_upgrade(mock_coordinator):
+    from custom_components.s7plc.binary_sensor import S7BinarySensor
+
+    item = {"uid": "threshold", "address": "DB1,I10", "comparison_operator": "gt",
+            "comparison_value": 15, "availability_mode": "always"}
+    def make(topic):
+        return S7BinarySensor(mock_coordinator, "Threshold", "threshold", {}, topic,
+                              "DB1,I10", None, comparison_operator="gt", comparison_value=15)
+    old = make("binary_sensor:DB1,I10")
+    await old.async_configure_availability(item)
+    mock_coordinator.data = {old._topic: 16}
+    saved = old.extra_restore_state_data
+    current = make("binary_sensor:DB1,I10:threshold")
+    await current.async_configure_availability(item)
+    current.async_get_last_extra_data = AsyncMock(return_value=saved)
+    mock_coordinator.data = {}
+    await current.async_added_to_hass()
+    assert current.is_on is True
+    assert current._restored_values == {current._topic: 16}
+    assert mock_coordinator.data == {}
+    mock_coordinator.data = {current._topic: 14}
+    assert current.is_on is False
