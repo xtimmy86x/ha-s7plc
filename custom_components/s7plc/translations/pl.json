@@ -326,7 +326,7 @@
         "fields": {
           "address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. I0.0, Q1.3, DB10,X0.1)."
+            "description": "Adres stanu PLC lub pojedynczy adres liczbowy do porównań (np. DB1,I10)."
           },
           "device_class": {
             "label": "Klasa urządzenia",
@@ -334,7 +334,35 @@
           },
           "invert_state": {
             "label": "Odwróć stan",
-            "description": "Odwróć stan (prawda,1/wył,0., fałsz,0/zał,1.), domyślnie wyłączone."
+            "description": "Odwraca stan wynikowy, również wynik porównania liczbowego."
+          },
+          "binary_sensor_mode": {
+            "label": "Zachowanie czujnika binarnego",
+            "description": "Odczytuj stan PLC bezpośrednio lub porównuj wartość liczbową.",
+            "options": {
+              "direct": "Stan logiczny",
+              "comparison": "Porównanie liczbowe"
+            },
+            "descriptions": {
+              "direct": "Odczytuje stan logiczny PLC bezpośrednio: włączony dla prawdy, wyłączony dla fałszu. To dotychczasowy tryb.",
+              "comparison": "Porównuje wartość liczbową PLC z progiem: włączony, gdy warunek jest spełniony, w przeciwnym razie wyłączony."
+            }
+          },
+          "comparison_operator": {
+            "label": "Operator porównania",
+            "description": "Czujnik jest włączony, gdy wartość PLC spełnia ten warunek.",
+            "options": {
+              "eq": "Równe (=)",
+              "ne": "Różne (≠)",
+              "gt": "Większe niż (>)",
+              "ge": "Większe lub równe (≥)",
+              "lt": "Mniejsze niż (<)",
+              "le": "Mniejsze lub równe (≤)"
+            }
+          },
+          "comparison_value": {
+            "label": "Wartość porównania",
+            "description": "Próg liczbowy, również ujemny lub dziesiętny."
           }
         }
       },
@@ -1186,7 +1214,10 @@
       "select_command_type_mismatch": "Adres polecenia musi używać TIME wtedy i tylko wtedy, gdy adres stanu używa TIME.",
       "value_conversions_must_be_mapping": "Konwersje wartości muszą być mapą.",
       "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
-      "invalid_number_mode": "Wybierz auto, box lub slider jako tryb wyświetlania liczby."
+      "invalid_number_mode": "Wybierz auto, box lub slider jako tryb wyświetlania liczby.",
+      "invalid_comparison_operator": "Wybierz prawidłowy operator porównania.",
+      "invalid_comparison_value": "Wprowadź skończoną wartość liczbową porównania.",
+      "comparison_requires_numeric_type": "Porównania wymagają pojedynczego adresu liczbowego (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL lub LREAL)."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

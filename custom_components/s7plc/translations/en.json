@@ -326,7 +326,7 @@
         "fields": {
           "address": {
             "label": "Address",
-            "description": "PLC boolean address (e.g., I0.0, Q1.3, DB10,X0.1)."
+            "description": "PLC state address, or a scalar numeric address for comparisons (e.g. DB1,I10)."
           },
           "device_class": {
             "label": "Device class",
@@ -334,7 +334,35 @@
           },
           "invert_state": {
             "label": "Invert state",
-            "description": "Invert the state: PLC True becomes Off, PLC False becomes On. Useful for NC (Normally Closed) contacts."
+            "description": "Invert the resulting state, including the result of a numeric comparison."
+          },
+          "binary_sensor_mode": {
+            "label": "Binary sensor behavior",
+            "description": "Read the PLC state directly or compare a numeric value.",
+            "options": {
+              "direct": "Boolean state",
+              "comparison": "Numeric comparison"
+            },
+            "descriptions": {
+              "direct": "Reads the PLC boolean state directly: on when true, off when false. This is the traditional mode.",
+              "comparison": "Compares a numeric PLC value with a threshold: on when the condition is met, off otherwise."
+            }
+          },
+          "comparison_operator": {
+            "label": "Comparison",
+            "description": "The sensor is on when the PLC value satisfies this condition.",
+            "options": {
+              "eq": "Equal to (=)",
+              "ne": "Not equal to (≠)",
+              "gt": "Greater than (>)",
+              "ge": "Greater than or equal to (≥)",
+              "lt": "Less than (<)",
+              "le": "Less than or equal to (≤)"
+            }
+          },
+          "comparison_value": {
+            "label": "Comparison value",
+            "description": "Numeric threshold, including negative values and decimals."
           }
         }
       },
@@ -1186,7 +1214,10 @@
       "select_command_type_mismatch": "The command address must use TIME if and only if the state address uses TIME.",
       "value_conversions_must_be_mapping": "Value conversions must be a mapping.",
       "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
-      "invalid_number_mode": "Choose auto, box or slider as the number display mode."
+      "invalid_number_mode": "Choose auto, box or slider as the number display mode.",
+      "invalid_comparison_operator": "Choose a valid comparison operator.",
+      "invalid_comparison_value": "Enter a finite numeric comparison value.",
+      "comparison_requires_numeric_type": "Comparisons require a scalar numeric address (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL or LREAL)."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

@@ -13,7 +13,7 @@ PLATFORMS = [
 ]
 
 VERSION = "7.5.1"
-FRONTEND_BUILD = "20261003.2"
+FRONTEND_BUILD = "20261012.2"
 
 PANEL_URL = "s7plc-config"
 
@@ -48,6 +48,9 @@ PYS7_CONNECTION_TYPE_S7BASIC = "s7basic"
 
 CONF_SENSORS = "sensors"
 CONF_BINARY_SENSORS = "binary_sensors"
+CONF_COMPARISON_OPERATOR = "comparison_operator"
+CONF_COMPARISON_VALUE = "comparison_value"
+COMPARISON_OPERATORS = ("eq", "ne", "gt", "ge", "lt", "le")
 CONF_SWITCHES = "switches"
 CONF_COVERS = "covers"
 CONF_LIGHTS = "lights"

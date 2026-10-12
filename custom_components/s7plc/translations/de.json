@@ -326,7 +326,7 @@
         "fields": {
           "address": {
             "label": "Adresse",
-            "description": "SPS-Bool-Adresse (z.B. I0.0, Q1.3, DB10,X0.1)."
+            "description": "PLC-Zustandsadresse oder einzelne numerische Adresse für Vergleiche (z. B. DB1,I10)."
           },
           "device_class": {
             "label": "Geräteklasse",
@@ -334,7 +334,35 @@
           },
           "invert_state": {
             "label": "Zustand invertieren",
-            "description": "Zustand invertieren: SPS True wird Aus, SPS False wird Ein. Nützlich für NC-Kontakte (Normally Closed)."
+            "description": "Ergebniszustand umkehren, auch bei einem numerischen Vergleich."
+          },
+          "binary_sensor_mode": {
+            "label": "Verhalten des Binärsensors",
+            "description": "PLC-Zustand direkt lesen oder einen Zahlenwert vergleichen.",
+            "options": {
+              "direct": "Boolescher Zustand",
+              "comparison": "Numerischer Vergleich"
+            },
+            "descriptions": {
+              "direct": "Liest den booleschen PLC-Zustand direkt: ein bei wahr, aus bei falsch. Dies ist der bisherige Modus.",
+              "comparison": "Vergleicht einen numerischen PLC-Wert mit einem Schwellwert: ein, wenn die Bedingung erfüllt ist, sonst aus."
+            }
+          },
+          "comparison_operator": {
+            "label": "Vergleichsoperator",
+            "description": "Der Sensor ist eingeschaltet, wenn der PLC-Wert diese Bedingung erfüllt.",
+            "options": {
+              "eq": "Gleich (=)",
+              "ne": "Ungleich (≠)",
+              "gt": "Größer als (>)",
+              "ge": "Größer oder gleich (≥)",
+              "lt": "Kleiner als (<)",
+              "le": "Kleiner oder gleich (≤)"
+            }
+          },
+          "comparison_value": {
+            "label": "Vergleichswert",
+            "description": "Numerischer Schwellwert, auch negativ oder mit Dezimalstellen."
           }
         }
       },
@@ -1186,7 +1214,10 @@
       "select_command_type_mismatch": "Die Befehlsadresse muss genau dann TIME verwenden, wenn die Statusadresse TIME verwendet.",
       "value_conversions_must_be_mapping": "Wertkonvertierungen müssen eine Zuordnung sein.",
       "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
-      "invalid_number_mode": "Wählen Sie auto, box oder slider als Anzeigemodus der Zahl."
+      "invalid_number_mode": "Wählen Sie auto, box oder slider als Anzeigemodus der Zahl.",
+      "invalid_comparison_operator": "Wählen Sie einen gültigen Vergleichsoperator.",
+      "invalid_comparison_value": "Geben Sie einen endlichen numerischen Vergleichswert ein.",
+      "comparison_requires_numeric_type": "Vergleiche benötigen eine einzelne numerische Adresse (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL oder LREAL)."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

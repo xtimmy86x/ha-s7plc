@@ -35,7 +35,11 @@ describe("S7 address helpers", () => {
     expect(PARSE_S7_ADDRESS("DB1,").error).toBe("invalid");
     expect(PARSE_S7_ADDRESS("").empty).toBe(true);
     expect(SERIALIZE_S7_ADDRESS({ empty: true })).toBe("");
-    expect(ADDRESS_TYPES_FOR_FIELD("binary_sensors", "address")).toEqual(["BIT"]);
+    expect(ADDRESS_TYPES_FOR_FIELD("binary_sensors", "address")).toEqual(
+      expect.arrayContaining(["BIT", "INT", "REAL", "LREAL"]),
+    );
+    expect(ADDRESS_TYPES_FOR_FIELD("binary_sensors", "address")).not.toContain("TIME");
+    expect(ADDRESS_TYPES_FOR_FIELD("binary_sensors", "address")).not.toContain("STRING");
     expect(ADDRESS_TYPES_FOR_FIELD("texts", "address")).toEqual(["STRING", "WSTRING"]);
     expect(ADDRESS_TYPES_FOR_FIELD("selects", "address")).toEqual([
       "BYTE", "USINT", "SINT", "WORD", "INT", "DWORD", "DINT", "TIME",

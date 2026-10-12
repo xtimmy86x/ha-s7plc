@@ -326,7 +326,7 @@
         "fields": {
           "address": {
             "label": "Indirizzo",
-            "description": "Indirizzo booleano PLC (es. I0.0, Q1.3, DB10,X0.1)."
+            "description": "Indirizzo dello stato PLC, oppure un indirizzo numerico singolo per i confronti (es. DB1,I10)."
           },
           "device_class": {
             "label": "Classe dispositivo",
@@ -334,7 +334,35 @@
           },
           "invert_state": {
             "label": "Inverti stato",
-            "description": "Inverti lo stato: PLC True diventa Off, PLC False diventa On. Utile per contatti NC (Normalmente Chiusi)."
+            "description": "Inverte lo stato risultante, anche quando deriva da un confronto numerico."
+          },
+          "binary_sensor_mode": {
+            "label": "Comportamento del sensore binario",
+            "description": "Leggi direttamente lo stato del PLC oppure confronta un valore numerico.",
+            "options": {
+              "direct": "Stato booleano",
+              "comparison": "Comparazione numerica"
+            },
+            "descriptions": {
+              "direct": "Legge direttamente lo stato booleano del PLC: on quando è vero, off quando è falso. È la modalità tradizionale.",
+              "comparison": "Confronta un valore numerico del PLC con una soglia: on quando la condizione è soddisfatta, off altrimenti."
+            }
+          },
+          "comparison_operator": {
+            "label": "Operatore di confronto",
+            "description": "Il sensore è on quando il valore del PLC soddisfa questa condizione.",
+            "options": {
+              "eq": "Uguale a (=)",
+              "ne": "Diverso da (≠)",
+              "gt": "Maggiore di (>)",
+              "ge": "Maggiore o uguale a (≥)",
+              "lt": "Minore di (<)",
+              "le": "Minore o uguale a (≤)"
+            }
+          },
+          "comparison_value": {
+            "label": "Valore di confronto",
+            "description": "Soglia numerica, anche negativa o decimale."
           }
         }
       },
@@ -1186,7 +1214,10 @@
       "select_command_type_mismatch": "L'indirizzo di comando deve usare TIME se e solo se l'indirizzo di stato usa TIME.",
       "value_conversions_must_be_mapping": "Le conversioni dei valori devono essere una mappa.",
       "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
-      "invalid_number_mode": "Scegli auto, box o slider come modalità di visualizzazione del numero."
+      "invalid_number_mode": "Scegli auto, box o slider come modalità di visualizzazione del numero.",
+      "invalid_comparison_operator": "Scegli un operatore di confronto valido.",
+      "invalid_comparison_value": "Inserisci un valore di confronto numerico finito.",
+      "comparison_requires_numeric_type": "I confronti richiedono un indirizzo numerico singolo (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL o LREAL)."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

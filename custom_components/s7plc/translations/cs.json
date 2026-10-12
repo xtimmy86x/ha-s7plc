@@ -326,7 +326,7 @@
         "fields": {
           "address": {
             "label": "Adresa",
-            "description": "Booleovská adresa v PLC (např. I0.0, Q1.3, DB10,X0.1)."
+            "description": "Adresa stavu PLC nebo jednotlivá číselná adresa pro porovnání (např. DB1,I10)."
           },
           "device_class": {
             "label": "Třída zařízení",
@@ -334,7 +334,35 @@
           },
           "invert_state": {
             "label": "Invertovat stav",
-            "description": "Invertovat stav: PLC True se stane Off, PLC False se stane On. Užitečné pro NC (normálně uzavřené) kontakty."
+            "description": "Obrátí výsledný stav, včetně výsledku číselného porovnání."
+          },
+          "binary_sensor_mode": {
+            "label": "Chování binárního senzoru",
+            "description": "Čtěte stav PLC přímo nebo porovnávejte číselnou hodnotu.",
+            "options": {
+              "direct": "Logický stav",
+              "comparison": "Číselné porovnání"
+            },
+            "descriptions": {
+              "direct": "Čte logický stav PLC přímo: zapnuto při pravdě, vypnuto při nepravdě. Toto je dosavadní režim.",
+              "comparison": "Porovnává číselnou hodnotu PLC s prahem: zapnuto při splnění podmínky, jinak vypnuto."
+            }
+          },
+          "comparison_operator": {
+            "label": "Operátor porovnání",
+            "description": "Senzor je zapnutý, když hodnota PLC splňuje tuto podmínku.",
+            "options": {
+              "eq": "Rovno (=)",
+              "ne": "Nerovno (≠)",
+              "gt": "Větší než (>)",
+              "ge": "Větší nebo rovno (≥)",
+              "lt": "Menší než (<)",
+              "le": "Menší nebo rovno (≤)"
+            }
+          },
+          "comparison_value": {
+            "label": "Porovnávaná hodnota",
+            "description": "Číselný práh, také záporný nebo desetinný."
           }
         }
       },
@@ -1186,7 +1214,10 @@
       "select_command_type_mismatch": "Adresa příkazu musí používat TIME právě tehdy, když adresa stavu používá TIME.",
       "value_conversions_must_be_mapping": "Převody hodnot musí být mapování.",
       "scale_requires_both_raw_endpoints": "Both legacy raw scale endpoints are required.",
-      "invalid_number_mode": "Vyberte auto, box nebo slider jako režim zobrazení čísla."
+      "invalid_number_mode": "Vyberte auto, box nebo slider jako režim zobrazení čísla.",
+      "invalid_comparison_operator": "Vyberte platný operátor porovnání.",
+      "invalid_comparison_value": "Zadejte konečnou číselnou hodnotu porovnání.",
+      "comparison_requires_numeric_type": "Porovnání vyžaduje jednotlivou číselnou adresu (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL nebo LREAL)."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
