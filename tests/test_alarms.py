@@ -61,7 +61,8 @@ def test_example_is_808_bits_and_one_101_byte_tag():
         ("DB1,X0.6", "DB1,X0.5"),
         ("DB1,X0.0", "DB2,X0.1"),
         ("DB1,B0", "DB1,X1.1"),
-        ("M0.0", "M0.1"),
+        ("M0.1", "M0.0"),
+        ("MB0", "M0.1"),
         ("DB1,X0.0", "DB1,X1024.0"),
         ("bad", "DB1,X1.1"),
         ("DB1,X0.8", "DB1,X1.1"),
@@ -282,3 +283,46 @@ def test_blocks_fit_real_pys7_minimum_pdu(optimized):
     assert requests
     assert sum(tag.length for request in requests for tag in request) == 1024
     assert all(sum(tag.size() for tag in request) <= 212 for request in requests)
+
+
+def test_alarm_range_supports_merker_area():
+    region = AlarmRange.parse("M8.0", "M9.7")
+    assert (region.first, region.last) == (64, 79)
+    assert region.address(64) == "M8.0"
+    assert region.address(79) == "M9.7"
+    (topic, tag), = region.blocks("flags")
+    assert topic == "alarm_group:flags:8"
+    assert (tag.memory_area.name, tag.start, tag.length) == ("MERKER", 8, 2)
+
+
+def test_alarm_range_rejects_mixed_areas():
+    for start, end in (("M8.0", "DB1,X9.7"), ("DB1,X0.0", "M9.7")):
+        with pytest.raises(ValueError, match="alarm_range_invalid"):
+            AlarmRange.parse(start, end)
+
+
+def test_merker_alarm_group_decodes_bits_and_rejects_foreign_rows():
+    item = normalize_alarm_group(
+        {
+            "uid": "flags",
+            "start_address": "m8.0",
+            "end_address": "M9.7",
+            "alarms": [{"address": "M8.1", "description": "Valve low"}],
+        }
+    )
+    assert item["start_address"] == "M8.0"
+    assert item["end_address"] == "M9.7"
+    topic = "alarm_group:flags:8"
+    assert active_alarms(item, {topic: [0b00000010, 0b10000000]}) == [
+        {"address": "M8.1", "description": "Valve low"},
+        {"address": "M9.7", "description": "M9.7"},
+    ]
+    with pytest.raises(ValueError, match="alarm_mapping_invalid"):
+        normalize_alarm_group(
+            {
+                "uid": "flags",
+                "start_address": "M8.0",
+                "end_address": "M9.7",
+                "alarms": [{"address": "DB1,X8.1"}],
+            }
+        )

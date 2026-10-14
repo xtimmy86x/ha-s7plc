@@ -454,6 +454,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def add_alarm_group(self, item: dict) -> None:
         """Register all blocks atomically with one polling deadline per group."""
         from .alarms import AlarmRange
+        from .plc.address import MemoryArea
 
         blocks = AlarmRange.parse(item["start_address"], item["end_address"]).blocks(
             item["uid"]
@@ -462,7 +463,11 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             due = time.monotonic()
             interval = self._normalize_scan_interval(item.get("scan_interval"))
             for topic, tag in blocks:
-                self._items[topic] = f"DB{tag.db_number},B{tag.start}"
+                self._items[topic] = (
+                    f"MB{tag.start}"
+                    if tag.memory_area == MemoryArea.MERKER
+                    else f"DB{tag.db_number},B{tag.start}"
+                )
                 self._read_tags[topic] = tag
                 self._item_scan_intervals[topic] = interval
                 self._item_next_read[topic] = due
