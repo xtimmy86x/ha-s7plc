@@ -24,6 +24,12 @@ If the item does not appear after installing or upgrading the integration,
 restart Home Assistant and confirm that the S7 PLC integration loaded without
 errors.
 
+With no configured entities, the panel displays an informational note about
+[on-demand connections](configuration.md#on-demand-connections). A newly added
+PLC can show **Disconnected** even after a successful setup test: that test
+connection is temporary, and the operational connection opens when a read,
+write, or explicit health check is requested.
+
 ## Page Overview
 
 Entity-type tabs show the number of configured sensors, binary sensors,

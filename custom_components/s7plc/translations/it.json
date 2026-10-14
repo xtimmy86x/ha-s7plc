@@ -225,6 +225,7 @@
       "entities": "entità",
       "connected": "Connesso",
       "disconnected": "Disconnesso",
+      "connection_on_demand": "Nessuna entità configurata. La connessione viene aperta quando serve leggere o scrivere dati; il test iniziale è temporaneo.",
       "unknown": "Sconosciuto",
       "reload_help": "Le modifiche vengono applicate ricaricando automaticamente l'integrazione.",
       "empty": "Nessuna entità",
