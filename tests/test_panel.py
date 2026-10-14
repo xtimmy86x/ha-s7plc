@@ -2129,3 +2129,21 @@ def test_binary_comparison_backup_round_trip(operator):
         _configuration_yaml(options, "entry-1"), {}, "entry-1"
     )
     assert restored["binary_sensors"] == options["binary_sensors"]
+
+
+def test_multiple_comparisons_backup_and_import():
+    from custom_components.s7plc.panel import ConfigurationValidationError
+
+    entities = [
+        {"uid": "low", "address": "DB1,I10", "comparison_operator": "lt", "comparison_value": 15},
+        {"uid": "high", "address": "DB1,I10", "comparison_operator": "gt", "comparison_value": 15},
+    ]
+    options = {"binary_sensors": entities, "sensors": [{"uid": "numeric", "address": "DB1,I10"}]}
+    backup = _configuration_yaml(options, "entry-1")
+    restored = _configuration_from_yaml(backup, {}, "entry-1")
+    assert restored["binary_sensors"] == entities
+    imported = _configuration_from_yaml(backup, {}, "entry-2")
+    assert len({item["uid"] for item in imported["binary_sensors"]}) == 2
+    assert [item["comparison_operator"] for item in imported["binary_sensors"]] == ["lt", "gt"]
+    with pytest.raises(ConfigurationValidationError, match="duplicate_entry"):
+        _configuration_from_yaml(_configuration_yaml({"binary_sensors": [entities[0], entities[0]]}), {})

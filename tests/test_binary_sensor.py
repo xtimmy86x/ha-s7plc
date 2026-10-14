@@ -509,7 +509,7 @@ async def test_numeric_comparison_setup(fake_hass, mock_coordinator, device_info
                return_value=(mock_coordinator, device_info, "device")):
         await async_setup_entry(fake_hass, entry, added)
     sensor = added.call_args.args[0][1]
-    assert mock_coordinator.add_item_calls[0][0] == ("binary_sensor:DB1,R10", "DB1,R10", 2)
+    assert mock_coordinator.add_item_calls[0][0] == ("binary_sensor:DB1,R10:comparison", "DB1,R10", 2)
     assert sensor._attr_device_class == BinarySensorDeviceClass.DOOR
     mock_coordinator.data = {sensor._topic: -3.1}
     assert sensor.is_on is False

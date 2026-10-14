@@ -262,3 +262,64 @@ async def test_same_address_keeps_independent_scan_intervals_and_revisions(
     assert coord.get_topic_read_revision("slow") == 2
     assert all(len(tags) == 1 for tags, _ in client.calls)
     assert len(client.calls) == 3
+
+
+@pytest.mark.parametrize("optimize", [True, False])
+async def test_binary_comparisons_share_read_and_keep_independent_schedules(
+    make_reader, clock, monkeypatch, optimize
+):
+    from unittest.mock import AsyncMock, Mock
+    from custom_components.s7plc import binary_sensor
+
+    coord, client = make_reader([[16], [12], [20]], optimize_read=optimize)
+    monkeypatch.setattr(coord, "async_request_refresh", AsyncMock())
+    monkeypatch.setattr(binary_sensor, "get_coordinator_and_device_info",
+                        lambda entry: (coord, {}, "device"))
+    entry = SimpleNamespace(options={"binary_sensors": [
+        {"uid": "high", "address": "DB1,I10", "comparison_operator": "gt",
+         "comparison_value": 15, "scan_interval": 1},
+        {"uid": "low", "address": "DB1,I10", "comparison_operator": "lt",
+         "comparison_value": 15, "scan_interval": 2},
+    ]})
+    added = Mock()
+    await binary_sensor.async_setup_entry(None, entry, added)
+    _, high, low = added.call_args.args[0]
+    await coord.add_item("sensor:DB1,I10", "DB1,I10", 1)
+    assert high._topic != low._topic
+    assert coord.get_scan_interval(high._topic) == 1
+    assert coord.get_scan_interval(low._topic) == 2
+    coord.data = await coord._async_update_data()
+    assert high.is_on is True and low.is_on is False
+    assert coord.data["sensor:DB1,I10"] == 16
+    assert len(client.calls) == 1 and len(client.calls[0][0]) == 1
+
+    clock.advance(1)
+    coord.data = await coord._async_update_data()
+    assert high.is_on is False and low.is_on is False  # Slow comparison still has 16.
+    assert coord.data["sensor:DB1,I10"] == 12
+    assert coord.get_topic_read_revision(high._topic) == 2
+    assert coord.get_topic_read_revision(low._topic) == 1
+
+    clock.advance(1)
+    coord.data = await coord._async_update_data()
+    assert high.is_on is True and low.is_on is False
+    assert coord.get_topic_read_revision(low._topic) == 2
+    assert all(len(tags) == 1 for tags, _ in client.calls)
+
+    # A configuration reload after deleting the first comparison keeps the
+    # surviving UID/topic and its polling interval, independent of list index.
+    await coord.async_shutdown()
+    remaining = entry.options["binary_sensors"][1]
+    fresh_coord, fresh_client = make_reader([[10]])
+    monkeypatch.setattr(fresh_coord, "async_request_refresh", AsyncMock())
+    monkeypatch.setattr(binary_sensor, "get_coordinator_and_device_info",
+                        lambda entry: (fresh_coord, {}, "device"))
+    entry.options["binary_sensors"] = [remaining]
+    await binary_sensor.async_setup_entry(None, entry, added)
+    survivor = added.call_args.args[0][1]
+    assert survivor._topic == low._topic
+    assert survivor._attr_unique_id == low._attr_unique_id
+    assert fresh_coord.get_scan_interval(survivor._topic) == 2
+    fresh_coord.data = await fresh_coord._async_update_data()
+    assert survivor.is_on is True
+    assert len(fresh_client.calls[0][0]) == 1
