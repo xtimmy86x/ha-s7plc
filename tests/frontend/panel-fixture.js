@@ -21,7 +21,6 @@ const translations = getTranslations();
 export const entityTypes = [
   "sensors",
   "binary_sensors",
-  "alarm_groups",
   "switches",
   "covers",
   "lights",
@@ -31,6 +30,7 @@ export const entityTypes = [
   "texts",
   "climates",
   "entity_sync",
+  "alarm_groups",
 ];
 
 export function installPanel() {

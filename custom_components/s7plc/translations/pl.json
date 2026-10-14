@@ -1433,7 +1433,8 @@
       "invalid_import": "Invalid import: check columns, unique addresses and enabled (1/0 or true/false).",
       "unavailable": "Data unavailable",
       "clear": "No active alarms",
-      "active": "Active alarms"
+      "active": "Active alarms",
+      "download_example": "Pobierz przykładowy CSV"
     }
   },
   "selector": {

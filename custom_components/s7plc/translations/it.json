@@ -1433,7 +1433,8 @@
       "invalid_import": "Importazione non valida: controlla colonne, indirizzi univoci e valore enabled (1/0 o true/false).",
       "unavailable": "Dati non disponibili",
       "clear": "Nessun allarme attivo",
-      "active": "Allarmi attivi"
+      "active": "Allarmi attivi",
+      "download_example": "Scarica CSV di esempio"
     }
   },
   "selector": {

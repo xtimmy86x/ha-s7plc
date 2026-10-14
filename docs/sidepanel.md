@@ -222,6 +222,10 @@ only for descriptions you want to customize or bits you want to exclude.
 Uncheck **Included** for reserved/unused bits. Bits without a description use
 their PLC address. Excluded bits affect neither the count nor the presence sensor.
 
+Open **Import CSV or paste from Excel** and choose **Download example CSV**
+for a ready-to-edit file with two included alarms and one excluded bit. The
+example uses DB1 bits 0.0–0.2; adjust its addresses to your configured range.
+
 Import a CSV file or paste a table copied from Excel. Columns are `address`,
 `description`, and optional `enabled` (`1`/`true` to include, `0`/`false` to exclude).
 The English column header is optional. Semicolon CSV and tab-separated text allow
