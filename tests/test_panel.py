@@ -1209,6 +1209,7 @@ def test_panel_translations_use_supported_config_panel_namespace() -> None:
     assert "const TRANSLATIONS" not in source
     assert "const BATCH_TRANSLATIONS" not in source
     entity_types = {
+        "alarm_groups",
         "sensors",
         "binary_sensors",
         "switches",

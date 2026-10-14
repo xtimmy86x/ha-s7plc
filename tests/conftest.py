@@ -769,6 +769,7 @@ sys.modules["homeassistant.components.diagnostics"] = diagnostics
 components.diagnostics = diagnostics
 
 class BinarySensorDeviceClass(Enum):  # pragma: no cover - simple stub
+    PROBLEM = "problem"
     DOOR = "door"
     CONNECTIVITY = "connectivity"
 

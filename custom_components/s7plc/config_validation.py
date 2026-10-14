@@ -11,6 +11,7 @@ from .const import (
     AVAILABILITY_MODES,
     COMPARISON_OPERATORS,
     CONF_ADDRESS,
+    CONF_ALARM_GROUPS,
     CONF_AREA,
     CONF_AVAILABILITY_ADDRESS,
     CONF_AVAILABILITY_MODE,
@@ -200,6 +201,8 @@ _LEGACY_CONVERSION_FIELDS = frozenset(
 )
 
 ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
+    CONF_ALARM_GROUPS: (_COMMON_FIELDS - {CONF_VALUE_CONVERSIONS})
+    | {"start_address", "end_address", "active_value", "alarms"},
     CONF_SENSORS: _COMMON_FIELDS
     | _NUMERIC_ENTITY_FIELDS
     | _LEGACY_CONVERSION_FIELDS
@@ -2144,7 +2147,18 @@ def build_entity_item(
                 pass
     builder = EntityConfigBuilder(options)
 
-    if entity_type == CONF_COVERS:
+    if entity_type == CONF_ALARM_GROUPS:
+        from .alarms import normalize_alarm_group
+
+        def method(value, *, skip_idx=None):
+            try:
+                item = normalize_alarm_group(value)
+            except ValueError as err:
+                return None, {"base": str(err)}
+            builder._apply_scan_interval(item, value.get(CONF_SCAN_INTERVAL))
+            return item, {}
+
+    elif entity_type == CONF_COVERS:
         method = (
             builder._build_cover_position_item
             if entity.get(CONF_POSITION_STATE_ADDRESS)

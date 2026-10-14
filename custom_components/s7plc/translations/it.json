@@ -89,7 +89,10 @@
     },
     "error": {
       "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete.",
-      "incompatible_family_connection": "La famiglia PLC selezionata non è compatibile con questo metodo di connessione."
+      "incompatible_family_connection": "La famiglia PLC selezionata non è compatibile con questo metodo di connessione.",
+      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB, massimo 8192 bit.",
+      "alarm_active_value_invalid": "Il valore attivo deve essere 0 o 1.",
+      "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano."
     },
     "abort": {
       "already_configured": "Questo PLC è già configurato."
@@ -977,6 +980,33 @@
             "description": "Inverte gli stati binari prima di scriverli in un indirizzo BIT del PLC."
           }
         }
+      },
+      "alarm_groups": {
+        "label": "Gruppi allarmi",
+        "fields": {
+          "start_address": {
+            "label": "Primo bit",
+            "description": "Indirizzo BIT nel DB, incluso nel range.",
+            "placeholder": "DB1,X0.0"
+          },
+          "end_address": {
+            "label": "Ultimo bit",
+            "description": "Stesso DB del primo bit. Massimo 8192 bit per gruppo.",
+            "placeholder": "DB1,X100.7"
+          },
+          "active_value": {
+            "label": "Valore di allarme attivo",
+            "options": {
+              "1": "1 — attivo",
+              "0": "0 — attivo"
+            },
+            "description": "Scegli se un bit a 1 o a 0 indica un allarme."
+          },
+          "alarms": {
+            "label": "Descrizioni ed esclusioni",
+            "description": "I bit senza una riga sono inclusi e mostrati con il loro indirizzo. Disabilita una riga per escludere il bit."
+          }
+        }
       }
     },
     "control_behavior": {
@@ -1217,7 +1247,10 @@
       "invalid_number_mode": "Scegli auto, box o slider come modalità di visualizzazione del numero.",
       "invalid_comparison_operator": "Scegli un operatore di confronto valido.",
       "invalid_comparison_value": "Inserisci un valore di confronto numerico finito.",
-      "comparison_requires_numeric_type": "I confronti richiedono un indirizzo numerico singolo (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL o LREAL)."
+      "comparison_requires_numeric_type": "I confronti richiedono un indirizzo numerico singolo (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL o LREAL).",
+      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB, massimo 8192 bit.",
+      "alarm_active_value_invalid": "Il valore attivo deve essere 0 o 1.",
+      "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
@@ -1382,6 +1415,23 @@
     "entity_card": {
       "hidden_property": "1 altra proprietà",
       "hidden_properties": "{count} altre proprietà"
+    },
+    "alarms": {
+      "mapping": "Descrizioni ed esclusioni",
+      "help": "I bit senza una riga sono inclusi e mostrati con il loro indirizzo. Disabilita una riga per escludere il bit.",
+      "add": "Aggiungi descrizione",
+      "import": "Importa CSV o incolla da Excel",
+      "format": "Colonne: address;description;enabled (1 o 0, opzionale). Intestazione opzionale. Separatore punto e virgola, tabulazione o virgola (con indirizzi tra virgolette). Le righe importate aggiornano quelle con lo stesso indirizzo.",
+      "paste": "Incolla tabella",
+      "apply": "Importa righe",
+      "address": "Indirizzo",
+      "description": "Descrizione",
+      "enabled": "Incluso",
+      "invalid_import": "Importazione non valida: controlla colonne, indirizzi univoci e valore enabled (1/0 o true/false).",
+      "unavailable": "Dati non disponibili",
+      "clear": "Nessun allarme attivo",
+      "active": "Allarmi attivi",
+      "download_example": "Scarica CSV di esempio"
     }
   },
   "selector": {

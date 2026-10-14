@@ -89,7 +89,10 @@
     },
     "error": {
       "cannot_connect": "Nie można połączyć się z PLC. Sprawdź host, rack, slot, port i sieć.",
-      "incompatible_family_connection": "Wybrana rodzina PLC nie jest zgodna z tą metodą połączenia."
+      "incompatible_family_connection": "Wybrana rodzina PLC nie jest zgodna z tą metodą połączenia.",
+      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_active_value_invalid": "Active value must be 0 or 1.",
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
     "abort": {
       "already_configured": "Ten PLC jest już skonfigurowany."
@@ -977,6 +980,33 @@
             "description": "Odwróć stan (prawda,1/wył,0., fałsz,0/zał,1.), domyślnie wyłączone."
           }
         }
+      },
+      "alarm_groups": {
+        "label": "Alarm groups",
+        "fields": {
+          "start_address": {
+            "label": "First bit",
+            "description": "DB bit address, included in the range.",
+            "placeholder": "DB1,X0.0"
+          },
+          "end_address": {
+            "label": "Last bit",
+            "description": "Same DB as the first bit. Maximum 8192 bits per group.",
+            "placeholder": "DB1,X100.7"
+          },
+          "active_value": {
+            "label": "Active alarm value",
+            "options": {
+              "1": "1 — active",
+              "0": "0 — active"
+            },
+            "description": "Choose whether a bit set to 1 or 0 signals an alarm."
+          },
+          "alarms": {
+            "label": "Descriptions and exclusions",
+            "description": "Bits without a row are included and displayed by address. Disable a row to exclude its bit."
+          }
+        }
       }
     },
     "control_behavior": {
@@ -1217,7 +1247,10 @@
       "invalid_number_mode": "Wybierz auto, box lub slider jako tryb wyświetlania liczby.",
       "invalid_comparison_operator": "Wybierz prawidłowy operator porównania.",
       "invalid_comparison_value": "Wprowadź skończoną wartość liczbową porównania.",
-      "comparison_requires_numeric_type": "Porównania wymagają pojedynczego adresu liczbowego (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL lub LREAL)."
+      "comparison_requires_numeric_type": "Porównania wymagają pojedynczego adresu liczbowego (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL lub LREAL).",
+      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_active_value_invalid": "Active value must be 0 or 1.",
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",
@@ -1382,6 +1415,23 @@
     "entity_card": {
       "hidden_property": "1 dodatkowa właściwość",
       "hidden_properties": "{count} dodatkowe właściwości"
+    },
+    "alarms": {
+      "mapping": "Descriptions and exclusions",
+      "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
+      "add": "Add description",
+      "import": "Import CSV or paste from Excel",
+      "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
+      "paste": "Paste table",
+      "apply": "Import rows",
+      "address": "Address",
+      "description": "Description",
+      "enabled": "Included",
+      "invalid_import": "Invalid import: check columns, unique addresses and enabled (1/0 or true/false).",
+      "unavailable": "Data unavailable",
+      "clear": "No active alarms",
+      "active": "Active alarms",
+      "download_example": "Pobierz przykładowy CSV"
     }
   },
   "selector": {

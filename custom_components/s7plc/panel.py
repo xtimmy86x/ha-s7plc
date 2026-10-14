@@ -219,6 +219,7 @@ def _configuration_yaml(
 # Option key → Home Assistant entity domain (entity_sync entities are sensors).
 _OPTION_DOMAINS = {
     "sensors": "sensor",
+    "alarm_groups": "sensor",
     "binary_sensors": "binary_sensor",
     "switches": "switch",
     "covers": "cover",
@@ -245,9 +246,10 @@ def _entity_ids_payload(hass: Any, entry: Any) -> dict[str, list[str | None]]:
     from .helpers import _iter_entity_unique_ids
 
     registry = er.async_get(hass)
-    uid_by_item = {
-        id(item): uid for uid, item in _iter_entity_unique_ids(entry.options)
-    }
+    uid_by_item = {}
+    for uid, item in _iter_entity_unique_ids(entry.options):
+        # A group has two entities; the first UID is its primary count sensor.
+        uid_by_item.setdefault(id(item), uid)
     payload: dict[str, list[str | None]] = {}
     for key in OPTION_KEYS:
         domain = _OPTION_DOMAINS.get(key, "sensor")

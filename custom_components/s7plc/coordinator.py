@@ -116,6 +116,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Cache for parsed tags (shared by reads and writes)
         self._tag_cache: dict[str, S7Tag] = {}
+        self._read_tags: dict[str, S7Tag] = {}
 
         # Scan interval bookkeeping
         self._item_scan_intervals: dict[str, float] = {}
@@ -437,6 +438,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         async with self._async_lock:
             self._items[topic] = address
+            self._read_tags.pop(topic, None)
             self._item_scan_intervals[topic] = self._normalize_scan_interval(
                 scan_interval
             )
@@ -446,6 +448,25 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._item_real_precisions[topic] = real_precision
             self._item_next_read[topic] = time.monotonic()
             self._topic_read_revisions.pop(topic, None)
+            self._invalidate_cache()
+            self._update_min_interval_locked()
+
+    async def add_alarm_group(self, item: dict) -> None:
+        """Register all blocks atomically with one polling deadline per group."""
+        from .alarms import AlarmRange
+
+        blocks = AlarmRange.parse(item["start_address"], item["end_address"]).blocks(
+            item["uid"]
+        )
+        async with self._async_lock:
+            due = time.monotonic()
+            interval = self._normalize_scan_interval(item.get("scan_interval"))
+            for topic, tag in blocks:
+                self._items[topic] = f"DB{tag.db_number},B{tag.start}"
+                self._read_tags[topic] = tag
+                self._item_scan_intervals[topic] = interval
+                self._item_next_read[topic] = due
+                self._topic_read_revisions.pop(topic, None)
             self._invalidate_cache()
             self._update_min_interval_locked()
 
@@ -472,6 +493,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._items,
             precisions=self._item_real_precisions,
             tag_cache=self._tag_cache,
+            read_tags=self._read_tags,
         )
         self._plans_batch = {plan.topic: plan for plan in plans_batch}
         self._plans_str = {plan.topic: plan for plan in plans_str}

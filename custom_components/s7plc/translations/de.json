@@ -89,7 +89,10 @@
     },
     "error": {
       "cannot_connect": "Verbindung zur SPS nicht möglich. Überprüfen Sie Host, Rack, Slot, Port und Netzwerk.",
-      "incompatible_family_connection": "Die ausgewählte SPS-Familie ist mit dieser Verbindungsmethode nicht kompatibel."
+      "incompatible_family_connection": "Die ausgewählte SPS-Familie ist mit dieser Verbindungsmethode nicht kompatibel.",
+      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_active_value_invalid": "Active value must be 0 or 1.",
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
     "abort": {
       "already_configured": "Diese SPS ist bereits konfiguriert."
@@ -977,6 +980,33 @@
             "description": "Invertiert binäre Zustände vor dem Schreiben an eine SPS-BIT-Adresse."
           }
         }
+      },
+      "alarm_groups": {
+        "label": "Alarm groups",
+        "fields": {
+          "start_address": {
+            "label": "First bit",
+            "description": "DB bit address, included in the range.",
+            "placeholder": "DB1,X0.0"
+          },
+          "end_address": {
+            "label": "Last bit",
+            "description": "Same DB as the first bit. Maximum 8192 bits per group.",
+            "placeholder": "DB1,X100.7"
+          },
+          "active_value": {
+            "label": "Active alarm value",
+            "options": {
+              "1": "1 — active",
+              "0": "0 — active"
+            },
+            "description": "Choose whether a bit set to 1 or 0 signals an alarm."
+          },
+          "alarms": {
+            "label": "Descriptions and exclusions",
+            "description": "Bits without a row are included and displayed by address. Disable a row to exclude its bit."
+          }
+        }
       }
     },
     "control_behavior": {
@@ -1217,7 +1247,10 @@
       "invalid_number_mode": "Wählen Sie auto, box oder slider als Anzeigemodus der Zahl.",
       "invalid_comparison_operator": "Wählen Sie einen gültigen Vergleichsoperator.",
       "invalid_comparison_value": "Geben Sie einen endlichen numerischen Vergleichswert ein.",
-      "comparison_requires_numeric_type": "Vergleiche benötigen eine einzelne numerische Adresse (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL oder LREAL)."
+      "comparison_requires_numeric_type": "Vergleiche benötigen eine einzelne numerische Adresse (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL oder LREAL).",
+      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_active_value_invalid": "Active value must be 0 or 1.",
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",
@@ -1382,6 +1415,23 @@
     "entity_card": {
       "hidden_property": "1 weitere Eigenschaft",
       "hidden_properties": "{count} weitere Eigenschaften"
+    },
+    "alarms": {
+      "mapping": "Descriptions and exclusions",
+      "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
+      "add": "Add description",
+      "import": "Import CSV or paste from Excel",
+      "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
+      "paste": "Paste table",
+      "apply": "Import rows",
+      "address": "Address",
+      "description": "Description",
+      "enabled": "Included",
+      "invalid_import": "Invalid import: check columns, unique addresses and enabled (1/0 or true/false).",
+      "unavailable": "Data unavailable",
+      "clear": "No active alarms",
+      "active": "Active alarms",
+      "download_example": "Beispiel-CSV herunterladen"
     }
   },
   "selector": {

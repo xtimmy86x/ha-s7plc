@@ -13,8 +13,10 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
+from .alarm_entity import S7AlarmEntity
 from .const import (
     CONF_ADDRESS,
+    CONF_ALARM_GROUPS,
     CONF_AREA,
     CONF_BINARY_SENSORS,
     CONF_COMPARISON_OPERATOR,
@@ -85,11 +87,27 @@ async def async_setup_entry(
             )
         )
 
+    for item in entry.options.get(CONF_ALARM_GROUPS, []):
+        entity = S7AlarmPresenceSensor(coord, item, device_info, presence=True)
+        await entity.async_configure_availability(item, item.get(CONF_SCAN_INTERVAL))
+        entities.append(entity)
+
     await async_configure_entity_availability(
         entities, entry.options.get(CONF_BINARY_SENSORS, [])
     )
     async_add_entities(entities)
     await coord.async_request_refresh()
+
+
+class S7AlarmPresenceSensor(S7AlarmEntity, BinarySensorEntity):
+    """Report whether the shared group sample contains any active alarm."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self):
+        alarms = self.alarms
+        return None if alarms is None else bool(alarms)
 
 
 class S7BinarySensor(S7BaseEntity, BinarySensorEntity):

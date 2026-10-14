@@ -18,8 +18,10 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .alarm_entity import S7AlarmEntity
 from .const import (
     CONF_ADDRESS,
+    CONF_ALARM_GROUPS,
     CONF_AREA,
     CONF_DEVICE_CLASS,
     CONF_ENTITY_SYNC,
@@ -319,6 +321,12 @@ async def async_setup_entry(
             )
         )
 
+    for item in entry.options.get(CONF_ALARM_GROUPS, []):
+        await coord.add_alarm_group(item)
+        entity = S7AlarmCountSensor(coord, item, device_info)
+        await entity.async_configure_availability(item, item.get(CONF_SCAN_INTERVAL))
+        entities.append(entity)
+
     # Auto-create metrics sensors (diagnostic, no user config required).
     # Always created; S7MetricsSensor reports unavailable until the PLC
     # connection is established and pyS7 exposes metrics.
@@ -380,6 +388,19 @@ async def async_setup_entry(
             sync_entities, entry.options.get(CONF_ENTITY_SYNC, [])
         )
         async_add_entities(sync_entities)
+
+
+class S7AlarmCountSensor(S7AlarmEntity, SensorEntity):
+    """Number of active alarms with the complete active list in attributes."""
+
+    _attr_icon = "mdi:alarm-light"
+    # Large live lists belong in the panel, not in every recorder sample.
+    _unrecorded_attributes = frozenset({"active_alarms"})
+
+    @property
+    def native_value(self):
+        alarms = self.alarms
+        return None if alarms is None else len(alarms)
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):

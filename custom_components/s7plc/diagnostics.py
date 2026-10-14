@@ -10,6 +10,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_ALARM_GROUPS,
     CONF_BINARY_SENSORS,
     CONF_BUTTONS,
     CONF_CLIMATES,
@@ -112,6 +113,7 @@ async def async_get_config_entry_diagnostics(
             "option_counts": {
                 CONF_SENSORS: len(entry.options.get(CONF_SENSORS, [])),
                 CONF_BINARY_SENSORS: len(entry.options.get(CONF_BINARY_SENSORS, [])),
+                CONF_ALARM_GROUPS: len(entry.options.get(CONF_ALARM_GROUPS, [])),
                 CONF_SWITCHES: len(entry.options.get(CONF_SWITCHES, [])),
                 CONF_COVERS: len(entry.options.get(CONF_COVERS, [])),
                 CONF_LIGHTS: len(entry.options.get(CONF_LIGHTS, [])),

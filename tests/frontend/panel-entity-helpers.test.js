@@ -295,7 +295,7 @@ describe("entity configuration helpers", () => {
     const english = getTranslations("en").config_panel;
     const kinds = new Set([
       "text", "number", "checkbox", "select", "control", "light",
-      "cover-selector", "climate-selector", "binary-selector", "options-map",
+      "cover-selector", "climate-selector", "binary-selector", "options-map", "alarm-map",
     ]);
 
     for (const [entityType, definitions] of Object.entries(FIELDS)) {

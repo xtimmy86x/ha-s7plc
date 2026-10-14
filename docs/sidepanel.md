@@ -204,3 +204,75 @@ Each comparison keeps its own polling interval and cached feedback. When several
 entities are due in the same polling cycle, the PLC tag is read once and the value
 is distributed to all of them. Different intervals may require reads in separate
 cycles. Removing or editing one comparison does not replace another's settings.
+
+## Alarm groups
+
+Use **Alarm groups** to monitor a contiguous range of DB bits without creating
+an entity for every alarm. A group creates one sensor with the active count and
+one `problem` binary sensor that is on while at least one included alarm is active.
+
+For example, configure the first bit as `DB1,X0.0`, the last bit as `DB1,X100.7`,
+and the active value as **1**. Both endpoints are included: this is 808 bits in
+101 bytes. Start/end bits may be anywhere within a byte, but must belong to the
+same DB and be in ascending order. A group supports up to 8192 bits. Choose **0**
+for active-low alarm lists and set the scan interval in Home Assistant details.
+
+All bits are included initially. In **Descriptions and exclusions**, add rows
+only for descriptions you want to customize or bits you want to exclude.
+Uncheck **Included** for reserved/unused bits. Bits without a description use
+their PLC address. Excluded bits affect neither the count nor the presence sensor.
+
+Open **Import CSV or paste from Excel** and choose **Download example CSV**
+for a ready-to-edit file with two included alarms and one excluded bit. The
+example uses DB1 bits 0.0–0.2; adjust its addresses to your configured range.
+
+Import a CSV file or paste a table copied from Excel. Columns are `address`,
+`description`, and optional `enabled` (`1`/`true` to include, `0`/`false` to exclude).
+The English column header is optional. Semicolon CSV and tab-separated text allow
+unquoted PLC addresses; comma-separated CSV requires quoting the address because
+it contains a comma. Imported rows update matching table rows and preserve others.
+Duplicate addresses within one import, out-of-range addresses, and descriptions
+longer than 255 characters are rejected.
+
+```csv
+address;description;enabled
+DB1,X0.0;Motor overload;1
+DB1,X0.1;Low pressure;1
+DB1,X0.2;Reserved;0
+```
+
+The group card's **Active alarms** list updates from the count sensor's
+`active_alarms` attribute, containing objects with `address` and `description`. This potentially large list
+is excluded from recorder history; count and presence states remain recordable.
+Missing or invalid samples are not interpreted as zero alarms. The usual
+availability settings also apply; **Always available** explicitly permits
+restoring the last sample while the PLC is offline.
+
+Both entities share the same scheduled byte-block reads. The 101-byte example
+uses one block tag. Larger ranges are split into blocks of at most 200 bytes to
+fit the minimum supported PDU. pyS7 handles packing these tags into requests;
+identical block tags due in the same cycle are deduplicated. A large range can
+require multiple PLC requests and is not an atomic PLC snapshot.
+
+This feature reports the current sampled alarm bits. It does not acknowledge,
+reset, write or latch PLC alarms. A pulse occurring entirely between polls can
+be missed; latch such alarms in the PLC when they must remain observable.
+Group configuration, descriptions and exclusions are included in normal
+configuration exports/backups.
+
+Single-group YAML example:
+
+```yaml
+name: Machine alarms
+start_address: DB1,X0.0
+end_address: DB1,X100.7
+active_value: 1
+scan_interval: 1
+alarms:
+  - address: DB1,X0.0
+    description: Motor overload
+    enabled: true
+  - address: DB1,X0.2
+    description: Reserved
+    enabled: false
+```
