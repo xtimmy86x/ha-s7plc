@@ -163,9 +163,6 @@
     "binary_sensor": {
       "plc_connection": {
         "name": "Connessione {plc_name}"
-      },
-      "alarm_presence": {
-        "name": "{group_name} — presenza allarmi"
       }
     },
     "sensor": {

@@ -21,16 +21,6 @@ class S7AlarmEntity(S7BaseEntity):
             topic=self._alarm_blocks[0][0],
             suggested_area_id=item.get("area"),
         )
-        if presence:
-            self._attr_translation_key = "alarm_presence"
-            self._attr_name = None
-
-    @property
-    def translation_placeholders(self):
-        return {
-            "group_name": self._alarm_item.get("name")
-            or self._alarm_item["start_address"]
-        }
 
     @property
     def _restorable_topics(self):
