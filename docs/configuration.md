@@ -22,6 +22,34 @@ entity management. It provides a visual editor, an advanced YAML editor, current
 entity states, and a PLC connection indicator. See the dedicated
 [Side Panel Guide](sidepanel.md).
 
+### On-demand Connections
+
+The integration deliberately opens the PLC connection when communication is
+needed, rather than keeping a connection open solely because a PLC entry exists.
+This applies to both Siemens S7 PLCs and LOGO! devices.
+
+- During setup, the Config Flow opens a temporary connection to verify the
+  supplied parameters, then closes it.
+- The operational connection is opened when a configured entity needs to read
+  data, a write operation is requested, or an explicit health check is run.
+- A newly added PLC with no configured entities therefore normally shows
+  **Disconnected** in the panel and the connection binary sensor. This is
+  expected and does not mean that the setup test failed.
+- Adding an entity with a polled PLC address starts reads and establishes the
+  connection automatically, provided communication is enabled and the PLC is
+  reachable. Command-only entities may wait until their first operation.
+
+The connection indicator reports the current operational connection, not the
+result of the setup test or whether the PLC is reachable without communication.
+No background probe is added just to keep an otherwise unused PLC connected.
+If communication has been manually disabled, enable it before requesting PLC
+operations.
+
+This is an on-demand **opening** policy: it does not close the connection after
+each read or write, nor guarantee disconnection whenever there are no entities.
+For example, a service call or health check can open a connection without any
+configured entities.
+
 ## Connection Types
 
 The integration supports two connection methods:

@@ -225,6 +225,7 @@
       "entities": "entities",
       "connected": "Connected",
       "disconnected": "Disconnected",
+      "connection_on_demand": "No entities configured. The connection opens on demand for read or write operations; the initial connection test is temporary.",
       "unknown": "Unknown",
       "reload_help": "Changes are applied by automatically reloading the integration.",
       "empty": "No entities",

@@ -225,6 +225,7 @@
       "entities": "entity",
       "connected": "Připojeno",
       "disconnected": "Odpojeno",
+      "connection_on_demand": "Nejsou nakonfigurovány žádné entity. Připojení se navazuje podle potřeby pro čtení nebo zápis dat; úvodní test připojení je dočasný.",
       "unknown": "Neznámé",
       "reload_help": "Změny se použijí automatickým opětovným načtením integrace.",
       "empty": "Žádné entity",
