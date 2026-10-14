@@ -49,6 +49,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
     CONF_ADDRESS,
+    CONF_ALARM_GROUPS,
     CONF_AREA,
     CONF_BINARY_SENSORS,
     CONF_BUTTONS,
@@ -430,6 +431,8 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
         CONF_TEXTS,
     ):
         return bool(item.get(CONF_ADDRESS))
+    if option_key == CONF_ALARM_GROUPS:
+        return bool(item.get("start_address") and item.get("end_address"))
     if option_key == CONF_ENTITY_SYNC:
         return bool(item.get(CONF_ADDRESS) and item.get(CONF_SOURCE_ENTITY))
     if option_key == CONF_SWITCHES:
@@ -505,6 +508,8 @@ def _iter_entity_unique_ids(
             uid = item.get(CONF_UID)
             if uid and _item_has_required_fields(option_key, item):
                 yield uid, item
+                if option_key == CONF_ALARM_GROUPS:
+                    yield f"{uid}:active", item
 
 
 def build_expected_unique_ids(

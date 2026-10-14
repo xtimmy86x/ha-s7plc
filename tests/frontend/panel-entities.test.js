@@ -182,7 +182,7 @@ describe("entity views and actions", () => {
     toggle.click();
 
     expect(localStorage.getItem("s7plc-panel-view-mode")).toBe("sections");
-    expect(panel.querySelectorAll("[data-section-type]")).toHaveLength(11);
+    expect(panel.querySelectorAll("[data-section-type]")).toHaveLength(12);
     expect(panel.querySelector("[data-layout-toggle]").getAttribute("aria-label")).toBe("Switch to category view");
     const switchSection = panel.querySelector('[data-section-type="switches"]');
     expect(switchSection.querySelector(".cards article")).not.toBeNull();

@@ -50,6 +50,7 @@ def build_plans(
     *,
     precisions: dict[str, int | None] | None = None,
     tag_cache: dict[str, S7Tag] | None = None,
+    read_tags: dict[str, S7Tag] | None = None,
 ) -> tuple[list[TagPlan], list[StringPlan]]:
     """Build read plans from a topic to address mapping.
 
@@ -57,6 +58,7 @@ def build_plans(
         items: Mapping of topic names to PLC addresses
         precisions: Optional precision settings for REAL values
         tag_cache: Optional cache for parsed tags (improves performance on rebuilds)
+        read_tags: Explicit block tags by topic; never override the scalar cache
     """
 
     plans_batch: list[TagPlan] = []
@@ -65,7 +67,9 @@ def build_plans(
     for topic, addr in items.items():
         try:
             # Use cache if provided to avoid reparsing tags
-            if tag_cache is not None:
+            if read_tags and topic in read_tags:
+                tag = read_tags[topic]
+            elif tag_cache is not None:
                 tag = tag_cache.get(addr)
                 if tag is None:
                     tag = parse_tag(addr)

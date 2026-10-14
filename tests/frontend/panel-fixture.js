@@ -21,6 +21,7 @@ const translations = getTranslations();
 export const entityTypes = [
   "sensors",
   "binary_sensors",
+  "alarm_groups",
   "switches",
   "covers",
   "lights",
@@ -54,6 +55,7 @@ export function evaluatePanelSource() {
       ENTITY_SEARCH_TEXT,
       FILTER_ENTITY_ITEMS,
       FIELDS,
+      PARSE_ALARM_CSV,
       LOGO_ADDRESS_CANDIDATE,
       LOGO_TO_S7,
       LIGHT_MODE_FROM_ENTITY,
