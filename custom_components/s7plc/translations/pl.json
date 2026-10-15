@@ -225,6 +225,7 @@
       "entities": "encji",
       "connected": "Połączono",
       "disconnected": "Rozłączono",
+      "connection_on_demand": "Nie skonfigurowano żadnych encji. Połączenie jest otwierane w razie potrzeby odczytu lub zapisu danych; początkowy test połączenia jest tymczasowy.",
       "unknown": "Nieznany",
       "reload_help": "Zmiany są automatycznie stosowane przez przeładowanie integracji.",
       "empty": "Brak encji",

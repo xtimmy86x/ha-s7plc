@@ -115,6 +115,11 @@ Take our short voluntary survey and help us understand which PLC models and firm
 7. Open **S7 PLC** from the Home Assistant sidebar, then add and manage entities
    in the Side Panel.
 
+> **Connection status after setup:** The setup connection test is temporary.
+> Until a read, write, or explicit health check is requested, a newly added PLC
+> with no configured entities normally shows **Disconnected**. This is expected
+> and does not mean the setup test failed. See [on-demand connections](docs/configuration.md#on-demand-connections).
+
 ### Changing the Connection
 
 **Settings → Devices & Services → S7 PLC → Configure** opens the Options
