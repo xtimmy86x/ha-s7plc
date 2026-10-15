@@ -108,3 +108,67 @@ async def test_merker_alarm_group_clears_when_bits_drop(
     assert hass.states.get(count_id).state == "0"
     assert hass.states.get(count_id).attributes["active_alarms"] == []
     assert hass.states.get(presence_id).state == "off"
+
+
+async def test_merker_alarm_group_entity_names(
+    hass, config_entry, plc_client, merker_group
+):
+    """Name both entities after the configured group."""
+    plc_client.read.side_effect = _read_bytes
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options={**config_entry.options, "alarm_groups": [merker_group]},
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    count_id = registry.async_get_entity_id("sensor", DOMAIN, "flags")
+    presence_id = registry.async_get_entity_id("binary_sensor", DOMAIN, "flags:active")
+    assert registry.async_get(count_id).original_name == "Boiler flags"
+    assert registry.async_get(presence_id).original_name == "Boiler flags"
+    assert hass.states.get(count_id).name.endswith("Boiler flags")
+    assert hass.states.get(presence_id).name.endswith("Boiler flags")
+
+
+@pytest.mark.parametrize(
+    "block",
+    [
+        21,
+        (1,),
+        (256, 0),
+        (-1, 0),
+        (True, False),
+        ("a", "b"),
+        None,
+    ],
+    ids=["scalar", "short", "above-byte", "negative", "bool", "text", "none"],
+)
+async def test_merker_alarm_group_unavailable_for_missing_or_invalid_block(
+    hass, config_entry, plc_client, merker_group, block
+):
+    """Never report zero alarms or off when the sampled block cannot be decoded."""
+
+    def invalid(tags, **kwargs):
+        return [
+            block if tag.memory_area.name == "MERKER" and tag.length == 2 else 21
+            for tag in tags
+        ]
+
+    plc_client.read.side_effect = invalid
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options={**config_entry.options, "alarm_groups": [merker_group]},
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    count_id = registry.async_get_entity_id("sensor", DOMAIN, "flags")
+    presence_id = registry.async_get_entity_id("binary_sensor", DOMAIN, "flags:active")
+    assert hass.states.get(count_id).state == "unavailable"
+    assert hass.states.get(presence_id).state == "unavailable"
