@@ -1,4 +1,4 @@
-"""Validated, inclusive DB bit ranges and shared byte-block alarm decoding."""
+"""Validated, inclusive DB or M bit ranges and shared byte-block alarm decoding."""
 
 from __future__ import annotations
 
