@@ -90,7 +90,7 @@
     "error": {
       "cannot_connect": "Nie można połączyć się z PLC. Sprawdź host, rack, slot, port i sieć.",
       "incompatible_family_connection": "Wybrana rodzina PLC nie jest zgodna z tą metodą połączenia.",
-      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_range_invalid": "Podaj rosnący zakres adresów BIT w tym samym DB lub w obszarze znaczników M, maksymalnie 8192 bity.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
@@ -1249,7 +1249,7 @@
       "invalid_comparison_operator": "Wybierz prawidłowy operator porównania.",
       "invalid_comparison_value": "Wprowadź skończoną wartość liczbową porównania.",
       "comparison_requires_numeric_type": "Porównania wymagają pojedynczego adresu liczbowego (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL lub LREAL).",
-      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_range_invalid": "Podaj rosnący zakres adresów BIT w tym samym DB lub w obszarze znaczników M, maksymalnie 8192 bity.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },

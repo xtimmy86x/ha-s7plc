@@ -1,4 +1,4 @@
-"""Validated, inclusive DB bit ranges and shared byte-block alarm decoding."""
+"""Validated, inclusive DB or M bit ranges and shared byte-block alarm decoding."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ class AlarmRange:
     db: int
     first: int
     last: int
+    area: MemoryArea = MemoryArea.DB
 
     @classmethod
     def parse(cls, start: str, end: str) -> AlarmRange:
@@ -30,17 +31,19 @@ class AlarmRange:
         if (
             a.data_type != DataType.BIT
             or b.data_type != DataType.BIT
-            or a.memory_area != MemoryArea.DB
-            or b.memory_area != MemoryArea.DB
+            or a.memory_area not in (MemoryArea.DB, MemoryArea.MERKER)
+            or b.memory_area != a.memory_area
             or a.db_number != b.db_number
         ):
             raise ValueError("alarm_range_invalid")
         first, last = a.start * 8 + a.bit_offset, b.start * 8 + b.bit_offset
         if not 0 <= first <= last or last - first + 1 > MAX_ALARM_BITS:
             raise ValueError("alarm_range_invalid")
-        return cls(a.db_number, first, last)
+        return cls(a.db_number, first, last, a.memory_area)
 
     def address(self, bit: int) -> str:
+        if self.area == MemoryArea.MERKER:
+            return f"M{bit // 8}.{bit % 8}"
         return f"DB{self.db},X{bit // 8}.{bit % 8}"
 
     def blocks(self, uid: str) -> list[tuple[str, S7Tag]]:
@@ -49,7 +52,7 @@ class AlarmRange:
             (
                 f"alarm_group:{uid}:{start}",
                 S7Tag(
-                    memory_area=MemoryArea.DB,
+                    memory_area=self.area,
                     db_number=self.db,
                     data_type=DataType.BYTE,
                     start=start,
@@ -90,6 +93,7 @@ def normalize_alarm_group(entity: dict[str, Any]) -> dict[str, Any]:
         description, enabled = row.get("description", ""), row.get("enabled", True)
         if (
             bit.db != region.db
+            or bit.area != region.area
             or not region.first <= bit.first <= region.last
             or bit.first in seen
             or not isinstance(description, str)

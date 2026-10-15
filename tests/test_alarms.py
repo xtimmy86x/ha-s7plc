@@ -61,7 +61,8 @@ def test_example_is_808_bits_and_one_101_byte_tag():
         ("DB1,X0.6", "DB1,X0.5"),
         ("DB1,X0.0", "DB2,X0.1"),
         ("DB1,B0", "DB1,X1.1"),
-        ("M0.0", "M0.1"),
+        ("M0.1", "M0.0"),
+        ("MB0", "M0.1"),
         ("DB1,X0.0", "DB1,X1024.0"),
         ("bad", "DB1,X1.1"),
         ("DB1,X0.8", "DB1,X1.1"),
@@ -186,6 +187,42 @@ async def test_group_blocks_one_schedule_and_unrelated_scalar_not_overridden():
 
 
 @pytest.mark.asyncio
+async def test_merker_group_registers_and_reads_multiple_blocks():
+    coord = S7Coordinator(MagicMock(), host="plc.local")
+    item = group(start_address="M0.0", end_address="M400.7", scan_interval=2)
+    await coord.add_item("sensor:MB0", "MB0")
+    await coord.add_alarm_group(item)
+    coord._build_tag_cache()
+    blocks = AlarmRange.parse(item["start_address"], item["end_address"]).blocks(
+        item["uid"]
+    )
+    assert [topic for topic, _ in blocks] == [
+        "alarm_group:group-a:0",
+        "alarm_group:group-a:200",
+        "alarm_group:group-a:400",
+    ]
+    assert [coord._items[topic] for topic, _ in blocks] == ["MB0", "MB200", "MB400"]
+    assert len({coord._item_next_read[topic] for topic, _ in blocks}) == 1
+    assert all(coord._item_scan_intervals[topic] == 2 for topic, _ in blocks)
+    plans = [coord._plans_batch[topic] for topic, _ in blocks]
+    assert [plan.tag.length for plan in plans] == [200, 200, 1]
+    assert [plan.tag.start for plan in plans] == [0, 200, 400]
+    assert {plan.tag.memory_area.name for plan in plans} == {"MERKER"}
+    assert coord._plans_batch["sensor:MB0"].tag.length == 1
+
+    read = AsyncMock(return_value=[0, (0b1,) * 200, (0,) * 200, 0b10000000])
+    coord._read_executor._read_tags = read
+    result = await coord._read_executor.read_batch(list(coord._plans_batch.values()))
+    read_tags = read.call_args.args[0]
+    assert len(read_tags) == 4
+    assert {tag.memory_area.name for tag in read_tags} == {"MERKER"}
+    active = active_alarms(item, result)
+    assert len(active) == 201
+    assert active[0]["address"] == "M0.0"
+    assert active[-1]["address"] == "M400.7"
+
+
+@pytest.mark.asyncio
 async def test_platform_setup_creates_exactly_two_entities_and_registers_once(
     monkeypatch,
 ):
@@ -282,3 +319,46 @@ def test_blocks_fit_real_pys7_minimum_pdu(optimized):
     assert requests
     assert sum(tag.length for request in requests for tag in request) == 1024
     assert all(sum(tag.size() for tag in request) <= 212 for request in requests)
+
+
+def test_alarm_range_supports_merker_area():
+    region = AlarmRange.parse("M8.0", "M9.7")
+    assert (region.first, region.last) == (64, 79)
+    assert region.address(64) == "M8.0"
+    assert region.address(79) == "M9.7"
+    (topic, tag), = region.blocks("flags")
+    assert topic == "alarm_group:flags:8"
+    assert (tag.memory_area.name, tag.start, tag.length) == ("MERKER", 8, 2)
+
+
+def test_alarm_range_rejects_mixed_areas():
+    for start, end in (("M8.0", "DB1,X9.7"), ("DB1,X0.0", "M9.7")):
+        with pytest.raises(ValueError, match="alarm_range_invalid"):
+            AlarmRange.parse(start, end)
+
+
+def test_merker_alarm_group_decodes_bits_and_rejects_foreign_rows():
+    item = normalize_alarm_group(
+        {
+            "uid": "flags",
+            "start_address": "m8.0",
+            "end_address": "M9.7",
+            "alarms": [{"address": "M8.1", "description": "Valve low"}],
+        }
+    )
+    assert item["start_address"] == "M8.0"
+    assert item["end_address"] == "M9.7"
+    topic = "alarm_group:flags:8"
+    assert active_alarms(item, {topic: [0b00000010, 0b10000000]}) == [
+        {"address": "M8.1", "description": "Valve low"},
+        {"address": "M9.7", "description": "M9.7"},
+    ]
+    with pytest.raises(ValueError, match="alarm_mapping_invalid"):
+        normalize_alarm_group(
+            {
+                "uid": "flags",
+                "start_address": "M8.0",
+                "end_address": "M9.7",
+                "alarms": [{"address": "DB1,X8.1"}],
+            }
+        )

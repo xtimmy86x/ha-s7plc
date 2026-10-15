@@ -90,7 +90,7 @@
     "error": {
       "cannot_connect": "Verbindung zur SPS nicht möglich. Überprüfen Sie Host, Rack, Slot, Port und Netzwerk.",
       "incompatible_family_connection": "Die ausgewählte SPS-Familie ist mit dieser Verbindungsmethode nicht kompatibel.",
-      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_range_invalid": "Geben Sie einen aufsteigenden Bereich von BIT-Adressen im selben DB oder im Merkerbereich M an, maximal 8192 Bit.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
@@ -1249,7 +1249,7 @@
       "invalid_comparison_operator": "Wählen Sie einen gültigen Vergleichsoperator.",
       "invalid_comparison_value": "Geben Sie einen endlichen numerischen Vergleichswert ein.",
       "comparison_requires_numeric_type": "Vergleiche benötigen eine einzelne numerische Adresse (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL oder LREAL).",
-      "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB, maximum 8192 bits.",
+      "alarm_range_invalid": "Geben Sie einen aufsteigenden Bereich von BIT-Adressen im selben DB oder im Merkerbereich M an, maximal 8192 Bit.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
     },
