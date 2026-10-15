@@ -213,8 +213,8 @@ cycles. Removing or editing one comparison does not replace another's settings.
 
 ## Alarm groups
 
-Use **Alarm groups** to monitor a contiguous range of DB bits without creating
-an entity for every alarm. A group creates one sensor with the active count and
+Use **Alarm groups** to monitor a contiguous range of DB or M (merker) bits without
+creating an entity for every alarm. A group creates one sensor with the active count and
 one `problem` binary sensor that is on while at least one included alarm is active.
 
 For example, configure the first bit as `DB1,X0.0`, the last bit as `DB1,X100.7`,
@@ -222,6 +222,12 @@ and the active value as **1**. Both endpoints are included: this is 808 bits in
 101 bytes. Start/end bits may be anywhere within a byte, but must belong to the
 same DB and be in ascending order. A group supports up to 8192 bits. Choose **0**
 for active-low alarm lists and set the scan interval in Home Assistant details.
+
+Alarm flags kept in the M (merker) area work the same way. For example, set the
+first bit to `M8.0` and the last bit to `M9.7` to monitor 16 flags in 2 bytes.
+Both endpoints must be in the same area, so a range cannot mix `M` and `DB`
+addresses. Description and exclusion rows must use addresses in that same area
+(for example `M8.1`). Input and output areas are not supported.
 
 All bits are included initially. In **Descriptions and exclusions**, add rows
 only for descriptions you want to customize or bits you want to exclude.
@@ -266,7 +272,23 @@ be missed; latch such alarms in the PLC when they must remain observable.
 Group configuration, descriptions and exclusions are included in normal
 configuration exports/backups.
 
-Single-group YAML example:
+Single-group YAML example using the M area:
+
+```yaml
+name: Boiler room alarms
+start_address: M8.0
+end_address: M9.7
+active_value: 1
+alarms:
+  - address: M8.1
+    description: 3-way valve low temperature
+    enabled: true
+  - address: M8.6
+    description: Reserved
+    enabled: false
+```
+
+Single-group YAML example using a DB:
 
 ```yaml
 name: Machine alarms

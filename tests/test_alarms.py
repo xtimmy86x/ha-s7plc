@@ -187,6 +187,42 @@ async def test_group_blocks_one_schedule_and_unrelated_scalar_not_overridden():
 
 
 @pytest.mark.asyncio
+async def test_merker_group_registers_and_reads_multiple_blocks():
+    coord = S7Coordinator(MagicMock(), host="plc.local")
+    item = group(start_address="M0.0", end_address="M400.7", scan_interval=2)
+    await coord.add_item("sensor:MB0", "MB0")
+    await coord.add_alarm_group(item)
+    coord._build_tag_cache()
+    blocks = AlarmRange.parse(item["start_address"], item["end_address"]).blocks(
+        item["uid"]
+    )
+    assert [topic for topic, _ in blocks] == [
+        "alarm_group:group-a:0",
+        "alarm_group:group-a:200",
+        "alarm_group:group-a:400",
+    ]
+    assert [coord._items[topic] for topic, _ in blocks] == ["MB0", "MB200", "MB400"]
+    assert len({coord._item_next_read[topic] for topic, _ in blocks}) == 1
+    assert all(coord._item_scan_intervals[topic] == 2 for topic, _ in blocks)
+    plans = [coord._plans_batch[topic] for topic, _ in blocks]
+    assert [plan.tag.length for plan in plans] == [200, 200, 1]
+    assert [plan.tag.start for plan in plans] == [0, 200, 400]
+    assert {plan.tag.memory_area.name for plan in plans} == {"MERKER"}
+    assert coord._plans_batch["sensor:MB0"].tag.length == 1
+
+    read = AsyncMock(return_value=[0, (0b1,) * 200, (0,) * 200, 0b10000000])
+    coord._read_executor._read_tags = read
+    result = await coord._read_executor.read_batch(list(coord._plans_batch.values()))
+    read_tags = read.call_args.args[0]
+    assert len(read_tags) == 4
+    assert {tag.memory_area.name for tag in read_tags} == {"MERKER"}
+    active = active_alarms(item, result)
+    assert len(active) == 201
+    assert active[0]["address"] == "M0.0"
+    assert active[-1]["address"] == "M400.7"
+
+
+@pytest.mark.asyncio
 async def test_platform_setup_creates_exactly_two_entities_and_registers_once(
     monkeypatch,
 ):

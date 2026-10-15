@@ -90,7 +90,7 @@
     "error": {
       "cannot_connect": "Impossibile connettersi al PLC. Controlla host, rack, slot, porta e rete.",
       "incompatible_family_connection": "La famiglia PLC selezionata non è compatibile con questo metodo di connessione.",
-      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB, massimo 8192 bit.",
+      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB o nell'area merker M, massimo 8192 bit.",
       "alarm_active_value_invalid": "Il valore attivo deve essere 0 o 1.",
       "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano."
     },
@@ -1249,7 +1249,7 @@
       "invalid_comparison_operator": "Scegli un operatore di confronto valido.",
       "invalid_comparison_value": "Inserisci un valore di confronto numerico finito.",
       "comparison_requires_numeric_type": "I confronti richiedono un indirizzo numerico singolo (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL o LREAL).",
-      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB, massimo 8192 bit.",
+      "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB o nell'area merker M, massimo 8192 bit.",
       "alarm_active_value_invalid": "Il valore attivo deve essere 0 o 1.",
       "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano."
     },
