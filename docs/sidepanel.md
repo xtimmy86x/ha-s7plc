@@ -267,7 +267,11 @@ in reception order; bits first observed in the same sample use ascending bit
 address order, since a sampled range cannot reveal their actual activation order.
 All alarms in that sample have the same detection timestamp. Further activations
 join the display queue, including a bit that clears and later activates again.
-The final alarm remains visible after the queue drains, even when all bits clear.
+Each newly activated alarm is displayed exactly once: for example A, B, C, then
+C remains visible. This is not a repeating rotation of the currently active list.
+Repeated samples of still-active bits and alarm clearances do not restart the
+sequence. Only a new activation adds an entry. The final alarm remains visible
+after the queue drains, even when all bits clear.
 The count and `active_alarms` always reflect the current sample immediately.
 
 These three small attributes are recordable. The last displayed alarm is restored

@@ -87,6 +87,30 @@ def test_last_alarm_fifo_does_not_delay_count_and_retains_final(alarm_display):
     assert len(timers) == 5  # Re-activation of the same bit is a new occurrence.
 
 
+def test_last_alarm_sequence_runs_once_not_while_bits_remain_active(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    update(7)
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 0"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 1"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 2"
+    tick()
+    last = sensor._last_alarm
+    # All three stay active: the display must remain on C, not rotate back to A.
+    for _ in range(3):
+        update(7)
+        assert sensor._last_alarm is last
+        assert sensor._cancel_alarm_display is None
+    update(3)  # C clears, but A and B are still active.
+    assert sensor._last_alarm is last
+    update(0)
+    assert sensor._last_alarm is last
+    assert len(timers) == 3
+    update(8)  # Only a newly received D replaces C.
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 3"
+
+
 def test_last_alarm_same_count_changes_and_invalid_samples(alarm_display):
     sensor, update, tick, timers = alarm_display
     update(1)
