@@ -260,6 +260,35 @@ Missing or invalid samples are not interpreted as zero alarms. The usual
 availability settings also apply; **Always available** explicitly permits
 restoring the last sample while the PLC is offline.
 
+The count sensor also exposes `last_alarm` (description, falling back to the bit
+address), `last_alarm_address`, and `last_alarm_at` (UTC detection time). They
+start as `null`. Newly active bits are displayed one at a time for two seconds,
+in reception order; bits first observed in the same sample use ascending bit
+address order, since a sampled range cannot reveal their actual activation order.
+All alarms in that sample have the same detection timestamp. Further activations
+join the display queue, including a bit that clears and later activates again.
+The final alarm remains visible after the queue drains, even when all bits clear.
+The count and `active_alarms` always reflect the current sample immediately.
+
+These three small attributes are recordable. The last displayed alarm is restored
+on restart for an unchanged range; the pending display queue is not restored, and
+the first valid sample establishes a baseline without replaying already-active
+bits. For a newly added group, active bits in its first live sample are displayed.
+Invalid readings and disconnects retain the last alarm and do not clear the
+remembered active bits. The queue holds up to 8192 pending occurrences; in an
+overload it discards the oldest pending entries and logs a warning. Display timers
+are cancelled when the entity is removed. This display queue is not a permanent
+alarm journal.
+
+For example, a dashboard Markdown card can show the most recently displayed alarm:
+
+```yaml
+type: markdown
+content: >-
+  {{ state_attr('sensor.plc_profila_fermapiedi_allarmi', 'last_alarm')
+     or 'Nessun allarme ricevuto' }}
+```
+
 Both entities share the same scheduled byte-block reads. The 101-byte example
 uses one block tag. Larger ranges are split into blocks of at most 200 bytes to
 fit the minimum supported PDU. pyS7 handles packing these tags into requests;
