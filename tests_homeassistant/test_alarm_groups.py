@@ -1,9 +1,56 @@
 """Alarm groups on the M flag area through Home Assistant's real entity lifecycle."""
 
+from datetime import datetime, timezone
+from unittest.mock import Mock
+
 import pytest
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.s7plc.const import DOMAIN
+
+
+async def test_last_alarm_sequence_publishes_attributes_and_cancels_on_unload(
+    hass, config_entry, plc_client, merker_group, monkeypatch
+):
+    """Only the timer is controlled; HA entity writes and unloading are real."""
+    timers = []
+
+    def later(hass, delay, action):
+        cancel = Mock()
+        timers.append((delay, action, cancel))
+        return cancel
+
+    monkeypatch.setattr("custom_components.s7plc.sensor.async_call_later", later)
+    plc_client.read.side_effect = lambda tags, **kwargs: [
+        (7, 0) if tag.memory_area.name == "MERKER" and tag.length == 2 else 21
+        for tag in tags
+    ]
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options={**config_entry.options, "alarm_groups": [merker_group]},
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    registry = er.async_get(hass)
+    count_id = registry.async_get_entity_id("sensor", DOMAIN, "flags")
+    presence_id = registry.async_get_entity_id("binary_sensor", DOMAIN, "flags:active")
+    assert hass.states.get(count_id).attributes["last_alarm"] == "M8.0"
+    assert "last_alarm" not in hass.states.get(presence_id).attributes
+    for expected in ("Valve low", "M8.2"):
+        delay, action, _ = timers[-1]
+        assert delay == 2
+        action(datetime.now(timezone.utc))
+        await hass.async_block_till_done()
+        state = hass.states.get(count_id)
+        assert state.state == "3"
+        assert state.attributes["last_alarm"] == expected
+
+    assert len(timers) == 3
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    timers[-1][2].assert_called_once_with()
 
 
 @pytest.fixture

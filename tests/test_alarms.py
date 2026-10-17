@@ -26,6 +26,169 @@ from custom_components.s7plc.restore import decode_values, encode_values
 from custom_components.s7plc.sensor import S7AlarmCountSensor
 
 
+@pytest.fixture
+def alarm_display(mock_coordinator, monkeypatch):
+    """Drive the real callbacks without waiting for wall-clock timers."""
+    timers = []
+
+    def later(hass, delay, action):
+        cancel = MagicMock()
+        timers.append((delay, action, cancel))
+        return cancel
+
+    monkeypatch.setattr("custom_components.s7plc.sensor.async_call_later", later)
+    item = group(
+        end_address="DB1,X0.7",
+        alarms=[
+            {"address": f"DB1,X0.{i}", "description": f"Alarm {i}"} for i in range(8)
+        ],
+    )
+    sensor = S7AlarmCountSensor(mock_coordinator, item, {})
+
+    def update(value):
+        mock_coordinator.data = sample(item, value)
+        sensor._handle_coordinator_update()
+
+    def tick():
+        delay, action, _ = timers[-1]
+        assert delay == 2
+        action(object())
+
+    return sensor, update, tick, timers
+
+
+def test_last_alarm_fifo_does_not_delay_count_and_retains_final(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    assert sensor.extra_state_attributes["last_alarm"] is None
+    update(0b111)
+    assert sensor.native_value == 3
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 0"
+    first_time = sensor.extra_state_attributes["last_alarm_at"]
+    # Repeated samples do not enqueue existing active bits again.
+    update(0b111)
+    update(0b1111)
+    assert sensor.native_value == 4
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 0"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 1"
+    assert sensor.extra_state_attributes["last_alarm_at"] == first_time
+    update(0)
+    assert sensor.native_value == 0
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 2"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 3"
+    assert sensor.extra_state_attributes["last_alarm_address"] == "DB1,X0.3"
+    tick()
+    assert len(timers) == 4
+    assert sensor._cancel_alarm_display is None
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 3"
+    update(0b1000)
+    assert len(timers) == 5  # Re-activation of the same bit is a new occurrence.
+
+
+def test_last_alarm_sequence_runs_once_not_while_bits_remain_active(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    update(7)
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 0"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 1"
+    tick()
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 2"
+    tick()
+    last = sensor._last_alarm
+    # All three stay active: the display must remain on C, not rotate back to A.
+    for _ in range(3):
+        update(7)
+        assert sensor._last_alarm is last
+        assert sensor._cancel_alarm_display is None
+    update(3)  # C clears, but A and B are still active.
+    assert sensor._last_alarm is last
+    update(0)
+    assert sensor._last_alarm is last
+    assert len(timers) == 3
+    update(8)  # Only a newly received D replaces C.
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 3"
+
+
+def test_last_alarm_same_count_changes_and_invalid_samples(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    update(1)
+    tick()
+    update(2)
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 1"
+    tick()
+    update(None)
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 1"
+    update(2)
+    assert len(timers) == 2
+    sensor.coordinator.last_update_success = False
+    update(0)
+    sensor.coordinator.last_update_success = True
+    update(2)
+    assert len(timers) == 2
+    sensor.coordinator._connected = False
+    update(0)
+    sensor.coordinator._connected = True
+    update(2)
+    assert len(timers) == 2
+
+
+def test_last_alarm_timer_stops_on_removal(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    update(7)
+    sensor._stop_alarm_display()
+    timers[-1][2].assert_called_once_with()
+    assert not sensor._pending_alarms
+    assert sensor._cancel_alarm_display is None
+
+
+@pytest.mark.asyncio
+async def test_last_alarm_restores_without_replaying_active_bits(alarm_display):
+    sensor, update, tick, timers = alarm_display
+    sensor.async_on_remove = MagicMock()
+    sensor.async_get_last_state = AsyncMock(
+        return_value=SimpleNamespace(
+            attributes={
+                "start_address": "DB1,X0.0",
+                "end_address": "DB1,X0.7",
+                "last_alarm": "Previous alarm",
+                "last_alarm_address": "DB1,X0.6",
+                "last_alarm_at": "2026-10-17T15:00:00+00:00",
+            }
+        )
+    )
+    sensor.coordinator.data = sample(sensor._alarm_item, 3)
+    await sensor.async_added_to_hass()
+    assert sensor.extra_state_attributes["last_alarm"] == "Previous alarm"
+    assert not timers
+    sensor.async_on_remove.assert_called_once_with(sensor._stop_alarm_display)
+    update(7)
+    assert sensor.extra_state_attributes["last_alarm"] == "Alarm 2"
+
+
+@pytest.mark.parametrize("start,end", [("DB2,X0.0", "DB2,X0.7"), ("M0.0", "M0.7")])
+def test_last_alarm_active_low_excluded_bits_and_address_fallback(
+    mock_coordinator, monkeypatch, start, end
+):
+    monkeypatch.setattr(
+        "custom_components.s7plc.sensor.async_call_later", lambda *args: lambda: None
+    )
+    item = group(
+        start_address=start,
+        end_address=end,
+        active_value=0,
+        alarms=[{"address": start, "enabled": False}],
+    )
+    sensor = S7AlarmCountSensor(mock_coordinator, item, {})
+    mock_coordinator.data = sample(item, 0b11111100)
+    sensor._handle_coordinator_update()
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes["last_alarm"] == start[:-1] + "1"
+
+
 def group(**kwargs):
     return normalize_alarm_group(
         {
@@ -326,7 +489,7 @@ def test_alarm_range_supports_merker_area():
     assert (region.first, region.last) == (64, 79)
     assert region.address(64) == "M8.0"
     assert region.address(79) == "M9.7"
-    (topic, tag), = region.blocks("flags")
+    ((topic, tag),) = region.blocks("flags")
     assert topic == "alarm_group:flags:8"
     assert (tag.memory_area.name, tag.start, tag.length) == ("MERKER", 8, 2)
 

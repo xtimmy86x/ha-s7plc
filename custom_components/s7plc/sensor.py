@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import numbers
+from collections import deque
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
@@ -15,10 +17,11 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .alarm_entity import S7AlarmEntity
+from .alarms import MAX_ALARM_BITS, active_alarms
 from .const import (
     CONF_ADDRESS,
     CONF_ALARM_GROUPS,
@@ -396,6 +399,101 @@ class S7AlarmCountSensor(S7AlarmEntity, SensorEntity):
     _attr_icon = "mdi:alarm-light"
     # Large live lists belong in the panel, not in every recorder sample.
     _unrecorded_attributes = frozenset({"active_alarms"})
+    _alarm_display_seconds = 2
+
+    def __init__(self, coordinator, item, device_info):
+        super().__init__(coordinator, item, device_info)
+        self._previous_alarm_addresses: set[str] | None = set()
+        self._last_alarm: dict[str, str] | None = None
+        self._pending_alarms: deque[dict[str, str]] = deque(maxlen=MAX_ALARM_BITS)
+        self._cancel_alarm_display = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(self._stop_alarm_display)
+        previous = await self.async_get_last_state()
+        if previous is not None:
+            attrs = previous.attributes
+            if all(
+                attrs.get(key) == self._alarm_item[key]
+                for key in ("start_address", "end_address")
+            ):
+                keys = ("last_alarm", "last_alarm_address", "last_alarm_at")
+                if all(isinstance(attrs.get(key), str) for key in keys):
+                    self._last_alarm = dict(
+                        zip(
+                            ("description", "address", "at"),
+                            (attrs[key] for key in keys),
+                        )
+                    )
+                # A restart cannot establish when already-active bits changed.
+                self._previous_alarm_addresses = None
+        self._collect_new_alarms()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._collect_new_alarms()
+        super()._handle_coordinator_update()
+
+    @callback
+    def _collect_new_alarms(self) -> None:
+        # Only real, successful PLC samples count as new occurrences.
+        if not self.coordinator.is_connected() or not getattr(
+            self.coordinator, "last_update_success", True
+        ):
+            return
+        alarms = active_alarms(self._alarm_item, self.coordinator.data or {})
+        if alarms is None:
+            return
+        addresses = {alarm["address"] for alarm in alarms}
+        previous = self._previous_alarm_addresses
+        self._previous_alarm_addresses = addresses
+        if previous is None:
+            return
+        detected_at = datetime.now(timezone.utc).isoformat()
+        new = [
+            {**alarm, "at": detected_at}
+            for alarm in alarms
+            if alarm["address"] not in previous
+        ]
+        if len(self._pending_alarms) + len(new) > MAX_ALARM_BITS:
+            _LOGGER.warning(
+                "Alarm display queue full for %s; keeping newest alarms",
+                self._attr_unique_id,
+            )
+        self._pending_alarms.extend(new)
+        if self._pending_alarms and self._cancel_alarm_display is None:
+            self._advance_alarm_display()
+
+    @callback
+    def _advance_alarm_display(self, _now=None) -> None:
+        self._cancel_alarm_display = None
+        if not self._pending_alarms:
+            return
+        self._last_alarm = self._pending_alarms.popleft()
+        # Keep a minimum dwell time even if another sample arrives immediately.
+        self._cancel_alarm_display = async_call_later(
+            self.hass, self._alarm_display_seconds, self._advance_alarm_display
+        )
+        if _now is not None:
+            self.async_write_ha_state()
+
+    @callback
+    def _stop_alarm_display(self) -> None:
+        if self._cancel_alarm_display is not None:
+            self._cancel_alarm_display()
+            self._cancel_alarm_display = None
+        self._pending_alarms.clear()
+
+    @property
+    def extra_state_attributes(self):
+        last = self._last_alarm or {}
+        return {
+            **super().extra_state_attributes,
+            "last_alarm": last.get("description"),
+            "last_alarm_address": last.get("address"),
+            "last_alarm_at": last.get("at"),
+        }
 
     @property
     def native_value(self):
