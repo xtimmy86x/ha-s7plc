@@ -244,7 +244,12 @@ added and updated row counts. The summary counts configured, included and exclud
 rows (not currently active PLC alarms). Review them with address/description search,
 the inclusion filter and 50-row pages. Editing or deleting a visible row preserves
 rows on other pages. **Save** commits the whole list; cancelling discards the edits.
-An invalid import preserves the existing list.
+The editable list starts collapsed; click its summary counts to expand or collapse
+the search, filters, rows and pagination. Import controls and results stay visible.
+A successful import opens the list for review. Saving with an incomplete row also
+opens the list and reveals the affected page. Collapsing preserves edits, search,
+filters and the current page; the expanded table has a bounded scrollable height.
+An invalid import preserves the existing list and its expanded/collapsed state.
 
 Columns are `address`,
 `description`, and optional `enabled` (`1`/`true` to include, `0`/`false` to exclude).

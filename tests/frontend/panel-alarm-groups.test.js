@@ -27,8 +27,10 @@ test('group editor preserves active-low, exclusions and range through save', () 
   const { panel, form } = open();
   expect(form.elements.active_value.value).toBe('0');
   expect(form.querySelector('[data-enabled]').checked).toBe(false);
+  expect(form.querySelector('[data-alarm-disclosure]').open).toBe(false);
   const saved = panel.formEntity(form, original, 'alarm_groups');
   expect(saved).toMatchObject(original);
+  expect(form.querySelector('[data-alarm-disclosure]').open).toBe(false);
   expect(form.querySelector('[data-field="start_address"] [data-address-part="dataType"]').value).toBe('BIT');
   expect(panel.querySelector('[data-type="alarm_groups"]')).not.toBeNull();
 });
@@ -54,6 +56,7 @@ test('failed import leaves existing descriptions intact', () => {
   form.querySelector('[data-alarm-paste]').value = 'DB1,X0.0;Motor;perhaps';
   form.querySelector('[data-alarm-import]').click();
   expect(form.querySelector('[data-alarm-error]').textContent).toContain('Invalid import');
+  expect(form.querySelector('[data-alarm-disclosure]').open).toBe(false);
   expect(panel.formEntity(form, original, 'alarm_groups').alarms).toEqual(original.alarms);
 });
 
@@ -110,6 +113,7 @@ test('file selection imports directly with result and totals, without saving', a
   const input = form.querySelector('[data-alarm-file]');
   await input.onchange({ target: { files: [{ name: 'alarms.csv', size: 100, text: async () => 'DB1,X0.0;Updated;0\nDB1,X0.1;Pump;1' }] } });
   expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(2);
+  expect(form.querySelector('[data-alarm-disclosure]').open).toBe(true);
   expect(form.querySelector('[data-alarm-status]').textContent).toContain('2 rows: 1 added, 1 updated');
   expect(form.querySelector('[data-alarm-status]').hidden).toBe(false);
   expect(form.querySelector('[data-alarm-summary]').textContent).toContain('2 configured rows');
@@ -138,9 +142,15 @@ test('large imports keep off-page rows and edits across search, filter and pages
   expect(form.querySelector('[data-alarm-empty]').textContent).toContain('No rows match');
   filter.value = 'excluded'; filter.dispatchEvent(new Event('change'));
   expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(1);
+  const disclosure = form.querySelector('[data-alarm-disclosure]');
+  disclosure.open = false;
   const saved = panel.formEntity(form, original, 'alarm_groups');
   expect(saved.alarms).toHaveLength(970);
   expect(saved.alarms[50].description).toBe('Edited motor');
+  expect(disclosure.open).toBe(false);
+  disclosure.open = true;
+  expect(search.value).toBe('edited MOTOR');
+  expect(filter.value).toBe('excluded');
   form.querySelector('[data-remove]').click();
   expect(panel.formEntity(form, original, 'alarm_groups').alarms).toHaveLength(969);
 });
@@ -187,7 +197,9 @@ test('saving reveals an incomplete row hidden by a search', () => {
   const search = form.querySelector('[data-alarm-search]');
   search.value = 'Motor'; search.dispatchEvent(new Event('input'));
   expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(1);
+  form.querySelector('[data-alarm-disclosure]').open = false;
   expect(() => panel.formEntity(form, original, 'alarm_groups')).toThrow();
+  expect(form.querySelector('[data-alarm-disclosure]').open).toBe(true);
   expect(search.value).toBe('');
   expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(2);
 });

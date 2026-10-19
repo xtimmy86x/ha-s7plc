@@ -555,7 +555,9 @@ class S7PlcConfigurationPanel extends HTMLElement {
       </div>
       <p class="alarm-notice" data-alarm-status role="status" aria-live="polite" hidden></p>
       <p class="alarm-notice alarm-error" data-alarm-error role="alert" hidden></p>
-      <div class="alarm-summary" data-alarm-summary></div>
+      <details class="alarm-disclosure" data-alarm-disclosure>
+      <summary aria-label="${t('mapping')}"><ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon><span class="alarm-summary" data-alarm-summary></span></summary>
+      <div class="alarm-disclosure-body">
       <div class="alarm-tools">
         <label class="alarm-search"><span class="alarm-sr-only">${t('search')}</span><ha-icon icon="mdi:magnify"></ha-icon><input type="search" data-alarm-search placeholder="${t('search')}"></label>
         <label><span class="alarm-sr-only">${t('filter')}</span><select data-alarm-filter><option value="all">${t('filter_all')}</option><option value="included">${t('included')}</option><option value="excluded">${t('excluded')}</option></select></label>
@@ -567,6 +569,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
         <div class="alarm-empty" data-alarm-empty></div>
       </div>
       <div class="alarm-pagination"><span data-alarm-page-info></span><div><button type="button" class="alarm-button" data-alarm-prev>${t('previous')}</button><button type="button" class="alarm-button" data-alarm-next>${t('next')}</button></div></div>
+      </div>
+      </details>
       <input type="hidden" name="alarms">
     </fieldset>`;
   }
@@ -613,7 +617,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
       let updated=0;
       for(const row of imported){if(merged.has(canonical(row.address)))updated++;merged.set(canonical(row.address),row);}
       if(merged.size>8192||imported.some(row=>row.description.length>255))throw Error('csv');
-      values=[...merged.values()];resetView();sync();render();notice(error,'');
+      values=[...merged.values()];resetView();sync();render();find('[data-alarm-disclosure]').open=true;notice(error,'');
       notice(status,`${source?`${source} — `:''}${t('import_result',{total:imported.length,added:imported.length-updated,updated})}`);
     };
     find('[data-alarm-example]').onclick=()=>this.downloadAlarmExample();
@@ -640,16 +644,16 @@ class S7PlcConfigurationPanel extends HTMLElement {
       try{importText(paste.value);}catch{notice(status,'');notice(error,t('invalid_import'));}
     };
     find('[data-alarm-add]').onclick=()=>{
-      resetView();values.push({address:'',description:'',enabled:true});page=Math.floor((values.length-1)/pageSize);sync();render();
+      resetView();values.push({address:'',description:'',enabled:true});page=Math.floor((values.length-1)/pageSize);sync();render();find('[data-alarm-disclosure]').open=true;
       rows.lastElementChild.querySelector('[data-address]').focus();
     };
     search.oninput=()=>{page=0;render();};filter.onchange=()=>{page=0;render();};
     find('[data-alarm-prev]').onclick=()=>{page--;render();};find('[data-alarm-next]').onclick=()=>{page++;render();};
-    // A required input may be on another page: reveal it before HTML validation.
+    // A required input may be collapsed or on another page: reveal it before HTML validation.
     form.revealInvalidAlarmRow=()=>{
       if(loading)throw Error(t('loading'));
       const index=values.findIndex(row=>!row.address.trim()||row.description.length>255);
-      if(index>=0){resetView();page=Math.floor(index/pageSize);render();}
+      if(index>=0){resetView();page=Math.floor(index/pageSize);render();find('[data-alarm-disclosure]').open=true;}
     };
     sync();render();
   }
@@ -992,6 +996,13 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .alarm-editor .alarm-summary{display:flex;flex-wrap:wrap;gap:8px;font-size:12px}
 .alarm-editor .alarm-summary>span{display:flex;align-items:baseline;gap:7px;padding:7px 11px;border-radius:8px;background:var(--secondary-background-color);color:var(--secondary-text-color)}
 .alarm-editor .alarm-summary b{font-size:17px;color:var(--primary-text-color);font-variant-numeric:tabular-nums}
+.alarm-editor .alarm-disclosure{min-width:0;border:1px solid var(--divider-color);border-radius:10px}
+.alarm-editor .alarm-disclosure>summary{display:flex;align-items:center;gap:8px;padding:10px;cursor:pointer;list-style:none}
+.alarm-editor .alarm-disclosure>summary::-webkit-details-marker{display:none}
+.alarm-editor .alarm-disclosure>summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px;border-radius:10px}
+.alarm-editor .alarm-disclosure>summary>ha-icon{color:var(--primary-color);transition:transform .15s}
+.alarm-editor .alarm-disclosure[open]>summary>ha-icon{transform:rotate(90deg)}
+.alarm-editor .alarm-disclosure-body{display:flex;flex-direction:column;gap:14px;min-width:0;padding:0 10px 10px}
 .alarm-editor .alarm-tools{display:grid;grid-template-columns:minmax(120px,1fr) 145px auto;align-items:center;gap:8px}
 .alarm-editor .alarm-search,.alarm-editor .alarm-tools>label,.alarm-editor .alarm-row>label{position:relative}
 .alarm-editor .alarm-search>ha-icon{position:absolute;left:11px;top:11px;color:var(--secondary-text-color);pointer-events:none}
