@@ -40,6 +40,10 @@ describe("compact panel header", () => {
     expect(selector).not.toBeNull();
     expect(selector.getAttribute("aria-label")).toBe("Select PLC");
     expect(panel.querySelectorAll("[data-entry-selector]")).toHaveLength(1);
+    const switcher = panel.querySelector(".plc-switcher.multiple");
+    expect(switcher.title).toBe("Select PLC");
+    expect(switcher.querySelector(".plc-count").textContent).toBe("1/2");
+    expect(switcher.querySelector('ha-icon[icon="mdi:unfold-more-horizontal"]')).not.toBeNull();
   });
 
   test("shows the current uptime in the connection badge", () => {

@@ -34,7 +34,8 @@ def test_panel_action_controls_share_height_and_normalize_only_plc_selects() -> 
     assert "opacity:0;cursor:pointer" in styles
     assert not re.search(r"(?:^|})select\{[^}]*appearance:none", styles)
     assert ".config-yaml{display:flex;align-items:center" in styles
-    assert '<span class="plc-switcher multiple">${title}' in source
+    assert '<span class="plc-switcher multiple" title="${this.t(\'common.select_plc\')}">' in source
+    assert '<span class="plc-count" aria-hidden="true">${position}/${this.entries.length}</span>' in source
     assert "if(this.entries.length<2)return" in source
 
 
