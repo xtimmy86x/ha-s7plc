@@ -142,15 +142,16 @@ describe("panel global add action", () => {
     let actions = panel.querySelector(".toolbar .toolbar-actions");
 
     expect([...actions.children].map((node) => node.matches(
-      "[data-layout-toggle], [data-batch-delete], [data-add]",
-    ))).toEqual([true, true, true]);
+      "[data-layout-toggle], .density-toggle, [data-selection-toggle], [data-add]",
+    ))).toEqual([true, true, true, true]);
+    expect(actions.lastElementChild.textContent).toContain("Add sensor");
     expect(actions.lastElementChild.matches('[data-add="sensors"]')).toBe(true);
 
     panel.querySelector("[data-layout-toggle]").click();
     actions = panel.querySelector(".sections-toolbar .toolbar-actions");
     expect([...actions.children].map((node) => node.matches(
-      "[data-layout-toggle], [data-batch-delete-global], [data-global-add], [data-add-type-menu]",
-    ))).toEqual([true, true, true, true]);
+      "[data-layout-toggle], .density-toggle, [data-selection-toggle], [data-global-add], [data-add-type-menu]",
+    ))).toEqual([true, true, true, true, true]);
     expect(actions.querySelector("[data-global-add]").nextElementSibling)
       .toBe(actions.querySelector("[data-add-type-menu]"));
   });

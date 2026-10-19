@@ -69,6 +69,7 @@ export function evaluatePanelSource() {
       CLIMATE_UI_FROM_ENTITY,
       CLEAN_CLIMATE_ENTITY,
       VALUE_CHANNEL_SPECS,
+      STATE_TONE,
     };`);
 }
 
