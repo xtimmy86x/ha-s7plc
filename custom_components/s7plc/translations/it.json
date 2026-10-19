@@ -1418,12 +1418,12 @@
       "hidden_properties": "{count} altre proprietà"
     },
     "alarms": {
-      "mapping": "Descrizioni ed esclusioni",
+      "mapping": "Elenco allarmi",
       "help": "I bit senza una riga sono inclusi e mostrati con il loro indirizzo. Disabilita una riga per escludere il bit.",
-      "add": "Aggiungi descrizione",
+      "add": "Aggiungi riga",
       "import": "Importa CSV o incolla da Excel",
       "format": "Colonne: address;description;enabled (1 o 0, opzionale). Intestazione opzionale. Separatore punto e virgola, tabulazione o virgola (con indirizzi tra virgolette). Le righe importate aggiornano quelle con lo stesso indirizzo.",
-      "paste": "Incolla tabella",
+      "paste": "Incolla da Excel",
       "apply": "Importa righe",
       "address": "Indirizzo",
       "description": "Descrizione",
@@ -1432,7 +1432,22 @@
       "unavailable": "Dati non disponibili",
       "clear": "Nessun allarme attivo",
       "active": "Allarmi attivi",
-      "download_example": "Scarica CSV di esempio"
+      "download_example": "Scarica CSV di esempio",
+      "upload": "Carica CSV",
+      "import_help": "Selezionando un file, le righe vengono importate nell’elenco. Gli indirizzi già presenti vengono aggiornati. Premi Salva per confermare le modifiche.",
+      "configured": "righe configurate",
+      "included": "Incluse",
+      "excluded": "Escluse",
+      "search": "Cerca indirizzo o descrizione",
+      "filter": "Filtra righe",
+      "filter_all": "Tutte le righe",
+      "previous": "Precedente",
+      "next": "Successiva",
+      "page_info": "{first}–{last} di {total} righe",
+      "empty": "Nessuna descrizione configurata. Carica un CSV, incolla una tabella oppure aggiungi una riga.",
+      "no_results": "Nessuna riga corrisponde alla ricerca o al filtro.",
+      "loading": "Lettura del file…",
+      "import_result": "Importate {total} righe: {added} nuove, {updated} aggiornate. Premi Salva per confermare le modifiche."
     }
   },
   "selector": {

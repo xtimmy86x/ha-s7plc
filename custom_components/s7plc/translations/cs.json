@@ -1418,12 +1418,12 @@
       "hidden_properties": "{count} další vlastnosti"
     },
     "alarms": {
-      "mapping": "Descriptions and exclusions",
+      "mapping": "Seznam alarmů",
       "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
-      "add": "Add description",
+      "add": "Přidat řádek",
       "import": "Import CSV or paste from Excel",
       "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
-      "paste": "Paste table",
+      "paste": "Vložit z Excelu",
       "apply": "Import rows",
       "address": "Address",
       "description": "Description",
@@ -1432,7 +1432,22 @@
       "unavailable": "Data unavailable",
       "clear": "No active alarms",
       "active": "Active alarms",
-      "download_example": "Stáhnout ukázkové CSV"
+      "download_example": "Stáhnout ukázkové CSV",
+      "upload": "Načíst CSV",
+      "import_help": "Výběrem souboru se řádky importují do seznamu. Existující adresy se aktualizují. Změny potvrďte tlačítkem Uložit.",
+      "configured": "nakonfigurované řádky",
+      "included": "Zahrnuté",
+      "excluded": "Vyloučené",
+      "search": "Hledat adresu nebo popis",
+      "filter": "Filtrovat řádky",
+      "filter_all": "Všechny řádky",
+      "previous": "Předchozí",
+      "next": "Další",
+      "page_info": "{first}–{last} z {total} řádků",
+      "empty": "Nejsou nakonfigurovány popisy. Načtěte CSV, vložte tabulku nebo přidejte řádek.",
+      "no_results": "Žádné řádky neodpovídají hledání nebo filtru.",
+      "loading": "Načítání souboru…",
+      "import_result": "Importováno {total} řádků: {added} přidáno, {updated} aktualizováno. Změny potvrďte tlačítkem Uložit."
     }
   },
   "selector": {
