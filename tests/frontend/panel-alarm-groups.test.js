@@ -103,3 +103,91 @@ test('CSV parser canonicalizes shorthand and rejects duplicate or unclosed rows'
   expect(() => PARSE_ALARM_CSV('"DB1,X0.0","bad')).toThrow();
   expect(() => PARSE_ALARM_CSV('DB1,X0.9;A')).toThrow();
 });
+
+test('file selection imports directly with result and totals, without saving', async () => {
+  const { panel, form } = open();
+  panel._hass.callWS = vi.fn();
+  const input = form.querySelector('[data-alarm-file]');
+  await input.onchange({ target: { files: [{ name: 'alarms.csv', size: 100, text: async () => 'DB1,X0.0;Updated;0\nDB1,X0.1;Pump;1' }] } });
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(2);
+  expect(form.querySelector('[data-alarm-status]').textContent).toContain('2 rows: 1 added, 1 updated');
+  expect(form.querySelector('[data-alarm-status]').hidden).toBe(false);
+  expect(form.querySelector('[data-alarm-summary]').textContent).toContain('2 configured rows');
+  expect(form.querySelector('[data-alarm-summary]').textContent).toContain('1 Excluded');
+  expect(panel._hass.callWS).not.toHaveBeenCalled();
+  expect(original.alarms[0].description).toBe('Motor');
+});
+
+test('large imports keep off-page rows and edits across search, filter and pages', () => {
+  const { panel, form } = open({ ...original, alarms: [] });
+  const csv = Array.from({ length: 970 }, (_, i) => `DB1,X${Math.floor(i / 8)}.${i % 8};Alarm ${i};${i % 2}`).join('\n');
+  form.querySelector('[data-alarm-paste]').value = csv;
+  form.querySelector('[data-alarm-import]').click();
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(50);
+  expect(form.querySelector('[data-alarm-page-info]').textContent).toBe('1–50 of 970 rows');
+  form.querySelector('[data-alarm-next]').click();
+  const row = form.querySelector('[data-alarm-rows]').firstElementChild;
+  row.querySelector('[data-description]').value = 'Edited motor';
+  row.dispatchEvent(new Event('input', { bubbles: true }));
+  const search = form.querySelector('[data-alarm-search]');
+  search.value = 'edited MOTOR'; search.dispatchEvent(new Event('input'));
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(1);
+  const filter = form.querySelector('[data-alarm-filter]');
+  filter.value = 'included'; filter.dispatchEvent(new Event('change'));
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(0);
+  expect(form.querySelector('[data-alarm-empty]').textContent).toContain('No rows match');
+  filter.value = 'excluded'; filter.dispatchEvent(new Event('change'));
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(1);
+  const saved = panel.formEntity(form, original, 'alarm_groups');
+  expect(saved.alarms).toHaveLength(970);
+  expect(saved.alarms[50].description).toBe('Edited motor');
+  form.querySelector('[data-remove]').click();
+  expect(panel.formEntity(form, original, 'alarm_groups').alarms).toHaveLength(969);
+});
+
+test('paste area opens accessibly and imports without exposing markup', () => {
+  const { form } = open();
+  const toggle = form.querySelector('[data-alarm-paste-toggle]');
+  expect(form.querySelector('[data-alarm-paste-box]').hidden).toBe(true);
+  toggle.click();
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  expect(document.activeElement).toBe(form.querySelector('[data-alarm-paste]'));
+  form.querySelector('[data-alarm-paste]').value = 'DB1,X0.0;<img src=x onerror=alert(1)>;1';
+  form.querySelector('[data-alarm-import]').click();
+  expect(form.querySelector('[data-description]').value).toBe('<img src=x onerror=alert(1)>');
+  expect(form.querySelector('[data-alarm-rows] img')).toBeNull();
+});
+
+test.each(['invalid', 'oversized', 'too long', 'read error'])('failed file import preserves list and reports %s', async reason => {
+  const { panel, form } = open();
+  const file = { name: 'bad.csv', size: reason === 'oversized' ? 3 * 1024 * 1024 : 100, text: async () => {
+    if (reason === 'read error') throw Error('read');
+    return reason === 'too long' ? `DB1,X0.1;${'x'.repeat(256)};1` : 'not csv';
+  } };
+  await form.querySelector('[data-alarm-file]').onchange({ target: { files: [file] } });
+  expect(form.querySelector('[data-alarm-error]').hidden).toBe(false);
+  expect(form.querySelector('[data-alarm-status]').hidden).toBe(true);
+  expect(panel.formEntity(form, original, 'alarm_groups').alarms).toEqual(original.alarms);
+});
+
+test('latest file selection wins and save is blocked during reading', async () => {
+  const { panel, form } = open();
+  let resolve;
+  const input = form.querySelector('[data-alarm-file]');
+  const first = input.onchange({ target: { files: [{ size: 10, text: () => new Promise(done => { resolve = done; }) }] } });
+  expect(() => panel.formEntity(form, original, 'alarm_groups')).toThrow('Reading file');
+  await input.onchange({ target: { files: [{ size: 10, text: async () => 'DB1,X0.0;Second file;1' }] } });
+  resolve('DB1,X0.0;Stale file;1'); await first;
+  expect(panel.formEntity(form, original, 'alarm_groups').alarms[0].description).toBe('Second file');
+});
+
+test('saving reveals an incomplete row hidden by a search', () => {
+  const { panel, form } = open();
+  form.querySelector('[data-alarm-add]').click();
+  const search = form.querySelector('[data-alarm-search]');
+  search.value = 'Motor'; search.dispatchEvent(new Event('input'));
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(1);
+  expect(() => panel.formEntity(form, original, 'alarm_groups')).toThrow();
+  expect(search.value).toBe('');
+  expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(2);
+});

@@ -1418,12 +1418,12 @@
       "hidden_properties": "{count} dodatkowe właściwości"
     },
     "alarms": {
-      "mapping": "Descriptions and exclusions",
+      "mapping": "Lista alarmów",
       "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
-      "add": "Add description",
+      "add": "Dodaj wiersz",
       "import": "Import CSV or paste from Excel",
       "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
-      "paste": "Paste table",
+      "paste": "Wklej z Excela",
       "apply": "Import rows",
       "address": "Address",
       "description": "Description",
@@ -1432,7 +1432,22 @@
       "unavailable": "Data unavailable",
       "clear": "No active alarms",
       "active": "Active alarms",
-      "download_example": "Pobierz przykładowy CSV"
+      "download_example": "Pobierz przykładowy CSV",
+      "upload": "Wczytaj CSV",
+      "import_help": "Wybranie pliku importuje wiersze do listy. Istniejące adresy są aktualizowane. Kliknij Zapisz, aby zachować zmiany.",
+      "configured": "skonfigurowane wiersze",
+      "included": "Uwzględnione",
+      "excluded": "Wykluczone",
+      "search": "Szukaj adresu lub opisu",
+      "filter": "Filtruj wiersze",
+      "filter_all": "Wszystkie wiersze",
+      "previous": "Poprzednia",
+      "next": "Następna",
+      "page_info": "{first}–{last} z {total} wierszy",
+      "empty": "Brak opisów. Wczytaj CSV, wklej tabelę lub dodaj wiersz.",
+      "no_results": "Brak wierszy pasujących do wyszukiwania lub filtra.",
+      "loading": "Odczytywanie pliku…",
+      "import_result": "Zaimportowano {total} wierszy: dodano {added}, zaktualizowano {updated}. Kliknij Zapisz, aby zachować zmiany."
     }
   },
   "selector": {

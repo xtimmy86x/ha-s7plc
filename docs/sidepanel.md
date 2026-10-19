@@ -229,16 +229,24 @@ Both endpoints must be in the same area, so a range cannot mix `M` and `DB`
 addresses. Description and exclusion rows must use addresses in that same area
 (for example `M8.1`). Input and output areas are not supported.
 
-All bits are included initially. In **Descriptions and exclusions**, add rows
+All bits are included initially. In **Alarm list**, add rows
 only for descriptions you want to customize or bits you want to exclude.
 Uncheck **Included** for reserved/unused bits. Bits without a description use
 their PLC address. Excluded bits affect neither the count nor the presence sensor.
 
-Open **Import CSV or paste from Excel** and choose **Download example CSV**
+Choose **Download example CSV** in the alarm list
 for a ready-to-edit file with two included alarms and one excluded bit. The
 example uses DB1 bits 0.0–0.2; adjust its addresses to your configured range.
 
-Import a CSV file or paste a table copied from Excel. Columns are `address`,
+Choose **Upload CSV** to read a file directly into the list, or open **Paste from
+Excel**, paste a table, and press **Import rows**. A message confirms the imported,
+added and updated row counts. The summary counts configured, included and excluded
+rows (not currently active PLC alarms). Review them with address/description search,
+the inclusion filter and 50-row pages. Editing or deleting a visible row preserves
+rows on other pages. **Save** commits the whole list; cancelling discards the edits.
+An invalid import preserves the existing list.
+
+Columns are `address`,
 `description`, and optional `enabled` (`1`/`true` to include, `0`/`false` to exclude).
 The English column header is optional. Semicolon CSV and tab-separated text allow
 unquoted PLC addresses; comma-separated CSV requires quoting the address because

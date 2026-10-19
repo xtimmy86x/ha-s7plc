@@ -1418,12 +1418,12 @@
       "hidden_properties": "{count} weitere Eigenschaften"
     },
     "alarms": {
-      "mapping": "Descriptions and exclusions",
+      "mapping": "Alarmliste",
       "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
-      "add": "Add description",
+      "add": "Zeile hinzufügen",
       "import": "Import CSV or paste from Excel",
       "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
-      "paste": "Paste table",
+      "paste": "Aus Excel einfügen",
       "apply": "Import rows",
       "address": "Address",
       "description": "Description",
@@ -1432,7 +1432,22 @@
       "unavailable": "Data unavailable",
       "clear": "No active alarms",
       "active": "Active alarms",
-      "download_example": "Beispiel-CSV herunterladen"
+      "download_example": "Beispiel-CSV herunterladen",
+      "upload": "CSV laden",
+      "import_help": "Die Dateiauswahl importiert die Zeilen in die Liste. Vorhandene Adressen werden aktualisiert. Änderungen mit Speichern übernehmen.",
+      "configured": "konfigurierte Zeilen",
+      "included": "Einbezogen",
+      "excluded": "Ausgeschlossen",
+      "search": "Adresse oder Beschreibung suchen",
+      "filter": "Zeilen filtern",
+      "filter_all": "Alle Zeilen",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "page_info": "{first}–{last} von {total} Zeilen",
+      "empty": "Keine Beschreibungen konfiguriert. CSV laden, Tabelle einfügen oder eine Zeile hinzufügen.",
+      "no_results": "Keine Zeilen entsprechen der Suche oder dem Filter.",
+      "loading": "Datei wird gelesen…",
+      "import_result": "{total} Zeilen importiert: {added} hinzugefügt, {updated} aktualisiert. Änderungen mit Speichern übernehmen."
     }
   },
   "selector": {

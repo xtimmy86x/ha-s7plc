@@ -1418,12 +1418,12 @@
       "hidden_properties": "{count} more properties"
     },
     "alarms": {
-      "mapping": "Descriptions and exclusions",
+      "mapping": "Alarm list",
       "help": "Bits without a row are included and displayed by address. Disable a row to exclude its bit.",
-      "add": "Add description",
+      "add": "Add row",
       "import": "Import CSV or paste from Excel",
       "format": "Columns: address;description;enabled (optional 1 or 0). Optional header. Use semicolons, tabs, or commas (with quoted addresses). Imported rows update matching addresses.",
-      "paste": "Paste table",
+      "paste": "Paste from Excel",
       "apply": "Import rows",
       "address": "Address",
       "description": "Description",
@@ -1432,7 +1432,22 @@
       "unavailable": "Data unavailable",
       "clear": "No active alarms",
       "active": "Active alarms",
-      "download_example": "Download example CSV"
+      "download_example": "Download example CSV",
+      "upload": "Upload CSV",
+      "import_help": "Selecting a file imports it into the list. Matching addresses are updated. Press Save to keep your changes.",
+      "configured": "configured rows",
+      "included": "Included",
+      "excluded": "Excluded",
+      "search": "Search address or description",
+      "filter": "Filter rows",
+      "filter_all": "All rows",
+      "previous": "Previous",
+      "next": "Next",
+      "page_info": "{first}–{last} of {total} rows",
+      "empty": "No descriptions configured. Upload a CSV, paste a table or add a row.",
+      "no_results": "No rows match your search or filter.",
+      "loading": "Reading file…",
+      "import_result": "Imported {total} rows: {added} added, {updated} updated. Press Save to keep your changes."
     }
   },
   "selector": {
