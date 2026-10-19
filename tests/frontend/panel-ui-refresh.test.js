@@ -28,8 +28,11 @@ describe("compact panel header", () => {
 
     expect(panel.querySelector(".summary .plc-title b").textContent).toBe("CPU1211");
     expect(panel.querySelector("[data-entry-selector]")).toBeNull();
+    const header = panel.querySelector(".page > header.summary.hero-summary");
+    expect(header).not.toBeNull();
+    expect(header.style.getPropertyValue("--s7plc-banner")).toContain("/s7plc_static/s7plc-header.png");
     expect(panel.querySelector(".hero-banner")).toBeNull();
-    expect(panel.querySelector(".summary .brand-logo img")).not.toBeNull();
+    expect(header.querySelector(".plc-status .connection-badge + .plc-meta")).not.toBeNull();
 
     panel.entries = [entry, createEntry({ entry_id: "second-plc", title: "CPU1511" })];
     panel.render();
@@ -58,7 +61,7 @@ describe("compact panel header", () => {
 
     expect(menu.hidden).toBe(true);
     expect(menu.querySelector("[data-default-address-mode]")).not.toBeNull();
-    expect(menu.querySelector(".project-badge")).not.toBeNull();
+    expect(menu.querySelector(".settings-footer .project-badge")).not.toBeNull();
     expect(panel.querySelector(".page > .default-address-mode")).toBeNull();
 
     toggle.click();

@@ -100,8 +100,10 @@ def test_project_badge_styles_and_translations() -> None:
     """DOM tests cover the link and version; keep CSS and catalog checks here."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
-    assert ".project-badge:focus-visible{outline:2px solid var(--primary-color)" in styles
+    assert ".project-badge:focus-visible{outline:2px solid #fff" in styles
+    assert ".project-badge{right:7px;bottom:7px;gap:4px" in styles
     assert '<div class="settings-footer">${this.projectBadge()}</div>' in source
+    assert ".settings-footer .project-badge{position:static" in styles
 
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
@@ -1009,7 +1011,7 @@ def test_panel_provides_mobile_navigation() -> None:
     assert "set narrow(value)" in source
     assert "b.hass=this._hass;b.narrow=this._narrow" in source
     # The menu button lives in the sticky header and in the empty render state.
-    assert '<header class="summary">${this.menuButton()}' in source
+    assert '<header class="summary hero-summary" style="${this.bannerStyle()}">${this.menuButton()}' in source
     assert '${this.menuButton()}</div><div class="loading">' in source
     assert (
         '<div class="mobile-controls">${this.menuButton()}</div>${this.banner()}'
@@ -1914,12 +1916,21 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
         "@media(min-width:651px) and (max-width:900px){", 1
     )[1].split("@media(max-width:480px)", 1)[0]
 
-    assert ".hero-banner" not in page_styles
-    assert ".brand-logo{flex:0 0 auto;width:150px;height:46px" in page_styles
-    assert ".brand-logo img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
+    assert ".hero-banner{position:relative;width:100%;height:150px" in page_styles
+    assert ".hero-banner img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
+    assert '<div class="page"><header class="summary hero-summary" style="${this.bannerStyle()}">' in source
+    assert ".hero-summary{min-height:120px;" in page_styles
+    assert "var(--s7plc-banner) center/cover no-repeat" in page_styles
     assert ".summary{position:relative;display:flex;align-items:center;gap:14px;margin:0 0 14px" in page_styles
     assert ".summary{position:sticky;top:0;z-index:30" in mobile_styles
-    assert ".brand-logo{display:none}" in mobile_styles
+    assert ".hero-summary{min-height:0;" in mobile_styles
+    assert ".hero-banner{height:80px;" in mobile_styles
+    assert ".hero-banner{height:clamp(80px,calc(42.5px + 7.5vw),110px)" in intermediate_styles
+    assert (
+        "@media(min-width:901px) and (max-width:1199px){"
+        ".hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}"
+        in page_styles
+    )
     assert ".toolbar,.sections-toolbar{align-items:stretch;flex-direction:column;gap:8px}" in intermediate_styles
     assert (
         ".category-heading,.sections-toolbar>div:first-child,.entity-search{"
