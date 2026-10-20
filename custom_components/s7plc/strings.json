@@ -1356,7 +1356,8 @@
       "vm_offset": "VM offset",
       "not_configured": "Not configured",
       "use_builder": "Use builder",
-      "type_manually": "Type manually"
+      "type_manually": "Type manually",
+      "duplicate": "Also used by: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
@@ -1490,6 +1491,12 @@
       "select": "Select",
       "done": "Done",
       "count": "{count} selected"
+    },
+    "unsaved_changes": {
+      "title": "Unsaved changes",
+      "message": "You have unsaved changes. Leave without saving?",
+      "keep_editing": "Keep editing",
+      "discard": "Discard changes"
     }
   },
   "selector": {

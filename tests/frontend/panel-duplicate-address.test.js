@@ -38,6 +38,26 @@ describe("duplicate address warning", () => {
     expect(note("address").hidden).toBe(true);
   });
 
+  test("preserves duplicate warnings when switching cover control modes", async () => {
+    const entry = createEntry();
+    entry.entities.covers = [{ name: "Blind", open_command_address: "DB1,X8.0", close_command_address: "DB1,X9.0", operate_time: 20 }];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "covers");
+    const field = form().querySelector('[data-field="open_command_address"]');
+    expect(note("open_command_address").textContent).toBe("Also used by: Circulation pump");
+    for (const mode of ["toggle", "traditional"]) {
+      form().querySelector(`[name="cover_control_mode"][value="${mode}"]`).click();
+      await flush();
+      expect(note("open_command_address").textContent).toBe("Also used by: Circulation pump");
+      expect(field.querySelector(".address-help").textContent).toBe(
+        panel.fieldText("covers", "open_command_address", mode === "toggle" ? "description_toggle" : "description"),
+      );
+    }
+    typeAddress("open_command_address", "DB1,X10.0");
+    await flush();
+    expect(note("open_command_address").hidden).toBe(true);
+  });
+
   test("ignores the entity being edited", () => {
     const panel = createPanel();
     panel.openEditor(0, "switches");

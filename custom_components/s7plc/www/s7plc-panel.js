@@ -742,7 +742,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   const openAddressField=form.querySelector('[data-field="open_command_address"]');
   if(openAddressField){
   openAddressField.querySelector('.label-text').textContent=this.fieldText(type,'open_command_address',control==='toggle'?'label_toggle':'label');
-  const openAddressHelp=openAddressField.querySelector('small');
+  const openAddressHelp=openAddressField.querySelector('.address-help');
   if(openAddressHelp)openAddressHelp.textContent=this.fieldText(type,'open_command_address',control==='toggle'?'description_toggle':'description');
   }
   const setRequired=(key,isRequired)=>{const el=form.querySelector(`[data-field="${key}"]`);if(!el)return;const input=el.querySelector('input,select');if(input)input.required=isRequired;const badge=el.querySelector('em');if(badge)badge.hidden=!isRequired;};

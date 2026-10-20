@@ -1753,6 +1753,7 @@ def test_italian_address_builder_is_translated() -> None:
         "not_configured": "Non configurato",
         "use_builder": "Usa il costruttore",
         "type_manually": "Scrivi manualmente",
+        "duplicate": "Usato anche da: {entities}",
     }
 
 
