@@ -1212,6 +1212,12 @@
       "duplicate": "Duplicate entity",
       "more_actions": "More actions"
     },
+    "unsaved_changes": {
+      "title": "Unsaved changes",
+      "message": "You have unsaved changes. Leave without saving?",
+      "keep_editing": "Keep editing",
+      "discard": "Discard changes"
+    },
     "errors": {
       "required_error": "Fill in all required fields.",
       "cover_required_error": "Enter the required addresses for the selected cover type.",

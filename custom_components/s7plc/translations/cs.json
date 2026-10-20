@@ -1212,6 +1212,12 @@
       "duplicate": "Duplikovat entitu",
       "more_actions": "Další akce"
     },
+    "unsaved_changes": {
+      "title": "Neuložené změny",
+      "message": "Máte neuložené změny. Odejít bez uložení?",
+      "keep_editing": "Pokračovat v úpravách",
+      "discard": "Zahodit změny"
+    },
     "errors": {
       "required_error": "Vyplňte všechna povinná pole.",
       "cover_required_error": "Zadejte povinné adresy pro vybraný typ krytu.",

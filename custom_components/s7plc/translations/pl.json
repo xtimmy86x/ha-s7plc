@@ -1212,6 +1212,12 @@
       "duplicate": "Duplikuj encję",
       "more_actions": "Więcej działań"
     },
+    "unsaved_changes": {
+      "title": "Niezapisane zmiany",
+      "message": "Masz niezapisane zmiany. Wyjść bez zapisywania?",
+      "keep_editing": "Kontynuuj edycję",
+      "discard": "Odrzuć zmiany"
+    },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",
       "cover_required_error": "Wprowadź wymagane adresy dla wybranego typu osłony.",

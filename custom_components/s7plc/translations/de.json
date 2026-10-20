@@ -1212,6 +1212,12 @@
       "duplicate": "Entität duplizieren",
       "more_actions": "Weitere Aktionen"
     },
+    "unsaved_changes": {
+      "title": "Nicht gespeicherte Änderungen",
+      "message": "Sie haben nicht gespeicherte Änderungen. Ohne Speichern verlassen?",
+      "keep_editing": "Weiter bearbeiten",
+      "discard": "Änderungen verwerfen"
+    },
     "errors": {
       "required_error": "Füllen Sie alle erforderlichen Felder aus.",
       "cover_required_error": "Geben Sie die erforderlichen Adressen für den gewählten Abdeckungstyp ein.",

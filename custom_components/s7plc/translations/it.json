@@ -1212,6 +1212,12 @@
       "duplicate": "Duplica entità",
       "more_actions": "Altre azioni"
     },
+    "unsaved_changes": {
+      "title": "Modifiche non salvate",
+      "message": "Hai modifiche non salvate. Vuoi uscire senza salvare?",
+      "keep_editing": "Continua a modificare",
+      "discard": "Annulla modifiche"
+    },
     "errors": {
       "required_error": "Compila tutti i campi obbligatori.",
       "cover_required_error": "Inserisci gli indirizzi obbligatori per il tipo di tapparella scelto.",
