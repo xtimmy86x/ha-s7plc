@@ -195,8 +195,26 @@ changing an address does not create a new Home Assistant entity identity.
 4. Fill in the form (**Visual**) or switch to **YAML** for advanced editing.
 5. Choose **Save changes**.
 
-Saving updates the selected config entry and Home Assistant reloads the
-integration automatically. The page then refreshes its cards and live states.
+Saving updates the selected config entry. The following edits apply immediately
+without reloading the integration or reconnecting to the PLC:
+
+| Entity | Settings applied live |
+|---|---|
+| Sensors and numbers | Numeric value conversion (including multiplier), scan interval, REAL precision |
+| Numbers | Minimum, maximum, step and display mode (auto, box or slider) |
+| All entity types | Area assignment |
+
+Numeric conversions recalculate the cached PLC sample immediately. Number writes
+use the new conversion from the next command; saving does not write to the PLC.
+REAL precision takes effect on the next reading. A manually disabled PLC
+connection stays disabled.
+
+Adding or deleting entities, changing PLC addresses or connection settings,
+changing enum mappings, and edits outside the table still reload the entry.
+Changes to disabled entities also use the reload path, except for area assignment.
+If a save combines live and structural edits, the entire save uses one reload.
+These rules also apply to whole-configuration YAML saves. The page refreshes its
+cards and live states after saving.
 
 If you close the editor (**Cancel**, <kbd>Esc</kbd> or a click outside the
 dialog) after changing something, the panel asks whether to **Keep editing** or
@@ -373,6 +391,12 @@ generated. The YAML document backs up entities only, not connection settings.
 
 Use **Delete** in the card's <kbd>⋮</kbd> menu, or select several cards and use
 **Delete selected**. Confirm the dialog to remove them.
+
+The panel sends the complete selection as one request, using permanent entity
+identities. The backend validates the entire selection before saving once and
+reloading once, including selections across categories. If an entity in the
+selection no longer exists, nothing is deleted: close the dialog, refresh and
+select again. Other errors remain visible in the dialog and can be retried.
 
 > [!CAUTION]
 > Deletion is immediate and cannot be undone. Export the configuration first if

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import uuid
 from collections.abc import Iterator, Mapping, MutableMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
@@ -210,6 +211,9 @@ class RuntimeEntryData:
     host: str
     device_id: str
     connection_state_store: Any | None = None
+    applied_data: dict[str, Any] | None = None
+    applied_options: dict[str, Any] | None = None
+    config_update_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 def get_coordinator_and_device_info(

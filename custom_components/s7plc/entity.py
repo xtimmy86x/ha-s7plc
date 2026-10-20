@@ -49,6 +49,7 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
     _attr_has_entity_name = True
     _address_attr_name: str = "s7_address"
     _restore_topic_suffixes: tuple[str, ...] = ()
+    _live_config_fields = frozenset({"area"})
 
     def __init__(
         self,
@@ -154,6 +155,14 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
+        entities = self.coordinator.config_entities
+        entities[self._attr_unique_id] = self
+
+        def unregister() -> None:
+            if entities.get(self._attr_unique_id) is self:
+                entities.pop(self._attr_unique_id)
+
+        self.async_on_remove(unregister)
         if self._availability_mode != AVAILABILITY_MODE_ALWAYS:
             return
         stored = await self.async_get_last_extra_data()
@@ -219,15 +228,7 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
         self._availability_mode = item.get(
             CONF_AVAILABILITY_MODE, AVAILABILITY_MODE_CONNECTION
         )
-        # Do not reuse values after an address, conversion or entity type change.
-        identity = {
-            "type": type(self).__name__,
-            "device": sorted(self._attr_device_info.get("identifiers", ())),
-            "item": item,
-        }
-        self._restore_config = hashlib.sha256(
-            json.dumps(identity, sort_keys=True).encode()
-        ).hexdigest()
+        self._restore_config = self._config_signature(item)
         address = item.get(CONF_AVAILABILITY_ADDRESS)
         if self._availability_mode == AVAILABILITY_MODE_BIT and address:
             # UID is permanent, unlike an entity's position in the options list.
@@ -235,6 +236,29 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
             await self.coordinator.add_item(
                 self._availability_topic, address, scan_interval
             )
+
+    def _config_signature(self, item: dict[str, Any]) -> str:
+        """Do not reuse restored values after incompatible configuration changes."""
+        identity = {
+            "type": type(self).__name__,
+            "device": sorted(self._attr_device_info.get("identifiers", ())),
+            "item": item,
+        }
+        return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+    def prepare_live_config(self, item: dict, changed: set[str]) -> dict | None:
+        """Prepare attributes without side effects; None requests a full reload."""
+        if not changed <= self._live_config_fields:
+            return None
+        return {"_restore_config": self._config_signature(item)}
+
+    def apply_live_config(self, attributes: dict, *, conversion_changed: bool) -> None:
+        """Publish configuration changes without running command-sync hooks."""
+        for name, value in attributes.items():
+            setattr(self, name, value)
+        if conversion_changed:
+            self._restored_values.clear()
+        super().async_write_ha_state()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

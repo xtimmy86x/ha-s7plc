@@ -81,11 +81,11 @@ export function getPanelTestHelpers() {
 export function createEntry(overrides = {}) {
   const entities = Object.fromEntries(entityTypes.map((type) => [type, []]));
   entities.sensors = [
-    { name: "Boiler temperature", address: "DB1,R0", unit_of_measurement: "°C" },
-    { name: "Tank pressure", address: "DB1,R4", unit_of_measurement: "bar" },
+    { uid: "temperature", name: "Boiler temperature", address: "DB1,R0", unit_of_measurement: "°C" },
+    { uid: "pressure", name: "Tank pressure", address: "DB1,R4", unit_of_measurement: "bar" },
   ];
   entities.switches = [
-    { name: "Circulation pump", state_address: "DB1,X8.0", command_address: "DB1,X8.1" },
+    { uid: "pump", name: "Circulation pump", state_address: "DB1,X8.0", command_address: "DB1,X8.1" },
   ];
   return {
     entry_id: "plc-entry",

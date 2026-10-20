@@ -109,6 +109,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Address configuration: topic -> address string
         self._items: dict[str, str] = {}
+        # Only entities currently attached to HA participate in live updates.
+        self.config_entities: dict[str, Any] = {}
 
         # Read plan cache
         self._plans_batch: dict[str, TagPlan] = {}
@@ -450,6 +452,32 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._topic_read_revisions.pop(topic, None)
             self._invalidate_cache()
             self._update_min_interval_locked()
+
+    async def async_update_polling(self, settings: dict[str, dict]) -> None:
+        """Update existing channels without replacing samples or read revisions."""
+        async with self._async_lock:
+            previous_interval = self.update_interval
+            now = time.monotonic()
+            for topic, changes in settings.items():
+                if "scan_interval" in changes:
+                    interval = self._normalize_scan_interval(changes["scan_interval"])
+                    self._item_scan_intervals[topic] = interval
+                    self._item_next_read[topic] = min(
+                        self._item_next_read.get(topic, now), now + interval
+                    )
+                if "real_precision" in changes:
+                    precision = changes["real_precision"]
+                    if precision is None:
+                        self._item_real_precisions.pop(topic, None)
+                    else:
+                        self._item_real_precisions[topic] = precision
+                    self._plans_batch.clear()
+                    self._plans_str.clear()
+            self._update_min_interval_locked()
+            # HA's interval setter does not replace an already scheduled timer.
+            # Never start polling an entry that has no scheduled refresh.
+            if self.update_interval != previous_interval and self._unsub_refresh:
+                self._schedule_refresh()
 
     async def add_alarm_group(self, item: dict) -> None:
         """Register all blocks atomically with one polling deadline per group."""

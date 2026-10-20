@@ -140,35 +140,6 @@ class S7Number(S7BaseEntity, NumberEntity):
             suggested_area_id=suggested_area_id,
         )
         self._command_address = command_address
-        try:
-            self._attr_mode = NumberMode(mode)
-        except (TypeError, ValueError):
-            # Missing or invalid legacy options keep Home Assistant's AUTO mode.
-            pass
-        self._value_conversion = value_conversion
-        # Dashboard metadata describes the HA value, not just the PLC datatype.
-        writable_word = False
-        writable_byte = False
-        if command_address:
-            try:
-                tags = (parse_tag(address), parse_tag(command_address))
-                writable_word = all(
-                    tag.data_type == DataType.WORD and tag.length == 1 for tag in tags
-                )
-                writable_byte = all(
-                    tag.data_type == DataType.BYTE and tag.length == 1 for tag in tags
-                )
-            except (RuntimeError, ValueError):
-                pass
-        self._raw_word = writable_word and not value_conversion
-        self._raw_byte = writable_byte and not value_conversion
-        self._time_format = (
-            "hhmm"
-            if writable_word
-            and value_conversion
-            and value_conversion.get("type") == "logo_time_bcd"
-            else None
-        )
         self._conversion_context = ConversionContext.from_address(
             "value", command_address or address, "bidirectional"
         )
@@ -196,10 +167,58 @@ class S7Number(S7BaseEntity, NumberEntity):
         if unit_of_measurement and not self._is_time:
             self._attr_native_unit_of_measurement = unit_of_measurement
 
+        for key, value in self._value_settings(
+            min_value, max_value, step, value_conversion, mode
+        ).items():
+            setattr(self, key, value)
+
+    _live_config_fields = S7BaseEntity._live_config_fields | {
+        "value_conversions",
+        "scan_interval",
+        "real_precision",
+        "min_value",
+        "max_value",
+        "step",
+        "mode",
+    }
+
+    def _value_settings(self, min_value, max_value, step, value_conversion, mode):
+        """Build numeric metadata identically for setup and live configuration."""
+        address, command_address = self._address, self._command_address
+        attributes = {}
+        try:
+            attributes["_attr_mode"] = NumberMode(mode)
+        except (TypeError, ValueError):
+            # Missing or invalid legacy options keep Home Assistant's AUTO mode.
+            attributes["_attr_mode"] = NumberMode.AUTO
+        attributes["_value_conversion"] = value_conversion
+        # Dashboard metadata describes the HA value, not just the PLC datatype.
+        writable_word = False
+        writable_byte = False
+        if command_address:
+            try:
+                tags = (parse_tag(address), parse_tag(command_address))
+                writable_word = all(
+                    tag.data_type == DataType.WORD and tag.length == 1 for tag in tags
+                )
+                writable_byte = all(
+                    tag.data_type == DataType.BYTE and tag.length == 1 for tag in tags
+                )
+            except (RuntimeError, ValueError):
+                pass
+        attributes["_raw_word"] = writable_word and not value_conversion
+        attributes["_raw_byte"] = writable_byte and not value_conversion
+        attributes["_time_format"] = (
+            "hhmm"
+            if writable_word
+            and value_conversion
+            and value_conversion.get("type") == "logo_time_bcd"
+            else None
+        )
         # Always initialize native attributes to avoid AttributeError
-        self._attr_native_min_value = None
-        self._attr_native_max_value = None
-        self._attr_native_step = 1.0
+        attributes["_attr_native_min_value"] = None
+        attributes["_attr_native_max_value"] = None
+        attributes["_attr_native_step"] = 1.0
 
         numeric_limits: tuple[float, float] | None = None
         try:
@@ -218,19 +237,37 @@ class S7Number(S7BaseEntity, NumberEntity):
 
         # Otherwise, if available, use the native limits of the PLC data type.
         if min_value_limit is not None:
-            self._attr_native_min_value = min_value_limit
+            attributes["_attr_native_min_value"] = min_value_limit
         elif numeric_limits is not None:
-            self._attr_native_min_value = float(numeric_limits[0])
+            attributes["_attr_native_min_value"] = float(numeric_limits[0])
 
         if max_value_limit is not None:
-            self._attr_native_max_value = max_value_limit
+            attributes["_attr_native_max_value"] = max_value_limit
         elif numeric_limits is not None:
-            self._attr_native_max_value = float(numeric_limits[1])
+            attributes["_attr_native_max_value"] = float(numeric_limits[1])
 
         if step is not None:
-            self._attr_native_step = float(step)
+            attributes["_attr_native_step"] = float(step)
         elif self._is_time:
-            self._attr_native_step = 0.001
+            attributes["_attr_native_step"] = 0.001
+
+        return attributes
+
+    def prepare_live_config(self, item: dict, changed: set[str]) -> dict | None:
+        attributes = super().prepare_live_config(item, changed)
+        if attributes is None:
+            return None
+        conversion = normalize_value_conversion(item, "value", self._conversion_context)
+        attributes.update(
+            self._value_settings(
+                item.get("min_value"),
+                item.get("max_value"),
+                item.get("step"),
+                conversion,
+                item.get("mode"),
+            )
+        )
+        return attributes
 
     @property
     def native_value(self):

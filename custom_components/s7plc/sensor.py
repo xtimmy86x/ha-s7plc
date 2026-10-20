@@ -502,6 +502,26 @@ class S7AlarmCountSensor(S7AlarmEntity, SensorEntity):
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
+    _live_config_fields = S7BaseEntity._live_config_fields | {
+        "value_conversions",
+        "scan_interval",
+        "real_precision",
+    }
+
+    def prepare_live_config(self, item: dict, changed: set[str]) -> dict | None:
+        attributes = super().prepare_live_config(item, changed)
+        if attributes is None or "value_conversions" not in changed:
+            return attributes
+        conversion = normalize_value_conversion(item, "value", self._conversion_context)
+        # Enum changes also change HA device class/options; rebuild the entity.
+        if any(
+            value and value.get("type") == "enum_map"
+            for value in (self._value_conversion, conversion)
+        ):
+            return None
+        attributes["_value_conversion"] = conversion
+        return attributes
+
     _address_attr_name = "s7_state_address"
 
     def __init__(

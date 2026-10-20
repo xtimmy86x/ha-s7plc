@@ -417,6 +417,9 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
         self.coordinator = coordinator
         self.hass = getattr(coordinator, "hass", None)
         self._ha_state_calls = 0
+        self._on_remove = []
+        if not hasattr(coordinator, "config_entities"):
+            coordinator.config_entities = {}
 
     @property
     def name(self):
@@ -426,6 +429,9 @@ class CoordinatorEntity:  # pragma: no cover - simple stub
     @name.setter
     def name(self, value):
         self._attr_name = value
+
+    def async_on_remove(self, func):
+        self._on_remove.append(func)
 
     def async_write_ha_state(self):
         self._ha_state_calls += 1

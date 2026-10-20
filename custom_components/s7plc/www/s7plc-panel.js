@@ -436,6 +436,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
   this.closeSettingsMenu();
   this.closeEntityOverflow();
   const entry=this.entries.find(e=>e.entry_id===this.entryId);
+  if(this._renderedEntry&&JSON.stringify(this._renderedEntry.entities)!==JSON.stringify(entry?.entities))this.selectedIndices.clear();
+  this._renderedEntry=entry;
   if(!entry){this.innerHTML=`<style>${this.styles}</style><div class="page"><div class="mobile-controls">${this.menuButton()}</div>${this.banner()}<div class="empty"><ha-icon icon="mdi:chip"></ha-icon><h2>${this.t('common.no_plc')}</h2><p>${this.t('common.no_plc_help')}</p></div></div>`;this.syncMenuButtons();return;}
   const count=TYPES.reduce((n,t)=>n+entry.entities[t].length,0),type=this.type||TYPES[0],status=this.connectionStatus(entry),content=this._viewMode==="sections"?this._renderSectionsView(entry):this.renderTabsView(entry,type);
   this.innerHTML=`<style>${this.styles}</style><div class="page"><header class="summary hero-summary" style="${this.bannerStyle()}">${this.menuButton()}<div class="summary-info"><div class="plc-details"><span class="plc-title">${this.entrySwitcher(entry)}</span><span class="plc-status"><button type="button" class="connection-badge ${status==='connected'?'connected':status==='unknown'?'unknown':''}" title="${this.t('connection_details.help')}" aria-label="${this.connectionBadgeAriaLabel(status)}">${this.connectionBadgeContent(status,entry)}</button><span class="plc-meta">${this.escape(entry.data.host||'')} · ${count} ${this.t('common.entities')}</span></span></div></div>${this.panelActions()}</header>${count===0?`<ha-alert class="connection-on-demand" alert-type="info">${this.escape(this.t('common.connection_on_demand'))}</ha-alert>`:''}${content}</div>`;
@@ -799,40 +801,30 @@ class S7PlcConfigurationPanel extends HTMLElement {
   let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`entity_types.${detail.entity_type}.label`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
   }
   remove(indices,type=this.type||TYPES[0]){
-  const sorted=[...new Set(indices)].sort((a,b)=>b-a);
-  if(!sorted.length)return;
-  const dialog=document.createElement('ha-dialog');
-  dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
-  const confirmation=sorted.length===1?this.t('actions.delete_confirm'):this.bt('delete_selected_confirm',{count:sorted.length});
-  dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${confirmation}</div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
-  document.body.appendChild(dialog);
-  dialog.addEventListener('closed',()=>dialog.remove());
-  dialog.querySelector('[slot=secondaryAction]').onclick=()=>{dialog.open=false;};
-  dialog.querySelector('[slot=primaryAction]').onclick=async()=>{
-  dialog.open=false;
-  for(const index of sorted)await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:type,index});
-  this.selectedIndices.clear();
-  this._loaded=false;await this.load();
-  };
+  this.removeSelection({[type]:[...new Set(indices)].sort((a,b)=>b-a)});
   }
-  removeGroupedSelection(){
-  const grouped=this.groupedSelectedIndices(),count=Object.values(grouped).reduce((total,indices)=>total+indices.length,0);
-  if(!count||this._batchDeleteLoading)return;
-  const dialog=document.createElement('ha-dialog');
+  removeGroupedSelection(){this.removeSelection(this.groupedSelectedIndices());}
+  removeSelection(grouped){
+  const entry=this._renderedEntry,targets=[];
+  if(!entry||this._batchDeleteLoading)return;
+  for(const entityType of TYPES)for(const index of grouped[entityType]||[])targets.push({entity_type:entityType,uid:entry.entities[entityType][index]?.uid});
+  if(!targets.length)return;
+  const entryId=entry.entry_id,count=targets.length,dialog=document.createElement('ha-dialog');
   dialog.open=true;dialog.headerTitle=this.t('actions.delete_title');
-  dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${this.bt('delete_selected_confirm',{count})}</div><ha-alert alert-type="error" style="display:none;margin:12px 24px"></ha-alert><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
+  const confirmation=count===1?this.t('actions.delete_confirm'):this.bt('delete_selected_confirm',{count});
+  dialog.innerHTML=`<div style="padding:0 24px 8px;font-family:var(--ha-font-family-body,Roboto,sans-serif);color:var(--primary-text-color);max-width:420px">${confirmation}</div><ha-alert alert-type="error" style="display:none;margin:12px 24px"></ha-alert><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" style="--mdc-theme-primary:var(--error-color);--ha-button-accent-bg:var(--error-color)">${this.t('actions.delete')}</ha-button></ha-dialog-footer>`;
   document.body.appendChild(dialog);dialog.addEventListener('closed',()=>dialog.remove());
-  dialog.querySelector('[slot=secondaryAction]').onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
-  const deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
+  const cancelButton=dialog.querySelector('[slot=secondaryAction]'),deleteButton=dialog.querySelector('[slot=primaryAction]'),alert=dialog.querySelector('ha-alert');
+  cancelButton.onclick=()=>{if(!this._batchDeleteLoading)dialog.open=false;};
   let operationFinished=false;
   deleteButton.onclick=async()=>{
   if(this._batchDeleteLoading||operationFinished)return;
-  this._batchDeleteLoading=true;operationFinished=true;deleteButton.disabled=true;
-  let failure=null;
-  try{for(const entityType of TYPES)for(const index of grouped[entityType]||[])await this._hass.callWS({type:"s7plc/config/delete_entity",entry_id:this.entryId,entity_type:entityType,index});}
-  catch(err){failure=err;alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
-  finally{this.selectedIndices.clear();this._loaded=false;try{await this.load();}finally{this._batchDeleteLoading=false;}}
-  if(!failure)dialog.open=false;
+  this._batchDeleteLoading=true;deleteButton.disabled=true;cancelButton.disabled=true;alert.style.display='none';
+  try{
+  await this._hass.callWS({type:"s7plc/config/delete_entities",entry_id:entryId,entities:targets});
+  operationFinished=true;this.selectedIndices.clear();this._loaded=false;await this.load();dialog.open=false;
+  }catch(err){alert.textContent=`${this.t('errors.delete_entities_error')} ${err.message||String(err)}`;alert.style.display='block';}
+  finally{this._batchDeleteLoading=false;deleteButton.disabled=operationFinished;cancelButton.disabled=false;}
   };
   }
   icon(t){return({alarm_groups:'alarm-light',sensors:'gauge',binary_sensors:'checkbox-marked-circle',switches:'toggle-switch',covers:'window-shutter',lights:'lightbulb',buttons:'gesture-tap-button',numbers:'numeric',selects:'format-list-bulleted',texts:'form-textbox',climates:'thermostat',entity_sync:'sync'})[t];} escape(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;}
