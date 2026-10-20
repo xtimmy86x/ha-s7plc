@@ -275,7 +275,9 @@
       },
       "datatype_time": "TIME — doba trvání v sekundách",
       "disabled": "Připojení zakázáno",
-      "open_project_github": "Otevřít ha-s7plc na GitHubu"
+      "open_project_github": "Otevřít ha-s7plc na GitHubu",
+      "settings": "Nastavení",
+      "select_plc": "Vybrat PLC"
     },
     "sections": {
       "plc_connection": {
@@ -302,6 +304,8 @@
     "entity_types": {
       "sensors": {
         "label": "Senzory",
+        "singular": "Senzor",
+        "add": "Přidat senzor",
         "fields": {
           "address": {
             "label": "Adresa",
@@ -327,6 +331,8 @@
       },
       "binary_sensors": {
         "label": "Binární senzory",
+        "singular": "Binární senzor",
+        "add": "Přidat binární senzor",
         "fields": {
           "address": {
             "label": "Adresa",
@@ -372,6 +378,8 @@
       },
       "switches": {
         "label": "Spínače",
+        "singular": "Spínač",
+        "add": "Přidat spínač",
         "fields": {
           "control_behavior": {
             "label": "Chování ovládání",
@@ -393,6 +401,8 @@
       },
       "covers": {
         "label": "Rolety / žaluzie",
+        "singular": "Roleta / žaluzie",
+        "add": "Přidat roletu / žaluzii",
         "fields": {
           "open_command_address": {
             "label": "Adresa příkazu otevřít",
@@ -594,6 +604,8 @@
       },
       "lights": {
         "label": "Světla",
+        "singular": "Světlo",
+        "add": "Přidat světlo",
         "fields": {
           "control_behavior": {
             "label": "Chování ovládání",
@@ -641,6 +653,8 @@
       },
       "buttons": {
         "label": "Tlačítka",
+        "singular": "Tlačítko",
+        "add": "Přidat tlačítko",
         "fields": {
           "address": {
             "label": "Adresa",
@@ -654,6 +668,8 @@
       },
       "numbers": {
         "label": "Čísla",
+        "singular": "Číslo",
+        "add": "Přidat číslo",
         "fields": {
           "address": {
             "label": "Stavová adresa",
@@ -700,6 +716,8 @@
       },
       "selects": {
         "label": "Výběry",
+        "singular": "Výběr",
+        "add": "Přidat výběr",
         "fields": {
           "address": {
             "label": "Adresa stavu",
@@ -725,6 +743,8 @@
       },
       "texts": {
         "label": "Texty",
+        "singular": "Text",
+        "add": "Přidat text",
         "fields": {
           "address": {
             "label": "Stavová adresa",
@@ -742,6 +762,8 @@
       },
       "climates": {
         "label": "Klimatizace",
+        "singular": "Klimatizace",
+        "add": "Přidat klimatizaci",
         "fields": {
           "control_mode": {
             "label": "Typ řízení",
@@ -967,6 +989,8 @@
       },
       "entity_sync": {
         "label": "Synchronizace entity do PLC",
+        "singular": "Synchronizace entity do PLC",
+        "add": "Přidat synchronizaci",
         "fields": {
           "source_entity": {
             "label": "Zdrojová entita",
@@ -984,6 +1008,8 @@
       },
       "alarm_groups": {
         "label": "Alarm groups",
+        "singular": "Skupina alarmů",
+        "add": "Přidat skupinu alarmů",
         "fields": {
           "start_address": {
             "label": "First bit",
@@ -1166,7 +1192,10 @@
       "day_short": "d",
       "hour_short": "h",
       "minute_short": "min",
-      "current_downtime": "Aktuální doba odpojení"
+      "current_downtime": "Aktuální doba odpojení",
+      "no_data": "Žádná data",
+      "percentage_basis": "z {duration} dat",
+      "since": "od {time}"
     },
     "actions": {
       "add": "Přidat",
@@ -1182,6 +1211,12 @@
       "delete_selected_confirm": "Odstranit {count} vybraných entit?",
       "duplicate": "Duplikovat entitu",
       "more_actions": "Další akce"
+    },
+    "unsaved_changes": {
+      "title": "Neuložené změny",
+      "message": "Máte neuložené změny. Odejít bez uložení?",
+      "keep_editing": "Pokračovat v úpravách",
+      "discard": "Zahodit změny"
     },
     "errors": {
       "required_error": "Vyplňte všechna povinná pole.",
@@ -1280,7 +1315,10 @@
       "set_all_addresses": "Nastavit všechny adresy",
       "apply_guided_all": "Použít průvodce na vše",
       "apply_manual_all": "Použít ruční režim na vše",
-      "mixed_address_mode": "Smíšený režim"
+      "mixed_address_mode": "Smíšený režim",
+      "visual_short": "Vizuální",
+      "jump_to_section": "Přejít na sekci",
+      "live_value": "Aktuální hodnota v Home Assistant"
     },
     "search": {
       "label": "Hledat entity",
@@ -1295,7 +1333,10 @@
       "switch_to_sections": "Přepnout na zobrazení všech entit",
       "expand_section": "Rozbalit sekci",
       "collapse_section": "Sbalit sekci",
-      "all_entities": "Všechny entity"
+      "all_entities": "Všechny entity",
+      "density": "Hustota karet",
+      "density_grid": "Zobrazení mřížky",
+      "density_list": "Zobrazení seznamu"
     },
     "address_builder": {
       "guided": "Průvodce",
@@ -1319,7 +1360,10 @@
       "address_out_of_range": "Adresa je mimo rozsah",
       "address_not_convertible": "Adresu nelze převést",
       "vm_offset": "Offset VM",
-      "not_configured": "Nenakonfigurováno"
+      "not_configured": "Nenakonfigurováno",
+      "use_builder": "Použít průvodce",
+      "type_manually": "Zadat ručně",
+      "duplicate": "Používá také: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
@@ -1448,6 +1492,11 @@
       "no_results": "Žádné řádky neodpovídají hledání nebo filtru.",
       "loading": "Načítání souboru…",
       "import_result": "Importováno {total} řádků: {added} přidáno, {updated} aktualizováno. Změny potvrďte tlačítkem Uložit."
+    },
+    "selection": {
+      "select": "Vybrat",
+      "done": "Hotovo",
+      "count": "Vybráno: {count}"
     }
   },
   "selector": {

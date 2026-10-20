@@ -275,7 +275,9 @@
       },
       "datatype_time": "TIME — duration in seconds",
       "disabled": "Connection disabled",
-      "open_project_github": "Open ha-s7plc on GitHub"
+      "open_project_github": "Open ha-s7plc on GitHub",
+      "settings": "Settings",
+      "select_plc": "Select PLC"
     },
     "sections": {
       "plc_connection": {
@@ -302,6 +304,8 @@
     "entity_types": {
       "sensors": {
         "label": "Sensors",
+        "singular": "Sensor",
+        "add": "Add sensor",
         "fields": {
           "address": {
             "label": "Address",
@@ -327,6 +331,8 @@
       },
       "binary_sensors": {
         "label": "Binary sensors",
+        "singular": "Binary sensor",
+        "add": "Add binary sensor",
         "fields": {
           "address": {
             "label": "Address",
@@ -372,6 +378,8 @@
       },
       "switches": {
         "label": "Switches",
+        "singular": "Switch",
+        "add": "Add switch",
         "fields": {
           "control_behavior": {
             "label": "Control Behavior",
@@ -393,6 +401,8 @@
       },
       "covers": {
         "label": "Covers",
+        "singular": "Cover",
+        "add": "Add cover",
         "fields": {
           "open_command_address": {
             "label": "Open command address",
@@ -594,6 +604,8 @@
       },
       "lights": {
         "label": "Lights",
+        "singular": "Light",
+        "add": "Add light",
         "fields": {
           "control_behavior": {
             "label": "Control Behavior",
@@ -641,6 +653,8 @@
       },
       "buttons": {
         "label": "Buttons",
+        "singular": "Button",
+        "add": "Add button",
         "fields": {
           "address": {
             "label": "Address",
@@ -654,6 +668,8 @@
       },
       "numbers": {
         "label": "Numbers",
+        "singular": "Number",
+        "add": "Add number",
         "fields": {
           "address": {
             "label": "State address",
@@ -700,6 +716,8 @@
       },
       "selects": {
         "label": "Selects",
+        "singular": "Select",
+        "add": "Add select",
         "fields": {
           "address": {
             "label": "State address",
@@ -725,6 +743,8 @@
       },
       "texts": {
         "label": "Texts",
+        "singular": "Text",
+        "add": "Add text",
         "fields": {
           "address": {
             "label": "State address",
@@ -742,6 +762,8 @@
       },
       "climates": {
         "label": "Climates",
+        "singular": "Climate",
+        "add": "Add climate",
         "fields": {
           "control_mode": {
             "label": "Control type",
@@ -967,6 +989,8 @@
       },
       "entity_sync": {
         "label": "Entity Syncs",
+        "singular": "Entity sync",
+        "add": "Add entity sync",
         "fields": {
           "source_entity": {
             "label": "Source entity",
@@ -984,6 +1008,8 @@
       },
       "alarm_groups": {
         "label": "Alarm groups",
+        "singular": "Alarm group",
+        "add": "Add alarm group",
         "fields": {
           "start_address": {
             "label": "First bit",
@@ -1166,7 +1192,10 @@
       "day_short": "d",
       "hour_short": "h",
       "minute_short": "m",
-      "current_downtime": "Current downtime"
+      "current_downtime": "Current downtime",
+      "no_data": "No data",
+      "percentage_basis": "based on {duration} of data",
+      "since": "since {time}"
     },
     "actions": {
       "add": "Add",
@@ -1280,7 +1309,10 @@
       "set_all_addresses": "Set all addresses",
       "apply_guided_all": "Apply Guided to all",
       "apply_manual_all": "Apply Manual to all",
-      "mixed_address_mode": "Mixed mode"
+      "mixed_address_mode": "Mixed mode",
+      "visual_short": "Visual",
+      "jump_to_section": "Jump to section",
+      "live_value": "Current value in Home Assistant"
     },
     "search": {
       "label": "Search entities",
@@ -1295,7 +1327,10 @@
       "switch_to_sections": "Switch to all-entities view",
       "expand_section": "Expand section",
       "collapse_section": "Collapse section",
-      "all_entities": "All entities"
+      "all_entities": "All entities",
+      "density": "Card density",
+      "density_grid": "Grid view",
+      "density_list": "List view"
     },
     "address_builder": {
       "guided": "Guided",
@@ -1319,7 +1354,10 @@
       "address_out_of_range": "Address out of range",
       "address_not_convertible": "Address cannot be converted",
       "vm_offset": "VM offset",
-      "not_configured": "Not configured"
+      "not_configured": "Not configured",
+      "use_builder": "Use builder",
+      "type_manually": "Type manually",
+      "duplicate": "Also used by: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
@@ -1448,6 +1486,17 @@
       "no_results": "No rows match your search or filter.",
       "loading": "Reading file…",
       "import_result": "Imported {total} rows: {added} added, {updated} updated. Press Save to keep your changes."
+    },
+    "selection": {
+      "select": "Select",
+      "done": "Done",
+      "count": "{count} selected"
+    },
+    "unsaved_changes": {
+      "title": "Unsaved changes",
+      "message": "You have unsaved changes. Leave without saving?",
+      "keep_editing": "Keep editing",
+      "discard": "Discard changes"
     }
   },
   "selector": {

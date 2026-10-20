@@ -165,18 +165,21 @@ describe("S7 address builder", () => {
     expect(builder.querySelector('[data-address-part="dbNumber"]').value).toBe("2");
   });
 
-  test("applies a mode to every address without changing stored values", () => {
+  test("offers a single switch to the other address mode on each field", () => {
     const panel = createPanel();
     panel.openEditor(0, "switches");
     const form = dialogForm();
-    const builders = [...form.querySelectorAll("[data-address-builder]")];
-    const before = builders.map((builder) => builder.querySelector('input[type="hidden"]').value);
+    const builder = form.querySelector('[data-field="state_address"]');
+    const manual = builder.querySelector('[data-address-mode="manual"]');
+    const guided = builder.querySelector('[data-address-mode="guided"]');
 
-    document.body.querySelector('[data-apply-address-mode="manual"]').click();
-
-    expect(builders.every((builder) => builder.querySelector('[data-address-mode="manual"]').classList.contains("active"))).toBe(true);
-    expect(builders.map((builder) => builder.querySelector('input[type="hidden"]').value)).toEqual(before);
-    expect(document.body.querySelector("[data-address-bulk-status]").textContent).toContain("Manual");
+    expect(document.body.querySelector("[data-apply-address-mode]")).toBeNull();
+    expect(manual.textContent).toBe("Type manually");
+    expect(guided.textContent).toBe("Use builder");
+    expect(guided.classList.contains("active")).toBe(true);
+    manual.click();
+    expect(manual.classList.contains("active")).toBe(true);
+    expect(builder.querySelector('input[type="hidden"]').value).toBe("DB1,X8.0");
   });
 
   test("blocks an incomplete required address and focuses its builder", () => {

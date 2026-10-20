@@ -275,7 +275,9 @@
       },
       "datatype_time": "TIME — czas trwania w sekundach",
       "disabled": "Połączenie wyłączone",
-      "open_project_github": "Otwórz ha-s7plc w serwisie GitHub"
+      "open_project_github": "Otwórz ha-s7plc w serwisie GitHub",
+      "settings": "Ustawienia",
+      "select_plc": "Wybierz PLC"
     },
     "sections": {
       "plc_connection": {
@@ -302,6 +304,8 @@
     "entity_types": {
       "sensors": {
         "label": "Sensory",
+        "singular": "Sensor",
+        "add": "Dodaj sensor",
         "fields": {
           "address": {
             "label": "Adres odczytu",
@@ -327,6 +331,8 @@
       },
       "binary_sensors": {
         "label": "Sensory binarne",
+        "singular": "Sensor binarny",
+        "add": "Dodaj sensor binarny",
         "fields": {
           "address": {
             "label": "Adres odczytu",
@@ -372,6 +378,8 @@
       },
       "switches": {
         "label": "Przełączniki",
+        "singular": "Przełącznik",
+        "add": "Dodaj przełącznik",
         "fields": {
           "control_behavior": {
             "label": "Typ",
@@ -393,6 +401,8 @@
       },
       "covers": {
         "label": "Osłony",
+        "singular": "Osłona",
+        "add": "Dodaj osłonę",
         "fields": {
           "open_command_address": {
             "label": "Adres zapisu otwórz",
@@ -594,6 +604,8 @@
       },
       "lights": {
         "label": "Światła",
+        "singular": "Światło",
+        "add": "Dodaj światło",
         "fields": {
           "control_behavior": {
             "label": "Typ",
@@ -641,6 +653,8 @@
       },
       "buttons": {
         "label": "Przyciski",
+        "singular": "Przycisk",
+        "add": "Dodaj przycisk",
         "fields": {
           "address": {
             "label": "Adres zapisu",
@@ -654,6 +668,8 @@
       },
       "numbers": {
         "label": "Liczby",
+        "singular": "Liczba",
+        "add": "Dodaj liczbę",
         "fields": {
           "address": {
             "label": "Adres odczytu",
@@ -700,6 +716,8 @@
       },
       "selects": {
         "label": "Listy",
+        "singular": "Lista",
+        "add": "Dodaj listę",
         "fields": {
           "address": {
             "label": "Adres odczytu",
@@ -725,6 +743,8 @@
       },
       "texts": {
         "label": "Teksty",
+        "singular": "Tekst",
+        "add": "Dodaj tekst",
         "fields": {
           "address": {
             "label": "Adres odczytu",
@@ -742,6 +762,8 @@
       },
       "climates": {
         "label": "Termostaty",
+        "singular": "Termostat",
+        "add": "Dodaj termostat",
         "fields": {
           "control_mode": {
             "label": "Typ",
@@ -967,6 +989,8 @@
       },
       "entity_sync": {
         "label": "Zapis do PLC",
+        "singular": "Zapis do PLC",
+        "add": "Dodaj zapis do PLC",
         "fields": {
           "source_entity": {
             "label": "Encja źródłowa",
@@ -984,6 +1008,8 @@
       },
       "alarm_groups": {
         "label": "Alarm groups",
+        "singular": "Grupa alarmów",
+        "add": "Dodaj grupę alarmów",
         "fields": {
           "start_address": {
             "label": "First bit",
@@ -1166,7 +1192,10 @@
       "day_short": "d",
       "hour_short": "g",
       "minute_short": "min",
-      "current_downtime": "Czas rozłączenia"
+      "current_downtime": "Czas rozłączenia",
+      "no_data": "Brak danych",
+      "percentage_basis": "na podstawie {duration} danych",
+      "since": "od {time}"
     },
     "actions": {
       "add": "Dodaj",
@@ -1182,6 +1211,12 @@
       "delete_selected_confirm": "Usunąć {count} wybranych encji?",
       "duplicate": "Duplikuj encję",
       "more_actions": "Więcej działań"
+    },
+    "unsaved_changes": {
+      "title": "Niezapisane zmiany",
+      "message": "Masz niezapisane zmiany. Wyjść bez zapisywania?",
+      "keep_editing": "Kontynuuj edycję",
+      "discard": "Odrzuć zmiany"
     },
     "errors": {
       "required_error": "Wypełnij wszystkie wymagane pola.",
@@ -1280,7 +1315,10 @@
       "set_all_addresses": "Ustaw wszystkie adresy",
       "apply_guided_all": "Zastosuj tryb kreatora do wszystkich",
       "apply_manual_all": "Zastosuj tryb ręczny do wszystkich",
-      "mixed_address_mode": "Tryb mieszany"
+      "mixed_address_mode": "Tryb mieszany",
+      "visual_short": "Wizualny",
+      "jump_to_section": "Przejdź do sekcji",
+      "live_value": "Bieżąca wartość w Home Assistant"
     },
     "search": {
       "label": "Szukaj encji",
@@ -1295,7 +1333,10 @@
       "switch_to_sections": "Przełącz na listę",
       "expand_section": "Rozwiń sekcję",
       "collapse_section": "Zwiń sekcję",
-      "all_entities": "Wszystkie encje"
+      "all_entities": "Wszystkie encje",
+      "density": "Gęstość kart",
+      "density_grid": "Widok siatki",
+      "density_list": "Widok listy"
     },
     "address_builder": {
       "guided": "Kreator",
@@ -1319,7 +1360,10 @@
       "address_out_of_range": "Adres poza zakresem",
       "address_not_convertible": "Nie można przekonwertować adresu",
       "vm_offset": "Offset VM",
-      "not_configured": "Nie skonfigurowano"
+      "not_configured": "Nie skonfigurowano",
+      "use_builder": "Użyj kreatora",
+      "type_manually": "Wpisz ręcznie",
+      "duplicate": "Używany również przez: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
@@ -1448,6 +1492,11 @@
       "no_results": "Brak wierszy pasujących do wyszukiwania lub filtra.",
       "loading": "Odczytywanie pliku…",
       "import_result": "Zaimportowano {total} wierszy: dodano {added}, zaktualizowano {updated}. Kliknij Zapisz, aby zachować zmiany."
+    },
+    "selection": {
+      "select": "Zaznacz",
+      "done": "Gotowe",
+      "count": "Zaznaczono: {count}"
     }
   },
   "selector": {

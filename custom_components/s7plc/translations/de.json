@@ -275,7 +275,9 @@
       },
       "datatype_time": "TIME — Dauer in Sekunden",
       "disabled": "Verbindung deaktiviert",
-      "open_project_github": "ha-s7plc auf GitHub öffnen"
+      "open_project_github": "ha-s7plc auf GitHub öffnen",
+      "settings": "Einstellungen",
+      "select_plc": "SPS auswählen"
     },
     "sections": {
       "plc_connection": {
@@ -302,6 +304,8 @@
     "entity_types": {
       "sensors": {
         "label": "Sensoren",
+        "singular": "Sensor",
+        "add": "Sensor hinzufügen",
         "fields": {
           "address": {
             "label": "Adresse",
@@ -327,6 +331,8 @@
       },
       "binary_sensors": {
         "label": "Binärsensoren",
+        "singular": "Binärsensor",
+        "add": "Binärsensor hinzufügen",
         "fields": {
           "address": {
             "label": "Adresse",
@@ -372,6 +378,8 @@
       },
       "switches": {
         "label": "Schalter",
+        "singular": "Schalter",
+        "add": "Schalter hinzufügen",
         "fields": {
           "control_behavior": {
             "label": "Steuerungsverhalten",
@@ -393,6 +401,8 @@
       },
       "covers": {
         "label": "Jalousien/Raffstores",
+        "singular": "Jalousie/Raffstore",
+        "add": "Jalousie/Raffstore hinzufügen",
         "fields": {
           "open_command_address": {
             "label": "Befehlsvariable öffnen",
@@ -594,6 +604,8 @@
       },
       "lights": {
         "label": "Lichter",
+        "singular": "Licht",
+        "add": "Licht hinzufügen",
         "fields": {
           "control_behavior": {
             "label": "Steuerungsverhalten",
@@ -641,6 +653,8 @@
       },
       "buttons": {
         "label": "Tasten",
+        "singular": "Taste",
+        "add": "Taste hinzufügen",
         "fields": {
           "address": {
             "label": "Adresse",
@@ -654,6 +668,8 @@
       },
       "numbers": {
         "label": "Nummern",
+        "singular": "Nummer",
+        "add": "Nummer hinzufügen",
         "fields": {
           "address": {
             "label": "Zustandsvariable",
@@ -700,6 +716,8 @@
       },
       "selects": {
         "label": "Auswahlen",
+        "singular": "Auswahl",
+        "add": "Auswahl hinzufügen",
         "fields": {
           "address": {
             "label": "Statusadresse",
@@ -725,6 +743,8 @@
       },
       "texts": {
         "label": "Texte",
+        "singular": "Text",
+        "add": "Text hinzufügen",
         "fields": {
           "address": {
             "label": "Zustandsvariable",
@@ -742,6 +762,8 @@
       },
       "climates": {
         "label": "Klima",
+        "singular": "Klima",
+        "add": "Klima hinzufügen",
         "fields": {
           "control_mode": {
             "label": "Steuerungstyp",
@@ -967,6 +989,8 @@
       },
       "entity_sync": {
         "label": "Entität zu SPS-Synchronisierungen",
+        "singular": "Entität-zu-SPS-Synchronisierung",
+        "add": "Synchronisierung hinzufügen",
         "fields": {
           "source_entity": {
             "label": "Quellentität",
@@ -984,6 +1008,8 @@
       },
       "alarm_groups": {
         "label": "Alarm groups",
+        "singular": "Alarmgruppe",
+        "add": "Alarmgruppe hinzufügen",
         "fields": {
           "start_address": {
             "label": "First bit",
@@ -1166,7 +1192,10 @@
       "day_short": "T",
       "hour_short": "Std.",
       "minute_short": "Min.",
-      "current_downtime": "Aktuelle Ausfallzeit"
+      "current_downtime": "Aktuelle Ausfallzeit",
+      "no_data": "Keine Daten",
+      "percentage_basis": "basierend auf {duration} Daten",
+      "since": "seit {time}"
     },
     "actions": {
       "add": "Hinzufügen",
@@ -1182,6 +1211,12 @@
       "delete_selected_confirm": "{count} ausgewählte Entitäten löschen?",
       "duplicate": "Entität duplizieren",
       "more_actions": "Weitere Aktionen"
+    },
+    "unsaved_changes": {
+      "title": "Nicht gespeicherte Änderungen",
+      "message": "Sie haben nicht gespeicherte Änderungen. Ohne Speichern verlassen?",
+      "keep_editing": "Weiter bearbeiten",
+      "discard": "Änderungen verwerfen"
     },
     "errors": {
       "required_error": "Füllen Sie alle erforderlichen Felder aus.",
@@ -1280,7 +1315,10 @@
       "set_all_addresses": "Alle Adressen einstellen",
       "apply_guided_all": "Geführt auf alle anwenden",
       "apply_manual_all": "Manuell auf alle anwenden",
-      "mixed_address_mode": "Gemischter Modus"
+      "mixed_address_mode": "Gemischter Modus",
+      "visual_short": "Visuell",
+      "jump_to_section": "Zum Abschnitt springen",
+      "live_value": "Aktueller Wert in Home Assistant"
     },
     "search": {
       "label": "Entitäten suchen",
@@ -1295,7 +1333,10 @@
       "switch_to_sections": "Zur Ansicht aller Entitäten wechseln",
       "expand_section": "Abschnitt erweitern",
       "collapse_section": "Abschnitt reduzieren",
-      "all_entities": "Alle Entitäten"
+      "all_entities": "Alle Entitäten",
+      "density": "Kartendichte",
+      "density_grid": "Rasteransicht",
+      "density_list": "Listenansicht"
     },
     "address_builder": {
       "guided": "Geführt",
@@ -1319,7 +1360,10 @@
       "address_out_of_range": "Adresse außerhalb des Bereichs",
       "address_not_convertible": "Adresse kann nicht konvertiert werden",
       "vm_offset": "VM-Offset",
-      "not_configured": "Nicht konfiguriert"
+      "not_configured": "Nicht konfiguriert",
+      "use_builder": "Assistent verwenden",
+      "type_manually": "Manuell eingeben",
+      "duplicate": "Wird auch verwendet von: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
@@ -1448,6 +1492,11 @@
       "no_results": "Keine Zeilen entsprechen der Suche oder dem Filter.",
       "loading": "Datei wird gelesen…",
       "import_result": "{total} Zeilen importiert: {added} hinzugefügt, {updated} aktualisiert. Änderungen mit Speichern übernehmen."
+    },
+    "selection": {
+      "select": "Auswählen",
+      "done": "Fertig",
+      "count": "{count} ausgewählt"
     }
   },
   "selector": {

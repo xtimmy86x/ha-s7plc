@@ -25,36 +25,18 @@ PANEL_JAVASCRIPT = Path("custom_components/s7plc/www/s7plc-panel.js")
 
 
 def test_panel_action_controls_share_height_and_normalize_only_plc_selects() -> None:
-    """PLC controls align and use a scoped CSS arrow without changing other selects."""
+    """Header actions align and the PLC switcher overlays a native select on the title."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
 
-    action_size_rule = (
-        ".mobile-actions .config-yaml,\n"
-        ".mobile-actions select,\n"
-        ".summary-actions .config-yaml,\n"
-        ".summary-actions select{box-sizing:border-box;height:38px;min-height:38px}"
-    )
-    selector_normalization_rule = (
-        ".mobile-actions select,\n"
-        ".summary-actions select{-webkit-appearance:none;-moz-appearance:none;"
-        "appearance:none;padding:0 34px 0 13px;line-height:normal;"
-        "background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),"
-        "linear-gradient(135deg,currentColor 50%,transparent 50%);"
-        "background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;"
-        "background-size:5px 5px,5px 5px;background-repeat:no-repeat}"
-    )
-
-    assert action_size_rule in styles
-    assert selector_normalization_rule in styles
-    assert styles.count("-webkit-appearance:none") == 1
-    assert styles.count("-moz-appearance:none") == 1
-    assert selector_normalization_rule.count("currentColor 50%") == 2
+    assert ".summary-actions .config-yaml{box-sizing:border-box;height:38px" in styles
+    assert ".plc-switcher select{position:absolute;inset:0;width:100%;height:100%" in styles
+    assert "opacity:0;cursor:pointer" in styles
     assert not re.search(r"(?:^|})select\{[^}]*appearance:none", styles)
-    assert ".summary-actions select:hover{background-color:#ffffff26;" in styles
-    assert styles.count("line-height:normal") == 1
-    assert ".mobile-actions,.summary-actions{display:flex;align-items:center" in styles
     assert ".config-yaml{display:flex;align-items:center" in styles
+    assert '<span class="plc-switcher multiple" title="${this.t(\'common.select_plc\')}">' in source
+    assert '<span class="plc-count" aria-hidden="true">${position}/${this.entries.length}</span>' in source
+    assert "if(this.entries.length<2)return" in source
 
 
 def test_const_version_matches_manifest() -> None:
@@ -121,10 +103,13 @@ def test_project_badge_styles_and_translations() -> None:
     styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
     assert ".project-badge:focus-visible{outline:2px solid #fff" in styles
     assert ".project-badge{right:7px;bottom:7px;gap:4px" in styles
+    assert '<div class="settings-footer">${this.projectBadge()}</div>' in source
+    assert ".settings-footer .project-badge{position:static" in styles
 
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
         assert translation["config_panel"]["common"]["open_project_github"]
+        assert translation["config_panel"]["common"]["settings"]
 
 
 def test_compact_selector_descriptions_wrap_long_tokens() -> None:
@@ -240,10 +225,10 @@ def test_panel_typography_uses_home_assistant_fonts_semantically() -> None:
 def test_connection_diagnostics_controls_are_visible_and_accessible() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
 
-    assert 'icon="mdi:information-outline"' in source
-    assert 'class="connection-badge-details"' in source
+    assert 'icon="mdi:chevron-right"' in source
+    assert 'class="connection-badge-uptime"' in source
     assert "this.t('connection_details.title')" in source
-    assert "@media(max-width:480px){.connection-badge-details{display:none}}" in source
+    assert "@media(max-width:480px){.connection-badge-uptime{display:none}}" in source
     assert ".connection-badge:focus-visible" in source
     assert ".connection-badge:active" in source
     assert 'role="status"' in source
@@ -1026,13 +1011,15 @@ def test_panel_provides_mobile_navigation() -> None:
     # hass/narrow to every rendered ha-menu-button.
     assert "set narrow(value)" in source
     assert "b.hass=this._hass;b.narrow=this._narrow" in source
-    # The mobile control row is present in the populated and empty render states.
-    assert source.count('<div class="mobile-controls">${this.menuButton()}') == 2
+    # The menu button lives in the sticky header and in the empty render state.
+    assert '<header class="summary hero-summary" style="${this.bannerStyle()}">${this.menuButton()}' in source
     assert '${this.menuButton()}</div><div class="loading">' in source
     assert (
         '<div class="mobile-controls">${this.menuButton()}</div>${this.banner()}'
         in source
     )
+    assert ".summary>ha-menu-button{display:none" in source
+    assert ".summary>ha-menu-button{display:block}" in source
     assert "history.back()" not in source
     assert 'id="back"' not in source
 
@@ -1764,6 +1751,9 @@ def test_italian_address_builder_is_translated() -> None:
         "address_out_of_range": "Indirizzo fuori intervallo",
         "address_not_convertible": "Indirizzo non convertibile",
         "not_configured": "Non configurato",
+        "use_builder": "Usa il costruttore",
+        "type_manually": "Scrivi manualmente",
+        "duplicate": "Usato anche da: {entities}",
     }
 
 
@@ -1806,26 +1796,26 @@ def test_logo_yaml_save_does_not_invent_optional_command_address() -> None:
 
 
 def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
-    """Both shared card layouts have compact responsive actions and all labels."""
+    """Cards open on click and keep secondary actions in one overflow menu."""
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")
     mobile = source.split("@media(max-width:650px){", 1)[1].split(
         "@media(max-width:500px)", 1
     )[0]
 
-    assert ".entity-actions{display:none}" in mobile
-    assert ".entity-overflow{display:block}" in mobile
+    assert 'class="entity-actions"' not in source
+    assert ".entity-overflow{display:block;position:relative}" in source
+    assert 'class="entity-open" data-entity-action="edit"' in source
     assert (
         ".cards article.overflow-open,.cards article.overflow-open:hover{z-index:100}"
         in source
     )
-    assert ".entity-state{display:block" in mobile
+    assert ".entity-state{box-sizing:border-box;max-width:100%" in mobile
     assert ".state-badge{display:none}" not in mobile
-    assert "max-width:min(34%,140px)" in mobile
     assert ".details>div{gap:2px}" in mobile
     assert ".entity-leading{display:flex;align-items:center;gap:3px" in source
     assert ".entity-select{box-sizing:border-box;display:grid;place-items:center;" in source
+    assert ".entity-select{display:none!important}.selection-mode .entity-select" in source
     assert "width:38px;min-height:32px" in source
-    assert ".entity-leading{flex-direction:column;gap:4px}" in mobile
     assert ".details{flex:1;min-width:0}" in source
     assert ".details>b{font-size:14px;font-weight:600;overflow:hidden;" in source
 
@@ -1836,8 +1826,10 @@ def test_entity_card_mobile_styles_and_translations_are_complete() -> None:
     for path in translation_files:
         data = json.loads(path.read_text(encoding="utf-8"))
         assert data["config_panel"]["actions"]["more_actions"]
-
-
+        assert data["config_panel"]["selection"]["count"]
+        for entity_type in data["config_panel"]["entity_types"].values():
+            assert entity_type["singular"]
+            assert entity_type["add"]
 
 
 def test_entity_overflow_stacking_hierarchy_stays_above_neighbor_cards() -> None:
@@ -1897,30 +1889,24 @@ def test_address_mode_controls_are_accessible_responsive_and_translated() -> Non
     page_styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
     dialog_styles = source.split("get dialogStyles(){return `", 1)[1].split("`;}", 1)[0]
     assert 'data-default-address-mode="guided"' in source
-    assert 'button type="button" data-apply-address-mode="guided"' in source
-    assert 'button type="button" data-apply-address-mode="manual"' in source
-    assert "aria-label=\"${this.t('editor.apply_guided_all')}\"" in source
-    assert "aria-label=\"${this.t('editor.apply_manual_all')}\"" in source
-    assert 'role="status" aria-live="polite"' in source
+    assert "data-apply-address-mode" not in source
+    assert "bulk-address-modes" not in source
+    assert "${this.t('address_builder.type_manually')}" in source
+    assert "${this.t('address_builder.use_builder')}" in source
     assert ".default-address-mode{" in page_styles
     assert ".address-mode-actions button{" in page_styles
-    assert ".bulk-address-modes" not in page_styles
-    assert ".sr-only" not in page_styles
-    assert ".bulk-address-modes{" in dialog_styles
-    assert ".bulk-address-modes button{" in dialog_styles
+    assert ".settings-menu .default-address-mode{flex-direction:column" in page_styles
+    assert ".sr-only{" in page_styles
     assert ".sr-only{" in dialog_styles
-    assert ".address-mode-actions button,.bulk-address-modes button" not in source
-    mobile_dialog_styles = dialog_styles.split("@media(max-width:650px){", 1)[1]
-    assert ".bulk-address-modes{justify-content:flex-start}" in mobile_dialog_styles
-    assert ".default-address-mode{align-items:stretch;flex-direction:column" in page_styles
+    assert ".address-modes button.active{display:none}" in dialog_styles
     keys = {
         "default_address_mode", "default_address_mode_description", "use_guided",
-        "use_manual", "set_all_addresses", "apply_guided_all",
-        "apply_manual_all", "mixed_address_mode",
+        "use_manual",
     }
     for language in ("en", "it", "de", "pl", "cs"):
         translation = json.loads(Path(f"custom_components/s7plc/translations/{language}.json").read_text(encoding="utf-8"))
         assert keys <= translation["config_panel"]["editor"].keys()
+        assert {"use_builder", "type_manually"} <= translation["config_panel"]["address_builder"].keys()
 
 
 def test_panel_header_uses_compact_responsive_layout() -> None:
@@ -1929,17 +1915,24 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     page_styles = source.split("get styles(){return `", 1)[1].split("`;}", 1)[0]
     mobile_styles = page_styles.split("@media(max-width:650px){", 1)[1]
     intermediate_styles = page_styles.split(
-        "@media(min-width:501px) and (max-width:900px){", 1
+        "@media(min-width:651px) and (max-width:900px){", 1
     )[1].split("@media(max-width:480px)", 1)[0]
 
     assert ".hero-banner{position:relative;width:100%;height:150px" in page_styles
     assert ".hero-banner img{display:block;width:100%;height:100%;object-fit:cover" in page_styles
-    assert ".summary{position:relative;overflow:hidden;margin:0 0 10px;padding:14px 18px" in page_styles
-    assert ".default-address-mode{display:flex;align-items:center;justify-content:space-between" in page_styles
-    assert ".hero-banner{height:80px;margin-bottom:8px" in mobile_styles
-    assert ".summary{margin-bottom:8px;padding:10px 12px" in mobile_styles
-    assert ".address-mode-actions button{flex:1;min-width:0;min-height:40px}" in mobile_styles
+    assert '<div class="page"><header class="summary hero-summary" style="${this.bannerStyle()}">' in source
+    assert ".hero-summary{min-height:120px;" in page_styles
+    assert "var(--s7plc-banner) center/cover no-repeat" in page_styles
+    assert ".summary{position:relative;display:flex;align-items:center;gap:14px;margin:0 0 14px" in page_styles
+    assert ".summary{position:sticky;top:0;z-index:30" in mobile_styles
+    assert ".hero-summary{min-height:0;" in mobile_styles
+    assert ".hero-banner{height:80px;" in mobile_styles
     assert ".hero-banner{height:clamp(80px,calc(42.5px + 7.5vw),110px)" in intermediate_styles
+    assert (
+        "@media(min-width:901px) and (max-width:1199px){"
+        ".hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}"
+        in page_styles
+    )
     assert ".toolbar,.sections-toolbar{align-items:stretch;flex-direction:column;gap:8px}" in intermediate_styles
     assert (
         ".category-heading,.sections-toolbar>div:first-child,.entity-search{"
@@ -1956,12 +1949,9 @@ def test_panel_header_uses_compact_responsive_layout() -> None:
     assert ".category-heading{flex:1 1 220px}" in page_styles
     assert ".entity-search{display:flex;flex:1 1 250px;max-width:360px;min-width:190px" in page_styles
     assert ".entity-search{order:3;flex:1 0 100%;width:100%;max-width:none;min-width:0}" in mobile_styles
-    assert (
-        "@media(min-width:901px) and (max-width:1199px){"
-        ".hero-banner{height:clamp(110px,calc(13.333vw - 10px),150px)}"
-        in page_styles
-    )
-    assert "(100vw - 900px)*.134" not in page_styles
+    assert "<section class=\"default-address-mode\"" in source
+    assert "${this.defaultAddressModeSettings()}" in source
+
 
 def test_value_conversion_translations_and_responsive_layout_are_complete() -> None:
     source = PANEL_JAVASCRIPT.read_text(encoding="utf-8")

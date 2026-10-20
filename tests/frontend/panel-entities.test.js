@@ -77,15 +77,14 @@ describe("entity views and actions", () => {
     const conversions = [...details.querySelectorAll(".conversion-chip")];
     const overflow = details.querySelector(".chip-overflow");
 
-    expect(conversions).toHaveLength(5);
+    expect(conversions).toHaveLength(3);
     expect(conversions.map((chip) => chip.textContent)).toEqual([
       "A · Custom expression", "B · Custom expression", "C · Custom expression",
-      "D · Custom expression", "E · Custom expression",
     ]);
     expect(conversions.every((chip) => chip.tabIndex === 0)).toBe(true);
-    expect(overflow.textContent).toBe("+1");
-    expect(overflow.title).toBe("1 more property");
-    expect(overflow.getAttribute("aria-label")).toBe("1 more property");
+    expect(overflow.textContent).toBe("+3");
+    expect(overflow.title).toBe("3 more properties");
+    expect(overflow.getAttribute("aria-label")).toBe("3 more properties");
     expect(overflow.matches("button, [role], [tabindex]")).toBe(false);
     expect(details.textContent).not.toContain("Property 1");
   });
@@ -279,7 +278,7 @@ describe("entity views and actions", () => {
     panel.render();
     const openEditor = vi.spyOn(panel, "openEditor").mockImplementation(() => {});
 
-    panel.querySelector('.entity-actions [data-entity-action="duplicate"]').click();
+    panel.querySelector('.entity-overflow-menu [data-entity-action="duplicate"]').click();
 
     expect(openEditor).toHaveBeenCalledOnce();
     const [index, type, draft] = openEditor.mock.calls[0];
