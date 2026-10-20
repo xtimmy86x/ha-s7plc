@@ -115,6 +115,9 @@ class S7BinarySensor(S7BaseEntity, BinarySensorEntity):
 
     _address_attr_name = "s7_state_address"
 
+    _live_config_fields = S7BaseEntity._live_config_fields | {"device_class"}
+    _live_device_class_type = BinarySensorDeviceClass
+
     def __init__(
         self,
         coordinator,

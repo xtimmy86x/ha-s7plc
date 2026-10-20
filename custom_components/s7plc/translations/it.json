@@ -277,7 +277,8 @@
       "disabled": "Connessione disabilitata",
       "open_project_github": "Apri ha-s7plc su GitHub",
       "settings": "Impostazioni",
-      "select_plc": "Seleziona PLC"
+      "select_plc": "Seleziona PLC",
+      "automatic_option": "Automatico"
     },
     "sections": {
       "plc_connection": {
@@ -321,7 +322,7 @@
           },
           "state_class": {
             "label": "Classe di stato",
-            "description": "Classe di stato per le statistiche: “measurement” per valori istantanei, “total” per valori cumulativi che possono diminuire, “total_increasing” per contatori (es. energia, consumo acqua). Lascia vuoto per automatico."
+            "description": "Classe per le statistiche: measurement per valori istantanei, total per valori cumulativi che possono diminuire, total_increasing per contatori. Automatico la ricava dalla classe dispositivo; Nessuna la disabilita."
           },
           "real_precision": {
             "label": "Numero decimali REAL",
@@ -1286,7 +1287,10 @@
       "comparison_requires_numeric_type": "I confronti richiedono un indirizzo numerico singolo (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL o LREAL).",
       "alarm_range_invalid": "Indica un range crescente di indirizzi BIT nello stesso DB o nell'area merker M, massimo 8192 bit.",
       "alarm_active_value_invalid": "Il valore attivo deve essere 0 o 1.",
-      "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano."
+      "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano.",
+      "invalid_device_class": "Scegli una classe dispositivo supportata dall’entità e dal tipo di dato PLC.",
+      "invalid_unit_of_measurement": "Scegli un’unità compatibile con la classe dispositivo. TIME usa i secondi (s).",
+      "invalid_state_class": "Scegli una classe di stato compatibile con la classe dispositivo."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

@@ -413,6 +413,7 @@ class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - simple stub
 
 
 class CoordinatorEntity:  # pragma: no cover - simple stub
+    registry_entry = None
     def __init__(self, coordinator):
         self.coordinator = coordinator
         self.hass = getattr(coordinator, "hass", None)
@@ -1056,7 +1057,12 @@ sys.modules["homeassistant.components.climate"] = climate
 components.climate = climate
 
 
-class SensorDeviceClass(Enum):  # pragma: no cover - simple stub
+class SensorDeviceClass(str, Enum):  # pragma: no cover - simple stub
+    ENUM = "enum"
+    DATE = "date"
+    TIMESTAMP = "timestamp"
+    PRESSURE = "pressure"
+    MONETARY = "monetary"
     TEMPERATURE = "temperature"
     ENERGY = "energy"
     ENERGY_STORAGE = "energy_storage"
@@ -1072,7 +1078,7 @@ class SensorEntity:  # pragma: no cover - simple stub
     pass
 
 
-class SensorStateClass(Enum):  # pragma: no cover - simple stub
+class SensorStateClass(str, Enum):  # pragma: no cover - simple stub
     """Minimal SensorStateClass stub."""
     MEASUREMENT = "measurement"
     TOTAL = "total"
@@ -1083,6 +1089,31 @@ sensor = ModuleType("homeassistant.components.sensor")
 sensor.SensorDeviceClass = SensorDeviceClass
 sensor.SensorEntity = SensorEntity
 sensor.SensorStateClass = SensorStateClass
+# Metadata validation uses HA's compatibility tables. Keep this small stub
+# representative; the real-HA suite exercises the complete upstream tables.
+sensor.DEVICE_CLASS_UNITS = {
+    SensorDeviceClass.TEMPERATURE: {"°C", "°F", "K"},
+    SensorDeviceClass.ENERGY: {"Wh", "kWh", "MWh", "J"},
+    SensorDeviceClass.ENERGY_STORAGE: {"Wh", "kWh", "MWh", "J"},
+    SensorDeviceClass.DURATION: {"ms", "s", "min", "h", "d"},
+    SensorDeviceClass.GAS: {"m³", "ft³", "CCF"},
+    SensorDeviceClass.WATER: {"m³", "L", "gal"},
+    SensorDeviceClass.VOLUME: {"m³", "L", "gal"},
+    SensorDeviceClass.PRESSURE: {"Pa", "hPa", "kPa", "bar", "psi"},
+}
+sensor.DEVICE_CLASS_STATE_CLASSES = {
+    cls: {SensorStateClass.MEASUREMENT} for cls in SensorDeviceClass
+}
+for cls in (SensorDeviceClass.ENERGY, SensorDeviceClass.GAS,
+            SensorDeviceClass.WATER, SensorDeviceClass.VOLUME):
+    sensor.DEVICE_CLASS_STATE_CLASSES[cls] = {
+        SensorStateClass.TOTAL, SensorStateClass.TOTAL_INCREASING,
+    }
+for cls in (SensorDeviceClass.ENUM, SensorDeviceClass.DATE,
+            SensorDeviceClass.TIMESTAMP):
+    sensor.DEVICE_CLASS_STATE_CLASSES[cls] = set()
+sensor.DEVICE_CLASS_STATE_CLASSES[SensorDeviceClass.MONETARY] = {SensorStateClass.TOTAL}
+number.DEVICE_CLASS_UNITS = {key.value: value for key, value in sensor.DEVICE_CLASS_UNITS.items()}
 sys.modules["homeassistant.components.sensor"] = sensor
 components.sensor = sensor
 

@@ -26,11 +26,8 @@ from .const import (
     CONF_UNIT_OF_MEASUREMENT,
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
-from .helpers import (
-    DEVICE_CLASS_DEFAULT_UNITS,
-    default_entity_name,
-    get_coordinator_and_device_info,
-)
+from .entity_metadata import METADATA_FIELDS, metadata_error, number_metadata
+from .helpers import default_entity_name, get_coordinator_and_device_info
 from .plc.address import (
     DataType,
     get_numeric_limits,
@@ -148,24 +145,10 @@ class S7Number(S7BaseEntity, NumberEntity):
         except (RuntimeError, ValueError):
             self._is_time = False
 
-        # Set device_class if provided
-        if self._is_time:
-            self._attr_device_class = "duration"
-            self._attr_native_unit_of_measurement = "s"
-        elif device_class:
-            self._attr_device_class = device_class
-
-            # Derive unit from device_class if not explicitly provided
-            if not unit_of_measurement:
-                dc_upper = device_class.upper()
-                if dc_upper in DEVICE_CLASS_DEFAULT_UNITS:
-                    unit = DEVICE_CLASS_DEFAULT_UNITS[dc_upper]
-                    if unit is not None:
-                        self._attr_native_unit_of_measurement = unit
-
-        # Override with custom unit if provided
-        if unit_of_measurement and not self._is_time:
-            self._attr_native_unit_of_measurement = unit_of_measurement
+        for key, value in number_metadata(
+            device_class, unit_of_measurement, is_time=self._is_time
+        ).items():
+            setattr(self, key, value)
 
         for key, value in self._value_settings(
             min_value, max_value, step, value_conversion, mode
@@ -180,6 +163,8 @@ class S7Number(S7BaseEntity, NumberEntity):
         "max_value",
         "step",
         "mode",
+        "device_class",
+        "unit_of_measurement",
     }
 
     def _value_settings(self, min_value, max_value, step, value_conversion, mode):
@@ -257,6 +242,16 @@ class S7Number(S7BaseEntity, NumberEntity):
         attributes = super().prepare_live_config(item, changed)
         if attributes is None:
             return None
+        if changed & METADATA_FIELDS:
+            if error := metadata_error("numbers", item):
+                raise ValueError(error)
+            attributes.update(
+                number_metadata(
+                    item.get(CONF_DEVICE_CLASS),
+                    item.get(CONF_UNIT_OF_MEASUREMENT),
+                    is_time=self._is_time,
+                )
+            )
         conversion = normalize_value_conversion(item, "value", self._conversion_context)
         attributes.update(
             self._value_settings(

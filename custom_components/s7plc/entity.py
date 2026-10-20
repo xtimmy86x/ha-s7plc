@@ -50,6 +50,7 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
     _address_attr_name: str = "s7_address"
     _restore_topic_suffixes: tuple[str, ...] = ()
     _live_config_fields = frozenset({"area"})
+    _live_device_class_type = None
 
     def __init__(
         self,
@@ -250,12 +251,22 @@ class S7BaseEntity(CoordinatorEntity, RestoreEntity):
         """Prepare attributes without side effects; None requests a full reload."""
         if not changed <= self._live_config_fields:
             return None
-        return {"_restore_config": self._config_signature(item)}
+        attributes = {"_restore_config": self._config_signature(item)}
+        if "device_class" in changed and self._live_device_class_type is not None:
+            value = item.get("device_class")
+            attributes["_attr_device_class"] = (
+                self._live_device_class_type(value) if value else None
+            )
+        return attributes
 
     def apply_live_config(self, attributes: dict, *, conversion_changed: bool) -> None:
         """Publish configuration changes without running command-sync hooks."""
         for name, value in attributes.items():
             setattr(self, name, value)
+        if "_attr_native_unit_of_measurement" in attributes and self.registry_entry:
+            # Re-evaluate HA's display-unit preferences against the new metadata.
+            # The public lifecycle callback also updates sensor display precision.
+            self.async_registry_entry_updated()
         if conversion_changed:
             self._restored_values.clear()
         super().async_write_ha_state()
