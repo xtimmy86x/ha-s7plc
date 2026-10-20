@@ -67,6 +67,27 @@ Take our short voluntary survey and help us understand which PLC models and firm
 - 📊 **Import/Export**: Backup and restore your entity configurations
 - 📈 **Performance metrics**: Optional diagnostic sensors for connection health and PLC communication stats
 
+### 🖥️ Everything in one side panel
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xtimmy86x/ha-s7plc/main/docs/images/sidepanel/overview.png" alt="S7 PLC side panel with the PLC header, the category sidebar and sensor cards showing live values" width="860">
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/xtimmy86x/ha-s7plc/main/docs/images/sidepanel/editor-sensor.png" alt="Guided entity editor with the address builder and the live value"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/xtimmy86x/ha-s7plc/main/docs/images/sidepanel/connection-details.png" alt="Connection details with the 24-hour availability timeline"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Guided editor</b>: build PLC addresses visually and check the live value</td>
+    <td align="center"><b>Connection diagnostics</b>: availability, uptime and every connection parameter</td>
+  </tr>
+</table>
+
+Search, filter and edit every PLC entity, switch between PLCs, bulk-delete,
+back up the whole configuration as YAML and spot unavailable entities at a
+glance. See the **[Side Panel Guide](docs/sidepanel.md)**.
+
 ---
 
 ## Quick Start
@@ -137,7 +158,7 @@ new integration entry to use the other method.
 Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
 - **[Configuration Guide](docs/configuration.md)** - Complete setup instructions, connection types, entity management
-- **[Side Panel Guide](docs/sidepanel.md)** - Visual and YAML entity editing from the Home Assistant sidebar
+- **[Side Panel Guide](docs/sidepanel.md)** - Visual and YAML entity editing, live states, connection diagnostics and alarm groups, with screenshots
 - **[S7 Addressing](docs/addressing.md)** - Address formats, data types, PLC-specific notes
 - **[Value Conversions](docs/value-conversions.md)** - Numeric scaling and safe custom expressions
 - **[Advanced Features](docs/advanced-features.md)** - State Synchronization, Entity Sync, and Performance Metrics
