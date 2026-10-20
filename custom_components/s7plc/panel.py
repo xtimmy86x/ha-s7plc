@@ -618,7 +618,7 @@ async def async_setup_panel(hass: Any) -> None:
                 connection.send_error(
                     msg["id"],
                     "invalid_selection",
-                    "Selection changed or contains duplicates; refresh and select again",
+                    "Duplicate selection; refresh and select again",
                 )
                 return
             uids.add(uid)
