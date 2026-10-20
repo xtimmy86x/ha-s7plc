@@ -1362,7 +1362,8 @@
       "vm_offset": "VM-Offset",
       "not_configured": "Nicht konfiguriert",
       "use_builder": "Assistent verwenden",
-      "type_manually": "Manuell eingeben"
+      "type_manually": "Manuell eingeben",
+      "duplicate": "Wird auch verwendet von: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",

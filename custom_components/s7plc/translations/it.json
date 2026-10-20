@@ -1362,7 +1362,8 @@
       "vm_offset": "Offset VM",
       "not_configured": "Non configurato",
       "use_builder": "Usa il costruttore",
-      "type_manually": "Scrivi manualmente"
+      "type_manually": "Scrivi manualmente",
+      "duplicate": "Usato anche da: {entities}"
     },
     "value_conversion": {
       "title": "Conversione valore",

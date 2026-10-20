@@ -1362,7 +1362,8 @@
       "vm_offset": "Offset VM",
       "not_configured": "Nenakonfigurováno",
       "use_builder": "Použít průvodce",
-      "type_manually": "Zadat ručně"
+      "type_manually": "Zadat ručně",
+      "duplicate": "Používá také: {entities}"
     },
     "value_conversion": {
       "title": "Value conversion",
