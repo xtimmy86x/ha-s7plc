@@ -1239,7 +1239,7 @@
       "cannot_connect": "Cannot connect to the PLC with the provided settings.",
       "already_configured": "Another S7 PLC entry already uses these connection parameters.",
       "invalid_json": "Invalid JSON payload.",
-      "invalid_selection": "Select a valid item type.",
+      "invalid_selection": "The selection changed. Refresh the panel and select the entities again.",
       "min_max_required_for_real": "Minimum and maximum values are required for REAL and LREAL data types.",
       "scale_raw_requires_min_max": "Scale raw min/max require both min value and max value to be set.",
       "scale_requires_all_four": "Scaling requires all four parameters: min value, max value, scale raw min and scale raw max.",
@@ -1290,7 +1290,11 @@
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
       "invalid_device_class": "Choose a device class supported by this entity and its PLC data type.",
       "invalid_unit_of_measurement": "Choose a unit compatible with the device class. TIME uses seconds (s).",
-      "invalid_state_class": "Choose a state class compatible with the device class."
+      "invalid_state_class": "Choose a state class compatible with the device class.",
+      "invalid_bulk_changes": "Select area or scan interval to change.",
+      "invalid_bulk_area": "Choose an existing area.",
+      "invalid_bulk_scan_interval": "Enter a finite scan interval between 0.05 and 3600 seconds.",
+      "bulk_edit_conflict": "The configuration changed after the preview. Generate a new preview before applying."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
@@ -1501,6 +1505,34 @@
       "select": "Select",
       "done": "Done",
       "count": "{count} selected"
+    },
+    "bulk_edit": {
+      "action": "Edit selected",
+      "title": "Bulk edit",
+      "intro": "Choose the settings to change. Nothing is saved until you apply the preview.",
+      "keep": "Leave unchanged",
+      "set_area": "Assign area",
+      "remove_area": "Remove area",
+      "set_scan": "Set interval",
+      "default_scan": "Use PLC default",
+      "area": "Configured area",
+      "scan": "Scan interval",
+      "seconds": "Seconds (0.05–3600)",
+      "area_select": "Choose an area",
+      "preview": "Preview changes",
+      "apply": "Apply changes",
+      "working": "Please wait…",
+      "close": "Close",
+      "entity": "Entity",
+      "before": "Current",
+      "after": "New",
+      "preview_count": "{changed} of {total} entities will change.",
+      "unchanged": "Unchanged",
+      "not_applicable": "Not applicable",
+      "inherited": "PLC default ({seconds} s)",
+      "no_changes": "No changes to apply.",
+      "one_save": "One save for the whole selection. Supported edits apply live; otherwise the integration reloads once. Scan interval does not apply to buttons or entity syncs.",
+      "saved_refresh_failed": "Changes saved, but the panel could not refresh. Close this dialog and reload the panel."
     }
   },
   "selector": {

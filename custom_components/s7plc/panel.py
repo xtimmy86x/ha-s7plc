@@ -13,6 +13,7 @@ from typing import Any
 import voluptuous as vol
 import yaml
 
+from .bulk_edit import prepare_bulk_edit
 from .config_validation import build_entity_item
 from .const import (
     CONF_ENABLE_METRICS,
@@ -644,6 +645,78 @@ async def async_setup_panel(hass: Any) -> None:
     websocket_api.async_register_command(hass, ws_save_configuration)
     websocket_api.async_register_command(hass, ws_get_configuration)
     websocket_api.async_register_command(hass, ws_delete_entities)
+
+    bulk_schema = {
+        vol.Required("entry_id"): str,
+        vol.Required("entities"): vol.All(
+            [
+                {
+                    vol.Required("entity_type"): vol.In(OPTION_KEYS),
+                    vol.Required("uid"): vol.All(str, vol.Length(min=1)),
+                }
+            ],
+            vol.Length(min=1),
+        ),
+        vol.Required("changes"): vol.All(
+            {
+                vol.Optional("area"): vol.Any(None, str),
+                vol.Optional("scan_interval"): vol.Any(None, int, float),
+            },
+            vol.Length(min=1),
+        ),
+    }
+
+    def bulk_edit_response(connection, msg, *, apply=False):
+        """Validate the complete preview before one synchronous options update."""
+        from homeassistant.helpers import area_registry as ar
+
+        entry = hass.config_entries.async_get_entry(msg["entry_id"])
+        if entry is None or entry.domain != DOMAIN:
+            connection.send_error(msg["id"], "entry_not_found", "entry_not_found")
+            return
+        try:
+            area = msg["changes"].get("area")
+            if area is not None and ar.async_get(hass).async_get_area(area) is None:
+                raise ValueError("invalid_bulk_area")
+            options, preview = prepare_bulk_edit(entry, msg["entities"], msg["changes"])
+        except ValueError as err:
+            connection.send_error(msg["id"], str(err), str(err))
+            return
+        if not apply:
+            connection.send_result(msg["id"], preview)
+            return
+        if msg["preview_token"] != preview["preview_token"]:
+            connection.send_error(msg["id"], "bulk_edit_conflict", "bulk_edit_conflict")
+            return
+        if preview["changed_count"]:
+            hass.config_entries.async_update_entry(entry, options=options)
+        connection.send_result(msg["id"], {"updated": preview["changed_count"]})
+
+    @websocket_api.websocket_command(
+        {
+            vol.Required("type"): "s7plc/config/preview_update_entities",
+            **bulk_schema,
+        }
+    )
+    @websocket_api.require_admin
+    @websocket_api.async_response
+    async def ws_preview_update_entities(hass, connection, msg):
+        bulk_edit_response(connection, msg)
+
+    @websocket_api.websocket_command(
+        {
+            vol.Required("type"): "s7plc/config/update_entities",
+            **bulk_schema,
+            vol.Required("preview_token"): vol.Match(r"^[a-f0-9]{64}$"),
+        }
+    )
+    @websocket_api.require_admin
+    @websocket_api.async_response
+    async def ws_update_entities(hass, connection, msg):
+        bulk_edit_response(connection, msg, apply=True)
+
+    websocket_api.async_register_command(hass, ws_preview_update_entities)
+    websocket_api.async_register_command(hass, ws_update_entities)
 
     await panel_custom.async_register_panel(
         hass,

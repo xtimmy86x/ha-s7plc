@@ -1239,7 +1239,7 @@
       "cannot_connect": "Impossibile connettersi al PLC con le impostazioni fornite.",
       "already_configured": "Un'altra configurazione S7 PLC utilizza già questi parametri di connessione.",
       "invalid_json": "Payload JSON non valido.",
-      "invalid_selection": "Seleziona un tipo di elemento valido.",
+      "invalid_selection": "La selezione è cambiata. Aggiorna il pannello e seleziona nuovamente le entità.",
       "min_max_required_for_real": "I valori minimo e massimo sono obbligatori per i tipi di dati REAL e LREAL.",
       "scale_raw_requires_min_max": "Se si impostano scala raw min/max, è obbligatorio specificare anche min value e max value.",
       "scale_requires_all_four": "La scalatura richiede tutti e quattro i parametri: valore minimo, valore massimo, scala raw min e scala raw max.",
@@ -1290,7 +1290,11 @@
       "alarm_mapping_invalid": "Controlla la tabella: indirizzi univoci nel range, descrizioni fino a 255 caratteri e enabled booleano.",
       "invalid_device_class": "Scegli una classe dispositivo supportata dall’entità e dal tipo di dato PLC.",
       "invalid_unit_of_measurement": "Scegli un’unità compatibile con la classe dispositivo. TIME usa i secondi (s).",
-      "invalid_state_class": "Scegli una classe di stato compatibile con la classe dispositivo."
+      "invalid_state_class": "Scegli una classe di stato compatibile con la classe dispositivo.",
+      "invalid_bulk_changes": "Seleziona l’area o l’intervallo di scansione da modificare.",
+      "invalid_bulk_area": "Scegli un’area esistente.",
+      "invalid_bulk_scan_interval": "Inserisci un intervallo di scansione finito tra 0,05 e 3600 secondi.",
+      "bulk_edit_conflict": "La configurazione è cambiata dopo l’anteprima. Genera una nuova anteprima prima di applicare."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
@@ -1501,6 +1505,34 @@
       "select": "Seleziona",
       "done": "Fine",
       "count": "{count} selezionate"
+    },
+    "bulk_edit": {
+      "action": "Modifica selezione",
+      "title": "Modifiche multiple",
+      "intro": "Scegli le impostazioni da modificare. Nulla viene salvato finché non applichi l’anteprima.",
+      "keep": "Lascia invariato",
+      "set_area": "Assegna area",
+      "remove_area": "Rimuovi area",
+      "set_scan": "Imposta intervallo",
+      "default_scan": "Usa il valore predefinito del PLC",
+      "area": "Area configurata",
+      "scan": "Intervallo di scansione",
+      "seconds": "Secondi (0,05–3600)",
+      "area_select": "Scegli un’area",
+      "preview": "Anteprima modifiche",
+      "apply": "Applica modifiche",
+      "working": "Attendere…",
+      "close": "Chiudi",
+      "entity": "Entità",
+      "before": "Attuale",
+      "after": "Nuovo",
+      "preview_count": "Verranno modificate {changed} entità su {total}.",
+      "unchanged": "Invariata",
+      "not_applicable": "Non applicabile",
+      "inherited": "Predefinito PLC ({seconds} s)",
+      "no_changes": "Nessuna modifica da applicare.",
+      "one_save": "Un unico salvataggio per tutta la selezione. Le modifiche supportate si applicano a caldo; negli altri casi l’integrazione viene ricaricata una sola volta. La scansione non si applica a pulsanti e sincronizzazioni entità.",
+      "saved_refresh_failed": "Modifiche salvate, ma il pannello non si è aggiornato. Chiudi questa finestra e ricarica il pannello."
     }
   },
   "selector": {

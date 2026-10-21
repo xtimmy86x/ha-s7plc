@@ -1239,7 +1239,7 @@
       "cannot_connect": "Verbindung zur SPS mit den angegebenen Einstellungen nicht möglich.",
       "already_configured": "Ein anderer S7-SPS-Eintrag verwendet bereits diese Verbindungsparameter.",
       "invalid_json": "Ungültige JSON-Nutzlast.",
-      "invalid_selection": "Wählen Sie einen gültigen Elementtyp aus.",
+      "invalid_selection": "Die Auswahl hat sich geändert. Aktualisiere das Panel und wähle die Entitäten erneut.",
       "min_max_required_for_real": "Mindest- und Maximalwerte sind für REAL- und LREAL-Datentypen erforderlich.",
       "scale_raw_requires_min_max": "Wenn Skalierungs-Rohmin/-max gesetzt sind, müssen auch Min-Wert und Max-Wert angegeben werden.",
       "scale_requires_all_four": "Die Skalierung erfordert alle vier Parameter: Minimalwert, Maximalwert, Roh-Min und Roh-Max.",
@@ -1290,7 +1290,11 @@
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
       "invalid_device_class": "Wähle eine Geräteklasse, die zur Entität und zum SPS-Datentyp passt.",
       "invalid_unit_of_measurement": "Wähle eine zur Geräteklasse passende Einheit. TIME verwendet Sekunden (s).",
-      "invalid_state_class": "Wähle eine zur Geräteklasse passende Zustandsklasse."
+      "invalid_state_class": "Wähle eine zur Geräteklasse passende Zustandsklasse.",
+      "invalid_bulk_changes": "Wähle Bereich oder Abfrageintervall zum Ändern.",
+      "invalid_bulk_area": "Wähle einen vorhandenen Bereich.",
+      "invalid_bulk_scan_interval": "Gib ein endliches Abfrageintervall zwischen 0,05 und 3600 Sekunden ein.",
+      "bulk_edit_conflict": "Die Konfiguration hat sich seit der Vorschau geändert. Erstelle vor dem Anwenden eine neue Vorschau."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",
@@ -1501,6 +1505,34 @@
       "select": "Auswählen",
       "done": "Fertig",
       "count": "{count} ausgewählt"
+    },
+    "bulk_edit": {
+      "action": "Auswahl bearbeiten",
+      "title": "Mehrere Entitäten bearbeiten",
+      "intro": "Wähle die zu ändernden Einstellungen. Erst das Anwenden der Vorschau speichert die Änderungen.",
+      "keep": "Unverändert lassen",
+      "set_area": "Bereich zuweisen",
+      "remove_area": "Bereich entfernen",
+      "set_scan": "Intervall festlegen",
+      "default_scan": "SPS-Standard verwenden",
+      "area": "Konfigurierter Bereich",
+      "scan": "Abfrageintervall",
+      "seconds": "Sekunden (0,05–3600)",
+      "area_select": "Bereich auswählen",
+      "preview": "Änderungen prüfen",
+      "apply": "Änderungen anwenden",
+      "working": "Bitte warten…",
+      "close": "Schließen",
+      "entity": "Entität",
+      "before": "Aktuell",
+      "after": "Neu",
+      "preview_count": "{changed} von {total} Entitäten werden geändert.",
+      "unchanged": "Unverändert",
+      "not_applicable": "Nicht anwendbar",
+      "inherited": "SPS-Standard ({seconds} s)",
+      "no_changes": "Keine Änderungen anzuwenden.",
+      "one_save": "Ein Speichervorgang für die gesamte Auswahl. Unterstützte Änderungen gelten sofort, sonst wird die Integration einmal neu geladen. Das Abfrageintervall gilt nicht für Taster und Entitätssynchronisierungen.",
+      "saved_refresh_failed": "Änderungen gespeichert, aber das Panel konnte nicht aktualisiert werden. Schließe diesen Dialog und lade das Panel neu."
     }
   },
   "selector": {

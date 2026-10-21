@@ -400,6 +400,33 @@ Valid UIDs are retained when restoring to the same config entry. When importing
 into another config entry, or when UIDs are missing or duplicated, safe UIDs are
 generated. The YAML document backs up entities only, not connection settings.
 
+## Editing several entities
+
+1. Choose **Select**, then select the entities. In the all-entities view, the
+   selection can span categories; search filters do not add unselected entities.
+2. Choose **Edit selected**. For each setting choose **Leave unchanged**, a new
+   value, **Remove area**, or **Use PLC default** for the scan interval.
+3. Choose **Preview changes** to see the current and proposed settings for every
+   selected entity, including unchanged rows. No configuration is saved yet.
+4. Choose **Apply changes** to save the entire selection once.
+
+Scan intervals accept fractional seconds from 0.05 to 3600. Buttons and entity
+syncs do not have a configurable scan interval: their preview says **Not
+applicable**, while area edits still apply. Areas refer to the assignments in
+this integration's configuration. Restoring the PLC default removes the entity
+scan override; the preview displays the inherited interval.
+
+The backend validates all permanent entity identities and requested settings
+before saving. Unrelated entity options are preserved. If the configuration
+changes while reviewing the preview, generate a new preview; a stale preview
+cannot overwrite those changes. Invalid selections or deleted areas leave all
+entities untouched. Repeated clicks while a request is running do not submit it
+again. Closing the dialog before applying leaves the configuration unchanged.
+
+Area updates and supported scan changes use the live-update path described
+above. A selection containing scan edits that require reloading causes a single
+reload for the whole save. An unchanged selection performs no update or reload.
+
 ## Deleting entities
 
 Use **Delete** in the card's <kbd>⋮</kbd> menu, or select several cards and use

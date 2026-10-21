@@ -1239,7 +1239,7 @@
       "cannot_connect": "Nelze se připojit k PLC s poskytnutým nastavením.",
       "already_configured": "Jiný záznam S7 PLC už používá tyto parametry připojení.",
       "invalid_json": "Neplatný JSON.",
-      "invalid_selection": "Vyberte platný typ položky.",
+      "invalid_selection": "Výběr se změnil. Obnovte panel a znovu vyberte entity.",
       "min_max_required_for_real": "Pro datové typy REAL a LREAL jsou vyžadovány minimální a maximální hodnoty.",
       "scale_raw_requires_min_max": "Pokud je nastaven surový rozsah škálování, musí být zadány také minimální a maximální hodnota.",
       "scale_requires_all_four": "Škálování vyžaduje všechny čtyři parametry: minimální hodnotu, maximální hodnotu, surový min a surový max.",
@@ -1290,7 +1290,11 @@
       "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
       "invalid_device_class": "Vyberte třídu zařízení podporovanou entitou a datovým typem PLC.",
       "invalid_unit_of_measurement": "Vyberte jednotku kompatibilní s třídou zařízení. TIME používá sekundy (s).",
-      "invalid_state_class": "Vyberte třídu stavu kompatibilní s třídou zařízení."
+      "invalid_state_class": "Vyberte třídu stavu kompatibilní s třídou zařízení.",
+      "invalid_bulk_changes": "Vyberte oblast nebo interval ke změně.",
+      "invalid_bulk_area": "Vyberte existující oblast.",
+      "invalid_bulk_scan_interval": "Zadejte konečný interval od 0,05 do 3600 sekund.",
+      "bulk_edit_conflict": "Konfigurace se od náhledu změnila. Před použitím vytvořte nový náhled."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1501,6 +1505,34 @@
       "select": "Vybrat",
       "done": "Hotovo",
       "count": "Vybráno: {count}"
+    },
+    "bulk_edit": {
+      "action": "Upravit vybrané",
+      "title": "Hromadné úpravy",
+      "intro": "Vyberte nastavení ke změně. Nic se neuloží, dokud nepotvrdíte náhled.",
+      "keep": "Ponechat beze změny",
+      "set_area": "Přiřadit oblast",
+      "remove_area": "Odebrat oblast",
+      "set_scan": "Nastavit interval",
+      "default_scan": "Použít výchozí hodnotu PLC",
+      "area": "Nastavená oblast",
+      "scan": "Interval dotazování",
+      "seconds": "Sekundy (0,05–3600)",
+      "area_select": "Vyberte oblast",
+      "preview": "Náhled změn",
+      "apply": "Použít změny",
+      "working": "Čekejte…",
+      "close": "Zavřít",
+      "entity": "Entita",
+      "before": "Aktuální",
+      "after": "Nová",
+      "preview_count": "Změní se {changed} z {total} entit.",
+      "unchanged": "Beze změny",
+      "not_applicable": "Nelze použít",
+      "inherited": "Výchozí hodnota PLC ({seconds} s)",
+      "no_changes": "Žádné změny k použití.",
+      "one_save": "Jedno uložení pro celý výběr. Podporované změny se použijí ihned, jinak se integrace jednou znovu načte. Interval se nevztahuje na tlačítka a synchronizace entit.",
+      "saved_refresh_failed": "Změny byly uloženy, ale panel se nepodařilo obnovit. Zavřete toto okno a obnovte panel."
     }
   },
   "selector": {
