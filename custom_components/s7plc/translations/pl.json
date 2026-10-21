@@ -1291,10 +1291,14 @@
       "invalid_device_class": "Wybierz klasę urządzenia obsługiwaną przez encję i typ danych PLC.",
       "invalid_unit_of_measurement": "Wybierz jednostkę zgodną z klasą urządzenia. TIME używa sekund (s).",
       "invalid_state_class": "Wybierz klasę stanu zgodną z klasą urządzenia.",
-      "invalid_bulk_changes": "Wybierz obszar lub interwał do zmiany.",
+      "invalid_bulk_changes": "Wybierz co najmniej jedno ustawienie do zmiany.",
       "invalid_bulk_area": "Wybierz istniejący obszar.",
       "invalid_bulk_scan_interval": "Podaj skończony interwał od 0,05 do 3600 sekund.",
-      "bulk_edit_conflict": "Konfiguracja zmieniła się po podglądzie. Wygeneruj nowy podgląd przed zastosowaniem."
+      "bulk_edit_conflict": "Konfiguracja zmieniła się po podglądzie. Wygeneruj nowy podgląd przed zastosowaniem.",
+      "invalid_bulk_value_multiplier": "Wprowadź skończony mnożnik liczbowy.",
+      "invalid_bulk_real_precision": "Wprowadź całkowitą liczbę miejsc po przecinku od 0 do 6.",
+      "invalid_bulk_write_multiplier": "Zapisywalna encja Number nie może używać mnożnika równego zero.",
+      "bulk_edit_invalid": "Popraw błędy pokazane w podglądzie przed zastosowaniem. Nie zmieniono żadnych encji."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",
@@ -1532,7 +1536,25 @@
       "inherited": "Domyślna wartość PLC ({seconds} s)",
       "no_changes": "Brak zmian do zastosowania.",
       "one_save": "Jeden zapis dla całego zaznaczenia. Obsługiwane zmiany są stosowane od razu; w pozostałych przypadkach integracja jest przeładowywana raz. Interwał nie dotyczy przycisków ani synchronizacji encji.",
-      "saved_refresh_failed": "Zmiany zapisano, ale nie udało się odświeżyć panelu. Zamknij okno i odśwież panel."
+      "saved_refresh_failed": "Zmiany zapisano, ale nie udało się odświeżyć panelu. Zamknij okno i odśwież panel.",
+      "multiplier": "Mnożnik",
+      "precision": "Precyzja dziesiętna",
+      "set_value": "Ustaw wartość",
+      "remove_conversion": "Usuń przeliczenie liczbowe",
+      "factor": "Współczynnik",
+      "automatic": "Automatycznie",
+      "decimals": "Miejsca po przecinku (0–6)",
+      "choose_value": "Wybierz wartość",
+      "new_value": "Nowa wartość",
+      "no_statistics": "Brak (wyłącz statystyki)",
+      "compatible_count": "{count} z {total} wybranych encji obsługuje to pole.",
+      "value_settings": "Wartości i metadane",
+      "value_help": "Pola dotyczą tylko zgodnych encji. Mapowania Enum i konwersje czasu LOGO! zostają zachowane. Zmiana jednostki nie przelicza wartości: w razie potrzeby użyj mnożnika.",
+      "default_precision": "Domyślnie (miejsca po przecinku: {count})",
+      "automatic_value": "Automatycznie ({value})",
+      "conversion_replaced": "Istniejące przeliczenie zostanie zastąpione lub usunięte.",
+      "invalid_preview": "Popraw błędy w {count} encjach przed zastosowaniem. Nic nie zostanie zapisane, dopóki wszystkie proponowane zmiany nie będą prawidłowe.",
+      "conversion": "Przeliczenie wartości"
     }
   },
   "selector": {

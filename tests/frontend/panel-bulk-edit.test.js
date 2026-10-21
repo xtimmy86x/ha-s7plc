@@ -43,12 +43,12 @@ const select = (panel, type, index) => {
   input.checked = true;
   input.dispatchEvent(new Event("change", { bubbles: true }));
 };
-function open({ sections = false } = {}) {
-  const panel = createPanel(createEntry());
+function open({ sections = false, entry = createEntry(), secondType = "switches" } = {}) {
+  const panel = createPanel(entry);
   panel._hass.areas = { old: { area_id: "old", name: "Old room" }, room: { area_id: "room", name: "Machine room" } };
   if (sections) panel.querySelector("[data-layout-toggle]").click();
   select(panel, "sensors", 0);
-  if (sections) select(panel, "switches", 0);
+  if (sections) select(panel, secondType, 0);
   panel.querySelector("[data-batch-edit]").click();
   const dialog = document.body.querySelector("ha-dialog");
   return { panel, dialog, form: dialog.querySelector("form") };
@@ -254,4 +254,109 @@ test("a refresh failure after saving cannot resubmit the operation", async () =>
   expect(panel._hass.callWS).toHaveBeenCalledTimes(2);
   cancel(dialog).onclick();
   expect(dialog.open).toBe(false);
+});
+
+test("numeric and metadata fields preview typed values before one apply", async () => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ uid: "setpoint", address: "DB1,REAL8", min_value: 0, max_value: 100 }];
+  entry.selector_options = { device_classes: { sensors: ["temperature", "energy"], numbers: ["temperature"] }, state_classes: ["measurement", "total", "total_increasing"], units: ["°C", "kWh"] };
+  const { panel, dialog, form } = open({ entry, sections: true, secondType: "numbers" });
+  const details = form.querySelector("details");
+  expect(details.open).toBe(false);
+  details.open = true;
+  const values = { value_multiplier: "0.25", real_precision: "2", device_class: "temperature", unit_of_measurement: "°C", state_class: "none" };
+  for (const [key, value] of Object.entries(values)) {
+    change(form, `${key}_action`, "set");
+    change(form, key, value);
+  }
+  expect(form.querySelector("#s7plc-bulk-units option").value).toBe("°C");
+  const result = preview({ error_count: 0, default_real_precision: 1 });
+  Object.assign(result.rows[0], {
+    before: { value_multiplier: { type: "linear_scale", plc_min: 0, plc_max: 100, ha_min: 0, ha_max: 10 }, real_precision: null, device_class: null, unit_of_measurement: null, state_class: null },
+    after: { value_multiplier: { type: "multiplier", factor: 0.25 }, real_precision: 2, device_class: "temperature", unit_of_measurement: "°C", state_class: "none" },
+    supported_fields: Object.keys(values), conversion_replaced: true,
+  });
+  result.rows.push({ ...result.rows[0], entity_type: "numbers", uid: "setpoint", supported_fields: Object.keys(values).filter(key => key !== "state_class"), conversion_replaced: false });
+  panel._hass.callWS = vi.fn().mockResolvedValueOnce(result).mockResolvedValueOnce({ updated: 2 });
+  panel.load = vi.fn(async () => {});
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual({ ...values, value_multiplier: 0.25, real_precision: 2 });
+  const table = dialog.querySelector(".bulk-preview-table");
+  expect(table.textContent).toContain("0–100 → 0–10");
+  expect(table.textContent).toContain("× 0.25");
+  expect(table.textContent).toContain("None (disable statistics)");
+  expect(table.textContent).toContain("Not applicable");
+  expect(table.textContent).toContain("existing conversion will be replaced");
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS).toHaveBeenCalledTimes(2);
+  expect(panel._hass.callWS.mock.calls[1][0].preview_token).toBe(token);
+  expect(dialog.open).toBe(false);
+});
+
+test("incompatible metadata blocks applying every entity while retaining edits", async () => {
+  const { panel, dialog, form } = open();
+  change(form, "unit_of_measurement_action", "set");
+  change(form, "unit_of_measurement", "bar");
+  const result = preview({ error_count: 1 });
+  Object.assign(result.rows[0], { before: { unit_of_measurement: "°C" }, after: { unit_of_measurement: "bar" }, supported_fields: ["unit_of_measurement"], errors: ["invalid_unit_of_measurement"] });
+  panel._hass.callWS = vi.fn(async () => result);
+  await primary(dialog).onclick();
+  expect(dialog.querySelector("[data-bulk-preview]").textContent).toContain("Resolve the errors");
+  expect(dialog.querySelector(".bulk-preview-error").textContent).toContain("unit compatible");
+  expect(primary(dialog).disabled).toBe(true);
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  expect(panel.selectedIndices.size).toBe(1);
+  change(form, "unit_of_measurement", "°C");
+  expect(dialog.querySelector("[data-bulk-preview]").hidden).toBe(true);
+  expect(primary(dialog).disabled).toBe(false);
+  expect(primary(dialog).textContent).toBe("Preview changes");
+});
+
+test.each([
+  { address: "DB1,S0.20" },
+  { address: "DB1,W0", value_conversions: { value: { type: "enum_map", mappings: [{ value: 0, label: "Off" }] } } },
+])("does not offer numeric or metadata edits for text/enum selections: %j", item => {
+  const entry = createEntry();
+  entry.entities.sensors[0] = { ...entry.entities.sensors[0], ...item };
+  const { form } = open({ entry });
+  expect(form.querySelector("details")).toBeNull();
+  expect(form.elements.value_multiplier).toBeUndefined();
+  expect(form.elements.device_class).toBeUndefined();
+  expect(form.elements.area_action).toBeTruthy();
+  expect(form.elements.scan_action).toBeTruthy();
+});
+
+test.each(["", "-1", "1.5", "7"])("invalid precision %s reopens its section without requesting a preview", async value => {
+  const { panel, dialog, form } = open();
+  panel._hass.callWS = vi.fn();
+  const details = form.querySelector("details");
+  details.open = true;
+  change(form, "real_precision_action", "set");
+  change(form, "real_precision", value);
+  details.open = false;
+  await primary(dialog).onclick();
+  expect(details.open).toBe(true);
+  expect(panel._hass.callWS).not.toHaveBeenCalled();
+});
+
+test("removing numeric overrides sends null and displays effective automatic metadata", async () => {
+  const { panel, dialog, form } = open();
+  const changes = { value_multiplier: null, real_precision: null, unit_of_measurement: null, state_class: null };
+  for (const key of Object.keys(changes)) change(form, `${key}_action`, "clear");
+  const result = preview({ default_real_precision: 1 });
+  Object.assign(result.rows[0], {
+    before: { value_multiplier: { type: "expression", read_expression: "x <img src=x>" }, real_precision: 5, unit_of_measurement: "Wh", state_class: "none" },
+    after: changes, effective_after: { unit_of_measurement: "kWh", state_class: "total_increasing" }, supported_fields: Object.keys(changes), conversion_replaced: true,
+  });
+  panel._hass.callWS = vi.fn(async () => result);
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual(changes);
+  const table = dialog.querySelector(".bulk-preview-table");
+  expect(table.textContent).toContain("Automatic (kWh)");
+  expect(table.textContent).toContain("Automatic (Total Increasing)");
+  expect(table.textContent).toContain("Default (decimal places: 1)");
+  expect(table.textContent).toContain("x <img src=x>");
+  expect(table.querySelector("img")).toBeNull();
 });

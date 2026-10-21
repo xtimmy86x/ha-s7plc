@@ -801,28 +801,60 @@ class S7PlcConfigurationPanel extends HTMLElement {
   dialog.querySelector('[slot=secondaryAction]').onclick=this.guardUnsavedChanges(dialog,dialog.querySelector('.dialog-body'));dialog.addEventListener('closed',()=>dialog.remove());
   let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`entity_types.${detail.entity_type}.label`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
   }
+  bulkEditFields(type,item){
+    const fields=new Set(['area']),numeric=['sensors','numbers'].includes(type),dataType=PARSE_S7_ADDRESS(item.address).dataType,conversion=item.value_conversions?.value;
+    if(!['buttons','entity_sync'].includes(type))fields.add('scan_interval');
+    if(['binary_sensors','covers'].includes(type))fields.add('device_class');
+    if(!numeric||!NUMERIC_VALUE_TYPES.has(dataType)||conversion?.type==='enum_map')return fields;
+    fields.add('device_class');fields.add('unit_of_measurement');
+    if(type==='sensors')fields.add('state_class');
+    if(['REAL','LREAL'].includes(dataType))fields.add('real_precision');
+    if(conversion?.type!=='logo_time_bcd'&&(type==='sensors'||NUMERIC_VALUE_TYPES.has(PARSE_S7_ADDRESS(item.command_address||item.address).dataType)))fields.add('value_multiplier');
+    return fields;
+  }
+  bulkEditForm(entry,targets){
+    const t=key=>this.t(`bulk_edit.${key}`),selection=targets.map(target=>({...target,item:entry.entities[target.entity_type].find(item=>item.uid===target.uid)})).map(target=>({...target,fields:this.bulkEditFields(target.entity_type,target.item)}));
+    const pretty=value=>value.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),option=(value,label)=>`<option value="${this.escape(value)}">${this.escape(label)}</option>`;
+    const classes=[...new Set(selection.filter(target=>target.fields.has('device_class')).flatMap(target=>entry.selector_options?.device_classes?.[target.entity_type]||[]))].filter(value=>!['enum','date','timestamp','uptime'].includes(value)).sort();
+    const areas=Object.values(this._hass.areas||{}).sort((a,b)=>a.name.localeCompare(b.name));
+    const definitions=[
+      ['area','area',t('area'),t('set_area'),t('remove_area'),`<select name="area" data-bulk-input>${option('',t('area_select'))}${areas.map(area=>option(area.area_id,area.name)).join('')}</select>`,t('area_select')],
+      ['scan_interval','scan',t('scan'),t('set_scan'),t('default_scan'),'<input name="scan_interval" data-bulk-input type="number" min="0.05" max="3600" step="any">',t('seconds')],
+      ['value_multiplier','value_multiplier',t('multiplier'),t('set_value'),t('remove_conversion'),'<input name="value_multiplier" data-bulk-input type="number" step="any">',t('factor')],
+      ['real_precision','real_precision',t('precision'),t('set_value'),t('automatic'),'<input name="real_precision" data-bulk-input type="number" min="0" max="6" step="1">',t('decimals')],
+      ['device_class','device_class',this.fieldText('sensors','device_class','label'),t('set_value'),t('automatic'),`<select name="device_class" data-bulk-input>${option('',t('choose_value'))}${classes.map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
+      ['unit_of_measurement','unit_of_measurement',this.fieldText('sensors','unit_of_measurement','label'),t('set_value'),t('automatic'),`<input name="unit_of_measurement" data-bulk-input type="text" list="s7plc-bulk-units"><datalist id="s7plc-bulk-units">${(entry.selector_options?.units||[]).map(value=>option(value,value)).join('')}</datalist>`,t('new_value')],
+      ['state_class','state_class',this.fieldText('sensors','state_class','label'),t('set_value'),t('automatic'),`<select name="state_class" data-bulk-input>${option('',t('choose_value'))}${option('none',t('no_statistics'))}${(entry.selector_options?.state_classes||[]).map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
+    ];
+    const rows=definitions.map(([key,id,label,set,clear,input,valueLabel])=>{
+      const count=selection.filter(target=>target.fields.has(key)).length;if(!count)return '';
+      return `<div class="field-grid bulk-edit-row" data-bulk-field="${key}"><label>${this.escape(label)}<select name="${id}_action" data-bulk-action>${option('keep',t('keep'))}${option('set',set)}${option('clear',clear)}</select><small>${t('compatible_count').replace('{count}',count).replace('{total}',selection.length)}</small></label><label data-bulk-value data-${id}-value hidden>${this.escape(valueLabel)}${input}</label></div>`;
+    });
+    const extra=rows.slice(2).join('');
+    return rows.slice(0,2).join('')+(extra?`<details class="bulk-edit-extra"><summary>${t('value_settings')}</summary><p class="bulk-edit-note">${t('value_help')}</p>${extra}</details>`:'');
+  }
   editSelection(){
     const entry=this._renderedEntry;
     if(!entry||this._bulkEditDialog?.open)return;
     const grouped=this._viewMode==="sections"?this.groupedSelectedIndices():{[this.type||TYPES[0]]:this.selectedIndicesFor(this.type||TYPES[0])},targets=[];
     for(const entityType of TYPES)for(const index of grouped[entityType]||[])targets.push({entity_type:entityType,uid:entry.entities[entityType][index]?.uid});
     if(!targets.length)return;
-    const entryId=entry.entry_id,dialog=document.createElement('ha-dialog'),t=key=>this.t(`bulk_edit.${key}`),areas=Object.values(this._hass.areas||{}).sort((a,b)=>a.name.localeCompare(b.name));
+    const entryId=entry.entry_id,dialog=document.createElement('ha-dialog'),t=key=>this.t(`bulk_edit.${key}`);
     this._bulkEditDialog=dialog;
     dialog.open=true;dialog.headerTitle=t('title');dialog.setAttribute('width','large');
     dialog.style.setProperty('--ha-dialog-width-lg','900px');dialog.style.setProperty('--ha-dialog-max-width','min(900px,96vw)');dialog.style.setProperty('--mdc-dialog-max-width','min(900px,96vw)');dialog.style.setProperty('--dialog-content-padding','0');
-    dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body bulk-edit-body"><p><b>${this.escape(entry.title)}</b> · ${this.t('selection.count').replace('{count}',targets.length)}</p><p>${t('intro')}</p><form class="visual-form"><div class="field-grid"><label>${t('area')}<select name="area_action"><option value="keep">${t('keep')}</option><option value="set">${t('set_area')}</option><option value="clear">${t('remove_area')}</option></select></label><label data-area-value hidden>${t('area_select')}<select name="area"><option value="">${t('area_select')}</option>${areas.map(area=>`<option value="${this.escape(area.area_id)}">${this.escape(area.name)}</option>`).join('')}</select></label><label>${t('scan')}<select name="scan_action"><option value="keep">${t('keep')}</option><option value="set">${t('set_scan')}</option><option value="clear">${t('default_scan')}</option></select></label><label data-scan-value hidden>${t('seconds')}<input name="scan_interval" type="number" min="0.05" max="3600" step="any"></label></div></form><p class="bulk-edit-note">${t('one_save')}</p><section data-bulk-preview hidden aria-label="${t('preview')}"></section><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" disabled>${t('preview')}</ha-button></ha-dialog-footer>`;
+    dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body bulk-edit-body"><p><b>${this.escape(entry.title)}</b> · ${this.t('selection.count').replace('{count}',targets.length)}</p><p>${t('intro')}</p><form class="visual-form">${this.bulkEditForm(entry,targets)}</form><p class="bulk-edit-note">${t('one_save')}</p><section data-bulk-preview hidden aria-label="${t('preview')}"></section><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" disabled>${t('preview')}</ha-button></ha-dialog-footer>`;
     document.body.appendChild(dialog);
     const form=dialog.querySelector('form'),primary=dialog.querySelector('[slot=primaryAction]'),cancel=dialog.querySelector('[slot=secondaryAction]'),previewBox=dialog.querySelector('[data-bulk-preview]'),alert=dialog.querySelector('ha-alert');
     let preview=null,pending=false,finished=false,preparedChanges=null;
     const sync=()=>{
-      const setArea=form.elements.area_action.value==='set',setScan=form.elements.scan_action.value==='set';
-      form.querySelector('[data-area-value]').hidden=!setArea;form.querySelector('[data-scan-value]').hidden=!setScan;
-      // HA's scoped registry polyfill does not implement form.elements iteration.
-      form.querySelectorAll('input,select').forEach(input=>input.disabled=pending||finished);
-      form.elements.area.disabled=pending||finished||!setArea;form.elements.area.required=setArea;
-      form.elements.scan_interval.disabled=pending||finished||!setScan;form.elements.scan_interval.required=setScan;
-      primary.disabled=pending||finished||(preview?preview.changed_count===0:form.elements.area_action.value==='keep'&&form.elements.scan_action.value==='keep');
+      const fields=[...form.querySelectorAll('[data-bulk-field]')];
+      for(const row of fields){
+        const action=row.querySelector('[data-bulk-action]'),input=row.querySelector('[data-bulk-input]'),setting=action.value==='set';
+        row.querySelector('[data-bulk-value]').hidden=!setting;action.disabled=pending||finished;
+        input.disabled=pending||finished||!setting;input.required=setting;
+      }
+      primary.disabled=pending||finished||(preview?preview.changed_count===0||Boolean(preview.error_count):fields.every(row=>row.querySelector('[data-bulk-action]').value==='keep'));
       primary.textContent=t(pending?'working':preview?'apply':'preview');cancel.disabled=pending;cancel.textContent=finished?t('close'):this.t('actions.cancel');
       dialog.setAttribute('aria-busy',String(pending));
     };
@@ -832,11 +864,16 @@ class S7PlcConfigurationPanel extends HTMLElement {
     dialog.addEventListener('wa-hide',event=>{if(event.target===dialog&&pending)event.preventDefault();});
     dialog.addEventListener('closed',()=>{dialog.remove();if(this._bulkEditDialog===dialog)this._bulkEditDialog=null;});
     primary.onclick=async()=>{
-      if(pending||finished||primary.disabled||!form.reportValidity())return;
+      if(pending||finished||primary.disabled)return;
+      const invalid=form.querySelector('input:invalid,select:invalid');
+      if(invalid){const group=invalid.closest('details');if(group)group.open=true;}
+      if(!form.reportValidity())return;
       const applying=Boolean(preview),changes={};
       if(!applying){
-        if(form.elements.area_action.value!=='keep')changes.area=form.elements.area_action.value==='clear'?null:form.elements.area.value;
-        if(form.elements.scan_action.value!=='keep')changes.scan_interval=form.elements.scan_action.value==='clear'?null:Number(form.elements.scan_interval.value);
+        for(const row of form.querySelectorAll('[data-bulk-field]')){
+          const action=row.querySelector('[data-bulk-action]').value,input=row.querySelector('[data-bulk-input]');
+          if(action!=='keep')changes[row.dataset.bulkField]=action==='clear'?null:input.type==='number'?Number(input.value):input.value.trim();
+        }
       }
       pending=true;alert.style.display='none';sync();
       try{
@@ -855,10 +892,26 @@ class S7PlcConfigurationPanel extends HTMLElement {
     sync();
   }
   renderBulkPreview(container,preview,changes){
-    const t=key=>this.t(`bulk_edit.${key}`),areaName=value=>value?(this._hass.areas?.[value]?.name||value):this.t('common.no_area');
-    const value=(row,side,key)=>key==='area'?areaName(row[side].area):!row.scan_supported?t('not_applicable'):row[side].scan_interval==null?t('inherited').replace('{seconds}',preview.default_scan_interval):`${row[side].scan_interval} s`;
-    const cells=(row,side)=>Object.keys(changes).map(key=>`<span class="bulk-preview-value ${side==='after'&&row.before[key]!==row.after[key]?'changed':''}"><b>${t(key==='area'?'area':'scan')}:</b> ${this.escape(value(row,side,key))}</span>`).join('');
-    container.innerHTML=`<h3 tabindex="-1">${t('preview')}</h3><p role="status">${t('preview_count').replace('{changed}',preview.changed_count).replace('{total}',preview.rows.length)}</p>${preview.changed_count===0?`<ha-alert alert-type="info">${t('no_changes')}</ha-alert>`:''}<table class="bulk-preview-table"><thead><tr><th scope="col">${t('entity')}</th><th scope="col">${t('before')}</th><th scope="col">${t('after')}</th></tr></thead><tbody>${preview.rows.map((row,index)=>`<tr><th scope="row"><b>${this.escape(row.name||row.address||`${this.t(`entity_types.${row.entity_type}.singular`)} ${index+1}`)}</b><small>${this.escape(this.t(`entity_types.${row.entity_type}.singular`))}${row.address?` · ${this.escape(row.address)}`:''}</small>${!row.changed?`<small>${t('unchanged')}</small>`:''}</th><td>${cells(row,'before')}</td><td>${cells(row,'after')}</td></tr>`).join('')}</tbody></table>`;
+    const t=key=>this.t(`bulk_edit.${key}`),pretty=value=>String(value).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),areaName=value=>value?(this._hass.areas?.[value]?.name||value):this.t('common.no_area');
+    const label=key=>key==='area'?t('area'):key==='scan_interval'?t('scan'):key==='value_multiplier'?t('conversion'):key==='real_precision'?t('precision'):this.fieldText('sensors',key,'label');
+    const supported=(row,key)=>row.supported_fields?row.supported_fields.includes(key):key!=='scan_interval'||row.scan_supported;
+    const value=(row,side,key)=>{
+      if(!supported(row,key))return t('not_applicable');
+      const current=row[side][key];
+      if(key==='area')return areaName(current);
+      if(key==='scan_interval')return current==null?t('inherited').replace('{seconds}',preview.default_scan_interval):`${current} s`;
+      if(key==='real_precision')return current==null?t('default_precision').replace('{count}',preview.default_real_precision):String(current);
+      if(key==='value_multiplier'){
+        const summary=this.valueConversionSummary(current,'value');
+        return current?.type==='expression'?`${summary}: ${[current.read_expression&&`PLC → HA: ${current.read_expression}`,current.write_expression&&`HA → PLC: ${current.write_expression}`].filter(Boolean).join('; ')}`:summary;
+      }
+      if(key==='state_class'&&current==='none')return t('no_statistics');
+      if(current!=null)return key==='unit_of_measurement'?current:pretty(current);
+      const effective=row[`effective_${side}`]?.[key];
+      return effective!=null?t('automatic_value').replace('{value}',key==='unit_of_measurement'?effective:pretty(effective)):key==='device_class'?this.t('common.none_option'):t('automatic');
+    };
+    const cells=(row,side)=>Object.keys(changes).map(key=>`<span class="bulk-preview-value ${side==='after'&&supported(row,key)&&JSON.stringify(row.before[key])!==JSON.stringify(row.after[key])?'changed':''}"><b>${this.escape(label(key))}:</b> ${this.escape(value(row,side,key))}</span>`).join('');
+    container.innerHTML=`<h3 tabindex="-1">${t('preview')}</h3><p role="status">${t('preview_count').replace('{changed}',preview.changed_count).replace('{total}',preview.rows.length)}</p>${preview.error_count?`<ha-alert alert-type="error">${t('invalid_preview').replace('{count}',preview.error_count)}</ha-alert>`:preview.changed_count===0?`<ha-alert alert-type="info">${t('no_changes')}</ha-alert>`:''}<table class="bulk-preview-table"><thead><tr><th scope="col">${t('entity')}</th><th scope="col">${t('before')}</th><th scope="col">${t('after')}</th></tr></thead><tbody>${preview.rows.map((row,index)=>`<tr><th scope="row"><b>${this.escape(row.name||row.address||`${this.t(`entity_types.${row.entity_type}.singular`)} ${index+1}`)}</b><small>${this.escape(this.t(`entity_types.${row.entity_type}.singular`))}${row.address?` · ${this.escape(row.address)}`:''}</small>${!row.changed?`<small>${t('unchanged')}</small>`:''}${row.conversion_replaced?`<small class="bulk-preview-warning">${t('conversion_replaced')}</small>`:''}${(row.errors||[]).map(error=>`<small class="bulk-preview-error">${this.escape(this.flowError(error))}</small>`).join('')}</th><td>${cells(row,'before')}</td><td>${cells(row,'after')}</td></tr>`).join('')}</tbody></table>`;
   }
   remove(indices,type=this.type||TYPES[0]){
   this.removeSelection({[type]:[...new Set(indices)].sort((a,b)=>b-a)});
@@ -1127,6 +1180,7 @@ article:has(.tone-error) .entity-icon{background:color-mix(in srgb,var(--error-c
 .light-options .control-card,.compact-control-card{min-height:0;padding:10px 12px!important;gap:5px!important}.cover-options{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.compact-control-card{align-items:center!important;text-align:center}.compact-control-card span{min-width:0;max-width:100%}.compact-control-card small{margin-top:3px}
 .light-options .control-card small{margin-top:3px}
 .visual-form label:not(.check){display:flex;flex-direction:column;gap:6px;font-size:13px}
+.bulk-edit-row{margin-bottom:14px}.bulk-edit-extra{border-top:1px solid var(--divider-color);padding-top:8px}.bulk-edit-extra>summary{padding:8px 0;cursor:pointer;font-weight:600}.bulk-edit-extra>summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.bulk-edit-extra>p{margin:4px 0 14px}.bulk-preview-table .bulk-preview-warning{color:var(--warning-color)}.bulk-preview-table .bulk-preview-error{color:var(--error-color)}
 .bulk-edit-body>p,.bulk-edit-body>form,.bulk-edit-body>section{margin-bottom:16px}.bulk-edit-body [hidden]{display:none!important}.bulk-edit-note{font-size:12px;color:var(--secondary-text-color);line-height:1.5}.bulk-preview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;margin-top:12px}.bulk-preview-table th,.bulk-preview-table td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--divider-color);overflow-wrap:anywhere}.bulk-preview-table thead{color:var(--secondary-text-color)}.bulk-preview-table tbody th{font-weight:400}.bulk-preview-table small,.bulk-preview-value{display:block;margin-top:4px}.bulk-preview-table small{color:var(--secondary-text-color)}.bulk-preview-value.changed{color:var(--primary-color);font-weight:600}.bulk-edit-body h3{margin-bottom:8px}
 .visual-form input,.visual-form select{width:100%;min-width:0;background:var(--card-background-color);transition:border-color .15s,box-shadow .15s}.visual-form select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--secondary-text-color) 50%),linear-gradient(135deg,var(--secondary-text-color) 50%,transparent 50%);background-position:calc(100% - 18px) calc(50% - 3px),calc(100% - 13px) calc(50% - 3px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
 .visual-form input:hover,.visual-form select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}

@@ -1291,10 +1291,14 @@
       "invalid_device_class": "Vyberte třídu zařízení podporovanou entitou a datovým typem PLC.",
       "invalid_unit_of_measurement": "Vyberte jednotku kompatibilní s třídou zařízení. TIME používá sekundy (s).",
       "invalid_state_class": "Vyberte třídu stavu kompatibilní s třídou zařízení.",
-      "invalid_bulk_changes": "Vyberte oblast nebo interval ke změně.",
+      "invalid_bulk_changes": "Vyberte alespoň jedno nastavení ke změně.",
       "invalid_bulk_area": "Vyberte existující oblast.",
       "invalid_bulk_scan_interval": "Zadejte konečný interval od 0,05 do 3600 sekund.",
-      "bulk_edit_conflict": "Konfigurace se od náhledu změnila. Před použitím vytvořte nový náhled."
+      "bulk_edit_conflict": "Konfigurace se od náhledu změnila. Před použitím vytvořte nový náhled.",
+      "invalid_bulk_value_multiplier": "Zadejte konečný číselný násobitel.",
+      "invalid_bulk_real_precision": "Zadejte celé číslo desetinných míst od 0 do 6.",
+      "invalid_bulk_write_multiplier": "Zapisovatelná entita Number nemůže používat nulový násobitel.",
+      "bulk_edit_invalid": "Před použitím opravte chyby zobrazené v náhledu. Žádné entity nebyly změněny."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1532,7 +1536,25 @@
       "inherited": "Výchozí hodnota PLC ({seconds} s)",
       "no_changes": "Žádné změny k použití.",
       "one_save": "Jedno uložení pro celý výběr. Podporované změny se použijí ihned, jinak se integrace jednou znovu načte. Interval se nevztahuje na tlačítka a synchronizace entit.",
-      "saved_refresh_failed": "Změny byly uloženy, ale panel se nepodařilo obnovit. Zavřete toto okno a obnovte panel."
+      "saved_refresh_failed": "Změny byly uloženy, ale panel se nepodařilo obnovit. Zavřete toto okno a obnovte panel.",
+      "multiplier": "Násobitel",
+      "precision": "Desetinná přesnost",
+      "set_value": "Nastavit hodnotu",
+      "remove_conversion": "Odstranit číselný převod",
+      "factor": "Koeficient",
+      "automatic": "Automaticky",
+      "decimals": "Desetinná místa (0–6)",
+      "choose_value": "Vyberte hodnotu",
+      "new_value": "Nová hodnota",
+      "no_statistics": "Žádná (vypnout statistiky)",
+      "compatible_count": "Toto pole podporuje {count} z {total} vybraných entit.",
+      "value_settings": "Hodnoty a metadata",
+      "value_help": "Pole se vztahují pouze na kompatibilní entity. Mapování Enum a převody času LOGO! zůstávají zachovány. Změna jednotky nepřevádí hodnoty: v případě potřeby použijte násobitel.",
+      "default_precision": "Výchozí (počet desetinných míst: {count})",
+      "automatic_value": "Automaticky ({value})",
+      "conversion_replaced": "Stávající převod bude nahrazen nebo odstraněn.",
+      "invalid_preview": "Před použitím opravte chyby u {count} entit. Nic se neuloží, dokud nebudou všechny navržené změny platné.",
+      "conversion": "Převod hodnoty"
     }
   },
   "selector": {

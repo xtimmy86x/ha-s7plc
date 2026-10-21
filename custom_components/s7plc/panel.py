@@ -284,6 +284,8 @@ def _selector_options() -> dict[str, Any]:
     The values are shared with the options flow (see helpers) so both
     editors always offer the same choices.
     """
+    from homeassistant.components import number, sensor
+
     from .helpers import DEVICE_CLASS_ENUMS, STATE_CLASS_VALUES, device_class_values
 
     return {
@@ -292,6 +294,14 @@ def _selector_options() -> dict[str, Any]:
             for entity_type in DEVICE_CLASS_ENUMS
         },
         "state_classes": list(STATE_CLASS_VALUES),
+        "units": sorted(
+            {
+                unit
+                for catalog in (sensor.DEVICE_CLASS_UNITS, number.DEVICE_CLASS_UNITS)
+                for units in catalog.values()
+                for unit in (units or ())
+            }
+        ),
     }
 
 
@@ -661,6 +671,11 @@ async def async_setup_panel(hass: Any) -> None:
             {
                 vol.Optional("area"): vol.Any(None, str),
                 vol.Optional("scan_interval"): vol.Any(None, int, float),
+                vol.Optional("value_multiplier"): vol.Any(None, int, float),
+                vol.Optional("real_precision"): vol.Any(None, int),
+                vol.Optional("device_class"): vol.Any(None, str),
+                vol.Optional("unit_of_measurement"): vol.Any(None, str),
+                vol.Optional("state_class"): vol.Any(None, str),
             },
             vol.Length(min=1),
         ),
@@ -687,6 +702,9 @@ async def async_setup_panel(hass: Any) -> None:
             return
         if msg["preview_token"] != preview["preview_token"]:
             connection.send_error(msg["id"], "bulk_edit_conflict", "bulk_edit_conflict")
+            return
+        if preview["error_count"]:
+            connection.send_error(msg["id"], "bulk_edit_invalid", "bulk_edit_invalid")
             return
         if preview["changed_count"]:
             hass.config_entries.async_update_entry(entry, options=options)
