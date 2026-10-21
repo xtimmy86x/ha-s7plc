@@ -62,6 +62,42 @@ test("starts unchanged and cancel saves nothing", () => {
   expect(call).not.toHaveBeenCalled();
 });
 
+test("only shows and enables a value field when its action is set", () => {
+  const { dialog, form } = open();
+  const area = form.querySelector("[data-area-value]");
+  const scan = form.querySelector("[data-scan-value]");
+  expect(getComputedStyle(area).display).toBe("none");
+  expect(getComputedStyle(scan).display).toBe("none");
+  expect(form.elements.area.disabled).toBe(true);
+  expect(form.elements.scan_interval.disabled).toBe(true);
+
+  change(form, "area_action", "set");
+  expect(getComputedStyle(area).display).not.toBe("none");
+  expect(getComputedStyle(scan).display).toBe("none");
+  expect(form.elements.area.disabled).toBe(false);
+  expect(form.elements.area.required).toBe(true);
+  expect(primary(dialog).disabled).toBe(false);
+
+  change(form, "scan_action", "set");
+  expect(getComputedStyle(scan).display).not.toBe("none");
+  expect(form.elements.scan_interval.disabled).toBe(false);
+  expect(form.elements.scan_interval.required).toBe(true);
+
+  change(form, "area_action", "clear");
+  change(form, "scan_action", "clear");
+  expect(getComputedStyle(area).display).toBe("none");
+  expect(getComputedStyle(scan).display).toBe("none");
+  expect(form.elements.area.disabled).toBe(true);
+  expect(form.elements.scan_interval.disabled).toBe(true);
+  expect(form.elements.area.required).toBe(false);
+  expect(form.elements.scan_interval.required).toBe(false);
+  expect(primary(dialog).disabled).toBe(false);
+
+  change(form, "area_action", "keep");
+  change(form, "scan_action", "keep");
+  expect(primary(dialog).disabled).toBe(true);
+});
+
 test("previews mixed selections and applies their captured identities once", async () => {
   const { panel, dialog, form } = open({ sections: true });
   const result = preview({ changed_count: 2 });
