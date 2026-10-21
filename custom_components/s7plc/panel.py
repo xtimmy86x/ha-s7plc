@@ -279,7 +279,7 @@ def _connection_entity_id(hass: Any, entry: Any) -> str | None:
 
 
 def _selector_options() -> dict[str, Any]:
-    """Return device/state class choices used by the panel dropdowns.
+    """Return class and unit choices used by the panel selectors.
 
     The values are shared with the options flow (see helpers) so both
     editors always offer the same choices.
@@ -296,10 +296,11 @@ def _selector_options() -> dict[str, Any]:
         "state_classes": list(STATE_CLASS_VALUES),
         "units": sorted(
             {
-                unit
+                str(unit)
                 for catalog in (sensor.DEVICE_CLASS_UNITS, number.DEVICE_CLASS_UNITS)
                 for units in catalog.values()
                 for unit in (units or ())
+                if unit is not None
             }
         ),
     }
