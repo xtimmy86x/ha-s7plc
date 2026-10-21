@@ -38,11 +38,8 @@ from .const import (
     CONF_UNIT_OF_MEASUREMENT,
 )
 from .entity import S7BaseEntity, async_configure_entity_availability
-from .helpers import (
-    DEVICE_CLASS_DEFAULT_UNITS,
-    default_entity_name,
-    get_coordinator_and_device_info,
-)
+from .entity_metadata import METADATA_FIELDS, metadata_error, sensor_metadata
+from .helpers import default_entity_name, get_coordinator_and_device_info
 from .plc.address import DataType, is_time_data_type, parse_tag, time_to_seconds
 from .restore import decode_values, encode_values
 from .value_conversion import (
@@ -255,37 +252,6 @@ _FALSE_STATES = frozenset(
 
 # Coordinator is used to centralize data updates
 PARALLEL_UPDATES = 0
-
-
-# Sensor-only candidate names not already in DEVICE_CLASS_DEFAULT_UNITS
-# (currently all covered by the shared map)
-
-TOTAL_INCREASING_CLASSES = {
-    SensorDeviceClass.ENERGY,
-    SensorDeviceClass.ENERGY_STORAGE,
-    getattr(SensorDeviceClass, "REACTIVE_ENERGY", None),
-}
-
-NO_MEASUREMENT_CLASSES = {
-    SensorDeviceClass.GAS,
-    SensorDeviceClass.WATER,
-    getattr(SensorDeviceClass, "DATE", None),
-    getattr(SensorDeviceClass, "TIMESTAMP", None),
-    getattr(SensorDeviceClass, "ENUM", None),
-    getattr(SensorDeviceClass, "MONETARY", None),
-    SensorDeviceClass.VOLUME,
-    # Note: VOLUME_STORAGE is allowed as a device_class,
-    # but treat it as "stored amount" and do not mark it as MEASUREMENT
-    # to avoid "impossible state_class" warnings in some setups.
-    getattr(SensorDeviceClass, "VOLUME_STORAGE", None),
-}
-
-# Build a mapping using only device classes that exist
-DEVICE_CLASS_UNITS: dict[SensorDeviceClass, str | None] = {
-    getattr(SensorDeviceClass, name): unit
-    for name, unit in DEVICE_CLASS_DEFAULT_UNITS.items()
-    if hasattr(SensorDeviceClass, name)
-}
 
 
 async def async_setup_entry(
@@ -502,6 +468,46 @@ class S7AlarmCountSensor(S7AlarmEntity, SensorEntity):
 
 
 class S7Sensor(S7BaseEntity, SensorEntity):
+    _live_config_fields = (
+        S7BaseEntity._live_config_fields
+        | {
+            "value_conversions",
+            "scan_interval",
+            "real_precision",
+        }
+        | METADATA_FIELDS
+    )
+
+    def prepare_live_config(self, item: dict, changed: set[str]) -> dict | None:
+        attributes = super().prepare_live_config(item, changed)
+        if attributes is None:
+            return None
+        if "value_conversions" in changed:
+            conversion = normalize_value_conversion(
+                item, "value", self._conversion_context
+            )
+            # Enum mappings change the value type/options and still use a reload.
+            if any(
+                value and value.get("type") == "enum_map"
+                for value in (self._value_conversion, conversion)
+            ):
+                return None
+            attributes["_value_conversion"] = conversion
+        if changed & METADATA_FIELDS:
+            if error := metadata_error("sensors", item):
+                raise ValueError(error)
+            attributes.update(
+                sensor_metadata(
+                    item.get(CONF_DEVICE_CLASS),
+                    item.get(CONF_UNIT_OF_MEASUREMENT),
+                    item.get(CONF_STATE_CLASS),
+                    is_time=self._is_time,
+                    is_text=self._is_string_or_char_sensor(),
+                    is_enum=self._enum_lookup is not None,
+                )
+            )
+        return attributes
+
     _address_attr_name = "s7_state_address"
 
     def __init__(
@@ -534,17 +540,10 @@ class S7Sensor(S7BaseEntity, SensorEntity):
         self._last_unmapped_enum_value: int | None = None
         self._enum_lookup: dict[int, str] | None = None
 
-        self._custom_unit = unit_of_measurement if unit_of_measurement else None
-
         try:
             self._is_time = is_time_data_type(parse_tag(address).data_type)
         except (RuntimeError, ValueError):
             self._is_time = False
-
-        # Check if this is a string or char sensor
-        is_string_or_char = self._is_string_or_char_sensor()
-
-        sensor_device_class = SensorDeviceClass.DURATION if self._is_time else None
 
         if value_conversion and value_conversion.get("type") == "enum_map":
             mappings = normalize_enum_mappings(
@@ -554,55 +553,19 @@ class S7Sensor(S7BaseEntity, SensorEntity):
             self._enum_lookup = {
                 mapping["value"]: mapping["label"] for mapping in mappings
             }
-            enum_device_class = getattr(SensorDeviceClass, "ENUM", "enum")
-            sensor_device_class = enum_device_class
-            self._attr_device_class = enum_device_class
             self._attr_options = [mapping["label"] for mapping in mappings]
 
         if self._is_time:
-            self._attr_device_class = SensorDeviceClass.DURATION
-            self._attr_native_unit_of_measurement = "s"
             self._attr_suggested_display_precision = 3
-
-        # Don't set device_class or state_class for string/char sensors
-        if not self._is_time and not is_string_or_char and device_class:
-            try:
-                sensor_device_class = SensorDeviceClass(device_class)
-            except ValueError:
-                _LOGGER.warning("Invalid device class %s", device_class)
-            else:
-                self._attr_device_class = sensor_device_class
-                unit = DEVICE_CLASS_UNITS.get(sensor_device_class)
-                if unit is not None:
-                    self._attr_native_unit_of_measurement = unit
-
-        # Override with custom unit if provided
-        if self._custom_unit and not self._is_time:
-            self._attr_native_unit_of_measurement = self._custom_unit
-
-        # Set state_class: user config takes precedence,
-        # otherwise derive from device_class
-        if state_class and state_class != "none":
-            # User explicitly configured state_class
-            self._attr_state_class = state_class
-        elif not is_string_or_char and sensor_device_class is not None:
-            # Auto-derive state_class from device_class
-            if sensor_device_class in TOTAL_INCREASING_CLASSES:
-                self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-
-            elif sensor_device_class in NO_MEASUREMENT_CLASSES:
-                # Instantaneous tank level / stored volume -> no state_class
-                # (HA disallows MEASUREMENT here)
-                self._attr_state_class = None
-
-            else:
-                # Default for instantaneous numeric sensors
-                if sensor_device_class not in (
-                    getattr(SensorDeviceClass, "DATE", None),
-                    getattr(SensorDeviceClass, "TIMESTAMP", None),
-                    getattr(SensorDeviceClass, "ENUM", None),
-                ):
-                    self._attr_state_class = SensorStateClass.MEASUREMENT
+        for key, value in sensor_metadata(
+            device_class,
+            unit_of_measurement,
+            state_class,
+            is_time=self._is_time,
+            is_text=self._is_string_or_char_sensor(),
+            is_enum=self._enum_lookup is not None,
+        ).items():
+            setattr(self, key, value)
 
     def _is_string_or_char_sensor(self) -> bool:
         """Check if this sensor is a string or char data type."""

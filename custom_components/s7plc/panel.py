@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from collections.abc import Hashable
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -583,11 +584,66 @@ async def async_setup_panel(hass: Any) -> None:
             },
         )
 
+    @websocket_api.websocket_command(
+        {
+            vol.Required("type"): "s7plc/config/delete_entities",
+            vol.Required("entry_id"): str,
+            vol.Required("entities"): vol.All(
+                [
+                    {
+                        vol.Required("entity_type"): vol.In(OPTION_KEYS),
+                        vol.Required("uid"): vol.All(str, vol.Length(min=1)),
+                    }
+                ],
+                vol.Length(min=1),
+            ),
+        }
+    )
+    @websocket_api.require_admin
+    @websocket_api.async_response
+    async def ws_delete_entities(hass, connection, msg):
+        """Validate every permanent identity before committing one options update."""
+        entry = hass.config_entries.async_get_entry(msg["entry_id"])
+        if entry is None or entry.domain != DOMAIN:
+            connection.send_error(
+                msg["id"], "entry_not_found", "S7 PLC entry not found"
+            )
+            return
+        options = dict(entry.options)
+        selected: dict[str, set[str]] = {}
+        for target in msg["entities"]:
+            entity_type, uid = target["entity_type"], target["uid"]
+            uids = selected.setdefault(entity_type, set())
+            if uid in uids:
+                connection.send_error(
+                    msg["id"],
+                    "invalid_selection",
+                    "Duplicate selection; refresh and select again",
+                )
+                return
+            uids.add(uid)
+        for entity_type, uids in selected.items():
+            items = options.get(entity_type, [])
+            counts = Counter(item.get(CONF_UID) for item in items)
+            if any(counts[uid] != 1 for uid in uids):
+                connection.send_error(
+                    msg["id"],
+                    "invalid_selection",
+                    "Selection changed; refresh and select again",
+                )
+                return
+            options[entity_type] = [
+                item for item in items if item.get(CONF_UID) not in uids
+            ]
+        hass.config_entries.async_update_entry(entry, options=options)
+        connection.send_result(msg["id"], {"deleted": len(msg["entities"])})
+
     websocket_api.async_register_command(hass, ws_list)
     websocket_api.async_register_command(hass, ws_save_entity)
     websocket_api.async_register_command(hass, ws_delete_entity)
     websocket_api.async_register_command(hass, ws_save_configuration)
     websocket_api.async_register_command(hass, ws_get_configuration)
+    websocket_api.async_register_command(hass, ws_delete_entities)
 
     await panel_custom.async_register_panel(
         hass,

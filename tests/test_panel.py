@@ -7,6 +7,7 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
+import voluptuous as vol
 import yaml
 
 from custom_components.s7plc.config_validation import build_entity_item
@@ -502,11 +503,17 @@ async def _save_entity_handler(monkeypatch, options):
     import custom_components.s7plc.panel as panel
 
     monkeypatch.setattr(panel, "package_version", lambda package: "3.1.1")
-    monkeypatch.setattr(panel.vol, "In", lambda values: values, raising=False)
-    monkeypatch.setattr(panel.vol, "Any", lambda *values: values, raising=False)
     commands = []
     websocket_api = ModuleType("homeassistant.components.websocket_api")
-    websocket_api.websocket_command = lambda schema: lambda func: func
+
+    def websocket_command(schema):
+        def decorate(func):
+            func.schema = panel.vol.Schema({panel.vol.Required("id"): int, **schema})
+            return func
+
+        return decorate
+
+    websocket_api.websocket_command = websocket_command
     websocket_api.require_admin = lambda func: func
     websocket_api.async_response = lambda func: func
     websocket_api.async_register_command = lambda hass, func: commands.append(func)
@@ -569,6 +576,77 @@ async def _save_entity_handler(monkeypatch, options):
     hass.panel_commands = commands
     hass.panel_registration = registrations[0]
     return commands[1], hass, entry, updates
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid", ["missing", "duplicate", "wrong_type", None])
+async def test_bulk_delete_is_atomic_and_uses_permanent_uids(monkeypatch, invalid):
+    options = {
+        "sensors": [
+            {"uid": "second", "address": "DB1,R4"},
+            {"uid": "first", "address": "DB1,R0"},
+        ],
+        "switches": [{"uid": "switch", "state_address": "DB1,X8.0"}],
+        "unrelated": 42,
+    }
+    _, hass, entry, updates = await _save_entity_handler(monkeypatch, options)
+    handler = hass.panel_commands[5]
+    targets = [
+        {"entity_type": "sensors", "uid": "first"},
+        {"entity_type": "switches", "uid": "switch"},
+    ]
+    if invalid == "missing":
+        targets[1]["uid"] = "gone"
+    elif invalid == "duplicate":
+        targets.append(dict(targets[0]))
+    elif invalid == "wrong_type":
+        targets[1]["entity_type"] = "numbers"
+    connection = _Connection()
+    message = handler.schema(
+        {
+            "id": 1,
+            "type": "s7plc/config/delete_entities",
+            "entry_id": entry.entry_id,
+            "entities": targets,
+        }
+    )
+    await handler(hass, connection, message)
+    assert entry.options is options
+    assert len(options["sensors"]) == 2
+    if invalid:
+        assert updates == []
+        assert connection.error[0] == "invalid_selection"
+    else:
+        assert updates == [
+            {"sensors": [options["sensors"][0]], "switches": [], "unrelated": 42}
+        ]
+        assert connection.result == {"deleted": 2}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "targets",
+    [
+        [],
+        {},
+        [{"entity_type": "unknown", "uid": "one"}],
+        [{"entity_type": "sensors", "uid": ""}],
+        [{"entity_type": "sensors", "uid": 1}],
+        [{"entity_type": "sensors", "index": 0}],
+    ],
+)
+async def test_bulk_delete_schema_rejects_invalid_selection(monkeypatch, targets):
+    _, hass, entry, updates = await _save_entity_handler(monkeypatch, {})
+    with pytest.raises(vol.Invalid):
+        hass.panel_commands[5].schema(
+            {
+                "id": 1,
+                "type": "s7plc/config/delete_entities",
+                "entry_id": entry.entry_id,
+                "entities": targets,
+            }
+        )
+    assert updates == []
 
 
 @pytest.mark.asyncio

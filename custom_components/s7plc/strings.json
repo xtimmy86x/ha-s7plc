@@ -277,7 +277,8 @@
       "disabled": "Connection disabled",
       "open_project_github": "Open ha-s7plc on GitHub",
       "settings": "Settings",
-      "select_plc": "Select PLC"
+      "select_plc": "Select PLC",
+      "automatic_option": "Automatic"
     },
     "sections": {
       "plc_connection": {
@@ -321,7 +322,7 @@
           },
           "state_class": {
             "label": "State class",
-            "description": "State class for statistics: 'measurement' for instantaneous values, 'total' for cumulative values that can decrease, 'total_increasing' for counters (e.g., energy, water consumption). Leave blank for automatic."
+            "description": "State class for statistics: measurement for instantaneous values, total for cumulative values that can decrease, total_increasing for counters. Automatic derives it from the device class; None disables it."
           },
           "real_precision": {
             "label": "REAL decimal precision",
@@ -1280,7 +1281,10 @@
       "comparison_requires_numeric_type": "Comparisons require a scalar numeric address (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL or LREAL).",
       "alarm_range_invalid": "Enter an ascending range of BIT addresses in the same DB or in the M flag area, maximum 8192 bits.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
-      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
+      "invalid_device_class": "Choose a device class supported by this entity and its PLC data type.",
+      "invalid_unit_of_measurement": "Choose a unit compatible with the device class. TIME uses seconds (s).",
+      "invalid_state_class": "Choose a state class compatible with the device class."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

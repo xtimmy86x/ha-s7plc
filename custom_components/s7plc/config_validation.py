@@ -142,6 +142,7 @@ from .const import (
     DEFAULT_TOGGLE_MODE,
     NUMBER_MODES,
 )
+from .entity_metadata import metadata_error
 from .helpers import parse_pulse_duration
 from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
 from .value_conversion import LOGO_TIME_HHMM_LIMITS, normalize_value_conversion
@@ -2238,6 +2239,9 @@ def build_entity_item(
                 item.pop(CONF_REAL_PRECISION, None)
         except (ValueConversionError, ValueError, TypeError) as err:
             return None, {"base": f"invalid_value_conversion:{err}"}
+
+    if error := metadata_error(entity_type, item):
+        return None, {"base": error}
 
     mode = entity.get(CONF_AVAILABILITY_MODE) or AVAILABILITY_MODE_CONNECTION
     if mode not in AVAILABILITY_MODES:

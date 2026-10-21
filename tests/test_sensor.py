@@ -11,9 +11,9 @@ from custom_components.s7plc.sensor import (
     S7MetricsSensor,
     S7Sensor,
     async_setup_entry,
-    DEVICE_CLASS_UNITS,
-    TOTAL_INCREASING_CLASSES,
-    NO_MEASUREMENT_CLASSES,
+)
+from custom_components.s7plc.entity_metadata import (
+    TOTAL_INCREASING_CLASSES, NO_MEASUREMENT_CLASSES,
 )
 from custom_components.s7plc.plc.address import DataType
 
@@ -83,7 +83,7 @@ def test_sensor_with_device_class_temperature(sensor_factory):
     sensor = sensor_factory(device_class="temperature")
     assert sensor._attr_device_class == SensorDeviceClass.TEMPERATURE
     assert sensor._attr_state_class == SensorStateClass.MEASUREMENT
-    # Check that unit is set from DEVICE_CLASS_UNITS
+    # Check the class default unit
     assert sensor._attr_native_unit_of_measurement == "°C"
 
 
@@ -113,8 +113,8 @@ def test_sensor_with_invalid_device_class(sensor_factory):
     """Test sensor with invalid device class."""
     sensor = sensor_factory(device_class="invalid_class")
     # Should not set device_class
-    assert not hasattr(sensor, "_attr_device_class")
-    assert not hasattr(sensor, "_attr_native_unit_of_measurement")
+    assert sensor._attr_device_class is None
+    assert sensor._attr_native_unit_of_measurement is None
 
 
 def test_sensor_string_type_no_device_class(sensor_factory, mock_coordinator):
@@ -124,8 +124,8 @@ def test_sensor_string_type_no_device_class(sensor_factory, mock_coordinator):
     
     sensor = sensor_factory(device_class="temperature")
     # String sensors should not have device_class even if specified
-    assert not hasattr(sensor, "_attr_device_class")
-    assert not hasattr(sensor, "_attr_state_class")
+    assert sensor._attr_device_class is None
+    assert sensor._attr_state_class is None
 
 
 def test_sensor_char_type_no_device_class(sensor_factory, mock_coordinator):
@@ -137,8 +137,8 @@ def test_sensor_char_type_no_device_class(sensor_factory, mock_coordinator):
     
     sensor = sensor_factory(device_class="temperature")
     # Char sensors should not have device_class even if specified
-    assert not hasattr(sensor, "_attr_device_class")
-    assert not hasattr(sensor, "_attr_state_class")
+    assert sensor._attr_device_class is None
+    assert sensor._attr_state_class is None
 
 
 def test_sensor_native_value_no_data(sensor_factory, mock_coordinator):
@@ -226,19 +226,10 @@ def test_sensor_linear_scale_uses_only_conversion_endpoints(
     assert "max_value" not in sensor.extra_state_attributes
 
 
-def test_sensor_device_class_units_mapping():
-    """Test that DEVICE_CLASS_UNITS contains expected mappings."""
-    # Test some known device classes
-    assert SensorDeviceClass.TEMPERATURE in DEVICE_CLASS_UNITS
-    assert SensorDeviceClass.ENERGY in DEVICE_CLASS_UNITS
-    # Test that the mapping is a dict
-    assert isinstance(DEVICE_CLASS_UNITS, dict)
-
-
 def test_sensor_total_increasing_classes():
     """Test TOTAL_INCREASING_CLASSES set."""
     assert SensorDeviceClass.ENERGY in TOTAL_INCREASING_CLASSES
-    assert SensorDeviceClass.ENERGY_STORAGE in TOTAL_INCREASING_CLASSES
+    assert SensorDeviceClass.ENERGY_STORAGE not in TOTAL_INCREASING_CLASSES
 
 
 def test_sensor_no_measurement_classes():

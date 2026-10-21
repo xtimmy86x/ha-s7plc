@@ -164,7 +164,7 @@ async def test_last_alarm_restores_without_replaying_active_bits(alarm_display):
     await sensor.async_added_to_hass()
     assert sensor.extra_state_attributes["last_alarm"] == "Previous alarm"
     assert not timers
-    sensor.async_on_remove.assert_called_once_with(sensor._stop_alarm_display)
+    sensor.async_on_remove.assert_any_call(sensor._stop_alarm_display)
     update(7)
     assert sensor.extra_state_attributes["last_alarm"] == "Alarm 2"
 

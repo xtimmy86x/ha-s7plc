@@ -27,6 +27,39 @@ const isHidden = (form, field) => form
   .classList.contains("hidden-field");
 
 describe("entity editor", () => {
+  test("distinguishes automatic state class from explicitly disabling statistics", () => {
+    const entry = createEntry();
+    entry.selector_options = {
+      device_classes: { sensors: ["temperature"] },
+      state_classes: ["measurement", "total", "total_increasing"],
+    };
+    const original = { ...entry.entities.sensors[0], device_class: "temperature" };
+    entry.entities.sensors = [original];
+    const panel = createPanel(entry);
+    panel.openEditor(0, "sensors");
+    const form = currentDialog().querySelector("form");
+    const selector = form.elements.state_class;
+    expect(selector.value).toBe("");
+    expect(selector.options[0].textContent).toBe("Automatic");
+    expect([...selector.options].find((option) => option.value === "none").textContent)
+      .toBe("None");
+    for (const [selection, expected] of [["none", "none"], ["measurement", "measurement"], ["", undefined]]) {
+      selector.value = selection;
+      const entity = panel.formEntity(form, original, "sensors");
+      expect(entity.state_class).toBe(expected);
+      expect(entity.device_class).toBe("temperature");
+    }
+    currentDialog().remove();
+    const disabled = { ...original, state_class: "none" };
+    entry.entities.sensors = [disabled];
+    panel.openEditor(0, "sensors");
+    const reopened = currentDialog().querySelector("form");
+    expect(reopened.elements.state_class.value).toBe("none");
+    expect([...reopened.elements.state_class.options].filter((option) => option.value === "none"))
+      .toHaveLength(1);
+    expect(panel.formEntity(reopened, disabled, "sensors").state_class).toBe("none");
+  });
+
   test.each([undefined, "auto", "box", "slider"])(
     "edits number display mode %s and restores automatic mode",
     (mode) => {

@@ -277,7 +277,8 @@
       "disabled": "Připojení zakázáno",
       "open_project_github": "Otevřít ha-s7plc na GitHubu",
       "settings": "Nastavení",
-      "select_plc": "Vybrat PLC"
+      "select_plc": "Vybrat PLC",
+      "automatic_option": "Automaticky"
     },
     "sections": {
       "plc_connection": {
@@ -321,7 +322,7 @@
           },
           "state_class": {
             "label": "Třída stavu",
-            "description": "Třída stavu pro statistiky: „measurement“ pro okamžité hodnoty, „total“ pro kumulativní hodnoty, které mohou klesat, „total_increasing“ pro čítače (např. energie, voda). Ponechte prázdné pro automatiku."
+            "description": "Třída stavu pro statistiky: measurement pro okamžité hodnoty, total pro součty, které mohou klesat, total_increasing pro čítače. Automaticky ji odvodí z třídy zařízení; Žádná ji vypne."
           },
           "real_precision": {
             "label": "Desetinná místa REAL",
@@ -1286,7 +1287,10 @@
       "comparison_requires_numeric_type": "Porovnání vyžaduje jednotlivou číselnou adresu (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL nebo LREAL).",
       "alarm_range_invalid": "Zadejte rostoucí rozsah adres BIT ve stejném DB nebo v oblasti příznaků M, maximálně 8192 bitů.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
-      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
+      "invalid_device_class": "Vyberte třídu zařízení podporovanou entitou a datovým typem PLC.",
+      "invalid_unit_of_measurement": "Vyberte jednotku kompatibilní s třídou zařízení. TIME používá sekundy (s).",
+      "invalid_state_class": "Vyberte třídu stavu kompatibilní s třídou zařízení."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",

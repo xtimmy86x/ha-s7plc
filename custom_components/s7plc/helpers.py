@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import uuid
 from collections.abc import Iterator, Mapping, MutableMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
@@ -170,14 +171,14 @@ DEVICE_CLASS_DEFAULT_UNITS: dict[str, str | None] = {
     "CO": UNIT_PARTS_PER_MILLION,
     "OZONE": UNIT_PARTS_PER_BILLION,
     "NITROGEN_DIOXIDE": UNIT_PARTS_PER_BILLION,
-    "NITROUS_OXIDE": UNIT_PARTS_PER_BILLION,
+    "NITROUS_OXIDE": "μg/m³",
     "SULPHUR_DIOXIDE": UNIT_PARTS_PER_BILLION,
-    "VOLATILE_ORGANIC_COMPOUNDS": UNIT_PARTS_PER_BILLION,
+    "VOLATILE_ORGANIC_COMPOUNDS": "μg/m³",
     "VOLATILE_ORGANIC_COMPOUNDS_PARTS": UNIT_PARTS_PER_MILLION,
-    "PM1": "µg/m³",
-    "PM25": "µg/m³",
-    "PM4": "µg/m³",
-    "PM10": "µg/m³",
+    "PM1": "μg/m³",
+    "PM25": "μg/m³",
+    "PM4": "μg/m³",
+    "PM10": "μg/m³",
     # Misc
     "BATTERY": UNIT_PERCENTAGE,
     "SIGNAL_STRENGTH": "dBm",
@@ -210,6 +211,9 @@ class RuntimeEntryData:
     host: str
     device_id: str
     connection_state_store: Any | None = None
+    applied_data: dict[str, Any] | None = None
+    applied_options: dict[str, Any] | None = None
+    config_update_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 def get_coordinator_and_device_info(

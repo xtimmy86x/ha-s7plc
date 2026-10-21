@@ -14,6 +14,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
 from .config_entry_migration import canonicalize_legacy_sync_addresses
+from .config_updates import async_apply_live_options
 from .const import (
     CONF_BACKOFF_INITIAL,
     CONF_BACKOFF_MAX,
@@ -277,6 +278,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         host=host,
         device_id=device_id,
         connection_state_store=connection_state_store,
+        applied_data=deepcopy(dict(entry.data)),
+        applied_options=deepcopy(dict(entry.options)),
     )
 
     hass.data.setdefault(DOMAIN, {})
@@ -457,10 +460,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    runtime = getattr(entry, "runtime_data", None)
+    if isinstance(runtime, RuntimeEntryData) and runtime.applied_options is not None:
+        async with runtime.config_update_lock:
+            # A preceding queued update may already have reloaded this entry.
+            if getattr(entry, "runtime_data", None) is not runtime:
+                return
+            if not await async_apply_live_options(entry, runtime):
+                await hass.config_entries.async_reload(entry.entry_id)
+    else:
+        await hass.config_entries.async_reload(entry.entry_id)
 
-    # Apply configured areas after reload, when newly added entities
-    # are available in the entity registry.
+    # Apply areas after a live edit or after reloaded entities reach the registry.
     await _async_update_entity_areas(hass, entry)
 
 

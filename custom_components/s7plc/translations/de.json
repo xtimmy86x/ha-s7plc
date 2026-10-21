@@ -277,7 +277,8 @@
       "disabled": "Verbindung deaktiviert",
       "open_project_github": "ha-s7plc auf GitHub öffnen",
       "settings": "Einstellungen",
-      "select_plc": "SPS auswählen"
+      "select_plc": "SPS auswählen",
+      "automatic_option": "Automatisch"
     },
     "sections": {
       "plc_connection": {
@@ -321,7 +322,7 @@
           },
           "state_class": {
             "label": "Zustandsklasse",
-            "description": "Zustandsklasse für Statistiken: 'measurement' für Momentanwerte, 'total' für kumulative Werte, die aufsummiert werden, 'total_increasing' für Zähler (z.B. Energie, Wasserverbrauch). Leerlassen für automatisch."
+            "description": "Zustandsklasse für Statistiken: measurement für Momentanwerte, total für Summen, die abnehmen können, total_increasing für Zähler. Automatisch leitet sie aus der Geräteklasse ab; Keine deaktiviert sie."
           },
           "real_precision": {
             "label": "REAL-Dezimalstellen",
@@ -1286,7 +1287,10 @@
       "comparison_requires_numeric_type": "Vergleiche benötigen eine einzelne numerische Adresse (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL oder LREAL).",
       "alarm_range_invalid": "Geben Sie einen aufsteigenden Bereich von BIT-Adressen im selben DB oder im Merkerbereich M an, maximal 8192 Bit.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
-      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
+      "invalid_device_class": "Wähle eine Geräteklasse, die zur Entität und zum SPS-Datentyp passt.",
+      "invalid_unit_of_measurement": "Wähle eine zur Geräteklasse passende Einheit. TIME verwendet Sekunden (s).",
+      "invalid_state_class": "Wähle eine zur Geräteklasse passende Zustandsklasse."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

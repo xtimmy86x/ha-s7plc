@@ -277,7 +277,8 @@
       "disabled": "Połączenie wyłączone",
       "open_project_github": "Otwórz ha-s7plc w serwisie GitHub",
       "settings": "Ustawienia",
-      "select_plc": "Wybierz PLC"
+      "select_plc": "Wybierz PLC",
+      "automatic_option": "Automatycznie"
     },
     "sections": {
       "plc_connection": {
@@ -321,7 +322,7 @@
           },
           "state_class": {
             "label": "Klasa stanu",
-            "description": "Klasa stanu dla lepszego doprecyzowania interfejsu, zachowania lub statystyk."
+            "description": "Klasa stanu dla statystyk: measurement dla wartości chwilowych, total dla sum, które mogą maleć, total_increasing dla liczników. Automatycznie wyznacza ją z klasy urządzenia; Brak ją wyłącza."
           },
           "real_precision": {
             "label": "Miejsca dziesiętne REAL",
@@ -1286,7 +1287,10 @@
       "comparison_requires_numeric_type": "Porównania wymagają pojedynczego adresu liczbowego (BYTE, WORD, DWORD, SINT, USINT, INT, DINT, REAL lub LREAL).",
       "alarm_range_invalid": "Podaj rosnący zakres adresów BIT w tym samym DB lub w obszarze znaczników M, maksymalnie 8192 bity.",
       "alarm_active_value_invalid": "Active value must be 0 or 1.",
-      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values."
+      "alarm_mapping_invalid": "Check the table: unique addresses within the range, descriptions up to 255 characters and boolean enabled values.",
+      "invalid_device_class": "Wybierz klasę urządzenia obsługiwaną przez encję i typ danych PLC.",
+      "invalid_unit_of_measurement": "Wybierz jednostkę zgodną z klasą urządzenia. TIME używa sekund (s).",
+      "invalid_state_class": "Wybierz klasę stanu zgodną z klasą urządzenia."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

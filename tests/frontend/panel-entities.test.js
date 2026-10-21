@@ -224,20 +224,24 @@ describe("entity views and actions", () => {
     const deleting = dialog.querySelector('[slot="primaryAction"]').onclick();
     await Promise.resolve();
     expect(calls).toHaveLength(1);
+    await dialog.querySelector('[slot="primaryAction"]').onclick();
+    expect(calls).toHaveLength(1);
     releaseFirst();
     await deleting;
 
     expect(calls).toEqual([
-      { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "sensors", index: 1 },
-      { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "sensors", index: 0 },
-      { type: "s7plc/config/delete_entity", entry_id: "plc-entry", entity_type: "switches", index: 0 },
+      { type: "s7plc/config/delete_entities", entry_id: "plc-entry", entities: [
+        { entity_type: "sensors", uid: "pressure" },
+        { entity_type: "sensors", uid: "temperature" },
+        { entity_type: "switches", uid: "pump" },
+      ] },
     ]);
     expect(panel.selectedIndices.size).toBe(0);
     expect(panel.load).toHaveBeenCalledOnce();
     expect(dialog.open).toBe(false);
   });
 
-  test("keeps the batch dialog open and prevents retries after a partial failure", async () => {
+  test("keeps the selection on atomic failure and allows a safe retry", async () => {
     const panel = createPanel();
     panel.querySelector("[data-layout-toggle]").click();
     const inputs = [
@@ -252,7 +256,7 @@ describe("entity views and actions", () => {
     let attempts = 0;
     panel._hass.callWS = async () => {
       attempts += 1;
-      if (attempts === 2) throw new Error("PLC offline");
+      if (attempts === 1) throw new Error("PLC offline");
     };
     panel.load = vi.fn(async () => {});
     panel.querySelector("[data-batch-delete-global]").click();
@@ -260,14 +264,35 @@ describe("entity views and actions", () => {
     const primary = dialog.querySelector('[slot="primaryAction"]');
 
     await primary.onclick();
-    await primary.onclick();
-
-    expect(attempts).toBe(2);
-    expect(panel.load).toHaveBeenCalledOnce();
+    expect(panel.load).not.toHaveBeenCalled();
+    expect(panel.selectedIndices.size).toBe(3);
     expect(dialog.open).toBe(true);
-    expect(primary.disabled).toBe(true);
+    expect(primary.disabled).toBe(false);
     expect(dialog.querySelector("ha-alert").textContent).toContain("PLC offline");
     expect(dialog.querySelector("ha-alert").style.display).toBe("block");
+
+    await primary.onclick();
+    expect(attempts).toBe(2);
+    expect(panel.load).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(false);
+    expect(panel.selectedIndices.size).toBe(0);
+  });
+
+  test("deletes the rendered UID even if status refresh replaces the list", async () => {
+    const panel = createPanel();
+    const replacement = createEntry();
+    replacement.entities.sensors.reverse();
+    panel.entries = [replacement];
+    panel._hass.callWS = vi.fn(async () => ({}));
+    panel.load = vi.fn(async () => {});
+    panel.remove([0]);
+    const dialog = document.body.querySelector("ha-dialog");
+    panel.entryId = "another-plc";
+    await dialog.querySelector('[slot="primaryAction"]').onclick();
+    expect(panel._hass.callWS).toHaveBeenCalledExactlyOnceWith({
+      type: "s7plc/config/delete_entities", entry_id: "plc-entry",
+      entities: [{ entity_type: "sensors", uid: "temperature" }],
+    });
   });
 
   test("uses the original entity index for duplicate actions after filtering", () => {
