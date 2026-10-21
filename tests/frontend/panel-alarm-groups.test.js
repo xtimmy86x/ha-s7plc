@@ -12,6 +12,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const original = { uid: 'alarms-1', name: 'Machine', start_address: 'DB1,X0.0', end_address: 'DB1,X100.7', active_value: 0, alarms: [{ address: 'DB1,X0.0', description: 'Motor', enabled: false }] };
+const merker = { ...original, start_address: 'M0.0', end_address: 'M1.7', alarms: [{ address: 'M0.0', description: 'Motor', enabled: false }] };
 const open = (item = original) => {
   const entry = createEntry();
   entry.entities.alarm_groups = [item];
@@ -60,6 +61,43 @@ test('failed import leaves existing descriptions intact', () => {
   expect(panel.formEntity(form, original, 'alarm_groups').alarms).toEqual(original.alarms);
 });
 
+test.each([
+  'address;description;enabled\n m0.0 ;Updated;0\nMX00.01;Pump;1',
+  'M0.0\tUpdated\tfalse\nM0.1\tPump\ttrue',
+  'address,description,enabled\nM0.0,Updated,0\nM0.1,Pump,1',
+])('imports M bits and merges address aliases without losing other rows (%s)', csv => {
+  const item = { ...merker, alarms: [
+    { ...merker.alarms[0], address: 'MX00.00' },
+    { address: 'M1.0', description: 'Keep', enabled: false },
+  ] };
+  const { panel, form } = open(item);
+  panel._hass.callWS = vi.fn();
+  form.querySelector('[data-alarm-paste]').value = csv;
+  form.querySelector('[data-alarm-import]').click();
+  expect(form.querySelector('[data-alarm-error]').textContent).toBe('');
+  expect(form.querySelector('[data-alarm-status]').textContent).toContain('2 rows: 1 added, 1 updated');
+  expect(panel.formEntity(form, item, 'alarm_groups')).toMatchObject({
+    start_address: 'M0.0', end_address: 'M1.7', active_value: 0,
+    alarms: [
+      { address: 'M0.0', description: 'Updated', enabled: false },
+      { address: 'M1.0', description: 'Keep', enabled: false },
+      { address: 'M0.1', description: 'Pump', enabled: true },
+    ],
+  });
+  expect(panel._hass.callWS).not.toHaveBeenCalled();
+  expect(item.alarms[0].description).toBe('Motor');
+});
+
+test.each(['M0.8', 'MB0', 'I0.0', 'Q0.0', 'MX00.00'])(
+  'invalid or duplicate imported bit %s preserves the entire M alarm list', address => {
+    const { panel, form } = open(merker);
+    form.querySelector('[data-alarm-paste]').value = `M0.0;Updated;1\n${address};Invalid;0`;
+    form.querySelector('[data-alarm-import]').click();
+    expect(form.querySelector('[data-alarm-error]').textContent).toContain('Invalid import');
+    expect(panel.formEntity(form, merker, 'alarm_groups').alarms).toEqual(merker.alarms);
+  },
+);
+
 test('add, edit and delete rows without generating per-bit entities', () => {
   const { panel, form } = open();
   form.querySelector('[data-alarm-add]').click();
@@ -102,16 +140,19 @@ test('live list updates, escapes labels and hides cached alarms when unavailable
 test('CSV parser canonicalizes shorthand and rejects duplicate or unclosed rows', () => {
   const { PARSE_ALARM_CSV } = getPanelTestHelpers();
   expect(PARSE_ALARM_CSV('DB1,0.0;Motor')[0].address).toBe('DB1,X0.0');
+  expect(PARSE_ALARM_CSV('DB01,X000.0;Motor')[0].address).toBe('DB1,X0.0');
   expect(() => PARSE_ALARM_CSV('DB1,X0.0;A\nDB1,0.0;B')).toThrow();
+  expect(() => PARSE_ALARM_CSV('DB1,X0.0;A\nDB01,X000.0;B')).toThrow();
   expect(() => PARSE_ALARM_CSV('"DB1,X0.0","bad')).toThrow();
   expect(() => PARSE_ALARM_CSV('DB1,X0.9;A')).toThrow();
 });
 
-test('file selection imports directly with result and totals, without saving', async () => {
-  const { panel, form } = open();
+test.each([original, merker])('file selection imports directly with result and totals, without saving ($start_address)', async item => {
+  const { panel, form } = open(item);
   panel._hass.callWS = vi.fn();
   const input = form.querySelector('[data-alarm-file]');
-  await input.onchange({ target: { files: [{ name: 'alarms.csv', size: 100, text: async () => 'DB1,X0.0;Updated;0\nDB1,X0.1;Pump;1' }] } });
+  const first = item.start_address, second = first.slice(0, -1) + '1';
+  await input.onchange({ target: { files: [{ name: 'alarms.csv', size: 100, text: async () => `${first};Updated;0\n${second};Pump;1` }] } });
   expect(form.querySelector('[data-alarm-rows]').children).toHaveLength(2);
   expect(form.querySelector('[data-alarm-disclosure]').open).toBe(true);
   expect(form.querySelector('[data-alarm-status]').textContent).toContain('2 rows: 1 added, 1 updated');
@@ -119,7 +160,7 @@ test('file selection imports directly with result and totals, without saving', a
   expect(form.querySelector('[data-alarm-summary]').textContent).toContain('2 configured rows');
   expect(form.querySelector('[data-alarm-summary]').textContent).toContain('1 Excluded');
   expect(panel._hass.callWS).not.toHaveBeenCalled();
-  expect(original.alarms[0].description).toBe('Motor');
+  expect(item.alarms[0].description).toBe('Motor');
 });
 
 test('large imports keep off-page rows and edits across search, filter and pages', () => {
