@@ -818,7 +818,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
     const sync=()=>{
       const setArea=form.elements.area_action.value==='set',setScan=form.elements.scan_action.value==='set';
       form.querySelector('[data-area-value]').hidden=!setArea;form.querySelector('[data-scan-value]').hidden=!setScan;
-      for(const input of form.elements)input.disabled=pending||finished;
+      // HA's scoped registry polyfill does not implement form.elements iteration.
+      form.querySelectorAll('input,select').forEach(input=>input.disabled=pending||finished);
       form.elements.area.disabled=pending||finished||!setArea;form.elements.area.required=setArea;
       form.elements.scan_interval.disabled=pending||finished||!setScan;form.elements.scan_interval.required=setScan;
       primary.disabled=pending||finished||(preview?preview.changed_count===0:form.elements.area_action.value==='keep'&&form.elements.scan_action.value==='keep');

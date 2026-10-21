@@ -1,12 +1,20 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
 import { createEntry, createPanel, installPanel } from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback) => callback();
   installPanel();
+});
+beforeEach(() => {
+  // HA's scoped-custom-element-registry polyfill supports indexed/named
+  // form.elements access, but its Symbol.iterator throws this exact error.
+  // Exercise every bulk-edit flow with that same browser restriction.
+  vi.spyOn(HTMLFormControlsCollection.prototype, Symbol.iterator).mockImplementation(() => {
+    throw new Error("Method not implemented.");
+  });
 });
 afterEach(() => {
   document.body.replaceChildren();
