@@ -405,7 +405,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   densityToggle(){const density=this._density||"grid",label=this.t('layout.density');return `<div class="density-toggle" role="group" aria-label="${label}">${[['grid','view-grid-outline'],['list','view-list']].map(([value,icon])=>{const text=this.t(`layout.density_${value}`);return `<button type="button" data-density="${value}" class="${density===value?'active':''}" aria-pressed="${density===value}" title="${text}" aria-label="${text}"><ha-icon icon="mdi:${icon}"></ha-icon></button>`;}).join('')}</div>`;}
   selectionToggle(){const active=Boolean(this._selectionMode),label=this.t(active?'selection.done':'selection.select');return `<button type="button" class="selection-toggle${active?' active':''}" data-selection-toggle aria-pressed="${active}" title="${label}" aria-label="${label}"><ha-icon icon="mdi:${active?'check':'checkbox-multiple-marked-outline'}"></ha-icon><span>${label}</span></button>`;}
   toolbarActions(type=null){const sections=this._viewMode==="sections",addLabel=this.t('actions.add'),addButton=sections?`<button type="button" class="primary" data-global-add aria-haspopup="menu" aria-expanded="false"><ha-icon icon="mdi:plus"></ha-icon> ${addLabel}</button><div class="add-type-menu" data-add-type-menu role="menu" aria-label="${addLabel}" hidden>${TYPES.map(entityType=>`<button type="button" role="menuitem" tabindex="-1" data-add-type="${entityType}"><ha-icon icon="mdi:${this.icon(entityType)}"></ha-icon><span>${this.t(`entity_types.${entityType}.label`)}</span></button>`).join('')}</div>`:`<button type="button" class="primary" data-add="${type}" title="${this.t(`entity_types.${type}.add`)}"><ha-icon icon="mdi:plus"></ha-icon> <span>${this.t(`entity_types.${type}.add`)}</span></button>`;return `<div class="toolbar-actions">${this.layoutToggle()}${this.densityToggle()}${this.selectionToggle()}${addButton}</div>`;}
-  bulkBar(type=null){const deleteLabel=this.bt('delete_selected'),deleteButton=this._viewMode==="sections"?`<button class="batch-delete danger" data-batch-delete-global hidden title="${deleteLabel}" aria-label="${deleteLabel}"><ha-icon icon="mdi:delete-outline"></ha-icon><span></span></button>`:`<button class="batch-delete danger" data-batch-delete="${type}" hidden><ha-icon icon="mdi:delete-outline"></ha-icon><span></span></button>`;return `<div class="bulk-bar" data-bulk-bar role="region" aria-label="${this.t('selection.select')}" ${this._selectionMode?'':'hidden'}><ha-icon icon="mdi:checkbox-multiple-marked"></ha-icon><b data-bulk-count role="status" aria-live="polite"></b><span class="bulk-spacer"></span><button type="button" class="bulk-cancel" data-selection-cancel>${this.t('actions.cancel')}</button>${deleteButton}</div>`;}
+  bulkBar(type=null){const deleteLabel=this.bt('delete_selected'),deleteButton=this._viewMode==="sections"?`<button class="batch-delete danger" data-batch-delete-global hidden title="${deleteLabel}" aria-label="${deleteLabel}"><ha-icon icon="mdi:delete-outline"></ha-icon><span></span></button>`:`<button class="batch-delete danger" data-batch-delete="${type}" hidden><ha-icon icon="mdi:delete-outline"></ha-icon><span></span></button>`;return `<div class="bulk-bar" data-bulk-bar role="region" aria-label="${this.t('selection.select')}" ${this._selectionMode?'':'hidden'}><ha-icon icon="mdi:checkbox-multiple-marked"></ha-icon><b data-bulk-count role="status" aria-live="polite"></b><span class="bulk-spacer"></span><button type="button" class="bulk-cancel" data-selection-cancel>${this.t('actions.cancel')}</button><button type="button" class="batch-edit" data-batch-edit hidden><ha-icon icon="mdi:pencil-outline"></ha-icon><span>${this.t('bulk_edit.action')}</span></button>${deleteButton}</div>`;}
   searchInput(){const query=this.searchQuery||'',count=this.searchResultCount??0,result=query?this.t(count===1?'search.one_result':'search.many_results').replace('{count}',count):'';return `<div class="entity-search"><label class="sr-only" for="entity-search-input">${this.t('search.label')}</label><div class="search-control"><ha-icon icon="mdi:magnify" aria-hidden="true"></ha-icon><input id="entity-search-input" type="search" value="${this.escape(query)}" placeholder="${this.t('search.placeholder')}" aria-describedby="entity-search-results" autocomplete="off"><button type="button" data-clear-search aria-label="${this.t('search.clear')}" ${query?'':'hidden'}><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div><span id="entity-search-results" class="search-results" role="status" aria-live="polite">${result}</span></div>`;}
   searchEmpty(){return `<div class="empty small search-empty"><ha-icon icon="mdi:magnify"></ha-icon><h3>${this.t('search.no_results')}</h3><button type="button" data-clear-search class="primary">${this.t('search.clear')}</button></div>`;}
   matchingItems(entry,type){return FILTER_ENTITY_ITEMS(entry.entities[type],this.searchQuery,(_entity,index)=>{const id=entry.entity_ids?.[type]?.[index];return id?this.stateText(id):undefined;});}
@@ -454,6 +454,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   const globalAdd=this.querySelector('[data-global-add]');if(globalAdd)globalAdd.onclick=event=>{event.stopPropagation();this.toggleAddMenu();};
   const addMenu=this.querySelector('[data-add-type-menu]');if(addMenu){addMenu.onclick=event=>event.stopPropagation();addMenu.onkeydown=event=>this.navigateCategoryMenu(event,addMenu);addMenu.querySelectorAll('[data-add-type]').forEach(item=>item.onclick=()=>this.selectAddType(item.dataset.addType));}
   this.querySelectorAll('[data-batch-delete]').forEach(b=>b.onclick=()=>this.remove(this.selectedIndicesFor(b.dataset.batchDelete),b.dataset.batchDelete));
+  this.querySelector('[data-batch-edit]')?.addEventListener('click',()=>this.editSelection());
   const globalDelete=this.querySelector('[data-batch-delete-global]');if(globalDelete)globalDelete.onclick=()=>this.removeGroupedSelection();
   this.querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{const type=input.dataset.entityType,index=Number(input.dataset.select),key=this.selectionKey(type,index);if(input.checked)this.selectedIndices.add(key);else this.selectedIndices.delete(key);input.closest('article').classList.toggle('selected',input.checked);this.updateBulkAction();});
   this.querySelectorAll('[data-entity-action]').forEach(button=>button.onclick=event=>{event.stopPropagation();this.closeEntityOverflow();if(this._selectionMode&&button.classList.contains('entity-open')){const input=button.closest('article')?.querySelector('[data-select]');if(input){input.checked=!input.checked;input.onchange?.();}return;}this.runEntityAction(button.dataset.entityAction,Number(button.dataset.entityIndex),button.dataset.entityType);});
@@ -473,7 +474,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   selectedIndicesFor(type){return [...this.selectedIndices].filter(value=>this._viewMode==="sections"?String(value).startsWith(`${type}:`):true).map(value=>this._viewMode==="sections"?Number(String(value).split(':')[1]):Number(value));}
   groupedSelectedIndices(){return GROUP_SELECTED_INDICES(this.selectedIndices);}
   entityCards(entry,type=this.type||TYPES[0],matches=null){const source=entry.entities[type],items=matches??source.map((entity,index)=>({entity,index}));if(!source.length)return `<div class="empty small"><ha-icon icon="mdi:playlist-plus"></ha-icon><h3>${this.t('common.empty')}</h3><p>${this.t('common.empty_help')}</p></div>`;return items.map(({entity:item,index:i})=>{const entityId=entry.entity_ids?.[type]?.[i],selected=this.selectedFor(type,i),main=MAIN_ENTITY_ADDRESS(item,type),more=this.t('actions.more_actions'),menuId=`entity-actions-${type}-${i}`;const action=(name,icon,danger=false)=>`<button type="button" data-entity-action="${name}" data-entity-index="${i}" data-${name}="${i}" data-entity-type="${type}" class="entity-menu-item${danger?' danger':''}" role="menuitem" tabindex="-1" title="${this.t(`actions.${name}`)}" aria-label="${this.t(`actions.${name}`)}"><ha-icon icon="mdi:${icon}"></ha-icon><span>${this.t(`actions.${name}`)}</span></button>`;const name=item.name||main||`${this.t('common.entity')} ${i+1}`,state=entityId?this._hass?.states?.[entityId]:null;return `<article class="${selected?'selected':''}"><div class="entity-leading"><label class="entity-select" title="${this.bt('select_entity')}"><input type="checkbox" data-select="${i}" data-entity-type="${type}" aria-label="${this.bt('select_entity')}" ${selected?'checked':''}><span></span></label><div class="entity-icon"><ha-icon icon="mdi:${this.icon(type)}"></ha-icon></div></div><div class="details"><b>${this.escape(name)}</b><code>${this.escape(main||'—')}</code><div>${this.chips(item,type)}</div>${type==='alarm_groups'?`<details><summary>${this.t('alarms.active')}</summary><div data-alarm-live="${this.escape(entityId||'')}" style="max-height:320px;overflow:auto">${this.alarmList(entityId)}</div></details>`:''}</div><div class="entity-side">${entityId?`<span class="entity-state state-badge tone-${STATE_TONE(entityId,state)}" data-entity-id="${this.escape(entityId)}" title="${this.escape(entityId)}">${this.escape(this.stateText(entityId))}</span>`:''}<div class="entity-overflow"><button type="button" class="icon-btn entity-overflow-toggle" data-overflow-toggle aria-label="${more}" title="${more}" aria-expanded="false" aria-haspopup="menu" aria-controls="${menuId}"><ha-icon icon="mdi:dots-vertical"></ha-icon></button><div id="${menuId}" class="entity-overflow-menu" role="menu" aria-label="${more}" hidden>${action('edit','pencil')}${action('duplicate','content-copy')}${action('delete','delete',true)}</div></div></div><button type="button" class="entity-open" data-entity-action="edit" data-entity-index="${i}" data-entity-type="${type}" aria-label="${this.escape(`${this.t('actions.edit')}: ${name}`)}"></button></article>`;}).join('');}
-  updateBulkAction(){const sections=this._viewMode==="sections",count=sections?Object.values(this.groupedSelectedIndices()).reduce((total,indices)=>total+indices.length,0):this.selectedIndicesFor(this.type||TYPES[0]).length,label=`${this.bt('delete_selected')} (${count})`;this.querySelectorAll(sections?'[data-batch-delete-global]':'[data-batch-delete]').forEach(button=>{button.hidden=!count;button.querySelector('span').textContent=label;});const bar=this.querySelector('[data-bulk-bar]');if(bar){bar.hidden=!(this._selectionMode||count);bar.querySelector('[data-bulk-count]').textContent=this.t('selection.count').replace('{count}',count);}}
+  updateBulkAction(){const sections=this._viewMode==="sections",count=sections?Object.values(this.groupedSelectedIndices()).reduce((total,indices)=>total+indices.length,0):this.selectedIndicesFor(this.type||TYPES[0]).length,label=`${this.bt('delete_selected')} (${count})`;this.querySelectorAll(sections?'[data-batch-delete-global]':'[data-batch-delete]').forEach(button=>{button.hidden=!count;button.querySelector('span').textContent=label;});const edit=this.querySelector('[data-batch-edit]');if(edit)edit.hidden=!count;const bar=this.querySelector('[data-bulk-bar]');if(bar){bar.hidden=!(this._selectionMode||count);bar.querySelector('[data-bulk-count]').textContent=this.t('selection.count').replace('{count}',count);}}
   chips(item,type){
   const main=MAIN_ENTITY_ADDRESS(item,type);
   const hiddenLegacy=new Set(['scale_raw_min','scale_raw_max','value_multiplier','brightness_scale']);
@@ -800,6 +801,118 @@ class S7PlcConfigurationPanel extends HTMLElement {
   dialog.querySelector('[slot=secondaryAction]').onclick=this.guardUnsavedChanges(dialog,dialog.querySelector('.dialog-body'));dialog.addEventListener('closed',()=>dialog.remove());
   let saveLoading=false;saveButton.onclick=async()=>{if(saveLoading)return;saveLoading=true;saveButton.disabled=true;alert.style.display='none';try{await this._hass.callWS({type:'s7plc/config/save_configuration',entry_id:this.entryId,configuration_yaml:textarea.value});dialog.open=false;this.selectedIndices.clear();this._loaded=false;await this.load();}catch(err){let message=err.message||String(err);if(err.code==='invalid_configuration_entity'){try{const detail=JSON.parse(message),type=this.t(`entity_types.${detail.entity_type}.label`);message=`${type} #${detail.index+1}: ${this.flowError(detail.error_key)}`;}catch(parseError){console.warn('Invalid structured configuration error',parseError);}}showError(message);}finally{saveLoading=false;saveButton.disabled=false;}};
   }
+  bulkEditFields(type,item){
+    const fields=new Set(['area']),numeric=['sensors','numbers'].includes(type),dataType=PARSE_S7_ADDRESS(item.address).dataType,conversion=item.value_conversions?.value;
+    if(!['buttons','entity_sync'].includes(type))fields.add('scan_interval');
+    if(['binary_sensors','covers'].includes(type))fields.add('device_class');
+    if(!numeric||!NUMERIC_VALUE_TYPES.has(dataType)||conversion?.type==='enum_map')return fields;
+    fields.add('device_class');fields.add('unit_of_measurement');
+    if(type==='sensors')fields.add('state_class');
+    if(['REAL','LREAL'].includes(dataType))fields.add('real_precision');
+    if(conversion?.type!=='logo_time_bcd'&&(type==='sensors'||NUMERIC_VALUE_TYPES.has(PARSE_S7_ADDRESS(item.command_address||item.address).dataType)))fields.add('value_multiplier');
+    return fields;
+  }
+  bulkEditForm(entry,targets){
+    const t=key=>this.t(`bulk_edit.${key}`),selection=targets.map(target=>({...target,item:entry.entities[target.entity_type].find(item=>item.uid===target.uid)})).map(target=>({...target,fields:this.bulkEditFields(target.entity_type,target.item)}));
+    const pretty=value=>value.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),option=(value,label)=>`<option value="${this.escape(value)}">${this.escape(label)}</option>`;
+    const classes=[...new Set(selection.filter(target=>target.fields.has('device_class')).flatMap(target=>entry.selector_options?.device_classes?.[target.entity_type]||[]))].filter(value=>!['enum','date','timestamp','uptime'].includes(value)).sort();
+    const areas=Object.values(this._hass.areas||{}).sort((a,b)=>a.name.localeCompare(b.name));
+    const definitions=[
+      ['area','area',t('area'),t('set_area'),t('remove_area'),`<select name="area" data-bulk-input>${option('',t('area_select'))}${areas.map(area=>option(area.area_id,area.name)).join('')}</select>`,t('area_select')],
+      ['scan_interval','scan',t('scan'),t('set_scan'),t('default_scan'),'<input name="scan_interval" data-bulk-input type="number" min="0.05" max="3600" step="any">',t('seconds')],
+      ['value_multiplier','value_multiplier',t('multiplier'),t('set_value'),t('remove_conversion'),'<input name="value_multiplier" data-bulk-input type="number" step="any">',t('factor')],
+      ['real_precision','real_precision',t('precision'),t('set_value'),t('automatic'),'<input name="real_precision" data-bulk-input type="number" min="0" max="6" step="1">',t('decimals')],
+      ['device_class','device_class',this.fieldText('sensors','device_class','label'),t('set_value'),t('automatic'),`<select name="device_class" data-bulk-input>${option('',t('choose_value'))}${classes.map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
+      ['unit_of_measurement','unit_of_measurement',this.fieldText('sensors','unit_of_measurement','label'),t('set_value'),t('automatic'),`<input name="unit_of_measurement" data-bulk-input type="text" list="s7plc-bulk-units"><datalist id="s7plc-bulk-units">${(entry.selector_options?.units||[]).map(value=>option(value,value)).join('')}</datalist>`,t('new_value')],
+      ['state_class','state_class',this.fieldText('sensors','state_class','label'),t('set_value'),t('automatic'),`<select name="state_class" data-bulk-input>${option('',t('choose_value'))}${option('none',t('no_statistics'))}${(entry.selector_options?.state_classes||[]).map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
+    ];
+    const rows=definitions.map(([key,id,label,set,clear,input,valueLabel])=>{
+      const count=selection.filter(target=>target.fields.has(key)).length;if(!count)return '';
+      return `<div class="field-grid bulk-edit-row" data-bulk-field="${key}"><label>${this.escape(label)}<select name="${id}_action" data-bulk-action>${option('keep',t('keep'))}${option('set',set)}${option('clear',clear)}</select><small>${t('compatible_count').replace('{count}',count).replace('{total}',selection.length)}</small></label><label data-bulk-value data-${id}-value hidden>${this.escape(valueLabel)}${input}</label></div>`;
+    });
+    const extra=rows.slice(2).join('');
+    return rows.slice(0,2).join('')+(extra?`<details class="bulk-edit-extra"><summary>${t('value_settings')}</summary><p class="bulk-edit-note">${t('value_help')}</p>${extra}</details>`:'');
+  }
+  editSelection(){
+    const entry=this._renderedEntry;
+    if(!entry||this._bulkEditDialog?.open)return;
+    const grouped=this._viewMode==="sections"?this.groupedSelectedIndices():{[this.type||TYPES[0]]:this.selectedIndicesFor(this.type||TYPES[0])},targets=[];
+    for(const entityType of TYPES)for(const index of grouped[entityType]||[])targets.push({entity_type:entityType,uid:entry.entities[entityType][index]?.uid});
+    if(!targets.length)return;
+    const entryId=entry.entry_id,dialog=document.createElement('ha-dialog'),t=key=>this.t(`bulk_edit.${key}`);
+    this._bulkEditDialog=dialog;
+    dialog.open=true;dialog.headerTitle=t('title');dialog.setAttribute('width','large');
+    dialog.style.setProperty('--ha-dialog-width-lg','900px');dialog.style.setProperty('--ha-dialog-max-width','min(900px,96vw)');dialog.style.setProperty('--mdc-dialog-max-width','min(900px,96vw)');dialog.style.setProperty('--dialog-content-padding','0');
+    dialog.innerHTML=`<style>${this.dialogStyles}</style><div class="dialog-body bulk-edit-body"><p><b>${this.escape(entry.title)}</b> · ${this.t('selection.count').replace('{count}',targets.length)}</p><p>${t('intro')}</p><form class="visual-form">${this.bulkEditForm(entry,targets)}</form><p class="bulk-edit-note">${t('one_save')}</p><section data-bulk-preview hidden aria-label="${t('preview')}"></section><ha-alert class="editor-error" alert-type="error" style="display:none"></ha-alert></div><ha-dialog-footer slot="footer"><ha-button slot="secondaryAction" appearance="plain">${this.t('actions.cancel')}</ha-button><ha-button slot="primaryAction" appearance="accent" disabled>${t('preview')}</ha-button></ha-dialog-footer>`;
+    document.body.appendChild(dialog);
+    const form=dialog.querySelector('form'),primary=dialog.querySelector('[slot=primaryAction]'),cancel=dialog.querySelector('[slot=secondaryAction]'),previewBox=dialog.querySelector('[data-bulk-preview]'),alert=dialog.querySelector('ha-alert');
+    let preview=null,pending=false,finished=false,preparedChanges=null;
+    const sync=()=>{
+      const fields=[...form.querySelectorAll('[data-bulk-field]')];
+      for(const row of fields){
+        const action=row.querySelector('[data-bulk-action]'),input=row.querySelector('[data-bulk-input]'),setting=action.value==='set';
+        row.querySelector('[data-bulk-value]').hidden=!setting;action.disabled=pending||finished;
+        input.disabled=pending||finished||!setting;input.required=setting;
+      }
+      primary.disabled=pending||finished||(preview?preview.changed_count===0||Boolean(preview.error_count):fields.every(row=>row.querySelector('[data-bulk-action]').value==='keep'));
+      primary.textContent=t(pending?'working':preview?'apply':'preview');cancel.disabled=pending;cancel.textContent=finished?t('close'):this.t('actions.cancel');
+      dialog.setAttribute('aria-busy',String(pending));
+    };
+    const invalidate=()=>{preview=null;preparedChanges=null;previewBox.hidden=true;previewBox.replaceChildren();alert.style.display='none';sync();};
+    form.addEventListener('input',invalidate);form.addEventListener('change',invalidate);form.onsubmit=event=>event.preventDefault();
+    cancel.onclick=()=>{if(!pending)dialog.open=false;};
+    dialog.addEventListener('wa-hide',event=>{if(event.target===dialog&&pending)event.preventDefault();});
+    dialog.addEventListener('closed',()=>{dialog.remove();if(this._bulkEditDialog===dialog)this._bulkEditDialog=null;});
+    primary.onclick=async()=>{
+      if(pending||finished||primary.disabled)return;
+      const invalid=form.querySelector('input:invalid,select:invalid');
+      if(invalid){const group=invalid.closest('details');if(group)group.open=true;}
+      if(!form.reportValidity())return;
+      const applying=Boolean(preview),changes={};
+      if(!applying){
+        for(const row of form.querySelectorAll('[data-bulk-field]')){
+          const action=row.querySelector('[data-bulk-action]').value,input=row.querySelector('[data-bulk-input]');
+          if(action!=='keep')changes[row.dataset.bulkField]=action==='clear'?null:input.type==='number'?Number(input.value):input.value.trim();
+        }
+      }
+      pending=true;alert.style.display='none';sync();
+      try{
+        if(!applying){
+          const result=await this._hass.callWS({type:'s7plc/config/preview_update_entities',entry_id:entryId,entities:targets,changes});
+          preview=result;preparedChanges=changes;this.renderBulkPreview(previewBox,result,changes);previewBox.hidden=false;previewBox.querySelector('h3').focus();
+        }else{
+          await this._hass.callWS({type:'s7plc/config/update_entities',entry_id:entryId,entities:targets,changes:preparedChanges,preview_token:preview.preview_token});
+          finished=true;this.selectedIndices.clear();this._loaded=false;await this.load();dialog.open=false;
+        }
+      }catch(err){
+        if(err.code==='bulk_edit_conflict'||err.code==='invalid_selection'||err.code==='invalid_bulk_area')invalidate();
+        alert.textContent=finished?t('saved_refresh_failed'):this.flowError(err.message||String(err));alert.style.display='block';
+      }finally{pending=false;sync();}
+    };
+    sync();
+  }
+  renderBulkPreview(container,preview,changes){
+    const t=key=>this.t(`bulk_edit.${key}`),pretty=value=>String(value).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),areaName=value=>value?(this._hass.areas?.[value]?.name||value):this.t('common.no_area');
+    const label=key=>key==='area'?t('area'):key==='scan_interval'?t('scan'):key==='value_multiplier'?t('conversion'):key==='real_precision'?t('precision'):this.fieldText('sensors',key,'label');
+    const supported=(row,key)=>row.supported_fields?row.supported_fields.includes(key):key!=='scan_interval'||row.scan_supported;
+    const value=(row,side,key)=>{
+      if(!supported(row,key))return t('not_applicable');
+      const current=row[side][key];
+      if(key==='area')return areaName(current);
+      if(key==='scan_interval')return current==null?t('inherited').replace('{seconds}',preview.default_scan_interval):`${current} s`;
+      if(key==='real_precision')return current==null?t('default_precision').replace('{count}',preview.default_real_precision):String(current);
+      if(key==='value_multiplier'){
+        const summary=this.valueConversionSummary(current,'value');
+        return current?.type==='expression'?`${summary}: ${[current.read_expression&&`PLC → HA: ${current.read_expression}`,current.write_expression&&`HA → PLC: ${current.write_expression}`].filter(Boolean).join('; ')}`:summary;
+      }
+      if(key==='state_class'&&current==='none')return t('no_statistics');
+      if(current!=null)return key==='unit_of_measurement'?current:pretty(current);
+      const effective=row[`effective_${side}`]?.[key];
+      return effective!=null?t('automatic_value').replace('{value}',key==='unit_of_measurement'?effective:pretty(effective)):key==='device_class'?this.t('common.none_option'):t('automatic');
+    };
+    const cells=(row,side)=>Object.keys(changes).map(key=>`<span class="bulk-preview-value ${side==='after'&&supported(row,key)&&JSON.stringify(row.before[key])!==JSON.stringify(row.after[key])?'changed':''}"><b>${this.escape(label(key))}:</b> ${this.escape(value(row,side,key))}</span>`).join('');
+    container.innerHTML=`<h3 tabindex="-1">${t('preview')}</h3><p role="status">${t('preview_count').replace('{changed}',preview.changed_count).replace('{total}',preview.rows.length)}</p>${preview.error_count?`<ha-alert alert-type="error">${t('invalid_preview').replace('{count}',preview.error_count)}</ha-alert>`:preview.changed_count===0?`<ha-alert alert-type="info">${t('no_changes')}</ha-alert>`:''}<table class="bulk-preview-table"><thead><tr><th scope="col">${t('entity')}</th><th scope="col">${t('before')}</th><th scope="col">${t('after')}</th></tr></thead><tbody>${preview.rows.map((row,index)=>`<tr><th scope="row"><b>${this.escape(row.name||row.address||`${this.t(`entity_types.${row.entity_type}.singular`)} ${index+1}`)}</b><small>${this.escape(this.t(`entity_types.${row.entity_type}.singular`))}${row.address?` · ${this.escape(row.address)}`:''}</small>${!row.changed?`<small>${t('unchanged')}</small>`:''}${row.conversion_replaced?`<small class="bulk-preview-warning">${t('conversion_replaced')}</small>`:''}${(row.errors||[]).map(error=>`<small class="bulk-preview-error">${this.escape(this.flowError(error))}</small>`).join('')}</th><td>${cells(row,'before')}</td><td>${cells(row,'after')}</td></tr>`).join('')}</tbody></table>`;
+  }
   remove(indices,type=this.type||TYPES[0]){
   this.removeSelection({[type]:[...new Set(indices)].sort((a,b)=>b-a)});
   }
@@ -973,10 +1086,10 @@ class S7PlcConfigurationPanel extends HTMLElement {
 .selection-toggle{display:flex;align-items:center;gap:6px;flex:0 0 auto;white-space:nowrap;padding:9px 14px;border:1px solid var(--divider-color);border-radius:99px;background:var(--card-background-color)}
 .selection-toggle ha-icon{--mdc-icon-size:18px}.selection-toggle.active{border-color:var(--primary-color);color:var(--primary-color);background:color-mix(in srgb,var(--primary-color) 8%,var(--card-background-color))}
 .toolbar-actions .primary span{white-space:nowrap}
-.bulk-bar{position:sticky;bottom:12px;z-index:20;display:flex;align-items:center;gap:10px;margin-top:12px;padding:8px 10px 8px 16px;border-radius:14px;background:#263238;color:#fff;box-shadow:0 10px 28px #0000004d}
+.bulk-bar{position:sticky;bottom:12px;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:8px 10px 8px 16px;border-radius:14px;background:#263238;color:#fff;box-shadow:0 10px 28px #0000004d}
 .bulk-bar[hidden]{display:none}.bulk-bar>ha-icon{--mdc-icon-size:20px}.bulk-spacer{flex:1}
 .bulk-bar button{display:flex;align-items:center;gap:6px;border-radius:99px;padding:8px 14px;background:transparent;color:#fff;border:1px solid #ffffff4d}
-.bulk-bar button:hover{background:#ffffff1a}.bulk-bar .batch-delete{color:#ffcdd2!important;border-color:#ef9a9a}.bulk-bar .batch-delete[hidden]{display:none}
+.bulk-bar button:hover{background:#ffffff1a}.bulk-bar .batch-delete{color:#ffcdd2!important;border-color:#ef9a9a}.bulk-bar .batch-delete[hidden],.bulk-bar .batch-edit[hidden]{display:none}
 .sidebar-category-mode{display:grid;grid-template-columns:220px minmax(0,1fr);column-gap:20px;align-items:start}
 .sidebar-category-mode>.toolbar{grid-column:1/-1}
 .sidebar-category-mode>.category-navigation{position:sticky;top:12px;padding:6px;border:1px solid var(--divider-color);border-radius:16px;background:var(--card-background-color)}
@@ -1067,6 +1180,8 @@ article:has(.tone-error) .entity-icon{background:color-mix(in srgb,var(--error-c
 .light-options .control-card,.compact-control-card{min-height:0;padding:10px 12px!important;gap:5px!important}.cover-options{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.compact-control-card{align-items:center!important;text-align:center}.compact-control-card span{min-width:0;max-width:100%}.compact-control-card small{margin-top:3px}
 .light-options .control-card small{margin-top:3px}
 .visual-form label:not(.check){display:flex;flex-direction:column;gap:6px;font-size:13px}
+.bulk-edit-row{margin-bottom:14px}.bulk-edit-extra{border-top:1px solid var(--divider-color);padding-top:8px}.bulk-edit-extra>summary{padding:8px 0;cursor:pointer;font-weight:600}.bulk-edit-extra>summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.bulk-edit-extra>p{margin:4px 0 14px}.bulk-preview-table .bulk-preview-warning{color:var(--warning-color)}.bulk-preview-table .bulk-preview-error{color:var(--error-color)}
+.bulk-edit-body>p,.bulk-edit-body>form,.bulk-edit-body>section{margin-bottom:16px}.bulk-edit-body [hidden]{display:none!important}.bulk-edit-note{font-size:12px;color:var(--secondary-text-color);line-height:1.5}.bulk-preview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;margin-top:12px}.bulk-preview-table th,.bulk-preview-table td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--divider-color);overflow-wrap:anywhere}.bulk-preview-table thead{color:var(--secondary-text-color)}.bulk-preview-table tbody th{font-weight:400}.bulk-preview-table small,.bulk-preview-value{display:block;margin-top:4px}.bulk-preview-table small{color:var(--secondary-text-color)}.bulk-preview-value.changed{color:var(--primary-color);font-weight:600}.bulk-edit-body h3{margin-bottom:8px}
 .visual-form input,.visual-form select{width:100%;min-width:0;background:var(--card-background-color);transition:border-color .15s,box-shadow .15s}.visual-form select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--secondary-text-color) 50%),linear-gradient(135deg,var(--secondary-text-color) 50%,transparent 50%);background-position:calc(100% - 18px) calc(50% - 3px),calc(100% - 13px) calc(50% - 3px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
 .visual-form input:hover,.visual-form select:hover{border-color:color-mix(in srgb,var(--primary-color) 45%,var(--divider-color))}
 .visual-form input:focus,.visual-form select:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color) 16%,transparent)}
