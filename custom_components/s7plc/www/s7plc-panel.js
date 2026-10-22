@@ -6,10 +6,15 @@ text=String(text).replace(/^\uFEFF/,'');if(text.length>2*1024*1024)throw Error('
 const rows=[];let row=[],cell='',quoted=false,closed=false;
 for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++;}else if(quoted){quoted=false;closed=true;}else{if(cell||closed)throw Error('csv');quoted=true;}}else if(!quoted&&(c===separator||c==='\n')){row.push(cell);cell='';closed=false;if(c==='\n'){rows.push(row);row=[];}}else if(c!=='\r'){if(closed)throw Error('csv');cell+=c;}}
 if(quoted)throw Error('csv');if(cell||row.length){row.push(cell);rows.push(row);}
-const result=[],seen=new Set();for(const values of rows){if(values.every(v=>!v.trim()))continue;if(!result.length&&values[0].trim().toLowerCase()==='address')continue;if(values.length<2||values.length>3)throw Error('csv');const address=NORMALIZE_ADDRESS(values[0]).replace(/^(DB\d+,)(?=\d+\.[0-7]$)/,'$1X');if(!/^DB\d+,X?\d+\.[0-7]$/.test(address)||seen.has(address))throw Error('csv');const enabled=(values[2]??'1').trim().toLowerCase();if(!['','0','1','true','false'].includes(enabled))throw Error('csv');seen.add(address);result.push({address,description:values[1].trim(),enabled:!['0','false'].includes(enabled)});}if(!result.length||result.length>8192)throw Error('csv');return result;
+const result=[],seen=new Set();for(const values of rows){if(values.every(v=>!v.trim()))continue;if(!result.length&&values[0].trim().toLowerCase()==='address')continue;if(values.length<2||values.length>3)throw Error('csv');const address=CANONICAL_ALARM_ADDRESS(values[0]);if(!address||seen.has(address))throw Error('csv');const enabled=(values[2]??'1').trim().toLowerCase();if(!['','0','1','true','false'].includes(enabled))throw Error('csv');seen.add(address);result.push({address,description:values[1].trim(),enabled:!['0','false'].includes(enabled)});}if(!result.length||result.length>8192)throw Error('csv');return result;
 };
 const NORMALIZE_ADDRESS=value=>String(value??'').trim().toUpperCase();
 const CANONICAL_ADDRESS=value=>NORMALIZE_ADDRESS(value).replace(/^(DB\d+,)(?=\d+\.[0-7]$)/,'$1X');
+const CANONICAL_ALARM_ADDRESS=value=>{
+const parts=PARSE_S7_ADDRESS(CANONICAL_ADDRESS(value));
+if(parts.error||parts.dataType!=='BIT'||!['DB','M'].includes(parts.area))return null;
+const address=SERIALIZE_S7_ADDRESS(parts);return typeof address==='string'?address:null;
+};
 const ADDRESS_USAGE_EXCLUDED_KEYS=new Set(['availability_address','start_address','end_address']);
 const ADDRESS_USAGES=(entities,skip=null)=>{const usages=new Map();for(const [type,items] of Object.entries(entities||{}))(items||[]).forEach((item,index)=>{if(skip?.type===type&&skip.index===index)return;for(const [key,value] of Object.entries(item||{})){if(typeof value!=='string'||!(key==='address'||key.endsWith('_address'))||ADDRESS_USAGE_EXCLUDED_KEYS.has(key))continue;const address=CANONICAL_ADDRESS(value),list=usages.get(address)||[];if(!address||list.some(usage=>usage.type===type&&usage.index===index))continue;list.push({type,index,item});usages.set(address,list);}});return usages;};
 const TYPES = ["sensors", "binary_sensors", "switches", "covers", "lights", "buttons", "numbers", "selects", "texts", "climates", "entity_sync", "alarm_groups"];
@@ -628,7 +633,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
     if(!box)return;
     const t=(key,values={})=>Object.entries(values).reduce((text,[name,value])=>text.replaceAll(`{${name}}`,String(value)),this.t(`alarms.${key}`));
     const find=selector=>box.querySelector(selector),rows=find('[data-alarm-rows]'),search=find('[data-alarm-search]'),filter=find('[data-alarm-filter]'),status=find('[data-alarm-status]'),error=find('[data-alarm-error]'),fileInput=find('[data-alarm-file]'),paste=find('[data-alarm-paste]');
-    const pageSize=50,canonical=CANONICAL_ADDRESS;
+    const pageSize=50,canonical=address=>CANONICAL_ALARM_ADDRESS(address)||CANONICAL_ADDRESS(address);
     let values=(item.alarms||[]).map(row=>({address:row.address||'',description:row.description||'',enabled:row.enabled!==false})),page=0,readVersion=0,loading=false;
     const notice=(element,text)=>{element.textContent=text;element.hidden=!text;};
     const sync=()=>{

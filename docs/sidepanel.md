@@ -630,16 +630,29 @@ state.
 
 Columns are `address`, `description`, and optional `enabled` (`1`/`true` to
 include, `0`/`false` to exclude). The English column header is optional.
-Semicolon CSV and tab-separated text allow unquoted PLC addresses; comma-separated
-CSV requires quoting the address because it contains a comma. Imported rows update
-matching table rows and preserve others. Duplicate addresses within one import,
-out-of-range addresses, and descriptions longer than 255 characters are rejected.
+Addresses accept DB bits (`DB1,X0.0` or `DB1,0.0`) and M bits (`M0.0`).
+Semicolon CSV and tab-separated text allow unquoted PLC addresses. Comma-separated
+CSV requires quoting DB addresses because they contain a comma; M addresses can
+be unquoted. Imported rows update matching table rows and preserve others.
+Equivalent address spellings are normalized before matching or detecting
+duplicates. Invalid bit addresses, duplicate addresses within one import, and
+descriptions longer than 255 characters leave the list unchanged. Saving also
+checks that every address belongs to the group's area and configured range.
 
 ```csv
 address;description;enabled
 DB1,X0.0;Motor overload;1
 DB1,X0.1;Low pressure;1
 DB1,X0.2;Reserved;0
+```
+
+For a group covering `M0.0`–`M1.7`, a comma-separated file can contain:
+
+```csv
+address,description,enabled
+M0.0,Motor overload,1
+M0.1,Low pressure,1
+M1.7,Reserved,0
 ```
 
 ### Active and last alarm
