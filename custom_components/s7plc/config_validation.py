@@ -827,12 +827,14 @@ class EntityConfigBuilder:
 
         return item, {}
 
-    def _build_switch_item(
+    def _build_boolean_command_item(
         self,
         user_input: dict[str, Any],
         *,
+        option_key: str,
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Build shared switch/light settings with platform-scoped duplicates."""
         # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
         state_address, errors = self._validate_address_field(
             user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
@@ -842,7 +844,7 @@ class EntityConfigBuilder:
 
         # Check for duplicates
         if self._has_duplicate(
-            CONF_SWITCHES,
+            option_key,
             state_address,
             keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
             skip_idx=skip_idx,
@@ -896,6 +898,16 @@ class EntityConfigBuilder:
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
         return item, {}
+
+    def _build_switch_item(
+        self,
+        user_input: dict[str, Any],
+        *,
+        skip_idx: int | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        return self._build_boolean_command_item(
+            user_input, option_key=CONF_SWITCHES, skip_idx=skip_idx
+        )
 
     def _build_cover_item(
         self,
@@ -1398,64 +1410,11 @@ class EntityConfigBuilder:
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build a light item from user input (supports both on/off and dimmer)."""
-        # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
-        state_address, errors = self._validate_address_field(
-            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        item, errors = self._build_boolean_command_item(
+            user_input, option_key=CONF_LIGHTS, skip_idx=skip_idx
         )
-        if errors:
-            return None, errors
-
-        # Check for duplicates
-        if self._has_duplicate(
-            CONF_LIGHTS,
-            state_address,
-            keys=(CONF_STATE_ADDRESS, CONF_ADDRESS),
-            skip_idx=skip_idx,
-        ):
-            return None, {"base": "duplicate_entry"}
-
-        # Validate optional command address
-        command_address = None
-        if user_input.get(CONF_COMMAND_ADDRESS):
-            command_address, cmd_errors = self._validate_address_field(
-                user_input.get(CONF_COMMAND_ADDRESS)
-            )
-            if cmd_errors:
-                return None, cmd_errors
-
-        # Build item
-        item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
-        if command_address:
-            item[CONF_COMMAND_ADDRESS] = command_address
-
-        # Copy optional fields
-        self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
-
-        # Add boolean flags — mutually exclusive
-        sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
-        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
-        single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
-        if single_fire_command and (sync_state or pulse_command):
-            return None, {"base": "single_fire_conflict"}
-        if sync_state and pulse_command:
-            return None, {"base": "sync_pulse_conflict"}
-        if sync_state and (
-            not command_address
-            or self._normalized_address(command_address)
-            == self._normalized_address(state_address)
-        ):
-            return None, {"base": "sync_same_address"}
-        item[CONF_SYNC_STATE] = sync_state
-        item[CONF_PULSE_COMMAND] = pulse_command
-        if single_fire_command:
-            item[CONF_SINGLE_FIRE_COMMAND] = True
-
-        # Add pulse duration only if pulse command is enabled
-        if pulse_command:
-            pulse_duration = parse_pulse_duration(user_input.get(CONF_PULSE_DURATION))
-
-            if pulse_duration is not None:
-                item[CONF_PULSE_DURATION] = pulse_duration
+        if errors or item is None:
+            return item, errors
 
         # Brightness / dimmer fields (optional)
         bri_state_addr = user_input.get(CONF_BRIGHTNESS_STATE_ADDRESS)
@@ -1474,9 +1433,6 @@ class EntityConfigBuilder:
                 if bri_cmd_errors:
                     return None, bri_cmd_errors
                 item[CONF_BRIGHTNESS_COMMAND_ADDRESS] = bri_cmd_val
-
-        # Apply scan interval
-        self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
 
         return item, {}
 
