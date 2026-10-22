@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -71,6 +71,9 @@ from .value_conversion import (
     convert_to_plc,
     normalize_value_conversion,
 )
+
+if TYPE_CHECKING:
+    from .coordinator import S7Coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,6 +149,51 @@ def _position_feedback_mode(item: dict[str, Any]) -> str:
     return "position"
 
 
+async def _async_add_feedback_topic(
+    coordinator: S7Coordinator,
+    role: str,
+    address: str | None,
+    scan_interval: float | int | None,
+) -> str | None:
+    """Register an optional cover feedback address without changing its spelling."""
+    if not address:
+        return None
+    topic = f"cover:{role}:{address}"
+    await coordinator.add_item(topic, address, scan_interval)
+    return topic
+
+
+async def _async_prepare_status_feedback(
+    coordinator: S7Coordinator,
+    item: dict[str, Any],
+    scan_interval: float | int | None,
+) -> dict[str, Any]:
+    """Register the status word and return the shared constructor settings."""
+    address = item.get(CONF_COVER_STATUS_ADDRESS)
+    topic = await _async_add_feedback_topic(
+        coordinator, "status", address, scan_interval
+    )
+    return {
+        "cover_status_topic": topic,
+        CONF_COVER_STATUS_ADDRESS: address,
+        CONF_COVER_STATUS_OPEN_VALUES: item.get(
+            CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES
+        ),
+        CONF_COVER_STATUS_CLOSED_VALUES: item.get(
+            CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES
+        ),
+        CONF_COVER_STATUS_OPENING_VALUES: item.get(
+            CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES
+        ),
+        CONF_COVER_STATUS_CLOSING_VALUES: item.get(
+            CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES
+        ),
+        CONF_COVER_STATUS_STOPPED_VALUES: item.get(
+            CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES
+        ),
+    }
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
@@ -186,36 +234,25 @@ async def async_setup_entry(
                 if position_feedback in {"closing", "both"}
                 else None
             )
-            opening_topic = None
-            closing_topic = None
-            if opening_state:
-                opening_topic = f"cover:opened:{opening_state}"
-                await coord.add_item(opening_topic, opening_state, scan_interval)
-            if closing_state:
-                closing_topic = f"cover:closed:{closing_state}"
-                await coord.add_item(closing_topic, closing_state, scan_interval)
+            opening_topic = await _async_add_feedback_topic(
+                coord, "opened", opening_state, scan_interval
+            )
+            closing_topic = await _async_add_feedback_topic(
+                coord, "closed", closing_state, scan_interval
+            )
 
             cover_opening_address = item.get(CONF_COVER_OPENING_ADDRESS)
             cover_closing_address = item.get(CONF_COVER_CLOSING_ADDRESS)
             cover_stopped_address = item.get(CONF_COVER_STOPPED_ADDRESS)
-            cover_opening_topic = None
-            cover_closing_topic = None
-            cover_stopped_topic = None
-            if cover_opening_address:
-                cover_opening_topic = f"cover:opening:{cover_opening_address}"
-                await coord.add_item(
-                    cover_opening_topic, cover_opening_address, scan_interval
-                )
-            if cover_closing_address:
-                cover_closing_topic = f"cover:closing:{cover_closing_address}"
-                await coord.add_item(
-                    cover_closing_topic, cover_closing_address, scan_interval
-                )
-            if cover_stopped_address:
-                cover_stopped_topic = f"cover:stopped:{cover_stopped_address}"
-                await coord.add_item(
-                    cover_stopped_topic, cover_stopped_address, scan_interval
-                )
+            cover_opening_topic = await _async_add_feedback_topic(
+                coord, "opening", cover_opening_address, scan_interval
+            )
+            cover_closing_topic = await _async_add_feedback_topic(
+                coord, "closing", cover_closing_address, scan_interval
+            )
+            cover_stopped_topic = await _async_add_feedback_topic(
+                coord, "stopped", cover_stopped_address, scan_interval
+            )
 
             # Optional: tilt control, symmetric to position above.
             tilt_state = item.get(CONF_TILT_STATE_ADDRESS)
@@ -232,28 +269,8 @@ async def async_setup_entry(
             # hvac_status_address. Without it, is_opening/is_closing can
             # only ever be False here, since a raw position alone can't
             # tell HA whether the cover is actively moving.
-            cover_status_address = item.get(CONF_COVER_STATUS_ADDRESS)
-            cover_status_topic = None
-            if cover_status_address:
-                cover_status_topic = f"cover:status:{cover_status_address}"
-                await coord.add_item(
-                    cover_status_topic, cover_status_address, scan_interval
-                )
-
-            cover_status_open_values = item.get(
-                CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES
-            )
-            cover_status_closed_values = item.get(
-                CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES
-            )
-            cover_status_opening_values = item.get(
-                CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES
-            )
-            cover_status_closing_values = item.get(
-                CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES
-            )
-            cover_status_stopped_values = item.get(
-                CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES
+            status_feedback = await _async_prepare_status_feedback(
+                coord, item, scan_interval
             )
 
             name = item.get(CONF_NAME) or default_entity_name(position_state)
@@ -276,13 +293,7 @@ async def async_setup_entry(
                     tilt_state_address=tilt_state,
                     tilt_command_address=tilt_command,
                     invert_tilt=invert_tilt,
-                    cover_status_topic=cover_status_topic,
-                    cover_status_address=cover_status_address,
-                    cover_status_open_values=cover_status_open_values,
-                    cover_status_closed_values=cover_status_closed_values,
-                    cover_status_opening_values=cover_status_opening_values,
-                    cover_status_closing_values=cover_status_closing_values,
-                    cover_status_stopped_values=cover_status_stopped_values,
+                    **status_feedback,
                     position_feedback=position_feedback,
                     opening_state_address=opening_state,
                     closing_state_address=closing_state,
@@ -331,16 +342,12 @@ async def async_setup_entry(
         )
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
-        opened_topic = None
-        closed_topic = None
-
-        if opened_state:
-            opened_topic = f"cover:opened:{opened_state}"
-            await coord.add_item(opened_topic, opened_state, scan_interval)
-
-        if closed_state:
-            closed_topic = f"cover:closed:{closed_state}"
-            await coord.add_item(closed_topic, closed_state, scan_interval)
+        opened_topic = await _async_add_feedback_topic(
+            coord, "opened", opened_state, scan_interval
+        )
+        closed_topic = await _async_add_feedback_topic(
+            coord, "closed", closed_state, scan_interval
+        )
 
         # Optional: real-time movement status, read independently of the
         # opened/closed end-stops above. Each is a separate boolean address,
@@ -365,54 +372,22 @@ async def async_setup_entry(
             item.get(CONF_COVER_STOPPED_ADDRESS) if keep_movement_bits else None
         )
 
-        cover_opening_topic = None
-        cover_closing_topic = None
-        cover_stopped_topic = None
-
-        if cover_opening_address:
-            cover_opening_topic = f"cover:opening:{cover_opening_address}"
-            await coord.add_item(
-                cover_opening_topic, cover_opening_address, scan_interval
-            )
-
-        if cover_closing_address:
-            cover_closing_topic = f"cover:closing:{cover_closing_address}"
-            await coord.add_item(
-                cover_closing_topic, cover_closing_address, scan_interval
-            )
-
-        if cover_stopped_address:
-            cover_stopped_topic = f"cover:stopped:{cover_stopped_address}"
-            await coord.add_item(
-                cover_stopped_topic, cover_stopped_address, scan_interval
-            )
+        cover_opening_topic = await _async_add_feedback_topic(
+            coord, "opening", cover_opening_address, scan_interval
+        )
+        cover_closing_topic = await _async_add_feedback_topic(
+            coord, "closing", cover_closing_address, scan_interval
+        )
+        cover_stopped_topic = await _async_add_feedback_topic(
+            coord, "stopped", cover_stopped_address, scan_interval
+        )
 
         # Optional alternative to the 3 boolean addresses above: a single
         # climate-style status address + per-status value mapping, same as
         # the Position cover's cover_status_address. Takes priority over
         # the boolean addresses when configured.
-        cover_status_address = item.get(CONF_COVER_STATUS_ADDRESS)
-        cover_status_topic = None
-        if cover_status_address:
-            cover_status_topic = f"cover:status:{cover_status_address}"
-            await coord.add_item(
-                cover_status_topic, cover_status_address, scan_interval
-            )
-
-        cover_status_open_values = item.get(
-            CONF_COVER_STATUS_OPEN_VALUES, DEFAULT_COVER_STATUS_OPEN_VALUES
-        )
-        cover_status_closed_values = item.get(
-            CONF_COVER_STATUS_CLOSED_VALUES, DEFAULT_COVER_STATUS_CLOSED_VALUES
-        )
-        cover_status_opening_values = item.get(
-            CONF_COVER_STATUS_OPENING_VALUES, DEFAULT_COVER_STATUS_OPENING_VALUES
-        )
-        cover_status_closing_values = item.get(
-            CONF_COVER_STATUS_CLOSING_VALUES, DEFAULT_COVER_STATUS_CLOSING_VALUES
-        )
-        cover_status_stopped_values = item.get(
-            CONF_COVER_STATUS_STOPPED_VALUES, DEFAULT_COVER_STATUS_STOPPED_VALUES
+        status_feedback = await _async_prepare_status_feedback(
+            coord, item, scan_interval
         )
 
         name = item.get(CONF_NAME) or default_entity_name(open_command)
@@ -453,13 +428,7 @@ async def async_setup_entry(
                 cover_opening_topic=cover_opening_topic,
                 cover_closing_topic=cover_closing_topic,
                 cover_stopped_topic=cover_stopped_topic,
-                cover_status_topic=cover_status_topic,
-                cover_status_address=cover_status_address,
-                cover_status_open_values=cover_status_open_values,
-                cover_status_closed_values=cover_status_closed_values,
-                cover_status_opening_values=cover_status_opening_values,
-                cover_status_closing_values=cover_status_closing_values,
-                cover_status_stopped_values=cover_status_stopped_values,
+                **status_feedback,
                 toggle_mode=toggle_mode,
                 toggle_pulse_duration=toggle_pulse_duration,
                 status_conversion=normalize_value_conversion(item, "status"),
@@ -474,7 +443,72 @@ async def async_setup_entry(
         await coord.async_request_refresh()
 
 
-class S7Cover(S7BaseEntity, CoverEntity):
+class _S7CoverFeedback(S7BaseEntity, CoverEntity):
+    """Shared feedback decoding, independent of each cover's control policy."""
+
+    def _initialize_status_feedback(
+        self,
+        *,
+        cover_status_topic: str | None,
+        cover_status_address: str | None,
+        cover_status_open_values: str,
+        cover_status_closed_values: str,
+        cover_status_opening_values: str,
+        cover_status_closing_values: str,
+        cover_status_stopped_values: str,
+        status_conversion: dict | None,
+    ) -> None:
+        """Initialize status conversion and preserve status-map precedence."""
+        self._status_conversion = status_conversion
+        self._status_conversion_context = (
+            ConversionContext.from_address("status", cover_status_address, "read")
+            if cover_status_address
+            else None
+        )
+        self._cover_status_address = cover_status_address
+        self._cover_status_topic = cover_status_topic
+        self._cover_status_values: dict[str, list[int]] = {
+            "open": parse_mode_values(cover_status_open_values),
+            "closed": parse_mode_values(cover_status_closed_values),
+            "opening": parse_mode_values(cover_status_opening_values),
+            "closing": parse_mode_values(cover_status_closing_values),
+            "stopped": parse_mode_values(cover_status_stopped_values),
+        }
+
+    def _get_topic_state(self, topic: str | None) -> bool | None:
+        if topic is None:
+            return None
+        data = self._state_data
+        if topic not in data:
+            return None
+        value = data.get(topic)
+        if value is None:
+            return None
+        return bool(value)
+
+    def _get_movement_status(self) -> str | None:
+        """Return "open"/"closed"/"opening"/"closing"/"stopped", or None if
+        unmatched/unset."""
+        if not self._cover_status_address:
+            return None
+        data = self._state_data
+        status = data.get(self._cover_status_topic)
+        if status is None:
+            return None
+        try:
+            status = convert_from_plc(
+                status, self._status_conversion, self._status_conversion_context
+            )
+            status = int(status)
+        except (ValueConversionError, TypeError, ValueError):
+            return None
+        for movement, values in self._cover_status_values.items():
+            if status in values:
+                return movement
+        return None
+
+
+class S7Cover(_S7CoverFeedback):
     """Representation of an S7 cover entity."""
 
     _attr_assumed_state = True
@@ -530,12 +564,6 @@ class S7Cover(S7BaseEntity, CoverEntity):
         self._toggle_pulse_duration = toggle_pulse_duration
         self._last_toggle_direction: str | None = None
         self._toggle_lock = asyncio.Lock()
-        self._status_conversion = status_conversion
-        self._status_conversion_context = (
-            ConversionContext.from_address("status", cover_status_address, "read")
-            if cover_status_address
-            else None
-        )
         # Set while a halt pulse is waiting for real "stopped" feedback
         # before continuing toward the originally requested target - see
         # _toggle_step/_handle_coordinator_update.
@@ -606,15 +634,16 @@ class S7Cover(S7BaseEntity, CoverEntity):
         # mechanism as the Position cover's cover_status_address), for PLCs
         # that expose movement as one status word instead of separate bits.
         # Takes priority over the boolean addresses when configured.
-        self._cover_status_address = cover_status_address
-        self._cover_status_topic = cover_status_topic
-        self._cover_status_values: dict[str, list[int]] = {
-            "open": parse_mode_values(cover_status_open_values),
-            "closed": parse_mode_values(cover_status_closed_values),
-            "opening": parse_mode_values(cover_status_opening_values),
-            "closing": parse_mode_values(cover_status_closing_values),
-            "stopped": parse_mode_values(cover_status_stopped_values),
-        }
+        self._initialize_status_feedback(
+            cover_status_topic=cover_status_topic,
+            cover_status_address=cover_status_address,
+            cover_status_open_values=cover_status_open_values,
+            cover_status_closed_values=cover_status_closed_values,
+            cover_status_opening_values=cover_status_opening_values,
+            cover_status_closing_values=cover_status_closing_values,
+            cover_status_stopped_values=cover_status_stopped_values,
+            status_conversion=status_conversion,
+        )
         if device_class:
             try:
                 self._attr_device_class = CoverDeviceClass(device_class)
@@ -643,38 +672,6 @@ class S7Cover(S7BaseEntity, CoverEntity):
     def _restore_local_state(self, state: dict[str, Any]) -> None:
         if isinstance(closed := state.get("assumed_closed"), bool):
             self._assumed_closed = closed
-
-    def _get_topic_state(self, topic: str | None) -> bool | None:
-        if topic is None:
-            return None
-        data = self._state_data
-        if topic not in data:
-            return None
-        value = data.get(topic)
-        if value is None:
-            return None
-        return bool(value)
-
-    def _get_movement_status(self) -> str | None:
-        """Return "open"/"closed"/"opening"/"closing"/"stopped", or None if
-        unmatched/unset."""
-        if not self._cover_status_address:
-            return None
-        data = self._state_data
-        status = data.get(self._cover_status_topic)
-        if status is None:
-            return None
-        try:
-            status = convert_from_plc(
-                status, self._status_conversion, self._status_conversion_context
-            )
-            status = int(status)
-        except (ValueConversionError, TypeError, ValueError):
-            return None
-        for movement, values in self._cover_status_values.items():
-            if status in values:
-                return movement
-        return None
 
     def _get_feedback_movement(self) -> str | None:
         """Return movement reported by configured PLC feedback."""
@@ -1323,7 +1320,7 @@ class S7Cover(S7BaseEntity, CoverEntity):
         await super().async_will_remove_from_hass()
 
 
-class S7PositionCover(S7BaseEntity, CoverEntity):
+class S7PositionCover(_S7CoverFeedback):
     """Representation of an S7 cover with position control (0-100).
 
     Optionally also supports tilt control (current_cover_tilt_position,
@@ -1409,21 +1406,16 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         # Optional real-time movement status: a raw position alone can't
         # tell HA whether the cover is actively moving, so is_opening/
         # is_closing stay False unless this is configured.
-        self._cover_status_address = cover_status_address
-        self._status_conversion = status_conversion
-        self._status_conversion_context = (
-            ConversionContext.from_address("status", cover_status_address, "read")
-            if cover_status_address
-            else None
+        self._initialize_status_feedback(
+            cover_status_topic=cover_status_topic,
+            cover_status_address=cover_status_address,
+            cover_status_open_values=cover_status_open_values,
+            cover_status_closed_values=cover_status_closed_values,
+            cover_status_opening_values=cover_status_opening_values,
+            cover_status_closing_values=cover_status_closing_values,
+            cover_status_stopped_values=cover_status_stopped_values,
+            status_conversion=status_conversion,
         )
-        self._cover_status_topic = cover_status_topic
-        self._cover_status_values: dict[str, list[int]] = {
-            "open": parse_mode_values(cover_status_open_values),
-            "closed": parse_mode_values(cover_status_closed_values),
-            "opening": parse_mode_values(cover_status_opening_values),
-            "closing": parse_mode_values(cover_status_closing_values),
-            "stopped": parse_mode_values(cover_status_stopped_values),
-        }
 
         # Optional end-stop/movement feedback, same model traditional
         # covers use (see S7Cover): position_feedback selects which single
@@ -1555,17 +1547,6 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         """Return current tilt position (0=closed, 100=open), if configured."""
         return self._get_tilt_value()
 
-    def _get_topic_state(self, topic: str | None) -> bool | None:
-        if topic is None:
-            return None
-        data = self._state_data
-        if topic not in data:
-            return None
-        value = data.get(topic)
-        if value is None:
-            return None
-        return bool(value)
-
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed.
@@ -1602,27 +1583,6 @@ class S7PositionCover(S7BaseEntity, CoverEntity):
         if pos is None:
             return None
         return pos == 0
-
-    def _get_movement_status(self) -> str | None:
-        """Return "open"/"closed"/"opening"/"closing"/"stopped", or None if
-        unmatched/unset."""
-        if not self._cover_status_address:
-            return None
-        data = self._state_data
-        status = data.get(self._cover_status_topic)
-        if status is None:
-            return None
-        try:
-            status = convert_from_plc(
-                status, self._status_conversion, self._status_conversion_context
-            )
-            status = int(status)
-        except (ValueConversionError, TypeError, ValueError):
-            return None
-        for movement, values in self._cover_status_values.items():
-            if status in values:
-                return movement
-        return None
 
     def _get_bits_movement(self) -> str | None:
         """Return movement reported by the boolean opening/closing/stopped
