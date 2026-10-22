@@ -97,6 +97,7 @@ glance. See the **[Side Panel Guide](docs/sidepanel.md)**.
 - **Home Assistant** installation
 - **Siemens S7 PLC** (S7-1200/1500/300/400) or **Logo! controller** (Logo! 8 / 0BA8 and newer; Logo! 0BA7 and older via TSAP) reachable over ISO-on-TCP (port 102)
 - Network connectivity between Home Assistant and PLC
+- **pyS7 3.1.2**, installed automatically by Home Assistant
 
 > ℹ️ For S7-1200/1500: Ensure data blocks have **Optimized block access disabled** if using absolute addressing.
 > ℹ️ For Logo! 8 (0BA8+): use Rack/Slot connection (`rack: 0`, `slot: 2`). For Logo! 0BA7 and older: use TSAP connection (see [addressing docs](docs/addressing.md#logo-0ba7-and-older-legacy)).
@@ -208,14 +209,14 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 | Byte | `DB1,B0` | Unsigned 8-bit (0-255) |
 | USInt | `DB1,USINT0` | Unsigned 8-bit (0-255, explicit USINT) |
 | SInt | `DB1,SINT0` | Signed 8-bit (-128 to 127) |
-| Char | `DB1,C0` | Single ASCII character |
+| Char | `DB1,C0` | Single Latin-1 character |
 | Word | `DB1,W2` | Unsigned 16-bit (0-65535) |
 | Int | `DB1,I2` | Signed 16-bit (-32768 to 32767) |
 | DWord | `DB1,DW4` | Unsigned 32-bit (0-4294967295) |
 | DInt | `DB1,DI4` | Signed 32-bit (-2147483648 to 2147483647) |
 | Real | `DB1,R4` | IEEE 754 32-bit float |
 | LReal | `DB1,LR8` | IEEE 754 64-bit double precision float |
-| String | `DB1,S0.20` | S7 STRING type (ASCII) |
+| String | `DB1,S0.20` | S7 STRING type (Latin-1) |
 | WString | `DB1,WS0.20` | S7 WSTRING type (Unicode UTF-16) |
 
 **Note**: Use `I`/`DI` for signed integers, `W`/`DW` for unsigned integers. Use `SINT` for signed 8-bit values.

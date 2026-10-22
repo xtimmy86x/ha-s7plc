@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_asyncio
 from homeassistant.exceptions import HomeAssistantError
+from pyS7.errors import S7AddressError
 from support.write_batching import enqueue, install_scheduler, make_batch_coordinator
 
 from custom_components.s7plc.plc.address import parse_tag
@@ -49,6 +50,56 @@ async def test_mixed_batch_reports_only_dispatched_values_as_successful(
     assert result == {BAD_ADDRESS: False, GOOD_ADDRESS: not driver_fails}
     client.write.assert_awaited_once_with([parse_tag(GOOD_ADDRESS)], [7])
     assert not coord._connection._io_tasks
+
+
+@pytest.mark.parametrize("invalid_first", [True, False])
+async def test_unencodable_string_does_not_block_other_batch_values(
+    writer, invalid_first
+):
+    coord, client = writer
+    writes = [("DB1,S0.12", "10 €"), ("DB1,S20.12", "25°C kühl")]
+    if not invalid_first:
+        writes.reverse()
+
+    assert await coord.write_multi(writes) == {"DB1,S0.12": False, "DB1,S20.12": True}
+    client.write.assert_awaited_once_with([parse_tag("DB1,S20.12")], ["25°C kühl"])
+    client.disconnect.assert_not_awaited()
+    assert client.is_connected
+
+
+async def test_unencodable_single_string_is_rejected_before_io(writer):
+    coord, client = writer
+    with pytest.raises(ValueError, match="only supports Latin-1"):
+        await coord.write("DB1,S0.12", "🌡")
+
+    client.write.assert_not_awaited()
+    client.disconnect.assert_not_awaited()
+    assert await coord.write("DB1,S0.12", "25°C") is True
+    client.write.assert_awaited_once_with([parse_tag("DB1,S0.12")], ["25°C"])
+
+
+@pytest.mark.parametrize("batch", [False, True])
+@pytest.mark.parametrize(
+    "error",
+    [
+        S7AddressError("Invalid string value"),
+        UnicodeEncodeError("utf-16-be", "\ud800", 0, 1, "surrogates not allowed"),
+    ],
+)
+async def test_driver_validation_error_does_not_disconnect(writer, batch, error):
+    coord, client = writer
+    client.write.side_effect = error
+    if batch:
+        assert await coord.write_multi([("DB1,WS0.12", "text")]) == {
+            "DB1,WS0.12": False
+        }
+    else:
+        assert await coord.write("DB1,WS0.12", "text") is False
+    client.write.assert_awaited_once()
+    client.disconnect.assert_not_awaited()
+    assert client.is_connected
+    client.write.side_effect = None
+    assert await coord.write(GOOD_ADDRESS, 7) is True
 
 
 @pytest.mark.parametrize("invalid_first", [True, False])

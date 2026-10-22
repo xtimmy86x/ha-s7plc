@@ -47,6 +47,13 @@ def prepare_payload(
                 f"STRING/WSTRING address {address} requires str value, "
                 f"got {type(value).__name__}"
             )
+        if tag.data_type == DataType.STRING:
+            try:
+                value.encode("latin-1")
+            except UnicodeEncodeError as err:
+                raise ValueError(
+                    f"STRING address {address} only supports Latin-1 characters"
+                ) from err
         return str(value)
 
     if tag.data_type in (DataType.REAL, DataType.LREAL):

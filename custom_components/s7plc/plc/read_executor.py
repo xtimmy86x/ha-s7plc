@@ -18,6 +18,23 @@ class S7ReadError(Exception):
     """A planned string read failed or its cooperative deadline expired."""
 
 
+def is_string_decode_error(error: BaseException) -> bool:
+    """Identify decoding failures wrapped by pyS7, without matching messages.
+
+    pyS7 wraps UnicodeDecodeError in S7ProtocolError (a communication error),
+    or S7CommunicationError for chunked WSTRING reads. A complete response with
+    undecodable text does not require reconnecting the transport. Other protocol
+    and connection errors retain their existing failure handling.
+    """
+    seen: set[int] = set()
+    while isinstance(error, S7CommunicationError) and error.__cause__ is not None:
+        if id(error) in seen:
+            return False
+        seen.add(id(error))
+        error = error.__cause__
+    return isinstance(error, UnicodeDecodeError)
+
+
 class S7ReadExecutor:
     """Execute scalar and string reads for one PLC without owning its client.
 
@@ -160,7 +177,7 @@ class S7ReadExecutor:
             deadline: Absolute monotonic timestamp to stop reading
 
         Returns:
-            Dictionary mapping topic names to their string values
+            Dictionary mapping topic names to strings, or None for decode errors
 
         Raises:
             S7ReadError: On timeout or communication failures
@@ -177,10 +194,24 @@ class S7ReadExecutor:
                     plan.db, plan.start, plan.length, plan.is_wstring
                 )
             except (
+                UnicodeDecodeError,
                 S7CommunicationError,
                 S7ConnectionError,
                 S7ReadResponseError,
             ) as err:
+                if is_string_decode_error(err):
+                    _LOGGER.warning(
+                        "Cannot decode string %s (DB%d.%d); "
+                        "marking its value unavailable: %s",
+                        plan.topic,
+                        plan.db,
+                        plan.start,
+                        err,
+                    )
+                    # Clear any previous value while preserving other readings
+                    # and retry this topic at its normal polling interval.
+                    results[plan.topic] = None
+                    continue
                 _LOGGER.error(
                     "String read error: "
                     "S7 communication error reading %s (DB%d.%d): %s",

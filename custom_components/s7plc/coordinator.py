@@ -11,14 +11,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from pyS7.constants import ConnectionType
-from pyS7.errors import S7CommunicationError, S7ConnectionError, S7ReadResponseError
+from pyS7.errors import (
+    S7AddressError,
+    S7CommunicationError,
+    S7ConnectionError,
+    S7ReadResponseError,
+)
 
 from .plc.address import DataType  # noqa: F401 - preserve the existing module export
 from .plc.address import S7Tag, parse_tag
 from .plc.connection_manager import S7ConnectionManager
 from .plc.payload import prepare_payload
 from .plc.plans import StringPlan, TagPlan, build_plans
-from .plc.read_executor import S7ReadError, S7ReadExecutor
+from .plc.read_executor import S7ReadError, S7ReadExecutor, is_string_decode_error
 from .write_manager import S7WriteManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -605,6 +610,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     IndexError,
                     RuntimeError,
                 ) as error:
+                    if is_string_decode_error(error):
+                        # A received text value failed to decode; repeating the
+                        # request or reconnecting cannot repair its contents.
+                        raise
                     last_exc = error
                     log_level = logging.DEBUG
                     log_args: tuple[Any, ...] = ()
@@ -920,6 +929,9 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
             return True
         except HomeAssistantError:
             raise
+        except (S7AddressError, UnicodeEncodeError) as err:
+            _LOGGER.error("Invalid write value for %s: %s", address, err)
+            return False
         except (
             OSError,
             RuntimeError,
@@ -956,6 +968,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 return await self._read_executor.read_one(tag, address)
             except (
+                UnicodeDecodeError,
                 OSError,
                 RuntimeError,
                 S7CommunicationError,
@@ -963,7 +976,8 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 S7ReadResponseError,
             ) as err:
                 _LOGGER.error("Read error for %s: %s", address, err)
-                await self._connection.drop_connection(error=err)
+                if not is_string_decode_error(err):
+                    await self._connection.drop_connection(error=err)
                 raise RuntimeError(f"Failed to read {address}: {err}") from err
             except HomeAssistantError:
                 raise
@@ -1056,6 +1070,10 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                         results[addr] = True
                 except HomeAssistantError:
                     raise
+                except (S7AddressError, UnicodeEncodeError) as err:
+                    _LOGGER.error("Invalid batch write values: %s", err)
+                    for addr in addresses:
+                        results[addr] = False
                 except (
                     OSError,
                     RuntimeError,
