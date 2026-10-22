@@ -488,6 +488,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
   for(const [k,value] of Object.entries(item||{})){
     if(k==='name'||k==='uid'||value==null||value===false||value===''||(typeof value==='string'&&value===main))continue;
     if(hiddenLegacy.has(k)||((k==='min_value'||k==='max_value')&&type!=='numbers'))continue;
+    // The threshold reads with its operator on one chip, e.g. "Comparison: Equal to (=) 1".
+    if(k==='comparison_value'&&item.comparison_operator)continue;
     if(k==='value_conversions'){
       if(typeof value!=='object'||Array.isArray(value))continue;
       const specs=VALUE_CHANNEL_SPECS[type]||[],known=new Map(specs.map((spec,index)=>[spec.channel,{spec,index}]));
@@ -506,7 +508,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
     // Nested configuration belongs in its editor, never in a compact text chip.
     if(typeof value==='object')continue;
     // Self-describing values drop their label on the card; the full text stays in the tooltip.
-    const display=value===true?null:(k==='device_class'||k==='state_class')?pretty(value):String(value);
+    let display=value===true?null:(k==='device_class'||k==='state_class')?pretty(value):this.fieldOptionText(type,k,value)??String(value);
+    if(k==='comparison_operator'&&item.comparison_value!=null&&item.comparison_value!=='')display=`${display} ${item.comparison_value}`;
     metadata.push({label:this.fieldText(type,k,'label'),value:display,flag:value===true,short:k==='scan_interval'?`${display} s`:SELF_DESCRIBING_CHIP_KEYS.has(k)?display:null});
   }
   const allChips=[...conversions,...metadata];
@@ -525,6 +528,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   searchResultsFingerprint(){const entry=this.entries?.find(item=>item.entry_id===this.entryId);if(!entry)return '[]';const types=this._viewMode==="sections"?TYPES:[this.type||TYPES[0]];return JSON.stringify(types.flatMap(type=>this.matchingItems(entry,type).map(({index})=>[type,index])));}
   updateStates(){this.querySelectorAll("[data-alarm-live]").forEach(el=>{const html=this.alarmList(el.dataset.alarmLive);if(el.innerHTML!==html)el.innerHTML=html;});this.querySelectorAll('.state-badge[data-entity-id]').forEach(el=>{const id=el.dataset.entityId,text=this.stateText(id),tone=`tone-${STATE_TONE(id,this._hass?.states?.[id])}`;if(el.textContent!==text)el.textContent=text;if(!el.classList.contains(tone)){el.classList.remove('tone-active','tone-neutral','tone-warning','tone-error');el.classList.add(tone);}});}
   inferred(item,type){const copy={...item};if(type==='alarm_groups')copy.active_value=String(item.active_value??1);if(type==='binary_sensors'){copy.binary_sensor_mode=item.comparison_operator?'comparison':'direct';copy.comparison_operator=item.comparison_operator||'eq';}if(type==='numbers')copy.mode=item.mode||'auto';if(type==='covers')Object.assign(copy,COVER_UI_FROM_ENTITY(item));if(type==='climates'){Object.assign(copy,CLIMATE_UI_FROM_ENTITY(item));copy.preset_mode_bidirectional=item.preset_mode_bidirectional===true;}if(type==='switches'||type==='lights'||type==='selects')copy.control_behavior=CONTROL_MODE_FROM_ENTITY(item);if(type==='lights')copy.light_mode=LIGHT_MODE_FROM_ENTITY(item);return copy;}
+  fieldOptionText(type,key,value){const path=`fields.${key}.options.${value}`,text=this.translation(`config_panel.entity_types.${type}.${path}`,this.panelTranslations)??this.translation(`config_panel.common.${path}`,this.panelTranslations);return typeof text==='string'?text:null;}
   fieldText(type,key,part){return this.translation(`config_panel.entity_types.${type}.fields.${key}.${part}`,this.panelTranslations)??this.translation(`config_panel.common.fields.${key}.${part}`,this.panelTranslations)??key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
   flowError(key){return this.translation(`config_panel.errors.${key}`,this.panelTranslations)??key;}
   connectionDetailLabel(key){return this.translation(`config_panel.connection_details.fields.${key}.label`,this.panelTranslations)??key.split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}

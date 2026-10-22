@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
-import { createEntry, createPanel, installPanel } from "./panel-fixture.js";
+import { createEntry, createPanel, getTranslations, installPanel } from "./panel-fixture.js";
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = callback => callback();
@@ -76,4 +76,47 @@ test("switching to comparison requires a threshold and preserves zero", () => {
   const saved = panel.formEntity(form, original, "binary_sensors");
   expect(saved.comparison_value).toBe(0);
   expect(saved.comparison_operator).toBe("eq");
+});
+
+test("entity cards show the localized comparison operator instead of its internal code", () => {
+  const entry = createEntry();
+  entry.entities.binary_sensors = [{ name: "Low level", address: "DB1,I10", comparison_operator: "lt", comparison_value: 15 }];
+  const panel = createPanel(entry);
+  panel.type = "binary_sensors";
+  panel.render();
+  const chips = [...panel.querySelectorAll(".cards article .details > div > span")].map(chip => chip.textContent);
+  expect(chips).toContain("Comparison: Less than (<) 15");
+  expect(chips.some(chip => chip.includes("lt"))).toBe(false);
+  expect(chips.filter(chip => chip.includes("15"))).toHaveLength(1);
+
+  panel.panelTranslations = getTranslations("it");
+  panel.render();
+  const localized = [...panel.querySelectorAll(".cards article .details > div > span")].map(chip => chip.textContent);
+  expect(localized).toContain("Operatore di confronto: Minore di (<) 15");
+});
+
+test("entity cards join a zero threshold and keep a threshold without operator", () => {
+  const entry = createEntry();
+  entry.entities.binary_sensors = [
+    { address: "DB11,R8", comparison_operator: "eq", comparison_value: 0 },
+    { address: "DB11,R12", comparison_value: 3 },
+  ];
+  const panel = createPanel(entry);
+  panel.type = "binary_sensors";
+  panel.render();
+  const [first, second] = [...panel.querySelectorAll(".cards article .details > div")]
+    .map(details => [...details.children].map(chip => chip.textContent));
+  expect(first).toEqual(["Comparison: Equal to (=) 0"]);
+  expect(second).toContain("Comparison value: 3");
+});
+
+test("entity cards keep raw values that have no localized option", () => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ name: "Speed", address: "DB1,R0", mode: "slider", step: 0.5 }];
+  const panel = createPanel(entry);
+  panel.type = "numbers";
+  panel.render();
+  const chips = [...panel.querySelectorAll(".cards article .details > div > span")].map(chip => chip.textContent);
+  expect(chips).toContain("Display mode: Slider");
+  expect(chips.some(chip => chip.endsWith(": 0.5"))).toBe(true);
 });
