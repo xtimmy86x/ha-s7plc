@@ -171,13 +171,32 @@ Common issues and solutions for the S7 PLC integration.
    - Actual string data starts at offset+2
 
 2. **Check string encoding**:
-   - Ensure PLC writes valid ASCII/UTF-8 characters
+   - STRING and CHAR use Latin-1 (ISO-8859-1), including `°`, `ü`, and `é`
+   - WSTRING uses UTF-16; use it for characters outside Latin-1, such as `€` or emoji
    - Control characters may display incorrectly
 
 3. **Verify length parameter**:
    - Length in address should match STRING definition in PLC
    - Too short: truncates text
    - Too long: may read into other variables
+
+### A String Entity Becomes Unavailable
+
+If a complete string response cannot be decoded (for example, a WSTRING contains
+an invalid UTF-16 surrogate), only the affected reading is cleared. With the
+default availability policy, its entity becomes unavailable. With **Always
+available**, it remains available with an unknown value. Other entities continue
+updating and the PLC connection stays open.
+
+Check the warning log for the affected topic and DB offset, then correct the PLC
+value or address definition. The integration retries the reading at its normal
+scan interval and the entity recovers when valid text is received. Network
+timeouts and other protocol errors still follow the usual reconnect behavior.
+
+STRING writes containing characters outside Latin-1 are rejected without
+disconnecting the PLC or replacing characters with `?`. In a mixed write batch,
+valid values can still be written even when a STRING value fails this encoding
+check.
 
 ## Performance Issues
 

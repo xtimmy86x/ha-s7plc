@@ -5,15 +5,17 @@ from __future__ import annotations
 from collections import deque
 from datetime import timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from pyS7.errors import S7CommunicationError, S7ProtocolError
 
 from custom_components.s7plc import coordinator as coordinator_module
-from custom_components.s7plc.plc.address import DataType, MemoryArea, S7Tag
 from custom_components.s7plc.coordinator import S7Coordinator
+from custom_components.s7plc.plc.address import DataType, MemoryArea, S7Tag
 
 pytestmark = pytest.mark.asyncio
 
@@ -69,9 +71,8 @@ async def make_reader():
     coordinators = []
 
     def create(responses, **kwargs):
-        coord = S7Coordinator(
-            HomeAssistant(), host="plc.local", max_retries=0, **kwargs
-        )
+        kwargs.setdefault("max_retries", 0)
+        coord = S7Coordinator(HomeAssistant(), host="plc.local", **kwargs)
         client = ReadClient(responses)
         coord._connection.client = client
         coordinators.append(coord)
@@ -153,6 +154,103 @@ async def prime_mixed_poll(coord):
         "first": "old first",
         "second": "old second",
     }
+
+
+def string_decode_error(wrappers):
+    """Match direct, regular and chunked pyS7 decoding failures."""
+    error = UnicodeDecodeError("utf-16-be", b"\xd8\x00", 0, 2, "unexpected end")
+    for wrapper in wrappers:
+        outer = wrapper("Malformed string payload")
+        outer.__cause__ = error
+        error = outer
+    return error
+
+
+@pytest.mark.parametrize("failing_string", ["first", "second"])
+@pytest.mark.parametrize(
+    "wrappers",
+    [
+        (),
+        (S7ProtocolError,),
+        (S7CommunicationError,),
+        (S7ProtocolError, S7CommunicationError),
+    ],
+    ids=["direct", "regular", "chunked", "nested"],
+)
+async def test_decode_error_isolates_topic_without_retry_and_recovers_next_poll(
+    make_reader, clock, failing_string, wrappers
+):
+    coord, client = make_reader([[1], ["old first"], ["old second"]], max_retries=3)
+    client.connect = AsyncMock(wraps=client.connect)
+    client.disconnect = AsyncMock(wraps=client.disconnect)
+    coord._connection.sleep = AsyncMock()
+    await prime_mixed_poll(coord)
+    clock.advance(1)
+    error = string_decode_error(wrappers)
+    client.responses.extend(
+        [
+            [2],
+            error if failing_string == "first" else ["new first"],
+            error if failing_string == "second" else ["new second"],
+        ]
+    )
+    expected = {"scalar": 2, "first": "new first", "second": "new second"}
+    expected[failing_string] = None
+
+    assert await coord._async_update_data() == expected
+    assert len(client.calls) == 6
+    assert coord.last_health_ok is True
+    assert client.is_connected
+    client.disconnect.assert_not_awaited()
+    client.connect.assert_not_awaited()
+    coord._connection.sleep.assert_not_awaited()
+    assert all(coord.get_topic_read_revision(topic) == 2 for topic in expected)
+
+    # Do not retain the previous text or retry before its configured interval.
+    assert await coord._async_update_data() == expected
+    assert len(client.calls) == 6
+    clock.advance(1)
+    client.responses.extend([[3], ["recovered first"], ["recovered second"]])
+    assert await coord._async_update_data() == {
+        "scalar": 3,
+        "first": "recovered first",
+        "second": "recovered second",
+    }
+    assert all(coord.get_topic_read_revision(topic) == 3 for topic in expected)
+    client.disconnect.assert_not_awaited()
+
+
+@pytest.mark.parametrize("wrappers", [(), (S7ProtocolError,), (S7CommunicationError,)])
+async def test_ad_hoc_decode_error_preserves_connection(make_reader, wrappers):
+    error = string_decode_error(wrappers)
+    coord, client = make_reader([error, ["recovered"]], max_retries=3)
+    client.disconnect = AsyncMock(wraps=client.disconnect)
+    coord._connection.sleep = AsyncMock()
+
+    with pytest.raises(RuntimeError, match="Failed to read DB1,WS0.12") as caught:
+        await coord._read_one("DB1,WS0.12")
+
+    assert caught.value.__cause__ is error
+    client.disconnect.assert_not_awaited()
+    coord._connection.sleep.assert_not_awaited()
+    assert await coord._read_one("DB1,WS0.12") == "recovered"
+    assert len(client.calls) == 2
+
+
+async def test_protocol_error_message_does_not_make_it_a_local_decode_error(
+    make_reader,
+):
+    error = S7ProtocolError("Malformed read response: 'ascii' codec can't decode byte")
+    coord, client = make_reader([error])
+    client.disconnect = AsyncMock(wraps=client.disconnect)
+    await coord.add_item("label", "DB1,S0.12")
+
+    with pytest.raises(UpdateFailed):
+        await coord._async_update_data()
+
+    client.disconnect.assert_awaited_once()
+    assert coord.last_health_ok is False
+    assert coord._data_cache == {}
 
 
 @pytest.mark.parametrize("failing_string", ["first", "second"])

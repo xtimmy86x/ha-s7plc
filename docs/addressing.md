@@ -12,14 +12,14 @@ Use standard S7 absolute addressing for all entity configurations:
 | Byte (unsigned)          | `DB1,B0`         | 8 bits     | 0 to 255                                 |
 | USInt (unsigned)         | `DB1,USINT0`     | 8 bits     | 0 to 255 (USINT)                         |
 | SInt (signed)            | `DB1,SINT0`      | 8 bits     | -128 to 127 (SINT)                       |
-| Char                     | `DB1,C0`         | 8 bits     | Single ASCII character                   |
+| Char                     | `DB1,C0`         | 8 bits     | Single Latin-1 character                 |
 | Word (unsigned)          | `DB1,W2`         | 16 bits    | 0 to 65535 (WORD)                        |
 | Int (signed)             | `DB1,I2`         | 16 bits    | -32768 to 32767 (INT)                    |
 | DWord (unsigned)         | `DB1,DW4`        | 32 bits    | 0 to 4294967295 (DWORD)                  |
 | DInt (signed)            | `DB1,DI4`        | 32 bits    | -2147483648 to 2147483647 (DINT)         |
 | Real (IEEE 754)          | `DB1,R4`         | 32 bits    | 32-bit floating point                    |
 | LReal (IEEE 754)         | `DB1,LR8`        | 64 bits    | 64-bit floating point (double precision) |
-| String (S7)              | `DB1,S0.20`      | 2+N bytes  | Text (S7 STRING, ASCII)                  |
+| String (S7)              | `DB1,S0.20`      | 2+N bytes  | Text (S7 STRING, Latin-1)                |
 | WString (S7 Wide String) | `DB1,WS0.20`     | 4+2N bytes | Text (S7 WSTRING, Unicode UTF-16)        |
 
 ## Addressing Rules
@@ -38,14 +38,14 @@ All addresses must reference a Data Block (DB):
 - `B` = Byte (unsigned, 0-255)
 - `USINT` (or `USI`) = USInt (unsigned 8-bit, 0-255)
 - `SINT` (or `SI`) = SInt (signed 8-bit, -128-127)
-- `C` = Char (single ASCII character)
+- `C` = Char (single Latin-1 character)
 - `W` = Word (unsigned 16-bit, 0-65535)
 - `I` = Int (signed 16-bit, -32768 to 32767)
 - `DW` = Double Word (unsigned 32-bit, 0-4294967295)
 - `DI` = Double Int (signed 32-bit, -2147483648 to 2147483647)
 - `R` = Real (IEEE 754 32-bit floating point)
 - `LR` = LReal (IEEE 754 64-bit floating point, double precision)
-- `S` = String (format: `S<offset>.<length>`, ASCII text)
+- `S` = String (format: `S<offset>.<length>`, Latin-1 text)
 - `WS` = WString (format: `WS<offset>.<length>`, Unicode UTF-16 text)
 
 **Note**: Use `W` for unsigned 16-bit (WORD) and `I` for signed 16-bit (INT). Similarly, use `DW` for unsigned 32-bit (DWORD) and `DI` for signed 32-bit (DINT). The integration correctly handles the different representations.
@@ -302,7 +302,10 @@ If validation fails, the configuration form will show a specific error message i
 ❌ DB1,S0.20  (for Unicode text stored as WSTRING in PLC)
 ✅ DB1,WS0.20  (use WS for WSTRING, Unicode UTF-16)
 ```
-Note: STRING uses ASCII encoding (1 byte per char), WSTRING uses UTF-16 (2 bytes per char)
+STRING and CHAR use Latin-1 (ISO-8859-1), one byte per character. This includes
+`°`, `ü`, and `é`. WSTRING uses UTF-16 for Unicode text. STRING writes containing
+characters outside Latin-1, such as `€` or emoji, are rejected; use WSTRING for
+those values.
 
 ### Optimized DB on S7-1200/1500
 ```

@@ -24,7 +24,9 @@ from custom_components.s7plc.plc.payload import prepare_payload
         (DataType.REAL, True, 1.0),
         (DataType.LREAL, 7, 7.0),
         (DataType.STRING, "hello", "hello"),
+        (DataType.STRING, "25°C, kühl, caffè", "25°C, kühl, caffè"),
         (DataType.WSTRING, "温度", "温度"),
+        (DataType.WSTRING, "25°C € 🌡", "25°C € 🌡"),
     ],
 )
 def test_payload_preserves_value_and_python_type(datatype, value, expected):
@@ -53,6 +55,16 @@ def test_time_payload_is_passed_through_without_rescaling_or_rounding(value):
             DataType.WSTRING,
             42,
             "STRING/WSTRING address target requires str value, got int",
+        ),
+        (
+            DataType.STRING,
+            "10 €",
+            "STRING address target only supports Latin-1 characters",
+        ),
+        (
+            DataType.STRING,
+            "温度 🌡",
+            "STRING address target only supports Latin-1 characters",
         ),
         (DataType.REAL, "1", "REAL address target requires numeric value, got str"),
         (DataType.INT, "1", "INT address target requires numeric value, got str"),
