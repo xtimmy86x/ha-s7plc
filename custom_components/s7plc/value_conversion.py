@@ -481,20 +481,3 @@ def convert_to_plc(
         raise
     except (TypeError, ValueError, ArithmeticError, KeyError) as err:
         raise ValueConversionError(f"write conversion failed: {err}") from err
-
-
-def describe_value_conversion(config: Mapping[str, Any] | None) -> str:
-    if not config:
-        return "None"
-    if config.get("type") == "multiplier":
-        return f"× {config.get('factor')}"
-    if config.get("type") == "linear_scale":
-        return (
-            f"Scale {config.get('plc_min')}–{config.get('plc_max')} → "
-            f"{config.get('ha_min')}–{config.get('ha_max')}"
-        )
-    if config.get("type") == "logo_time_bcd":
-        return "LOGO! time (BCD)"
-    if config.get("type") == "enum_map":
-        return f"Enum map · {len(config.get('mappings') or [])} states"
-    return "Custom expression"

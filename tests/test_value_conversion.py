@@ -12,7 +12,6 @@ from custom_components.s7plc.value_conversion import (
     convert_enum_from_plc,
     convert_from_plc,
     convert_to_plc,
-    describe_value_conversion,
     evaluate_expression,
     normalize_value_conversion,
     supports_value_conversion,
@@ -56,11 +55,10 @@ def test_none_is_identity():
     assert convert_to_plc(12, None, ctx(direction="write")) == 12
 
 
-def test_multiplier_bidirectional_and_description():
+def test_multiplier_bidirectional():
     conversion = {"type": "multiplier", "factor": 10}
     assert convert_from_plc(12, conversion, ctx()) == 120
     assert convert_to_plc(120, conversion, ctx()) == 12
-    assert describe_value_conversion(conversion) == "× 10"
 
 
 def test_multiplier_zero_read_only_but_not_write():
