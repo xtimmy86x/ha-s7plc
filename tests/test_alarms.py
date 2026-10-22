@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import yaml
 
 from custom_components.s7plc.alarms import (
     AlarmRange,
@@ -14,13 +13,16 @@ from custom_components.s7plc.alarms import (
 from custom_components.s7plc.binary_sensor import S7AlarmPresenceSensor
 from custom_components.s7plc.config_validation import build_entity_item
 from custom_components.s7plc.coordinator import S7Coordinator
-from custom_components.s7plc.export import build_export_payload
 from custom_components.s7plc.helpers import (
     build_entity_area_map,
     build_expected_unique_ids,
     ensure_item_uids,
 )
-from custom_components.s7plc.panel import _configuration_from_yaml, _entity_ids_payload
+from custom_components.s7plc.panel import (
+    _configuration_from_yaml,
+    _configuration_yaml,
+    _entity_ids_payload,
+)
 from custom_components.s7plc.plc.address import DataType
 from custom_components.s7plc.restore import decode_values, encode_values
 from custom_components.s7plc.sensor import S7AlarmCountSensor
@@ -435,9 +437,15 @@ def test_both_identities_and_areas_survive_range_edits_and_backups():
         "group-a": "factory",
         "group-a:active": "factory",
     }
-    exported = build_export_payload(options)
-    restored = _configuration_from_yaml(yaml.safe_dump(exported), {})
+    backup = _configuration_yaml(options, "entry-1", "PLC")
+    restored = _configuration_from_yaml(backup, {}, "entry-1")
+    assert restored["alarm_groups"][0]["uid"] == "group-a"
     ensure_item_uids("dev", restored)
+    assert build_expected_unique_ids("dev", restored) == ids
+    assert build_entity_area_map("dev", restored) == {
+        "group-a": "factory",
+        "group-a:active": "factory",
+    }
     assert restored["alarm_groups"][0]["start_address"] == "DB1,X0.0"
     assert restored["alarm_groups"][0]["alarms"] == []
     options["alarm_groups"][0]["end_address"] = "DB1,X2.3"

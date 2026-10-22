@@ -1,10 +1,10 @@
 """Number display modes survive configuration without changing PLC values."""
 
 import pytest
+import yaml
 from homeassistant.components.number import NumberMode
 
 from custom_components.s7plc.config_validation import build_entity_item
-from custom_components.s7plc.export import build_export_payload
 from custom_components.s7plc.number import async_setup_entry
 from custom_components.s7plc.panel import _configuration_from_yaml, _configuration_yaml
 
@@ -26,8 +26,9 @@ def test_number_mode_validation_and_yaml_round_trip(mode):
     else:
         assert "mode" not in item
     options = {"numbers": [item]}
-    assert build_export_payload(options)["numbers"] == [item]
-    restored = _configuration_from_yaml(_configuration_yaml(options), {})["numbers"][0]
+    backup = _configuration_yaml(options)
+    assert yaml.safe_load(backup)["numbers"] == [item]
+    restored = _configuration_from_yaml(backup, {})["numbers"][0]
     for key in ("mode", "min_value", "max_value", "step"):
         assert restored.get(key) == item.get(key)
 

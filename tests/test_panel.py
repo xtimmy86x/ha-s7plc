@@ -3,6 +3,7 @@
 import json
 import re
 import sys
+from copy import deepcopy
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -388,6 +389,25 @@ def test_complete_configuration_yaml_round_trip() -> None:
     assert saved["covers"] == []
 
 
+def test_configuration_yaml_removes_sensor_limits_but_preserves_number_limits() -> None:
+    options = {
+        "sensors": [{"address": "DB1,REAL0", "min_value": 0, "max_value": 100}],
+        "numbers": [{"address": "DB1,INT4", "min_value": -10, "max_value": 10}],
+    }
+    original = deepcopy(options)
+
+    backup = _configuration_yaml(options, "entry-1", "PLC")
+    payload = yaml.safe_load(backup)
+    restored = _configuration_from_yaml(backup, {}, "entry-1")
+
+    for configuration in (payload, restored):
+        assert "min_value" not in configuration["sensors"][0]
+        assert "max_value" not in configuration["sensors"][0]
+        assert configuration["numbers"][0]["min_value"] == -10
+        assert configuration["numbers"][0]["max_value"] == 10
+    assert options == original
+
+
 @pytest.mark.parametrize(
     "source",
     [
@@ -429,6 +449,7 @@ def test_configuration_backup_metadata_and_uid_import_rules() -> None:
         "source_entry_id": "source-entry",
         "source_title": "Source PLC",
     }
+    assert payload["sensors"][0]["uid"] == "original"
     assert (
         _configuration_from_yaml(backup, options, "source-entry")["sensors"][0]["uid"]
         == "original"
