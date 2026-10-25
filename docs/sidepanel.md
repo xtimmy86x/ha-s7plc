@@ -429,6 +429,19 @@ in the preview and leave that entity unchanged.
 | Device class | Numeric sensors, numbers, binary sensors, and covers | Restores the integration's automatic class, where applicable. |
 | Unit of measurement | Numeric sensors and numbers | Restores the automatic unit for the device class, shown in the preview. |
 | State class | Numeric sensors | **Automatic** restores the class-dependent default; **None (disable statistics)** explicitly disables statistics. |
+| Minimum / maximum limit | Numbers | Restores the state datatype limits, or 0–2359 for LOGO! clocks. REAL/LREAL require explicit limits. |
+| Step | Numbers | Restores 1, or 0.001 seconds for TIME. |
+| Display mode | Numbers | Restores **Automatic**; **Numeric input** and **Slider** are also available. |
+
+The **Number controls** section offers **Keep**, **Set**, and **Automatic** for
+each field. Limits and step use Home Assistant units and do not change the PLC
+value or conversion. The step must be finite and positive. Each entity's final
+minimum must not exceed its final maximum, including limits left unchanged or
+restored automatically. The preview shows effective defaults and identifies
+conflicts; one invalid entity prevents the whole selection from being saved.
+These settings update loaded Number entities without reloading the integration
+or writing values to the PLC. In a mixed selection, other entity types are left
+unchanged by these four fields.
 
 Enum sensors retain their conversion and metadata. LOGO! time conversions are
 also protected from multiplier edits. Replacing or removing an existing linear

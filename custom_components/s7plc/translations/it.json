@@ -1584,7 +1584,10 @@
       "stat_errors": "Errori",
       "error_tag": "Errore",
       "show_unchanged_one": "Mostra 1 entità invariata",
-      "show_unchanged_many": "Mostra {count} entità invariate"
+      "show_unchanged_many": "Mostra {count} entità invariate",
+      "number_settings": "Controlli dei Number",
+      "number_help": "Limiti e passo usano le unità di Home Assistant e non convertono i valori PLC. Il passo deve essere positivo. I Number REAL/LREAL richiedono minimo e massimo espliciti. Passo automatico: 1, oppure 0,001 secondi per TIME.",
+      "automatic_unavailable": "Non disponibile: imposta un limite esplicito"
     }
   },
   "selector": {

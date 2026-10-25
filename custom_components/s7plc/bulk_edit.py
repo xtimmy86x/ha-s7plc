@@ -8,7 +8,7 @@ import math
 from typing import Any
 
 from .config_validation import EntityConfigBuilder
-from .const import CONF_UID, DEFAULT_SCAN_INTERVAL, OPTION_KEYS
+from .const import CONF_UID, DEFAULT_SCAN_INTERVAL, NUMBER_MODES, OPTION_KEYS
 from .entity_metadata import (
     METADATA_FIELDS,
     metadata_error,
@@ -16,6 +16,11 @@ from .entity_metadata import (
     sensor_metadata,
 )
 from .helpers import STATE_CLASS_VALUES, device_class_values
+from .number_settings import (
+    NUMBER_SETTINGS_FIELDS,
+    number_settings_error,
+    number_value_settings,
+)
 from .plc.address import DataType, is_time_data_type, parse_tag
 from .plc.plans import DEFAULT_REAL_PRECISION
 from .value_conversion import (
@@ -30,7 +35,9 @@ from .value_conversion_migration import (
 )
 
 BULK_EDIT_FIELDS = frozenset(
-    {"area", "scan_interval", "value_multiplier", "real_precision"} | METADATA_FIELDS
+    {"area", "scan_interval", "value_multiplier", "real_precision"}
+    | METADATA_FIELDS
+    | NUMBER_SETTINGS_FIELDS
 )
 # Match the panel: these platforms are driven by commands or HA events.
 SCAN_ENTITY_TYPES = frozenset(OPTION_KEYS) - {"buttons", "entity_sync"}
@@ -50,7 +57,13 @@ def _validate_changes(changes: dict) -> dict:
                     "invalid_bulk_area" if field == "area" else f"invalid_{field}"
                 )
             changes[field] = value.strip()
-    for field in ("scan_interval", "value_multiplier"):
+    for field in (
+        "scan_interval",
+        "value_multiplier",
+        "min_value",
+        "max_value",
+        "step",
+    ):
         value = changes.get(field)
         if value is not None:
             if (
@@ -58,8 +71,20 @@ def _validate_changes(changes: dict) -> dict:
                 or not isinstance(value, (int, float))
                 or not math.isfinite(value)
             ):
-                raise ValueError(f"invalid_bulk_{field}")
+                raise ValueError(
+                    "invalid_number"
+                    if field in NUMBER_SETTINGS_FIELDS
+                    else f"invalid_bulk_{field}"
+                )
             changes[field] = float(value)
+    if changes.get("step") is not None and changes["step"] <= 0:
+        raise ValueError("invalid_number")
+    mode = changes.get("mode")
+    if mode is not None:
+        if not isinstance(mode, str) or mode.strip() not in NUMBER_MODES:
+            raise ValueError("invalid_number_mode")
+        # Match the single editor: AUTO removes the override.
+        changes["mode"] = None if mode.strip() == "auto" else mode.strip()
     interval = changes.get("scan_interval")
     if (
         interval is not None
@@ -102,6 +127,8 @@ def bulk_edit_fields(entity_type: str, item: dict) -> set[str]:
         ):
             return fields
         fields.update({"device_class", "unit_of_measurement"})
+        if entity_type == "numbers":
+            fields.update(NUMBER_SETTINGS_FIELDS)
         if entity_type == "sensors":
             fields.add("state_class")
         if data_type in {DataType.REAL, DataType.LREAL}:
@@ -153,6 +180,24 @@ def _effective_metadata(entity_type: str, item: dict) -> dict:
         "unit_of_measurement": attributes["_attr_native_unit_of_measurement"],
         "state_class": attributes.get("_attr_state_class"),
     }
+
+
+def _effective_settings(entity_type: str, item: dict, active_fields: set) -> dict:
+    settings = (
+        _effective_metadata(entity_type, item)
+        if active_fields & METADATA_FIELDS
+        else {}
+    )
+    if entity_type == "numbers" and active_fields & NUMBER_SETTINGS_FIELDS:
+        settings.update(
+            number_value_settings(
+                parse_tag(item["address"]).data_type,
+                item,
+                _conversion(entity_type, item),
+            )
+        )
+        settings["mode"] = item["mode"] if item.get("mode") in NUMBER_MODES else "auto"
+    return settings
 
 
 def prepare_bulk_edit(entry, targets: list[dict], changes: dict) -> tuple[dict, dict]:
@@ -209,6 +254,18 @@ def prepare_bulk_edit(entry, targets: list[dict], changes: dict) -> tuple[dict, 
                     validate_value_conversion(conversion, context)
             except ValueError:
                 errors.append("invalid_bulk_write_multiplier")
+        if (
+            entity_type == "numbers"
+            and active_fields & NUMBER_SETTINGS_FIELDS
+            and (
+                error := number_settings_error(
+                    parse_tag(new["address"]).data_type,
+                    new,
+                    _conversion(entity_type, new),
+                )
+            )
+        ):
+            errors.append(error)
         before = {field: old.get(field) for field in changes}
         after = {field: new.get(field) for field in changes}
         replacement = False
@@ -241,16 +298,10 @@ def prepare_bulk_edit(entry, targets: list[dict], changes: dict) -> tuple[dict, 
                 ),
                 "before": before,
                 "after": after,
-                "effective_before": (
-                    _effective_metadata(entity_type, old)
-                    if active_fields & METADATA_FIELDS
-                    else {}
+                "effective_before": _effective_settings(
+                    entity_type, old, active_fields
                 ),
-                "effective_after": (
-                    _effective_metadata(entity_type, new)
-                    if active_fields & METADATA_FIELDS
-                    else {}
-                ),
+                "effective_after": _effective_settings(entity_type, new, active_fields),
                 "supported_fields": sorted(supported),
                 "scan_supported": "scan_interval" in supported,
                 "conversion_replaced": replacement,

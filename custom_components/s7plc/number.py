@@ -28,16 +28,15 @@ from .const import (
 from .entity import S7BaseEntity, async_configure_entity_availability
 from .entity_metadata import METADATA_FIELDS, metadata_error, number_metadata
 from .helpers import default_entity_name, get_coordinator_and_device_info
+from .number_settings import number_value_settings
 from .plc.address import (
     DataType,
-    get_numeric_limits,
     is_time_data_type,
     parse_tag,
     seconds_to_time,
     time_to_seconds,
 )
 from .value_conversion import (
-    LOGO_TIME_HHMM_LIMITS,
     ConversionContext,
     ValueConversionError,
     convert_from_plc,
@@ -200,41 +199,20 @@ class S7Number(S7BaseEntity, NumberEntity):
             and value_conversion.get("type") == "logo_time_bcd"
             else None
         )
-        # Always initialize native attributes to avoid AttributeError
-        attributes["_attr_native_min_value"] = None
-        attributes["_attr_native_max_value"] = None
-        attributes["_attr_native_step"] = 1.0
-
-        numeric_limits: tuple[float, float] | None = None
         try:
-            tag = parse_tag(address)
+            data_type = parse_tag(address).data_type
         except (RuntimeError, ValueError):
-            tag = None
-        if tag is not None:
-            numeric_limits = get_numeric_limits(tag.data_type)
-        if value_conversion and value_conversion.get("type") == "logo_time_bcd":
-            numeric_limits = LOGO_TIME_HHMM_LIMITS
-
-        # Explicit bounds are Home Assistant entity limits, not PLC datatype or
-        # conversion endpoints. Defaults use HHMM for clocks, otherwise datatype.
-        min_value_limit = float(min_value) if min_value is not None else None
-        max_value_limit = float(max_value) if max_value is not None else None
-
-        # Otherwise, if available, use the native limits of the PLC data type.
-        if min_value_limit is not None:
-            attributes["_attr_native_min_value"] = min_value_limit
-        elif numeric_limits is not None:
-            attributes["_attr_native_min_value"] = float(numeric_limits[0])
-
-        if max_value_limit is not None:
-            attributes["_attr_native_max_value"] = max_value_limit
-        elif numeric_limits is not None:
-            attributes["_attr_native_max_value"] = float(numeric_limits[1])
-
-        if step is not None:
-            attributes["_attr_native_step"] = float(step)
-        elif self._is_time:
-            attributes["_attr_native_step"] = 0.001
+            data_type = None
+        attributes.update(
+            {
+                f"_attr_native_{key}": value
+                for key, value in number_value_settings(
+                    data_type,
+                    {"min_value": min_value, "max_value": max_value, "step": step},
+                    value_conversion,
+                ).items()
+            }
+        )
 
         return attributes
 

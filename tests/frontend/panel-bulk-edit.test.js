@@ -414,3 +414,97 @@ test("preview replaces the form, collapses unchanged entities and can go back", 
   expect(form.elements.area.value).toBe("room");
   expect(primary(dialog).textContent).toBe("Preview changes");
 });
+
+test("Number controls apply typed settings only after reviewing a mixed selection", async () => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ uid: "setpoint", address: "DB1,REAL8", min_value: 0, max_value: 100 }];
+  const { panel, dialog, form } = open({ entry, sections: true, secondType: "numbers" });
+  const changes = { min_value: 10, max_value: 20, step: 0.25, mode: "slider" };
+  const numberGroup = form.querySelector('[data-bulk-field="min_value"]').closest("details");
+  expect(numberGroup.open).toBe(false);
+  expect(numberGroup.querySelector("summary").textContent).toContain("Number controls");
+  expect(numberGroup.textContent).toContain("REAL/LREAL numbers require explicit");
+  for (const [key, value] of Object.entries(changes)) {
+    expect(form.querySelector(`[data-bulk-field="${key}"] .bulk-edit-badge`).textContent).toContain("1/2");
+    expect(form.elements[key].disabled).toBe(true);
+    change(form, `${key}_action`, "set");
+    change(form, key, String(value));
+  }
+  expect(numberGroup.querySelector("[data-bulk-group-count]").textContent).toBe("4 changes");
+  expect([...form.elements.mode.options].map(option => option.textContent)).toEqual(["Choose a value", "Automatic", "Numeric input", "Slider"]);
+  const result = preview({ error_count: 0 });
+  Object.assign(result.rows[0], { before: {}, after: {}, supported_fields: [], changed: false });
+  result.rows.push({ entity_type: "numbers", uid: "setpoint", name: "Setpoint", before: { min_value: 0, max_value: 100, step: null, mode: null }, after: changes, effective_before: { step: 1, mode: "auto" }, supported_fields: Object.keys(changes), changed: true });
+  panel._hass.callWS = vi.fn().mockResolvedValueOnce(result).mockResolvedValueOnce({ updated: 1 });
+  panel.load = vi.fn(async () => {});
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual(changes);
+  const list = dialog.querySelector(".bulk-preview-list");
+  expect(list.textContent).toContain("Minimum limit");
+  expect(list.textContent).toContain("Maximum limit");
+  expect(list.textContent).toContain("Display mode");
+  expect(list.textContent).toContain("Slider");
+  expect(list.textContent).toContain("Automatic (1)");
+  expect(list.querySelector(".bulk-preview-unchanged").textContent).toContain("Not applicable");
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS.mock.calls[1][0]).toMatchObject({ changes, preview_token: token });
+  expect(panel._hass.callWS).toHaveBeenCalledTimes(2);
+  expect(dialog.open).toBe(false);
+});
+
+test("clearing Number overrides previews effective defaults and keeps unrelated fields", async () => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ uid: "clock", address: "DB1,W8", value_conversions: { value: { type: "logo_time_bcd" } } }];
+  const { panel, dialog, form } = open({ entry, sections: true, secondType: "numbers" });
+  const changes = { min_value: null, max_value: null, step: null, mode: null };
+  for (const key of Object.keys(changes)) change(form, `${key}_action`, "clear");
+  const result = preview({ error_count: 0 });
+  result.rows = [{ entity_type: "numbers", uid: "clock", before: { min_value: 600, max_value: 2200, step: 5, mode: "box" }, after: changes, effective_after: { min_value: 0, max_value: 2359, step: 1, mode: "auto" }, supported_fields: Object.keys(changes), changed: true }];
+  panel._hass.callWS = vi.fn(async () => result);
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual(changes);
+  expect(dialog.querySelector(".bulk-preview-list").textContent).toContain("Automatic (2359)");
+  expect(dialog.querySelector(".bulk-preview-list").textContent).toContain("Numeric input");
+});
+
+test.each(["", "0", "-0.1"])("invalid Number step %s opens its group without sending a request", async value => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ uid: "setpoint", address: "DB1,W8" }];
+  const { panel, dialog, form } = open({ entry, sections: true, secondType: "numbers" });
+  panel._hass.callWS = vi.fn();
+  change(form, "step_action", "set");
+  change(form, "step", value);
+  const group = form.elements.step.closest("details");
+  await primary(dialog).onclick();
+  expect(group.open).toBe(true);
+  expect(panel._hass.callWS).not.toHaveBeenCalled();
+  change(form, "step_action", "keep");
+  expect(form.elements.step.validationMessage).toBe("");
+});
+
+test("invalid automatic REAL limit blocks apply and can be corrected from the preview", async () => {
+  const entry = createEntry();
+  entry.entities.numbers = [{ uid: "setpoint", address: "DB1,REAL8", min_value: 0, max_value: 100 }];
+  const { panel, dialog, form } = open({ entry, sections: true, secondType: "numbers" });
+  change(form, "min_value_action", "clear");
+  const result = preview({ error_count: 1 });
+  result.rows = [{ entity_type: "numbers", uid: "setpoint", before: { min_value: 0 }, after: { min_value: null }, effective_after: { min_value: null }, supported_fields: ["min_value"], changed: true, errors: ["min_max_required_for_real"] }];
+  panel._hass.callWS = vi.fn(async () => result);
+  await primary(dialog).onclick();
+  expect(primary(dialog).disabled).toBe(true);
+  expect(dialog.querySelector(".bulk-preview-list").textContent).toContain("Unavailable: set an explicit limit");
+  expect(dialog.querySelector(".bulk-preview-error").textContent).not.toContain("min_max_required_for_real");
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  dialog.querySelector("[data-bulk-back]").onclick();
+  change(form, "min_value_action", "set");
+  change(form, "min_value", "5");
+  expect(primary(dialog).disabled).toBe(false);
+  expect(dialog.querySelector("[data-bulk-preview]").hidden).toBe(true);
+});
+
+test("Number controls are absent when no Number is selected", () => {
+  const { form } = open();
+  for (const key of ["min_value", "max_value", "step", "mode"]) expect(form.elements[key]).toBeUndefined();
+});

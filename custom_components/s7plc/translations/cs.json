@@ -1584,7 +1584,10 @@
       "stat_errors": "Chyby",
       "error_tag": "Chyba",
       "show_unchanged_one": "Zobrazit nezměněné entity (1)",
-      "show_unchanged_many": "Zobrazit nezměněné entity ({count})"
+      "show_unchanged_many": "Zobrazit nezměněné entity ({count})",
+      "number_settings": "Ovládání čísel",
+      "number_help": "Meze a krok používají jednotky Home Assistant a nepřevádějí hodnoty PLC. Krok musí být kladný. REAL/LREAL vyžadují výslovné minimum a maximum. Automatický krok: 1, nebo 0,001 sekundy pro TIME.",
+      "automatic_unavailable": "Není k dispozici: nastavte výslovnou mez"
     }
   },
   "selector": {
