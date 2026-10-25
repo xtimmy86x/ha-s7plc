@@ -1587,7 +1587,23 @@
       "show_unchanged_many": "{count} unveränderte Entitäten anzeigen",
       "number_settings": "Number-Steuerung",
       "number_help": "Grenzen und Schrittweite verwenden Home-Assistant-Einheiten und konvertieren keine SPS-Werte. Die Schrittweite muss positiv sein. REAL/LREAL benötigen explizite Mindest- und Höchstwerte. Automatische Schrittweite: 1 bzw. 0,001 Sekunden für TIME.",
-      "automatic_unavailable": "Nicht verfügbar: expliziten Grenzwert festlegen"
+      "automatic_unavailable": "Nicht verfügbar: expliziten Grenzwert festlegen",
+      "apply_reload": "Mit Neuladen anwenden",
+      "impact_live": "Ohne Neuladen anwenden",
+      "impact_live_help": "Diese Änderungen aktualisieren die aktiven Entitäten ohne Neuladen dieser SPS-Integration.",
+      "impact_reload": "Integration einmal neu laden",
+      "impact_reload_help": "Beim Anwenden werden alle Entitäten dieser SPS einmal neu geladen.",
+      "impact_pending": "Aktualisierung läuft",
+      "impact_pending_help": "Eine andere Konfigurationsänderung läuft noch. Gehen Sie zurück und erstellen Sie danach eine neue Vorschau.",
+      "reload_reasons": {
+        "runtime_unavailable": "Die Integration ist nicht geladen oder ihre aktive Konfiguration ist nicht verfügbar.",
+        "connection_changed": "Die SPS-Verbindungseinstellungen haben sich geändert.",
+        "options_changed": "Die allgemeinen Integrationsoptionen haben sich geändert.",
+        "entities_changed": "Die Entitätsliste hat sich geändert.",
+        "entity_unavailable": "Diese Entität ist deaktiviert oder nicht geladen; ihre Änderungen erfordern ein Neuladen.",
+        "unsupported_fields": "Diese Felder erfordern ein Neuladen: {fields}.",
+        "invalid_live_config": "Diese Felder konnten nicht für eine Live-Aktualisierung vorbereitet werden: {fields}."
+      }
     }
   },
   "selector": {

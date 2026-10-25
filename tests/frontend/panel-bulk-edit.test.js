@@ -508,3 +508,56 @@ test("Number controls are absent when no Number is selected", () => {
   const { form } = open();
   for (const key of ["min_value", "max_value", "step", "mode"]) expect(form.elements[key]).toBeUndefined();
 });
+
+test.each(["live", "reload"])("shows %s impact before apply and names the reload cause", async mode => {
+  const { panel, dialog, form } = open();
+  const result = preview({ impact: mode === "live" ? { mode } : {
+    mode, reason: "unsupported_fields", entity_type: "sensors", uid: "temperature", fields: ["scan_interval"],
+  }});
+  result.rows[0].name = "Boiler <img src=x>";
+  panel._hass.callWS = vi.fn().mockResolvedValueOnce(result).mockResolvedValueOnce({ updated: 1 });
+  panel.load = vi.fn(async () => {});
+  change(form, "area_action", "clear");
+  await primary(dialog).onclick();
+  const impact = dialog.querySelector("[data-bulk-impact]");
+  expect(impact.getAttribute("alert-type")).toBe(mode === "live" ? "success" : "warning");
+  expect(impact.textContent).toContain(mode === "live" ? "Apply without reload" : "One integration reload");
+  expect(primary(dialog).textContent).toBe(mode === "live" ? "Apply changes" : "Apply with reload");
+  if (mode === "reload") {
+    expect(impact.textContent).toContain("Boiler <img src=x>");
+    expect(impact.textContent).toContain("Scan interval");
+    expect(impact.querySelector("img")).toBeNull();
+  }
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS).toHaveBeenCalledTimes(2);
+});
+
+test("pending impact blocks apply and going back permits a fresh preview", async () => {
+  const { panel, dialog, form } = open();
+  panel._hass.callWS = vi.fn()
+    .mockResolvedValueOnce(preview({ impact: { mode: "pending" } }))
+    .mockResolvedValueOnce(preview({ impact: { mode: "live" } }));
+  change(form, "area_action", "clear");
+  await primary(dialog).onclick();
+  expect(dialog.querySelector("[data-bulk-impact]").textContent).toContain("Update in progress");
+  expect(primary(dialog).disabled).toBe(true);
+  await primary(dialog).onclick();
+  expect(panel._hass.callWS).toHaveBeenCalledOnce();
+  dialog.querySelector("[data-bulk-back]").onclick();
+  await primary(dialog).onclick();
+  expect(primary(dialog).disabled).toBe(false);
+  expect(dialog.querySelector("[data-bulk-impact]").textContent).toContain("Apply without reload");
+  expect(panel._hass.callWS.mock.calls.every(([msg]) => msg.type.endsWith("preview_update_entities"))).toBe(true);
+});
+
+test.each(["none", "blocked"])("%s preview does not promise a reload or live application", async mode => {
+  const { panel, dialog, form } = open();
+  panel._hass.callWS = vi.fn(async () => preview({
+    impact: { mode }, changed_count: mode === "none" ? 0 : 1, error_count: mode === "blocked" ? 1 : 0,
+  }));
+  change(form, "area_action", "clear");
+  await primary(dialog).onclick();
+  expect(dialog.querySelector("[data-bulk-impact]")).toBeNull();
+  expect(primary(dialog).disabled).toBe(true);
+});

@@ -885,8 +885,8 @@ class S7PlcConfigurationPanel extends HTMLElement {
       dialog.querySelectorAll('[data-bulk-step]').forEach(item=>{const number=Number(item.dataset.bulkStep);item.classList.toggle('active',number===step);item.classList.toggle('done',number<step);if(number===step)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');});
       dialog.querySelectorAll('[data-bulk-choose]').forEach(element=>{element.hidden=Boolean(preview);});
       const back=previewBox.querySelector('[data-bulk-back]');if(back)back.disabled=pending||finished;
-      primary.disabled=pending||finished||(preview?preview.changed_count===0||Boolean(preview.error_count):!changed);
-      primary.textContent=t(pending?'working':preview?'apply':'preview');cancel.disabled=pending;cancel.textContent=finished?t('close'):this.t('actions.cancel');
+      primary.disabled=pending||finished||(preview?preview.changed_count===0||Boolean(preview.error_count)||preview.impact?.mode==='pending':!changed);
+      primary.textContent=t(pending?'working':preview?(preview.impact?.mode==='reload'?'apply_reload':'apply'):'preview');cancel.disabled=pending;cancel.textContent=finished?t('close'):this.t('actions.cancel');
       dialog.setAttribute('aria-busy',String(pending));
     };
     const invalidate=()=>{preview=null;preparedChanges=null;previewBox.hidden=true;previewBox.replaceChildren();alert.style.display='none';sync();};
@@ -924,6 +924,20 @@ class S7PlcConfigurationPanel extends HTMLElement {
     };
     sync();
   }
+  renderBulkImpact(preview){
+    const impact=preview.impact;
+    if(!impact||!['live','reload','pending'].includes(impact.mode))return '';
+    const t=key=>this.t(`bulk_edit.${key}`),escape=value=>this.escape(value);
+    let detail='';
+    if(impact.mode==='reload'){
+      const row=preview.rows.find(row=>row.entity_type===impact.entity_type&&row.uid===impact.uid);
+      const name=row&&(row.name||row.address||this.t(`entity_types.${row.entity_type}.singular`));
+      const fields=(impact.fields||[]).map(key=>key==='value_conversions'?t('conversion'):this.fieldText(impact.entity_type,key,'label')).join(', ');
+      const reason=t(`reload_reasons.${impact.reason}`).replace('{fields}',fields);
+      detail=`<p>${name?`<b>${escape(name)}:</b> `:''}${escape(reason)}</p>`;
+    }
+    return `<ha-alert data-bulk-impact alert-type="${impact.mode==='live'?'success':'warning'}"><b>${escape(t(`impact_${impact.mode}`))}</b><p>${escape(t(`impact_${impact.mode}_help`))}</p>${detail}</ha-alert>`;
+  }
   renderBulkPreview(container,preview,changes){
     const t=key=>this.t(`bulk_edit.${key}`),pretty=value=>String(value).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),areaName=value=>value?(this._hass.areas?.[value]?.name||value):this.t('common.no_area');
     const label=key=>key==='area'?t('area'):key==='scan_interval'?t('scan'):key==='value_multiplier'?t('conversion'):key==='real_precision'?t('precision'):this.fieldText(NUMBER_BULK_FIELDS.includes(key)?'numbers':'sensors',key,'label');
@@ -954,7 +968,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
     };
     const rows=preview.rows.map((row,index)=>({row,index})),relevant=rows.filter(({row})=>row.changed||row.errors?.length),unchanged=rows.filter(item=>!relevant.includes(item)),warnings=preview.rows.filter(row=>row.conversion_replaced).length;
     const stat=(count,text,kind='')=>`<div class="${kind}"><b>${count}</b><span>${text}</span></div>`;
-    container.innerHTML=`<div class="bulk-preview-head"><button type="button" class="bulk-preview-back" data-bulk-back><ha-icon icon="mdi:arrow-left" aria-hidden="true"></ha-icon>${t('edit_choices')}</button></div><h3 tabindex="-1">${t('preview')}</h3><p role="status">${t('preview_count').replace('{changed}',preview.changed_count).replace('{total}',preview.rows.length)}</p>${preview.error_count?`<ha-alert alert-type="error">${t('invalid_preview').replace('{count}',preview.error_count)}</ha-alert>`:preview.changed_count===0?`<ha-alert alert-type="info">${t('no_changes')}</ha-alert>`:''}<div class="bulk-preview-stats">${stat(preview.changed_count,t('stat_changed'),'ok')}${stat(unchanged.length,t('stat_unchanged'))}${preview.error_count?stat(preview.error_count,t('stat_errors'),'error'):warnings?stat(warnings,t('stat_warnings'),'warn'):''}</div><div class="bulk-preview-list">${relevant.map(card).join('')}${unchanged.length?`<details class="bulk-preview-unchanged" ${relevant.length?'':'open'}><summary><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon>${plural('show_unchanged_one','show_unchanged_many',unchanged.length)}</summary>${unchanged.map(card).join('')}</details>`:''}</div>`;
+    container.innerHTML=`<div class="bulk-preview-head"><button type="button" class="bulk-preview-back" data-bulk-back><ha-icon icon="mdi:arrow-left" aria-hidden="true"></ha-icon>${t('edit_choices')}</button></div><h3 tabindex="-1">${t('preview')}</h3><p role="status">${t('preview_count').replace('{changed}',preview.changed_count).replace('{total}',preview.rows.length)}</p>${preview.error_count?`<ha-alert alert-type="error">${t('invalid_preview').replace('{count}',preview.error_count)}</ha-alert>`:preview.changed_count===0?`<ha-alert alert-type="info">${t('no_changes')}</ha-alert>`:''}${this.renderBulkImpact(preview)}<div class="bulk-preview-stats">${stat(preview.changed_count,t('stat_changed'),'ok')}${stat(unchanged.length,t('stat_unchanged'))}${preview.error_count?stat(preview.error_count,t('stat_errors'),'error'):warnings?stat(warnings,t('stat_warnings'),'warn'):''}</div><div class="bulk-preview-list">${relevant.map(card).join('')}${unchanged.length?`<details class="bulk-preview-unchanged" ${relevant.length?'':'open'}><summary><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon>${plural('show_unchanged_one','show_unchanged_many',unchanged.length)}</summary>${unchanged.map(card).join('')}</details>`:''}</div>`;
   }
   remove(indices,type=this.type||TYPES[0]){
   this.removeSelection({[type]:[...new Set(indices)].sort((a,b)=>b-a)});

@@ -1587,7 +1587,23 @@
       "show_unchanged_many": "Zobrazit nezměněné entity ({count})",
       "number_settings": "Ovládání čísel",
       "number_help": "Meze a krok používají jednotky Home Assistant a nepřevádějí hodnoty PLC. Krok musí být kladný. REAL/LREAL vyžadují výslovné minimum a maximum. Automatický krok: 1, nebo 0,001 sekundy pro TIME.",
-      "automatic_unavailable": "Není k dispozici: nastavte výslovnou mez"
+      "automatic_unavailable": "Není k dispozici: nastavte výslovnou mez",
+      "apply_reload": "Použít s opětovným načtením",
+      "impact_live": "Použít bez opětovného načtení",
+      "impact_live_help": "Tyto změny aktualizují aktivní entity bez opětovného načtení integrace tohoto PLC.",
+      "impact_reload": "Jedno opětovné načtení integrace",
+      "impact_reload_help": "Při použití se všechny entity tohoto PLC znovu načtou jednou.",
+      "impact_pending": "Probíhá aktualizace",
+      "impact_pending_help": "Stále probíhá jiná změna konfigurace. Vraťte se a po jejím dokončení vytvořte nový náhled.",
+      "reload_reasons": {
+        "runtime_unavailable": "Integrace není načtena nebo její aktivní konfigurace není dostupná.",
+        "connection_changed": "Nastavení připojení PLC se změnilo.",
+        "options_changed": "Obecné možnosti integrace se změnily.",
+        "entities_changed": "Seznam entit se změnil.",
+        "entity_unavailable": "Tato entita je zakázaná nebo nenačtená; její změny vyžadují opětovné načtení.",
+        "unsupported_fields": "Tato pole vyžadují opětovné načtení: {fields}.",
+        "invalid_live_config": "Tato pole nebylo možné připravit k aktualizaci za běhu: {fields}."
+      }
     }
   },
   "selector": {

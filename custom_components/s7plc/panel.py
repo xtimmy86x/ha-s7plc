@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from collections import Counter
@@ -14,6 +15,7 @@ import voluptuous as vol
 import yaml
 
 from .bulk_edit import prepare_bulk_edit
+from .config_updates import preview_options_update
 from .config_validation import build_entity_item
 from .const import (
     CONF_ENABLE_METRICS,
@@ -702,10 +704,25 @@ async def async_setup_panel(hass: Any) -> None:
         except ValueError as err:
             connection.send_error(msg["id"], str(err), str(err))
             return
+        preview["impact"] = preview_options_update(
+            entry,
+            options,
+            has_changes=bool(preview["changed_count"]),
+            has_errors=bool(preview["error_count"]),
+        )
+        # A disabled/unloaded entity can change the outcome without changing options.
+        preview["preview_token"] = hashlib.sha256(
+            json.dumps(
+                [preview["preview_token"], preview["impact"]], sort_keys=True
+            ).encode()
+        ).hexdigest()
         if not apply:
             connection.send_result(msg["id"], preview)
             return
-        if msg["preview_token"] != preview["preview_token"]:
+        if (
+            msg["preview_token"] != preview["preview_token"]
+            or preview["impact"]["mode"] == "pending"
+        ):
             connection.send_error(msg["id"], "bulk_edit_conflict", "bulk_edit_conflict")
             return
         if preview["error_count"]:

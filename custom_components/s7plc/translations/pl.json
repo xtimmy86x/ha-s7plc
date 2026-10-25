@@ -1587,7 +1587,23 @@
       "show_unchanged_many": "Pokaż niezmienione encje ({count})",
       "number_settings": "Sterowanie liczbami",
       "number_help": "Limity i krok używają jednostek Home Assistant i nie przeliczają wartości PLC. Krok musi być dodatni. REAL/LREAL wymagają jawnego minimum i maksimum. Krok automatyczny: 1 lub 0,001 sekundy dla TIME.",
-      "automatic_unavailable": "Niedostępne: ustaw jawny limit"
+      "automatic_unavailable": "Niedostępne: ustaw jawny limit",
+      "apply_reload": "Zastosuj z przeładowaniem",
+      "impact_live": "Zastosuj bez przeładowania",
+      "impact_live_help": "Te zmiany aktualizują aktywne encje bez przeładowania integracji tego PLC.",
+      "impact_reload": "Jedno przeładowanie integracji",
+      "impact_reload_help": "Po zastosowaniu wszystkie encje tego PLC zostaną przeładowane jeden raz.",
+      "impact_pending": "Trwa aktualizacja",
+      "impact_pending_help": "Nadal trwa inna zmiana konfiguracji. Wróć i po jej zakończeniu wygeneruj nowy podgląd.",
+      "reload_reasons": {
+        "runtime_unavailable": "Integracja nie jest załadowana lub jej aktywna konfiguracja jest niedostępna.",
+        "connection_changed": "Ustawienia połączenia PLC uległy zmianie.",
+        "options_changed": "Ogólne opcje integracji uległy zmianie.",
+        "entities_changed": "Lista encji uległa zmianie.",
+        "entity_unavailable": "Ta encja jest wyłączona lub niezaładowana; jej zmiany wymagają przeładowania.",
+        "unsupported_fields": "Te pola wymagają przeładowania: {fields}.",
+        "invalid_live_config": "Nie udało się przygotować aktualizacji tych pól bez przeładowania: {fields}."
+      }
     }
   },
   "selector": {

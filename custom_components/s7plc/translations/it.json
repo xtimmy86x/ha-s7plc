@@ -1587,7 +1587,23 @@
       "show_unchanged_many": "Mostra {count} entità invariate",
       "number_settings": "Controlli dei Number",
       "number_help": "Limiti e passo usano le unità di Home Assistant e non convertono i valori PLC. Il passo deve essere positivo. I Number REAL/LREAL richiedono minimo e massimo espliciti. Passo automatico: 1, oppure 0,001 secondi per TIME.",
-      "automatic_unavailable": "Non disponibile: imposta un limite esplicito"
+      "automatic_unavailable": "Non disponibile: imposta un limite esplicito",
+      "apply_reload": "Applica con reload",
+      "impact_live": "Applicazione senza reload",
+      "impact_live_help": "Queste modifiche aggiornano le entità attive senza ricaricare l’integrazione di questo PLC.",
+      "impact_reload": "Un solo reload dell’integrazione",
+      "impact_reload_help": "Tutte le entità di questo PLC saranno ricaricate una sola volta quando applichi.",
+      "impact_pending": "Aggiornamento in corso",
+      "impact_pending_help": "È ancora in corso un’altra modifica della configurazione. Torna indietro e genera una nuova anteprima quando termina.",
+      "reload_reasons": {
+        "runtime_unavailable": "L’integrazione non è caricata o la configurazione attiva non è disponibile.",
+        "connection_changed": "I parametri di connessione del PLC sono cambiati.",
+        "options_changed": "Le opzioni generali dell’integrazione sono cambiate.",
+        "entities_changed": "L’elenco delle entità è cambiato.",
+        "entity_unavailable": "Questa entità è disabilitata o non caricata: le sue modifiche richiedono un reload.",
+        "unsupported_fields": "Questi campi richiedono un reload: {fields}.",
+        "invalid_live_config": "Non è stato possibile preparare l’aggiornamento a caldo di questi campi: {fields}."
+      }
     }
   },
   "selector": {
