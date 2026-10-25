@@ -35,8 +35,11 @@ const preview = (overrides = {}) => ({
 const primary = (dialog) => dialog.querySelector('[slot="primaryAction"]');
 const cancel = (dialog) => dialog.querySelector('[slot="secondaryAction"]');
 const change = (form, name, value) => {
-  form.elements[name].value = value;
-  form.elements[name].dispatchEvent(new Event("change", { bubbles: true }));
+  const radio = form.querySelector(`input[type="radio"][name="${name}"][value="${value}"]`);
+  const control = radio || form.elements[name];
+  if (radio) radio.checked = true;
+  else control.value = value;
+  control.dispatchEvent(new Event("change", { bubbles: true }));
 };
 const select = (panel, type, index) => {
   const input = panel.querySelector(`[data-entity-type="${type}"][data-select="${index}"]`);
@@ -127,7 +130,7 @@ test("previews mixed selections and applies their captured identities once", asy
   expect(dialog.querySelector("[data-bulk-preview]").textContent).toContain("2 of 2");
   expect(dialog.textContent).toContain("Old room");
   expect(dialog.textContent).toContain("Machine room");
-  expect(dialog.querySelectorAll(".bulk-preview-table tbody tr")).toHaveLength(2);
+  expect(dialog.querySelectorAll(".bulk-preview-entity")).toHaveLength(2);
   expect(primary(dialog).textContent).toBe("Apply changes");
   expect(panel.selectedIndices.size).toBe(2);
 
@@ -196,7 +199,7 @@ test("no-op/unsupported rows remain visible but cannot be applied, and text is e
   panel._hass.callWS = vi.fn(async () => result);
   change(form, "scan_action", "clear");
   await primary(dialog).onclick();
-  const table = dialog.querySelector(".bulk-preview-table");
+  const table = dialog.querySelector(".bulk-preview-list");
   expect(table.textContent).toContain("Not applicable");
   expect(table.textContent).toContain("Unchanged");
   expect(table.textContent).toContain("<img src=x onerror=alert(1)>");
@@ -281,7 +284,7 @@ test("numeric and metadata fields preview typed values before one apply", async 
   panel.load = vi.fn(async () => {});
   await primary(dialog).onclick();
   expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual({ ...values, value_multiplier: 0.25, real_precision: 2 });
-  const table = dialog.querySelector(".bulk-preview-table");
+  const table = dialog.querySelector(".bulk-preview-list");
   expect(table.textContent).toContain("0–100 → 0–10");
   expect(table.textContent).toContain("× 0.25");
   expect(table.textContent).toContain("None (disable statistics)");
@@ -353,10 +356,61 @@ test("removing numeric overrides sends null and displays effective automatic met
   panel._hass.callWS = vi.fn(async () => result);
   await primary(dialog).onclick();
   expect(panel._hass.callWS.mock.calls[0][0].changes).toEqual(changes);
-  const table = dialog.querySelector(".bulk-preview-table");
+  const table = dialog.querySelector(".bulk-preview-list");
   expect(table.textContent).toContain("Automatic (kWh)");
   expect(table.textContent).toContain("Automatic (Total Increasing)");
   expect(table.textContent).toContain("Default (decimal places: 1)");
   expect(table.textContent).toContain("x <img src=x>");
   expect(table.querySelector("img")).toBeNull();
+});
+
+test("highlights chosen actions and summarizes them per group and overall", () => {
+  const { dialog, form } = open();
+  const summary = dialog.querySelector("[data-bulk-summary]");
+  const areaRow = form.querySelector('[data-bulk-field="area"]');
+  const general = form.querySelector("[data-bulk-group]");
+  expect(dialog.querySelector(".bulk-selection").textContent).toContain("Boiler temperature");
+  expect(dialog.querySelector('[data-bulk-step="1"]').getAttribute("aria-current")).toBe("step");
+  expect(summary.textContent).toBe("No changes selected yet.");
+  expect(general.querySelector("[data-bulk-group-count]").hidden).toBe(true);
+
+  change(form, "area_action", "set");
+  expect(areaRow.classList.contains("changed")).toBe(true);
+  expect(areaRow.classList.contains("removing")).toBe(false);
+  expect(general.querySelector("[data-bulk-group-count]").textContent).toBe("1 change");
+  expect(summary.textContent).toBe("1 field to change across 1 entities.");
+
+  change(form, "scan_action", "clear");
+  expect(form.querySelector('[data-bulk-field="scan_interval"]').classList.contains("removing")).toBe(true);
+  expect(general.querySelector("[data-bulk-group-count]").textContent).toBe("2 changes");
+  expect(summary.textContent).toBe("2 fields to change across 1 entities.");
+});
+
+test("preview replaces the form, collapses unchanged entities and can go back", async () => {
+  const { panel, dialog, form } = open({ sections: true });
+  const result = preview({ changed_count: 1 });
+  result.rows.push({ ...result.rows[0], entity_type: "switches", uid: "pump", name: "Pump", after: result.rows[0].before, changed: false });
+  panel._hass.callWS = vi.fn(async () => result);
+  change(form, "area_action", "set");
+  change(form, "area", "room");
+  await primary(dialog).onclick();
+
+  expect(dialog.querySelector("[data-bulk-choose]").hidden).toBe(true);
+  expect(dialog.querySelector('[data-bulk-step="2"]').getAttribute("aria-current")).toBe("step");
+  expect([...dialog.querySelectorAll(".bulk-preview-stats b")].map((stat) => stat.textContent)).toEqual(["1", "1"]);
+  const list = dialog.querySelector(".bulk-preview-list");
+  expect(list.querySelector(":scope > .bulk-preview-entity b").textContent).toBe("Boiler temperature");
+  expect(list.querySelector(".bulk-preview-old").textContent).toContain("Old room");
+  expect(list.querySelector(".bulk-preview-new").textContent).toContain("Machine room");
+  const unchanged = list.querySelector(".bulk-preview-unchanged");
+  expect(unchanged.open).toBe(false);
+  expect(unchanged.querySelector("summary").textContent).toBe("Show 1 unchanged entity");
+  expect(unchanged.textContent).toContain("Pump");
+
+  dialog.querySelector("[data-bulk-back]").onclick();
+  expect(dialog.querySelector("[data-bulk-preview]").hidden).toBe(true);
+  expect(dialog.querySelector("[data-bulk-choose]").hidden).toBe(false);
+  expect(form.elements.area_action.value).toBe("set");
+  expect(form.elements.area.value).toBe("room");
+  expect(primary(dialog).textContent).toBe("Preview changes");
 });
