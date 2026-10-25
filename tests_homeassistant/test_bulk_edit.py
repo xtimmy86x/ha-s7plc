@@ -4,6 +4,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 
@@ -222,6 +223,12 @@ async def test_preview_and_apply_require_admin(
         {"changes": {"real_precision": 7}},
         {"changes": {"device_class": "missing"}},
         {"changes": {"state_class": "missing"}},
+        {"changes": {"min_value": True}},
+        {"changes": {"max_value": "100"}},
+        {"changes": {"step": 0}},
+        {"changes": {"step": -0.5}},
+        {"changes": {"step": False}},
+        {"changes": {"mode": "invalid"}},
         {"changes": {"area": "deleted"}},
         {"entities": [{"entity_type": "sensors", "uid": "missing"}]},
         {"type": "s7plc/config/update_entities"},
@@ -327,6 +334,156 @@ async def test_extended_bulk_update_uses_one_live_save_and_keeps_number_writes_c
     plc_client.disconnect.assert_not_awaited()
 
 
+async def test_number_controls_use_one_live_save_and_new_bounds_in_ha_services(
+    hass, config_entry, plc_client, hass_ws_client
+):
+    from custom_components.s7plc.plc.address import parse_tag
+
+    options = deepcopy(dict(config_entry.options))
+    item = {
+        "uid": "setpoint",
+        "address": "DB1,REAL4",
+        "min_value": 0,
+        "max_value": 100,
+        "step": 1,
+        "mode": "box",
+        "value_conversions": {"value": {"type": "multiplier", "factor": 0.5}},
+    }
+    options["numbers"] = [item]
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options=options,
+        data={**config_entry.data, "enable_write_batching": False},
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    runtime = config_entry.runtime_data
+    await runtime.coordinator.async_refresh()
+    number = runtime.coordinator.config_entities["setpoint"]
+    reads = plc_client.read.await_count
+    targets = [
+        {"entity_type": "sensors", "uid": "temperature"},
+        {"entity_type": "numbers", "uid": "setpoint"},
+    ]
+    changes = {"min_value": 10, "max_value": 20, "step": 0.25, "mode": "slider"}
+    ws = await hass_ws_client(hass)
+    with patch.object(
+        hass.config_entries,
+        "async_update_entry",
+        wraps=hass.config_entries.async_update_entry,
+    ) as update:
+        response = await request(ws, config_entry, targets, changes)
+        assert response["success"]
+        preview = response["result"]
+        assert preview["changed_count"] == 1
+        assert preview["error_count"] == 0
+        assert preview["rows"][1]["effective_after"] == changes
+        update.assert_not_called()
+        assert number.native_min_value == 0
+        response = await request(
+            ws, config_entry, targets, changes, token=preview["preview_token"], msg_id=2
+        )
+        assert response["result"] == {"updated": 1}
+        await hass.async_block_till_done()
+        assert update.call_count == 1
+    assert config_entry.runtime_data is runtime
+    assert runtime.coordinator.config_entities["setpoint"] is number
+    assert config_entry.options["sensors"] == options["sensors"]
+    assert config_entry.options["numbers"][0] == {**item, **changes}
+    state = hass.states.get(number.entity_id)
+    assert float(state.state) == 10.5
+    assert {key: state.attributes[key] for key in ("min", "max", "step", "mode")} == {
+        "min": 10,
+        "max": 20,
+        "step": 0.25,
+        "mode": "slider",
+    }
+    assert plc_client.read.await_count == reads
+    assert plc_client.connect.await_count == 1
+    plc_client.disconnect.assert_not_awaited()
+    plc_client.write.assert_not_awaited()
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            "number",
+            "set_value",
+            {"entity_id": number.entity_id, "value": 9},
+            blocking=True,
+        )
+    plc_client.write.assert_not_awaited()
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": number.entity_id, "value": 17.5},
+        blocking=True,
+    )
+    plc_client.write.assert_awaited_once_with([parse_tag("DB1,REAL4")], [35.0])
+
+
+@pytest.mark.parametrize(
+    "address,conversion,expected",
+    [
+        ("DB1,B4", None, {"min_value": 0, "max_value": 255, "step": 1, "mode": "auto"}),
+        (
+            "DB1,TIME4",
+            None,
+            {
+                "min_value": -2147483.648,
+                "max_value": 2147483.647,
+                "step": 0.001,
+                "mode": "auto",
+            },
+        ),
+        (
+            "DB1,W4",
+            {"type": "logo_time_bcd"},
+            {"min_value": 0, "max_value": 2359, "step": 1, "mode": "auto"},
+        ),
+    ],
+)
+async def test_number_bulk_clear_defaults_match_real_ha_without_reload(
+    hass, config_entry, plc_client, hass_ws_client, address, conversion, expected
+):
+    item = {
+        "uid": "number",
+        "address": address,
+        "min_value": 0,
+        "max_value": 100,
+        "step": 0.5,
+        "mode": "slider",
+    }
+    if conversion:
+        item["value_conversions"] = {"value": conversion}
+    hass.config_entries.async_update_entry(config_entry, options={"numbers": [item]})
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    runtime = config_entry.runtime_data
+    await runtime.coordinator.async_refresh()
+    number = runtime.coordinator.config_entities["number"]
+    targets = [{"entity_type": "numbers", "uid": "number"}]
+    changes = dict.fromkeys(["min_value", "max_value", "step", "mode"])
+    ws = await hass_ws_client(hass)
+    response = await request(ws, config_entry, targets, changes)
+    assert response["success"]
+    preview = response["result"]
+    assert preview["error_count"] == 0
+    assert preview["rows"][0]["effective_after"] == expected
+    response = await request(
+        ws, config_entry, targets, changes, token=preview["preview_token"], msg_id=2
+    )
+    assert response["success"]
+    await hass.async_block_till_done()
+    assert not config_entry.options["numbers"][0].keys() & changes.keys()
+    state = hass.states.get(number.entity_id)
+    assert state.attributes["min"] == expected["min_value"]
+    assert state.attributes["max"] == expected["max_value"]
+    assert state.attributes["step"] == expected["step"]
+    assert state.attributes["mode"] == expected["mode"]
+    assert config_entry.runtime_data is runtime
+    assert plc_client.connect.await_count == 1
+    plc_client.disconnect.assert_not_awaited()
+    plc_client.write.assert_not_awaited()
+
+
 async def test_bulk_clear_restores_defaults_and_none_disables_statistics(
     hass, config_entry, plc_client, hass_ws_client
 ):
@@ -400,6 +557,8 @@ async def test_bulk_clear_restores_defaults_and_none_disables_statistics(
             "invalid_unit_of_measurement",
         ),
         ({"value_multiplier": 0}, "invalid_bulk_write_multiplier"),
+        ({"min_value": 65536}, "invalid_range"),
+        ({"max_value": -1}, "invalid_range"),
     ],
 )
 async def test_invalid_preview_cannot_be_applied_even_with_its_token(

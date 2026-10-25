@@ -49,6 +49,7 @@ const ADDRESS_MODE_STORAGE_KEY = "s7plc-panel-address-modes-v1";
 const DEFAULT_ADDRESS_MODE_STORAGE_KEY = "s7plc-panel-default-address-mode-v1";
 const ADDRESS_MODES = new Set(["guided", "manual"]);
 const NUMERIC_VALUE_TYPES = new Set(["BYTE","SINT","USINT","WORD","INT","DWORD","DINT","REAL","LREAL","TIME"]);
+const NUMBER_BULK_FIELDS = ['min_value','max_value','step','mode'];
 const INTEGER_VALUE_TYPES = new Set(["BYTE","SINT","USINT","WORD","INT","DWORD","DINT"]);
 const VALUE_CHANNEL_SPECS = Object.freeze({
 sensors:[{channel:'value',read:'address',anchor:'address',label:'sensor_value'}],
@@ -816,6 +817,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
     if(['binary_sensors','covers'].includes(type))fields.add('device_class');
     if(!numeric||!NUMERIC_VALUE_TYPES.has(dataType)||conversion?.type==='enum_map')return fields;
     fields.add('device_class');fields.add('unit_of_measurement');
+    if(type==='numbers')NUMBER_BULK_FIELDS.forEach(field=>fields.add(field));
     if(type==='sensors')fields.add('state_class');
     if(['REAL','LREAL'].includes(dataType))fields.add('real_precision');
     if(conversion?.type!=='logo_time_bcd'&&(type==='sensors'||NUMERIC_VALUE_TYPES.has(PARSE_S7_ADDRESS(item.command_address||item.address).dataType)))fields.add('value_multiplier');
@@ -835,14 +837,16 @@ class S7PlcConfigurationPanel extends HTMLElement {
       ['device_class','device_class','shape-outline',this.fieldText('sensors','device_class','label'),t('device_class_help'),t('set_value'),t('automatic'),t('set_short'),t('automatic'),`<select name="device_class" data-bulk-input>${option('',t('choose_value'))}${classes.map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
       ['unit_of_measurement','unit_of_measurement','ruler',this.fieldText('sensors','unit_of_measurement','label'),t('unit_help'),t('set_value'),t('automatic'),t('set_short'),t('automatic'),`<input name="unit_of_measurement" data-bulk-input type="text" list="s7plc-bulk-units"><datalist id="s7plc-bulk-units">${(entry.selector_options?.units||[]).map(value=>option(value,value)).join('')}</datalist>`,t('new_value')],
       ['state_class','state_class','chart-line',this.fieldText('sensors','state_class','label'),t('state_class_help'),t('set_value'),t('automatic'),t('set_short'),t('automatic'),`<select name="state_class" data-bulk-input>${option('',t('choose_value'))}${option('none',t('no_statistics'))}${(entry.selector_options?.state_classes||[]).map(value=>option(value,pretty(value))).join('')}</select>`,t('new_value')],
+      ...NUMBER_BULK_FIELDS.map(key=>[key,key,key==='mode'?'tune-variant':'numeric',this.fieldText('numbers',key,'label'),this.fieldText('numbers',key,'description'),t('set_value'),t('automatic'),t('set_short'),t('automatic'),key==='mode'?`<select name="mode" data-bulk-input>${option('',t('choose_value'))}${['auto','box','slider'].map(value=>option(value,this.fieldOptionText('numbers','mode',value))).join('')}</select>`:`<input name="${key}" data-bulk-input type="number" step="any" ${key==='step'?'min="0"':''}>`,t('new_value')]),
     ];
     const rows=definitions.map(([key,id,icon,label,help,set,clear,setShort,clearShort,input,valueLabel])=>{
       const count=selection.filter(target=>target.fields.has(key)).length;if(!count)return '';
       const compatible=this.escape(t('compatible_count').replace('{count}',count).replace('{total}',selection.length)),choice=(value,text,title)=>`<label title="${this.escape(title)}"><input type="radio" name="${id}_action" value="${value}" data-bulk-action ${value==='keep'?'checked':''}><span>${this.escape(text)}</span></label>`;
       return `<div class="bulk-edit-row" data-bulk-field="${key}"><span class="bulk-edit-icon" aria-hidden="true"><ha-icon icon="mdi:${icon}"></ha-icon></span><div class="bulk-edit-label"><b>${this.escape(label)}<span class="bulk-edit-badge ${count<selection.length?'partial':''}" title="${compatible}"><span aria-hidden="true">${count}/${selection.length}</span><span class="bulk-sr-only">${compatible}</span></span></b><small>${this.escape(help)}</small></div><div class="bulk-segment" role="radiogroup" aria-label="${this.escape(label)}">${choice('keep',t('keep_short'),t('keep'))}${choice('set',setShort,set)}${choice('clear',clearShort,clear)}</div><label class="bulk-edit-value" data-bulk-value data-${id}-value hidden><span>${this.escape(valueLabel)}</span>${input}</label></div>`;
     });
-    const count='<span class="bulk-edit-count" data-bulk-group-count hidden></span>',general=rows.slice(0,2).join(''),extra=rows.slice(2).join('');
-    return `<section class="bulk-edit-group" data-bulk-group><div class="bulk-edit-group-head"><ha-icon icon="mdi:tune-variant"></ha-icon><b>${t('general')}</b>${count}</div>${general}</section>`+(extra?`<details class="bulk-edit-group bulk-edit-extra" data-bulk-group><summary><ha-icon icon="mdi:numeric"></ha-icon><b>${t('value_settings')}</b>${count}<ha-icon class="bulk-edit-chevron" icon="mdi:chevron-down"></ha-icon></summary><p class="bulk-edit-note">${t('value_help')}</p>${extra}</details>`:'');
+    const count='<span class="bulk-edit-count" data-bulk-group-count hidden></span>',general=rows.slice(0,2).join(''),extra=rows.slice(2,7).join(''),numbers=rows.slice(7).join('');
+    const group=(key,help,content)=>content?`<details class="bulk-edit-group bulk-edit-extra" data-bulk-group><summary><ha-icon icon="mdi:numeric"></ha-icon><b>${t(key)}</b>${count}<ha-icon class="bulk-edit-chevron" icon="mdi:chevron-down"></ha-icon></summary><p class="bulk-edit-note">${t(help)}</p>${content}</details>`:'';
+    return `<section class="bulk-edit-group" data-bulk-group><div class="bulk-edit-group-head"><ha-icon icon="mdi:tune-variant"></ha-icon><b>${t('general')}</b>${count}</div>${general}</section>`+group('value_settings','value_help',extra)+group('number_settings','number_help',numbers);
   }
   bulkSelectionSummary(entry,targets){
     const limit=6,items=targets.map(target=>({type:target.entity_type,item:entry.entities[target.entity_type].find(item=>item.uid===target.uid)||{}})),more=items.length-limit;
@@ -871,6 +875,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
         const action=actionOf(row),input=row.querySelector('[data-bulk-input]'),setting=action==='set';
         row.querySelector('[data-bulk-value]').hidden=!setting;row.querySelectorAll('[data-bulk-action]').forEach(radio=>{radio.disabled=pending||finished;});
         input.disabled=pending||finished||!setting;input.required=setting;
+        if(input.name==='step')input.setCustomValidity(setting&&input.value!==''&&Number(input.value)<=0?this.flowError('invalid_number'):'');
         row.classList.toggle('changed',action!=='keep');row.classList.toggle('removing',action==='clear');
       }
       form.querySelectorAll('[data-bulk-group]').forEach(group=>{const count=[...group.querySelectorAll('[data-bulk-field]')].filter(row=>actionOf(row)!=='keep').length,badge=group.querySelector('[data-bulk-group-count]');badge.hidden=!count;badge.textContent=plural('one_change','many_changes',count);});
@@ -921,7 +926,7 @@ class S7PlcConfigurationPanel extends HTMLElement {
   }
   renderBulkPreview(container,preview,changes){
     const t=key=>this.t(`bulk_edit.${key}`),pretty=value=>String(value).split('_').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '),areaName=value=>value?(this._hass.areas?.[value]?.name||value):this.t('common.no_area');
-    const label=key=>key==='area'?t('area'):key==='scan_interval'?t('scan'):key==='value_multiplier'?t('conversion'):key==='real_precision'?t('precision'):this.fieldText('sensors',key,'label');
+    const label=key=>key==='area'?t('area'):key==='scan_interval'?t('scan'):key==='value_multiplier'?t('conversion'):key==='real_precision'?t('precision'):this.fieldText(NUMBER_BULK_FIELDS.includes(key)?'numbers':'sensors',key,'label');
     const supported=(row,key)=>row.supported_fields?row.supported_fields.includes(key):key!=='scan_interval'||row.scan_supported;
     const value=(row,side,key)=>{
       if(!supported(row,key))return t('not_applicable');
@@ -934,8 +939,10 @@ class S7PlcConfigurationPanel extends HTMLElement {
         return current?.type==='expression'?`${summary}: ${[current.read_expression&&`PLC → HA: ${current.read_expression}`,current.write_expression&&`HA → PLC: ${current.write_expression}`].filter(Boolean).join('; ')}`:summary;
       }
       if(key==='state_class'&&current==='none')return t('no_statistics');
+      if(key==='mode')return this.fieldOptionText('numbers','mode',current??row[`effective_${side}`]?.mode??'auto');
       if(current!=null)return key==='unit_of_measurement'?current:pretty(current);
       const effective=row[`effective_${side}`]?.[key];
+      if(NUMBER_BULK_FIELDS.includes(key))return effective==null?t('automatic_unavailable'):t('automatic_value').replace('{value}',String(effective));
       return effective!=null?t('automatic_value').replace('{value}',key==='unit_of_measurement'?effective:pretty(effective)):key==='device_class'?this.t('common.none_option'):t('automatic');
     };
     const differs=(row,key)=>supported(row,key)&&JSON.stringify(row.before[key])!==JSON.stringify(row.after[key]),plural=(one,many,count)=>t(count===1?one:many).replace('{count}',count);

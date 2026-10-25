@@ -331,12 +331,27 @@ def test_zero_multiplier_is_valid_for_reads_but_blocks_writable_numbers(entry):
                 "address": "DB1,W0",
                 "value_conversions": {"value": {"type": "logo_time_bcd"}},
             },
-            {"device_class", "unit_of_measurement"},
+            {
+                "device_class",
+                "unit_of_measurement",
+                "min_value",
+                "max_value",
+                "step",
+                "mode",
+            },
         ),
         (
             "numbers",
             {"address": "DB1,REAL0", "command_address": "DB1,X4.0"},
-            {"real_precision", "device_class", "unit_of_measurement"},
+            {
+                "real_precision",
+                "device_class",
+                "unit_of_measurement",
+                "min_value",
+                "max_value",
+                "step",
+                "mode",
+            },
         ),
         ("binary_sensors", {"address": "DB1,X0.0"}, {"device_class"}),
         ("covers", {}, {"device_class"}),
@@ -362,3 +377,133 @@ def test_multiplier_noop_and_legacy_input_preview(entry):
     }
     assert "value_conversions" not in options["sensors"][0]
     assert "value_multiplier" not in options["sensors"][0]
+
+
+def test_number_settings_patch_final_range_and_preserve_mixed_selection(entry):
+    item = entry.options["numbers"][0]
+    item.update(max_value=10, step=1, mode="box", legacy_option="keep")
+    original = deepcopy(entry.options)
+    changes = {"min_value": 20, "max_value": 30, "step": 0.5, "mode": "slider"}
+    options, preview = prepare_bulk_edit(entry, TARGETS, changes)
+    assert entry.options == original
+    assert options["sensors"] == original["sensors"]
+    assert options["numbers"][0] == {**item, **changes}
+    assert preview["changed_count"] == 1
+    assert preview["error_count"] == 0
+    assert not preview["rows"][0]["changed"]
+    assert preview["rows"][1]["effective_after"] == changes
+    assert preview["rows"][1]["before"]["max_value"] == 10
+
+
+@pytest.mark.parametrize(
+    "item,expected",
+    [
+        ({"address": "DB1,B4"}, {"min_value": 0, "max_value": 255, "step": 1}),
+        (
+            {"address": "DB1,TIME4"},
+            {"min_value": -2147483.648, "max_value": 2147483.647, "step": 0.001},
+        ),
+        (
+            {
+                "address": "DB1,W4",
+                "value_conversions": {"value": {"type": "logo_time_bcd"}},
+            },
+            {"min_value": 0, "max_value": 2359, "step": 1},
+        ),
+        (
+            {
+                "address": "DB1,INT4",
+                "value_conversions": {"value": {"type": "multiplier", "factor": -2}},
+            },
+            {"min_value": -32768, "max_value": 32767, "step": 1},
+        ),
+    ],
+)
+def test_number_clear_preview_resolves_runtime_defaults(entry, item, expected):
+    item = {
+        **item,
+        "uid": "b",
+        "min_value": 5,
+        "max_value": 10,
+        "step": 0.5,
+        "mode": "box",
+    }
+    entry.options["numbers"] = [item]
+    changes = dict.fromkeys(["min_value", "max_value", "step", "mode"])
+    options, preview = prepare_bulk_edit(entry, TARGETS[1:], changes)
+    assert not preview["error_count"]
+    assert not options["numbers"][0].keys() & changes.keys()
+    assert options["numbers"][0].get("value_conversions") == item.get(
+        "value_conversions"
+    )
+    assert preview["rows"][0]["effective_after"] == {**expected, "mode": "auto"}
+
+
+@pytest.mark.parametrize(
+    "item,changes,error",
+    [
+        ({"max_value": 10}, {"min_value": 11}, "invalid_range"),
+        ({"min_value": 5}, {"max_value": 4}, "invalid_range"),
+        ({"address": "DB1,B4"}, {"min_value": 256}, "invalid_range"),
+        ({"address": "DB1,B4", "max_value": -1}, {"min_value": None}, "invalid_range"),
+        (
+            {"address": "DB1,REAL4", "min_value": 0, "max_value": 100},
+            {"min_value": None},
+            "min_max_required_for_real",
+        ),
+        (
+            {"address": "DB1,LREAL4", "min_value": 0, "max_value": 100},
+            {"max_value": None},
+            "min_max_required_for_real",
+        ),
+        (
+            {
+                "address": "DB1,W4",
+                "value_conversions": {"value": {"type": "logo_time_bcd"}},
+            },
+            {"min_value": 2400},
+            "invalid_range",
+        ),
+    ],
+)
+def test_number_preview_validates_retained_and_automatic_bounds(
+    entry, item, changes, error
+):
+    entry.options["numbers"][0].update(item)
+    original = deepcopy(entry.options)
+    _, preview = prepare_bulk_edit(entry, TARGETS, changes)
+    assert preview["error_count"] == 1
+    assert preview["rows"][0]["errors"] == []
+    assert preview["rows"][1]["errors"] == [error]
+    assert entry.options == original
+
+
+@pytest.mark.parametrize(
+    "changes,error",
+    [
+        ({"min_value": True}, "invalid_number"),
+        ({"max_value": "100"}, "invalid_number"),
+        ({"min_value": float("nan")}, "invalid_number"),
+        ({"max_value": float("inf")}, "invalid_number"),
+        ({"step": False}, "invalid_number"),
+        ({"step": -0.1}, "invalid_number"),
+        ({"step": 0}, "invalid_number"),
+        ({"mode": "SLIDER"}, "invalid_number_mode"),
+        ({"mode": ""}, "invalid_number_mode"),
+        ({"mode": True}, "invalid_number_mode"),
+    ],
+)
+def test_number_input_validation_also_applies_to_unsupported_targets(
+    entry, changes, error
+):
+    with pytest.raises(ValueError, match=error):
+        prepare_bulk_edit(entry, TARGETS[:1], changes)
+
+
+def test_number_auto_mode_matches_clear_and_unchanged_values_do_not_save(entry):
+    changes = {"min_value": 0, "mode": "auto"}
+    options, preview = prepare_bulk_edit(entry, TARGETS, changes)
+    assert options == entry.options
+    assert preview["changed_count"] == 0
+    _, cleared = prepare_bulk_edit(entry, TARGETS, {**changes, "mode": None})
+    assert cleared["preview_token"] == preview["preview_token"]

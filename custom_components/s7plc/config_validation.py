@@ -144,8 +144,9 @@ from .const import (
 )
 from .entity_metadata import metadata_error
 from .helpers import parse_pulse_duration
+from .number_settings import number_settings_error
 from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
-from .value_conversion import LOGO_TIME_HHMM_LIMITS, normalize_value_conversion
+from .value_conversion import normalize_value_conversion
 
 
 def _select_value_limits(tag) -> tuple[float, float] | None:
@@ -1490,36 +1491,13 @@ class EntityConfigBuilder:
         except ValueError:
             return None, {"base": "invalid_number"}
 
-        # Floating-point numbers have no practical automatic UI bounds.
-        # Require an explicit Home Assistant operating interval without using
-        # those values as PLC or conversion endpoints.
-        real_types = {
-            data_type
-            for data_type in (DataType.REAL, getattr(DataType, "LREAL", None))
-            if data_type is not None
-        }
-        if address_tag.data_type in real_types and (
-            min_value is None or max_value is None
-        ):
-            return None, {"base": "min_max_required_for_real"}
-
-        # Validate the effective Home Assistant range. Missing limits are
-        # derived at runtime from HHMM for clocks or the state datatype, but
-        # are not persisted in the configuration.
-        datatype_limits = get_numeric_limits(address_tag.data_type)
         conversion = normalize_value_conversion(user_input, "value")
-        if conversion and conversion.get("type") == "logo_time_bcd":
-            datatype_limits = LOGO_TIME_HHMM_LIMITS
-        fallback_min = datatype_limits[0] if datatype_limits is not None else None
-        fallback_max = datatype_limits[1] if datatype_limits is not None else None
-        effective_min = min_value if min_value is not None else fallback_min
-        effective_max = max_value if max_value is not None else fallback_max
-        if (
-            effective_min is not None
-            and effective_max is not None
-            and effective_min > effective_max
+        if error := number_settings_error(
+            address_tag.data_type,
+            {"min_value": min_value, "max_value": max_value, "step": step_value},
+            conversion,
         ):
-            return None, {"base": "invalid_range"}
+            return None, {"base": error}
 
         # Build item
         item = self._build_base_item(

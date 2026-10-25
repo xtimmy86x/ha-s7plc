@@ -1584,7 +1584,10 @@
       "stat_errors": "Fehler",
       "error_tag": "Fehler",
       "show_unchanged_one": "1 unveränderte Entität anzeigen",
-      "show_unchanged_many": "{count} unveränderte Entitäten anzeigen"
+      "show_unchanged_many": "{count} unveränderte Entitäten anzeigen",
+      "number_settings": "Number-Steuerung",
+      "number_help": "Grenzen und Schrittweite verwenden Home-Assistant-Einheiten und konvertieren keine SPS-Werte. Die Schrittweite muss positiv sein. REAL/LREAL benötigen explizite Mindest- und Höchstwerte. Automatische Schrittweite: 1 bzw. 0,001 Sekunden für TIME.",
+      "automatic_unavailable": "Nicht verfügbar: expliziten Grenzwert festlegen"
     }
   },
   "selector": {

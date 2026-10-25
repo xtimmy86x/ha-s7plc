@@ -1584,7 +1584,10 @@
       "stat_errors": "Błędy",
       "error_tag": "Błąd",
       "show_unchanged_one": "Pokaż niezmienione encje (1)",
-      "show_unchanged_many": "Pokaż niezmienione encje ({count})"
+      "show_unchanged_many": "Pokaż niezmienione encje ({count})",
+      "number_settings": "Sterowanie liczbami",
+      "number_help": "Limity i krok używają jednostek Home Assistant i nie przeliczają wartości PLC. Krok musi być dodatni. REAL/LREAL wymagają jawnego minimum i maksimum. Krok automatyczny: 1 lub 0,001 sekundy dla TIME.",
+      "automatic_unavailable": "Niedostępne: ustaw jawny limit"
     }
   },
   "selector": {

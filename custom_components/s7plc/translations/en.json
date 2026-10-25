@@ -1584,7 +1584,10 @@
       "stat_errors": "Errors",
       "error_tag": "Error",
       "show_unchanged_one": "Show 1 unchanged entity",
-      "show_unchanged_many": "Show {count} unchanged entities"
+      "show_unchanged_many": "Show {count} unchanged entities",
+      "number_settings": "Number controls",
+      "number_help": "Limits and step use Home Assistant units; they do not convert PLC values. The step must be positive. REAL/LREAL numbers require explicit minimum and maximum limits. Automatic step: 1, or 0.001 seconds for TIME.",
+      "automatic_unavailable": "Unavailable: set an explicit limit"
     }
   },
   "selector": {
