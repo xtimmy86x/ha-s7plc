@@ -1587,7 +1587,23 @@
       "show_unchanged_many": "Show {count} unchanged entities",
       "number_settings": "Number controls",
       "number_help": "Limits and step use Home Assistant units; they do not convert PLC values. The step must be positive. REAL/LREAL numbers require explicit minimum and maximum limits. Automatic step: 1, or 0.001 seconds for TIME.",
-      "automatic_unavailable": "Unavailable: set an explicit limit"
+      "automatic_unavailable": "Unavailable: set an explicit limit",
+      "apply_reload": "Apply with reload",
+      "impact_live": "Apply without reload",
+      "impact_live_help": "These changes update the running entities without reloading this PLC integration.",
+      "impact_reload": "One integration reload",
+      "impact_reload_help": "All entities belonging to this PLC will be reloaded once when you apply.",
+      "impact_pending": "Update in progress",
+      "impact_pending_help": "Another configuration update is still running. Go back and generate a new preview when it finishes.",
+      "reload_reasons": {
+        "runtime_unavailable": "The integration is not loaded or its live configuration is unavailable.",
+        "connection_changed": "PLC connection settings have changed.",
+        "options_changed": "Integration-wide options have changed.",
+        "entities_changed": "The entity list has changed.",
+        "entity_unavailable": "This entity is disabled or not loaded; its changes require a reload.",
+        "unsupported_fields": "These fields cannot be updated live: {fields}.",
+        "invalid_live_config": "These settings could not be prepared for a live update: {fields}."
+      }
     }
   },
   "selector": {

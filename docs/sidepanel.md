@@ -410,7 +410,18 @@ generated. The YAML document backs up entities only, not connection settings.
    multipliers, decimal places, device classes, units, and state classes.
 3. Choose **Preview changes** to see the current and proposed settings for every
    selected entity, including unchanged rows. No configuration is saved yet.
-4. Choose **Apply changes** to save the entire selection once.
+4. Check the application impact: **Apply without reload**, or **One integration
+   reload** with the entity and fields that require it. A reload affects the
+   whole PLC entry once, including the other entities in that entry.
+5. Choose **Apply changes** (or **Apply with reload**) to save the selection once.
+
+The impact uses the same preflight as the actual update listener, including
+whether the entities are currently loaded. Area-only edits can apply without
+reload even for disabled entities. Other edits to unloaded entities require a
+reload. A pending configuration update blocks Apply until you go back and
+regenerate the preview. If the impact changes after previewing (for example an
+entity is disabled), the old preview cannot be applied. Previews perform no PLC
+I/O or state updates.
 
 Scan intervals accept fractional seconds from 0.05 to 3600. Buttons and entity
 syncs do not have a configurable scan interval: their preview says **Not

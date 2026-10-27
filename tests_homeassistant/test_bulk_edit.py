@@ -58,6 +58,17 @@ async def test_preview_then_one_save_uses_live_or_one_reload(
         assert response["success"]
         preview = response["result"]
         assert preview["changed_count"] == 2
+        assert preview["impact"]["mode"] == (
+            "live" if other_type == "numbers" else "reload"
+        )
+        if other_type == "binary_sensors":
+            assert preview["impact"] == {
+                "mode": "reload",
+                "reason": "unsupported_fields",
+                "entity_type": "binary_sensors",
+                "uid": "other",
+                "fields": ["scan_interval"],
+            }
         assert config_entry.options == options
         update.assert_not_called()
         assert plc_client.read.await_count == reads
@@ -171,6 +182,7 @@ async def test_unchanged_apply_does_not_save_or_reload(
     response = await request(ws, loaded_entry, targets, {"area": None})
     preview = response["result"]
     assert preview["changed_count"] == 0
+    assert preview["impact"] == {"mode": "none"}
     with patch.object(
         hass.config_entries,
         "async_update_entry",
@@ -378,6 +390,7 @@ async def test_number_controls_use_one_live_save_and_new_bounds_in_ha_services(
         assert preview["changed_count"] == 1
         assert preview["error_count"] == 0
         assert preview["rows"][1]["effective_after"] == changes
+        assert preview["impact"] == {"mode": "live"}
         update.assert_not_called()
         assert number.native_min_value == 0
         response = await request(
@@ -584,6 +597,7 @@ async def test_invalid_preview_cannot_be_applied_even_with_its_token(
         assert response["success"]
         preview = response["result"]
         assert preview["error_count"] > 0
+        assert preview["impact"] == {"mode": "blocked"}
         assert error in preview["rows"][1]["errors"]
         response = await request(
             ws, config_entry, targets, changes, token=preview["preview_token"], msg_id=2
@@ -594,3 +608,81 @@ async def test_invalid_preview_cannot_be_applied_even_with_its_token(
     assert config_entry.options == options
     assert config_entry.runtime_data is runtime
     plc_client.write.assert_not_awaited()
+
+
+async def test_bulk_impact_uses_disabled_registry_entities(
+    hass, loaded_entry, hass_ws_client, plc_client
+):
+    entry = loaded_entry
+    entity = entry.runtime_data.coordinator.config_entities["temperature"]
+    er.async_get(hass).async_update_entity(
+        entity.entity_id, disabled_by=er.RegistryEntryDisabler.USER
+    )
+    await hass.async_block_till_done()
+    targets = [{"entity_type": "sensors", "uid": "temperature"}]
+    ws = await hass_ws_client(hass)
+    area = ar.async_get(hass).async_create("Workshop")
+    response = await request(ws, entry, targets, {"area": area.id})
+    assert response["result"]["impact"] == {"mode": "live"}
+    response = await request(ws, entry, targets, {"scan_interval": 10}, msg_id=2)
+    assert response["result"]["impact"] == {
+        "mode": "reload",
+        "reason": "entity_unavailable",
+        "entity_type": "sensors",
+        "uid": "temperature",
+        "fields": ["scan_interval"],
+    }
+    plc_client.write.assert_not_awaited()
+
+
+async def test_runtime_change_invalidates_bulk_preview_without_options_changes(
+    hass, loaded_entry, hass_ws_client, plc_client
+):
+    entry = loaded_entry
+    original = deepcopy(dict(entry.options))
+    targets = [{"entity_type": "sensors", "uid": "temperature"}]
+    changes = {"scan_interval": 10}
+    ws = await hass_ws_client(hass)
+    response = await request(ws, entry, targets, changes)
+    assert response["result"]["impact"] == {"mode": "live"}
+    token = response["result"]["preview_token"]
+    entity = entry.runtime_data.coordinator.config_entities["temperature"]
+    er.async_get(hass).async_update_entity(
+        entity.entity_id, disabled_by=er.RegistryEntryDisabler.USER
+    )
+    await hass.async_block_till_done()
+    with patch.object(
+        hass.config_entries,
+        "async_update_entry",
+        wraps=hass.config_entries.async_update_entry,
+    ) as update:
+        response = await request(ws, entry, targets, changes, token=token, msg_id=2)
+        assert not response["success"]
+        assert response["error"]["code"] == "bulk_edit_conflict"
+        update.assert_not_called()
+    assert entry.options == original
+    plc_client.write.assert_not_awaited()
+
+
+async def test_pending_update_cannot_be_applied_until_preview_is_regenerated(
+    hass, loaded_entry, hass_ws_client
+):
+    entry = loaded_entry
+    targets = [{"entity_type": "sensors", "uid": "temperature"}]
+    changes = {"scan_interval": 10}
+    ws = await hass_ws_client(hass)
+    async with entry.runtime_data.config_update_lock:
+        response = await request(ws, entry, targets, changes)
+        assert response["result"]["impact"] == {"mode": "pending"}
+        token = response["result"]["preview_token"]
+        with patch.object(
+            hass.config_entries,
+            "async_update_entry",
+            wraps=hass.config_entries.async_update_entry,
+        ) as update:
+            response = await request(ws, entry, targets, changes, token=token, msg_id=2)
+            assert response["error"]["code"] == "bulk_edit_conflict"
+            update.assert_not_called()
+    response = await request(ws, entry, targets, changes, msg_id=3)
+    assert response["result"]["impact"] == {"mode": "live"}
+    assert response["result"]["preview_token"] != token
