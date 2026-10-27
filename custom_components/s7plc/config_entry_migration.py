@@ -27,6 +27,9 @@ _SYNC_ENTITY_TYPES = frozenset(("switches", "lights"))
 
 # Values the entity builders used to persist even when the field was left
 # empty. Every platform reads the same default when the key is absent.
+# The minor-2 migration treats every stored value equal to these defaults as
+# implicit, including ones a user typed on purpose. Changing a default later
+# changes those entities too, so such a change needs its own migration.
 PERSISTED_DEFAULTS: dict[str, dict[str, float]] = {
     "switches": {CONF_PULSE_DURATION: DEFAULT_PULSE_DURATION},
     "lights": {CONF_PULSE_DURATION: DEFAULT_PULSE_DURATION},

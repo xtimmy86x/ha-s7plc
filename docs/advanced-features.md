@@ -125,7 +125,7 @@ To enable pulse command mode for a switch or light:
 4. Enter the `state_address` (the PLC address to read the actual state)
 5. Enter the `command_address` (the PLC address to write commands)
 6. **Enable the `Pulse Command Mode` checkbox**
-7. Set the **`Pulse Duration`** (default: 0.5 seconds, range: 0.1-60 seconds)
+7. Set the **`Pulse Duration`** (range: 0.1-60 seconds, rounded to 0.1 s), or leave it empty to use the 0.5 second default. Values outside the range are rejected when saving.
 8. Save the configuration
 
 ### Pulse Duration Guidelines
