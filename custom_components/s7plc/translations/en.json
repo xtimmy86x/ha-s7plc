@@ -1607,6 +1607,20 @@
         "unsupported_fields": "These fields cannot be updated live: {fields}.",
         "invalid_live_config": "These settings could not be prepared for a live update: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Default",
+      "custom": "Custom",
+      "reset": "Restore default",
+      "empty_uses": "Empty: {value}.",
+      "leave_empty": "Leave empty to restore the default: {value}.",
+      "plc_scan": "the PLC scan interval ({value})",
+      "decimals": "decimal places: {count}",
+      "unit_from_class": "{unit}, default unit for {class}",
+      "no_unit": "no unit",
+      "type_limit": "{value}, {type} limit",
+      "logo_time_limit": "{value}, LOGO! time limit",
+      "required_real": "Required for REAL/LREAL addresses."
     }
   },
   "selector": {

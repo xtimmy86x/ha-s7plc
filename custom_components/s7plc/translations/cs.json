@@ -1607,6 +1607,20 @@
         "unsupported_fields": "Tato pole vyžadují opětovné načtení: {fields}.",
         "invalid_live_config": "Tato pole nebylo možné připravit k aktualizaci za běhu: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Výchozí",
+      "custom": "Vlastní",
+      "reset": "Obnovit výchozí",
+      "empty_uses": "Prázdné: {value}.",
+      "leave_empty": "Ponechte prázdné pro obnovení výchozí hodnoty: {value}.",
+      "plc_scan": "interval čtení PLC ({value})",
+      "decimals": "desetinná místa: {count}",
+      "unit_from_class": "{unit}, výchozí jednotka pro {class}",
+      "no_unit": "bez jednotky",
+      "type_limit": "{value}, limit typu {type}",
+      "logo_time_limit": "{value}, limit času LOGO!",
+      "required_real": "Povinné pro adresy REAL/LREAL."
     }
   },
   "selector": {

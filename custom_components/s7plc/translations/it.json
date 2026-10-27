@@ -1607,6 +1607,20 @@
         "unsupported_fields": "Questi campi richiedono un reload: {fields}.",
         "invalid_live_config": "Non è stato possibile preparare l’aggiornamento a caldo di questi campi: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Predefinito",
+      "custom": "Personalizzato",
+      "reset": "Ripristina il predefinito",
+      "empty_uses": "Vuoto: {value}.",
+      "leave_empty": "Lascia vuoto per tornare al predefinito: {value}.",
+      "plc_scan": "la scansione del PLC ({value})",
+      "decimals": "decimali: {count}",
+      "unit_from_class": "{unit}, unità predefinita di {class}",
+      "no_unit": "nessuna unità",
+      "type_limit": "{value}, limite del tipo {type}",
+      "logo_time_limit": "{value}, limite dell’orario LOGO!",
+      "required_real": "Obbligatorio per gli indirizzi REAL/LREAL."
     }
   },
   "selector": {

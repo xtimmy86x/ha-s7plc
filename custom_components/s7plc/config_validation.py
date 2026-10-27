@@ -137,6 +137,8 @@ from .const import (
     DEFAULT_PRESET_MODE_HEAT_VALUE,
     DEFAULT_PRESET_MODE_OFF_VALUE,
     DEFAULT_TOGGLE_MODE,
+    MAX_PULSE_DURATION,
+    MIN_PULSE_DURATION,
     NUMBER_MODES,
 )
 from .entity_metadata import metadata_error
@@ -396,7 +398,7 @@ class EntityConfigBuilder:
         pulse = EntityConfigBuilder._normalize_numeric_value(value)
         if pulse is None:
             return None
-        if pulse < 0.1 or pulse > 60:
+        if pulse < MIN_PULSE_DURATION or pulse > MAX_PULSE_DURATION:
             raise ValueError("invalid pulse duration")
         # Same precision parse_pulse_duration() has always applied.
         return round(pulse, 1)

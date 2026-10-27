@@ -8,6 +8,8 @@ from .plc.address import DataType, get_numeric_limits, is_time_data_type
 from .value_conversion import LOGO_TIME_HHMM_LIMITS
 
 NUMBER_SETTINGS_FIELDS = frozenset({"min_value", "max_value", "step", "mode"})
+DEFAULT_NUMBER_STEP = 1.0
+TIME_NUMBER_STEP = 0.001
 
 
 def number_value_settings(data_type, item: dict, conversion: dict | None) -> dict:
@@ -18,7 +20,9 @@ def number_value_settings(data_type, item: dict, conversion: dict | None) -> dic
     defaults = {
         "min_value": limits[0] if limits is not None else None,
         "max_value": limits[1] if limits is not None else None,
-        "step": 0.001 if is_time_data_type(data_type) else 1.0,
+        "step": (
+            TIME_NUMBER_STEP if is_time_data_type(data_type) else DEFAULT_NUMBER_STEP
+        ),
     }
     return {
         key: float(item[key]) if item.get(key) is not None else value

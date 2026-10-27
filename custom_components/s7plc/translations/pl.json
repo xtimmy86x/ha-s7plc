@@ -1607,6 +1607,20 @@
         "unsupported_fields": "Te pola wymagają przeładowania: {fields}.",
         "invalid_live_config": "Nie udało się przygotować aktualizacji tych pól bez przeładowania: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Domyślne",
+      "custom": "Własne",
+      "reset": "Przywróć domyślne",
+      "empty_uses": "Puste: {value}.",
+      "leave_empty": "Pozostaw puste, aby przywrócić domyślne: {value}.",
+      "plc_scan": "interwał odczytu PLC ({value})",
+      "decimals": "miejsca dziesiętne: {count}",
+      "unit_from_class": "{unit}, domyślna jednostka dla {class}",
+      "no_unit": "brak jednostki",
+      "type_limit": "{value}, limit typu {type}",
+      "logo_time_limit": "{value}, limit czasu LOGO!",
+      "required_real": "Wymagane dla adresów REAL/LREAL."
     }
   },
   "selector": {

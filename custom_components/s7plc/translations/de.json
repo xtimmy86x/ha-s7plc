@@ -1607,6 +1607,20 @@
         "unsupported_fields": "Diese Felder erfordern ein Neuladen: {fields}.",
         "invalid_live_config": "Diese Felder konnten nicht für eine Live-Aktualisierung vorbereitet werden: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Standard",
+      "custom": "Angepasst",
+      "reset": "Standard wiederherstellen",
+      "empty_uses": "Leer: {value}.",
+      "leave_empty": "Leer lassen, um den Standard zu verwenden: {value}.",
+      "plc_scan": "das Abfrageintervall der SPS ({value})",
+      "decimals": "Dezimalstellen: {count}",
+      "unit_from_class": "{unit}, Standardeinheit für {class}",
+      "no_unit": "keine Einheit",
+      "type_limit": "{value}, Grenze des Typs {type}",
+      "logo_time_limit": "{value}, Grenze der LOGO!-Uhrzeit",
+      "required_real": "Für REAL/LREAL-Adressen erforderlich."
     }
   },
   "selector": {

@@ -44,3 +44,17 @@ async def test_minor_migration_drops_stored_defaults(hass, plc_client):
         {"uid": "reset", "address": "DB1,X0.0"},
         {"uid": "long", "address": "DB1,X0.1", "button_pulse": 2.0},
     ]
+
+
+def test_panel_defaults_match_home_assistant_metadata(hass):
+    from custom_components.s7plc.panel import _entry_payload
+
+    entry = MockConfigEntry(domain=DOMAIN, version=3, data={}, options={})
+    defaults = _entry_payload(entry)["defaults"]
+
+    assert defaults["units"]["sensors"]["temperature"] == "°C"
+    assert defaults["units"]["sensors"]["power"] == "W"
+    assert defaults["units"]["numbers"]["temperature"] == "°C"
+    assert defaults["state_classes"]["temperature"] == "measurement"
+    assert defaults["state_classes"]["energy"] == "total_increasing"
+    assert "gas" not in defaults["state_classes"]
