@@ -13,7 +13,10 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from .config_entry_migration import canonicalize_legacy_sync_addresses
+from .config_entry_migration import (
+    canonicalize_legacy_sync_addresses,
+    strip_persisted_defaults,
+)
 from .config_updates import async_apply_live_options
 from .const import (
     CONF_BACKOFF_INITIAL,
@@ -30,6 +33,7 @@ from .const import (
     CONF_RACK,
     CONF_REMOTE_TSAP,
     CONF_SLOT,
+    CONFIG_ENTRY_MINOR_VERSION,
     CONNECTION_CONTROL_STORAGE_VERSION,
     CONNECTION_TYPE_TSAP,
     DEFAULT_BACKOFF_INITIAL,
@@ -73,16 +77,48 @@ SERVICE_WRITE_MULTI = "write_multi"
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Run the versioned migrations of persisted entities before setup."""
+    if entry.version < 2:
+        return _migrate_legacy_entities(hass, entry)
+    if entry.minor_version < CONFIG_ENTRY_MINOR_VERSION:
+        _migrate_persisted_defaults(hass, entry)
+    return True
+
+
+def _migrate_persisted_defaults(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop stored values that only repeat their platform default."""
+    options = deepcopy(dict(entry.options))
+    removed = 0
+    for entity_type in OPTION_KEYS:
+        if not isinstance(options.get(entity_type), list):
+            continue
+        items = []
+        for entity in options[entity_type]:
+            stripped, count = strip_persisted_defaults(entity_type, entity)
+            items.append(stripped)
+            removed += count
+        options[entity_type] = items
+    hass.config_entries.async_update_entry(
+        entry, options=options, minor_version=CONFIG_ENTRY_MINOR_VERSION
+    )
+    if removed:
+        _LOGGER.info(
+            "Removed %d stored default values from config entry %s",
+            removed,
+            entry.entry_id,
+        )
+
+
+def _migrate_legacy_entities(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Atomically migrate only versioned legacy fields before setup.
 
     Deliberately do not pass persisted entities through the current panel
     builder: unrelated rules added after an entry was saved are not migration
     rules and must not prevent a direct 7.x upgrade.
     """
-    if entry.version >= 2:
-        return True
     options = deepcopy(dict(entry.options))
     totals = [0, 0, 0]
+    defaults_removed = 0
     sync_configurations = 0
     discarded_sensor_limits = 0
     conflict_logs: list[tuple[str, str, str]] = []
@@ -140,6 +176,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
                 return False
 
+            migrated, removed = strip_persisted_defaults(entity_type, migrated)
+            defaults_removed += removed
             migrated_items.append(migrated)
             totals[0] += report.multipliers
             totals[1] += report.linear_scales
@@ -163,7 +201,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             identity,
             channel,
         )
-    hass.config_entries.async_update_entry(entry, options=options, version=3)
+    hass.config_entries.async_update_entry(
+        entry,
+        options=options,
+        version=3,
+        minor_version=CONFIG_ENTRY_MINOR_VERSION,
+    )
     _LOGGER.info(
         "Migrated legacy value conversions for config entry %s: "
         "%d multipliers, %d linear scales, %d brightness scales, "
@@ -176,6 +219,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug(
             "Removed %d obsolete sensor min/max fields from config entry %s",
             discarded_sensor_limits,
+            entry.entry_id,
+        )
+    if defaults_removed:
+        _LOGGER.info(
+            "Removed %d stored default values from config entry %s",
+            defaults_removed,
             entry.entry_id,
         )
     return True

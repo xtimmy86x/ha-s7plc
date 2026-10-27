@@ -552,7 +552,8 @@ _TOGGLE_COVER_BASE = {
 def test_cover_toggle_pulse_duration_defaults_and_persists() -> None:
     item, errors = build_entity_item(CONF_COVERS, _TOGGLE_COVER_BASE, options={})
     assert not errors
-    assert item["toggle_pulse_duration"] == 0.5
+    # An empty field keeps the platform default (0.5 s) without persisting it.
+    assert "toggle_pulse_duration" not in item
 
     item, errors = build_entity_item(
         CONF_COVERS,
@@ -901,25 +902,25 @@ def test_position_cover_legacy_timed_value_normalizes_to_position() -> None:
 
 
 def test_cover_toggle_pulse_duration_uses_shared_validation_helper() -> None:
-    """toggle_pulse_duration goes through the same parse_pulse_duration()
-    helper as switches/lights (0.1-60s range, falls back to the default on
-    invalid input) instead of a bare float(...) conversion - maintainer
+    """toggle_pulse_duration goes through the same pulse validation as
+    switches/lights (0.1-60s range, rejected instead of silently replaced
+    with the default) instead of a bare float(...) conversion - maintainer
     review point 3."""
     item, errors = build_entity_item(
         CONF_COVERS,
         {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": "not-a-number"},
         options={},
     )
-    assert not errors
-    assert item["toggle_pulse_duration"] == 0.5  # DEFAULT_PULSE_DURATION
+    assert item is None
+    assert errors == {"base": "invalid_pulse_duration"}
 
     item, errors = build_entity_item(
         CONF_COVERS,
         {**_TOGGLE_COVER_BASE, "toggle_pulse_duration": 999},
         options={},
     )
-    assert not errors
-    assert item["toggle_pulse_duration"] == 0.5  # out of 0.1-60s range
+    assert item is None
+    assert errors == {"base": "invalid_pulse_duration"}  # out of 0.1-60s range
 
     item, errors = build_entity_item(
         CONF_COVERS,

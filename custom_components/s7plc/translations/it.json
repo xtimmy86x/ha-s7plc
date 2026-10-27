@@ -1298,7 +1298,10 @@
       "invalid_bulk_value_multiplier": "Inserisci un moltiplicatore numerico finito.",
       "invalid_bulk_real_precision": "Inserisci un numero intero di decimali da 0 a 6.",
       "invalid_bulk_write_multiplier": "Un’entità Number scrivibile non può usare un moltiplicatore pari a zero.",
-      "bulk_edit_invalid": "Correggi gli errori mostrati nell’anteprima prima di applicare. Nessuna entità è stata modificata."
+      "bulk_edit_invalid": "Correggi gli errori mostrati nell’anteprima prima di applicare. Nessuna entità è stata modificata.",
+      "invalid_pulse_duration": "Inserisci una durata dell’impulso tra 0,1 e 60 secondi, oppure lascia vuoto per usare 0,5 s.",
+      "invalid_operate_time": "Inserisci un tempo di manovra di 0 secondi o più, oppure lascia vuoto per usare 60 s.",
+      "invalid_temperature_limits": "La temperatura minima deve essere inferiore alla massima e il passo deve essere maggiore di 0."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

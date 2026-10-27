@@ -1298,7 +1298,10 @@
       "invalid_bulk_value_multiplier": "Enter a finite numeric multiplier.",
       "invalid_bulk_real_precision": "Enter a whole number of decimals from 0 to 6.",
       "invalid_bulk_write_multiplier": "A writable Number cannot use a zero multiplier.",
-      "bulk_edit_invalid": "Resolve the errors shown in the preview before applying. No entities were changed."
+      "bulk_edit_invalid": "Resolve the errors shown in the preview before applying. No entities were changed.",
+      "invalid_pulse_duration": "Enter a pulse duration between 0.1 and 60 seconds, or leave it empty to use 0.5 s.",
+      "invalid_operate_time": "Enter an operating time of 0 seconds or more, or leave it empty to use 60 s.",
+      "invalid_temperature_limits": "The minimum temperature must be lower than the maximum and the step must be greater than 0."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",

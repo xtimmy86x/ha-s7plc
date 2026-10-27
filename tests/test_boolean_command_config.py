@@ -155,30 +155,78 @@ def test_boolean_command_validation_errors(
 
 
 @pytest.mark.parametrize(
-    ("duration", "interval", "expected_duration", "expected_interval"),
+    ("duration", "expected_duration"),
     [
-        (None, None, 0.5, None),
-        ("", "", 0.5, None),
-        ("invalid", "invalid", 0.5, None),
-        (0, 0, 0.5, None),
-        (-1, -1, 0.5, None),
-        (61, 7200, 0.5, 3600.0),
-        (0.1, 0.01, 0.1, 0.05),
-        ("2.34", "0.25", 2.3, 0.25),
+        # An empty field keeps the platform default instead of persisting it.
+        (None, None),
+        ("", None),
+        (0.1, 0.1),
+        ("2.34", 2.3),
     ],
 )
-def test_boolean_command_pulse_and_scan_interval_normalization(
+def test_boolean_command_pulse_duration_normalization(
     entity_type: str,
     duration: Any,
+    expected_duration: float | None,
+) -> None:
+    expected = {
+        "state_address": "DB1,X0.0",
+        "sync_state": False,
+        "pulse_command": True,
+    }
+    if expected_duration is not None:
+        expected["pulse_duration"] = expected_duration
+
+    assert build_entity_item(
+        entity_type,
+        {
+            "state_address": "DB1,X0.0",
+            "pulse_command": True,
+            "pulse_duration": duration,
+        },
+        options={},
+    ) == (expected, {})
+
+
+@pytest.mark.parametrize("duration", ["invalid", 0, -1, 61, True])
+def test_boolean_command_rejects_invalid_pulse_duration(
+    entity_type: str, duration: Any
+) -> None:
+    """Out-of-range pulses are reported instead of silently becoming 0.5 s."""
+    assert build_entity_item(
+        entity_type,
+        {
+            "state_address": "DB1,X0.0",
+            "pulse_command": True,
+            "pulse_duration": duration,
+        },
+        options={},
+    ) == (None, {"base": "invalid_pulse_duration"})
+
+
+@pytest.mark.parametrize(
+    ("interval", "expected_interval"),
+    [
+        (None, None),
+        ("", None),
+        ("invalid", None),
+        (0, None),
+        (-1, None),
+        (7200, 3600.0),
+        (0.01, 0.05),
+        ("0.25", 0.25),
+    ],
+)
+def test_boolean_command_scan_interval_normalization(
+    entity_type: str,
     interval: Any,
-    expected_duration: float,
     expected_interval: float | None,
 ) -> None:
     expected = {
         "state_address": "DB1,X0.0",
         "sync_state": False,
         "pulse_command": True,
-        "pulse_duration": expected_duration,
+        "pulse_duration": 2.0,
     }
     if expected_interval is not None:
         expected["scan_interval"] = expected_interval
@@ -188,7 +236,7 @@ def test_boolean_command_pulse_and_scan_interval_normalization(
         {
             "state_address": "DB1,X0.0",
             "pulse_command": True,
-            "pulse_duration": duration,
+            "pulse_duration": 2,
             "scan_interval": interval,
         },
         options={},
@@ -222,8 +270,6 @@ def test_light_adds_brightness_to_boolean_command(
         "brightness_state_address": "DB1,W2",
         **mode,
     }
-    if mode.get("pulse_command"):
-        expected["pulse_duration"] = 0.5
     if brightness_command is not None:
         expected["brightness_command_address"] = "DB1,W4"
 
