@@ -65,6 +65,7 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBER_MODE,
     CONF_NUMBERS,
+    CONF_OFF_COMMAND_ADDRESS,
     CONF_ON_OFF_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -143,7 +144,13 @@ from .const import (
 )
 from .entity_metadata import metadata_error
 from .number_settings import number_settings_error
-from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
+from .plc.address import (
+    DataType,
+    MemoryArea,
+    get_numeric_limits,
+    is_time_data_type,
+    parse_tag,
+)
 from .value_conversion import normalize_value_conversion
 
 
@@ -220,6 +227,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_ADDRESS,
         CONF_STATE_ADDRESS,
         CONF_COMMAND_ADDRESS,
+        CONF_OFF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
         CONF_SINGLE_FIRE_COMMAND,
@@ -260,6 +268,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_ADDRESS,
         CONF_STATE_ADDRESS,
         CONF_COMMAND_ADDRESS,
+        CONF_OFF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
         CONF_SINGLE_FIRE_COMMAND,
@@ -884,12 +893,13 @@ class EntityConfigBuilder:
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build shared switch/light settings with platform-scoped duplicates."""
-        # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
-        state_address, errors = self._validate_address_field(
-            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
-        )
-        if errors:
-            return None, errors
+        # Only dual-output control can operate without physical feedback.
+        state_input = user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        state_address = None
+        if state_input or not user_input.get(CONF_OFF_COMMAND_ADDRESS):
+            state_address, errors = self._validate_address_field(state_input)
+            if errors:
+                return None, errors
 
         # Check for duplicates
         if self._has_duplicate(
@@ -909,18 +919,63 @@ class EntityConfigBuilder:
             if cmd_errors:
                 return None, cmd_errors
 
-        # Build item
-        item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+        # Validate an optional separate OFF pulse output.
+        off_command_address = None
+        if user_input.get(CONF_OFF_COMMAND_ADDRESS):
+            off_command_address, off_errors = self._validate_address_field(
+                user_input[CONF_OFF_COMMAND_ADDRESS]
+            )
+            if off_errors:
+                return None, off_errors
+            if not command_address:
+                return None, {"base": "dual_pulse_requires_on_address"}
+            on_tag = parse_tag(command_address)
+            off_tag = parse_tag(off_command_address)
+            if on_tag == off_tag:
+                return None, {"base": "dual_pulse_same_address"}
+            if any(
+                tag.data_type != DataType.BIT
+                or tag.memory_area
+                not in (MemoryArea.DB, MemoryArea.MERKER, MemoryArea.OUTPUT)
+                for tag in (on_tag, off_tag)
+            ):
+                return None, {"base": "dual_pulse_requires_output_bits"}
+            if state_address:
+                state_tag = parse_tag(state_address)
+                if state_tag.data_type != DataType.BIT or state_tag in (
+                    on_tag,
+                    off_tag,
+                ):
+                    return None, {"base": "dual_pulse_invalid_feedback"}
+            elif self._has_duplicate(
+                option_key,
+                command_address,
+                keys=(CONF_COMMAND_ADDRESS,),
+                skip_idx=skip_idx,
+            ):
+                return None, {"base": "duplicate_entry"}
+
+        item: dict[str, Any] = {}
+        if state_address:
+            item[CONF_STATE_ADDRESS] = state_address
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
+        if off_command_address:
+            item[CONF_OFF_COMMAND_ADDRESS] = off_command_address
 
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
 
         # Add boolean flags — mutually exclusive
         sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
-        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        # An OFF address extends pulse control; also accept initial PR configs
+        # which stored the address without enabling the pulse flag.
+        pulse_command = bool(
+            user_input.get(CONF_PULSE_COMMAND, False) or off_command_address
+        )
         single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
+        if off_command_address and (sync_state or single_fire_command):
+            return None, {"base": "dual_pulse_conflict"}
         if single_fire_command and (sync_state or pulse_command):
             return None, {"base": "single_fire_conflict"}
         if sync_state and pulse_command:

@@ -84,7 +84,7 @@ The **Pulse Command Mode** feature is available for `switch` and `light` entitie
 
 ### How it Works
 
-When `pulse_command` is enabled:
+When `pulse_command` is enabled without an OFF address:
 
 1. **Momentary activation**: Instead of writing a continuous state (True or False), the integration sends a brief pulse
 2. **Automatic reset**: The command address is written to `True`, held for the configured duration, then automatically reset to `False`
@@ -161,13 +161,66 @@ Both features use the same underlying pulse mechanism, but differ in how they pr
 
 ---
 
+### Optional OFF pulse address
+
+Pulse control can also operate relays with independent SET and RESET inputs.
+Select the existing **Pulse control** option, enter the ON output in **Command
+address**, and fill in **OFF address (optional)**. Leave the OFF field empty to
+keep the existing single-address behavior. No additional mode is required.
+The same settings work in the entity YAML editor:
+
+```yaml
+name: Hall light
+pulse_command: true
+command_address: Q1.0
+off_command_address: Q1.1
+state_address: I1.3
+pulse_duration: 0.5
+```
+
+`turn_on` pulses `Q1.0`; `turn_off` pulses `Q1.1`. The two command addresses must
+be distinct writable BITs in Q, M or DB memory. Feedback, when supplied, must be
+a BIT different from both outputs. `pulse_command: true` is used for both one-
+and two-address pulse control; an OFF address also enables that flag when older
+configurations are saved. `sync_state` and `single_fire_command` remain incompatible
+with pulse control.
+
+Every explicit ON or OFF request sends its own pulse, even when the last feedback
+sample already matches. Commands for the same entity run in order: the next
+output cannot activate until the previous output is released. Pulse edges bypass
+write batching. The duration starts after the activation write is acknowledged;
+network latency and PLC retry time can extend the actual high time.
+
+With feedback, HA displays only the PLC state. Omit `state_address` to use assumed
+state: it starts unknown after setup/reload, changes only after a complete
+successful pulse, and becomes unknown after a failed pulse. It cannot detect
+physical buttons or other external state changes. No output bit is treated as
+feedback, and no previous assumed state is restored. A PLC with only these
+command-only entities still establishes a connection without reading a fake
+feedback address. Dimmable lights retain their independent brightness channel.
+
+Cancellation waits for the pulse and its reset to finish; unloading the entity
+also waits before disconnecting. A failed activation acknowledgement still causes
+a reset attempt. If reset fails, the next command must successfully release that
+output before activating another one. Failure is reported rather than publishing
+a successful assumed state. These pending resets are kept only in memory.
+
+**PLC-side protection is required:** Home Assistant cannot guarantee a reset after
+a network outage, process termination, power loss or forced shutdown. Limit pulse
+length in the PLC and interlock the outputs there. Use each output pair for one
+entity; serialization does not coordinate other entities, direct write services,
+external clients or PLC logic. For PLC-owned pulse timing, use command bits handled
+and reset by the PLC instead of relying on network-timed physical outputs.
+
+---
+
 ## Single-fire Command Mode
 
 Switches and lights offer a fourth **Single-fire control** option beside **Pulse control**
 in the panel's control behavior selector. Choose it when the PLC handles resetting
 its command bit after accepting a toggle command.
 
-Like pulse mode, `turn_on` sends a command only when the read state is off, and
+Like single-address pulse mode, `turn_on` sends a command only when the read state is off, and
 `turn_off` only when it is on. Both commands write `True` exactly once through the
 normal write batching path, then request a state refresh. There is no pulse delay,
 no `False` write and no command/state synchronization. The displayed state still

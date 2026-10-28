@@ -388,15 +388,19 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0)."
+            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0). Opcjonalny, gdy skonfigurowano adres WYŁ. Bez informacji zwrotnej Home Assistant zakłada stan po udanym poleceniu i nie wykrywa zmian zewnętrznych."
           },
           "command_address": {
             "label": "Adres zapisu",
-            "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
+            "description": "Adres poleceń lub impulsu WŁ., jeśli ustawiono adres WYŁ. Jeśli pominięto, używany jest adres stanu."
           },
           "pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
+          },
+          "off_command_address": {
+            "label": "Adres WYŁ. (opcjonalny)",
+            "description": "Używaj tylko wtedy, gdy wyłączenie wymaga oddzielnego wyjścia. Pozostaw puste, aby używać tego samego adresu polecenia do włączania i wyłączania."
           }
         }
       },
@@ -618,11 +622,11 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1)."
+            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1). Opcjonalny, gdy skonfigurowano adres WYŁ. Bez informacji zwrotnej Home Assistant zakłada stan po udanym poleceniu i nie wykrywa zmian zewnętrznych."
           },
           "command_address": {
             "label": "Adres zapisu",
-            "description": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu."
+            "description": "Adres poleceń lub impulsu WŁ., jeśli ustawiono adres WYŁ. Jeśli pominięto, używany jest adres stanu."
           },
           "brightness_state_address": {
             "label": "Adres odczytu jasności",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
+          },
+          "off_command_address": {
+            "label": "Adres WYŁ. (opcjonalny)",
+            "description": "Używaj tylko wtedy, gdy wyłączenie wymaga oddzielnego wyjścia. Pozostaw puste, aby używać tego samego adresu polecenia do włączania i wyłączania."
           }
         },
         "mode": {
@@ -1052,7 +1060,7 @@
         },
         "pulse": {
           "title": "Sterowanie impulsowe",
-          "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest impuls (zał./wył.) zamiast zmiany stanu na przeciwny."
+          "description": "Wysyłaj impulsy, aby włączać i wyłączać. Jeśli urządzenie używa dwóch wyjść, można podać oddzielny adres WYŁ."
         },
         "single_fire": {
           "title": "Polecenie jednorazowe",
@@ -1301,7 +1309,12 @@
       "bulk_edit_invalid": "Popraw błędy pokazane w podglądzie przed zastosowaniem. Nie zmieniono żadnych encji.",
       "invalid_pulse_duration": "Wprowadź czas impulsu od 0,1 do 60 sekund lub pozostaw pole puste, aby użyć 0,5 s.",
       "invalid_operate_time": "Wprowadź czas pracy wynoszący co najmniej 0 sekund lub pozostaw pole puste, aby użyć 60 s.",
-      "invalid_temperature_limits": "Temperatura minimalna musi być niższa od maksymalnej, a krok musi być większy od 0."
+      "invalid_temperature_limits": "Temperatura minimalna musi być niższa od maksymalnej, a krok musi być większy od 0.",
+      "dual_pulse_requires_on_address": "Oddzielne impulsy WŁ./WYŁ. wymagają jawnego adresu polecenia WŁ.",
+      "dual_pulse_same_address": "Adresy poleceń WŁ. i WYŁ. muszą być różne.",
+      "dual_pulse_conflict": "Sterowania impulsowego z adresem WYŁ. nie można łączyć z synchronizacją ani pojedynczym poleceniem.",
+      "dual_pulse_requires_output_bits": "Adresy WŁ. i WYŁ. muszą być zapisywalnymi adresami BIT (Q, M lub DB).",
+      "dual_pulse_invalid_feedback": "Informacja zwrotna musi mieć adres BIT inny niż oba wyjścia impulsowe."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",

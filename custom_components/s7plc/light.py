@@ -16,6 +16,7 @@ from .const import (
     CONF_BRIGHTNESS_STATE_ADDRESS,
     CONF_COMMAND_ADDRESS,
     CONF_LIGHTS,
+    CONF_OFF_COMMAND_ADDRESS,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
@@ -48,7 +49,10 @@ async def async_setup_entry(
     entities = []
     for item in entry.options.get(CONF_LIGHTS, []):
         state_address = item.get(CONF_STATE_ADDRESS)
-        if not state_address:
+        off_command_address = item.get(CONF_OFF_COMMAND_ADDRESS)
+        if not state_address and not (
+            off_command_address and item.get(CONF_COMMAND_ADDRESS)
+        ):
             continue
 
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
@@ -63,15 +67,18 @@ async def async_setup_entry(
             CONF_BRIGHTNESS_COMMAND_ADDRESS, brightness_state_address
         )
 
-        name = item.get(CONF_NAME) or default_entity_name(state_address)
+        name = item.get(CONF_NAME) or default_entity_name(
+            state_address or command_address
+        )
         area = item.get(CONF_AREA)
         scan_interval = item.get(CONF_SCAN_INTERVAL)
 
-        topic = f"light:{state_address}"
+        topic = f"light:{state_address or item[CONF_UID]}"
         unique_id = item[CONF_UID]
 
-        # Always register the boolean on/off topic
-        await coord.add_item(topic, state_address, scan_interval)
+        # Command-only entities have no boolean PLC read topic.
+        if state_address:
+            await coord.add_item(topic, state_address, scan_interval)
 
         # If dimmer, also register the brightness topic
         is_dimmer = brightness_state_address is not None
@@ -97,6 +104,7 @@ async def async_setup_entry(
                 area,
                 brightness_conversion,
                 single_fire_command=single_fire_command,
+                off_command_address=off_command_address,
             )
         )
 
@@ -125,7 +133,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         unique_id: str,
         device_info: DeviceInfo,
         topic: str,
-        state_address: str,
+        state_address: str | None,
         command_address: str,
         sync_state: bool = False,
         pulse_command: bool = False,
@@ -135,6 +143,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
         suggested_area_id: str | None = None,
         brightness_conversion: dict | None = None,
         single_fire_command: bool = False,
+        off_command_address: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -147,6 +156,7 @@ class S7Light(S7BoolSyncEntity, LightEntity):
             sync_state=sync_state,
             pulse_command=pulse_command,
             single_fire_command=single_fire_command,
+            off_command_address=off_command_address,
             pulse_duration=pulse_duration,
             suggested_area_id=suggested_area_id,
         )
