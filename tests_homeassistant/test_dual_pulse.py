@@ -22,6 +22,7 @@ async def test_dual_pulse_services_reload_and_feedback(
         "name": "Dual output",
         "command_address": "Q1.0",
         "off_command_address": "Q1.1",
+        "pulse_command": True,
         "pulse_duration": 0.1,
     }
     if feedback:
@@ -42,6 +43,7 @@ async def test_dual_pulse_services_reload_and_feedback(
     assert hass.states.get(entity_id).state == (
         STATE_OFF if feedback else STATE_UNKNOWN
     )
+    assert hass.states.get(entity_id).attributes["pulse_command"] is True
     if not feedback:
         assert hass.states.get(entity_id).attributes["assumed_state"] is True
         plc_client.read.assert_not_awaited()
@@ -102,6 +104,7 @@ async def test_unload_waits_for_active_pulse_reset(
                     "uid": "dual",
                     "command_address": "Q1.0",
                     "off_command_address": "Q1.1",
+                    "pulse_command": True,
                     "pulse_duration": 0.1,
                 }
             ]

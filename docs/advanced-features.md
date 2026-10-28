@@ -84,7 +84,7 @@ The **Pulse Command Mode** feature is available for `switch` and `light` entitie
 
 ### How it Works
 
-When `pulse_command` is enabled:
+When `pulse_command` is enabled without an OFF address:
 
 1. **Momentary activation**: Instead of writing a continuous state (True or False), the integration sends a brief pulse
 2. **Automatic reset**: The command address is written to `True`, held for the configured duration, then automatically reset to `False`
@@ -161,38 +161,17 @@ Both features use the same underlying pulse mechanism, but differ in how they pr
 
 ---
 
-## Single-fire Command Mode
+### Optional OFF pulse address
 
-Switches and lights offer a fourth **Single-fire control** option beside **Pulse control**
-in the panel's control behavior selector. Choose it when the PLC handles resetting
-its command bit after accepting a toggle command.
-
-Like pulse mode, `turn_on` sends a command only when the read state is off, and
-`turn_off` only when it is on. Both commands write `True` exactly once through the
-normal write batching path, then request a state refresh. There is no pulse delay,
-no `False` write and no command/state synchronization. The displayed state still
-comes from the state address. Brightness writes for dimmable lights are unchanged.
-
-Configure `single_fire_command: true` for the selected switch or light in YAML,
-or select **Single-fire control** in the panel. Use a feedback address representing
-the actual device state and a command bit that your PLC resets. This option cannot
-be combined with `pulse_command` or `sync_state`; `pulse_duration` is unused.
-
-This is opt-in. Existing direct, synchronized and timed-pulse configurations keep
-their behavior and do not require a migration. It removes the integration's pulse
-wait and reset write; total scene time still depends on HA dispatch and PLC writes.
-
----
-
-## Separate ON/OFF Pulses
-
-For relays with independent SET and RESET inputs, select **Separate ON/OFF pulses**
-in a switch or light editor. Enter the ON output in **Command address**, the OFF
-output in **OFF command address**, and optionally a separate **State address**.
-The same fields work in the entity YAML editor:
+Pulse control can also operate relays with independent SET and RESET inputs.
+Select the existing **Pulse control** option, enter the ON output in **Command
+address**, and fill in **OFF address (optional)**. Leave the OFF field empty to
+keep the existing single-address behavior. No additional mode is required.
+The same settings work in the entity YAML editor:
 
 ```yaml
 name: Hall light
+pulse_command: true
 command_address: Q1.0
 off_command_address: Q1.1
 state_address: I1.3
@@ -201,8 +180,10 @@ pulse_duration: 0.5
 
 `turn_on` pulses `Q1.0`; `turn_off` pulses `Q1.1`. The two command addresses must
 be distinct writable BITs in Q, M or DB memory. Feedback, when supplied, must be
-a BIT different from both outputs. `sync_state`, `pulse_command` and
-`single_fire_command` cannot be enabled together with this mode.
+a BIT different from both outputs. `pulse_command: true` is used for both one-
+and two-address pulse control; an OFF address also enables that flag when older
+configurations are saved. `sync_state` and `single_fire_command` remain incompatible
+with pulse control.
 
 Every explicit ON or OFF request sends its own pulse, even when the last feedback
 sample already matches. Commands for the same entity run in order: the next
@@ -230,6 +211,29 @@ length in the PLC and interlock the outputs there. Use each output pair for one
 entity; serialization does not coordinate other entities, direct write services,
 external clients or PLC logic. For PLC-owned pulse timing, use command bits handled
 and reset by the PLC instead of relying on network-timed physical outputs.
+
+---
+
+## Single-fire Command Mode
+
+Switches and lights offer a fourth **Single-fire control** option beside **Pulse control**
+in the panel's control behavior selector. Choose it when the PLC handles resetting
+its command bit after accepting a toggle command.
+
+Like single-address pulse mode, `turn_on` sends a command only when the read state is off, and
+`turn_off` only when it is on. Both commands write `True` exactly once through the
+normal write batching path, then request a state refresh. There is no pulse delay,
+no `False` write and no command/state synchronization. The displayed state still
+comes from the state address. Brightness writes for dimmable lights are unchanged.
+
+Configure `single_fire_command: true` for the selected switch or light in YAML,
+or select **Single-fire control** in the panel. Use a feedback address representing
+the actual device state and a command bit that your PLC resets. This option cannot
+be combined with `pulse_command` or `sync_state`; `pulse_duration` is unused.
+
+This is opt-in. Existing direct, synchronized and timed-pulse configurations keep
+their behavior and do not require a migration. It removes the integration's pulse
+wait and reset write; total scene time still depends on HA dispatch and PLC writes.
 
 ---
 

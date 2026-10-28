@@ -388,19 +388,19 @@
           },
           "state_address": {
             "label": "Zustandsvariable",
-            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0). Bei getrennten EIN/AUS-Impulsen optional. Ohne Rückmeldung wird der Zustand angenommen, ist nach dem Neuladen unbekannt und erfasst keine externen Änderungen."
+            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0). Optional, wenn eine AUS-Adresse konfiguriert ist. Ohne Rückmeldung nimmt Home Assistant den Zustand nach einem erfolgreichen Befehl an und erkennt keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsvariable",
-            "description": "SPS-Adresse zum Schreiben von Befehlen (optional). Wenn es weggelassen wird, wird nur der Zustand gelesen."
+            "description": "Adresse für Befehle oder für den EIN-Impuls, wenn eine AUS-Adresse festgelegt ist. Ohne Angabe wird die Zustandsadresse verwendet."
           },
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden. Minimum: 0,1s, Maximum: 60s."
           },
           "off_command_address": {
-            "label": "AUS-Befehlsadresse",
-            "description": "Separates beschreibbares BIT für den AUS-Impuls. Die obige Befehlsadresse sendet den EIN-Impuls."
+            "label": "AUS-Adresse (optional)",
+            "description": "Nur verwenden, wenn das Ausschalten einen separaten Ausgang erfordert. Leer lassen, um dieselbe Befehlsadresse für EIN und AUS zu verwenden."
           }
         }
       },
@@ -622,11 +622,11 @@
           },
           "state_address": {
             "label": "Statusadresse (ein/aus)",
-            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0). Bei getrennten EIN/AUS-Impulsen optional. Ohne Rückmeldung wird der Zustand angenommen, ist nach dem Neuladen unbekannt und erfasst keine externen Änderungen."
+            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0). Optional, wenn eine AUS-Adresse konfiguriert ist. Ohne Rückmeldung nimmt Home Assistant den Zustand nach einem erfolgreichen Befehl an und erkennt keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsadresse (ein/aus)",
-            "description": "Boolesche PLC-Adresse zum Schreiben von Ein/Aus-Befehlen (optional). Wenn leer, wird die Statusadresse verwendet."
+            "description": "Adresse für Befehle oder für den EIN-Impuls, wenn eine AUS-Adresse festgelegt ist. Ohne Angabe wird die Zustandsadresse verwendet."
           },
           "brightness_state_address": {
             "label": "Helligkeits-Statusadresse",
@@ -641,8 +641,8 @@
             "description": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s."
           },
           "off_command_address": {
-            "label": "AUS-Befehlsadresse",
-            "description": "Separates beschreibbares BIT für den AUS-Impuls. Die obige Befehlsadresse sendet den EIN-Impuls."
+            "label": "AUS-Adresse (optional)",
+            "description": "Nur verwenden, wenn das Ausschalten einen separaten Ausgang erfordert. Leer lassen, um dieselbe Befehlsadresse für EIN und AUS zu verwenden."
           }
         },
         "mode": {
@@ -1060,15 +1060,11 @@
         },
         "pulse": {
           "title": "Impulssteuerung",
-          "description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten."
+          "description": "Impulse zum Ein- und Ausschalten senden. Bei Geräten mit zwei Ausgängen kann eine separate AUS-Adresse angegeben werden."
         },
         "single_fire": {
           "title": "Einmaliger Befehl",
           "description": "Schreibt ON einmal, nur wenn der gewünschte Zustand vom aktuellen Zustand abweicht. Die SPS setzt das Befehlsbit zurück; keine Wartezeit und kein OFF-Schreibvorgang."
-        },
-        "dual_pulse": {
-          "title": "Getrennte EIN/AUS-Impulse",
-          "description": "Ein Impuls an die EIN-Adresse schaltet ein, ein Impuls an die AUS-Adresse schaltet aus. Die Rückmeldung ist optional; ohne sie zeigt Home Assistant nach einem erfolgreichen Befehl einen angenommenen Zustand. Die Impulsdauer bei Verbindungsfehlern in der SPS begrenzen."
         }
       }
     },
@@ -1316,7 +1312,7 @@
       "invalid_temperature_limits": "Die Mindesttemperatur muss unter der Höchsttemperatur liegen und die Schrittweite größer als 0 sein.",
       "dual_pulse_requires_on_address": "Getrennte EIN/AUS-Impulse erfordern eine explizite EIN-Befehlsadresse.",
       "dual_pulse_same_address": "Die EIN- und AUS-Befehlsadressen müssen unterschiedlich sein.",
-      "dual_pulse_conflict": "Getrennte EIN/AUS-Impulse können nicht mit Synchronisierung, Umschaltimpulsen oder Einzelbefehlen kombiniert werden.",
+      "dual_pulse_conflict": "Impulssteuerung mit AUS-Adresse kann nicht mit Synchronisierung oder Einzelbefehlen kombiniert werden.",
       "dual_pulse_requires_output_bits": "Die EIN- und AUS-Adressen müssen beschreibbare BIT-Adressen sein (Q, M oder DB).",
       "dual_pulse_invalid_feedback": "Die Rückmeldung muss eine BIT-Adresse sein, die sich von beiden Impulsausgängen unterscheidet."
     },

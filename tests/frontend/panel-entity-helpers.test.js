@@ -36,6 +36,17 @@ describe("entity configuration helpers", () => {
     }
   });
 
+  test("an optional OFF output extends pulse control without another mode", () => {
+    const { APPLY_CONTROL_MODE, CONTROL_MODE_FROM_ENTITY } = getPanelTestHelpers();
+    const config = { command_address: "Q1.0", off_command_address: "Q1.1", pulse_command: false };
+    expect(CONTROL_MODE_FROM_ENTITY(config)).toBe("pulse");
+    expect(APPLY_CONTROL_MODE(config, "pulse")).toMatchObject({ pulse_command: true, off_command_address: "Q1.1" });
+    for (const mode of ["direct", "sync", "single_fire"]) {
+      expect(APPLY_CONTROL_MODE(config, mode)).not.toHaveProperty("off_command_address");
+    }
+    expect(config.pulse_command).toBe(false);
+  });
+
   test("infers dimmable mode only from a brightness state address", () => {
     const { LIGHT_MODE_FROM_ENTITY } = getPanelTestHelpers();
     expect([

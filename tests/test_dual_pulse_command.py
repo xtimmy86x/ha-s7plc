@@ -51,7 +51,8 @@ async def test_explicit_pulses_never_use_stale_feedback_guard(
     ]
     assert entity.is_on is initial
     assert mock_coordinator.refresh_count == 1
-    assert entity.extra_state_attributes["dual_pulse_command"] is True
+    assert entity.extra_state_attributes["pulse_command"] is True
+    assert "dual_pulse_command" not in entity.extra_state_attributes
     assert entity.extra_state_attributes["s7_off_command_address"] == OFF
     assert "pulse_duration" in entity.extra_state_attributes
 
@@ -188,15 +189,19 @@ async def test_assumed_state_only_changes_after_success(entity, mock_coordinator
 
 @pytest.mark.parametrize("entity_type", ["switches", "lights"])
 @pytest.mark.parametrize("feedback", [True, False])
-def test_config_round_trip_and_expected_entity(entity_type, feedback):
+@pytest.mark.parametrize("pulse_flag", [None, False, True])
+def test_config_round_trip_and_expected_entity(entity_type, feedback, pulse_flag):
     config = {"uid": "dual", "command_address": ON, "off_command_address": OFF}
     if feedback:
         config["state_address"] = STATE
+    if pulse_flag is not None:
+        config["pulse_command"] = pulse_flag
     original = deepcopy(config)
     validate_entity_fields(entity_type, config)
     item, errors = build_entity_item(entity_type, config, options={})
     assert not errors
     assert item["off_command_address"] == OFF
+    assert item["pulse_command"] is True
     assert bool(item.get("state_address")) is feedback
     assert build_entity_item(entity_type, item, options={}) == (item, {})
     assert "dual" in build_expected_unique_ids("test", {entity_type: [config]})
@@ -216,7 +221,6 @@ def test_config_round_trip_and_expected_entity(entity_type, feedback):
         ({"state_address": OFF}, "dual_pulse_invalid_feedback"),
         ({"state_address": "IB1"}, "dual_pulse_invalid_feedback"),
         ({"sync_state": True}, "dual_pulse_conflict"),
-        ({"pulse_command": True}, "dual_pulse_conflict"),
         ({"single_fire_command": True}, "dual_pulse_conflict"),
         ({"pulse_duration": -1}, "invalid_pulse_duration"),
         ({"pulse_duration": 61}, "invalid_pulse_duration"),

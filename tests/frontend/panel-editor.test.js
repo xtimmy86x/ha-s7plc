@@ -372,7 +372,7 @@ describe("entity editor", () => {
     const dialog = currentDialog();
     const form = dialog.querySelector("form");
     expect([...form.querySelectorAll('input[name="control_behavior"]')].map(input => input.value))
-      .toEqual(["direct", "sync", "pulse", "single_fire", "dual_pulse"]);
+      .toEqual(["direct", "sync", "pulse", "single_fire"]);
     const input = choose(form, "control_behavior", "single_fire");
     expect(input.closest("label").textContent).toContain("Single-fire control");
     expect(isHidden(form, "pulse_duration")).toBe(true);

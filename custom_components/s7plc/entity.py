@@ -566,7 +566,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             pulse_command: Whether to send pulse instead of on/off commands
             pulse_duration: Duration of pulse in seconds
             single_fire_command: Write True once; the PLC resets the command bit
-            off_command_address: Separate timed OFF output; enables dual-pulse mode
+            off_command_address: Optional separate OFF output for pulse commands
             suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(
@@ -586,7 +586,7 @@ class S7BoolSyncEntity(S7SyncEntity):
         self._optimistic_state: bool | None = None
         self._attr_assumed_state = bool(off_command_address and not state_address)
         self._single_fire_command = single_fire_command
-        self._pulse_command = pulse_command
+        self._pulse_command = bool(pulse_command or off_command_address)
         self._pulse_duration = pulse_duration
         # Command modes do not synchronize PLC feedback back to the command bit.
         # Sync requires different state/command addresses to be useful.
@@ -627,8 +627,6 @@ class S7BoolSyncEntity(S7SyncEntity):
             attrs["s7_command_address"] = self._command_address.upper()
         if self._off_command_address:
             attrs["s7_off_command_address"] = self._off_command_address.upper()
-            attrs["dual_pulse_command"] = True
-            attrs["pulse_duration"] = self._pulse_duration
         if self._pulse_command:
             attrs.update(
                 {

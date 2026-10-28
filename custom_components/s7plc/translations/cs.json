@@ -388,19 +388,19 @@
           },
           "state_address": {
             "label": "Stavová adresa",
-            "description": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0). Volitelná v režimu samostatných impulzů ZAP/VYP. Bez zpětné vazby je stav předpokládaný, po opětovném načtení neznámý a neodráží vnější změny."
+            "description": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0). Volitelná, pokud je nastavena adresa VYP. Bez zpětné vazby Home Assistant předpokládá stav po úspěšném příkazu a nerozpozná vnější změny."
           },
           "command_address": {
             "label": "Příkazová adresa",
-            "description": "Adresa v PLC pro zápis příkazů (volitelné). Pokud není zadána, čte se pouze stav."
+            "description": "Adresa příkazů nebo impulzu ZAP, pokud je nastavena adresa VYP. Při vynechání se použije adresa stavu."
           },
           "pulse_duration": {
             "label": "Doba trvání pulzu (s)",
             "description": "Doba trvání pulzu v sekundách. Minimum: 0,1s, Maximum: 60s."
           },
           "off_command_address": {
-            "label": "Adresa příkazu VYP",
-            "description": "Samostatný zapisovatelný BIT pro impulz VYP. Výše uvedená adresa příkazu vysílá impulz ZAP."
+            "label": "Adresa VYP (volitelná)",
+            "description": "Použijte pouze tehdy, když vypnutí vyžaduje samostatný výstup. Ponechte prázdné pro použití stejné adresy příkazu pro ZAP i VYP."
           }
         }
       },
@@ -622,11 +622,11 @@
           },
           "state_address": {
             "label": "Stavová adresa (zap/vyp)",
-            "description": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0). Volitelná v režimu samostatných impulzů ZAP/VYP. Bez zpětné vazby je stav předpokládaný, po opětovném načtení neznámý a neodráží vnější změny."
+            "description": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0). Volitelná, pokud je nastavena adresa VYP. Bez zpětné vazby Home Assistant předpokládá stav po úspěšném příkazu a nerozpozná vnější změny."
           },
           "command_address": {
             "label": "Příkazová adresa (zap/vyp)",
-            "description": "Booleovská PLC adresa pro zápis příkazů zap/vyp (volitelné). Pokud je prázdná, použije se stavová adresa."
+            "description": "Adresa příkazů nebo impulzu ZAP, pokud je nastavena adresa VYP. Při vynechání se použije adresa stavu."
           },
           "brightness_state_address": {
             "label": "Stavová adresa jasu",
@@ -641,8 +641,8 @@
             "description": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s."
           },
           "off_command_address": {
-            "label": "Adresa příkazu VYP",
-            "description": "Samostatný zapisovatelný BIT pro impulz VYP. Výše uvedená adresa příkazu vysílá impulz ZAP."
+            "label": "Adresa VYP (volitelná)",
+            "description": "Použijte pouze tehdy, když vypnutí vyžaduje samostatný výstup. Ponechte prázdné pro použití stejné adresy příkazu pro ZAP i VYP."
           }
         },
         "mode": {
@@ -1060,15 +1060,11 @@
         },
         "pulse": {
           "title": "Pulzní ovládání",
-          "description": "Odešle časovaný pulz na příkazovou adresu namísto udržování hodnoty ON/OFF."
+          "description": "Vysílá impulzy pro zapnutí a vypnutí. Pokud zařízení používá dva výstupy, lze zadat samostatnou adresu VYP."
         },
         "single_fire": {
           "title": "Jednorázový příkaz",
           "description": "Zapíše ON jednou, pouze pokud se požadovaný stav liší od aktuálního. PLC resetuje příkazový bit; bez čekání a zápisu OFF."
-        },
-        "dual_pulse": {
-          "title": "Samostatné impulzy ZAP/VYP",
-          "description": "Impulz na adresu ZAP zapne a impulz na adresu VYP vypne. Zpětná vazba je volitelná; bez ní Home Assistant po úspěšném příkazu zobrazuje předpokládaný stav. Pro případ výpadku spojení nastavte omezení délky impulzu v PLC."
         }
       }
     },
@@ -1316,7 +1312,7 @@
       "invalid_temperature_limits": "Minimální teplota musí být nižší než maximální a krok musí být větší než 0.",
       "dual_pulse_requires_on_address": "Samostatné impulzy ZAP/VYP vyžadují výslovnou adresu příkazu ZAP.",
       "dual_pulse_same_address": "Adresy příkazů ZAP a VYP musí být různé.",
-      "dual_pulse_conflict": "Samostatné impulzy ZAP/VYP nelze kombinovat se synchronizací, přepínacími impulzy ani jednorázovým příkazem.",
+      "dual_pulse_conflict": "Impulzní řízení s adresou VYP nelze kombinovat se synchronizací ani jednorázovým příkazem.",
       "dual_pulse_requires_output_bits": "Adresy ZAP a VYP musí být zapisovatelné adresy BIT (Q, M nebo DB).",
       "dual_pulse_invalid_feedback": "Zpětná vazba musí mít adresu BIT odlišnou od obou impulzních výstupů."
     },

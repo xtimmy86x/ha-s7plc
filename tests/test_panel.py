@@ -309,12 +309,12 @@ def test_panel_control_mode_is_context_aware() -> None:
         "NORMALIZE_ADDRESS(entity.command_address);" in source
     )
     assert "sync.disabled=!canSync" in source
-    assert "!['pulse','dual_pulse'].includes(selected)" in source
+    assert "!pulse" in source
     assert '[data-field="pulse_duration"]' in source
     assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
     assert 'name="pulse_command" type="checkbox"' not in source
-    assert "choices||['direct','sync','pulse','single_fire','dual_pulse']" in source
+    assert "choices||['direct','sync','pulse','single_fire']" in source
     assert "sync_requires_command" in source
     assert "data-sync-reason" in source
 

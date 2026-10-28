@@ -968,9 +968,13 @@ class EntityConfigBuilder:
 
         # Add boolean flags — mutually exclusive
         sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
-        pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
+        # An OFF address extends pulse control; also accept initial PR configs
+        # which stored the address without enabling the pulse flag.
+        pulse_command = bool(
+            user_input.get(CONF_PULSE_COMMAND, False) or off_command_address
+        )
         single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
-        if off_command_address and (sync_state or pulse_command or single_fire_command):
+        if off_command_address and (sync_state or single_fire_command):
             return None, {"base": "dual_pulse_conflict"}
         if single_fire_command and (sync_state or pulse_command):
             return None, {"base": "single_fire_conflict"}
@@ -988,7 +992,7 @@ class EntityConfigBuilder:
             item[CONF_SINGLE_FIRE_COMMAND] = True
 
         # Add pulse duration only if pulse command is enabled
-        if pulse_command or off_command_address:
+        if pulse_command:
             errors = self._apply_optional_pulse(
                 item, CONF_PULSE_DURATION, user_input.get(CONF_PULSE_DURATION)
             )

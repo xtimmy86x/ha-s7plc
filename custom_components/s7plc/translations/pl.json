@@ -388,19 +388,19 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0). Opcjonalny w trybie oddzielnych impulsów WŁ./WYŁ. Bez informacji zwrotnej stan jest zakładany, nieznany po ponownym załadowaniu i nie odzwierciedla zmian zewnętrznych."
+            "description": "Adres odczytu stanu (np. Q0.0, DB20,X0.0). Opcjonalny, gdy skonfigurowano adres WYŁ. Bez informacji zwrotnej Home Assistant zakłada stan po udanym poleceniu i nie wykrywa zmian zewnętrznych."
           },
           "command_address": {
             "label": "Adres zapisu",
-            "description": "Opcjonalny adres zapisu. Jeśli pusty, użyty zostanie adres odczytu."
+            "description": "Adres poleceń lub impulsu WŁ., jeśli ustawiono adres WYŁ. Jeśli pominięto, używany jest adres stanu."
           },
           "pulse_duration": {
             "label": "Długość impulsu (s)",
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
           },
           "off_command_address": {
-            "label": "Adres polecenia WYŁ.",
-            "description": "Oddzielny zapisywalny BIT dla impulsu WYŁ. Powyższy adres polecenia wysyła impuls WŁ."
+            "label": "Adres WYŁ. (opcjonalny)",
+            "description": "Używaj tylko wtedy, gdy wyłączenie wymaga oddzielnego wyjścia. Pozostaw puste, aby używać tego samego adresu polecenia do włączania i wyłączania."
           }
         }
       },
@@ -622,11 +622,11 @@
           },
           "state_address": {
             "label": "Adres odczytu",
-            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1). Opcjonalny w trybie oddzielnych impulsów WŁ./WYŁ. Bez informacji zwrotnej stan jest zakładany, nieznany po ponownym załadowaniu i nie odzwierciedla zmian zewnętrznych."
+            "description": "Adres odczytu stanu (np. Q0.0, DB1,X0.1). Opcjonalny, gdy skonfigurowano adres WYŁ. Bez informacji zwrotnej Home Assistant zakłada stan po udanym poleceniu i nie wykrywa zmian zewnętrznych."
           },
           "command_address": {
             "label": "Adres zapisu",
-            "description": "Opcjonalny adres zapisu. Jeśli brak, użyty zostanie adres odczytu."
+            "description": "Adres poleceń lub impulsu WŁ., jeśli ustawiono adres WYŁ. Jeśli pominięto, używany jest adres stanu."
           },
           "brightness_state_address": {
             "label": "Adres odczytu jasności",
@@ -641,8 +641,8 @@
             "description": "Długość impulsu (0.1-60s), domyślnie (0.5s)."
           },
           "off_command_address": {
-            "label": "Adres polecenia WYŁ.",
-            "description": "Oddzielny zapisywalny BIT dla impulsu WYŁ. Powyższy adres polecenia wysyła impuls WŁ."
+            "label": "Adres WYŁ. (opcjonalny)",
+            "description": "Używaj tylko wtedy, gdy wyłączenie wymaga oddzielnego wyjścia. Pozostaw puste, aby używać tego samego adresu polecenia do włączania i wyłączania."
           }
         },
         "mode": {
@@ -1060,15 +1060,11 @@
         },
         "pulse": {
           "title": "Sterowanie impulsowe",
-          "description": "W sterowaniu impulsowym na adres zapisu wysyłany jest impuls (zał./wył.) zamiast zmiany stanu na przeciwny."
+          "description": "Wysyłaj impulsy, aby włączać i wyłączać. Jeśli urządzenie używa dwóch wyjść, można podać oddzielny adres WYŁ."
         },
         "single_fire": {
           "title": "Polecenie jednorazowe",
           "description": "Zapisuje ON jeden raz, tylko gdy żądany stan różni się od bieżącego. PLC resetuje bit polecenia; bez opóźnienia i zapisu OFF."
-        },
-        "dual_pulse": {
-          "title": "Oddzielne impulsy WŁ./WYŁ.",
-          "description": "Impuls na adres WŁ. włącza, a impuls na adres WYŁ. wyłącza. Informacja zwrotna jest opcjonalna; bez niej Home Assistant pokazuje stan zakładany po udanym poleceniu. Ustaw ograniczenie czasu impulsu w PLC na wypadek utraty połączenia."
         }
       }
     },
@@ -1316,7 +1312,7 @@
       "invalid_temperature_limits": "Temperatura minimalna musi być niższa od maksymalnej, a krok musi być większy od 0.",
       "dual_pulse_requires_on_address": "Oddzielne impulsy WŁ./WYŁ. wymagają jawnego adresu polecenia WŁ.",
       "dual_pulse_same_address": "Adresy poleceń WŁ. i WYŁ. muszą być różne.",
-      "dual_pulse_conflict": "Oddzielnych impulsów WŁ./WYŁ. nie można łączyć z synchronizacją, impulsami przełączającymi ani pojedynczym poleceniem.",
+      "dual_pulse_conflict": "Sterowania impulsowego z adresem WYŁ. nie można łączyć z synchronizacją ani pojedynczym poleceniem.",
       "dual_pulse_requires_output_bits": "Adresy WŁ. i WYŁ. muszą być zapisywalnymi adresami BIT (Q, M lub DB).",
       "dual_pulse_invalid_feedback": "Informacja zwrotna musi mieć adres BIT inny niż oba wyjścia impulsowe."
     },
