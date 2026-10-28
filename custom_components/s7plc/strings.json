@@ -388,7 +388,7 @@
           },
           "state_address": {
             "label": "State address",
-            "description": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0)."
+            "description": "PLC address to read the current state (e.g., Q0.0, DB20,X0.0). Optional in separate ON/OFF pulse mode. Without feedback the state is assumed, starts unknown after reload, and cannot reflect external changes."
           },
           "command_address": {
             "label": "Command address",
@@ -397,6 +397,10 @@
           "pulse_duration": {
             "label": "Pulse duration (s)",
             "description": "Duration of the pulse in seconds. Minimum: 0.1s, Maximum: 60s."
+          },
+          "off_command_address": {
+            "label": "OFF command address",
+            "description": "Separate writable BIT for the OFF pulse. The command address above sends the ON pulse."
           }
         }
       },
@@ -618,7 +622,7 @@
           },
           "state_address": {
             "label": "State address (on/off)",
-            "description": "PLC boolean address to read the on/off state (e.g., DB1,X0.0)."
+            "description": "PLC boolean address to read the on/off state (e.g., DB1,X0.0). Optional in separate ON/OFF pulse mode. Without feedback the state is assumed, starts unknown after reload, and cannot reflect external changes."
           },
           "command_address": {
             "label": "Command address (on/off)",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Pulse duration (s)",
             "description": "Duration of the pulse in seconds (0.1-60s, supports decimals). Default: 0.5s."
+          },
+          "off_command_address": {
+            "label": "OFF command address",
+            "description": "Separate writable BIT for the OFF pulse. The command address above sends the ON pulse."
           }
         },
         "mode": {
@@ -1057,6 +1065,10 @@
         "single_fire": {
           "title": "Single-fire control",
           "description": "Write ON once only when the requested state differs from the current state. The PLC resets the command bit; no timed pulse or OFF write is sent."
+        },
+        "dual_pulse": {
+          "title": "Separate ON/OFF pulses",
+          "description": "Pulse the ON address to switch on and the OFF address to switch off. Feedback is optional; without it, Home Assistant shows an assumed state after a successful command. Configure a PLC-side pulse limit for connection failures."
         }
       }
     },
@@ -1292,7 +1304,15 @@
       "invalid_bulk_value_multiplier": "Enter a finite numeric multiplier.",
       "invalid_bulk_real_precision": "Enter a whole number of decimals from 0 to 6.",
       "invalid_bulk_write_multiplier": "A writable Number cannot use a zero multiplier.",
-      "bulk_edit_invalid": "Resolve the errors shown in the preview before applying. No entities were changed."
+      "bulk_edit_invalid": "Resolve the errors shown in the preview before applying. No entities were changed.",
+      "invalid_pulse_duration": "Enter a pulse duration between 0.1 and 60 seconds, or leave it empty to use 0.5 s.",
+      "invalid_operate_time": "Enter an operating time of 0 seconds or more, or leave it empty to use 60 s.",
+      "invalid_temperature_limits": "The minimum temperature must be lower than the maximum and the step must be greater than 0.",
+      "dual_pulse_requires_on_address": "Separate ON/OFF pulses require an explicit ON command address.",
+      "dual_pulse_same_address": "The ON and OFF command addresses must be different.",
+      "dual_pulse_conflict": "Separate ON/OFF pulses cannot be combined with synchronization, single-button pulses or single-fire control.",
+      "dual_pulse_requires_output_bits": "The ON and OFF addresses must be writable BIT addresses (Q, M or DB).",
+      "dual_pulse_invalid_feedback": "Feedback must be a BIT address different from both pulse outputs."
     },
     "editor": {
       "configuration_yaml": "Advanced YAML",
@@ -1604,6 +1624,20 @@
         "unsupported_fields": "These fields cannot be updated live: {fields}.",
         "invalid_live_config": "These settings could not be prepared for a live update: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Default",
+      "custom": "Custom",
+      "reset": "Restore default",
+      "empty_uses": "Empty: {value}.",
+      "leave_empty": "Leave empty to restore the default: {value}.",
+      "plc_scan": "the PLC scan interval ({value})",
+      "decimals": "decimal places: {count}",
+      "unit_from_class": "{unit}, default unit for {class}",
+      "no_unit": "no unit",
+      "type_limit": "{value}, {type} limit",
+      "logo_time_limit": "{value}, LOGO! time limit",
+      "required_real": "Required for REAL/LREAL addresses."
     }
   },
   "selector": {

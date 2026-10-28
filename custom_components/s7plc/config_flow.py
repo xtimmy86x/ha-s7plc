@@ -46,6 +46,7 @@ from .const import (
     CONF_REMOTE_TSAP,
     CONF_SCAN_INTERVAL,
     CONF_SLOT,
+    CONFIG_ENTRY_MINOR_VERSION,
     CONNECTION_CONTROL_STORAGE_VERSION,
     CONNECTION_TYPE_RACK_SLOT,
     CONNECTION_TYPE_TSAP,
@@ -461,6 +462,7 @@ class S7PLCConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for S7 PLC."""
 
     VERSION = 3
+    MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
     def __init__(self) -> None:
         """Initialise the flow."""

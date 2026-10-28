@@ -125,7 +125,7 @@ To enable pulse command mode for a switch or light:
 4. Enter the `state_address` (the PLC address to read the actual state)
 5. Enter the `command_address` (the PLC address to write commands)
 6. **Enable the `Pulse Command Mode` checkbox**
-7. Set the **`Pulse Duration`** (default: 0.5 seconds, range: 0.1-60 seconds)
+7. Set the **`Pulse Duration`** (range: 0.1-60 seconds, rounded to 0.1 s), or leave it empty to use the 0.5 second default. Values outside the range are rejected when saving.
 8. Save the configuration
 
 ### Pulse Duration Guidelines
@@ -181,6 +181,55 @@ be combined with `pulse_command` or `sync_state`; `pulse_duration` is unused.
 This is opt-in. Existing direct, synchronized and timed-pulse configurations keep
 their behavior and do not require a migration. It removes the integration's pulse
 wait and reset write; total scene time still depends on HA dispatch and PLC writes.
+
+---
+
+## Separate ON/OFF Pulses
+
+For relays with independent SET and RESET inputs, select **Separate ON/OFF pulses**
+in a switch or light editor. Enter the ON output in **Command address**, the OFF
+output in **OFF command address**, and optionally a separate **State address**.
+The same fields work in the entity YAML editor:
+
+```yaml
+name: Hall light
+command_address: Q1.0
+off_command_address: Q1.1
+state_address: I1.3
+pulse_duration: 0.5
+```
+
+`turn_on` pulses `Q1.0`; `turn_off` pulses `Q1.1`. The two command addresses must
+be distinct writable BITs in Q, M or DB memory. Feedback, when supplied, must be
+a BIT different from both outputs. `sync_state`, `pulse_command` and
+`single_fire_command` cannot be enabled together with this mode.
+
+Every explicit ON or OFF request sends its own pulse, even when the last feedback
+sample already matches. Commands for the same entity run in order: the next
+output cannot activate until the previous output is released. Pulse edges bypass
+write batching. The duration starts after the activation write is acknowledged;
+network latency and PLC retry time can extend the actual high time.
+
+With feedback, HA displays only the PLC state. Omit `state_address` to use assumed
+state: it starts unknown after setup/reload, changes only after a complete
+successful pulse, and becomes unknown after a failed pulse. It cannot detect
+physical buttons or other external state changes. No output bit is treated as
+feedback, and no previous assumed state is restored. A PLC with only these
+command-only entities still establishes a connection without reading a fake
+feedback address. Dimmable lights retain their independent brightness channel.
+
+Cancellation waits for the pulse and its reset to finish; unloading the entity
+also waits before disconnecting. A failed activation acknowledgement still causes
+a reset attempt. If reset fails, the next command must successfully release that
+output before activating another one. Failure is reported rather than publishing
+a successful assumed state. These pending resets are kept only in memory.
+
+**PLC-side protection is required:** Home Assistant cannot guarantee a reset after
+a network outage, process termination, power loss or forced shutdown. Limit pulse
+length in the PLC and interlock the outputs there. Use each output pair for one
+entity; serialization does not coordinate other entities, direct write services,
+external clients or PLC logic. For PLC-owned pulse timing, use command bits handled
+and reset by the PLC instead of relying on network-timed physical outputs.
 
 ---
 

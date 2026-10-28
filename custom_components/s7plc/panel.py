@@ -20,10 +20,19 @@ from .config_validation import build_entity_item
 from .const import (
     CONF_ENABLE_METRICS,
     CONF_PLC_FAMILY,
+    CONF_SCAN_INTERVAL,
     CONF_UID,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_OPERATE_TIME,
+    DEFAULT_PULSE_DURATION,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TEMP_STEP,
     DOMAIN,
     FRONTEND_BUILD,
     FRONTEND_MODULE,
+    MAX_PULSE_DURATION,
+    MIN_PULSE_DURATION,
     OPTION_KEYS,
     PLC_FAMILY_S7,
     VERSION,
@@ -308,6 +317,66 @@ def _selector_options() -> dict[str, Any]:
     }
 
 
+def _defaults_payload(entry: Any) -> dict[str, Any]:
+    """Return what the integration applies when an optional field is empty.
+
+    The panel shows these instead of keeping its own copy of the defaults.
+    """
+    from .entity_metadata import number_metadata, sensor_metadata
+    from .helpers import device_class_values
+    from .number_settings import DEFAULT_NUMBER_STEP, TIME_NUMBER_STEP
+    from .plc.address import DataType, get_numeric_limits
+    from .plc.plans import DEFAULT_REAL_PRECISION
+    from .value_conversion import LOGO_TIME_HHMM_LIMITS
+
+    def plain(value: Any) -> str:
+        return str(getattr(value, "value", value))
+
+    units = {
+        entity_type: {
+            device_class: plain(unit)
+            for device_class in device_class_values(entity_type)
+            if (
+                unit := number_metadata(device_class, None)[
+                    "_attr_native_unit_of_measurement"
+                ]
+            )
+        }
+        for entity_type in ("sensors", "numbers")
+    }
+    state_classes = {
+        device_class: plain(state_class)
+        for device_class in device_class_values("sensors")
+        if (
+            state_class := sensor_metadata(device_class, None, None)[
+                "_attr_state_class"
+            ]
+        )
+    }
+    return {
+        "scan_interval": float(
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        ),
+        "real_precision": DEFAULT_REAL_PRECISION,
+        "pulse_duration": DEFAULT_PULSE_DURATION,
+        "pulse_duration_range": [MIN_PULSE_DURATION, MAX_PULSE_DURATION],
+        "operate_time": float(DEFAULT_OPERATE_TIME),
+        "min_temp": DEFAULT_MIN_TEMP,
+        "max_temp": DEFAULT_MAX_TEMP,
+        "temp_step": DEFAULT_TEMP_STEP,
+        "number_limits": {
+            data_type.name: list(limits)
+            for data_type in DataType
+            if (limits := get_numeric_limits(data_type)) is not None
+        },
+        "logo_time_limits": list(LOGO_TIME_HHMM_LIMITS),
+        "number_step": DEFAULT_NUMBER_STEP,
+        "time_step": TIME_NUMBER_STEP,
+        "units": units,
+        "state_classes": state_classes,
+    }
+
+
 def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
     """Return the editable portion of a config entry."""
     runtime_data = getattr(entry, "runtime_data", None)
@@ -325,6 +394,7 @@ def _entry_payload(entry: Any, hass: Any = None) -> dict[str, Any]:
         "connected": bool(coordinator and coordinator.is_connected()),
         "entities": {key: list(entry.options.get(key, [])) for key in OPTION_KEYS},
         "selector_options": _selector_options(),
+        "defaults": _defaults_payload(entry),
         "plc_family": family,
         "logo_profile": (
             logo_profile_payload(family) if family != PLC_FAMILY_S7 else None

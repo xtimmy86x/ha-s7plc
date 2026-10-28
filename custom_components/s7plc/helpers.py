@@ -58,6 +58,7 @@ from .const import (
     CONF_CLIMATES,
     CONF_CLOSE_COMMAND_ADDRESS,
     CONF_CLOSING_STATE_ADDRESS,
+    CONF_COMMAND_ADDRESS,
     CONF_CONNECTION_TYPE,
     CONF_COOLING_OUTPUT_ADDRESS,
     CONF_COVERS,
@@ -69,6 +70,7 @@ from .const import (
     CONF_LOCAL_TSAP,
     CONF_MANUAL_CONNECTION_CONTROL,
     CONF_NUMBERS,
+    CONF_OFF_COMMAND_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
     CONF_POSITION_STATE_ADDRESS,
@@ -439,10 +441,12 @@ def _item_has_required_fields(option_key: str, item: Mapping[str, Any]) -> bool:
         return bool(item.get("start_address") and item.get("end_address"))
     if option_key == CONF_ENTITY_SYNC:
         return bool(item.get(CONF_ADDRESS) and item.get(CONF_SOURCE_ENTITY))
-    if option_key == CONF_SWITCHES:
-        return bool(item.get(CONF_STATE_ADDRESS))
-    if option_key == CONF_LIGHTS:
-        return bool(item.get(CONF_STATE_ADDRESS) or item.get(CONF_ADDRESS))
+    if option_key in (CONF_SWITCHES, CONF_LIGHTS):
+        return bool(
+            item.get(CONF_STATE_ADDRESS)
+            or (option_key == CONF_LIGHTS and item.get(CONF_ADDRESS))
+            or (item.get(CONF_COMMAND_ADDRESS) and item.get(CONF_OFF_COMMAND_ADDRESS))
+        )
     if option_key == CONF_COVERS:
         if item.get(CONF_POSITION_STATE_ADDRESS):
             return True

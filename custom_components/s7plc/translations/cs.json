@@ -388,7 +388,7 @@
           },
           "state_address": {
             "label": "Stavová adresa",
-            "description": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0)."
+            "description": "Adresa v PLC pro čtení aktuálního stavu (např. Q0.0, DB20,X0.0). Volitelná v režimu samostatných impulzů ZAP/VYP. Bez zpětné vazby je stav předpokládaný, po opětovném načtení neznámý a neodráží vnější změny."
           },
           "command_address": {
             "label": "Příkazová adresa",
@@ -397,6 +397,10 @@
           "pulse_duration": {
             "label": "Doba trvání pulzu (s)",
             "description": "Doba trvání pulzu v sekundách. Minimum: 0,1s, Maximum: 60s."
+          },
+          "off_command_address": {
+            "label": "Adresa příkazu VYP",
+            "description": "Samostatný zapisovatelný BIT pro impulz VYP. Výše uvedená adresa příkazu vysílá impulz ZAP."
           }
         }
       },
@@ -618,7 +622,7 @@
           },
           "state_address": {
             "label": "Stavová adresa (zap/vyp)",
-            "description": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0)."
+            "description": "Booleovská PLC adresa pro čtení stavu zap/vyp (např. DB1,X0.0). Volitelná v režimu samostatných impulzů ZAP/VYP. Bez zpětné vazby je stav předpokládaný, po opětovném načtení neznámý a neodráží vnější změny."
           },
           "command_address": {
             "label": "Příkazová adresa (zap/vyp)",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Délka pulsu (s)",
             "description": "Délka pulsu v sekundách (0,1-60s, podporuje desetinná čísla). Výchozí: 0,5s."
+          },
+          "off_command_address": {
+            "label": "Adresa příkazu VYP",
+            "description": "Samostatný zapisovatelný BIT pro impulz VYP. Výše uvedená adresa příkazu vysílá impulz ZAP."
           }
         },
         "mode": {
@@ -1057,6 +1065,10 @@
         "single_fire": {
           "title": "Jednorázový příkaz",
           "description": "Zapíše ON jednou, pouze pokud se požadovaný stav liší od aktuálního. PLC resetuje příkazový bit; bez čekání a zápisu OFF."
+        },
+        "dual_pulse": {
+          "title": "Samostatné impulzy ZAP/VYP",
+          "description": "Impulz na adresu ZAP zapne a impulz na adresu VYP vypne. Zpětná vazba je volitelná; bez ní Home Assistant po úspěšném příkazu zobrazuje předpokládaný stav. Pro případ výpadku spojení nastavte omezení délky impulzu v PLC."
         }
       }
     },
@@ -1298,7 +1310,15 @@
       "invalid_bulk_value_multiplier": "Zadejte konečný číselný násobitel.",
       "invalid_bulk_real_precision": "Zadejte celé číslo desetinných míst od 0 do 6.",
       "invalid_bulk_write_multiplier": "Zapisovatelná entita Number nemůže používat nulový násobitel.",
-      "bulk_edit_invalid": "Před použitím opravte chyby zobrazené v náhledu. Žádné entity nebyly změněny."
+      "bulk_edit_invalid": "Před použitím opravte chyby zobrazené v náhledu. Žádné entity nebyly změněny.",
+      "invalid_pulse_duration": "Zadejte délku pulzu od 0,1 do 60 sekund, nebo pole ponechte prázdné pro použití 0,5 s.",
+      "invalid_operate_time": "Zadejte dobu chodu 0 sekund nebo více, nebo pole ponechte prázdné pro použití 60 s.",
+      "invalid_temperature_limits": "Minimální teplota musí být nižší než maximální a krok musí být větší než 0.",
+      "dual_pulse_requires_on_address": "Samostatné impulzy ZAP/VYP vyžadují výslovnou adresu příkazu ZAP.",
+      "dual_pulse_same_address": "Adresy příkazů ZAP a VYP musí být různé.",
+      "dual_pulse_conflict": "Samostatné impulzy ZAP/VYP nelze kombinovat se synchronizací, přepínacími impulzy ani jednorázovým příkazem.",
+      "dual_pulse_requires_output_bits": "Adresy ZAP a VYP musí být zapisovatelné adresy BIT (Q, M nebo DB).",
+      "dual_pulse_invalid_feedback": "Zpětná vazba musí mít adresu BIT odlišnou od obou impulzních výstupů."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1604,6 +1624,20 @@
         "unsupported_fields": "Tato pole vyžadují opětovné načtení: {fields}.",
         "invalid_live_config": "Tato pole nebylo možné připravit k aktualizaci za běhu: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Výchozí",
+      "custom": "Vlastní",
+      "reset": "Obnovit výchozí",
+      "empty_uses": "Prázdné: {value}.",
+      "leave_empty": "Ponechte prázdné pro obnovení výchozí hodnoty: {value}.",
+      "plc_scan": "interval čtení PLC ({value})",
+      "decimals": "desetinná místa: {count}",
+      "unit_from_class": "{unit}, výchozí jednotka pro {class}",
+      "no_unit": "bez jednotky",
+      "type_limit": "{value}, limit typu {type}",
+      "logo_time_limit": "{value}, limit času LOGO!",
+      "required_real": "Povinné pro adresy REAL/LREAL."
     }
   },
   "selector": {

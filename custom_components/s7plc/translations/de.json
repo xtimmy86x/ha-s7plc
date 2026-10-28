@@ -388,7 +388,7 @@
           },
           "state_address": {
             "label": "Zustandsvariable",
-            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0)."
+            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0). Bei getrennten EIN/AUS-Impulsen optional. Ohne Rückmeldung wird der Zustand angenommen, ist nach dem Neuladen unbekannt und erfasst keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsvariable",
@@ -397,6 +397,10 @@
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden. Minimum: 0,1s, Maximum: 60s."
+          },
+          "off_command_address": {
+            "label": "AUS-Befehlsadresse",
+            "description": "Separates beschreibbares BIT für den AUS-Impuls. Die obige Befehlsadresse sendet den EIN-Impuls."
           }
         }
       },
@@ -618,7 +622,7 @@
           },
           "state_address": {
             "label": "Statusadresse (ein/aus)",
-            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0)."
+            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0). Bei getrennten EIN/AUS-Impulsen optional. Ohne Rückmeldung wird der Zustand angenommen, ist nach dem Neuladen unbekannt und erfasst keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsadresse (ein/aus)",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s."
+          },
+          "off_command_address": {
+            "label": "AUS-Befehlsadresse",
+            "description": "Separates beschreibbares BIT für den AUS-Impuls. Die obige Befehlsadresse sendet den EIN-Impuls."
           }
         },
         "mode": {
@@ -1057,6 +1065,10 @@
         "single_fire": {
           "title": "Einmaliger Befehl",
           "description": "Schreibt ON einmal, nur wenn der gewünschte Zustand vom aktuellen Zustand abweicht. Die SPS setzt das Befehlsbit zurück; keine Wartezeit und kein OFF-Schreibvorgang."
+        },
+        "dual_pulse": {
+          "title": "Getrennte EIN/AUS-Impulse",
+          "description": "Ein Impuls an die EIN-Adresse schaltet ein, ein Impuls an die AUS-Adresse schaltet aus. Die Rückmeldung ist optional; ohne sie zeigt Home Assistant nach einem erfolgreichen Befehl einen angenommenen Zustand. Die Impulsdauer bei Verbindungsfehlern in der SPS begrenzen."
         }
       }
     },
@@ -1298,7 +1310,15 @@
       "invalid_bulk_value_multiplier": "Geben Sie einen endlichen numerischen Multiplikator ein.",
       "invalid_bulk_real_precision": "Geben Sie eine ganze Anzahl Dezimalstellen von 0 bis 6 ein.",
       "invalid_bulk_write_multiplier": "Eine beschreibbare Number-Entität kann keinen Multiplikator von null verwenden.",
-      "bulk_edit_invalid": "Beheben Sie die Fehler in der Vorschau vor dem Anwenden. Keine Entität wurde geändert."
+      "bulk_edit_invalid": "Beheben Sie die Fehler in der Vorschau vor dem Anwenden. Keine Entität wurde geändert.",
+      "invalid_pulse_duration": "Geben Sie eine Impulsdauer zwischen 0,1 und 60 Sekunden ein oder lassen Sie das Feld leer, um 0,5 s zu verwenden.",
+      "invalid_operate_time": "Geben Sie eine Laufzeit von 0 Sekunden oder mehr ein oder lassen Sie das Feld leer, um 60 s zu verwenden.",
+      "invalid_temperature_limits": "Die Mindesttemperatur muss unter der Höchsttemperatur liegen und die Schrittweite größer als 0 sein.",
+      "dual_pulse_requires_on_address": "Getrennte EIN/AUS-Impulse erfordern eine explizite EIN-Befehlsadresse.",
+      "dual_pulse_same_address": "Die EIN- und AUS-Befehlsadressen müssen unterschiedlich sein.",
+      "dual_pulse_conflict": "Getrennte EIN/AUS-Impulse können nicht mit Synchronisierung, Umschaltimpulsen oder Einzelbefehlen kombiniert werden.",
+      "dual_pulse_requires_output_bits": "Die EIN- und AUS-Adressen müssen beschreibbare BIT-Adressen sein (Q, M oder DB).",
+      "dual_pulse_invalid_feedback": "Die Rückmeldung muss eine BIT-Adresse sein, die sich von beiden Impulsausgängen unterscheidet."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",
@@ -1604,6 +1624,20 @@
         "unsupported_fields": "Diese Felder erfordern ein Neuladen: {fields}.",
         "invalid_live_config": "Diese Felder konnten nicht für eine Live-Aktualisierung vorbereitet werden: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Standard",
+      "custom": "Angepasst",
+      "reset": "Standard wiederherstellen",
+      "empty_uses": "Leer: {value}.",
+      "leave_empty": "Leer lassen, um den Standard zu verwenden: {value}.",
+      "plc_scan": "das Abfrageintervall der SPS ({value})",
+      "decimals": "Dezimalstellen: {count}",
+      "unit_from_class": "{unit}, Standardeinheit für {class}",
+      "no_unit": "keine Einheit",
+      "type_limit": "{value}, Grenze des Typs {type}",
+      "logo_time_limit": "{value}, Grenze der LOGO!-Uhrzeit",
+      "required_real": "Für REAL/LREAL-Adressen erforderlich."
     }
   },
   "selector": {

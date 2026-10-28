@@ -13,7 +13,9 @@ PLATFORMS = [
 ]
 
 VERSION = "8.0.0"
-FRONTEND_BUILD = "20261025.2"
+# Minor 2: entities no longer persist values equal to their platform default.
+CONFIG_ENTRY_MINOR_VERSION = 2
+FRONTEND_BUILD = "20261028.1"
 
 PANEL_URL = "s7plc-config"
 
@@ -100,6 +102,7 @@ CONF_SYNC_STATE = "sync_state"
 # Grace period for PLC logic to reflect a newly written HA command in feedback.
 SYNC_COMMAND_SETTLE_TIME = 2.0
 CONF_BUTTON_PULSE = "button_pulse"
+CONF_OFF_COMMAND_ADDRESS = "off_command_address"
 CONF_PULSE_COMMAND = "pulse_command"
 CONF_SINGLE_FIRE_COMMAND = "single_fire_command"
 CONF_PULSE_DURATION = "pulse_duration"
@@ -287,6 +290,8 @@ DEFAULT_SLOT = 1
 DEFAULT_PYS7_CONNECTION_TYPE = PYS7_CONNECTION_TYPE_PG  # PG as default
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_PULSE_DURATION = 0.5  # seconds
+MIN_PULSE_DURATION = 0.1  # seconds
+MAX_PULSE_DURATION = 60.0  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds
 DEFAULT_TOGGLE_MODE = False
 DEFAULT_MIN_TEMP = 7.0  # °C

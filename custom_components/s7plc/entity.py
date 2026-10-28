@@ -296,7 +296,7 @@ class S7SyncEntity(S7BaseEntity):
 
     def _initialize_sync(
         self,
-        state_address: str,
+        state_address: str | None,
         command_address: str | None,
         sync_state: bool,
     ) -> None:
@@ -543,7 +543,7 @@ class S7BoolSyncEntity(S7SyncEntity):
         unique_id: str,
         device_info: DeviceInfo,
         topic: str,
-        state_address: str,
+        state_address: str | None,
         command_address: str,
         sync_state: bool,
         pulse_command: bool = False,
@@ -566,6 +566,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             pulse_command: Whether to send pulse instead of on/off commands
             pulse_duration: Duration of pulse in seconds
             single_fire_command: Write True once; the PLC resets the command bit
+            off_command_address: Separate timed OFF output; enables dual-pulse mode
             suggested_area_id: Optional area ID suggestion for the entity
         """
         super().__init__(
@@ -579,6 +580,11 @@ class S7BoolSyncEntity(S7SyncEntity):
         )
         self._off_command_address = off_command_address
         self._dual_pulse_lock = asyncio.Lock()
+        self._dual_pulse_task: asyncio.Task | None = None
+        self._dual_pulse_removing = False
+        self._dual_pulse_reset_address: str | None = None
+        self._optimistic_state: bool | None = None
+        self._attr_assumed_state = bool(off_command_address and not state_address)
         self._single_fire_command = single_fire_command
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
@@ -587,13 +593,26 @@ class S7BoolSyncEntity(S7SyncEntity):
         self._initialize_sync(
             state_address,
             command_address,
-            sync_state and not (pulse_command or single_fire_command or off_command_address),
+            sync_state
+            and not (pulse_command or single_fire_command or off_command_address),
         )
 
     @property
     def is_on(self) -> bool | None:
+        if self._attr_assumed_state:
+            return self._optimistic_state
         val = self._state_data.get(self._topic)
         return None if val is None else bool(val)
+
+    def _entity_data_available(self) -> bool:
+        return self._attr_assumed_state or super()._entity_data_available()
+
+    @property
+    def _restorable_topics(self) -> set[str]:
+        topics = super()._restorable_topics
+        if self._attr_assumed_state:
+            topics.discard(self._topic)
+        return topics
 
     def _sync_value(self) -> bool | None:
         # Restored display state must never become synchronization feedback.
@@ -604,11 +623,12 @@ class S7BoolSyncEntity(S7SyncEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes with command/state address info."""
         attrs = super().extra_state_attributes
-        if self._address:
+        if self._command_address:
             attrs["s7_command_address"] = self._command_address.upper()
         if self._off_command_address:
             attrs["s7_off_command_address"] = self._off_command_address.upper()
             attrs["dual_pulse_command"] = True
+            attrs["pulse_duration"] = self._pulse_duration
         if self._pulse_command:
             attrs.update(
                 {
@@ -631,8 +651,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._off_command_address:
-            if self.is_on is not True:
-                await self._async_dual_pulse(self._command_address)
+            await self._async_dual_pulse(self._command_address, True)
         elif self._pulse_command or self._single_fire_command:
             if not self.is_on:
                 await self._async_pulse()
@@ -656,8 +675,7 @@ class S7BoolSyncEntity(S7SyncEntity):
             HomeAssistantError: If write fails or PLC not connected
         """
         if self._off_command_address:
-            if self.is_on is not False:
-                await self._async_dual_pulse(self._off_command_address)
+            await self._async_dual_pulse(self._off_command_address, False)
         elif self._pulse_command or self._single_fire_command:
             if self.is_on:
                 await self._async_pulse()
@@ -672,17 +690,91 @@ class S7BoolSyncEntity(S7SyncEntity):
             self._mark_pending_command_written()
             await self.coordinator.async_request_refresh()
 
-    async def _async_dual_pulse(self, address: str) -> None:
-        """Pulse one of two independent command outputs, serialized per entity."""
+    async def _async_dual_pulse(self, address: str, state: bool) -> None:
+        """Serialize explicit SET/RESET requests, including cancellation cleanup.
+
+        Unlike toggle commands, these must not be suppressed by stale feedback.
+        The owned task finishes its pulse/reset before the lock is released,
+        even if the service caller is cancelled repeatedly.
+        """
         async with self._dual_pulse_lock:
+            if self._dual_pulse_removing:
+                raise HomeAssistantError(
+                    "Entity is being removed: cannot execute command."
+                )
             await self._ensure_connected()
-            await self.coordinator.write_batched(address, True)
+            task = asyncio.create_task(self._async_run_dual_pulse(address, state))
+            self._dual_pulse_task = task
             try:
-                await asyncio.sleep(self._pulse_duration)
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                while not task.done():
+                    try:
+                        await asyncio.shield(task)
+                    except asyncio.CancelledError:
+                        continue
+                    except Exception:
+                        break
+                if not task.cancelled() and (error := task.exception()) is not None:
+                    _LOGGER.error(
+                        "Dual-output pulse failed during cancellation: %s", error
+                    )
+                raise
             finally:
-                # Always attempt to release the output, even on cancellation.
-                await self.coordinator.write_batched(address, False)
+                self._dual_pulse_task = None
             await self.coordinator.async_request_refresh()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Finish an active pulse before unload disconnects the PLC transport."""
+        self._dual_pulse_removing = True
+        if (task := self._dual_pulse_task) is not None:
+            try:
+                await asyncio.shield(task)
+            except Exception as err:
+                _LOGGER.error("Dual-output pulse failed during entity removal: %s", err)
+        await super().async_will_remove_from_hass()
+
+    async def _async_write_pulse_output(self, address: str, value: bool) -> None:
+        """Bypass batching so pulse edges cannot be coalesced or reordered."""
+        if not await self.coordinator.write(address, value):
+            raise HomeAssistantError(f"S7 PLC pulse write failed for {address}")
+
+    async def _async_reset_dual_output(self) -> None:
+        """Retain failed resets and retry them before admitting another pulse."""
+        if self._dual_pulse_reset_address is None:
+            return
+        address = self._dual_pulse_reset_address
+        try:
+            await self._async_write_pulse_output(address, False)
+        except BaseException:
+            _LOGGER.error("Failed to release dual-pulse output %s", address)
+            raise
+        self._dual_pulse_reset_address = None
+
+    async def _async_run_dual_pulse(self, address: str, state: bool) -> None:
+        try:
+            await self._async_reset_dual_output()
+            # A failed write acknowledgement does not prove the output stayed low.
+            self._dual_pulse_reset_address = address
+            try:
+                await self._async_write_pulse_output(address, True)
+                await asyncio.sleep(self._pulse_duration)
+            except BaseException:
+                try:
+                    await self._async_reset_dual_output()
+                except Exception:
+                    pass  # Logged above; preserve the activation/cancellation error.
+                raise
+            else:
+                await self._async_reset_dual_output()
+        except BaseException:
+            self._optimistic_state = None
+            if self._attr_assumed_state:
+                self.async_write_ha_state()
+            raise
+        if self._attr_assumed_state:
+            self._optimistic_state = state
+            self.async_write_ha_state()
 
     async def _async_pulse(self) -> None:
         """Send a command, resetting it only for timed pulse mode.

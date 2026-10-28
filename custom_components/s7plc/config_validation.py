@@ -65,6 +65,7 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_NUMBER_MODE,
     CONF_NUMBERS,
+    CONF_OFF_COMMAND_ADDRESS,
     CONF_ON_OFF_ADDRESS,
     CONF_OPEN_COMMAND_ADDRESS,
     CONF_OPENING_STATE_ADDRESS,
@@ -128,7 +129,6 @@ from .const import (
     DEFAULT_HVAC_STATUS_PREHEATING_VALUES,
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
-    DEFAULT_OPERATE_TIME,
     DEFAULT_PRESET_MODE_AUTO_VALUE,
     DEFAULT_PRESET_MODE_BIDIRECTIONAL,
     DEFAULT_PRESET_MODE_COOL_VALUE,
@@ -137,15 +137,20 @@ from .const import (
     DEFAULT_PRESET_MODE_HEAT_COOL_VALUE,
     DEFAULT_PRESET_MODE_HEAT_VALUE,
     DEFAULT_PRESET_MODE_OFF_VALUE,
-    DEFAULT_PULSE_DURATION,
-    DEFAULT_TEMP_STEP,
     DEFAULT_TOGGLE_MODE,
+    MAX_PULSE_DURATION,
+    MIN_PULSE_DURATION,
     NUMBER_MODES,
 )
 from .entity_metadata import metadata_error
-from .helpers import parse_pulse_duration
 from .number_settings import number_settings_error
-from .plc.address import DataType, get_numeric_limits, is_time_data_type, parse_tag
+from .plc.address import (
+    DataType,
+    MemoryArea,
+    get_numeric_limits,
+    is_time_data_type,
+    parse_tag,
+)
 from .value_conversion import normalize_value_conversion
 
 
@@ -222,6 +227,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_ADDRESS,
         CONF_STATE_ADDRESS,
         CONF_COMMAND_ADDRESS,
+        CONF_OFF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
         CONF_SINGLE_FIRE_COMMAND,
@@ -262,6 +268,7 @@ ENTITY_ALLOWED_FIELDS: dict[str, frozenset[str]] = {
         CONF_ADDRESS,
         CONF_STATE_ADDRESS,
         CONF_COMMAND_ADDRESS,
+        CONF_OFF_COMMAND_ADDRESS,
         CONF_SYNC_STATE,
         CONF_PULSE_COMMAND,
         CONF_SINGLE_FIRE_COMMAND,
@@ -383,16 +390,66 @@ class EntityConfigBuilder:
         )
 
     @staticmethod
-    def _sanitize_operate_time(value: Any | None) -> float:
-        if value in (None, ""):
-            return float(DEFAULT_OPERATE_TIME)
-        try:
-            operate_time = float(value)
-        except (TypeError, ValueError):
-            return float(DEFAULT_OPERATE_TIME)
-        if operate_time < 0:
-            return float(DEFAULT_OPERATE_TIME)
+    def _optional_operate_time(value: Any | None) -> float | None:
+        """Return an explicit operate time, or None to use the platform default."""
+        if isinstance(value, bool):
+            raise ValueError("invalid operate time")
+        operate_time = EntityConfigBuilder._normalize_numeric_value(value)
+        if operate_time is not None and operate_time < 0:
+            raise ValueError("invalid operate time")
         return operate_time
+
+    @staticmethod
+    def _optional_pulse_duration(value: Any | None) -> float | None:
+        """Return an explicit pulse duration, or None to use the platform default."""
+        if isinstance(value, bool):
+            raise ValueError("invalid pulse duration")
+        pulse = EntityConfigBuilder._normalize_numeric_value(value)
+        if pulse is None:
+            return None
+        if pulse < MIN_PULSE_DURATION or pulse > MAX_PULSE_DURATION:
+            raise ValueError("invalid pulse duration")
+        # Same precision parse_pulse_duration() has always applied.
+        return round(pulse, 1)
+
+    @staticmethod
+    def _apply_optional_pulse(
+        item: dict[str, Any], key: str, value: Any | None
+    ) -> dict[str, str]:
+        """Store an explicit pulse duration; an empty field keeps the default."""
+        try:
+            pulse = EntityConfigBuilder._optional_pulse_duration(value)
+        except ValueError:
+            return {"base": "invalid_pulse_duration"}
+        if pulse is not None:
+            item[key] = pulse
+        return {}
+
+    @staticmethod
+    def _apply_temperature_limits(
+        item: dict[str, Any], user_input: dict[str, Any]
+    ) -> dict[str, str]:
+        """Store explicit climate limits; empty fields keep the defaults."""
+        values = {}
+        for key in (CONF_MIN_TEMP, CONF_MAX_TEMP, CONF_TEMP_STEP):
+            raw = user_input.get(key)
+            if isinstance(raw, bool):
+                return {"base": "invalid_temperature_limits"}
+            try:
+                values[key] = EntityConfigBuilder._normalize_numeric_value(raw)
+            except ValueError:
+                return {"base": "invalid_temperature_limits"}
+        min_temp = values[CONF_MIN_TEMP]
+        max_temp = values[CONF_MAX_TEMP]
+        temp_step = values[CONF_TEMP_STEP]
+        effective_min = DEFAULT_MIN_TEMP if min_temp is None else min_temp
+        effective_max = DEFAULT_MAX_TEMP if max_temp is None else max_temp
+        if effective_min >= effective_max or (temp_step is not None and temp_step <= 0):
+            return {"base": "invalid_temperature_limits"}
+        for key, value in values.items():
+            if value is not None:
+                item[key] = value
+        return {}
 
     @staticmethod
     def _normalize_real_precision(value: Any | None) -> int | None:
@@ -836,12 +893,13 @@ class EntityConfigBuilder:
         skip_idx: int | None = None,
     ) -> tuple[dict[str, Any] | None, dict[str, str]]:
         """Build shared switch/light settings with platform-scoped duplicates."""
-        # Validate state address (try CONF_STATE_ADDRESS first, then CONF_ADDRESS)
-        state_address, errors = self._validate_address_field(
-            user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
-        )
-        if errors:
-            return None, errors
+        # Only dual-output control can operate without physical feedback.
+        state_input = user_input.get(CONF_STATE_ADDRESS) or user_input.get(CONF_ADDRESS)
+        state_address = None
+        if state_input or not user_input.get(CONF_OFF_COMMAND_ADDRESS):
+            state_address, errors = self._validate_address_field(state_input)
+            if errors:
+                return None, errors
 
         # Check for duplicates
         if self._has_duplicate(
@@ -863,25 +921,47 @@ class EntityConfigBuilder:
 
         # Validate an optional separate OFF pulse output.
         off_command_address = None
-        if user_input.get("off_command_address"):
+        if user_input.get(CONF_OFF_COMMAND_ADDRESS):
             off_command_address, off_errors = self._validate_address_field(
-                user_input["off_command_address"]
+                user_input[CONF_OFF_COMMAND_ADDRESS]
             )
             if off_errors:
                 return None, off_errors
             if not command_address:
                 return None, {"base": "dual_pulse_requires_on_address"}
-            if self._normalized_address(off_command_address) == self._normalized_address(
-                command_address
-            ):
+            on_tag = parse_tag(command_address)
+            off_tag = parse_tag(off_command_address)
+            if on_tag == off_tag:
                 return None, {"base": "dual_pulse_same_address"}
+            if any(
+                tag.data_type != DataType.BIT
+                or tag.memory_area
+                not in (MemoryArea.DB, MemoryArea.MERKER, MemoryArea.OUTPUT)
+                for tag in (on_tag, off_tag)
+            ):
+                return None, {"base": "dual_pulse_requires_output_bits"}
+            if state_address:
+                state_tag = parse_tag(state_address)
+                if state_tag.data_type != DataType.BIT or state_tag in (
+                    on_tag,
+                    off_tag,
+                ):
+                    return None, {"base": "dual_pulse_invalid_feedback"}
+            elif self._has_duplicate(
+                option_key,
+                command_address,
+                keys=(CONF_COMMAND_ADDRESS,),
+                skip_idx=skip_idx,
+            ):
+                return None, {"base": "duplicate_entry"}
 
-        # Build item
-        item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
+        item: dict[str, Any] = {}
+        if state_address:
+            item[CONF_STATE_ADDRESS] = state_address
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
         if off_command_address:
-            item["off_command_address"] = off_command_address
+            item[CONF_OFF_COMMAND_ADDRESS] = off_command_address
 
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
@@ -909,10 +989,11 @@ class EntityConfigBuilder:
 
         # Add pulse duration only if pulse command is enabled
         if pulse_command or off_command_address:
-            pulse_duration = parse_pulse_duration(user_input.get(CONF_PULSE_DURATION))
-
-            if pulse_duration is not None:
-                item[CONF_PULSE_DURATION] = pulse_duration
+            errors = self._apply_optional_pulse(
+                item, CONF_PULSE_DURATION, user_input.get(CONF_PULSE_DURATION)
+            )
+            if errors:
+                return None, errors
 
         # Apply scan interval
         self._apply_scan_interval(item, user_input.get(CONF_SCAN_INTERVAL))
@@ -1003,7 +1084,12 @@ class EntityConfigBuilder:
         )
 
         # Get other parameters
-        operate_time = self._sanitize_operate_time(user_input.get(CONF_OPERATE_TIME))
+        try:
+            operate_time = self._optional_operate_time(
+                user_input.get(CONF_OPERATE_TIME)
+            )
+        except ValueError:
+            return None, {"base": "invalid_operate_time"}
         use_state_topics = feedback_mode in {"opening", "closing", "both"}
         if feedback_mode in {"opening", "both"} and not opening_state:
             return None, {"base": "state_addresses_required"}
@@ -1148,7 +1234,8 @@ class EntityConfigBuilder:
         )
 
         # Add cover-specific fields
-        item[CONF_OPERATE_TIME] = operate_time
+        if operate_time is not None:
+            item[CONF_OPERATE_TIME] = operate_time
         if explicit_feedback:
             item[CONF_USE_STATE_TOPICS] = use_state_topics
             item[CONF_COVER_POSITION_FEEDBACK] = feedback_mode
@@ -1156,9 +1243,13 @@ class EntityConfigBuilder:
             item[CONF_USE_STATE_TOPICS] = bool(user_input[CONF_USE_STATE_TOPICS])
         if toggle_mode:
             item[CONF_TOGGLE_MODE] = True
-            item[CONF_TOGGLE_PULSE_DURATION] = parse_pulse_duration(
-                user_input.get(CONF_TOGGLE_PULSE_DURATION)
+            errors = self._apply_optional_pulse(
+                item,
+                CONF_TOGGLE_PULSE_DURATION,
+                user_input.get(CONF_TOGGLE_PULSE_DURATION),
             )
+            if errors:
+                return None, errors
         item.update(cover_status_fields)
 
         # Apply scan interval
@@ -1352,10 +1443,13 @@ class EntityConfigBuilder:
             if stop_errors:
                 return None, stop_errors
             item[CONF_STOP_COMMAND_ADDRESS] = stop_command
-            stop_pulse = user_input.get(
-                CONF_STOP_PULSE_DURATION, DEFAULT_PULSE_DURATION
+            errors = self._apply_optional_pulse(
+                item,
+                CONF_STOP_PULSE_DURATION,
+                user_input.get(CONF_STOP_PULSE_DURATION),
             )
-            item[CONF_STOP_PULSE_DURATION] = float(stop_pulse)
+            if errors:
+                return None, errors
 
         # Add optional tilt addresses and invert flag
         if tilt_state_addr:
@@ -1418,8 +1512,11 @@ class EntityConfigBuilder:
         item = self._build_base_item(address, user_input, CONF_NAME, CONF_AREA)
 
         # Add button-specific fields
-        button_pulse = parse_pulse_duration(user_input.get(CONF_BUTTON_PULSE))
-        item[CONF_BUTTON_PULSE] = button_pulse
+        errors = self._apply_optional_pulse(
+            item, CONF_BUTTON_PULSE, user_input.get(CONF_BUTTON_PULSE)
+        )
+        if errors:
+            return None, errors
 
         return item, {}
 
@@ -1788,9 +1885,9 @@ class EntityConfigBuilder:
             item[CONF_COOLING_ACTION_ADDRESS] = cooling_action_addr
 
         # Add temperature limits
-        item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
-        item[CONF_MAX_TEMP] = user_input.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
-        item[CONF_TEMP_STEP] = user_input.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)
+        errors = self._apply_temperature_limits(item, user_input)
+        if errors:
+            return None, errors
 
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
@@ -2014,9 +2111,9 @@ class EntityConfigBuilder:
         item[CONF_PRESET_MODE_FAN_ONLY_VALUE] = preset_mode_fan_only_value
 
         # Add temperature limits
-        item[CONF_MIN_TEMP] = user_input.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
-        item[CONF_MAX_TEMP] = user_input.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
-        item[CONF_TEMP_STEP] = user_input.get(CONF_TEMP_STEP, DEFAULT_TEMP_STEP)
+        errors = self._apply_temperature_limits(item, user_input)
+        if errors:
+            return None, errors
 
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)

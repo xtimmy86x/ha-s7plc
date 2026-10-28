@@ -6,9 +6,45 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from .const import (
+    CONF_BUTTON_PULSE,
+    CONF_MAX_TEMP,
+    CONF_MIN_TEMP,
+    CONF_OPERATE_TIME,
+    CONF_PULSE_DURATION,
+    CONF_STOP_PULSE_DURATION,
+    CONF_TEMP_STEP,
+    CONF_TOGGLE_PULSE_DURATION,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_OPERATE_TIME,
+    DEFAULT_PULSE_DURATION,
+    DEFAULT_TEMP_STEP,
+)
 from .plc.address import parse_tag
 
 _SYNC_ENTITY_TYPES = frozenset(("switches", "lights"))
+
+# Values the entity builders used to persist even when the field was left
+# empty. Every platform reads the same default when the key is absent.
+# The minor-2 migration treats every stored value equal to these defaults as
+# implicit, including ones a user typed on purpose. Changing a default later
+# changes those entities too, so such a change needs its own migration.
+PERSISTED_DEFAULTS: dict[str, dict[str, float]] = {
+    "switches": {CONF_PULSE_DURATION: DEFAULT_PULSE_DURATION},
+    "lights": {CONF_PULSE_DURATION: DEFAULT_PULSE_DURATION},
+    "buttons": {CONF_BUTTON_PULSE: DEFAULT_PULSE_DURATION},
+    "covers": {
+        CONF_OPERATE_TIME: DEFAULT_OPERATE_TIME,
+        CONF_STOP_PULSE_DURATION: DEFAULT_PULSE_DURATION,
+        CONF_TOGGLE_PULSE_DURATION: DEFAULT_PULSE_DURATION,
+    },
+    "climates": {
+        CONF_MIN_TEMP: DEFAULT_MIN_TEMP,
+        CONF_MAX_TEMP: DEFAULT_MAX_TEMP,
+        CONF_TEMP_STEP: DEFAULT_TEMP_STEP,
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -81,3 +117,30 @@ def canonicalize_legacy_sync_addresses(
         sync_state_disabled=True,
         command_address_removed=has_command_key,
     )
+
+
+def strip_persisted_defaults(
+    entity_type: str, entity: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Return a copy without stored values that equal their platform default.
+
+    Removing them is behavior-neutral and lets the panel tell values the user
+    chose apart from defaults. Values that differ, or are not numeric, stay.
+    """
+    if not isinstance(entity, Mapping):
+        # Malformed data is left for normal setup validation to report.
+        return entity, 0
+    result = deepcopy(dict(entity))
+    removed = 0
+    for key, default in PERSISTED_DEFAULTS.get(entity_type, {}).items():
+        value = result.get(key)
+        if value is None or isinstance(value, bool):
+            continue
+        try:
+            matches = float(value) == float(default)
+        except (TypeError, ValueError):
+            continue
+        if matches:
+            del result[key]
+            removed += 1
+    return result, removed

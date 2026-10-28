@@ -283,7 +283,7 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
         light_start : source.index("return section('connection'", light_start)
     ]
     assert switch_definition.index("['control_behavior']") < switch_definition.index(
-        "['state_address','command_address']"
+        "['state_address','command_address','off_command_address']"
     )
     assert (
         light_definition.index("['control_behavior']")
@@ -309,12 +309,12 @@ def test_panel_control_mode_is_context_aware() -> None:
         "NORMALIZE_ADDRESS(entity.command_address);" in source
     )
     assert "sync.disabled=!canSync" in source
-    assert "selected!=='pulse'" in source
+    assert "!['pulse','dual_pulse'].includes(selected)" in source
     assert '[data-field="pulse_duration"]' in source
     assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
     assert 'name="pulse_command" type="checkbox"' not in source
-    assert "choices||['direct','sync','pulse','single_fire']" in source
+    assert "choices||['direct','sync','pulse','single_fire','dual_pulse']" in source
     assert "sync_requires_command" in source
     assert "data-sync-reason" in source
 
@@ -2237,3 +2237,34 @@ def test_multiple_comparisons_backup_and_import():
     assert [item["comparison_operator"] for item in imported["binary_sensors"]] == ["lt", "gt"]
     with pytest.raises(ConfigurationValidationError, match="duplicate_entry"):
         _configuration_from_yaml(_configuration_yaml({"binary_sensors": [entities[0], entities[0]]}), {})
+
+
+def test_entry_payload_exposes_the_defaults_applied_to_empty_fields() -> None:
+    entry = SimpleNamespace(
+        entry_id="plc", title="PLC", data={"scan_interval": 0.5}, options={}
+    )
+
+    defaults = _entry_payload(entry)["defaults"]
+
+    assert defaults["scan_interval"] == 0.5
+    assert defaults["real_precision"] == 1
+    assert defaults["pulse_duration"] == 0.5
+    assert defaults["pulse_duration_range"] == [0.1, 60.0]
+    assert defaults["operate_time"] == 60.0
+    assert (defaults["min_temp"], defaults["max_temp"], defaults["temp_step"]) == (
+        7.0,
+        35.0,
+        0.5,
+    )
+    assert defaults["number_limits"]["INT"] == [-32768.0, 32767.0]
+    assert defaults["number_limits"]["BYTE"] == [0.0, 255.0]
+    assert "REAL" not in defaults["number_limits"]
+    assert defaults["logo_time_limits"] == [0, 2359]
+    assert (defaults["number_step"], defaults["time_step"]) == (1.0, 0.001)
+    assert defaults["state_classes"]["energy"] == "total_increasing"
+    assert (
+        _entry_payload(SimpleNamespace(**{**vars(entry), "data": {}}))["defaults"][
+            "scan_interval"
+        ]
+        == 1.0
+    )

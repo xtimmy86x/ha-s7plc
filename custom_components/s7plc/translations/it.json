@@ -388,7 +388,7 @@
           },
           "state_address": {
             "label": "Indirizzo stato",
-            "description": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0)."
+            "description": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0). Facoltativo nella modalità a impulsi ON/OFF separati. Senza feedback lo stato è presunto, è sconosciuto dopo il ricaricamento e non rileva modifiche esterne."
           },
           "command_address": {
             "label": "Indirizzo comando",
@@ -397,6 +397,10 @@
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi. Minimo: 0,1 s, Massimo: 60 s."
+          },
+          "off_command_address": {
+            "label": "Indirizzo comando OFF",
+            "description": "BIT scrivibile separato per l’impulso OFF. L’indirizzo comando precedente invia l’impulso ON."
           }
         }
       },
@@ -618,7 +622,7 @@
           },
           "state_address": {
             "label": "Indirizzo stato (on/off)",
-            "description": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0)."
+            "description": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0). Facoltativo nella modalità a impulsi ON/OFF separati. Senza feedback lo stato è presunto, è sconosciuto dopo il ricaricamento e non rileva modifiche esterne."
           },
           "command_address": {
             "label": "Indirizzo comando (on/off)",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi (0,1-60 s, supporta decimali). Predefinito: 0,5 s."
+          },
+          "off_command_address": {
+            "label": "Indirizzo comando OFF",
+            "description": "BIT scrivibile separato per l’impulso OFF. L’indirizzo comando precedente invia l’impulso ON."
           }
         },
         "mode": {
@@ -1057,6 +1065,10 @@
         "single_fire": {
           "title": "Comando singolo",
           "description": "Scrive ON una sola volta quando lo stato richiesto è diverso da quello attuale. Il PLC resetta il bit di comando; nessuna attesa o scrittura OFF."
+        },
+        "dual_pulse": {
+          "title": "Impulsi ON/OFF separati",
+          "description": "Invia un impulso all’indirizzo ON per accendere e all’indirizzo OFF per spegnere. Il feedback è facoltativo: senza di esso, Home Assistant mostra uno stato presunto dopo un comando riuscito. Configura un limite alla durata degli impulsi nel PLC in caso di perdita della connessione."
         }
       }
     },
@@ -1298,7 +1310,15 @@
       "invalid_bulk_value_multiplier": "Inserisci un moltiplicatore numerico finito.",
       "invalid_bulk_real_precision": "Inserisci un numero intero di decimali da 0 a 6.",
       "invalid_bulk_write_multiplier": "Un’entità Number scrivibile non può usare un moltiplicatore pari a zero.",
-      "bulk_edit_invalid": "Correggi gli errori mostrati nell’anteprima prima di applicare. Nessuna entità è stata modificata."
+      "bulk_edit_invalid": "Correggi gli errori mostrati nell’anteprima prima di applicare. Nessuna entità è stata modificata.",
+      "invalid_pulse_duration": "Inserisci una durata dell’impulso tra 0,1 e 60 secondi, oppure lascia vuoto per usare 0,5 s.",
+      "invalid_operate_time": "Inserisci un tempo di manovra di 0 secondi o più, oppure lascia vuoto per usare 60 s.",
+      "invalid_temperature_limits": "La temperatura minima deve essere inferiore alla massima e il passo deve essere maggiore di 0.",
+      "dual_pulse_requires_on_address": "Gli impulsi ON/OFF separati richiedono un indirizzo comando ON esplicito.",
+      "dual_pulse_same_address": "Gli indirizzi comando ON e OFF devono essere diversi.",
+      "dual_pulse_conflict": "Gli impulsi ON/OFF separati non possono essere combinati con sincronizzazione, impulso di commutazione o comando singolo.",
+      "dual_pulse_requires_output_bits": "Gli indirizzi ON e OFF devono essere indirizzi BIT scrivibili (Q, M o DB).",
+      "dual_pulse_invalid_feedback": "Il feedback deve essere un indirizzo BIT diverso da entrambe le uscite a impulso."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",
@@ -1604,6 +1624,20 @@
         "unsupported_fields": "Questi campi richiedono un reload: {fields}.",
         "invalid_live_config": "Non è stato possibile preparare l’aggiornamento a caldo di questi campi: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Predefinito",
+      "custom": "Personalizzato",
+      "reset": "Ripristina il predefinito",
+      "empty_uses": "Vuoto: {value}.",
+      "leave_empty": "Lascia vuoto per tornare al predefinito: {value}.",
+      "plc_scan": "la scansione del PLC ({value})",
+      "decimals": "decimali: {count}",
+      "unit_from_class": "{unit}, unità predefinita di {class}",
+      "no_unit": "nessuna unità",
+      "type_limit": "{value}, limite del tipo {type}",
+      "logo_time_limit": "{value}, limite dell’orario LOGO!",
+      "required_real": "Obbligatorio per gli indirizzi REAL/LREAL."
     }
   },
   "selector": {
