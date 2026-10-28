@@ -38,6 +38,73 @@ describe("duplicate address warning", () => {
     expect(note("address").hidden).toBe(true);
   });
 
+  test.each(["on", "unavailable"])("uses the HA name when the configured name is empty (%s)", async (state) => {
+    const entry = createEntry();
+    delete entry.entities.switches[0].name;
+    const panel = createPanel(entry);
+    panel._hass.states["switch.circulation_pump"] = {
+      state,
+      attributes: { friendly_name: "Pompa giardino" },
+    };
+    panel.openEditor(null, "sensors");
+    typeAddress("address", "DB1,X8.0");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: Pompa giardino");
+  });
+
+  test("prefers an HA rename to the original configured name", async () => {
+    const panel = createPanel();
+    panel._hass.states["switch.circulation_pump"].attributes.friendly_name = "Pompa giardino";
+    panel.openEditor(null, "sensors");
+    typeAddress("address", "DB1,X8.1");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: Pompa giardino");
+  });
+
+  test("matches HA names to each entity's original index and type", async () => {
+    const entry = createEntry();
+    delete entry.entities.sensors[1].name;
+    entry.entities.switches[0].state_address = "DB1,R4";
+    const panel = createPanel(entry);
+    panel._hass.states["sensor.boiler_temperature"].attributes.friendly_name = "Temperatura";
+    panel._hass.states["sensor.tank_pressure"].attributes.friendly_name = "Pressione";
+    panel._hass.states["switch.circulation_pump"].attributes.friendly_name = "Pompa";
+    panel.openEditor(0, "sensors");
+    typeAddress("address", "DB1,R4");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: Pressione, Pompa");
+  });
+
+  test("keeps the configured name when the HA state is absent", async () => {
+    const panel = createPanel();
+    delete panel._hass.states["switch.circulation_pump"];
+    panel.openEditor(null, "sensors");
+    typeAddress("address", "DB1,X8.0");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: Circulation pump");
+  });
+
+  test("identifies an unnamed entity by its entity ID when its state is absent", async () => {
+    const entry = createEntry();
+    delete entry.entities.switches[0].name;
+    const panel = createPanel(entry);
+    delete panel._hass.states["switch.circulation_pump"];
+    panel.openEditor(null, "sensors");
+    typeAddress("address", "DB1,X8.0");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: switch.circulation_pump");
+  });
+
+  test("renders HA names as text", async () => {
+    const panel = createPanel();
+    panel._hass.states["switch.circulation_pump"].attributes.friendly_name = "Pompa <b>giardino</b> & orto";
+    panel.openEditor(null, "sensors");
+    typeAddress("address", "DB1,X8.0");
+    await flush();
+    expect(note("address").textContent).toBe("Also used by: Pompa <b>giardino</b> & orto");
+    expect(note("address").querySelector("b")).toBeNull();
+  });
+
   test("preserves duplicate warnings when switching cover control modes", async () => {
     const entry = createEntry();
     entry.entities.covers = [{ name: "Blind", open_command_address: "DB1,X8.0", close_command_address: "DB1,X9.0", operate_time: 20 }];
@@ -72,7 +139,7 @@ describe("duplicate address warning", () => {
     const panel = createPanel(entry);
     panel.openEditor(0, "switches");
     expect(note("command_address").hidden).toBe(false);
-    expect(note("command_address").textContent).toBe("Also used by: Binary sensor 1, Hall");
+    expect(note("command_address").textContent).toBe("Also used by: DB1,X8.1, Hall");
   });
 
   test("warns when duplicating an entity", () => {
