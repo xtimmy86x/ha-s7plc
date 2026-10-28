@@ -861,10 +861,27 @@ class EntityConfigBuilder:
             if cmd_errors:
                 return None, cmd_errors
 
+        # Validate an optional separate OFF pulse output.
+        off_command_address = None
+        if user_input.get("off_command_address"):
+            off_command_address, off_errors = self._validate_address_field(
+                user_input["off_command_address"]
+            )
+            if off_errors:
+                return None, off_errors
+            if not command_address:
+                return None, {"base": "dual_pulse_requires_on_address"}
+            if self._normalized_address(off_command_address) == self._normalized_address(
+                command_address
+            ):
+                return None, {"base": "dual_pulse_same_address"}
+
         # Build item
         item: dict[str, Any] = {CONF_STATE_ADDRESS: state_address}
         if command_address:
             item[CONF_COMMAND_ADDRESS] = command_address
+        if off_command_address:
+            item["off_command_address"] = off_command_address
 
         # Copy optional fields
         self._copy_optional_fields(item, user_input, CONF_NAME, CONF_AREA)
@@ -873,6 +890,8 @@ class EntityConfigBuilder:
         sync_state = bool(user_input.get(CONF_SYNC_STATE, False))
         pulse_command = bool(user_input.get(CONF_PULSE_COMMAND, False))
         single_fire_command = bool(user_input.get(CONF_SINGLE_FIRE_COMMAND, False))
+        if off_command_address and (sync_state or pulse_command or single_fire_command):
+            return None, {"base": "dual_pulse_conflict"}
         if single_fire_command and (sync_state or pulse_command):
             return None, {"base": "single_fire_conflict"}
         if sync_state and pulse_command:
@@ -889,7 +908,7 @@ class EntityConfigBuilder:
             item[CONF_SINGLE_FIRE_COMMAND] = True
 
         # Add pulse duration only if pulse command is enabled
-        if pulse_command:
+        if pulse_command or off_command_address:
             pulse_duration = parse_pulse_duration(user_input.get(CONF_PULSE_DURATION))
 
             if pulse_duration is not None:
