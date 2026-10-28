@@ -550,6 +550,7 @@ class S7BoolSyncEntity(S7SyncEntity):
         pulse_duration: float = 0.5,
         single_fire_command: bool = False,
         suggested_area_id: str | None = None,
+        off_command_address: str | None = None,
     ) -> None:
         """Initialize boolean sync entity.
 
@@ -576,6 +577,8 @@ class S7BoolSyncEntity(S7SyncEntity):
             address=state_address,
             suggested_area_id=suggested_area_id,
         )
+        self._off_command_address = off_command_address
+        self._dual_pulse_lock = asyncio.Lock()
         self._single_fire_command = single_fire_command
         self._pulse_command = pulse_command
         self._pulse_duration = pulse_duration
@@ -584,7 +587,7 @@ class S7BoolSyncEntity(S7SyncEntity):
         self._initialize_sync(
             state_address,
             command_address,
-            sync_state and not (pulse_command or single_fire_command),
+            sync_state and not (pulse_command or single_fire_command or off_command_address),
         )
 
     @property
@@ -603,6 +606,9 @@ class S7BoolSyncEntity(S7SyncEntity):
         attrs = super().extra_state_attributes
         if self._address:
             attrs["s7_command_address"] = self._command_address.upper()
+        if self._off_command_address:
+            attrs["s7_off_command_address"] = self._off_command_address.upper()
+            attrs["dual_pulse_command"] = True
         if self._pulse_command:
             attrs.update(
                 {
@@ -624,7 +630,10 @@ class S7BoolSyncEntity(S7SyncEntity):
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
-        if self._pulse_command or self._single_fire_command:
+        if self._off_command_address:
+            if self.is_on is not True:
+                await self._async_dual_pulse(self._command_address)
+        elif self._pulse_command or self._single_fire_command:
             if not self.is_on:
                 await self._async_pulse()
         else:
@@ -646,7 +655,10 @@ class S7BoolSyncEntity(S7SyncEntity):
         Raises:
             HomeAssistantError: If write fails or PLC not connected
         """
-        if self._pulse_command or self._single_fire_command:
+        if self._off_command_address:
+            if self.is_on is not False:
+                await self._async_dual_pulse(self._off_command_address)
+        elif self._pulse_command or self._single_fire_command:
             if self.is_on:
                 await self._async_pulse()
         else:
@@ -658,6 +670,18 @@ class S7BoolSyncEntity(S7SyncEntity):
                 self._clear_pending_command()
                 raise
             self._mark_pending_command_written()
+            await self.coordinator.async_request_refresh()
+
+    async def _async_dual_pulse(self, address: str) -> None:
+        """Pulse one of two independent command outputs, serialized per entity."""
+        async with self._dual_pulse_lock:
+            await self._ensure_connected()
+            await self.coordinator.write_batched(address, True)
+            try:
+                await asyncio.sleep(self._pulse_duration)
+            finally:
+                # Always attempt to release the output, even on cancellation.
+                await self.coordinator.write_batched(address, False)
             await self.coordinator.async_request_refresh()
 
     async def _async_pulse(self) -> None:
