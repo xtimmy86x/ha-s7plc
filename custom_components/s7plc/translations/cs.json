@@ -1298,7 +1298,10 @@
       "invalid_bulk_value_multiplier": "Zadejte konečný číselný násobitel.",
       "invalid_bulk_real_precision": "Zadejte celé číslo desetinných míst od 0 do 6.",
       "invalid_bulk_write_multiplier": "Zapisovatelná entita Number nemůže používat nulový násobitel.",
-      "bulk_edit_invalid": "Před použitím opravte chyby zobrazené v náhledu. Žádné entity nebyly změněny."
+      "bulk_edit_invalid": "Před použitím opravte chyby zobrazené v náhledu. Žádné entity nebyly změněny.",
+      "invalid_pulse_duration": "Zadejte délku pulzu od 0,1 do 60 sekund, nebo pole ponechte prázdné pro použití 0,5 s.",
+      "invalid_operate_time": "Zadejte dobu chodu 0 sekund nebo více, nebo pole ponechte prázdné pro použití 60 s.",
+      "invalid_temperature_limits": "Minimální teplota musí být nižší než maximální a krok musí být větší než 0."
     },
     "editor": {
       "configuration_yaml": "Pokročilý YAML",
@@ -1604,6 +1607,20 @@
         "unsupported_fields": "Tato pole vyžadují opětovné načtení: {fields}.",
         "invalid_live_config": "Tato pole nebylo možné připravit k aktualizaci za běhu: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Výchozí",
+      "custom": "Vlastní",
+      "reset": "Obnovit výchozí",
+      "empty_uses": "Prázdné: {value}.",
+      "leave_empty": "Ponechte prázdné pro obnovení výchozí hodnoty: {value}.",
+      "plc_scan": "interval čtení PLC ({value})",
+      "decimals": "desetinná místa: {count}",
+      "unit_from_class": "{unit}, výchozí jednotka pro {class}",
+      "no_unit": "bez jednotky",
+      "type_limit": "{value}, limit typu {type}",
+      "logo_time_limit": "{value}, limit času LOGO!",
+      "required_real": "Povinné pro adresy REAL/LREAL."
     }
   },
   "selector": {

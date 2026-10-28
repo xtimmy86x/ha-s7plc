@@ -245,10 +245,65 @@ fields into:
 - **Behavior**: options specific to the entity type;
 - **Details in Home Assistant**: name, area, scan interval and availability.
 
-The visual editor supplies labels, help text, choices and historical defaults. It
-performs only simple browser-side required-field checks; the backend validator
-remains authoritative for PLC addresses and duplicate Climate preset/status
-mappings.
+The visual editor supplies labels, help text, choices and the defaults described
+below. It performs only simple browser-side checks (required fields and the
+ranges listed below); the backend validator remains authoritative for PLC
+addresses, value ranges and duplicate Climate preset/status mappings.
+
+### Empty fields and defaults
+
+Many optional fields have a default that the integration applies while the field
+is **empty**. The editor shows that value in grey inside the empty field, with an
+**Empty: …** hint under it, so you always know what is in effect. A label next to
+the field name tells the two cases apart:
+
+| Label | Field | What is saved | What applies |
+|---|---|---|---|
+| **Default** | Empty | Nothing | The integration default. It follows future changes of its source (for example the PLC scan interval). |
+| **Custom** | Has a value | That value | The value you entered, even if it equals the default. |
+
+**Restore default** (the ↺ button next to **Custom**) empties the field. The
+value is removed from the configuration when you save, and the field shows
+**Default** again. Clearing the field by hand has the same effect.
+
+| Field | Entity types | Default when empty |
+|---|---|---|
+| Scan interval | All except buttons and entity syncs | The PLC scan interval |
+| REAL precision | Sensors, numbers | 1 decimal place (REAL/LREAL values only) |
+| Pulse duration | Switches and lights in pulse mode, buttons, cover stop and single-button pulses | 0.5 s |
+| Operate time | Open/close covers | 60 s |
+| Minimum / maximum temperature, temperature step | Climates | 7 °C / 35 °C / 0.5 °C |
+| Minimum / maximum | Numbers | The limits of the address data type (for example −32768 / 32767 for INT, 0 / 2359 with the LOGO! clock conversion). Required for REAL/LREAL addresses, which have no data type limits. |
+| Step | Numbers | 1 (0.001 for TIME) |
+| Unit of measurement | Sensors, numbers | The default unit of the selected device class, or no unit |
+| State class | Sensors | **Automatic** shows the class derived from the device class, for example *Automatic (Measurement)* |
+
+Hints that depend on other fields update while you edit: changing the address
+data type updates the Number limits, and changing the device class updates the
+unit and the automatic state class.
+
+Values outside the accepted range are rejected with an error instead of being
+replaced by the default:
+
+| Field | Accepted values |
+|---|---|
+| Pulse durations | 0.1 to 60 s, rounded to 0.1 s |
+| Operate time | 0 s or more |
+| Climate limits | Minimum lower than maximum (an empty limit counts as its default); step greater than 0 |
+
+#### Upgrading from earlier versions
+
+Earlier versions saved the defaults of pulse durations, operate time and climate
+temperature limits even when the field was left empty. The first start after the
+upgrade removes every saved value of these fields that **equals** its default,
+and the log reports how many were removed. Entities keep working exactly as
+before, and those fields show **Default** in the editor.
+
+The migration cannot tell a value you typed on purpose from one that was saved
+automatically: a pulse you set to exactly 0.5 s, for example, also becomes
+**Default**. This only matters if a future release changes one of these
+defaults. To pin such a value anyway, enter it again after the upgrade: values
+saved from now on are kept as **Custom**.
 
 ### Address fields
 

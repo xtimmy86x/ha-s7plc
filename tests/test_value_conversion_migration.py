@@ -221,6 +221,7 @@ async def test_config_entry_migration_is_atomic_and_idempotent():
         calls.append(changes)
         target.options = changes["options"]
         target.version = changes["version"]
+        target.minor_version = changes.get("minor_version", 1)
 
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
     assert await async_migrate_entry(hass, entry)
@@ -255,6 +256,7 @@ async def test_previous_version_is_cleaned_for_sensors_without_changing_numbers(
         calls.append(deepcopy(changes))
         target.options = changes["options"]
         target.version = changes["version"]
+        target.minor_version = changes.get("minor_version", 1)
 
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
     assert await async_migrate_entry(hass, entry)
@@ -291,6 +293,7 @@ async def test_versioned_migration_defaults_invalid_legacy_brightness_scale(
     def update(target, **changes):
         target.options = changes["options"]
         target.version = changes["version"]
+        target.minor_version = changes.get("minor_version", 1)
 
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
 
@@ -338,6 +341,7 @@ async def test_config_entry_migrates_redundant_switch_and_light_sync_atomically(
         calls.append(deepcopy(changes))
         target.options = changes["options"]
         target.version = changes["version"]
+        target.minor_version = changes.get("minor_version", 1)
 
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
 
@@ -453,6 +457,7 @@ async def test_migration_does_not_revalidate_unrelated_legacy_rules():
     def update(target, **changes):
         target.options = changes["options"]
         target.version = changes["version"]
+        target.minor_version = changes.get("minor_version", 1)
 
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_update_entry=update))
     assert await async_migrate_entry(hass, entry)

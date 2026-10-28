@@ -1298,7 +1298,10 @@
       "invalid_bulk_value_multiplier": "Wprowadź skończony mnożnik liczbowy.",
       "invalid_bulk_real_precision": "Wprowadź całkowitą liczbę miejsc po przecinku od 0 do 6.",
       "invalid_bulk_write_multiplier": "Zapisywalna encja Number nie może używać mnożnika równego zero.",
-      "bulk_edit_invalid": "Popraw błędy pokazane w podglądzie przed zastosowaniem. Nie zmieniono żadnych encji."
+      "bulk_edit_invalid": "Popraw błędy pokazane w podglądzie przed zastosowaniem. Nie zmieniono żadnych encji.",
+      "invalid_pulse_duration": "Wprowadź czas impulsu od 0,1 do 60 sekund lub pozostaw pole puste, aby użyć 0,5 s.",
+      "invalid_operate_time": "Wprowadź czas pracy wynoszący co najmniej 0 sekund lub pozostaw pole puste, aby użyć 60 s.",
+      "invalid_temperature_limits": "Temperatura minimalna musi być niższa od maksymalnej, a krok musi być większy od 0."
     },
     "editor": {
       "configuration_yaml": "Konfiguracja YAML",
@@ -1604,6 +1607,20 @@
         "unsupported_fields": "Te pola wymagają przeładowania: {fields}.",
         "invalid_live_config": "Nie udało się przygotować aktualizacji tych pól bez przeładowania: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Domyślne",
+      "custom": "Własne",
+      "reset": "Przywróć domyślne",
+      "empty_uses": "Puste: {value}.",
+      "leave_empty": "Pozostaw puste, aby przywrócić domyślne: {value}.",
+      "plc_scan": "interwał odczytu PLC ({value})",
+      "decimals": "miejsca dziesiętne: {count}",
+      "unit_from_class": "{unit}, domyślna jednostka dla {class}",
+      "no_unit": "brak jednostki",
+      "type_limit": "{value}, limit typu {type}",
+      "logo_time_limit": "{value}, limit czasu LOGO!",
+      "required_real": "Wymagane dla adresów REAL/LREAL."
     }
   },
   "selector": {

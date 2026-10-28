@@ -1298,7 +1298,10 @@
       "invalid_bulk_value_multiplier": "Geben Sie einen endlichen numerischen Multiplikator ein.",
       "invalid_bulk_real_precision": "Geben Sie eine ganze Anzahl Dezimalstellen von 0 bis 6 ein.",
       "invalid_bulk_write_multiplier": "Eine beschreibbare Number-Entität kann keinen Multiplikator von null verwenden.",
-      "bulk_edit_invalid": "Beheben Sie die Fehler in der Vorschau vor dem Anwenden. Keine Entität wurde geändert."
+      "bulk_edit_invalid": "Beheben Sie die Fehler in der Vorschau vor dem Anwenden. Keine Entität wurde geändert.",
+      "invalid_pulse_duration": "Geben Sie eine Impulsdauer zwischen 0,1 und 60 Sekunden ein oder lassen Sie das Feld leer, um 0,5 s zu verwenden.",
+      "invalid_operate_time": "Geben Sie eine Laufzeit von 0 Sekunden oder mehr ein oder lassen Sie das Feld leer, um 60 s zu verwenden.",
+      "invalid_temperature_limits": "Die Mindesttemperatur muss unter der Höchsttemperatur liegen und die Schrittweite größer als 0 sein."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",
@@ -1604,6 +1607,20 @@
         "unsupported_fields": "Diese Felder erfordern ein Neuladen: {fields}.",
         "invalid_live_config": "Diese Felder konnten nicht für eine Live-Aktualisierung vorbereitet werden: {fields}."
       }
+    },
+    "defaults": {
+      "default": "Standard",
+      "custom": "Angepasst",
+      "reset": "Standard wiederherstellen",
+      "empty_uses": "Leer: {value}.",
+      "leave_empty": "Leer lassen, um den Standard zu verwenden: {value}.",
+      "plc_scan": "das Abfrageintervall der SPS ({value})",
+      "decimals": "Dezimalstellen: {count}",
+      "unit_from_class": "{unit}, Standardeinheit für {class}",
+      "no_unit": "keine Einheit",
+      "type_limit": "{value}, Grenze des Typs {type}",
+      "logo_time_limit": "{value}, Grenze der LOGO!-Uhrzeit",
+      "required_real": "Für REAL/LREAL-Adressen erforderlich."
     }
   },
   "selector": {

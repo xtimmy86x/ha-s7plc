@@ -13,7 +13,9 @@ PLATFORMS = [
 ]
 
 VERSION = "8.0.0"
-FRONTEND_BUILD = "20261025.2"
+# Minor 2: entities no longer persist values equal to their platform default.
+CONFIG_ENTRY_MINOR_VERSION = 2
+FRONTEND_BUILD = "20261027.1"
 
 PANEL_URL = "s7plc-config"
 
@@ -287,6 +289,8 @@ DEFAULT_SLOT = 1
 DEFAULT_PYS7_CONNECTION_TYPE = PYS7_CONNECTION_TYPE_PG  # PG as default
 DEFAULT_SCAN_INTERVAL = 1  # seconds
 DEFAULT_PULSE_DURATION = 0.5  # seconds
+MIN_PULSE_DURATION = 0.1  # seconds
+MAX_PULSE_DURATION = 60.0  # seconds
 DEFAULT_OPERATE_TIME = 60  # seconds
 DEFAULT_TOGGLE_MODE = False
 DEFAULT_MIN_TEMP = 7.0  # °C
