@@ -62,6 +62,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
         enable_write_batching: bool = True,  # enable automatic write batching
         enable_metrics: bool = False,  # disable pyS7 performance metrics
         connection_enabled: bool = True,
+        connect_without_reads: bool = False,
     ):
         super().__init__(
             hass,
@@ -71,6 +72,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                 seconds=max(scan_interval, self._MIN_SCAN_INTERVAL)
             ),
         )
+        self._connect_without_reads = connect_without_reads
         self._host = host
         self._connection_type = connection_type
         self._rack = rack
@@ -746,7 +748,7 @@ class S7Coordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if topic in self._plans_str
                 ]
 
-            if not plans_batch and not plans_str:
+            if not plans_batch and not plans_str and not self._connect_without_reads:
                 async with self._async_lock:
                     return dict(self._data_cache)
 

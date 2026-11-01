@@ -148,12 +148,13 @@ Assistant's internal config-entry storage manually.
 #### Switch and Light (On/Off)
 
 - **Name** (optional): Custom friendly name for the entity. If not provided, a name is generated from the address
-- **State Address**: PLC address to read the actual state
+- **State Address**: PLC address to read the actual state; optional when an OFF pulse address is configured
 - **Command Address**: PLC address to write commands (defaults to state address if omitted)
 - **Sync State**: Enable to automatically synchronize external PLC state changes back to the command address (see [Advanced Features](advanced-features.md#state-synchronization))
 - **Pulse Command Mode**: When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays, flip-flop circuits, or momentary button control
 - **Single-fire Command Mode**: Writes `True` once when the requested on/off state differs from the read state. The PLC must reset the command bit. No delay or `False` write; mutually exclusive with sync and pulse modes. Disabled by default
-- **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Only used when Pulse Command Mode is enabled
+- **OFF Address** (optional, shown in Pulse Command Mode): Set it only if switching off requires a different output. Otherwise leave it empty to keep using one command address. See [pulse control with an OFF address](advanced-features.md#optional-off-pulse-address).
+- **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Used in Pulse Command Mode
 
 #### Dimmer Light
 
@@ -168,7 +169,8 @@ A brightness-controlled light entity using `ColorMode.BRIGHTNESS`. A dimmer ligh
 - **Sync State**: Enable to automatically synchronize external PLC state changes back to the command address (see [Advanced Features](advanced-features.md#state-synchronization)). Applies to the boolean on/off state
 - **Pulse Command Mode**: When enabled, sends a pulse (ON then OFF) instead of a continuous state. Useful for bistable relays or flip-flop circuits. Applies to the boolean on/off state
 - **Single-fire Command Mode**: Writes `True` once when the requested on/off state differs from the read state. The PLC must reset the command bit. No delay or `False` write; mutually exclusive with sync and pulse modes. Disabled by default
-- **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Only used when Pulse Command Mode is enabled
+- **OFF Address** (optional, shown in Pulse Command Mode): Set it only if switching off requires a different output. Otherwise leave it empty to keep using one command address. See [pulse control with an OFF address](advanced-features.md#optional-off-pulse-address).
+- **Pulse Duration**: Duration of the pulse in seconds (0.1-60s, default: 0.5s). Used in Pulse Command Mode
 
 #### Cover (Traditional Open/Close)
 

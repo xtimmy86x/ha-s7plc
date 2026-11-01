@@ -388,15 +388,19 @@
           },
           "state_address": {
             "label": "Zustandsvariable",
-            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0)."
+            "description": "SPS-Adresse zum Lesen des aktuellen Zustands (z.B. Q0.0, DB20,X0.0). Optional, wenn eine AUS-Adresse konfiguriert ist. Ohne Rückmeldung nimmt Home Assistant den Zustand nach einem erfolgreichen Befehl an und erkennt keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsvariable",
-            "description": "SPS-Adresse zum Schreiben von Befehlen (optional). Wenn es weggelassen wird, wird nur der Zustand gelesen."
+            "description": "Adresse für Befehle oder für den EIN-Impuls, wenn eine AUS-Adresse festgelegt ist. Ohne Angabe wird die Zustandsadresse verwendet."
           },
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden. Minimum: 0,1s, Maximum: 60s."
+          },
+          "off_command_address": {
+            "label": "AUS-Adresse (optional)",
+            "description": "Nur verwenden, wenn das Ausschalten einen separaten Ausgang erfordert. Leer lassen, um dieselbe Befehlsadresse für EIN und AUS zu verwenden."
           }
         }
       },
@@ -618,11 +622,11 @@
           },
           "state_address": {
             "label": "Statusadresse (ein/aus)",
-            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0)."
+            "description": "Boolesche PLC-Adresse zum Lesen des Ein/Aus-Status (z.B. DB1,X0.0). Optional, wenn eine AUS-Adresse konfiguriert ist. Ohne Rückmeldung nimmt Home Assistant den Zustand nach einem erfolgreichen Befehl an und erkennt keine externen Änderungen."
           },
           "command_address": {
             "label": "Befehlsadresse (ein/aus)",
-            "description": "Boolesche PLC-Adresse zum Schreiben von Ein/Aus-Befehlen (optional). Wenn leer, wird die Statusadresse verwendet."
+            "description": "Adresse für Befehle oder für den EIN-Impuls, wenn eine AUS-Adresse festgelegt ist. Ohne Angabe wird die Zustandsadresse verwendet."
           },
           "brightness_state_address": {
             "label": "Helligkeits-Statusadresse",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Impulsdauer (s)",
             "description": "Dauer des Impulses in Sekunden (0,1-60s, Dezimalwerte möglich). Standard: 0,5s."
+          },
+          "off_command_address": {
+            "label": "AUS-Adresse (optional)",
+            "description": "Nur verwenden, wenn das Ausschalten einen separaten Ausgang erfordert. Leer lassen, um dieselbe Befehlsadresse für EIN und AUS zu verwenden."
           }
         },
         "mode": {
@@ -1052,7 +1060,7 @@
         },
         "pulse": {
           "title": "Impulssteuerung",
-          "description": "Sendet einen zeitgesteuerten Impuls an die Befehlsadresse, anstatt den EIN/AUS-Wert beizubehalten."
+          "description": "Impulse zum Ein- und Ausschalten senden. Bei Geräten mit zwei Ausgängen kann eine separate AUS-Adresse angegeben werden."
         },
         "single_fire": {
           "title": "Einmaliger Befehl",
@@ -1301,7 +1309,12 @@
       "bulk_edit_invalid": "Beheben Sie die Fehler in der Vorschau vor dem Anwenden. Keine Entität wurde geändert.",
       "invalid_pulse_duration": "Geben Sie eine Impulsdauer zwischen 0,1 und 60 Sekunden ein oder lassen Sie das Feld leer, um 0,5 s zu verwenden.",
       "invalid_operate_time": "Geben Sie eine Laufzeit von 0 Sekunden oder mehr ein oder lassen Sie das Feld leer, um 60 s zu verwenden.",
-      "invalid_temperature_limits": "Die Mindesttemperatur muss unter der Höchsttemperatur liegen und die Schrittweite größer als 0 sein."
+      "invalid_temperature_limits": "Die Mindesttemperatur muss unter der Höchsttemperatur liegen und die Schrittweite größer als 0 sein.",
+      "dual_pulse_requires_on_address": "Getrennte EIN/AUS-Impulse erfordern eine explizite EIN-Befehlsadresse.",
+      "dual_pulse_same_address": "Die EIN- und AUS-Befehlsadressen müssen unterschiedlich sein.",
+      "dual_pulse_conflict": "Impulssteuerung mit AUS-Adresse kann nicht mit Synchronisierung oder Einzelbefehlen kombiniert werden.",
+      "dual_pulse_requires_output_bits": "Die EIN- und AUS-Adressen müssen beschreibbare BIT-Adressen sein (Q, M oder DB).",
+      "dual_pulse_invalid_feedback": "Die Rückmeldung muss eine BIT-Adresse sein, die sich von beiden Impulsausgängen unterscheidet."
     },
     "editor": {
       "configuration_yaml": "Erweitertes YAML",

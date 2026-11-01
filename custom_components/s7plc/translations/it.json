@@ -388,15 +388,19 @@
           },
           "state_address": {
             "label": "Indirizzo stato",
-            "description": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0)."
+            "description": "Indirizzo PLC da cui leggere lo stato corrente (es. Q0.0, DB20,X0.0). Facoltativo quando è configurato un indirizzo OFF. Senza feedback, Home Assistant presume lo stato dopo un comando riuscito e non rileva modifiche esterne."
           },
           "command_address": {
             "label": "Indirizzo comando",
-            "description": "Indirizzo PLC su cui scrivere i comandi (opzionale). Se omesso, verrà solo letto lo stato."
+            "description": "Indirizzo per i comandi, o per l’impulso ON se è impostato un indirizzo OFF. Se omesso, viene usato l’indirizzo di stato."
           },
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi. Minimo: 0,1 s, Massimo: 60 s."
+          },
+          "off_command_address": {
+            "label": "Indirizzo OFF (facoltativo)",
+            "description": "Usalo solo se lo spegnimento richiede un’uscita separata. Lascia vuoto per usare lo stesso indirizzo comando sia per ON che per OFF."
           }
         }
       },
@@ -618,11 +622,11 @@
           },
           "state_address": {
             "label": "Indirizzo stato (on/off)",
-            "description": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0)."
+            "description": "Indirizzo booleano del PLC per leggere lo stato on/off (es. DB1,X0.0). Facoltativo quando è configurato un indirizzo OFF. Senza feedback, Home Assistant presume lo stato dopo un comando riuscito e non rileva modifiche esterne."
           },
           "command_address": {
             "label": "Indirizzo comando (on/off)",
-            "description": "Indirizzo booleano del PLC per scrivere i comandi on/off (opzionale). Se omesso, viene usato l'indirizzo di stato."
+            "description": "Indirizzo per i comandi, o per l’impulso ON se è impostato un indirizzo OFF. Se omesso, viene usato l’indirizzo di stato."
           },
           "brightness_state_address": {
             "label": "Indirizzo stato luminosità",
@@ -635,6 +639,10 @@
           "pulse_duration": {
             "label": "Durata impulso (s)",
             "description": "Durata dell'impulso in secondi (0,1-60 s, supporta decimali). Predefinito: 0,5 s."
+          },
+          "off_command_address": {
+            "label": "Indirizzo OFF (facoltativo)",
+            "description": "Usalo solo se lo spegnimento richiede un’uscita separata. Lascia vuoto per usare lo stesso indirizzo comando sia per ON che per OFF."
           }
         },
         "mode": {
@@ -1052,7 +1060,7 @@
         },
         "pulse": {
           "title": "Comando a impulso",
-          "description": "Invia un impulso temporizzato all’indirizzo comando invece di mantenere il valore ON/OFF."
+          "description": "Invia impulsi per accendere e spegnere. Se il dispositivo usa due uscite, puoi specificare un indirizzo OFF separato."
         },
         "single_fire": {
           "title": "Comando singolo",
@@ -1301,7 +1309,12 @@
       "bulk_edit_invalid": "Correggi gli errori mostrati nell’anteprima prima di applicare. Nessuna entità è stata modificata.",
       "invalid_pulse_duration": "Inserisci una durata dell’impulso tra 0,1 e 60 secondi, oppure lascia vuoto per usare 0,5 s.",
       "invalid_operate_time": "Inserisci un tempo di manovra di 0 secondi o più, oppure lascia vuoto per usare 60 s.",
-      "invalid_temperature_limits": "La temperatura minima deve essere inferiore alla massima e il passo deve essere maggiore di 0."
+      "invalid_temperature_limits": "La temperatura minima deve essere inferiore alla massima e il passo deve essere maggiore di 0.",
+      "dual_pulse_requires_on_address": "Gli impulsi ON/OFF separati richiedono un indirizzo comando ON esplicito.",
+      "dual_pulse_same_address": "Gli indirizzi comando ON e OFF devono essere diversi.",
+      "dual_pulse_conflict": "Il comando a impulso con indirizzo OFF non può essere combinato con sincronizzazione o comando singolo.",
+      "dual_pulse_requires_output_bits": "Gli indirizzi ON e OFF devono essere indirizzi BIT scrivibili (Q, M o DB).",
+      "dual_pulse_invalid_feedback": "Il feedback deve essere un indirizzo BIT diverso da entrambe le uscite a impulso."
     },
     "editor": {
       "configuration_yaml": "YAML avanzato",

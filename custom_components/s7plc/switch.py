@@ -13,6 +13,7 @@ from .const import (
     CONF_AREA,
     CONF_COMMAND_ADDRESS,
     CONF_MANUAL_CONNECTION_CONTROL,
+    CONF_OFF_COMMAND_ADDRESS,
     CONF_PULSE_COMMAND,
     CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
@@ -48,19 +49,25 @@ async def async_setup_entry(
         )
     for item in entry.options.get(CONF_SWITCHES, []):
         state_address = item.get(CONF_STATE_ADDRESS)
-        if not state_address:
+        off_command_address = item.get(CONF_OFF_COMMAND_ADDRESS)
+        if not state_address and not (
+            off_command_address and item.get(CONF_COMMAND_ADDRESS)
+        ):
             continue
         command_address = item.get(CONF_COMMAND_ADDRESS, state_address)
         sync_state = bool(item.get(CONF_SYNC_STATE, False))
         pulse_command = bool(item.get(CONF_PULSE_COMMAND, False))
         single_fire_command = bool(item.get(CONF_SINGLE_FIRE_COMMAND, False))
         pulse_duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
-        name = item.get(CONF_NAME) or default_entity_name(state_address)
+        name = item.get(CONF_NAME) or default_entity_name(
+            state_address or command_address
+        )
         area = item.get(CONF_AREA)
-        topic = f"switch:{state_address}"
+        topic = f"switch:{state_address or item[CONF_UID]}"
         unique_id = item[CONF_UID]
         scan_interval = item.get(CONF_SCAN_INTERVAL)
-        await coord.add_item(topic, state_address, scan_interval)
+        if state_address:
+            await coord.add_item(topic, state_address, scan_interval)
         entities.append(
             S7Switch(
                 coord,
@@ -75,6 +82,7 @@ async def async_setup_entry(
                 pulse_duration,
                 area,
                 single_fire_command=single_fire_command,
+                off_command_address=off_command_address,
             )
         )
 
@@ -132,13 +140,14 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
         unique_id: str,
         device_info: DeviceInfo,
         topic: str,
-        state_address: str,
+        state_address: str | None,
         command_address: str,
         sync_state: bool,
         pulse_command: bool,
         pulse_duration: float,
         suggested_area_id: str | None = None,
         single_fire_command: bool = False,
+        off_command_address: str | None = None,
     ):
         super().__init__(
             coordinator,
@@ -151,6 +160,7 @@ class S7Switch(S7BoolSyncEntity, SwitchEntity):
             sync_state=sync_state,
             pulse_command=pulse_command,
             single_fire_command=single_fire_command,
+            off_command_address=off_command_address,
             pulse_duration=pulse_duration,
             suggested_area_id=suggested_area_id,
         )

@@ -318,6 +318,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         enable_write_batching=enable_write_batching,
         enable_metrics=enable_metrics,
         connection_enabled=connection_enabled,
+        connect_without_reads=any(
+            item.get("off_command_address")
+            and item.get("command_address")
+            and not item.get("state_address")
+            for platform in ("lights", "switches")
+            for item in entry.options.get(platform, [])
+        ),
     )
 
     # Store runtime data directly in the config entry

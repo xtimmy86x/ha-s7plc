@@ -283,7 +283,7 @@ def test_switch_and_light_editor_section_order_is_explicit() -> None:
         light_start : source.index("return section('connection'", light_start)
     ]
     assert switch_definition.index("['control_behavior']") < switch_definition.index(
-        "['state_address','command_address']"
+        "['state_address','command_address','off_command_address']"
     )
     assert (
         light_definition.index("['control_behavior']")
@@ -309,7 +309,7 @@ def test_panel_control_mode_is_context_aware() -> None:
         "NORMALIZE_ADDRESS(entity.command_address);" in source
     )
     assert "sync.disabled=!canSync" in source
-    assert "selected!=='pulse'" in source
+    assert "!pulse" in source
     assert '[data-field="pulse_duration"]' in source
     assert '["control_behavior","control"]' in source
     assert 'name="sync_state" type="checkbox"' not in source
