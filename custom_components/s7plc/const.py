@@ -12,7 +12,7 @@ PLATFORMS = [
     "climate",
 ]
 
-VERSION = "8.0.0"
+VERSION = "8.1.0"
 # Minor 2: entities no longer persist values equal to their platform default.
 CONFIG_ENTRY_MINOR_VERSION = 2
 FRONTEND_BUILD = "20261028.3"
