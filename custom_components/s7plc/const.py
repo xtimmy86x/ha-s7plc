@@ -15,7 +15,7 @@ PLATFORMS = [
 VERSION = "8.1.0"
 # Minor 2: entities no longer persist values equal to their platform default.
 CONFIG_ENTRY_MINOR_VERSION = 2
-FRONTEND_BUILD = "20261028.3"
+FRONTEND_BUILD = "20261104.1"
 
 PANEL_URL = "s7plc-config"
 
