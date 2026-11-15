@@ -181,7 +181,7 @@ async def test_climate_direct_creation(climate_direct_factory):
     
     # Verify target temperature is initialized to midpoint
     expected_default = (7.0 + 35.0) / 2
-    assert climate.target_temperature == expected_default
+    assert climate.native_target_temperature == expected_default
 
 
 @pytest.mark.asyncio
@@ -193,7 +193,7 @@ async def test_climate_direct_current_temperature(climate_direct_factory, mock_c
     # Simulate temperature reading from PLC
     mock_coordinator.data = {topic: 22.5}
     
-    assert climate.current_temperature == 22.5
+    assert climate.native_current_temperature == 22.5
 
 
 @pytest.mark.asyncio
@@ -204,7 +204,7 @@ async def test_climate_direct_set_temperature(climate_direct_factory, mock_coord
     # Set target temperature
     await climate.async_set_temperature(temperature=21.0)
     
-    assert climate.target_temperature == 21.0
+    assert climate.native_target_temperature == 21.0
 
 
 @pytest.mark.asyncio
@@ -326,7 +326,7 @@ async def test_climate_setpoint_current_temperature(climate_setpoint_factory, mo
     # Simulate temperature reading from PLC
     mock_coordinator.data = {topic_current: 23.0}
     
-    assert climate.current_temperature == 23.0
+    assert climate.native_current_temperature == 23.0
 
 
 @pytest.mark.asyncio
@@ -338,7 +338,7 @@ async def test_climate_setpoint_target_temperature(climate_setpoint_factory, moc
     # Simulate target temperature reading from PLC
     mock_coordinator.data = {topic_target: 21.0}
     
-    assert climate.target_temperature == 21.0
+    assert climate.native_target_temperature == 21.0
 
 
 @pytest.mark.asyncio
@@ -548,7 +548,7 @@ async def test_climate_direct_restore_state(climate_direct_factory, fake_hass):
     await climate.async_added_to_hass()
     
     # Verify state was restored
-    assert climate.target_temperature == 23.5
+    assert climate.native_target_temperature == 23.5
     assert climate.hvac_mode == HVACMode.HEAT
 
 
@@ -599,7 +599,7 @@ async def test_climate_direct_no_restore_invalid_mode(climate_direct_factory, fa
     
     # Mode should not change, but temperature should be restored
     assert climate.hvac_mode == initial_mode
-    assert climate.target_temperature == 20.0
+    assert climate.native_target_temperature == 20.0
 
 
 # ============================================================================
