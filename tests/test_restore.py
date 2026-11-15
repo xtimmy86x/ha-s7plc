@@ -177,7 +177,7 @@ async def test_climate_control_waits_for_real_temperature(mock_coordinator):
     await entity.async_added_to_hass()
     entity._hvac_mode = HVACMode.HEAT
     entity._target_temperature = 20
-    assert entity.current_temperature == 10
+    assert entity.native_current_temperature == 10
     await entity._update_outputs()
     assert not mock_coordinator.write_calls
     mock_coordinator.data = {"climate:current_temp": 25}

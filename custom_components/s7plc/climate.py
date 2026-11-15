@@ -340,7 +340,28 @@ async def async_setup_entry(
         await coord.async_request_refresh()
 
 
-class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
+class _S7ClimateEntity(S7BaseEntity, ClimateEntity):
+    """Expose native temperatures while supporting Home Assistant before 2026.11."""
+
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+
+    # Define legacy properties only on HA versions without the native API.
+    # Defining or reading these on newer versions triggers deprecation warnings.
+    if not hasattr(ClimateEntity, "native_current_temperature"):
+        _attr_temperature_unit = UnitOfTemperature.CELSIUS
+
+        @property
+        def current_temperature(self) -> float | None:
+            """Return the native reading for older Home Assistant versions."""
+            return self.native_current_temperature
+
+        @property
+        def target_temperature(self) -> float | None:
+            """Return the native setpoint for older Home Assistant versions."""
+            return self.native_target_temperature
+
+
+class S7ClimateDirectControl(_S7ClimateEntity):
     """Climate entity with direct heating/cooling output control.
 
     This mode allows Home Assistant to directly control PLC outputs for
@@ -350,7 +371,6 @@ class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
 
     _address_attr_name = "s7_current_temp_address"
     _restore_topic_suffixes = ("current_temp", "heating_action", "cooling_action")
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _enable_turn_on_off_backwards_compatibility = False
 
@@ -446,7 +466,7 @@ class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
         return temp_topic in data and data[temp_topic] is not None
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return current temperature from PLC."""
         data = self._state_data
         temp_topic = f"{self._topic}:current_temp"
@@ -471,7 +491,7 @@ class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
         return None
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return target temperature."""
         return self._target_temperature
 
@@ -581,7 +601,7 @@ class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
         if self._target_temperature is None:
             return
 
-        current_temp = self.current_temperature
+        current_temp = self.native_current_temperature
         if current_temp is None:
             return
 
@@ -617,7 +637,7 @@ class S7ClimateDirectControl(S7BaseEntity, ClimateEntity):
         super()._handle_coordinator_update()
 
 
-class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
+class S7ClimateSetpointControl(_S7ClimateEntity):
     """Climate entity with PLC-managed setpoint control.
 
     This mode allows the PLC to manage heating/cooling autonomously.
@@ -634,7 +654,6 @@ class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
     )
 
     _address_attr_name = "s7_current_temp_address"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL]
     _enable_turn_on_off_backwards_compatibility = False
@@ -857,7 +876,7 @@ class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
         return temp_topic in data and data[temp_topic] is not None
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return current temperature from PLC."""
         data = self._state_data
         temp_topic = f"{self._topic}:current_temp"
@@ -882,7 +901,7 @@ class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
         return None
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return target temperature read from PLC."""
         data = self._state_data
         temp_topic = f"{self._topic}:target_temp"
@@ -992,10 +1011,12 @@ class S7ClimateSetpointControl(S7BaseEntity, ClimateEntity):
             return HVACAction.IDLE
 
         # Fallback: infer from temperature comparison
-        if self.target_temperature is not None and self.current_temperature is not None:
-            if self.target_temperature > self.current_temperature:
+        target = self.native_target_temperature
+        current = self.native_current_temperature
+        if target is not None and current is not None:
+            if target > current:
                 return HVACAction.HEATING
-            elif self.target_temperature < self.current_temperature:
+            elif target < current:
                 return HVACAction.COOLING
 
         return HVACAction.IDLE
